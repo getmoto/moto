@@ -45,16 +45,14 @@ def test_my_model_save():
 
 With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps the state of the buckets and keys.
 
-# Available Moto services:
+<!-- # Available Moto services:
 *    S3
 *    EC2
 *    DynamoDB
-
-HTTPretty is a HTTP client mock library for Python 100% inspired on ruby's [FakeWeb](http://fakeweb.rubyforge.org/).
-If you come from ruby this would probably sound familiar :smiley:
 
 #### Install
 
 ```console
 pip install moto
 ```
+ -->
