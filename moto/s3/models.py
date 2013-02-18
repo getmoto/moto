@@ -19,7 +19,7 @@ class FakeKey(object):
 class FakeBucket(object):
     def __init__(self, name):
         self.name = name
-        self.keys = []
+        self.keys = {}
 
 
 class S3Backend(BaseBackend):
@@ -36,22 +36,33 @@ class S3Backend(BaseBackend):
     def get_bucket(self, bucket_name):
         return self.buckets.get(bucket_name)
 
+    def delete_bucket(self, bucket_name):
+        bucket = self.buckets.get(bucket_name)
+        if bucket:
+            if bucket.keys:
+                # Can't delete a bucket with keys
+                return False
+            else:
+                return self.buckets.pop(bucket_name)
+        else:
+            # implement this
+            import pdb;pdb.set_trace()
+
+
     def set_key(self, bucket_name, key_name, value):
         bucket = self.buckets[bucket_name]
         new_key = FakeKey(name=key_name, value=value)
-        bucket.keys.append(new_key)
+        bucket.keys[key_name] = new_key
 
         return new_key
 
     def get_key(self, bucket_name, key_name):
         bucket = self.buckets[bucket_name]
-        found_key = None
-        for key in bucket.keys:
-            if key.name == key_name:
-                found_key = key
-                break
+        return bucket.keys.get(key_name)
 
-        return found_key
+    def delete_key(self, bucket_name, key_name):
+        bucket = self.buckets[bucket_name]
+        return bucket.keys.pop(key_name)
 
 
 s3_backend = S3Backend()
