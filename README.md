@@ -9,7 +9,6 @@ Imagine you have the following code that you want to test:
 ```python
 import boto
 from boto.s3.key import Key
-conn = boto.connect_s3()
 
 class MyModel(object):
     def __init__(self, name, value):
@@ -17,6 +16,7 @@ class MyModel(object):
         self.value = value
 
     def save(self):
+        conn = boto.connect_s3()
         bucket = conn.get_bucket('mybucket')
         k = Key(bucket)
         k.key = self.name

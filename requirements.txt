@@ -1,0 +1,6 @@
+boto
+httpretty
+Jinja2
+mock
+nose
+sure
