@@ -1,4 +1,4 @@
-# Moto - *Mo*ck Bo*to*
+# Moto - *Mo* ck Bo *to*
 
 # WARNING: Moto is still in active development
 
