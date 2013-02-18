@@ -1,5 +1,5 @@
 boto
-httpretty
+#httpretty
 Jinja2
 mock
 nose
