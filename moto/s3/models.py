@@ -22,7 +22,7 @@ class FakeBucket(object):
         self.keys = []
 
 
-class MockS3(BaseBackend):
+class S3Backend(BaseBackend):
     base_url = "https://(.+).s3.amazonaws.com"
 
     def __init__(self):
@@ -54,4 +54,4 @@ class MockS3(BaseBackend):
         return found_key
 
 
-s3_backend = MockS3()
+s3_backend = S3Backend()

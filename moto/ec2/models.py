@@ -4,7 +4,7 @@ from moto.core import BaseBackend
 from .utils import random_instance_id, random_reservation_id
 
 
-class MockEC2(BaseBackend):
+class EC2Backend(BaseBackend):
     base_url = "https://ec2.us-east-1.amazonaws.com"
 
     def __init__(self):
@@ -41,4 +41,4 @@ class MockEC2(BaseBackend):
         return self.reservations.values()
 
 
-ec2_backend = MockEC2()
+ec2_backend = EC2Backend()
