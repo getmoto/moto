@@ -4,8 +4,16 @@ from .models import s3_backend
 
 def bucket_response(uri, body, headers):
     hostname = uri.hostname
-    bucket_name = hostname.replace(".s3.amazonaws.com", "")
     method = uri.method
+
+    s3_base_url = "s3.amazonaws.com"
+    if hostname == s3_base_url:
+        # No bucket specified. Listing all buckets
+        all_buckets = s3_backend.get_all_buckets()
+        template = Template(S3_ALL_BUCKETS)
+        return template.render(buckets=all_buckets)
+
+    bucket_name = hostname.replace(".s3.amazonaws.com", "")
 
     if method == 'GET':
         bucket = s3_backend.get_bucket(bucket_name)
@@ -65,6 +73,21 @@ def key_response(uri_info, body, headers):
     else:
         import pdb;pdb.set_trace()
 
+
+S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
+  <Owner>
+    <ID>bcaf1ffd86f41161ca5fb16fd081034f</ID>
+    <DisplayName>webfile</DisplayName>
+  </Owner>
+  <Buckets>
+    {% for bucket in buckets %}
+      <Bucket>
+        <Name>{{ bucket.name }}</Name>
+        <CreationDate>2006-02-03T16:45:09.000Z</CreationDate>
+      </Bucket>
+    {% endfor %}
+ </Buckets>
+</ListAllMyBucketsResult>"""
 
 S3_BUCKET_GET_RESPONSE = """<ListBucket xmlns="http://doc.s3.amazonaws.com/2006-03-01">\
       <Bucket>{{ bucket.name }}</Bucket>\

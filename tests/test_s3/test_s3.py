@@ -53,3 +53,13 @@ def test_bucket_deletion():
     conn.delete_bucket("foobar")
 
     conn.get_bucket.when.called_with("foobar").should.throw(S3ResponseError)
+
+
+@mock_s3
+def test_get_all_buckets():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    bucket = conn.create_bucket("foobar2")
+    buckets = conn.get_all_buckets()
+
+    buckets.should.have.length_of(2)

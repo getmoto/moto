@@ -23,7 +23,7 @@ class FakeBucket(object):
 
 
 class S3Backend(BaseBackend):
-    base_url = "https://(.+).s3.amazonaws.com"
+    base_url = "https://(.*)s3.amazonaws.com"
 
     def __init__(self):
         self.buckets = {}
@@ -32,6 +32,9 @@ class S3Backend(BaseBackend):
         new_bucket = FakeBucket(name=bucket_name)
         self.buckets[bucket_name] = new_bucket
         return new_bucket
+
+    def get_all_buckets(self):
+        return self.buckets.values()
 
     def get_bucket(self, bucket_name):
         return self.buckets.get(bucket_name)
