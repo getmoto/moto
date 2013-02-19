@@ -5,7 +5,6 @@ from .utils import random_instance_id, random_reservation_id
 
 
 class EC2Backend(BaseBackend):
-    base_url = "https://ec2.us-east-1.amazonaws.com"
 
     def __init__(self):
         self.reservations = {}

@@ -1,6 +1,9 @@
-from .responses import bucket_response, key_response
+from .responses import all_buckets, bucket_response, key_response
+
+base_url = "https://(.*).s3.amazonaws.com"
 
 urls = {
-    '/$': bucket_response,
-    '/(.+)': key_response,
+    'https://s3.amazonaws.com/$': all_buckets,
+    '{0}/$'.format(base_url): bucket_response,
+    '{}/(.+)'.format(base_url): key_response,
 }

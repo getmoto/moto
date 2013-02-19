@@ -5,7 +5,6 @@ from httpretty import HTTPretty
 
 
 class BaseBackend(object):
-    base_url = None
 
     def reset(self):
         self = self.__class__()
@@ -30,7 +29,7 @@ class BaseBackend(object):
                 for key, value in self.urls.iteritems():
                     HTTPretty.register_uri(
                         method=method,
-                        uri=re.compile(self.base_url + key),
+                        uri=re.compile(key),
                         body=value,
                     )
             try:

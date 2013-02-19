@@ -32,6 +32,14 @@ def test_my_model_save():
 
     assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
 
+
+@mock_s3
+def test_missing_key():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    bucket.get_key("the-key").should.equal(None)
+
+
 @mock_s3
 def test_missing_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
@@ -47,12 +55,17 @@ def test_bucket_deletion():
     key.key = "the-key"
     key.set_contents_from_string("some value")
 
+    # Try to delete a bucket that still has keys
     conn.delete_bucket.when.called_with("foobar").should.throw(S3ResponseError)
 
     bucket.delete_key("the-key")
     conn.delete_bucket("foobar")
 
+    # Get non-existing bucket
     conn.get_bucket.when.called_with("foobar").should.throw(S3ResponseError)
+
+    # Delete non-existant bucket
+    conn.delete_bucket.when.called_with("foobar").should.throw(S3ResponseError)
 
 
 @mock_s3

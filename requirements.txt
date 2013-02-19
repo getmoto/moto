@@ -1,4 +1,5 @@
 boto
+coverage
 #httpretty
 Jinja2
 mock

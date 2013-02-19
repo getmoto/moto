@@ -1,5 +1,5 @@
 from .responses import instances
 
 urls = {
-    '/': instances,
+    "https://ec2.us-east-1.amazonaws.com/": instances,
 }

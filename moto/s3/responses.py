@@ -1,19 +1,28 @@
 from jinja2 import Template
 
 from .models import s3_backend
+from .utils import bucket_name_from_hostname
+
+
+def all_buckets(uri, body, method):
+    # No bucket specified. Listing all buckets
+    all_buckets = s3_backend.get_all_buckets()
+    template = Template(S3_ALL_BUCKETS)
+    return template.render(buckets=all_buckets)
+
 
 def bucket_response(uri, body, headers):
     hostname = uri.hostname
     method = uri.method
 
-    s3_base_url = "s3.amazonaws.com"
-    if hostname == s3_base_url:
-        # No bucket specified. Listing all buckets
-        all_buckets = s3_backend.get_all_buckets()
-        template = Template(S3_ALL_BUCKETS)
-        return template.render(buckets=all_buckets)
+    # s3_base_url = "s3.amazonaws.com"
+    # if hostname == s3_base_url:
+    #     # No bucket specified. Listing all buckets
+    #     all_buckets = s3_backend.get_all_buckets()
+    #     template = Template(S3_ALL_BUCKETS)
+    #     return template.render(buckets=all_buckets)
 
-    bucket_name = hostname.replace(".s3.amazonaws.com", "")
+    bucket_name = bucket_name_from_hostname(hostname)
 
     if method == 'GET':
         bucket = s3_backend.get_bucket(bucket_name)
@@ -28,14 +37,18 @@ def bucket_response(uri, body, headers):
         return template.render(bucket=new_bucket)
     elif method == 'DELETE':
         removed_bucket = s3_backend.delete_bucket(bucket_name)
-        if removed_bucket:
+        if removed_bucket is None:
+            # Non-existant bucket
+            template = Template(S3_DELETE_NON_EXISTING_BUCKET)
+            return template.render(bucket_name=bucket_name), dict(status=404)
+        elif removed_bucket:
+            # Bucket exists
             template = Template(S3_DELETE_BUCKET_SUCCESS)
             return template.render(bucket=removed_bucket), dict(status=204)
         else:
             # Tried to delete a bucket that still has keys
             template = Template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
             return template.render(bucket=removed_bucket), dict(status=409)
-
     else:
         import pdb;pdb.set_trace()
 
@@ -44,15 +57,13 @@ def key_response(uri_info, body, headers):
 
     key_name = uri_info.path.lstrip('/')
     hostname = uri_info.hostname
-    bucket_name = hostname.replace(".s3.amazonaws.com", "")
     method = uri_info.method
+
+    bucket_name = bucket_name_from_hostname(hostname)
 
     if method == 'GET':
         key = s3_backend.get_key(bucket_name, key_name)
-        if key:
-            return key.value
-        else:
-            return "", dict(status=404)
+        return key.value
 
     if method == 'PUT':
         if body:
@@ -65,7 +76,10 @@ def key_response(uri_info, body, headers):
             return ""
     elif method == 'HEAD':
         key = s3_backend.get_key(bucket_name, key_name)
-        return S3_OBJECT_RESPONSE, dict(etag=key.etag)
+        if key:
+            return S3_OBJECT_RESPONSE, dict(etag=key.etag)
+        else:
+            return "", dict(status=404)
     elif method == 'DELETE':
         removed_key = s3_backend.delete_key(bucket_name, key_name)
         template = Template(S3_DELETE_OBJECT_SUCCESS)
@@ -111,6 +125,14 @@ S3_DELETE_BUCKET_SUCCESS = """<DeleteBucketResponse xmlns="http://s3.amazonaws.c
     <Description>No Content</Description>
   </DeleteBucketResponse>
 </DeleteBucketResponse>"""
+
+S3_DELETE_NON_EXISTING_BUCKET = """<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>NoSuchBucket</Code>
+<Message>The specified bucket does not exist</Message>
+<BucketName>{{ bucket_name }}</BucketName>
+<RequestId>asdfasdfsadf</RequestId>
+<HostId>asfasdfsfsafasdf</HostId>
+</Error>"""
 
 S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 <Error><Code>BucketNotEmpty</Code>

@@ -23,7 +23,6 @@ class FakeBucket(object):
 
 
 class S3Backend(BaseBackend):
-    base_url = "https://(.*)s3.amazonaws.com"
 
     def __init__(self):
         self.buckets = {}
@@ -47,9 +46,7 @@ class S3Backend(BaseBackend):
                 return False
             else:
                 return self.buckets.pop(bucket_name)
-        else:
-            # implement this
-            import pdb;pdb.set_trace()
+        return None
 
 
     def set_key(self, bucket_name, key_name, value):
