@@ -20,6 +20,24 @@ class EC2Backend(BaseBackend):
         self.reservations[new_reservation.id] = new_reservation
         return new_reservation
 
+    def start_instances(self, instance_ids):
+        started_instances = []
+        for instance in self.all_instances():
+            if instance.id in instance_ids:
+                instance._state = InstanceState(0, 'pending')
+                started_instances.append(instance)
+
+        return started_instances
+
+    def stop_instances(self, instance_ids):
+        stopped_instances = []
+        for instance in self.all_instances():
+            if instance.id in instance_ids:
+                instance._state = InstanceState(64, 'stopping')
+                stopped_instances.append(instance)
+
+        return stopped_instances
+
     def terminate_instances(self, instance_ids):
         terminated_instances = []
         for instance in self.all_instances():

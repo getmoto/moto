@@ -21,8 +21,18 @@ def instances(uri, body, headers):
         instances = ec2_backend.terminate_instances(instance_ids)
         template = Template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
+    elif action == 'StopInstances':
+        instance_ids = querystring.get('InstanceId.1')[0]
+        instances = ec2_backend.stop_instances(instance_ids)
+        template = Template(EC2_STOP_INSTANCES)
+        return template.render(instances=instances)
+    elif action == 'StartInstances':
+        instance_ids = querystring.get('InstanceId.1')[0]
+        instances = ec2_backend.start_instances(instance_ids)
+        template = Template(EC2_START_INSTANCES)
+        return template.render(instances=instances)
     else:
-        raise ValueError("Not implemented", action)
+        import pdb;pdb.set_trace()
 
 
 EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
@@ -222,3 +232,43 @@ EC2_TERMINATE_INSTANCES = """
     {% endfor %}
   </instancesSet>
 </TerminateInstancesResponse>"""
+
+EC2_STOP_INSTANCES = """
+<StopInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <instancesSet>
+    {% for instance in instances %}
+      <item>
+        <instanceId>{{ instance.id }}</instanceId>
+        <currentState>
+          <code>32</code>
+          <name>{{ instance.state }}</name>
+        </currentState>
+        <previousState>
+          <code>16</code>
+          <name>running</name>
+        </previousState>
+      </item>
+    {% endfor %}
+  </instancesSet>
+</StopInstancesResponse>"""
+
+EC2_START_INSTANCES = """
+<StartInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <instancesSet>
+    {% for instance in instances %}
+      <item>
+        <instanceId>{{ instance.id }}</instanceId>
+        <currentState>
+          <code>32</code>
+          <name>{{ instance.state }}</name>
+        </currentState>
+        <previousState>
+          <code>16</code>
+          <name>running</name>
+        </previousState>
+      </item>
+    {% endfor %}
+  </instancesSet>
+</StartInstancesResponse>"""

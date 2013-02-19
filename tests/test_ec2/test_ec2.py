@@ -27,3 +27,18 @@ def test_instance_launch_and_terminate():
     reservations = conn.get_all_instances()
     instance = reservations[0].instances[0]
     instance.state.should.equal('shutting-down')
+
+
+@mock_ec2
+def test_instance_start_and_stop():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('<ami-image-id>', '<ami-image-id2>')
+    instances = reservation.instances
+
+    stopped_instances = conn.stop_instances([instance.id for instance in instances])
+
+    for instance in stopped_instances:
+        instance.state.should.equal('stopping')
+
+    started_instances = conn.start_instances(instances[0].id)
+    started_instances[0].state.should.equal('pending')

@@ -15,13 +15,6 @@ def bucket_response(uri, body, headers):
     hostname = uri.hostname
     method = uri.method
 
-    # s3_base_url = "s3.amazonaws.com"
-    # if hostname == s3_base_url:
-    #     # No bucket specified. Listing all buckets
-    #     all_buckets = s3_backend.get_all_buckets()
-    #     template = Template(S3_ALL_BUCKETS)
-    #     return template.render(buckets=all_buckets)
-
     bucket_name = bucket_name_from_hostname(hostname)
 
     if method == 'GET':
