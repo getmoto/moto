@@ -1,36 +1,43 @@
+import boto
+
 from urlparse import parse_qs
 
 from jinja2 import Template
 
 from .models import ec2_backend
+from .utils import instance_ids_from_querystring
 
 
 def instances(uri, body, headers):
     querystring = parse_qs(body)
     action = querystring['Action'][0]
+    instance_ids = instance_ids_from_querystring(querystring)
 
     if action == 'DescribeInstances':
         template = Template(EC2_DESCRIBE_INSTANCES)
         return template.render(reservations=ec2_backend.all_reservations())
     elif action == 'RunInstances':
-        new_reservation = ec2_backend.add_instance()
+        min_count = int(querystring.get('MinCount', ['1'])[0])
+        new_reservation = ec2_backend.add_instances(min_count)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
     elif action == 'TerminateInstances':
-        instance_ids = querystring.get('InstanceId.1')[0]
         instances = ec2_backend.terminate_instances(instance_ids)
         template = Template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
     elif action == 'StopInstances':
-        instance_ids = querystring.get('InstanceId.1')[0]
         instances = ec2_backend.stop_instances(instance_ids)
         template = Template(EC2_STOP_INSTANCES)
         return template.render(instances=instances)
     elif action == 'StartInstances':
-        instance_ids = querystring.get('InstanceId.1')[0]
         instances = ec2_backend.start_instances(instance_ids)
         template = Template(EC2_START_INSTANCES)
         return template.render(instances=instances)
+    # elif action == 'DescribeInstanceAttribute':
+    #     attribute = querystring.get("Attribute")[0]
+    #     instance_id = instance_ids[0]
+    #     instance = ec2_backend.get_instance(instance_id)
+    #     import pdb;pdb.set_trace()
     else:
         import pdb;pdb.set_trace()
 
@@ -272,3 +279,12 @@ EC2_START_INSTANCES = """
     {% endfor %}
   </instancesSet>
 </StartInstancesResponse>"""
+
+
+EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <instanceId>{{ instance.id }}</instanceId>
+  <kernel>
+    <value>aki-f70657b2</value>
+  </kernel>
+</DescribeInstanceAttributeResponse>"""

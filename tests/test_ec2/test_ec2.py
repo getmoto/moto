@@ -32,8 +32,9 @@ def test_instance_launch_and_terminate():
 @mock_ec2
 def test_instance_start_and_stop():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    reservation = conn.run_instances('<ami-image-id>', '<ami-image-id2>')
+    reservation = conn.run_instances('<ami-image-id>', min_count=2)
     instances = reservation.instances
+    instances.should.have.length_of(2)
 
     stopped_instances = conn.stop_instances([instance.id for instance in instances])
 
@@ -42,3 +43,10 @@ def test_instance_start_and_stop():
 
     started_instances = conn.start_instances(instances[0].id)
     started_instances[0].state.should.equal('pending')
+
+# @mock_ec2
+# def test_instance_attributes():
+#     conn = boto.connect_ec2('the_key', 'the_secret')
+#     reservation = conn.run_instances('<ami-image-id>')
+#     instance = reservation.instances[0]
+#     instance_type_value = instance.get_attribute("instanceType")

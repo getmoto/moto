@@ -9,14 +9,19 @@ class EC2Backend(BaseBackend):
     def __init__(self):
         self.reservations = {}
 
-    def add_instance(self):
-        new_instance = Instance()
-        new_instance.id = random_instance_id()
-        new_instance._state = InstanceState(0, "pending")
+    def get_instance(self, instance_id):
+        for instance in self.all_instances():
+            if instance.id == instance_id:
+                return instance
 
+    def add_instances(self, count):
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
-        new_reservation.instances = [new_instance]
+        for index in range(count):
+            new_instance = Instance()
+            new_instance.id = random_instance_id()
+            new_instance._state = InstanceState(0, "pending")
+            new_reservation.instances.append(new_instance)
         self.reservations[new_reservation.id] = new_reservation
         return new_reservation
 
