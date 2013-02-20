@@ -2,8 +2,9 @@ import re
 import json
 from .models import dynamodb_backend
 
+
 class DynamoHandler(object):
-    
+
     def __init__(self, uri, body, headers):
         self.uri = uri
         self.body = body
@@ -26,7 +27,7 @@ class DynamoHandler(object):
         tables = dynamodb_backend.tables.keys()
         response = {"TableNames": tables}
         return json.dumps(response)
-    
+
 
 def handler(uri, body, headers):
     return DynamoHandler(uri, body, headers).dispatch()

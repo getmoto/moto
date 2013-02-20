@@ -1,7 +1,8 @@
 from moto.core import BaseBackend
 
+
 class DynamoDBBackend(BaseBackend):
-    
+
     def __init__(self):
         self.tables = {}
 
