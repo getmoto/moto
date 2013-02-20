@@ -7,7 +7,7 @@ from httpretty import HTTPretty
 class BaseBackend(object):
 
     def reset(self):
-        self = self.__class__()
+        self.__init__()
 
     @property
     def urls(self):
