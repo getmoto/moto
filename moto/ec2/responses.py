@@ -9,7 +9,11 @@ from .utils import instance_ids_from_querystring, camelcase_to_underscores
 
 
 def instances(uri, body, headers):
-    querystring = parse_qs(body)
+    if body:
+        querystring = parse_qs(body)
+    else:
+        querystring = parse_qs(headers)
+
     action = querystring['Action'][0]
     instance_ids = instance_ids_from_querystring(querystring)
 
@@ -24,6 +28,10 @@ def instances(uri, body, headers):
     elif action == 'TerminateInstances':
         instances = ec2_backend.terminate_instances(instance_ids)
         template = Template(EC2_TERMINATE_INSTANCES)
+        return template.render(instances=instances)
+    elif action == 'RebootInstances':
+        instances = ec2_backend.reboot_instances(instance_ids)
+        template = Template(EC2_REBOOT_INSTANCES)
         return template.render(instances=instances)
     elif action == 'StopInstances':
         instances = ec2_backend.stop_instances(instance_ids)
@@ -55,6 +63,7 @@ def instances(uri, body, headers):
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
     else:
         import pdb;pdb.set_trace()
+        return EC2_REBOOT_INSTANCE
 
 
 EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
@@ -295,6 +304,10 @@ EC2_START_INSTANCES = """
   </instancesSet>
 </StartInstancesResponse>"""
 
+EC2_REBOOT_INSTANCES = """<RebootInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</RebootInstancesResponse>"""
 
 EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

@@ -52,6 +52,16 @@ class EC2Backend(BaseBackend):
 
         return terminated_instances
 
+    def reboot_instances(self, instance_ids):
+        rebooted_instances = []
+        for instance in self.all_instances():
+            if instance.id in instance_ids:
+                # TODO double check instances go to pending when reboot
+                instance._state = InstanceState(0, 'pending')
+                rebooted_instances.append(instance)
+
+        return rebooted_instances
+
     def all_instances(self):
         instances = []
         for reservation in self.all_reservations():

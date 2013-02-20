@@ -46,6 +46,15 @@ def test_instance_start_and_stop():
 
 
 @mock_ec2
+def test_instance_reboot():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('<ami-image-id>')
+    instance = reservation.instances[0]
+    instance.reboot()
+    instance.state.should.equal('pending')
+
+
+@mock_ec2
 def test_instance_attribute_instance_type():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('<ami-image-id>')
