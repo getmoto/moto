@@ -41,6 +41,20 @@ def test_missing_key():
 
 
 @mock_s3
+def test_copy_key():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string("some value")
+
+    bucket.copy_key('new-key', 'foobar', 'the-key')
+
+    bucket.get_key("the-key").get_contents_as_string().should.equal("some value")
+    bucket.get_key("new-key").get_contents_as_string().should.equal("some value")
+
+
+@mock_s3
 def test_missing_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
     conn.get_bucket.when.called_with('mybucket').should.throw(S3ResponseError)

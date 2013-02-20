@@ -1,7 +1,7 @@
 from jinja2 import Template
 
 from .models import s3_backend
-from .utils import bucket_name_from_hostname
+from .utils import bucket_name_from_hostname, headers_to_dict
 
 
 def all_buckets(uri, body, method):
@@ -51,6 +51,7 @@ def key_response(uri_info, body, headers):
     key_name = uri_info.path.lstrip('/')
     hostname = uri_info.hostname
     method = uri_info.method
+    headers = headers_to_dict(headers)
 
     bucket_name = bucket_name_from_hostname(hostname)
 
@@ -59,6 +60,11 @@ def key_response(uri_info, body, headers):
         return key.value
 
     if method == 'PUT':
+        if 'x-amz-copy-source' in headers:
+            # Copy key
+            src_bucket, src_key = headers.get("x-amz-copy-source").split("/")
+            s3_backend.copy_key(src_bucket, src_key, bucket_name, key_name)
+            return S3_OBJECT_COPY_RESPONSE
         if body:
             new_key = s3_backend.set_key(bucket_name, key_name, body)
             return S3_OBJECT_RESPONSE, dict(etag=new_key.etag)
@@ -148,3 +154,10 @@ S3_OBJECT_RESPONSE = """<PutObjectResponse xmlns="http://s3.amazonaws.com/doc/20
         <LastModified>2006-03-01T12:00:00.183Z</LastModified>
       </PutObjectResponse>
     </PutObjectResponse>"""
+
+S3_OBJECT_COPY_RESPONSE = """<CopyObjectResponse xmlns="http://doc.s3.amazonaws.com/2006-03-01">
+  <CopyObjectResponse>
+    <ETag>"asdfadsfdsafjsadfdafsadf"</ETag>
+    <LastModified>2008-02-18T13:54:10.183Z</LastModified>
+  </CopyObjectResponse>
+</CopyObjectResponse>"""

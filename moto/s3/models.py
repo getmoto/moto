@@ -64,5 +64,9 @@ class S3Backend(BaseBackend):
         bucket = self.buckets[bucket_name]
         return bucket.keys.pop(key_name)
 
+    def copy_key(self, src_bucket_name, src_key_name, dest_bucket_name, dest_key_name):
+        src_bucket = self.buckets[src_bucket_name]
+        dest_bucket = self.buckets[dest_bucket_name]
+        dest_bucket.keys[dest_key_name] = src_bucket.keys[src_key_name]
 
 s3_backend = S3Backend()
