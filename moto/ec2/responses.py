@@ -5,7 +5,7 @@ from urlparse import parse_qs
 from jinja2 import Template
 
 from .models import ec2_backend
-from .utils import instance_ids_from_querystring
+from .utils import instance_ids_from_querystring, camelcase_to_underscores
 
 
 def instances(uri, body, headers):
@@ -33,11 +33,26 @@ def instances(uri, body, headers):
         instances = ec2_backend.start_instances(instance_ids)
         template = Template(EC2_START_INSTANCES)
         return template.render(instances=instances)
-    # elif action == 'DescribeInstanceAttribute':
-    #     attribute = querystring.get("Attribute")[0]
-    #     instance_id = instance_ids[0]
-    #     instance = ec2_backend.get_instance(instance_id)
-    #     import pdb;pdb.set_trace()
+    elif action == 'DescribeInstanceAttribute':
+        # TODO this and modify below should raise IncorrectInstanceState if instance not in stopped state
+        attribute = querystring.get("Attribute")[0]
+        normalized_attribute = camelcase_to_underscores(attribute)
+        instance_id = instance_ids[0]
+        instance = ec2_backend.get_instance(instance_id)
+        value = getattr(instance, normalized_attribute)
+        template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
+        return template.render(instance=instance, attribute=attribute, value=value)
+    elif action == 'ModifyInstanceAttribute':
+        for key, value in querystring.iteritems():
+            if '.Value' in key:
+                break
+
+        value = querystring.get(key)[0]
+        normalized_attribute = camelcase_to_underscores(key.split(".")[0])
+        instance_id = instance_ids[0]
+        instance = ec2_backend.get_instance(instance_id)
+        setattr(instance, normalized_attribute, value)
+        return EC2_MODIFY_INSTANCE_ATTRIBUTE
     else:
         import pdb;pdb.set_trace()
 
@@ -284,7 +299,12 @@ EC2_START_INSTANCES = """
 EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
-  <kernel>
-    <value>aki-f70657b2</value>
-  </kernel>
+  <{{ attribute }}>
+    <value>{{ value }}</value>
+  </{{ attribute }}>
 </DescribeInstanceAttributeResponse>"""
+
+EC2_MODIFY_INSTANCE_ATTRIBUTE = """<ModifyInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</ModifyInstanceAttributeResponse>"""

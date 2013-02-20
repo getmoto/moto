@@ -23,3 +23,15 @@ def instance_ids_from_querystring(querystring_dict):
         if 'InstanceId' in key:
             instance_ids.append(value[0])
     return instance_ids
+
+
+def camelcase_to_underscores(argument):
+    ''' Converts a camelcase param like theNewAttribute to the equivalent
+    python underscore variable like the_new_attribute'''
+    result = ''
+    for index, char in enumerate(argument):
+        if char.istitle() and index:
+            # Only add underscore is char is capital and not first letter
+            result += "_"
+        result += char.lower()
+    return result
