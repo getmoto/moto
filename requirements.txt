@@ -1,5 +1,6 @@
 boto
 coverage
+freezegun
 #httpretty
 Jinja2
 mock
