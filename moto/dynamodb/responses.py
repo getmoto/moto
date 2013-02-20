@@ -1,5 +1,6 @@
 import re
 import json
+
 from .models import dynamodb_backend
 
 
@@ -27,6 +28,11 @@ class DynamoHandler(object):
         tables = dynamodb_backend.tables.keys()
         response = {"TableNames": tables}
         return json.dumps(response)
+
+    def DescribeTable(self, uri, body, headers):
+        name = json.loads(body)['TableName']
+        table = dynamodb_backend.tables[name]
+        return json.dumps(table.describe)
 
 
 def handler(uri, body, headers):
