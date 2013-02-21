@@ -26,6 +26,19 @@ def instance_ids_from_querystring(querystring_dict):
     return instance_ids
 
 
+def resource_ids_from_querystring(querystring_dict):
+    prefix = 'ResourceId'
+    response_values = {}
+    for key, value in querystring_dict.iteritems():
+        if prefix in key:
+            resource_index = key.replace(prefix + ".", "")
+            tag_key = querystring_dict.get("Tag.{}.Key".format(resource_index))[0]
+            tag_value = querystring_dict.get("Tag.{}.Value".format(resource_index))[0]
+            response_values[value[0]] = (tag_key, tag_value)
+
+    return response_values
+
+
 def camelcase_to_underscores(argument):
     ''' Converts a camelcase param like theNewAttribute to the equivalent
     python underscore variable like the_new_attribute'''

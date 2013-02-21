@@ -3,11 +3,12 @@ from urlparse import parse_qs
 from moto.ec2.utils import method_namess_from_class
 
 from .instances import InstanceResponse
+from .tags import TagResponse
 
 
 class EC2Response(object):
 
-    sub_responses = [InstanceResponse,]
+    sub_responses = [InstanceResponse, TagResponse]
 
     def dispatch(self, uri, body, headers):
         if body:
@@ -23,3 +24,4 @@ class EC2Response(object):
                 response = sub_response(querystring)
                 method = getattr(response, action)
                 return method()
+        import pdb;pdb.set_trace()

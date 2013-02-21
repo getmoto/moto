@@ -1,13 +1,16 @@
+from collections import defaultdict
+
 from boto.ec2.instance import Instance, InstanceState, Reservation
 
 from moto.core import BaseBackend
 from .utils import random_instance_id, random_reservation_id
 
 
-class EC2Backend(BaseBackend):
+class InstanceBackend(object):
 
     def __init__(self):
         self.reservations = {}
+        super(InstanceBackend, self).__init__()
 
     def get_instance(self, instance_id):
         for instance in self.all_instances():
@@ -71,6 +74,38 @@ class EC2Backend(BaseBackend):
 
     def all_reservations(self):
         return self.reservations.values()
+
+
+class TagBackend(object):
+
+    def __init__(self):
+        self.tags = defaultdict(dict)
+        super(TagBackend, self).__init__()
+
+    def create_tag(self, resource_id, key, value):
+        self.tags[resource_id][key] = value
+        return value
+
+    def delete_tag(self, resource_id, key):
+        return self.tags[resource_id].pop(key)
+
+    def describe_tags(self):
+        results = []
+        for resource_id, tags in self.tags.iteritems():
+            ami = 'ami' in resource_id
+            for key, value in tags.iteritems():
+                result = {
+                    'resource_id': resource_id,
+                    'key': key,
+                    'value': value,
+                    'resource_type': 'image' if ami else 'instance',
+                }
+                results.append(result)
+        return results
+
+
+class EC2Backend(BaseBackend, InstanceBackend, TagBackend):
+    pass
 
 
 ec2_backend = EC2Backend()
