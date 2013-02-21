@@ -1,3 +1,4 @@
+import inspect
 import random
 
 
@@ -35,3 +36,7 @@ def camelcase_to_underscores(argument):
             result += "_"
         result += char.lower()
     return result
+
+
+def method_namess_from_class(clazz):
+    return [x[0] for x in inspect.getmembers(clazz, predicate=inspect.ismethod)]

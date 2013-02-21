@@ -1,69 +1,65 @@
-import boto
-
-from urlparse import parse_qs
-
 from jinja2 import Template
 
-from .models import ec2_backend
-from .utils import instance_ids_from_querystring, camelcase_to_underscores
+from moto.ec2.models import ec2_backend
+from moto.ec2.utils import instance_ids_from_querystring, camelcase_to_underscores, method_namess_from_class
 
 
-def instances(uri, body, headers):
-    if body:
-        querystring = parse_qs(body)
-    else:
-        querystring = parse_qs(headers)
+class InstanceResponse(object):
+    def __init__(self, querystring):
+        self.querystring = querystring
+        self.instance_ids = instance_ids_from_querystring(querystring)
 
-    action = querystring['Action'][0]
-    instance_ids = instance_ids_from_querystring(querystring)
-
-    if action == 'DescribeInstances':
+    def DescribeInstances(self):
         template = Template(EC2_DESCRIBE_INSTANCES)
         return template.render(reservations=ec2_backend.all_reservations())
-    elif action == 'RunInstances':
-        min_count = int(querystring.get('MinCount', ['1'])[0])
+
+    def RunInstances(self):
+        min_count = int(self.querystring.get('MinCount', ['1'])[0])
         new_reservation = ec2_backend.add_instances(min_count)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
-    elif action == 'TerminateInstances':
-        instances = ec2_backend.terminate_instances(instance_ids)
+
+    def TerminateInstances(self):
+        instances = ec2_backend.terminate_instances(self.instance_ids)
         template = Template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
-    elif action == 'RebootInstances':
-        instances = ec2_backend.reboot_instances(instance_ids)
+
+    def RebootInstances(self):
+        instances = ec2_backend.reboot_instances(self.instance_ids)
         template = Template(EC2_REBOOT_INSTANCES)
         return template.render(instances=instances)
-    elif action == 'StopInstances':
-        instances = ec2_backend.stop_instances(instance_ids)
+
+    def StopInstances(self):
+        instances = ec2_backend.stop_instances(self.instance_ids)
         template = Template(EC2_STOP_INSTANCES)
         return template.render(instances=instances)
-    elif action == 'StartInstances':
-        instances = ec2_backend.start_instances(instance_ids)
+
+    def StartInstances(self):
+        instances = ec2_backend.start_instances(self.instance_ids)
         template = Template(EC2_START_INSTANCES)
         return template.render(instances=instances)
-    elif action == 'DescribeInstanceAttribute':
+
+    def DescribeInstanceAttribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if instance not in stopped state
-        attribute = querystring.get("Attribute")[0]
+        attribute = self.querystring.get("Attribute")[0]
         normalized_attribute = camelcase_to_underscores(attribute)
-        instance_id = instance_ids[0]
+        instance_id = self.instance_ids[0]
         instance = ec2_backend.get_instance(instance_id)
         value = getattr(instance, normalized_attribute)
         template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
         return template.render(instance=instance, attribute=attribute, value=value)
-    elif action == 'ModifyInstanceAttribute':
-        for key, value in querystring.iteritems():
+
+    def ModifyInstanceAttribute(self):
+        for key, value in self.querystring.iteritems():
             if '.Value' in key:
                 break
 
-        value = querystring.get(key)[0]
+        value = self.querystring.get(key)[0]
         normalized_attribute = camelcase_to_underscores(key.split(".")[0])
-        instance_id = instance_ids[0]
+        instance_id = self.instance_ids[0]
         instance = ec2_backend.get_instance(instance_id)
         setattr(instance, normalized_attribute, value)
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
-    else:
-        import pdb;pdb.set_trace()
-        return EC2_REBOOT_INSTANCE
 
 
 EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">

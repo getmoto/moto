@@ -470,19 +470,19 @@ class Entry(Py3kObject):
         self.method = method
         self.uri = uri
 
-        if isinstance(body, types.FunctionType):
+        if callable(body):
             self.dynamic_response = True
         else:
             self.dynamic_response = False
 
         self.body = body
+        self.streaming = streaming
 
         if self.dynamic_response or self.streaming:
             self.body_length = 0
         else:
             self.body_length = len(self.body or '')
 
-        self.streaming = streaming
         self.adding_headers = adding_headers or {}
         self.forcing_headers = forcing_headers or {}
         self.status = int(status)
