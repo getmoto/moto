@@ -109,3 +109,36 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend):
 
 
 ec2_backend = EC2Backend()
+
+
+
+{
+#'Instances': ['DescribeInstanceAttribute', 'DescribeInstances', '\n\t\t\tDescribeInstanceStatus\n\t\t', 'ImportInstance', 'ModifyInstanceAttribute', 'RebootInstances', 'ReportInstanceStatus', 'ResetInstanceAttribute', 'RunInstances', 'StartInstances', 'StopInstances', 'TerminateInstances'],
+#'Tags': ['CreateTags', 'DeleteTags', 'DescribeTags'],
+'IP Addresses': ['AssignPrivateIpAddresses', 'UnassignPrivateIpAddresses'],
+'Monitoring': ['MonitorInstances', 'UnmonitorInstances'],
+'Reserved Instances': ['CancelReservedInstancesListing', 'CreateReservedInstancesListing', 'DescribeReservedInstances', 'DescribeReservedInstancesListings', 'DescribeReservedInstancesOfferings', 'PurchaseReservedInstancesOffering'],
+'VPN Connections (Amazon VPC)': ['CreateVpnConnection', 'DeleteVpnConnection', 'DescribeVpnConnections'],
+'DHCP Options (Amazon VPC)': ['AssociateDhcpOptions', 'CreateDhcpOptions', 'DeleteDhcpOptions', 'DescribeDhcpOptions'],
+'Network ACLs (Amazon VPC)': ['CreateNetworkAcl', 'CreateNetworkAclEntry', 'DeleteNetworkAcl', 'DeleteNetworkAclEntry', 'DescribeNetworkAcls', 'ReplaceNetworkAclAssociation', 'ReplaceNetworkAclEntry'],
+'Elastic Block Store': ['AttachVolume', 'CopySnapshot', 'CreateSnapshot', 'CreateVolume', 'DeleteSnapshot', 'DeleteVolume', 'DescribeSnapshotAttribute', 'DescribeSnapshots', 'DescribeVolumes', 'DescribeVolumeAttribute', 'DescribeVolumeStatus', 'DetachVolume', 'EnableVolumeIO', 'ImportVolume', 'ModifySnapshotAttribute', 'ModifyVolumeAttribute', 'ResetSnapshotAttribute'],
+'Customer Gateways (Amazon VPC)': ['CreateCustomerGateway', 'DeleteCustomerGateway', 'DescribeCustomerGateways'],
+'Subnets (Amazon VPC)': ['CreateSubnet', 'DeleteSubnet', 'DescribeSubnets'],
+'AMIs': ['CreateImage', 'DeregisterImage', 'DescribeImageAttribute', 'DescribeImages', 'ModifyImageAttribute', 'RegisterImage', 'ResetImageAttribute'],
+'Virtual Private Gateways (Amazon VPC)': ['AttachVpnGateway', 'CreateVpnGateway', 'DeleteVpnGateway', 'DescribeVpnGateways', 'DetachVpnGateway'],
+'Availability Zones and Regions': ['DescribeAvailabilityZones', 'DescribeRegions'],
+'VPCs (Amazon VPC)': ['CreateVpc', 'DeleteVpc', 'DescribeVpcs'],
+'Windows': ['BundleInstance', 'CancelBundleTask', 'DescribeBundleTasks', 'GetPasswordData'],
+'VM Import': ['CancelConversionTask', 'DescribeConversionTasks', 'ImportInstance', 'ImportVolume'],
+'Placement Groups': ['CreatePlacementGroup', 'DeletePlacementGroup', 'DescribePlacementGroups'],
+'Key Pairs': ['CreateKeyPair', 'DeleteKeyPair', 'DescribeKeyPairs', 'ImportKeyPair'],
+'Amazon DevPay': ['ConfirmProductInstance'],
+'Internet Gateways (Amazon VPC)': ['AttachInternetGateway', 'CreateInternetGateway', 'DeleteInternetGateway', 'DescribeInternetGateways', 'DetachInternetGateway'],
+'Route Tables (Amazon VPC)': ['AssociateRouteTable', 'CreateRoute', 'CreateRouteTable', 'DeleteRoute', 'DeleteRouteTable', 'DescribeRouteTables', 'DisassociateRouteTable', 'ReplaceRoute', 'ReplaceRouteTableAssociation'],
+'Elastic Network Interfaces (Amazon VPC)': ['AttachNetworkInterface', 'CreateNetworkInterface', 'DeleteNetworkInterface', 'DescribeNetworkInterfaceAttribute', 'DescribeNetworkInterfaces', 'DetachNetworkInterface', 'ModifyNetworkInterfaceAttribute', 'ResetNetworkInterfaceAttribute'],
+'Elastic IP Addresses': ['AllocateAddress', 'AssociateAddress', 'DescribeAddresses', 'DisassociateAddress', 'ReleaseAddress'],
+'Security Groups': ['AuthorizeSecurityGroupEgress', 'AuthorizeSecurityGroupIngress', 'CreateSecurityGroup', 'DeleteSecurityGroup', 'DescribeSecurityGroups', 'RevokeSecurityGroupEgress', 'RevokeSecurityGroupIngress'],
+'General': ['GetConsoleOutput'],
+'VM Export': ['CancelExportTask', 'CreateInstanceExportTask', 'DescribeExportTasks'],
+'Spot Instances': ['CancelSpotInstanceRequests', 'CreateSpotDatafeedSubscription', 'DeleteSpotDatafeedSubscription', 'DescribeSpotDatafeedSubscription', 'DescribeSpotInstanceRequests', 'DescribeSpotPriceHistory', 'RequestSpotInstances']
+}

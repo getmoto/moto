@@ -43,11 +43,15 @@ def camelcase_to_underscores(argument):
     ''' Converts a camelcase param like theNewAttribute to the equivalent
     python underscore variable like the_new_attribute'''
     result = ''
-    for index, char in enumerate(argument):
-        if char.istitle() and index:
-            # Only add underscore is char is capital and not first letter
+    prev_char_title = True
+    for char in argument:
+        if char.istitle() and not prev_char_title:
+            # Only add underscore if char is capital, not first letter, and prev
+            # char wasn't capital
             result += "_"
-        result += char.lower()
+        prev_char_title = char.istitle()
+        if not char.isspace():  # Only add non-whitespace
+            result += char.lower()
     return result
 
 

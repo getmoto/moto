@@ -5,7 +5,6 @@ from sure import expect
 from moto import mock_ec2
 
 
-
 @mock_ec2
 def test_instance_launch_and_terminate():
     conn = boto.connect_ec2('the_key', 'the_secret')
