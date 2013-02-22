@@ -9,37 +9,37 @@ class InstanceResponse(object):
         self.querystring = querystring
         self.instance_ids = instance_ids_from_querystring(querystring)
 
-    def DescribeInstances(self):
+    def describe_instances(self):
         template = Template(EC2_DESCRIBE_INSTANCES)
         return template.render(reservations=ec2_backend.all_reservations())
 
-    def RunInstances(self):
+    def run_instances(self):
         min_count = int(self.querystring.get('MinCount', ['1'])[0])
         new_reservation = ec2_backend.add_instances(min_count)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
-    def TerminateInstances(self):
+    def terminate_instances(self):
         instances = ec2_backend.terminate_instances(self.instance_ids)
         template = Template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
 
-    def RebootInstances(self):
+    def reboot_instances(self):
         instances = ec2_backend.reboot_instances(self.instance_ids)
         template = Template(EC2_REBOOT_INSTANCES)
         return template.render(instances=instances)
 
-    def StopInstances(self):
+    def stop_instances(self):
         instances = ec2_backend.stop_instances(self.instance_ids)
         template = Template(EC2_STOP_INSTANCES)
         return template.render(instances=instances)
 
-    def StartInstances(self):
+    def start_instances(self):
         instances = ec2_backend.start_instances(self.instance_ids)
         template = Template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
-    def DescribeInstanceAttribute(self):
+    def describe_instance_attribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if instance not in stopped state
         attribute = self.querystring.get("Attribute")[0]
         normalized_attribute = camelcase_to_underscores(attribute)
@@ -49,7 +49,7 @@ class InstanceResponse(object):
         template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
         return template.render(instance=instance, attribute=attribute, value=value)
 
-    def ModifyInstanceAttribute(self):
+    def modify_instance_attribute(self):
         for key, value in self.querystring.iteritems():
             if '.Value' in key:
                 break

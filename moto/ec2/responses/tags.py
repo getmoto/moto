@@ -9,17 +9,17 @@ class TagResponse(object):
         self.querystring = querystring
         self.resource_ids = resource_ids_from_querystring(querystring)
 
-    def CreateTags(self):
+    def create_tags(self):
         for resource_id, tag in self.resource_ids.iteritems():
             ec2_backend.create_tag(resource_id, tag[0], tag[1])
         return CREATE_RESPONSE
 
-    def DeleteTags(self):
+    def delete_tags(self):
         ec2_backend.delete_tag()
         template = Template(DELETE_RESPONSE)
         return template.render(reservations=ec2_backend.all_reservations())
 
-    def DescribeTags(self):
+    def describe_tags(self):
         tags = ec2_backend.describe_tags()
         template = Template(DESCRIBE_RESPONSE)
         return template.render(tags=tags)
