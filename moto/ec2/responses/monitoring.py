@@ -6,8 +6,8 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class Monitoring(object):
     def monitor_instances(self):
-        return NotImplemented
+        raise NotImplementedError('Monitoring.monitor_instances is not yet implemented')
 
     def unmonitor_instances(self):
-        return NotImplemented
+        raise NotImplementedError('Monitoring.unmonitor_instances is not yet implemented')
 

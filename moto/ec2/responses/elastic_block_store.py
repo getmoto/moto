@@ -6,53 +6,53 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class ElasticBlockStore(object):
     def attach_volume(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.attach_volume is not yet implemented')
 
     def copy_snapshot(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.copy_snapshot is not yet implemented')
 
     def create_snapshot(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.create_snapshot is not yet implemented')
 
     def create_volume(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.create_volume is not yet implemented')
 
     def delete_snapshot(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.delete_snapshot is not yet implemented')
 
     def delete_volume(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.delete_volume is not yet implemented')
 
     def describe_snapshot_attribute(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.describe_snapshot_attribute is not yet implemented')
 
     def describe_snapshots(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.describe_snapshots is not yet implemented')
 
     def describe_volumes(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.describe_volumes is not yet implemented')
 
     def describe_volume_attribute(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.describe_volume_attribute is not yet implemented')
 
     def describe_volume_status(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.describe_volume_status is not yet implemented')
 
     def detach_volume(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.detach_volume is not yet implemented')
 
     def enable_volume_io(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.enable_volume_io is not yet implemented')
 
     def import_volume(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.import_volume is not yet implemented')
 
     def modify_snapshot_attribute(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.modify_snapshot_attribute is not yet implemented')
 
     def modify_volume_attribute(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.modify_volume_attribute is not yet implemented')
 
     def reset_snapshot_attribute(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticBlockStore.reset_snapshot_attribute is not yet implemented')
 

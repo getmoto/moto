@@ -6,17 +6,17 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class ElasticIPAddresses(object):
     def allocate_address(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticIPAddresses.allocate_address is not yet implemented')
 
     def associate_address(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticIPAddresses.associate_address is not yet implemented')
 
     def describe_addresses(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticIPAddresses.describe_addresses is not yet implemented')
 
     def disassociate_address(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticIPAddresses.disassociate_address is not yet implemented')
 
     def release_address(self):
-        return NotImplemented
+        raise NotImplementedError('ElasticIPAddresses.release_address is not yet implemented')
 

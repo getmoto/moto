@@ -6,11 +6,11 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class CustomerGateways(object):
     def create_customer_gateway(self):
-        return NotImplemented
+        raise NotImplementedError('CustomerGateways(AmazonVPC).create_customer_gateway is not yet implemented')
 
     def delete_customer_gateway(self):
-        return NotImplemented
+        raise NotImplementedError('CustomerGateways(AmazonVPC).delete_customer_gateway is not yet implemented')
 
     def describe_customer_gateways(self):
-        return NotImplemented
+        raise NotImplementedError('CustomerGateways(AmazonVPC).describe_customer_gateways is not yet implemented')
 

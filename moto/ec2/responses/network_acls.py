@@ -6,23 +6,23 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class NetworkACLs(object):
     def create_network_acl(self):
-        return NotImplemented
+        raise NotImplementedError('NetworkACLs(AmazonVPC).create_network_acl is not yet implemented')
 
     def create_network_acl_entry(self):
-        return NotImplemented
+        raise NotImplementedError('NetworkACLs(AmazonVPC).create_network_acl_entry is not yet implemented')
 
     def delete_network_acl(self):
-        return NotImplemented
+        raise NotImplementedError('NetworkACLs(AmazonVPC).delete_network_acl is not yet implemented')
 
     def delete_network_acl_entry(self):
-        return NotImplemented
+        raise NotImplementedError('NetworkACLs(AmazonVPC).delete_network_acl_entry is not yet implemented')
 
     def describe_network_acls(self):
-        return NotImplemented
+        raise NotImplementedError('NetworkACLs(AmazonVPC).describe_network_acls is not yet implemented')
 
     def replace_network_acl_association(self):
-        return NotImplemented
+        raise NotImplementedError('NetworkACLs(AmazonVPC).replace_network_acl_association is not yet implemented')
 
     def replace_network_acl_entry(self):
-        return NotImplemented
+        raise NotImplementedError('NetworkACLs(AmazonVPC).replace_network_acl_entry is not yet implemented')
 

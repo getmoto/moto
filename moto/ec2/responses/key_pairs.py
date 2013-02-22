@@ -6,14 +6,14 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class KeyPairs(object):
     def create_key_pair(self):
-        return NotImplemented
+        raise NotImplementedError('KeyPairs.create_key_pair is not yet implemented')
 
     def delete_key_pair(self):
-        return NotImplemented
+        raise NotImplementedError('KeyPairs.delete_key_pair is not yet implemented')
 
     def describe_key_pairs(self):
-        return NotImplemented
+        raise NotImplementedError('KeyPairs.describe_key_pairs is not yet implemented')
 
     def import_key_pair(self):
-        return NotImplemented
+        raise NotImplementedError('KeyPairs.import_key_pair is not yet implemented')
 

@@ -6,11 +6,11 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class Subnets(object):
     def create_subnet(self):
-        return NotImplemented
+        raise NotImplementedError('Subnets(AmazonVPC).create_subnet is not yet implemented')
 
     def delete_subnet(self):
-        return NotImplemented
+        raise NotImplementedError('Subnets(AmazonVPC).delete_subnet is not yet implemented')
 
     def describe_subnets(self):
-        return NotImplemented
+        raise NotImplementedError('Subnets(AmazonVPC).describe_subnets is not yet implemented')
 

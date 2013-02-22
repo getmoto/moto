@@ -6,17 +6,17 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class VirtualPrivateGateways(object):
     def attach_vpn_gateway(self):
-        return NotImplemented
+        raise NotImplementedError('VirtualPrivateGateways(AmazonVPC).attach_vpn_gateway is not yet implemented')
 
     def create_vpn_gateway(self):
-        return NotImplemented
+        raise NotImplementedError('VirtualPrivateGateways(AmazonVPC).create_vpn_gateway is not yet implemented')
 
     def delete_vpn_gateway(self):
-        return NotImplemented
+        raise NotImplementedError('VirtualPrivateGateways(AmazonVPC).delete_vpn_gateway is not yet implemented')
 
     def describe_vpn_gateways(self):
-        return NotImplemented
+        raise NotImplementedError('VirtualPrivateGateways(AmazonVPC).describe_vpn_gateways is not yet implemented')
 
     def detach_vpn_gateway(self):
-        return NotImplemented
+        raise NotImplementedError('VirtualPrivateGateways(AmazonVPC).detach_vpn_gateway is not yet implemented')
 

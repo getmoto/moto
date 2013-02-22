@@ -6,5 +6,5 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class General(object):
     def get_console_output(self):
-        return NotImplemented
+        raise NotImplementedError('General.get_console_output is not yet implemented')
 

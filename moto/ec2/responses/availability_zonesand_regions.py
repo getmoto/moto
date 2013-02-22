@@ -6,8 +6,8 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 class AvailabilityZonesandRegions(object):
     def describe_availability_zones(self):
-        return NotImplemented
+        raise NotImplementedError('AvailabilityZonesandRegions.describe_availability_zones is not yet implemented')
 
     def describe_regions(self):
-        return NotImplemented
+        raise NotImplementedError('AvailabilityZonesandRegions.describe_regions is not yet implemented')
 
