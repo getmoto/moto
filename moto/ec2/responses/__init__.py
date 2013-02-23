@@ -3,7 +3,7 @@ from urlparse import parse_qs
 from moto.ec2.utils import camelcase_to_underscores, method_namess_from_class
 
 from .amazon_dev_pay import AmazonDevPay
-from .amis import AMIs
+from .amis import AmisResponse
 from .availability_zonesand_regions import AvailabilityZonesandRegions
 from .customer_gateways import CustomerGateways
 from .dhcp_options import DHCPOptions
@@ -35,7 +35,7 @@ from .tags import TagResponse
 
 class EC2Response(object):
 
-    sub_responses = [InstanceResponse, TagResponse]
+    sub_responses = [InstanceResponse, TagResponse, AmisResponse]
 
     def dispatch(self, uri, body, headers):
         if body:

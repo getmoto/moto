@@ -3,7 +3,7 @@ from collections import defaultdict
 from boto.ec2.instance import Instance, InstanceState, Reservation
 
 from moto.core import BaseBackend
-from .utils import random_instance_id, random_reservation_id
+from .utils import random_instance_id, random_reservation_id, random_ami_id
 
 
 class InstanceBackend(object):
@@ -65,6 +65,16 @@ class InstanceBackend(object):
 
         return rebooted_instances
 
+    def modify_instance_attribute(self, instance_id, key, value):
+        instance = self.get_instance(instance_id)
+        setattr(instance, key, value)
+        return instance
+
+    def describe_instance_attribute(self, instance_id, key):
+        instance = self.get_instance(instance_id)
+        value = getattr(instance, key)
+        return instance, value
+
     def all_instances(self):
         instances = []
         for reservation in self.all_reservations():
@@ -104,7 +114,45 @@ class TagBackend(object):
         return results
 
 
-class EC2Backend(BaseBackend, InstanceBackend, TagBackend):
+class Ami(object):
+    def __init__(self, ami_id, instance, name, description):
+        self.id = ami_id
+        self.instance = instance
+        self.instance_id = instance.id
+        self.name = name
+        self.description = description
+
+        self.virtualization_type = instance.virtualization_type
+        self.kernel_id = instance.kernel
+
+class AmiBackend(object):
+    def __init__(self):
+        self.amis = {}
+        super(AmiBackend, self).__init__()
+
+    def create_image(self, instance_id, name, description):
+        # TODO: check that instance exists and pull info from it.
+        ami_id = random_ami_id()
+        instance = ec2_backend.get_instance(instance_id)
+        if not instance:
+            return None
+        ami =  Ami(ami_id, instance, name, description)
+        self.amis[ami_id] = ami
+        return ami
+
+    def describe_images(self):
+        return self.amis.values()
+
+    def get_image(self, ami_id):
+        return self.amis[ami_id]
+
+    def deregister_image(self, ami_id):
+        if ami_id in self.amis:
+            self.amis.pop(ami_id)
+            return True
+        return False
+
+class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend):
     pass
 
 
@@ -112,33 +160,33 @@ ec2_backend = EC2Backend()
 
 
 
-{
-#'Instances': ['DescribeInstanceAttribute', 'DescribeInstances', '\n\t\t\tDescribeInstanceStatus\n\t\t', 'ImportInstance', 'ModifyInstanceAttribute', 'RebootInstances', 'ReportInstanceStatus', 'ResetInstanceAttribute', 'RunInstances', 'StartInstances', 'StopInstances', 'TerminateInstances'],
-#'Tags': ['CreateTags', 'DeleteTags', 'DescribeTags'],
-'IP Addresses': ['AssignPrivateIpAddresses', 'UnassignPrivateIpAddresses'],
-'Monitoring': ['MonitorInstances', 'UnmonitorInstances'],
-'Reserved Instances': ['CancelReservedInstancesListing', 'CreateReservedInstancesListing', 'DescribeReservedInstances', 'DescribeReservedInstancesListings', 'DescribeReservedInstancesOfferings', 'PurchaseReservedInstancesOffering'],
-'VPN Connections (Amazon VPC)': ['CreateVpnConnection', 'DeleteVpnConnection', 'DescribeVpnConnections'],
-'DHCP Options (Amazon VPC)': ['AssociateDhcpOptions', 'CreateDhcpOptions', 'DeleteDhcpOptions', 'DescribeDhcpOptions'],
-'Network ACLs (Amazon VPC)': ['CreateNetworkAcl', 'CreateNetworkAclEntry', 'DeleteNetworkAcl', 'DeleteNetworkAclEntry', 'DescribeNetworkAcls', 'ReplaceNetworkAclAssociation', 'ReplaceNetworkAclEntry'],
-'Elastic Block Store': ['AttachVolume', 'CopySnapshot', 'CreateSnapshot', 'CreateVolume', 'DeleteSnapshot', 'DeleteVolume', 'DescribeSnapshotAttribute', 'DescribeSnapshots', 'DescribeVolumes', 'DescribeVolumeAttribute', 'DescribeVolumeStatus', 'DetachVolume', 'EnableVolumeIO', 'ImportVolume', 'ModifySnapshotAttribute', 'ModifyVolumeAttribute', 'ResetSnapshotAttribute'],
-'Customer Gateways (Amazon VPC)': ['CreateCustomerGateway', 'DeleteCustomerGateway', 'DescribeCustomerGateways'],
-'Subnets (Amazon VPC)': ['CreateSubnet', 'DeleteSubnet', 'DescribeSubnets'],
-'AMIs': ['CreateImage', 'DeregisterImage', 'DescribeImageAttribute', 'DescribeImages', 'ModifyImageAttribute', 'RegisterImage', 'ResetImageAttribute'],
-'Virtual Private Gateways (Amazon VPC)': ['AttachVpnGateway', 'CreateVpnGateway', 'DeleteVpnGateway', 'DescribeVpnGateways', 'DetachVpnGateway'],
-'Availability Zones and Regions': ['DescribeAvailabilityZones', 'DescribeRegions'],
-'VPCs (Amazon VPC)': ['CreateVpc', 'DeleteVpc', 'DescribeVpcs'],
-'Windows': ['BundleInstance', 'CancelBundleTask', 'DescribeBundleTasks', 'GetPasswordData'],
-'VM Import': ['CancelConversionTask', 'DescribeConversionTasks', 'ImportInstance', 'ImportVolume'],
-'Placement Groups': ['CreatePlacementGroup', 'DeletePlacementGroup', 'DescribePlacementGroups'],
-'Key Pairs': ['CreateKeyPair', 'DeleteKeyPair', 'DescribeKeyPairs', 'ImportKeyPair'],
-'Amazon DevPay': ['ConfirmProductInstance'],
-'Internet Gateways (Amazon VPC)': ['AttachInternetGateway', 'CreateInternetGateway', 'DeleteInternetGateway', 'DescribeInternetGateways', 'DetachInternetGateway'],
-'Route Tables (Amazon VPC)': ['AssociateRouteTable', 'CreateRoute', 'CreateRouteTable', 'DeleteRoute', 'DeleteRouteTable', 'DescribeRouteTables', 'DisassociateRouteTable', 'ReplaceRoute', 'ReplaceRouteTableAssociation'],
-'Elastic Network Interfaces (Amazon VPC)': ['AttachNetworkInterface', 'CreateNetworkInterface', 'DeleteNetworkInterface', 'DescribeNetworkInterfaceAttribute', 'DescribeNetworkInterfaces', 'DetachNetworkInterface', 'ModifyNetworkInterfaceAttribute', 'ResetNetworkInterfaceAttribute'],
-'Elastic IP Addresses': ['AllocateAddress', 'AssociateAddress', 'DescribeAddresses', 'DisassociateAddress', 'ReleaseAddress'],
-'Security Groups': ['AuthorizeSecurityGroupEgress', 'AuthorizeSecurityGroupIngress', 'CreateSecurityGroup', 'DeleteSecurityGroup', 'DescribeSecurityGroups', 'RevokeSecurityGroupEgress', 'RevokeSecurityGroupIngress'],
-'General': ['GetConsoleOutput'],
-'VM Export': ['CancelExportTask', 'CreateInstanceExportTask', 'DescribeExportTasks'],
-'Spot Instances': ['CancelSpotInstanceRequests', 'CreateSpotDatafeedSubscription', 'DeleteSpotDatafeedSubscription', 'DescribeSpotDatafeedSubscription', 'DescribeSpotInstanceRequests', 'DescribeSpotPriceHistory', 'RequestSpotInstances']
-}
+# {
+# #'Instances': ['DescribeInstanceAttribute', 'DescribeInstances', '\n\t\t\tDescribeInstanceStatus\n\t\t', 'ImportInstance', 'ModifyInstanceAttribute', 'RebootInstances', 'ReportInstanceStatus', 'ResetInstanceAttribute', 'RunInstances', 'StartInstances', 'StopInstances', 'TerminateInstances'],
+# #'Tags': ['CreateTags', 'DeleteTags', 'DescribeTags'],
+# 'IP Addresses': ['AssignPrivateIpAddresses', 'UnassignPrivateIpAddresses'],
+# 'Monitoring': ['MonitorInstances', 'UnmonitorInstances'],
+# 'Reserved Instances': ['CancelReservedInstancesListing', 'CreateReservedInstancesListing', 'DescribeReservedInstances', 'DescribeReservedInstancesListings', 'DescribeReservedInstancesOfferings', 'PurchaseReservedInstancesOffering'],
+# 'VPN Connections (Amazon VPC)': ['CreateVpnConnection', 'DeleteVpnConnection', 'DescribeVpnConnections'],
+# 'DHCP Options (Amazon VPC)': ['AssociateDhcpOptions', 'CreateDhcpOptions', 'DeleteDhcpOptions', 'DescribeDhcpOptions'],
+# 'Network ACLs (Amazon VPC)': ['CreateNetworkAcl', 'CreateNetworkAclEntry', 'DeleteNetworkAcl', 'DeleteNetworkAclEntry', 'DescribeNetworkAcls', 'ReplaceNetworkAclAssociation', 'ReplaceNetworkAclEntry'],
+# 'Elastic Block Store': ['AttachVolume', 'CopySnapshot', 'CreateSnapshot', 'CreateVolume', 'DeleteSnapshot', 'DeleteVolume', 'DescribeSnapshotAttribute', 'DescribeSnapshots', 'DescribeVolumes', 'DescribeVolumeAttribute', 'DescribeVolumeStatus', 'DetachVolume', 'EnableVolumeIO', 'ImportVolume', 'ModifySnapshotAttribute', 'ModifyVolumeAttribute', 'ResetSnapshotAttribute'],
+# 'Customer Gateways (Amazon VPC)': ['CreateCustomerGateway', 'DeleteCustomerGateway', 'DescribeCustomerGateways'],
+# 'Subnets (Amazon VPC)': ['CreateSubnet', 'DeleteSubnet', 'DescribeSubnets'],
+# 'AMIs': ['CreateImage', 'DeregisterImage', 'DescribeImageAttribute', 'DescribeImages', 'ModifyImageAttribute', 'RegisterImage', 'ResetImageAttribute'],
+# 'Virtual Private Gateways (Amazon VPC)': ['AttachVpnGateway', 'CreateVpnGateway', 'DeleteVpnGateway', 'DescribeVpnGateways', 'DetachVpnGateway'],
+# 'Availability Zones and Regions': ['DescribeAvailabilityZones', 'DescribeRegions'],
+# 'VPCs (Amazon VPC)': ['CreateVpc', 'DeleteVpc', 'DescribeVpcs'],
+# 'Windows': ['BundleInstance', 'CancelBundleTask', 'DescribeBundleTasks', 'GetPasswordData'],
+# 'VM Import': ['CancelConversionTask', 'DescribeConversionTasks', 'ImportInstance', 'ImportVolume'],
+# 'Placement Groups': ['CreatePlacementGroup', 'DeletePlacementGroup', 'DescribePlacementGroups'],
+# 'Key Pairs': ['CreateKeyPair', 'DeleteKeyPair', 'DescribeKeyPairs', 'ImportKeyPair'],
+# 'Amazon DevPay': ['ConfirmProductInstance'],
+# 'Internet Gateways (Amazon VPC)': ['AttachInternetGateway', 'CreateInternetGateway', 'DeleteInternetGateway', 'DescribeInternetGateways', 'DetachInternetGateway'],
+# 'Route Tables (Amazon VPC)': ['AssociateRouteTable', 'CreateRoute', 'CreateRouteTable', 'DeleteRoute', 'DeleteRouteTable', 'DescribeRouteTables', 'DisassociateRouteTable', 'ReplaceRoute', 'ReplaceRouteTableAssociation'],
+# 'Elastic Network Interfaces (Amazon VPC)': ['AttachNetworkInterface', 'CreateNetworkInterface', 'DeleteNetworkInterface', 'DescribeNetworkInterfaceAttribute', 'DescribeNetworkInterfaces', 'DetachNetworkInterface', 'ModifyNetworkInterfaceAttribute', 'ResetNetworkInterfaceAttribute'],
+# 'Elastic IP Addresses': ['AllocateAddress', 'AssociateAddress', 'DescribeAddresses', 'DisassociateAddress', 'ReleaseAddress'],
+# 'Security Groups': ['AuthorizeSecurityGroupEgress', 'AuthorizeSecurityGroupIngress', 'CreateSecurityGroup', 'DeleteSecurityGroup', 'DescribeSecurityGroups', 'RevokeSecurityGroupEgress', 'RevokeSecurityGroupIngress'],
+# 'General': ['GetConsoleOutput'],
+# 'VM Export': ['CancelExportTask', 'CreateInstanceExportTask', 'DescribeExportTasks'],
+# 'Spot Instances': ['CancelSpotInstanceRequests', 'CreateSpotDatafeedSubscription', 'DeleteSpotDatafeedSubscription', 'DescribeSpotDatafeedSubscription', 'DescribeSpotInstanceRequests', 'DescribeSpotPriceHistory', 'RequestSpotInstances']
+# }

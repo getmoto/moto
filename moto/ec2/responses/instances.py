@@ -42,10 +42,9 @@ class InstanceResponse(object):
     def describe_instance_attribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if instance not in stopped state
         attribute = self.querystring.get("Attribute")[0]
-        normalized_attribute = camelcase_to_underscores(attribute)
+        key = camelcase_to_underscores(attribute)
         instance_id = self.instance_ids[0]
-        instance = ec2_backend.get_instance(instance_id)
-        value = getattr(instance, normalized_attribute)
+        instance, value = ec2_backend.describe_instance_attribute(instance_id, key)
         template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
         return template.render(instance=instance, attribute=attribute, value=value)
 
@@ -57,8 +56,7 @@ class InstanceResponse(object):
         value = self.querystring.get(key)[0]
         normalized_attribute = camelcase_to_underscores(key.split(".")[0])
         instance_id = self.instance_ids[0]
-        instance = ec2_backend.get_instance(instance_id)
-        setattr(instance, normalized_attribute, value)
+        instance = ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
 

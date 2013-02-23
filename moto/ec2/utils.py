@@ -18,6 +18,10 @@ def random_reservation_id():
     return random_id(prefix='r')
 
 
+def random_ami_id():
+    return random_id(prefix='ami')
+
+
 def instance_ids_from_querystring(querystring_dict):
     instance_ids = []
     for key, value in querystring_dict.iteritems():
