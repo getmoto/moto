@@ -152,7 +152,48 @@ class AmiBackend(object):
             return True
         return False
 
-class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend):
+
+class Region(object):
+    def __init__(self, name, endpoint):
+        self.name = name
+        self.endpoint = endpoint
+
+
+class Zone(object):
+    def __init__(self, name, region_name):
+        self.name = name
+        self.region_name = region_name
+
+
+class RegionsAndZonesBackend(object):
+    regions = [
+        Region("eu-west-1", "ec2.eu-west-1.amazonaws.com"),
+        Region("sa-east-1", "ec2.sa-east-1.amazonaws.com"),
+        Region("us-east-1", "ec2.us-east-1.amazonaws.com"),
+        Region("ap-northeast-1", "ec2.ap-northeast-1.amazonaws.com"),
+        Region("us-west-2", "ec2.us-west-2.amazonaws.com"),
+        Region("us-west-1", "ec2.us-west-1.amazonaws.com"),
+        Region("ap-southeast-1", "ec2.ap-southeast-1.amazonaws.com"),
+        Region("ap-southeast-2", "ec2.ap-southeast-2.amazonaws.com"),
+    ]
+
+    # TODO: cleanup. For now, pretend everything is us-east-1. 'merica.
+    zones = [
+        Zone("us-east-1a", "us-east-1"),
+        Zone("us-east-1b", "us-east-1"),
+        Zone("us-east-1c", "us-east-1"),
+        Zone("us-east-1d", "us-east-1"),
+        Zone("us-east-1e", "us-east-1"),
+    ]
+
+    def describe_regions(self):
+        return self.regions
+
+    def describe_availability_zones(self):
+        return self.zones
+
+
+class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend, RegionsAndZonesBackend):
     pass
 
 

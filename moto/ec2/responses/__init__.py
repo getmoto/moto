@@ -4,7 +4,7 @@ from moto.ec2.utils import camelcase_to_underscores, method_namess_from_class
 
 from .amazon_dev_pay import AmazonDevPay
 from .amis import AmisResponse
-from .availability_zonesand_regions import AvailabilityZonesandRegions
+from .availability_zones_and_regions import AvailabilityZonesAndRegions
 from .customer_gateways import CustomerGateways
 from .dhcp_options import DHCPOptions
 from .elastic_block_store import ElasticBlockStore
@@ -35,7 +35,7 @@ from .tags import TagResponse
 
 class EC2Response(object):
 
-    sub_responses = [InstanceResponse, TagResponse, AmisResponse]
+    sub_responses = [InstanceResponse, TagResponse, AmisResponse, AvailabilityZonesAndRegions]
 
     def dispatch(self, uri, body, headers):
         if body:
