@@ -193,11 +193,35 @@ class RegionsAndZonesBackend(object):
         return self.zones
 
 
+class SecurityRule(object):
+    def __init__(self, ip_protocol, from_port, to_port, ip_ranges, source_groups):
+        self.ip_protocol = ip_protocol
+        self.from_port = from_port
+        self.to_port = to_port
+        self.ip_ranges = ip_ranges or []
+        self.source_groups = source_groups
+
+    @property
+    def unique_representation(self):
+        return "{}-{}-{}-{}-{}".format(
+                self.ip_protocol,
+                self.from_port,
+                self.to_port,
+                self.ip_ranges,
+                self.source_groups
+            )
+
+    def __eq__(self, other):
+        return self.unique_representation == other.unique_representation
+
+
 class SecurityGroup(object):
     def __init__(self, group_id, name, description):
         self.id = group_id
         self.name = name
         self.description = description
+        self.ingress_rules = []
+        self.egress_rules = []
 
 
 class SecurityGroupBackend(object):
@@ -231,6 +255,28 @@ class SecurityGroupBackend(object):
         for group_id, group in self.groups.iteritems():
             if group.name == name:
                 return group
+
+    def authorize_security_group_ingress(self, group_name, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None):
+        group = self.get_security_group_from_name(group_name)
+        source_groups = []
+        for source_group_name in source_group_names:
+            source_groups.append(self.get_security_group_from_name(source_group_name))
+
+        security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
+        group.ingress_rules.append(security_rule)
+
+    def revoke_security_group_ingress(self, group_name, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None):
+        group = self.get_security_group_from_name(group_name)
+        source_groups = []
+        for source_group_name in source_group_names:
+            source_groups.append(self.get_security_group_from_name(source_group_name))
+
+        security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
+        if security_rule in group.ingress_rules:
+            group.ingress_rules.remove(security_rule)
+            return security_rule
+        return False
+
 
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend, RegionsAndZonesBackend, SecurityGroupBackend):
     pass
