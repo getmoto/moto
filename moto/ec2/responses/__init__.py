@@ -11,6 +11,7 @@ from .elastic_block_store import ElasticBlockStore
 from .elastic_ip_addresses import ElasticIPAddresses
 from .elastic_network_interfaces import ElasticNetworkInterfaces
 from .general import General
+from .instances import InstanceResponse
 from .internet_gateways import InternetGateways
 from .ip_addresses import IPAddresses
 from .key_pairs import KeyPairs
@@ -22,6 +23,7 @@ from .route_tables import RouteTables
 from .security_groups import SecurityGroups
 from .spot_instances import SpotInstances
 from .subnets import Subnets
+from .tags import TagResponse
 from .virtual_private_gateways import VirtualPrivateGateways
 from .vm_export import VMExport
 from .vm_import import VMImport
@@ -29,13 +31,40 @@ from .vpcs import VPCs
 from .vpn_connections import VPNConnections
 from .windows import Windows
 
-from .instances import InstanceResponse
-from .tags import TagResponse
 
 
 class EC2Response(object):
 
-    sub_responses = [InstanceResponse, TagResponse, AmisResponse, AvailabilityZonesAndRegions, SecurityGroups]
+    sub_responses = [
+        AmazonDevPay,
+        AmisResponse,
+        AvailabilityZonesAndRegions,
+        CustomerGateways,
+        DHCPOptions,
+        ElasticBlockStore,
+        ElasticIPAddresses,
+        ElasticNetworkInterfaces,
+        General,
+        InstanceResponse,
+        InternetGateways,
+        IPAddresses,
+        KeyPairs,
+        Monitoring,
+        NetworkACLs,
+        PlacementGroups,
+        ReservedInstances,
+        RouteTables,
+        SecurityGroups,
+        SpotInstances,
+        Subnets,
+        TagResponse,
+        VirtualPrivateGateways,
+        VMExport,
+        VMImport,
+        VPCs,
+        VPNConnections,
+        Windows,
+    ]
 
     def dispatch(self, uri, body, headers):
         if body:
