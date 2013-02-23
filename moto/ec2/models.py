@@ -3,7 +3,14 @@ from collections import defaultdict
 from boto.ec2.instance import Instance, InstanceState, Reservation
 
 from moto.core import BaseBackend
-from .utils import random_instance_id, random_reservation_id, random_ami_id, random_security_group_id, random_volume_id
+from .utils import (
+    random_ami_id,
+    random_instance_id,
+    random_reservation_id,
+    random_security_group_id,
+    random_snapshot_id,
+    random_volume_id,
+)
 
 
 class InstanceBackend(object):
@@ -306,10 +313,18 @@ class Volume(object):
             return 'available'
 
 
+class Snapshot(object):
+    def __init__(self, snapshot_id, volume, description):
+        self.id = snapshot_id
+        self.volume = volume
+        self.description = description
+
+
 class EBSBackend(object):
     def __init__(self):
         self.volumes = {}
         self.attachments = {}
+        self.snapshots = {}
         super(EBSBackend, self).__init__()
 
     def create_volume(self, size, zone_name):
@@ -347,6 +362,21 @@ class EBSBackend(object):
         old_attachment = volume.attachment
         volume.attachment = None
         return old_attachment
+
+    def create_snapshot(self, volume_id, description):
+        snapshot_id = random_snapshot_id()
+        volume = self.volumes.get(volume_id)
+        snapshot = Snapshot(snapshot_id, volume, description)
+        self.snapshots[snapshot_id] = snapshot
+        return snapshot
+
+    def describe_snapshots(self):
+        return self.snapshots.values()
+
+    def delete_snapshot(self, snapshot_id):
+        if snapshot_id in self.snapshots:
+            return self.snapshots.pop(snapshot_id)
+        return False
 
 
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend, RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend):

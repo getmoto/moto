@@ -21,7 +21,13 @@ class ElasticBlockStore(object):
         raise NotImplementedError('ElasticBlockStore.copy_snapshot is not yet implemented')
 
     def create_snapshot(self):
-        raise NotImplementedError('ElasticBlockStore.create_snapshot is not yet implemented')
+        description = None
+        if 'Description' in self.querystring:
+            description = self.querystring.get('Description')[0]
+        volume_id = self.querystring.get('VolumeId')[0]
+        snapshot = ec2_backend.create_snapshot(volume_id, description)
+        template = Template(CREATE_SNAPSHOT_RESPONSE)
+        return template.render(snapshot=snapshot)
 
     def create_volume(self):
         size = self.querystring.get('Size')[0]
@@ -31,7 +37,12 @@ class ElasticBlockStore(object):
         return template.render(volume=volume)
 
     def delete_snapshot(self):
-        raise NotImplementedError('ElasticBlockStore.delete_snapshot is not yet implemented')
+        snapshot_id = self.querystring.get('SnapshotId')[0]
+        success = ec2_backend.delete_snapshot(snapshot_id)
+        if not success:
+            # Snapshot doesn't exist
+            return "Snapshot with id {} does not exist".format(snapshot_id), dict(status=404)
+        return DELETE_SNAPSHOT_RESPONSE
 
     def delete_volume(self):
         volume_id = self.querystring.get('VolumeId')[0]
@@ -45,7 +56,9 @@ class ElasticBlockStore(object):
         raise NotImplementedError('ElasticBlockStore.describe_snapshot_attribute is not yet implemented')
 
     def describe_snapshots(self):
-        raise NotImplementedError('ElasticBlockStore.describe_snapshots is not yet implemented')
+        snapshots = ec2_backend.describe_snapshots()
+        template = Template(DESCRIBE_SNAPSHOTS_RESPONSE)
+        return template.render(snapshots=snapshots)
 
     def describe_volumes(self):
         volumes = ec2_backend.describe_volumes()
@@ -150,3 +163,39 @@ DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.c
    <attachTime>YYYY-MM-DDTHH:MM:SS.000Z</attachTime>
 </DetachVolumeResponse>"""
 
+CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <snapshotId>{{ snapshot.id }}</snapshotId>
+  <volumeId>{{ snapshot.volume.id }}</volumeId>
+  <status>pending</status>
+  <startTime>YYYY-MM-DDTHH:MM:SS.000Z</startTime>
+  <progress>60%</progress>
+  <ownerId>111122223333</ownerId>
+  <volumeSize>{{ snapshot.volume.size }}</volumeSize>
+  <description>{{ snapshot.description }}</description>
+</CreateSnapshotResponse>"""
+
+DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <snapshotSet>
+      {% for snapshot in snapshots %}
+          <item>
+             <snapshotId>{{ snapshot.id }}</snapshotId>
+             <volumeId>{{ snapshot.volume.id }}</volumeId>
+             <status>pending</status>
+             <startTime>YYYY-MM-DDTHH:MM:SS.SSSZ</startTime>
+             <progress>30%</progress>
+             <ownerId>111122223333</ownerId>
+             <volumeSize>{{ snapshot.volume.size }}</volumeSize>
+             <description>{{ snapshot.description }}</description>
+             <tagSet>
+             </tagSet>
+          </item>
+      {% endfor %}
+   </snapshotSet>
+</DescribeSnapshotsResponse>"""
+
+DELETE_SNAPSHOT_RESPONSE = """<DeleteSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</DeleteSnapshotResponse>"""

@@ -30,6 +30,10 @@ def random_volume_id():
     return random_id(prefix='vol')
 
 
+def random_snapshot_id():
+    return random_id(prefix='snap')
+
+
 def instance_ids_from_querystring(querystring_dict):
     instance_ids = []
     for key, value in querystring_dict.iteritems():
