@@ -3,7 +3,7 @@ from collections import defaultdict
 from boto.ec2.instance import Instance, InstanceState, Reservation
 
 from moto.core import BaseBackend
-from .utils import random_instance_id, random_reservation_id, random_ami_id
+from .utils import random_instance_id, random_reservation_id, random_ami_id, random_security_group_id
 
 
 class InstanceBackend(object):
@@ -133,7 +133,7 @@ class AmiBackend(object):
     def create_image(self, instance_id, name, description):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
-        instance = ec2_backend.get_instance(instance_id)
+        instance = self.get_instance(instance_id)
         if not instance:
             return None
         ami =  Ami(ami_id, instance, name, description)
@@ -193,7 +193,46 @@ class RegionsAndZonesBackend(object):
         return self.zones
 
 
-class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend, RegionsAndZonesBackend):
+class SecurityGroup(object):
+    def __init__(self, group_id, name, description):
+        self.id = group_id
+        self.name = name
+        self.description = description
+
+
+class SecurityGroupBackend(object):
+
+    def __init__(self):
+        self.groups = {}
+
+    def create_security_group(self, name, description):
+        group_id = random_security_group_id()
+        existing_group = self.get_security_group_from_name(name)
+        if existing_group:
+            return None
+        group =  SecurityGroup(group_id, name, description)
+        self.groups[group_id] = group
+        return group
+
+    def describe_security_groups(self):
+        return self.groups.values()
+
+    def delete_security_group(self, name_or_group_id):
+        if name_or_group_id in self.groups:
+            # Group Id
+            return self.groups.pop(name_or_group_id)
+        else:
+            # Group Name
+            group = self.get_security_group_from_name(name_or_group_id)
+            if group:
+                return self.groups.pop(group.id)
+
+    def get_security_group_from_name(self, name):
+        for group_id, group in self.groups.iteritems():
+            if group.name == name:
+                return group
+
+class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend, RegionsAndZonesBackend, SecurityGroupBackend):
     pass
 
 

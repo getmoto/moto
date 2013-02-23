@@ -22,6 +22,10 @@ def random_ami_id():
     return random_id(prefix='ami')
 
 
+def random_security_group_id():
+    return random_id(prefix='sg')
+
+
 def instance_ids_from_querystring(querystring_dict):
     instance_ids = []
     for key, value in querystring_dict.iteritems():

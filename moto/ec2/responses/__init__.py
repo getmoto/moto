@@ -35,7 +35,7 @@ from .tags import TagResponse
 
 class EC2Response(object):
 
-    sub_responses = [InstanceResponse, TagResponse, AmisResponse, AvailabilityZonesAndRegions]
+    sub_responses = [InstanceResponse, TagResponse, AmisResponse, AvailabilityZonesAndRegions, SecurityGroups]
 
     def dispatch(self, uri, body, headers):
         if body:
