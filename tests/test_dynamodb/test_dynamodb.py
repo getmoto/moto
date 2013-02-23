@@ -49,5 +49,4 @@ def test_describe_table():
                     'TableStatus': 'ACTIVE'
                 }
             }
-    import pdb; pdb.set_trace()
     assert conn.describe_table('messages') == expected
