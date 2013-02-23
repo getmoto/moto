@@ -3,7 +3,7 @@ from collections import defaultdict
 from boto.ec2.instance import Instance, InstanceState, Reservation
 
 from moto.core import BaseBackend
-from .utils import random_instance_id, random_reservation_id, random_ami_id, random_security_group_id
+from .utils import random_instance_id, random_reservation_id, random_ami_id, random_security_group_id, random_volume_id
 
 
 class InstanceBackend(object):
@@ -192,6 +192,11 @@ class RegionsAndZonesBackend(object):
     def describe_availability_zones(self):
         return self.zones
 
+    def get_zone_by_name(self, name):
+        for zone in self.zones:
+            if zone.name == name:
+                return zone
+
 
 class SecurityRule(object):
     def __init__(self, ip_protocol, from_port, to_port, ip_ranges, source_groups):
@@ -228,6 +233,7 @@ class SecurityGroupBackend(object):
 
     def __init__(self):
         self.groups = {}
+        super(SecurityGroupBackend, self).__init__()
 
     def create_security_group(self, name, description):
         group_id = random_security_group_id()
@@ -278,7 +284,72 @@ class SecurityGroupBackend(object):
         return False
 
 
-class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend, RegionsAndZonesBackend, SecurityGroupBackend):
+class VolumeAttachment(object):
+    def __init__(self, volume, instance, device):
+        self.volume = volume
+        self.instance = instance
+        self.device = device
+
+
+class Volume(object):
+    def __init__(self, volume_id, size, zone):
+        self.id = volume_id
+        self.size = size
+        self.zone = zone
+        self.attachment = None
+
+    @property
+    def status(self):
+        if self.attachment:
+            return 'in-use'
+        else:
+            return 'available'
+
+
+class EBSBackend(object):
+    def __init__(self):
+        self.volumes = {}
+        self.attachments = {}
+        super(EBSBackend, self).__init__()
+
+    def create_volume(self, size, zone_name):
+        volume_id = random_volume_id()
+        zone = self.get_zone_by_name(zone_name)
+        volume = Volume(volume_id, size, zone)
+        self.volumes[volume_id] = volume
+        return volume
+
+    def describe_volumes(self):
+        return self.volumes.values()
+
+    def delete_volume(self, volume_id):
+        if volume_id in self.volumes:
+            return self.volumes.pop(volume_id)
+        return False
+
+    def attach_volume(self, volume_id, instance_id, device_path):
+        volume = self.volumes.get(volume_id)
+        instance = self.get_instance(instance_id)
+
+        if not volume or not instance:
+            return False
+
+        volume.attachment = VolumeAttachment(volume, instance, device_path)
+        return volume.attachment
+
+    def detach_volume(self, volume_id, instance_id, device_path):
+        volume = self.volumes.get(volume_id)
+        instance = self.get_instance(instance_id)
+
+        if not volume or not instance:
+            return False
+
+        old_attachment = volume.attachment
+        volume.attachment = None
+        return old_attachment
+
+
+class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend, RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend):
     pass
 
 
