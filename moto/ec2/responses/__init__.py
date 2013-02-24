@@ -1,6 +1,6 @@
 from urlparse import parse_qs
 
-from moto.ec2.utils import camelcase_to_underscores, method_namess_from_class
+from moto.core.utils import camelcase_to_underscores, method_names_from_class
 
 from .amazon_dev_pay import AmazonDevPay
 from .amis import AmisResponse
@@ -76,7 +76,7 @@ class EC2Response(object):
         action = camelcase_to_underscores(action)
 
         for sub_response in self.sub_responses:
-            method_names = method_namess_from_class(sub_response)
+            method_names = method_names_from_class(sub_response)
             if action in method_names:
                 response = sub_response(querystring)
                 method = getattr(response, action)

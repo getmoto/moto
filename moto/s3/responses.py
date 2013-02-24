@@ -1,7 +1,8 @@
 from jinja2 import Template
 
 from .models import s3_backend
-from .utils import bucket_name_from_hostname, headers_to_dict
+from moto.core.utils import headers_to_dict
+from .utils import bucket_name_from_hostname
 
 
 def all_buckets(uri, body, method):

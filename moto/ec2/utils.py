@@ -1,4 +1,3 @@
-import inspect
 import random
 
 
@@ -53,23 +52,3 @@ def resource_ids_from_querystring(querystring_dict):
             response_values[value[0]] = (tag_key, tag_value)
 
     return response_values
-
-
-def camelcase_to_underscores(argument):
-    ''' Converts a camelcase param like theNewAttribute to the equivalent
-    python underscore variable like the_new_attribute'''
-    result = ''
-    prev_char_title = True
-    for char in argument:
-        if char.istitle() and not prev_char_title:
-            # Only add underscore if char is capital, not first letter, and prev
-            # char wasn't capital
-            result += "_"
-        prev_char_title = char.istitle()
-        if not char.isspace():  # Only add non-whitespace
-            result += char.lower()
-    return result
-
-
-def method_namess_from_class(clazz):
-    return [x[0] for x in inspect.getmembers(clazz, predicate=inspect.ismethod)]
