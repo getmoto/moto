@@ -51,6 +51,13 @@ class QueueResponse(BaseResponse):
         template = Template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
 
+    def set_queue_attributes(self):
+        queue_name = self.path.split("/")[-1]
+        key = camelcase_to_underscores(self.querystring.get('Attribute.Name')[0])
+        value = self.querystring.get('Attribute.Value')[0]
+        queue = sqs_backend.set_queue_attribute(queue_name, key, value)
+        return SET_QUEUE_ATTRIBUTE_RESPONSE
+
     def delete_queue(self):
         queue_name = self.path.split("/")[-1]
         queue = sqs_backend.delete_queue(queue_name)
@@ -108,3 +115,11 @@ GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
     <RequestId>1ea71be5-b5a2-4f9d-b85a-945d8d08cd0b</RequestId>
   </ResponseMetadata>
 </GetQueueAttributesResponse>"""
+
+SET_QUEUE_ATTRIBUTE_RESPONSE = """<SetQueueAttributesResponse>
+    <ResponseMetadata>
+        <RequestId>
+            e5cca473-4fc0-4198-a451-8abb94d02c75
+        </RequestId>
+    </ResponseMetadata>
+</SetQueueAttributesResponse>"""

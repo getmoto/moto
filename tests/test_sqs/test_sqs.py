@@ -28,3 +28,16 @@ def test_delete_queue():
     conn.get_all_queues().should.have.length_of(0)
 
     queue.delete.when.called_with().should.throw(SQSError)
+
+
+@mock_sqs
+def test_set_queue_attribute():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    conn.create_queue("test-queue", visibility_timeout=60)
+
+    queue = conn.get_all_queues()[0]
+    queue.get_timeout().should.equal(60)
+
+    queue.set_attribute("VisibilityTimeout", 45)
+    queue = conn.get_all_queues()[0]
+    queue.get_timeout().should.equal(45)

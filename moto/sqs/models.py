@@ -38,5 +38,9 @@ class SQSBackend(BaseBackend):
             return self.queues.pop(queue_name)
         return False
 
+    def set_queue_attribute(self, queue_name, key, value):
+        queue = self.get_queue(queue_name)
+        setattr(queue, key, value)
+        return queue
 
 sqs_backend = SQSBackend()
