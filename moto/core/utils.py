@@ -1,4 +1,5 @@
 import inspect
+import random
 from urlparse import parse_qs
 
 
@@ -41,3 +42,12 @@ def camelcase_to_underscores(argument):
 
 def method_names_from_class(clazz):
     return [x[0] for x in inspect.getmembers(clazz, predicate=inspect.ismethod)]
+
+
+def get_random_hex(length=8):
+    chars = range(10) + ['a', 'b', 'c', 'd', 'e', 'f']
+    return ''.join(unicode(random.choice(chars)) for x in range(length))
+
+
+def get_random_message_id():
+    return '{}-{}-{}-{}-{}'.format(get_random_hex(8), get_random_hex(4), get_random_hex(4), get_random_hex(4), get_random_hex(12))
