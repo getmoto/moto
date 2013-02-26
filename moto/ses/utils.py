@@ -15,4 +15,4 @@ def get_random_message_id():
             random_hex(4),
             random_hex(12),
             random_hex(6),
-        )
+    )

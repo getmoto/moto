@@ -66,5 +66,4 @@ class SESBackend(BaseBackend):
     def get_send_quota(self):
         return SESQuota(self.sent_messages)
 
-
 ses_backend = SESBackend()

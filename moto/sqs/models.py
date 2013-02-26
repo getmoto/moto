@@ -23,6 +23,7 @@ class Message(object):
         # SQS Message bodies are base64 encoded by default
         return base64.b64encode(self._body)
 
+
 class Queue(object):
     camelcase_attributes = ['VisibilityTimeout', 'ApproximateNumberOfMessages']
 

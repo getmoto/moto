@@ -16,6 +16,7 @@ class FakeKey(object):
         value_md5.update(self.value)
         return '"{0}"'.format(value_md5.hexdigest())
 
+
 class FakeBucket(object):
     def __init__(self, name):
         self.name = name
@@ -47,7 +48,6 @@ class S3Backend(BaseBackend):
             else:
                 return self.buckets.pop(bucket_name)
         return None
-
 
     def set_key(self, bucket_name, key_name, value):
         bucket = self.buckets[bucket_name]

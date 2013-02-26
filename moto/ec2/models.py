@@ -132,6 +132,7 @@ class Ami(object):
         self.virtualization_type = instance.virtualization_type
         self.kernel_id = instance.kernel
 
+
 class AmiBackend(object):
     def __init__(self):
         self.amis = {}
@@ -143,7 +144,7 @@ class AmiBackend(object):
         instance = self.get_instance(instance_id)
         if not instance:
             return None
-        ami =  Ami(ami_id, instance, name, description)
+        ami = Ami(ami_id, instance, name, description)
         self.amis[ami_id] = ami
         return ami
 
@@ -218,7 +219,7 @@ class SecurityRule(object):
                 self.to_port,
                 self.ip_ranges,
                 self.source_groups
-            )
+        )
 
     def __eq__(self, other):
         return self.unique_representation == other.unique_representation
@@ -244,7 +245,7 @@ class SecurityGroupBackend(object):
         existing_group = self.get_security_group_from_name(name)
         if existing_group:
             return None
-        group =  SecurityGroup(group_id, name, description)
+        group = SecurityGroup(group_id, name, description)
         self.groups[group_id] = group
         return group
 
@@ -381,4 +382,3 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend, RegionsAn
 
 
 ec2_backend = EC2Backend()
-

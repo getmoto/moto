@@ -20,28 +20,29 @@ class Table(object):
 
     @property
     def describe(self):
-        return {"Table": {
-            "CreationDateTime": unix_time(self.created_at),
-            "KeySchema": {
-                "HashKeyElement": {
-                    "AttributeName": self.hash_key_attr,
-                    "AttributeType": self.hash_key_type
+        return {
+            "Table": {
+                "CreationDateTime": unix_time(self.created_at),
+                "KeySchema": {
+                    "HashKeyElement": {
+                        "AttributeName": self.hash_key_attr,
+                        "AttributeType": self.hash_key_type
+                    },
+                    "RangeKeyElement": {
+                        "AttributeName": self.range_key_attr,
+                        "AttributeType": self.range_key_type
+                    }
                 },
-                "RangeKeyElement": {
-                    "AttributeName": self.range_key_attr,
-                    "AttributeType": self.range_key_type
-                }
-            },
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": self.read_capacity,
-                "WriteCapacityUnits": self.write_capacity
-            },
-            "TableName": self.name,
-            "TableStatus": "ACTIVE",
-            "ItemCount": 0,
-            "TableSizeBytes": 0,
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": self.read_capacity,
+                    "WriteCapacityUnits": self.write_capacity
+                },
+                "TableName": self.name,
+                "TableStatus": "ACTIVE",
+                "ItemCount": 0,
+                "TableSizeBytes": 0,
+            }
         }
-    }
 
 
 class DynamoDBBackend(BaseBackend):

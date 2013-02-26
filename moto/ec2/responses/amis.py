@@ -99,4 +99,3 @@ DEREGISTER_IMAGE_RESPONSE = """<DeregisterImageResponse xmlns="http://ec2.amazon
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>{{ success }}</return>
 </DeregisterImageResponse>"""
-

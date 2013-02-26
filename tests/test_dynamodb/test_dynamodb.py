@@ -27,26 +27,26 @@ def test_describe_table():
     )
     conn = boto.connect_dynamodb('the_key', 'the_secret')
     expected = {
-                'Table': {
-                    'CreationDateTime': 1326499200.0,
-                    'ItemCount': 0,
-                    'KeySchema': {
-                        'HashKeyElement': {
-                            'AttributeName': 'forum_name',
-                            'AttributeType': 'S'
-                        },
-                        'RangeKeyElement': {
-                            'AttributeName': 'subject',
-                            'AttributeType': 'S'
-                        }
-                    },
-                    'ProvisionedThroughput': {
-                        'ReadCapacityUnits': 10,
-                        'WriteCapacityUnits': 10
-                    },
-                    'TableName': 'messages',
-                    'TableSizeBytes': 0,
-                    'TableStatus': 'ACTIVE'
+        'Table': {
+            'CreationDateTime': 1326499200.0,
+            'ItemCount': 0,
+            'KeySchema': {
+                'HashKeyElement': {
+                    'AttributeName': 'forum_name',
+                    'AttributeType': 'S'
+                },
+                'RangeKeyElement': {
+                    'AttributeName': 'subject',
+                    'AttributeType': 'S'
                 }
-            }
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 10,
+                'WriteCapacityUnits': 10
+            },
+            'TableName': 'messages',
+            'TableSizeBytes': 0,
+            'TableStatus': 'ACTIVE'
+        }
+    }
     assert conn.describe_table('messages') == expected

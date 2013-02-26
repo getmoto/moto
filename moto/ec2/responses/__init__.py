@@ -32,7 +32,6 @@ from .vpn_connections import VPNConnections
 from .windows import Windows
 
 
-
 class EC2Response(object):
 
     sub_responses = [
