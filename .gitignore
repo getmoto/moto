@@ -1,2 +1,4 @@
+moto.egg-info/*
+dist/*
 .coverage
 *.pyc
