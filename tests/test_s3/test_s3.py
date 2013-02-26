@@ -1,6 +1,7 @@
 import boto
 from boto.exception import S3ResponseError
 from boto.s3.key import Key
+import requests
 
 import sure
 
@@ -90,3 +91,13 @@ def test_get_all_buckets():
     buckets = conn.get_all_buckets()
 
     buckets.should.have.length_of(2)
+
+
+@mock_s3
+def test_bucket_method_not_implemented():
+    requests.post.when.called_with("https://foobar.s3.amazonaws.com/").should.throw(NotImplementedError)
+
+
+@mock_s3
+def test_key_method_not_implemented():
+    requests.post.when.called_with("https://foobar.s3.amazonaws.com/foo").should.throw(NotImplementedError)

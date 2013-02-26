@@ -44,7 +44,7 @@ def bucket_response(uri, body, headers):
             template = Template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
             return template.render(bucket=removed_bucket), dict(status=409)
     else:
-        import pdb;pdb.set_trace()
+        raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
 
 
 def key_response(uri_info, body, headers):
@@ -85,7 +85,7 @@ def key_response(uri_info, body, headers):
         template = Template(S3_DELETE_OBJECT_SUCCESS)
         return template.render(bucket=removed_key), dict(status=204)
     else:
-        import pdb;pdb.set_trace()
+        raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
 
 
 S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">

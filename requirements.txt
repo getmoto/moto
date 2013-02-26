@@ -5,4 +5,5 @@ freezegun
 Jinja2
 mock
 nose
+requests
 sure
