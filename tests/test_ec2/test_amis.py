@@ -36,14 +36,3 @@ def test_ami_pulls_attributes_from_instance():
     image_id = instance.create_image("test-ami", "this is a test ami")
     image = conn.get_image(image_id)
     image.kernel_id.should.equal('test-kernel')
-
-
-# @mock_ec2
-# def test_ami_attributes():
-#     conn = boto.connect_ec2('the_key', 'the_secret')
-#     reservation = conn.run_instances('<ami-image-id>')
-#     instance = reservation.instances[0]
-#     image = instance.create_image("test-ami", "this is a test ami")
-
-#     launch_permission = conn.get_image_attribute(image, 'description')
-#     expect(launch_permission.description).should.equal("this is a test ami")
