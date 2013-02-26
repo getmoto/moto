@@ -1,12 +1,13 @@
 import functools
 import re
 
-from httpretty import HTTPretty
+from moto.packages.httpretty import HTTPretty
 
 
 class BaseBackend(object):
 
     def reset(self):
+        self.__dict__ = {}
         self.__init__()
 
     @property
@@ -22,7 +23,6 @@ class BaseBackend(object):
         def wrapper(*args, **kw):
             self.reset()
 
-            HTTPretty.reset()
             HTTPretty.enable()
 
             for method in HTTPretty.METHODS:

@@ -113,9 +113,3 @@ def test_delete_batch_operation():
     queue.delete_message_batch(messages)
 
     queue.count().should.equal(1)
-
-
-@mock_sqs
-def test_not_implemented_method():
-    requests.post.when.called_with("https://foobar.amazonaws.com/",
-        data={'Action':['foobar']}).should.throw(NotImplementedError)
