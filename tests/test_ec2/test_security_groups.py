@@ -10,7 +10,7 @@ def test_create_and_describe_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
     security_group = conn.create_security_group('test security group', 'this is a test security group')
 
-    expect(security_group).name.should.equal('test security group')
+    expect(security_group.name).should.equal('test security group')
     security_group.description.should.equal('this is a test security group')
 
     # Trying to create another group with the same name should throw an error
