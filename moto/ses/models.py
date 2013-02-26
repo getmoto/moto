@@ -1,5 +1,3 @@
-import md5
-
 from moto.core import BaseBackend
 from .utils import get_random_message_id
 

@@ -1,27 +1,7 @@
-import re
-from urlparse import parse_qs
-
 from jinja2 import Template
 
-from moto.core.utils import headers_to_dict, camelcase_to_underscores, method_names_from_class
+from moto.core.responses import BaseResponse
 from .models import ses_backend
-
-
-class BaseResponse(object):
-    def dispatch(self, uri, body, headers):
-        querystring = parse_qs(body)
-
-        self.path = uri.path
-        self.querystring = querystring
-
-        action = querystring['Action'][0]
-        action = camelcase_to_underscores(action)
-
-        method_names = method_names_from_class(self.__class__)
-        if action in method_names:
-            method = getattr(self, action)
-            return method()
-        raise NotImplementedError("The {} action has not been implemented".format(action))
 
 
 class EmailResponse(BaseResponse):

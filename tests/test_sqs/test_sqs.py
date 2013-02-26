@@ -1,6 +1,5 @@
 import boto
 from boto.exception import SQSError
-import requests
 
 from sure import expect
 

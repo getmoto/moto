@@ -1,30 +1,8 @@
-import re
-from urlparse import parse_qs
-
 from jinja2 import Template
 
-from moto.core.utils import headers_to_dict, camelcase_to_underscores, method_names_from_class
+from moto.core.responses import BaseResponse
+from moto.core.utils import camelcase_to_underscores
 from .models import sqs_backend
-
-
-class BaseResponse(object):
-    def dispatch(self, uri, body, headers):
-        if body:
-            querystring = parse_qs(body)
-        else:
-            querystring = headers_to_dict(headers)
-
-        self.path = uri.path
-        self.querystring = querystring
-
-        action = querystring['Action'][0]
-        action = camelcase_to_underscores(action)
-
-        method_names = method_names_from_class(self.__class__)
-        if action in method_names:
-            method = getattr(self, action)
-            return method()
-        raise NotImplementedError("The {} action has not been implemented".format(action))
 
 
 class QueuesResponse(BaseResponse):
@@ -56,7 +34,7 @@ class QueueResponse(BaseResponse):
         queue_name = self.path.split("/")[-1]
         key = camelcase_to_underscores(self.querystring.get('Attribute.Name')[0])
         value = self.querystring.get('Attribute.Value')[0]
-        queue = sqs_backend.set_queue_attribute(queue_name, key, value)
+        sqs_backend.set_queue_attribute(queue_name, key, value)
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
@@ -136,7 +114,7 @@ class QueueResponse(BaseResponse):
                 # Found all messages
                 break
 
-            message = sqs_backend.delete_message(queue_name, receipt_handle[0])
+            sqs_backend.delete_message(queue_name, receipt_handle[0])
 
             message_user_id_key = 'DeleteMessageBatchRequestEntry.{}.Id'.format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
