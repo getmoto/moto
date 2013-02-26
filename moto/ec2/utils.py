@@ -48,7 +48,12 @@ def resource_ids_from_querystring(querystring_dict):
         if prefix in key:
             resource_index = key.replace(prefix + ".", "")
             tag_key = querystring_dict.get("Tag.{}.Key".format(resource_index))[0]
-            tag_value = querystring_dict.get("Tag.{}.Value".format(resource_index))[0]
+
+            tag_value_key = "Tag.{}.Value".format(resource_index)
+            if tag_value_key in querystring_dict:
+                tag_value = querystring_dict.get(tag_value_key)[0]
+            else:
+                tag_value = None
             response_values[value[0]] = (tag_key, tag_value)
 
     return response_values

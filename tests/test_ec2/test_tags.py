@@ -16,3 +16,6 @@ def test_instance_launch_and_terminate():
     tag = tags[0]
     tag.name.should.equal("a key")
     tag.value.should.equal("some value")
+
+    instance.remove_tag("a key")
+    conn.get_all_tags().should.have.length_of(0)

@@ -15,7 +15,8 @@ class TagResponse(object):
         return CREATE_RESPONSE
 
     def delete_tags(self):
-        ec2_backend.delete_tag()
+        for resource_id, tag in self.resource_ids.iteritems():
+            ec2_backend.delete_tag(resource_id, tag[0])
         template = Template(DELETE_RESPONSE)
         return template.render(reservations=ec2_backend.all_reservations())
 
