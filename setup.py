@@ -12,6 +12,7 @@ setup(
     url='https://github.com/spulec/moto',
     packages=find_packages(),
     install_requires=[
-        "boto"
+        "boto",
+        "Jinja2",
     ],
 )
