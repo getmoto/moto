@@ -1,3 +1,5 @@
+from urlparse import parse_qs
+
 from jinja2 import Template
 
 from .models import s3_backend
@@ -15,14 +17,18 @@ def all_buckets(uri, body, method):
 def bucket_response(uri, body, headers):
     hostname = uri.hostname
     method = uri.method
+    querystring = parse_qs(uri.query)
 
     bucket_name = bucket_name_from_hostname(hostname)
 
     if method == 'GET':
         bucket = s3_backend.get_bucket(bucket_name)
         if bucket:
+            prefix = querystring.get('prefix', [None])[0]
+            result_keys, result_folders = s3_backend.prefix_query(bucket, prefix)
             template = Template(S3_BUCKET_GET_RESPONSE)
-            return template.render(bucket=bucket)
+            return template.render(bucket=bucket, prefix=prefix,
+                  result_keys=result_keys, result_folders=result_folders)
         else:
             return "", dict(status=404)
     elif method == 'PUT':
@@ -58,17 +64,21 @@ def key_response(uri_info, body, headers):
 
     if method == 'GET':
         key = s3_backend.get_key(bucket_name, key_name)
-        return key.value
-
+        if key:
+            return key.value
+        else:
+            return "", dict(status=404)
     if method == 'PUT':
         if 'x-amz-copy-source' in headers:
             # Copy key
             src_bucket, src_key = headers.get("x-amz-copy-source").split("/")
             s3_backend.copy_key(src_bucket, src_key, bucket_name, key_name)
-            return S3_OBJECT_COPY_RESPONSE
+            template = Template(S3_OBJECT_COPY_RESPONSE)
+            return template.render(key=src_key)
         if body:
             new_key = s3_backend.set_key(bucket_name, key_name, body)
-            return S3_OBJECT_RESPONSE, dict(etag=new_key.etag)
+            template = Template(S3_OBJECT_RESPONSE)
+            return template.render(key=new_key), dict(etag=new_key.etag)
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
             return "", dict(etag=key.etag)
@@ -103,15 +113,33 @@ S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2
  </Buckets>
 </ListAllMyBucketsResult>"""
 
-S3_BUCKET_GET_RESPONSE = """<ListBucket xmlns="http://doc.s3.amazonaws.com/2006-03-01">\
-      <Bucket>{{ bucket.name }}</Bucket>\
-      <Prefix>notes/</Prefix>\
-      <Delimiter>/</Delimiter>\
-      <MaxKeys>1000</MaxKeys>\
-      <AWSAccessKeyId>AKIAIOSFODNN7EXAMPLE</AWSAccessKeyId>\
-      <Timestamp>2006-03-01T12:00:00.183Z</Timestamp>\
-      <Signature>Iuyz3d3P0aTou39dzbqaEXAMPLE=</Signature>\
-    </ListBucket>"""
+S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>{{ bucket.name }}</Name>
+  <Prefix>{{ prefix }}</Prefix>
+  <MaxKeys>1000</MaxKeys>
+  <Delimiter>/</Delimiter>
+  <IsTruncated>false</IsTruncated>
+  {% for key in result_keys %}
+    <Contents>
+      <Key>{{ key.name }}</Key>
+      <LastModified>2006-01-01T12:00:00.000Z</LastModified>
+      <ETag>{{ key.etag }}</ETag>
+      <Size>{{ key.size }}</Size>
+      <StorageClass>STANDARD</StorageClass>
+      <Owner>
+        <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+        <DisplayName>webfile</DisplayName>
+      </Owner>
+      <StorageClass>STANDARD</StorageClass>
+    </Contents>
+  {% endfor %}
+  {% for folder in result_folders %}
+    <CommonPrefixes>
+      <Prefix>{{ folder }}</Prefix>
+    </CommonPrefixes>
+  {% endfor %}
+  </ListBucketResult>"""
 
 S3_BUCKET_CREATE_RESPONSE = """<CreateBucketResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
   <CreateBucketResponse>
@@ -151,14 +179,14 @@ S3_DELETE_OBJECT_SUCCESS = """<DeleteObjectResponse xmlns="http://s3.amazonaws.c
 
 S3_OBJECT_RESPONSE = """<PutObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
       <PutObjectResponse>
-        <ETag>&quot;asdlfkdalsjfsalfkjsadlfjsdjkk&quot;</ETag>
+        <ETag>{{ key.etag }}</ETag>
         <LastModified>2006-03-01T12:00:00.183Z</LastModified>
       </PutObjectResponse>
     </PutObjectResponse>"""
 
 S3_OBJECT_COPY_RESPONSE = """<CopyObjectResponse xmlns="http://doc.s3.amazonaws.com/2006-03-01">
   <CopyObjectResponse>
-    <ETag>"asdfadsfdsafjsadfdafsadf"</ETag>
+    <ETag>{{ key.etag }}</ETag>
     <LastModified>2008-02-18T13:54:10.183Z</LastModified>
   </CopyObjectResponse>
 </CopyObjectResponse>"""

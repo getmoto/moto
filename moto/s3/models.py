@@ -16,6 +16,10 @@ class FakeKey(object):
         value_md5.update(self.value)
         return '"{0}"'.format(value_md5.hexdigest())
 
+    @property
+    def size(self):
+        return len(self.value)
+
 
 class FakeBucket(object):
     def __init__(self, name):
@@ -59,6 +63,29 @@ class S3Backend(BaseBackend):
     def get_key(self, bucket_name, key_name):
         bucket = self.buckets[bucket_name]
         return bucket.keys.get(key_name)
+
+    def prefix_query(self, bucket, prefix):
+        key_results = set()
+        folder_results = set()
+        if prefix:
+            for key_name, key in bucket.keys.iteritems():
+                if key_name.startswith(prefix):
+                    if '/' in key_name.lstrip(prefix):
+                        key_without_prefix = key_name.lstrip(prefix).split("/")[0]
+                        folder_results.add("{}{}".format(prefix, key_without_prefix))
+                    else:
+                        key_results.add(key)
+        else:
+            for key_name, key in bucket.keys.iteritems():
+                if '/' in key_name:
+                    folder_results.add(key_name.split("/")[0])
+                else:
+                    key_results.add(key)
+
+        key_results = sorted(key_results, key=lambda key: key.name)
+        folder_results = [folder_name for folder_name in sorted(folder_results, key=lambda key: key)]
+
+        return key_results, folder_results
 
     def delete_key(self, bucket_name, key_name):
         bucket = self.buckets[bucket_name]
