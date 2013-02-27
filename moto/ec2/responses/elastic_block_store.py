@@ -1,7 +1,6 @@
 from jinja2 import Template
 
 from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
 
 
 class ElasticBlockStore(object):
@@ -82,7 +81,6 @@ class ElasticBlockStore(object):
             return "Volume {} can not be detached from {} because it is not attached".format(volume_id, instance_id), dict(status=404)
         template = Template(DETATCH_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
-
 
     def enable_volume_io(self):
         raise NotImplementedError('ElasticBlockStore.enable_volume_io is not yet implemented')
