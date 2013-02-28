@@ -106,7 +106,7 @@ def test_my_model_save():
     mock.stop()
 ```
 
-#### Install
+## Install
 
 ```console
 $ pip install moto
