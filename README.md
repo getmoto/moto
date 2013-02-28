@@ -56,3 +56,48 @@ With the decorator wrapping the test, all the calls to s3 are automatically mock
 pip install moto
 ```
  -->
+
+## Usage
+
+All of the services can be used as a decorator, context manager, or in a raw form.
+
+### Decorator
+
+```python
+@mock_s3
+def test_my_model_save():
+    model_instance = MyModel('steve', 'is awesome')
+    model_instance.save()
+
+    conn = boto.connect_s3()
+    assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+```
+
+### Context Manager
+
+```python
+def test_my_model_save():
+    with mock_s3():
+        model_instance = MyModel('steve', 'is awesome')
+        model_instance.save()
+
+        conn = boto.connect_s3()
+        assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+```
+
+
+### Raw use
+
+```python
+def test_my_model_save():
+    mock = mock_s3()
+    mock.start()
+
+    model_instance = MyModel('steve', 'is awesome')
+    model_instance.save()
+
+    conn = boto.connect_s3()
+    assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+
+    mock.stop()
+```
