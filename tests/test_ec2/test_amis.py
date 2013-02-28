@@ -11,7 +11,7 @@ def test_ami_create_and_delete():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('<ami-image-id>')
     instance = reservation.instances[0]
-    image = instance.create_image("test-ami", "this is a test ami")
+    image = conn.create_image(instance.id, "test-ami", "this is a test ami")
 
     all_images = conn.get_all_images()
     all_images[0].id.should.equal(image)
@@ -33,6 +33,6 @@ def test_ami_pulls_attributes_from_instance():
     instance = reservation.instances[0]
     instance.modify_attribute("kernel", "test-kernel")
 
-    image_id = instance.create_image("test-ami", "this is a test ami")
+    image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_image(image_id)
-    image.kernel_id.should.equal('test-kernel')
+    expect(image.kernel_id).should.equal('test-kernel')

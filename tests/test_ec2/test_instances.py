@@ -21,7 +21,7 @@ def test_instance_launch_and_terminate():
     instances[0].id.should.equal(instance.id)
     instances[0].state.should.equal('pending')
 
-    conn.terminate_instances(instances[0].id)
+    conn.terminate_instances([instances[0].id])
 
     reservations = conn.get_all_instances()
     instance = reservations[0].instances[0]
@@ -40,7 +40,7 @@ def test_instance_start_and_stop():
     for instance in stopped_instances:
         instance.state.should.equal('stopping')
 
-    started_instances = conn.start_instances(instances[0].id)
+    started_instances = conn.start_instances([instances[0].id])
     started_instances[0].state.should.equal('pending')
 
 
@@ -76,4 +76,4 @@ def test_instance_attribute_user_data():
 
     instance_attribute = instance.get_attribute("userData")
     instance_attribute.should.be.a(InstanceAttribute)
-    instance_attribute.get("userData").should.equal("this is my user data")
+    expect(instance_attribute.get("userData")).should.equal("this is my user data")

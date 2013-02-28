@@ -57,7 +57,7 @@ class InstanceResponse(object):
         value = self.querystring.get(key)[0]
         normalized_attribute = camelcase_to_underscores(key.split(".")[0])
         instance_id = self.instance_ids[0]
-        instance = ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
+        ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
 
@@ -77,8 +77,8 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <instanceId>{{ instance.id }}</instanceId>
           <imageId>ami-60a54009</imageId>
           <instanceState>
-            <code>0</code>
-            <name>pending</name>
+            <code>{{ instance._state_code }}</code>
+            <name>{{ instance._state_name }}</name>
           </instanceState>
           <privateDnsName/>
           <dnsName/>
@@ -129,8 +129,8 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <instanceId>{{ instance.id }}</instanceId>
                     <imageId>ami-1a2b3c4d</imageId>
                     <instanceState>
-                      <code>16</code>
-                      <name>{{ instance.state }}</name>
+                      <code>{{ instance._state_code }}</code>
+                      <name>{{ instance._state_name }}</name>
                     </instanceState>
                     <privateDnsName/>
                     <dnsName/>
@@ -163,74 +163,12 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <architecture>x86_64</architecture>
                     <rootDeviceType>ebs</rootDeviceType>
                     <rootDeviceName>/dev/sda1</rootDeviceName>
-                    <blockDeviceMapping>
-                      <item>
-                        <deviceName>/dev/sda1</deviceName>
-                        <ebs>
-                          <volumeId>vol-1a2b3c4d</volumeId>
-                          <status>attached</status>
-                          <attachTime>YYYY-MM-DDTHH:MM:SS.SSSZ</attachTime>
-                          <deleteOnTermination>true</deleteOnTermination>
-                        </ebs>
-                      </item>
-                    </blockDeviceMapping>
+                    <blockDeviceMapping />
                     <virtualizationType>hvm</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
-                    <tagSet>
-                      <item>
-                        <key>Name</key>
-                        <value>Windows Instance</value>
-                      </item>
-                    </tagSet>
+                    <tagSet />
                     <hypervisor>xen</hypervisor>
-                    <networkInterfaceSet>
-                      <item>
-                        <networkInterfaceId>eni-1a2b3c4d</networkInterfaceId>
-                        <subnetId>subnet-1a2b3c4d</subnetId>
-                        <vpcId>vpc-1a2b3c4d</vpcId>
-                        <description>Primary network interface</description>
-                        <ownerId>111122223333</ownerId>
-                        <status>in-use</status>
-                        <privateIpAddress>10.0.0.12</privateIpAddress>
-                        <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
-                        <sourceDestCheck>true</sourceDestCheck>
-                        <groupSet>
-                          <item>
-                            <groupId>sg-1a2b3c4d</groupId>
-                            <groupName>my-security-group</groupName>
-                          </item>
-                        </groupSet>
-                        <attachment>
-                          <attachmentId>eni-attach-1a2b3c4d</attachmentId>
-                          <deviceIndex>0</deviceIndex>
-                          <status>attached</status>
-                          <attachTime>YYYY-MM-DDTHH:MM:SS+0000</attachTime>
-                          <deleteOnTermination>true</deleteOnTermination>
-                        </attachment>
-                        <association>
-                          <publicIp>46.51.219.63</publicIp>
-                          <ipOwnerId>111122223333</ipOwnerId>
-                        </association>
-                        <privateIpAddressesSet>
-                          <item>
-                            <privateIpAddress>10.0.0.12</privateIpAddress>
-                            <primary>true</primary>
-                            <association>
-                              <publicIp>46.51.219.63</publicIp>
-                              <ipOwnerId>111122223333</ipOwnerId>
-                            </association>
-                          </item>
-                          <item>
-                            <privateIpAddress>10.0.0.14</privateIpAddress>
-                            <primary>false</primary>
-                            <association>
-                              <publicIp>46.51.221.177</publicIp>
-                              <ipOwnerId>111122223333</ipOwnerId>
-                            </association>
-                          </item>
-                        </privateIpAddressesSet>
-                      </item>
-                    </networkInterfaceSet>
+                    <networkInterfaceSet />
                   </item>
                 {% endfor %}
             </instancesSet>
@@ -246,14 +184,14 @@ EC2_TERMINATE_INSTANCES = """
     {% for instance in instances %}
       <item>
         <instanceId>{{ instance.id }}</instanceId>
-        <currentState>
-          <code>32</code>
-          <name>shutting-down</name>
-        </currentState>
         <previousState>
           <code>16</code>
           <name>running</name>
         </previousState>
+        <currentState>
+          <code>{{ instance._state_code }}</code>
+          <name>{{ instance._state_name }}</name>
+        </currentState>
       </item>
     {% endfor %}
   </instancesSet>
@@ -266,14 +204,14 @@ EC2_STOP_INSTANCES = """
     {% for instance in instances %}
       <item>
         <instanceId>{{ instance.id }}</instanceId>
-        <currentState>
-          <code>32</code>
-          <name>{{ instance.state }}</name>
-        </currentState>
         <previousState>
           <code>16</code>
           <name>running</name>
         </previousState>
+        <currentState>
+          <code>{{ instance._state_code }}</code>
+          <name>{{ instance._state_name }}</name>
+        </currentState>
       </item>
     {% endfor %}
   </instancesSet>
@@ -286,14 +224,14 @@ EC2_START_INSTANCES = """
     {% for instance in instances %}
       <item>
         <instanceId>{{ instance.id }}</instanceId>
-        <currentState>
-          <code>32</code>
-          <name>{{ instance.state }}</name>
-        </currentState>
         <previousState>
           <code>16</code>
           <name>running</name>
         </previousState>
+        <currentState>
+          <code>{{ instance._state_code }}</code>
+          <name>{{ instance._state_name }}</name>
+        </currentState>
       </item>
     {% endfor %}
   </instancesSet>
