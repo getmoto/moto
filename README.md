@@ -45,17 +45,21 @@ def test_my_model_save():
 
 With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps the state of the buckets and keys.
 
-<!-- # Available Moto services:
-*    S3
-*    EC2
+It gets even better! Moto isn't just S3. Here's the status of the other AWS services implemented.
+
 *    DynamoDB
+    * Table actions - core done
+*    EC2
+    * AMI - core done
+    * EBS - core done
+    * Instances - completed
+    * Security Groups - core done
+    * Tags - completed
+*    S3 - core done
+*    SES - core done
+*    SQS - core done
 
-#### Install
-
-```console
-pip install moto
-```
- -->
+This library has been tested on boto v2.5+.
 
 ## Usage
 
@@ -100,4 +104,10 @@ def test_my_model_save():
     assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
 
     mock.stop()
+```
+
+#### Install
+
+```console
+pip install moto
 ```
