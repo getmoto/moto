@@ -109,5 +109,5 @@ def test_my_model_save():
 #### Install
 
 ```console
-    $ pip install moto
+$ pip install moto
 ```
