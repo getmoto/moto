@@ -1,6 +1,6 @@
 import boto
 from boto.exception import SQSError
-
+import requests
 from sure import expect
 
 from moto import mock_sqs
@@ -12,7 +12,7 @@ def test_create_queue():
     conn.create_queue("test-queue", visibility_timeout=60)
 
     all_queues = conn.get_all_queues()
-    all_queues[0].name.should.equal("test-queue")
+    expect(all_queues[0].name).should.equal("test-queue")
 
     all_queues[0].get_timeout().should.equal(60)
 
@@ -112,3 +112,8 @@ def test_delete_batch_operation():
     queue.delete_message_batch(messages)
 
     queue.count().should.equal(1)
+
+
+@mock_sqs
+def test_sqs_method_not_implemented():
+    requests.post.when.called_with("https://sqs.amazonaws.com/?Action=[foobar]").should.throw(NotImplementedError)
