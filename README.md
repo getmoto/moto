@@ -6,7 +6,7 @@
 
 # In a nutshell
 
-Moto is a library that allows your python tests to easily mock out the boto library
+Moto is a library that allows your python tests to easily mock out the boto library.
 
 Imagine you have the following code that you want to test:
 
@@ -29,7 +29,7 @@ class MyModel(object):
 
 Take a minute to think how you would have tested that in the past.
 
-Now see how you could test it with Moto.
+Now see how you could test it with Moto:
 
 ```python
 import boto
