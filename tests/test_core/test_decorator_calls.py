@@ -1,6 +1,6 @@
 import boto
 from boto.exception import EC2ResponseError
-from sure import expect
+import sure  # flake8: noqa
 
 from moto import mock_ec2
 
@@ -36,4 +36,4 @@ def test_decorator_start_and_stop():
     list(conn.get_all_instances()).should.equal([])
     mock.stop()
 
-    expect(conn.get_all_instances.when.called_with()).should.throw(EC2ResponseError)
+    conn.get_all_instances.when.called_with().should.throw(EC2ResponseError)

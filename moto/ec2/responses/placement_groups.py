@@ -13,4 +13,3 @@ class PlacementGroups(object):
 
     def describe_placement_groups(self):
         raise NotImplementedError('PlacementGroups.describe_placement_groups is not yet implemented')
-

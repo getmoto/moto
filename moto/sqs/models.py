@@ -89,8 +89,10 @@ class SQSBackend(BaseBackend):
 
     def delete_message(self, queue_name, receipt_handle):
         queue = self.get_queue(queue_name)
-        new_messages = [message for message in queue.messages
-            if message.receipt_handle != receipt_handle]
+        new_messages = [
+            message for message in queue.messages
+            if message.receipt_handle != receipt_handle
+        ]
         queue.message = new_messages
 
 

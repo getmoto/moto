@@ -16,4 +16,3 @@ class KeyPairs(object):
 
     def import_key_pair(self):
         raise NotImplementedError('KeyPairs.import_key_pair is not yet implemented')
-

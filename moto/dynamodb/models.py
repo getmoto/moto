@@ -7,8 +7,8 @@ from .utils import unix_time
 class Table(object):
 
     def __init__(self, name, hash_key_attr=None, hash_key_type=None,
-        range_key_attr=None, range_key_type=None, read_capacity=None,
-            write_capacity=None):
+                 range_key_attr=None, range_key_type=None, read_capacity=None,
+                 write_capacity=None):
         self.name = name
         self.hash_key_attr = hash_key_attr
         self.hash_key_type = hash_key_type

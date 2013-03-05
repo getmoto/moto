@@ -10,4 +10,3 @@ class Monitoring(object):
 
     def unmonitor_instances(self):
         raise NotImplementedError('Monitoring.unmonitor_instances is not yet implemented')
-

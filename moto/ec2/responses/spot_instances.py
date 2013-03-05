@@ -25,4 +25,3 @@ class SpotInstances(object):
 
     def request_spot_instances(self):
         raise NotImplementedError('SpotInstances.request_spot_instances is not yet implemented')
-

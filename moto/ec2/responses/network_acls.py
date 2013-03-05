@@ -25,4 +25,3 @@ class NetworkACLs(object):
 
     def replace_network_acl_entry(self):
         raise NotImplementedError('NetworkACLs(AmazonVPC).replace_network_acl_entry is not yet implemented')
-

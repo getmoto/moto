@@ -13,4 +13,3 @@ class VPCs(object):
 
     def describe_vpcs(self):
         raise NotImplementedError('VPCs(AmazonVPC).describe_vpcs is not yet implemented')
-

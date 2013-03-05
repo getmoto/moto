@@ -10,4 +10,3 @@ class IPAddresses(object):
 
     def unassign_private_ip_addresses(self):
         raise NotImplementedError('IPAddresses.unassign_private_ip_addresses is not yet implemented')
-

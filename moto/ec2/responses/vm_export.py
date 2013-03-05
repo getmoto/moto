@@ -13,4 +13,3 @@ class VMExport(object):
 
     def describe_export_tasks(self):
         raise NotImplementedError('VMExport.describe_export_tasks is not yet implemented')
-

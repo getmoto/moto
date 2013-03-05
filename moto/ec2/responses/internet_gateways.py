@@ -19,4 +19,3 @@ class InternetGateways(object):
 
     def detach_internet_gateway(self):
         raise NotImplementedError('InternetGateways(AmazonVPC).detach_internet_gateway is not yet implemented')
-

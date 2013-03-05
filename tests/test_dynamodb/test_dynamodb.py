@@ -17,7 +17,8 @@ def test_list_tables():
 @freeze_time("2012-01-14")
 @mock_dynamodb
 def test_describe_table():
-    dynamodb_backend.create_table('messages',
+    dynamodb_backend.create_table(
+        'messages',
         hash_key_attr='forum_name',
         hash_key_type='S',
         range_key_attr='subject',

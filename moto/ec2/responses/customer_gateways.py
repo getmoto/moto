@@ -13,4 +13,3 @@ class CustomerGateways(object):
 
     def describe_customer_gateways(self):
         raise NotImplementedError('CustomerGateways(AmazonVPC).describe_customer_gateways is not yet implemented')
-

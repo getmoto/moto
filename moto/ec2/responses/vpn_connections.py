@@ -13,4 +13,3 @@ class VPNConnections(object):
 
     def describe_vpn_connections(self):
         raise NotImplementedError('VPNConnections(AmazonVPC).describe_vpn_connections is not yet implemented')
-

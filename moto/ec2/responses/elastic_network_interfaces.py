@@ -28,4 +28,3 @@ class ElasticNetworkInterfaces(object):
 
     def reset_network_interface_attribute(self):
         raise NotImplementedError('ElasticNetworkInterfaces(AmazonVPC).reset_network_interface_attribute is not yet implemented')
-

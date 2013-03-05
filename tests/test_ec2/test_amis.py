@@ -1,7 +1,7 @@
 import boto
 from boto.exception import EC2ResponseError
 
-from sure import expect
+import sure  # flake8: noqa
 
 from moto import mock_ec2
 
@@ -36,4 +36,4 @@ def test_ami_pulls_attributes_from_instance():
 
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_image(image_id)
-    expect(image.kernel_id).should.equal('test-kernel')
+    image.kernel_id.should.equal('test-kernel')

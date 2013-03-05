@@ -1,7 +1,7 @@
 import boto
 from boto.exception import SQSError
 import requests
-from sure import expect
+import sure  # flake8: noqa
 
 from moto import mock_sqs
 
@@ -12,7 +12,7 @@ def test_create_queue():
     conn.create_queue("test-queue", visibility_timeout=60)
 
     all_queues = conn.get_all_queues()
-    expect(all_queues[0].name).should.equal("test-queue")
+    all_queues[0].name.should.equal("test-queue")
 
     all_queues[0].get_timeout().should.equal(60)
 

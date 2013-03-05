@@ -19,4 +19,3 @@ class ElasticIPAddresses(object):
 
     def release_address(self):
         raise NotImplementedError('ElasticIPAddresses.release_address is not yet implemented')
-

@@ -13,4 +13,3 @@ class Subnets(object):
 
     def describe_subnets(self):
         raise NotImplementedError('Subnets(AmazonVPC).describe_subnets is not yet implemented')
-

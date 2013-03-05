@@ -19,4 +19,3 @@ class VirtualPrivateGateways(object):
 
     def detach_vpn_gateway(self):
         raise NotImplementedError('VirtualPrivateGateways(AmazonVPC).detach_vpn_gateway is not yet implemented')
-

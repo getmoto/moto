@@ -16,4 +16,3 @@ class DHCPOptions(object):
 
     def describe_dhcp_options(self):
         raise NotImplementedError('DHCPOptions(AmazonVPC).describe_dhcp_options is not yet implemented')
-

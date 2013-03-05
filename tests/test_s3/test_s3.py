@@ -5,7 +5,7 @@ from boto.exception import S3ResponseError
 from boto.s3.key import Key
 import requests
 
-from sure import expect
+import sure  # flake8: noqa
 
 from moto import mock_s3
 
@@ -33,7 +33,7 @@ def test_my_model_save():
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    expect(conn.get_bucket('mybucket').get_key('steve').get_contents_as_string()).should.equal('is awesome')
+    conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal('is awesome')
 
 
 @mock_s3

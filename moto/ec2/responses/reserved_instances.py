@@ -22,4 +22,3 @@ class ReservedInstances(object):
 
     def purchase_reserved_instances_offering(self):
         raise NotImplementedError('ReservedInstances.purchase_reserved_instances_offering is not yet implemented')
-

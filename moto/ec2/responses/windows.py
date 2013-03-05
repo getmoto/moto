@@ -16,4 +16,3 @@ class Windows(object):
 
     def get_password_data(self):
         raise NotImplementedError('Windows.get_password_data is not yet implemented')
-

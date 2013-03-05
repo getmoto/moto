@@ -16,4 +16,3 @@ class VMImport(object):
 
     def import_volume(self):
         raise NotImplementedError('VMImport.import_volume is not yet implemented')
-

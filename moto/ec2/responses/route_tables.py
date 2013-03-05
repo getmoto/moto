@@ -31,4 +31,3 @@ class RouteTables(object):
 
     def replace_route_table_association(self):
         raise NotImplementedError('RouteTables(AmazonVPC).replace_route_table_association is not yet implemented')
-

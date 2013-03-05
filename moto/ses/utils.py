@@ -8,11 +8,11 @@ def random_hex(length):
 
 def get_random_message_id():
     return "{}-{}-{}-{}-{}-{}-{}".format(
-            random_hex(16),
-            random_hex(8),
-            random_hex(4),
-            random_hex(4),
-            random_hex(4),
-            random_hex(12),
-            random_hex(6),
+           random_hex(16),
+           random_hex(8),
+           random_hex(4),
+           random_hex(4),
+           random_hex(4),
+           random_hex(12),
+           random_hex(6),
     )
