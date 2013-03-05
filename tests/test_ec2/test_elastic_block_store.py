@@ -1,7 +1,6 @@
 import boto
 from boto.exception import EC2ResponseError
-
-from sure import expect
+import sure  # flake8: noqa
 
 from moto import mock_ec2
 
@@ -28,7 +27,7 @@ def test_create_and_delete_volume():
 @mock_ec2
 def test_volume_attach_and_detach():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    reservation = conn.run_instances('<ami-image-id>')
+    reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
     volume = conn.create_volume(80, "us-east-1a")
 
@@ -47,7 +46,8 @@ def test_volume_attach_and_detach():
     volume.update()
     volume.volume_state().should.equal('available')
 
-    conn.detach_volume.when.called_with(volume.id, instance.id, "/dev/sdh").should.throw(EC2ResponseError)
+    conn.detach_volume.when.called_with(
+        volume.id, instance.id, "/dev/sdh").should.throw(EC2ResponseError)
 
 
 @mock_ec2

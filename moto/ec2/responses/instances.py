@@ -16,7 +16,8 @@ class InstanceResponse(object):
 
     def run_instances(self):
         min_count = int(self.querystring.get('MinCount', ['1'])[0])
-        new_reservation = ec2_backend.add_instances(min_count)
+        image_id = self.querystring.get('ImageId')[0]
+        new_reservation = ec2_backend.add_instances(image_id, min_count)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
@@ -75,7 +76,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
     {% for instance in reservation.instances %}
         <item>
           <instanceId>{{ instance.id }}</instanceId>
-          <imageId>ami-60a54009</imageId>
+          <imageId>{{ instance.image_id }}</imageId>
           <instanceState>
             <code>{{ instance._state_code }}</code>
             <name>{{ instance._state_name }}</name>
@@ -127,7 +128,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                 {% for instance in reservation.instances %}
                   <item>
                     <instanceId>{{ instance.id }}</instanceId>
-                    <imageId>ami-1a2b3c4d</imageId>
+                    <imageId>{{ instance.image_id }}</imageId>
                     <instanceState>
                       <code>{{ instance._state_code }}</code>
                       <name>{{ instance._state_name }}</name>

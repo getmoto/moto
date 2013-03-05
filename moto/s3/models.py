@@ -61,8 +61,9 @@ class S3Backend(BaseBackend):
         return new_key
 
     def get_key(self, bucket_name, key_name):
-        bucket = self.buckets[bucket_name]
-        return bucket.keys.get(key_name)
+        bucket = self.get_bucket(bucket_name)
+        if bucket:
+            return bucket.keys.get(key_name)
 
     def prefix_query(self, bucket, prefix):
         key_results = set()

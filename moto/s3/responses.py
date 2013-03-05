@@ -7,7 +7,7 @@ from moto.core.utils import headers_to_dict
 from .utils import bucket_name_from_hostname
 
 
-def all_buckets(uri, body, method):
+def all_buckets():
     # No bucket specified. Listing all buckets
     all_buckets = s3_backend.get_all_buckets()
     template = Template(S3_ALL_BUCKETS)
@@ -20,6 +20,9 @@ def bucket_response(uri, body, headers):
     querystring = parse_qs(uri.query)
 
     bucket_name = bucket_name_from_hostname(hostname)
+    if not bucket_name:
+        # If no bucket specified, list all buckets
+        return all_buckets()
 
     if method == 'GET':
         bucket = s3_backend.get_bucket(bucket_name)
@@ -27,8 +30,12 @@ def bucket_response(uri, body, headers):
             prefix = querystring.get('prefix', [None])[0]
             result_keys, result_folders = s3_backend.prefix_query(bucket, prefix)
             template = Template(S3_BUCKET_GET_RESPONSE)
-            return template.render(bucket=bucket, prefix=prefix,
-                  result_keys=result_keys, result_folders=result_folders)
+            return template.render(
+                bucket=bucket,
+                prefix=prefix,
+                result_keys=result_keys,
+                result_folders=result_folders
+            )
         else:
             return "", dict(status=404)
     elif method == 'PUT':

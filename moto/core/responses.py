@@ -4,6 +4,9 @@ from moto.core.utils import headers_to_dict, camelcase_to_underscores, method_na
 
 
 class BaseResponse(object):
+    def dispatch2(self, uri, body, headers):
+        return self.dispatch(uri, body, headers)
+
     def dispatch(self, uri, body, headers):
         if body:
             querystring = parse_qs(body)
@@ -13,7 +16,7 @@ class BaseResponse(object):
         self.path = uri.path
         self.querystring = querystring
 
-        action = querystring['Action'][0]
+        action = querystring.get('Action', [""])[0]
         action = camelcase_to_underscores(action)
 
         method_names = method_names_from_class(self.__class__)

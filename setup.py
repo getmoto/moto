@@ -6,13 +6,19 @@ setup(
     name='moto',
     version='0.0.6',
     description='Moto is a library that allows your python tests to easily mock'
-        ' out the boto library',
+                ' out the boto library',
     author='Steve Pulec',
     author_email='spulec@gmail',
     url='https://github.com/spulec/moto',
+    entry_points={
+        'console_scripts': [
+            'moto_server = moto.server:main',
+        ],
+    },
     packages=find_packages(),
     install_requires=[
         "boto",
         "Jinja2",
+        "flask",
     ],
 )

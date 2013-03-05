@@ -4,9 +4,13 @@ from .responses import handler
 def sts_handler(uri, body, headers):
     return GET_SESSION_TOKEN_RESULT
 
-urls = {
-    "https?://dynamodb.us-east-1.amazonaws.com/": handler,
-    "https?://sts.amazonaws.com/": sts_handler,
+url_bases = [
+    "https?://dynamodb.us-east-1.amazonaws.com",
+    "https?://sts.amazonaws.com",
+]
+
+url_paths = {
+    "{0}/": handler,
 }
 
 

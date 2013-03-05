@@ -71,8 +71,9 @@ class EC2Response(object):
         else:
             querystring = parse_qs(headers)
 
-        action = querystring['Action'][0]
-        action = camelcase_to_underscores(action)
+        action = querystring.get('Action', [None])[0]
+        if action:
+            action = camelcase_to_underscores(action)
 
         for sub_response in self.sub_responses:
             method_names = method_names_from_class(sub_response)

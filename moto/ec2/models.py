@@ -31,12 +31,13 @@ class InstanceBackend(object):
             if instance.id == instance_id:
                 return instance
 
-    def add_instances(self, count):
+    def add_instances(self, image_id, count):
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
         for index in range(count):
             new_instance = Instance()
             new_instance.id = random_instance_id()
+            new_instance.image_id = image_id
             new_instance._state_name = "pending"
             new_instance._state_code = 0
             new_reservation.instances.append(new_instance)
@@ -226,11 +227,11 @@ class SecurityRule(object):
     @property
     def unique_representation(self):
         return "{}-{}-{}-{}-{}".format(
-                self.ip_protocol,
-                self.from_port,
-                self.to_port,
-                self.ip_ranges,
-                self.source_groups
+               self.ip_protocol,
+               self.from_port,
+               self.to_port,
+               self.ip_ranges,
+               self.source_groups
         )
 
     def __eq__(self, other):

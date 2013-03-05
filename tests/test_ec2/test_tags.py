@@ -1,5 +1,5 @@
 import boto
-from sure import expect
+import sure  # flake8: noqa
 
 from moto import mock_ec2
 
@@ -7,7 +7,7 @@ from moto import mock_ec2
 @mock_ec2
 def test_instance_launch_and_terminate():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    reservation = conn.run_instances('<ami-image-id>')
+    reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
     instance.add_tag("a key", "some value")

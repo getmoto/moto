@@ -1,6 +1,6 @@
-import re
 import json
 
+from moto.core.utils import headers_to_dict
 from .models import dynamodb_backend
 
 
@@ -17,12 +17,16 @@ class DynamoHandler(object):
 
         ie: X-Amz-Target: DynamoDB_20111205.ListTables -> ListTables
         """
-        match = re.search(r'X-Amz-Target: \w+\.(\w+)', headers)
-        return match.groups()[0]
+        match = headers.get('X-Amz-Target')
+        if match:
+            return match.split(".")[1]
 
     def dispatch(self):
         method = self.get_method_name(self.headers)
-        return getattr(self, method)(self.uri, self.body, self.headers)
+        if method:
+            return getattr(self, method)(self.uri, self.body, self.headers)
+        else:
+            return "", dict(status=404)
 
     def ListTables(self, uri, body, headers):
         tables = dynamodb_backend.tables.keys()
@@ -36,4 +40,4 @@ class DynamoHandler(object):
 
 
 def handler(uri, body, headers):
-    return DynamoHandler(uri, body, headers).dispatch()
+    return DynamoHandler(uri, body, headers_to_dict(headers)).dispatch()

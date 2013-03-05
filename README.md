@@ -61,7 +61,32 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 *    SES (@mock_ses) - core done
 *    SQS (@mock_sqs) - core done
 
-This library has been tested on boto v2.5+.
+For example, imagine you have a function that you use to launch new ec2 instances:
+
+```python
+import boto
+
+def add_servers(ami_id, count):
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    for index in range(count):
+        conn.run_instances(ami_id)
+```
+
+To test it:
+
+```python
+from . import add_servers
+
+@mock_ec2
+def test_add_servers():
+    add_servers('ami-1234abcd', 2)
+
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservations = conn.get_all_instances()
+    assert len(reservations) == 2
+    instance1 = reservations[0].instances[0]
+    assert instance1.image_id == 'ami-1234abcd'
+```
 
 ## Usage
 
@@ -108,8 +133,28 @@ def test_my_model_save():
     mock.stop()
 ```
 
+## Stand-alone Server Mode
+
+Moto also comes with a stand-alone server mode. This allows you to utilize the backend structure of Moto even if you don't use Python.
+
+To run a service:
+
+```console
+$ moto_server ec2
+ * Running on http://127.0.0.1:5000/
+```
+
+Then go to [localhost](http://localhost:5000/?Action=DescribeInstances) to see a list of running instances (it will be empty since you haven't added any yet).
+
 ## Install
 
 ```console
 $ pip install moto
 ```
+
+This library has been tested on boto v2.5+.
+
+
+## Thanks
+
+A huge thanks to [Gabriel Falcão](https://github.com/gabrielfalcao) and his [HTTPretty](https://github.com/gabrielfalcao/HTTPretty) library. Moto would not exist without it.
