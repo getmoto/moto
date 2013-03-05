@@ -61,7 +61,9 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 *    SES (@mock_ses) - core done
 *    SQS (@mock_sqs) - core done
 
-For example, imagine you have a function that you use to launch new ec2 instances:
+### Another Example
+
+Imagine you have a function that you use to launch new ec2 instances:
 
 ```python
 import boto
