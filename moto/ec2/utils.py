@@ -29,6 +29,10 @@ def random_volume_id():
     return random_id(prefix='vol')
 
 
+def random_vpc_id():
+    return random_id(prefix='vpc')
+
+
 def random_snapshot_id():
     return random_id(prefix='snap')
 

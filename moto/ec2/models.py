@@ -10,6 +10,7 @@ from .utils import (
     random_security_group_id,
     random_snapshot_id,
     random_volume_id,
+    random_vpc_id,
 )
 
 
@@ -390,7 +391,33 @@ class EBSBackend(object):
         return False
 
 
-class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend, RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend):
+class VPC(object):
+    def __init__(self, vpc_id, cidr_block):
+        self.id = vpc_id
+        self.cidr_block = cidr_block
+
+
+class VPCBackend(object):
+    def __init__(self):
+        self.vpcs = {}
+        super(VPCBackend, self).__init__()
+
+    def create_vpc(self, cidr_block):
+        vpc_id = random_vpc_id()
+        vpc = VPC(vpc_id, cidr_block)
+        self.vpcs[vpc_id] = vpc
+        return vpc
+
+    def get_all_vpcs(self):
+        return self.vpcs.values()
+
+    def delete_vpc(self, vpc_id):
+        return self.vpcs.pop(vpc_id, None)
+
+
+class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
+                 RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
+                 VPCBackend):
     pass
 
 

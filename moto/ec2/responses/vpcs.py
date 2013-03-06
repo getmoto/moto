@@ -1,15 +1,66 @@
 from jinja2 import Template
 
 from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
 
 
 class VPCs(object):
+    def __init__(self, querystring):
+        self.querystring = querystring
+
     def create_vpc(self):
-        raise NotImplementedError('VPCs(AmazonVPC).create_vpc is not yet implemented')
+        cidr_block = self.querystring.get('CidrBlock')[0]
+        vpc = ec2_backend.create_vpc(cidr_block)
+        template = Template(CREATE_VPC_RESPONSE)
+        return template.render(vpc=vpc)
 
     def delete_vpc(self):
-        raise NotImplementedError('VPCs(AmazonVPC).delete_vpc is not yet implemented')
+        vpc_id = self.querystring.get('VpcId')[0]
+        vpc = ec2_backend.delete_vpc(vpc_id)
+        if vpc:
+            template = Template(DELETE_VPC_RESPONSE)
+            return template.render(vpc=vpc)
+        else:
+            return "", dict(status=404)
 
     def describe_vpcs(self):
-        raise NotImplementedError('VPCs(AmazonVPC).describe_vpcs is not yet implemented')
+        vpcs = ec2_backend.get_all_vpcs()
+        template = Template(DESCRIBE_VPCS_RESPONSE)
+        return template.render(vpcs=vpcs)
+
+
+CREATE_VPC_RESPONSE = """
+<CreateVpcResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+   <vpc>
+      <vpcId>{{ vpc.id }}</vpcId>
+      <state>pending</state>
+      <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
+      <dhcpOptionsId>dopt-1a2b3c4d2</dhcpOptionsId>
+      <instanceTenancy>default</instanceTenancy>
+      <tagSet/>
+   </vpc>
+</CreateVpcResponse>"""
+
+DESCRIBE_VPCS_RESPONSE = """
+<DescribeVpcsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <vpcSet>
+    {% for vpc in vpcs %}
+      <item>
+        <vpcId>{{ vpc.id }}</vpcId>
+        <state>available</state>
+        <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
+        <dhcpOptionsId>dopt-7a8b9c2d</dhcpOptionsId>
+        <instanceTenancy>default</instanceTenancy>
+        <tagSet/>
+      </item>
+    {% endfor %}
+  </vpcSet>
+</DescribeVpcsResponse>"""
+
+DELETE_VPC_RESPONSE = """
+<DeleteVpcResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+   <return>true</return>
+</DeleteVpcResponse>
+"""
