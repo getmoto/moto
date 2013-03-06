@@ -9,6 +9,7 @@ from .utils import (
     random_reservation_id,
     random_security_group_id,
     random_snapshot_id,
+    random_subnet_id,
     random_volume_id,
     random_vpc_id,
 )
@@ -408,6 +409,9 @@ class VPCBackend(object):
         self.vpcs[vpc_id] = vpc
         return vpc
 
+    def get_vpc(self, vpc_id):
+        return self.vpcs.get(vpc_id)
+
     def get_all_vpcs(self):
         return self.vpcs.values()
 
@@ -415,9 +419,35 @@ class VPCBackend(object):
         return self.vpcs.pop(vpc_id, None)
 
 
+class Subnet(object):
+    def __init__(self, subnet_id, vpc, cidr_block):
+        self.id = subnet_id
+        self.vpc = vpc
+        self.cidr_block = cidr_block
+
+
+class SubnetBackend(object):
+    def __init__(self):
+        self.subnets = {}
+        super(SubnetBackend, self).__init__()
+
+    def create_subnet(self, vpc_id, cidr_block):
+        subnet_id = random_subnet_id()
+        vpc = self.get_vpc(vpc_id)
+        subnet = Subnet(subnet_id, vpc, cidr_block)
+        self.subnets[subnet_id] = subnet
+        return subnet
+
+    def get_all_subnets(self):
+        return self.subnets.values()
+
+    def delete_subnet(self, subnet_id):
+        return self.subnets.pop(subnet_id, None)
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
-                 VPCBackend):
+                 VPCBackend, SubnetBackend):
     pass
 
 

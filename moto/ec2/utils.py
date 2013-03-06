@@ -33,6 +33,10 @@ def random_vpc_id():
     return random_id(prefix='vpc')
 
 
+def random_subnet_id():
+    return random_id(prefix='subnet')
+
+
 def random_snapshot_id():
     return random_id(prefix='snap')
 
