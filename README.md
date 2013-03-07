@@ -49,6 +49,7 @@ With the decorator wrapping the test, all the calls to s3 are automatically mock
 
 It gets even better! Moto isn't just S3. Here's the status of the other AWS services implemented.
 
+```gherkin
 |---------------------------------------------------------------------------|
 | Service Name          | Decorator      | Development Status               |
 |---------------------------------------------------------------------------|
@@ -67,6 +68,7 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |---------------------------------------------------------------------------|
 | SQS                   | @mock_sqs      | core done                        |
 |---------------------------------------------------------------------------|
+```
 
 ### Another Example
 
