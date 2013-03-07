@@ -49,17 +49,24 @@ With the decorator wrapping the test, all the calls to s3 are automatically mock
 
 It gets even better! Moto isn't just S3. Here's the status of the other AWS services implemented.
 
-*    DynamoDB (@mock_dynamodb)
-    * Table actions - core done
-*    EC2 (@mock_ec2)
-    * AMI - core done
-    * EBS - core done
-    * Instances - completed
-    * Security Groups - core done
-    * Tags - completed
-*    S3 (@mock_s3) - core done
-*    SES (@mock_ses) - core done
-*    SQS (@mock_sqs) - core done
+|---------------------------------------------------------------------------|
+| Service Name          | Decorator      | Development Status               |
+|---------------------------------------------------------------------------|
+| DynamoDB              | @mock_dynamodb | Table actions core done          |
+|---------------------------------------------------------------------------|
+| EC2                   | @mock_ec2      | core done                        |
+|     - AMI             |                | core done                        |
+|     - EBS             |                | core done                        |
+|     - Instances       |                | completed                        |
+|     - Security Groups |                | core done                        |
+|     - Tags            |                | completed                        |
+|---------------------------------------------------------------------------|
+| S3                    | @mock_s3       | core done                        |
+|---------------------------------------------------------------------------|
+| SES                   | @mock_ses      | core done                        |
+|---------------------------------------------------------------------------|
+| SQS                   | @mock_sqs      | core done                        |
+|---------------------------------------------------------------------------|
 
 ### Another Example
 
