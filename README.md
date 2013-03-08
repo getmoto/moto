@@ -55,18 +55,18 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |---------------------------------------------------------------------------|
 | DynamoDB              | @mock_dynamodb | Table actions core done          |
 |---------------------------------------------------------------------------|
-| EC2                   | @mock_ec2      | core done                        |
-|     - AMI             |                | core done                        |
-|     - EBS             |                | core done                        |
-|     - Instances       |                | completed                        |
-|     - Security Groups |                | core done                        |
-|     - Tags            |                | completed                        |
+| EC2                   | @mock_ec2      | core endpoints done              |
+|     - AMI             |                | core endpoints done              |
+|     - EBS             |                | core endpoints done              |
+|     - Instances       |                | all  endpoints done              |
+|     - Security Groups |                | core endpoints done              |
+|     - Tags            |                | all  endpoints done              |
 |---------------------------------------------------------------------------|
-| S3                    | @mock_s3       | core done                        |
+| S3                    | @mock_s3       | core endpoints done              |
 |---------------------------------------------------------------------------|
-| SES                   | @mock_ses      | core done                        |
+| SES                   | @mock_ses      | core endpoints done              |
 |---------------------------------------------------------------------------|
-| SQS                   | @mock_sqs      | core done                        |
+| SQS                   | @mock_sqs      | core endpoints done              |
 |---------------------------------------------------------------------------|
 ```
 
