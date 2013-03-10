@@ -10,6 +10,11 @@ Test the different ways that the decorator can be used
 
 
 @mock_ec2
+def test_basic_connect():
+    conn = boto.connect_ec2()
+
+
+@mock_ec2
 def test_basic_decorator():
     conn = boto.connect_ec2('the_key', 'the_secret')
     list(conn.get_all_instances()).should.equal([])

@@ -2,6 +2,7 @@ import functools
 import re
 
 from moto.packages.httpretty import HTTPretty
+from .responses import metadata_response
 from .utils import convert_regex_to_flask_path
 
 
@@ -29,6 +30,13 @@ class MockAWS(object):
                     uri=re.compile(key),
                     body=value,
                 )
+
+            # Mock out localhost instance metadata
+            HTTPretty.register_uri(
+                method=method,
+                uri=re.compile('http://169.254.169.254/latest/meta-data/.*'),
+                body=metadata_response
+            )
 
     def stop(self):
         HTTPretty.disable()
