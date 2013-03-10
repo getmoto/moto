@@ -21,6 +21,9 @@ class DynamoHandler(object):
         if match:
             return match.split(".")[1]
 
+    def error(self, type_, status=400):
+        return json.dumps({'__type': type_}), dict(status=400)
+
     def dispatch(self):
         method = self.get_method_name(self.headers)
         if method:
@@ -35,7 +38,11 @@ class DynamoHandler(object):
 
     def DescribeTable(self, uri, body, headers):
         name = json.loads(body)['TableName']
-        table = dynamodb_backend.tables[name]
+        try:
+            table = dynamodb_backend.tables[name]
+        except KeyError:
+            er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
+            return self.error(er)
         return json.dumps(table.describe)
 
 

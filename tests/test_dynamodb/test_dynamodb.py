@@ -5,6 +5,8 @@ from freezegun import freeze_time
 from moto import mock_dynamodb
 from moto.dynamodb import dynamodb_backend
 
+from boto.exception import DynamoDBResponseError
+
 
 @mock_dynamodb
 def test_list_tables():
@@ -12,6 +14,12 @@ def test_list_tables():
     dynamodb_backend.create_table(name)
     conn = boto.connect_dynamodb('the_key', 'the_secret')
     assert conn.list_tables() == ['TestTable']
+
+
+@mock_dynamodb
+def test_describe_missing_table():
+    conn = boto.connect_dynamodb('the_key', 'the_secret')
+    conn.describe_table.when.called_with('messages').should.throw(DynamoDBResponseError)
 
 
 @freeze_time("2012-01-14")
