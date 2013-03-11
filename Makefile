@@ -5,4 +5,4 @@ init:
 	pip install -r requirements.txt
 
 test:
-	nosetests --with-coverage ./tests/ --cover-package=moto
+	nosetests --with-coverage ./tests/

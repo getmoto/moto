@@ -6,4 +6,5 @@ exclude_lines =
 
 
 [run]
+include = moto/*
 omit = moto/packages/*
