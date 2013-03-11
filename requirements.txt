@@ -3,5 +3,6 @@ freezegun
 #httpretty
 mock
 nose
+python-coveralls
 requests
 sure
