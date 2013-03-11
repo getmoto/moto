@@ -2,3 +2,8 @@
 
 exclude_lines =
     if __name__ == .__main__.:
+    raise NotImplemented.
+
+
+[run]
+omit = moto/packages/*
