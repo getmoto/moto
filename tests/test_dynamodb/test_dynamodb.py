@@ -17,6 +17,20 @@ def test_list_tables():
 
 
 @mock_dynamodb
+def test_list_tables_layer_1():
+    dynamodb_backend.create_table("test_1")
+    dynamodb_backend.create_table("test_2")
+    conn = boto.connect_dynamodb('the_key', 'the_secret')
+    res = conn.layer1.list_tables(limit=1)
+    expected = {"TableNames": ["test_1"], "LastEvaluatedTableName": "test_1"}
+    res.should.equal(expected)
+
+    res = conn.layer1.list_tables(limit=1, start_table="test_1")
+    expected = {"TableNames": ["test_2"]}
+    res.should.equal(expected)
+
+
+@mock_dynamodb
 def test_describe_missing_table():
     conn = boto.connect_dynamodb('the_key', 'the_secret')
     conn.describe_table.when.called_with('messages').should.throw(DynamoDBResponseError)

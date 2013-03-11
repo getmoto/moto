@@ -32,12 +32,24 @@ class DynamoHandler(object):
             return "", dict(status=404)
 
     def ListTables(self, uri, body, headers):
-        tables = dynamodb_backend.tables.keys()
+        limit = body.get('Limit')
+        if body.get("ExclusiveStartTableName"):
+            last = body.get("ExclusiveStartTableName")
+            start = dynamodb_backend.tables.keys().index(last) + 1
+        else:
+            start = 0
+        all_tables = dynamodb_backend.tables.keys()
+        if limit:
+            tables = all_tables[start:start + limit]
+        else:
+            tables = all_tables[start:]
         response = {"TableNames": tables}
+        if limit and len(all_tables) > start + limit:
+            response["LastEvaluatedTableName"] = tables[-1]
         return json.dumps(response)
 
     def DescribeTable(self, uri, body, headers):
-        name = json.loads(body)['TableName']
+        name = body['TableName']
         try:
             table = dynamodb_backend.tables[name]
         except KeyError:
@@ -47,4 +59,5 @@ class DynamoHandler(object):
 
 
 def handler(uri, body, headers):
+    body = json.loads(body or '{}')
     return DynamoHandler(uri, body, headers_to_dict(headers)).dispatch()

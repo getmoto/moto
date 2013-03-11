@@ -1,5 +1,7 @@
 import datetime
 
+from collections import OrderedDict
+
 from moto.core import BaseBackend
 from .utils import unix_time
 
@@ -48,7 +50,7 @@ class Table(object):
 class DynamoDBBackend(BaseBackend):
 
     def __init__(self):
-        self.tables = {}
+        self.tables = OrderedDict()
 
     def create_table(self, name, **params):
         self.tables[name] = Table(name, **params)
