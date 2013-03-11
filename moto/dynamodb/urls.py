@@ -1,37 +1,10 @@
 from .responses import handler
 
 
-def sts_handler(uri, body, headers):
-    return GET_SESSION_TOKEN_RESULT
-
 url_bases = [
     "https?://dynamodb.us-east-1.amazonaws.com",
-    "https?://sts.amazonaws.com",
 ]
 
 url_paths = {
     "{0}/": handler,
 }
-
-
-GET_SESSION_TOKEN_RESULT = """
-<GetSessionTokenResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
- <GetSessionTokenResult>
- <Credentials>
- <SessionToken>
- AQoEXAMPLEH4aoAH0gNCAPyJxz4BlCFFxWNE1OPTgk5TthT+FvwqnKwRcOIfrRh3c/L
- To6UDdyJwOOvEVPvLXCrrrUtdnniCEXAMPLE/IvU1dYUg2RVAJBanLiHb4IgRmpRV3z
- rkuWJOgQs8IZZaIv2BXIa2R4OlgkBN9bkUDNCJiBeb/AXlzBBko7b15fjrBs2+cTQtp
- Z3CYWFXG8C5zqx37wnOE49mRl/+OtkIKGO7fAE
- </SessionToken>
- <SecretAccessKey>
- wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY
- </SecretAccessKey>
- <Expiration>2011-07-11T19:55:29.611Z</Expiration>
- <AccessKeyId>AKIAIOSFODNN7EXAMPLE</AccessKeyId>
- </Credentials>
- </GetSessionTokenResult>
- <ResponseMetadata>
- <RequestId>58c5dbae-abef-11e0-8cfe-09039844ac7d</RequestId>
- </ResponseMetadata>
-</GetSessionTokenResponse>"""

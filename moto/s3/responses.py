@@ -89,8 +89,6 @@ def key_response(uri_info, body, headers):
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
             return "", dict(etag=key.etag)
-        else:
-            return ""
     elif method == 'HEAD':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:

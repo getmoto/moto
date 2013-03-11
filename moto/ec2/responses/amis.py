@@ -22,8 +22,12 @@ class AmisResponse(object):
     def deregister_image(self):
         ami_id = self.querystring.get('ImageId')[0]
         success = ec2_backend.deregister_image(ami_id)
-        template = Template(DESCRIBE_IMAGES_RESPONSE)
-        return template.render(success=str(success).lower())
+        template = Template(DEREGISTER_IMAGE_RESPONSE)
+        rendered = template.render(success=str(success).lower())
+        if success:
+            return rendered
+        else:
+            return rendered, dict(status=404)
 
     def describe_image_attribute(self):
         raise NotImplementedError('AMIs.describe_image_attribute is not yet implemented')

@@ -46,8 +46,14 @@ def test_volume_attach_and_detach():
     volume.update()
     volume.volume_state().should.equal('available')
 
+    volume.attach.when.called_with(
+        'i-1234abcd', "/dev/sdh").should.throw(EC2ResponseError)
+
     conn.detach_volume.when.called_with(
         volume.id, instance.id, "/dev/sdh").should.throw(EC2ResponseError)
+
+    conn.detach_volume.when.called_with(
+        volume.id, 'i-1234abcd', "/dev/sdh").should.throw(EC2ResponseError)
 
 
 @mock_ec2

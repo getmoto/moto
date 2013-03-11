@@ -19,6 +19,8 @@ def test_ami_create_and_delete():
     success = conn.deregister_image(image)
     success.should.be.true
 
+    success = conn.deregister_image.when.called_with(image).should.throw(EC2ResponseError)
+
 
 @mock_ec2
 def test_ami_create_from_missing_instance():

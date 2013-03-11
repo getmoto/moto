@@ -13,6 +13,8 @@ class ElasticBlockStore(object):
         device_path = self.querystring.get('Device')[0]
 
         attachment = ec2_backend.attach_volume(volume_id, instance_id, device_path)
+        if not attachment:
+            return "", dict(status=404)
         template = Template(ATTACHED_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
 
