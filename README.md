@@ -1,6 +1,7 @@
 # Moto - Mock Boto
 
 [![Build Status](https://travis-ci.org/spulec/moto.png?branch=master)](https://travis-ci.org/spulec/moto)
+[![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.png?branch=master)](https://coveralls.io/r/spulec/moto)
 
 # WARNING: Moto is still in active development
 
