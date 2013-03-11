@@ -6,6 +6,3 @@ init:
 
 test:
 	nosetests --with-coverage ./tests/ --cover-package=moto
-
-travis:
-	nosetests ./tests/
