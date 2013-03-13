@@ -108,6 +108,30 @@ class Table(object):
                 results.append(result)
         return results, last_page
 
+    def all_items(self):
+        for hash_set in self.items.values():
+            for item in hash_set.values():
+                yield item
+
+    def scan(self, filters):
+        results = []
+        scanned_count = 0
+        last_page = True  # Once pagination is implemented, change this
+
+        for result in self.all_items():
+            scanned_count += 1
+            passes_all_conditions = True
+            for attribute_name, (comparison_operator, comparison_value) in filters.iteritems():
+                comparison_func = get_comparison_func(comparison_operator)
+                attribute_value = result.attrs[attribute_name].values()[0]
+                if not comparison_func(attribute_value, comparison_value):
+                    passes_all_conditions = False
+                    break
+            if passes_all_conditions:
+                results.append(result)
+
+        return results, scanned_count, last_page
+
     def delete_item(self, hash_key, range_key):
         try:
             return self.items[hash_key].pop(range_key)
@@ -154,6 +178,13 @@ class DynamoDBBackend(BaseBackend):
             return None
 
         return table.query(hash_key, range_comparison, range_value)
+
+    def scan(self, table_name, filters):
+        table = self.tables.get(table_name)
+        if not table:
+            return None
+
+        return table.scan(filters)
 
     def delete_item(self, table_name, hash_key, range_key):
         table = self.tables.get(table_name)

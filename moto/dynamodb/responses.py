@@ -144,6 +144,33 @@ class DynamoHandler(object):
             }
         return json.dumps(result)
 
+    def Scan(self, uri, body, headers):
+        name = body['TableName']
+
+        filters = {}
+        scan_filters = body['ScanFilter']
+        for attribute_name, scan_filter in scan_filters.iteritems():
+            # Keys are attribute names. Values are tuples of (comparison, comparison_value)
+            comparison_operator = scan_filter["ComparisonOperator"]
+            comparison_value = scan_filter["AttributeValueList"][0].values()[0]
+            filters[attribute_name] = (comparison_operator, comparison_value)
+
+        items, scanned_count, last_page = dynamodb_backend.scan(name, filters)
+
+        result = {
+            "Count": len(items),
+            "Items": [item.attrs for item in items],
+            "ConsumedCapacityUnits": 1,
+            "ScannedCount": scanned_count
+        }
+
+        if not last_page:
+            result["LastEvaluatedKey"] = {
+                "HashKeyElement": items[-1].hash_key,
+                "RangeKeyElement": items[-1].range_key,
+            }
+        return json.dumps(result)
+
     def DeleteItem(self, uri, body, headers):
         name = body['TableName']
         hash_key = body['Key']['HashKeyElement'].values()[0]

@@ -1,76 +1,20 @@
+# TODO add tests for all of these
 COMPARISON_FUNCS = {
     'EQ': lambda item_value, test_value: item_value == test_value,
-    'GT': lambda item_value, test_value: item_value > test_value
+    'NE': lambda item_value, test_value: item_value != test_value,
+    'LE': lambda item_value, test_value: item_value <= test_value,
+    'LT': lambda item_value, test_value: item_value < test_value,
+    'GE': lambda item_value, test_value: item_value >= test_value,
+    'GT': lambda item_value, test_value: item_value > test_value,
+    'NULL': lambda item_value: item_value is None,
+    'NOT_NULL': lambda item_value: item_value is not None,
+    'CONTAINS': lambda item_value, test_value: test_value in item_value,
+    'NOT_CONTAINS': lambda item_value, test_value: test_value not in item_value,
+    'BEGINS_WITH': lambda item_value, test_value: item_value.startswith(test_value),
+    'IN': lambda item_value, test_value: item_value in test_value,
+    'BETWEEN': lambda item_value, test_values: test_values[0] <= item_value <= test_values[1],
 }
 
 
 def get_comparison_func(range_comparison):
     return COMPARISON_FUNCS.get(range_comparison)
-
-# class EQ(ConditionOneArg):
-
-#     pass
-
-
-# class NE(ConditionOneArg):
-
-#     pass
-
-
-# class LE(ConditionOneArg):
-
-#     pass
-
-
-# class LT(ConditionOneArg):
-
-#     pass
-
-
-# class GE(ConditionOneArg):
-
-#     pass
-
-
-# class GT(ConditionOneArg):
-
-#     pass
-
-
-# class NULL(ConditionNoArgs):
-
-#     pass
-
-
-# class NOT_NULL(ConditionNoArgs):
-
-#     pass
-
-
-# class CONTAINS(ConditionOneArg):
-
-#     pass
-
-
-# class NOT_CONTAINS(ConditionOneArg):
-
-#     pass
-
-
-# class BEGINS_WITH(ConditionOneArg):
-
-#     pass
-
-
-# class IN(ConditionOneArg):
-
-#     pass
-
-
-# class BEGINS_WITH(ConditionOneArg):
-
-#     pass
-
-# class BETWEEN(ConditionTwoArgs):
-
-#     pass

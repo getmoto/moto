@@ -5,7 +5,7 @@ from freezegun import freeze_time
 from moto import mock_dynamodb
 from moto.dynamodb import dynamodb_backend
 
-from boto.dynamodb.condition import GT
+from boto.dynamodb import condition
 from boto.exception import DynamoDBResponseError
 
 
@@ -215,14 +215,53 @@ def test_query():
     )
     item.put()
 
-    results = table.query(hash_key='the-key', range_key_condition=GT('1'))
+    results = table.query(hash_key='the-key', range_key_condition=condition.GT('1'))
     results.response['Items'].should.have.length_of(3)
 
-    results = table.query(hash_key='the-key', range_key_condition=GT('234'))
+    results = table.query(hash_key='the-key', range_key_condition=condition.GT('234'))
     results.response['Items'].should.have.length_of(2)
 
-    results = table.query(hash_key='the-key', range_key_condition=GT('9999'))
+    results = table.query(hash_key='the-key', range_key_condition=condition.GT('9999'))
     results.response['Items'].should.have.length_of(0)
+
+
+@mock_dynamodb
+def test_scan():
+    conn = boto.connect_dynamodb()
+    table = create_table(conn)
+
+    item_data = {
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+    }
+    item = table.new_item(
+        hash_key='the-key',
+        range_key='456',
+        attrs=item_data,
+    )
+    item.put()
+
+    item = table.new_item(
+        hash_key='the-key',
+        range_key='123',
+        attrs=item_data,
+    )
+    item.put()
+
+    item = table.new_item(
+        hash_key='the-key',
+        range_key='789',
+        attrs=item_data,
+    )
+    item.put()
+
+    results = table.scan(scan_filter={'SentBy': condition.EQ('User B')})
+    results.response['Items'].should.have.length_of(0)
+
+    results = table.scan(scan_filter={'Body': condition.BEGINS_WITH('http')})
+    results.response['Items'].should.have.length_of(3)
+
 
 # Batch read
 # Batch write
