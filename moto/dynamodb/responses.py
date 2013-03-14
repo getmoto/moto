@@ -2,7 +2,7 @@ import json
 
 from moto.core.utils import headers_to_dict
 from .models import dynamodb_backend
-from .utils import values_from_dynamo_types
+from .utils import value_from_dynamo_type, values_from_dynamo_types
 
 
 class DynamoHandler(object):
@@ -109,6 +109,37 @@ class DynamoHandler(object):
         item_dict = result.describe
         item_dict['ConsumedCapacityUnits'] = 1
         return json.dumps(item_dict)
+
+    def BatchWriteItem(self, uri, body, headers):
+        table_batches = body['RequestItems']
+
+        for table_name, table_requests in table_batches.iteritems():
+            for table_request in table_requests:
+                request_type = table_request.keys()[0]
+                request = table_request.values()[0]
+
+                if request_type == 'PutRequest':
+                    item = request['Item']
+                    dynamodb_backend.put_item(table_name, item)
+                elif request_type == 'DeleteRequest':
+                    key = request['Key']
+                    hash_key = value_from_dynamo_type(key['HashKeyElement'])
+                    range_key = value_from_dynamo_type(key.get('RangeKeyElement'))
+                    item = dynamodb_backend.delete_item(table_name, hash_key, range_key)
+
+        response = {
+            "Responses": {
+                "Thread": {
+                    "ConsumedCapacityUnits": 1.0
+                },
+                "Reply": {
+                    "ConsumedCapacityUnits": 1.0
+                }
+            },
+            "UnprocessedItems": {}
+        }
+
+        return json.dumps(response)
 
     def GetItem(self, uri, body, headers):
         name = body['TableName']

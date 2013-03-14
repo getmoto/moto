@@ -294,5 +294,49 @@ def test_scan():
     results.response['Items'].should.have.length_of(1)
 
 
+@mock_dynamodb
+def test_write_batch():
+    conn = boto.connect_dynamodb()
+    table = create_table(conn)
+
+    batch_list = conn.new_batch_write_list()
+
+    items = []
+    items.append(table.new_item(
+        hash_key='the-key',
+        range_key='123',
+        attrs={
+            'Body': 'http://url_to_lolcat.gif',
+            'SentBy': 'User A',
+            'ReceivedTime': '12/9/2011 11:36:03 PM',
+        },
+    ))
+
+    items.append(table.new_item(
+        hash_key='the-key',
+        range_key='789',
+        attrs={
+            'Body': 'http://url_to_lolcat.gif',
+            'SentBy': 'User B',
+            'ReceivedTime': '12/9/2011 11:36:03 PM',
+            'Ids': {1, 2, 3},
+            'PK': 7,
+        },
+    ))
+
+    batch_list.add_batch(table, puts=items)
+    conn.batch_write_item(batch_list)
+
+    table.refresh()
+    table.item_count.should.equal(2)
+
+    batch_list = conn.new_batch_write_list()
+    batch_list.add_batch(table, deletes=[('the-key', '789')])
+    conn.batch_write_item(batch_list)
+
+    table.refresh()
+    table.item_count.should.equal(1)
+
+
 # Batch read
 # Batch write

@@ -15,7 +15,8 @@ def value_from_dynamo_type(dynamo_type):
     # TODO eventually this should be smarted to actually read the type of
     the attribute
     """
-    return dynamo_type.values()[0]
+    if dynamo_type:
+        return dynamo_type.values()[0]
 
 
 def values_from_dynamo_types(dynamo_types):
