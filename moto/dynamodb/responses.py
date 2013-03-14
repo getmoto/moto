@@ -155,6 +155,29 @@ class DynamoHandler(object):
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
 
+    def BatchGetItem(self, uri, body, headers):
+        table_batches = body['RequestItems']
+
+        results = {
+            "Responses": {
+                "UnprocessedKeys": {}
+            }
+        }
+
+        for table_name, table_request in table_batches.iteritems():
+            items = []
+            keys = table_request['Keys']
+            attributes_to_get = table_request.get('AttributesToGet')
+            for key in keys:
+                hash_key = value_from_dynamo_type(key["HashKeyElement"])
+                range_key = value_from_dynamo_type(key.get("RangeKeyElement"))
+                item = dynamodb_backend.get_item(table_name, hash_key, range_key)
+                if item:
+                    item_describe = item.describe_attrs(attributes_to_get)
+                    items.append(item_describe)
+            results["Responses"][table_name] = {"Items": items, "ConsumedCapacityUnits": 1}
+        return json.dumps(results)
+
     def Query(self, uri, body, headers):
         name = body['TableName']
         hash_key = body['HashKeyValue'].values()[0]

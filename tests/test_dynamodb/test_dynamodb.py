@@ -338,5 +338,44 @@ def test_write_batch():
     table.item_count.should.equal(1)
 
 
-# Batch read
-# Batch write
+@mock_dynamodb
+def test_batch_read():
+    conn = boto.connect_dynamodb()
+    table = create_table(conn)
+
+    item_data = {
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+    }
+    item = table.new_item(
+        hash_key='the-key',
+        range_key='456',
+        attrs=item_data,
+    )
+    item.put()
+
+    item = table.new_item(
+        hash_key='the-key',
+        range_key='123',
+        attrs=item_data,
+    )
+    item.put()
+
+    item_data = {
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User B',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+        'Ids': {1, 2, 3},
+        'PK': 7,
+    }
+    item = table.new_item(
+        hash_key='another-key',
+        range_key='789',
+        attrs=item_data,
+    )
+    item.put()
+
+    items = table.batch_get_item([('the-key', '123'), ('another-key', '789')])
+    count = len([item for item in items])
+    count.should.equal(2)
