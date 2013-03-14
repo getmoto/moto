@@ -224,6 +224,15 @@ def test_query():
     results = table.query(hash_key='the-key', range_key_condition=condition.GT('9999'))
     results.response['Items'].should.have.length_of(0)
 
+    results = table.query(hash_key='the-key', range_key_condition=condition.CONTAINS('12'))
+    results.response['Items'].should.have.length_of(1)
+
+    results = table.query(hash_key='the-key', range_key_condition=condition.BEGINS_WITH('7'))
+    results.response['Items'].should.have.length_of(1)
+
+    results = table.query(hash_key='the-key', range_key_condition=condition.BETWEEN('567', '890'))
+    results.response['Items'].should.have.length_of(1)
+
 
 @mock_dynamodb
 def test_scan():
@@ -249,6 +258,13 @@ def test_scan():
     )
     item.put()
 
+    item_data = {
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User B',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+        'Ids': {1, 2, 3},
+        'PK': 7,
+    }
     item = table.new_item(
         hash_key='the-key',
         range_key='789',
@@ -257,12 +273,26 @@ def test_scan():
     item.put()
 
     results = table.scan(scan_filter={'SentBy': condition.EQ('User B')})
-    results.response['Items'].should.have.length_of(0)
+    results.response['Items'].should.have.length_of(1)
 
     results = table.scan(scan_filter={'Body': condition.BEGINS_WITH('http')})
     results.response['Items'].should.have.length_of(3)
 
+    results = table.scan(scan_filter={'Ids': condition.CONTAINS(2)})
+    results.response['Items'].should.have.length_of(1)
+
+    results = table.scan(scan_filter={'Ids': condition.NOT_NULL()})
+    results.response['Items'].should.have.length_of(1)
+
+    results = table.scan(scan_filter={'Ids': condition.NULL()})
+    results.response['Items'].should.have.length_of(2)
+
+    results = table.scan(scan_filter={'PK': condition.BETWEEN(8, 9)})
+    results.response['Items'].should.have.length_of(0)
+
+    results = table.scan(scan_filter={'PK': condition.BETWEEN(5, 8)})
+    results.response['Items'].should.have.length_of(1)
+
 
 # Batch read
 # Batch write
-# scan

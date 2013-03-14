@@ -97,14 +97,14 @@ class Table(object):
         except KeyError:
             return None
 
-    def query(self, hash_key, range_comparison, range_value):
+    def query(self, hash_key, range_comparison, range_values):
         results = []
         last_page = True  # Once pagination is implemented, change this
 
         possible_results = self.items.get(hash_key, [])
         comparison_func = get_comparison_func(range_comparison)
         for result in possible_results.values():
-            if comparison_func(result.range_key, range_value):
+            if comparison_func(result.range_key, *range_values):
                 results.append(result)
         return results, last_page
 
@@ -121,12 +121,24 @@ class Table(object):
         for result in self.all_items():
             scanned_count += 1
             passes_all_conditions = True
-            for attribute_name, (comparison_operator, comparison_value) in filters.iteritems():
+            for attribute_name, (comparison_operator, comparison_values) in filters.iteritems():
                 comparison_func = get_comparison_func(comparison_operator)
-                attribute_value = result.attrs[attribute_name].values()[0]
-                if not comparison_func(attribute_value, comparison_value):
+
+                attribute = result.attrs.get(attribute_name)
+                if attribute:
+                    # Attribute found
+                    attribute_value = attribute.values()[0]
+                    if not comparison_func(attribute_value, *comparison_values):
+                        passes_all_conditions = False
+                        break
+                elif comparison_operator == 'NULL':
+                    # Comparison is NULL and we don't have the attribute
+                    continue
+                else:
+                    # No attribute found and comparison is no NULL. This item fails
                     passes_all_conditions = False
                     break
+
             if passes_all_conditions:
                 results.append(result)
 
@@ -172,12 +184,12 @@ class DynamoDBBackend(BaseBackend):
 
         return table.get_item(hash_key, range_key)
 
-    def query(self, table_name, hash_key, range_comparison, range_value):
+    def query(self, table_name, hash_key, range_comparison, range_values):
         table = self.tables.get(table_name)
         if not table:
             return None
 
-        return table.query(hash_key, range_comparison, range_value)
+        return table.query(hash_key, range_comparison, range_values)
 
     def scan(self, table_name, filters):
         table = self.tables.get(table_name)

@@ -6,13 +6,13 @@ COMPARISON_FUNCS = {
     'LT': lambda item_value, test_value: item_value < test_value,
     'GE': lambda item_value, test_value: item_value >= test_value,
     'GT': lambda item_value, test_value: item_value > test_value,
-    'NULL': lambda item_value: item_value is None,
-    'NOT_NULL': lambda item_value: item_value is not None,
+    'NULL': lambda item_value, test_value: item_value is None,
+    'NOT_NULL': lambda item_value, test_value: item_value is not None,
     'CONTAINS': lambda item_value, test_value: test_value in item_value,
     'NOT_CONTAINS': lambda item_value, test_value: test_value not in item_value,
     'BEGINS_WITH': lambda item_value, test_value: item_value.startswith(test_value),
     'IN': lambda item_value, test_value: item_value in test_value,
-    'BETWEEN': lambda item_value, test_values: test_values[0] <= item_value <= test_values[1],
+    'BETWEEN': lambda item_value, lower_test_value, upper_test_value: lower_test_value <= item_value <= upper_test_value,
 }
 
 

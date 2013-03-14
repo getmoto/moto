@@ -2,6 +2,7 @@ import json
 
 from moto.core.utils import headers_to_dict
 from .models import dynamodb_backend
+from .utils import values_from_dynamo_types
 
 
 class DynamoHandler(object):
@@ -128,8 +129,9 @@ class DynamoHandler(object):
         hash_key = body['HashKeyValue'].values()[0]
         range_condition = body['RangeKeyCondition']
         range_comparison = range_condition['ComparisonOperator']
-        range_value = range_condition['AttributeValueList'][0].values()[0]
-        items, last_page = dynamodb_backend.query(name, hash_key, range_comparison, range_value)
+        range_values = values_from_dynamo_types(range_condition['AttributeValueList'])
+
+        items, last_page = dynamodb_backend.query(name, hash_key, range_comparison, range_values)
 
         result = {
             "Count": len(items),
@@ -152,8 +154,11 @@ class DynamoHandler(object):
         for attribute_name, scan_filter in scan_filters.iteritems():
             # Keys are attribute names. Values are tuples of (comparison, comparison_value)
             comparison_operator = scan_filter["ComparisonOperator"]
-            comparison_value = scan_filter["AttributeValueList"][0].values()[0]
-            filters[attribute_name] = (comparison_operator, comparison_value)
+            if scan_filter.get("AttributeValueList"):
+                comparison_values = values_from_dynamo_types(scan_filter.get("AttributeValueList"))
+            else:
+                comparison_values = [None]
+            filters[attribute_name] = (comparison_operator, comparison_values)
 
         items, scanned_count, last_page = dynamodb_backend.scan(name, filters)
 
