@@ -36,7 +36,7 @@ class Item(object):
 
 class Table(object):
 
-    def __init__(self, name, hash_key_attr=None, hash_key_type=None,
+    def __init__(self, name, hash_key_attr, hash_key_type,
                  range_key_attr=None, range_key_type=None, read_capacity=None,
                  write_capacity=None):
         self.name = name
@@ -51,7 +51,7 @@ class Table(object):
 
     @property
     def describe(self):
-        return {
+        results = {
             "Table": {
                 "CreationDateTime": unix_time(self.created_at),
                 "KeySchema": {
@@ -59,10 +59,6 @@ class Table(object):
                         "AttributeName": self.hash_key_attr,
                         "AttributeType": self.hash_key_type
                     },
-                    "RangeKeyElement": {
-                        "AttributeName": self.range_key_attr,
-                        "AttributeType": self.range_key_type
-                    }
                 },
                 "ProvisionedThroughput": {
                     "ReadCapacityUnits": self.read_capacity,
@@ -74,11 +70,20 @@ class Table(object):
                 "TableSizeBytes": 0,
             }
         }
+        if self.range_key_attr:
+            results["Table"]["KeySchema"]["RangeKeyElement"] = {
+                "AttributeName": self.range_key_attr,
+                "AttributeType": self.range_key_type
+            }
+        return results
 
     def __len__(self):
         count = 0
         for key, value in self.items.iteritems():
-            count += len(value)
+            if self.range_key_attr:
+                count += len(value)
+            else:
+                count += 1
         return count
 
     def __nonzero__(self):
@@ -86,14 +91,24 @@ class Table(object):
 
     def put_item(self, item_attrs):
         hash_value = item_attrs.get(self.hash_key_attr).values()[0]
-        range_value = item_attrs.get(self.range_key_attr).values()[0]
+        if self.range_key_attr:
+            range_value = item_attrs.get(self.range_key_attr).values()[0]
+        else:
+            range_value = None
         item = Item(hash_value, self.hash_key_type, range_value, self.range_key_type, item_attrs)
-        self.items[hash_value][range_value] = item
+
+        if range_value:
+            self.items[hash_value][range_value] = item
+        else:
+            self.items[hash_value] = item
         return item
 
     def get_item(self, hash_key, range_key):
         try:
-            return self.items[hash_key][range_key]
+            if range_key:
+                return self.items[hash_key][range_key]
+            else:
+                return self.items[hash_key]
         except KeyError:
             return None
 
@@ -101,17 +116,24 @@ class Table(object):
         results = []
         last_page = True  # Once pagination is implemented, change this
 
-        possible_results = self.items.get(hash_key, [])
-        comparison_func = get_comparison_func(range_comparison)
-        for result in possible_results.values():
-            if comparison_func(result.range_key, *range_values):
-                results.append(result)
+        possible_results = list(self.all_items())
+        if range_comparison:
+            comparison_func = get_comparison_func(range_comparison)
+            for result in possible_results:
+                if comparison_func(result.range_key, *range_values):
+                    results.append(result)
+        else:
+            # If we're not filtering on range key, return all values
+            results = possible_results
         return results, last_page
 
     def all_items(self):
         for hash_set in self.items.values():
-            for item in hash_set.values():
-                yield item
+            if self.range_key_attr:
+                for item in hash_set.values():
+                    yield item
+            else:
+                yield hash_set
 
     def scan(self, filters):
         results = []
@@ -146,7 +168,10 @@ class Table(object):
 
     def delete_item(self, hash_key, range_key):
         try:
-            return self.items[hash_key].pop(range_key)
+            if range_key:
+                return self.items[hash_key].pop(range_key)
+            else:
+                return self.items.pop(hash_key)
         except KeyError:
             return None
 
@@ -187,14 +212,14 @@ class DynamoDBBackend(BaseBackend):
     def query(self, table_name, hash_key, range_comparison, range_values):
         table = self.tables.get(table_name)
         if not table:
-            return None
+            return None, None
 
         return table.query(hash_key, range_comparison, range_values)
 
     def scan(self, table_name, filters):
         table = self.tables.get(table_name)
         if not table:
-            return None
+            return None, None, None
 
         return table.scan(filters)
 

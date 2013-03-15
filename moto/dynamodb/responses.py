@@ -57,9 +57,9 @@ class DynamoHandler(object):
         hash_key_attr = hash_hey['AttributeName']
         hash_key_type = hash_hey['AttributeType']
 
-        range_hey = key_schema['RangeKeyElement']
-        range_key_attr = range_hey['AttributeName']
-        range_key_type = range_hey['AttributeType']
+        range_hey = key_schema.get('RangeKeyElement', {})
+        range_key_attr = range_hey.get('AttributeName')
+        range_key_type = range_hey.get('AttributeType')
 
         throughput = body["ProvisionedThroughput"]
         read_units = throughput["ReadCapacityUnits"]
@@ -106,9 +106,13 @@ class DynamoHandler(object):
         name = body['TableName']
         item = body['Item']
         result = dynamodb_backend.put_item(name, item)
-        item_dict = result.describe
-        item_dict['ConsumedCapacityUnits'] = 1
-        return json.dumps(item_dict)
+        if result:
+            item_dict = result.describe
+            item_dict['ConsumedCapacityUnits'] = 1
+            return json.dumps(item_dict)
+        else:
+            er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
+            return self.error(er)
 
     def BatchWriteItem(self, uri, body, headers):
         table_batches = body['RequestItems']
@@ -143,8 +147,9 @@ class DynamoHandler(object):
 
     def GetItem(self, uri, body, headers):
         name = body['TableName']
-        hash_key = body['Key']['HashKeyElement'].values()[0]
-        range_key = body['Key']['RangeKeyElement'].values()[0]
+        key = body['Key']
+        hash_key = key['HashKeyElement'].values()[0]
+        range_key = value_from_dynamo_type(key.get('RangeKeyElement'))
         attrs_to_get = body.get('AttributesToGet')
         item = dynamodb_backend.get_item(name, hash_key, range_key)
         if item:
@@ -181,11 +186,18 @@ class DynamoHandler(object):
     def Query(self, uri, body, headers):
         name = body['TableName']
         hash_key = body['HashKeyValue'].values()[0]
-        range_condition = body['RangeKeyCondition']
-        range_comparison = range_condition['ComparisonOperator']
-        range_values = values_from_dynamo_types(range_condition['AttributeValueList'])
+        range_condition = body.get('RangeKeyCondition')
+        if range_condition:
+            range_comparison = range_condition['ComparisonOperator']
+            range_values = values_from_dynamo_types(range_condition['AttributeValueList'])
+        else:
+            range_comparison = range_values = None
 
         items, last_page = dynamodb_backend.query(name, hash_key, range_comparison, range_values)
+
+        if items is None:
+            er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
+            return self.error(er)
 
         result = {
             "Count": len(items),
@@ -193,11 +205,12 @@ class DynamoHandler(object):
             "ConsumedCapacityUnits": 1,
         }
 
-        if not last_page:
-            result["LastEvaluatedKey"] = {
-                "HashKeyElement": items[-1].hash_key,
-                "RangeKeyElement": items[-1].range_key,
-            }
+        # Implement this when we do pagination
+        # if not last_page:
+        #     result["LastEvaluatedKey"] = {
+        #         "HashKeyElement": items[-1].hash_key,
+        #         "RangeKeyElement": items[-1].range_key,
+        #     }
         return json.dumps(result)
 
     def Scan(self, uri, body, headers):
@@ -216,6 +229,10 @@ class DynamoHandler(object):
 
         items, scanned_count, last_page = dynamodb_backend.scan(name, filters)
 
+        if items is None:
+            er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
+            return self.error(er)
+
         result = {
             "Count": len(items),
             "Items": [item.attrs for item in items],
@@ -223,17 +240,19 @@ class DynamoHandler(object):
             "ScannedCount": scanned_count
         }
 
-        if not last_page:
-            result["LastEvaluatedKey"] = {
-                "HashKeyElement": items[-1].hash_key,
-                "RangeKeyElement": items[-1].range_key,
-            }
+        # Implement this when we do pagination
+        # if not last_page:
+        #     result["LastEvaluatedKey"] = {
+        #         "HashKeyElement": items[-1].hash_key,
+        #         "RangeKeyElement": items[-1].range_key,
+        #     }
         return json.dumps(result)
 
     def DeleteItem(self, uri, body, headers):
         name = body['TableName']
-        hash_key = body['Key']['HashKeyElement'].values()[0]
-        range_key = body['Key']['RangeKeyElement'].values()[0]
+        key = body['Key']
+        hash_key = value_from_dynamo_type(key['HashKeyElement'])
+        range_key = value_from_dynamo_type(key.get('RangeKeyElement'))
         return_values = body.get('ReturnValues', '')
         item = dynamodb_backend.delete_item(name, hash_key, range_key)
         if item:
