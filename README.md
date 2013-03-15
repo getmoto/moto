@@ -54,7 +54,7 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |---------------------------------------------------------------------------|
 | Service Name          | Decorator      | Development Status               |
 |---------------------------------------------------------------------------|
-| DynamoDB              | @mock_dynamodb | Table actions core done          |
+| DynamoDB              | @mock_dynamodb | core endpoints done              |
 |---------------------------------------------------------------------------|
 | EC2                   | @mock_ec2      | core endpoints done              |
 |     - AMI             |                | core endpoints done              |
