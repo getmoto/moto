@@ -291,6 +291,9 @@ def test_scan():
     )
     item.put()
 
+    results = table.scan()
+    results.response['Items'].should.have.length_of(3)
+
     results = table.scan(scan_filter={'SentBy': condition.EQ('User B')})
     results.response['Items'].should.have.length_of(1)
 

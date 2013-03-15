@@ -244,7 +244,7 @@ class DynamoHandler(object):
         name = body['TableName']
 
         filters = {}
-        scan_filters = body['ScanFilter']
+        scan_filters = body.get('ScanFilter', {})
         for attribute_name, scan_filter in scan_filters.iteritems():
             # Keys are attribute names. Values are tuples of (comparison, comparison_value)
             comparison_operator = scan_filter["ComparisonOperator"]

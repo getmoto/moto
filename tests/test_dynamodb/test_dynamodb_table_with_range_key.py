@@ -135,7 +135,7 @@ def test_item_put_without_table():
 
     conn.layer1.put_item.when.called_with(
         table_name='undeclared-table',
-        item =dict(
+        item=dict(
             hash_key='LOLCat Forum',
             range_key='Check this out!',
         ),
@@ -302,10 +302,10 @@ def test_query_with_undeclared_table():
         table_name='undeclared-table',
         hash_key_value={'S': 'the-key'},
         range_key_conditions={
-            "AttributeValueList":[{
-                "S":"User B"
+            "AttributeValueList": [{
+                "S": "User B"
             }],
-            "ComparisonOperator":"EQ",
+            "ComparisonOperator": "EQ",
         },
     ).should.throw(DynamoDBResponseError)
 
@@ -348,6 +348,9 @@ def test_scan():
     )
     item.put()
 
+    results = table.scan()
+    results.response['Items'].should.have.length_of(3)
+
     results = table.scan(scan_filter={'SentBy': condition.EQ('User B')})
     results.response['Items'].should.have.length_of(1)
 
@@ -378,10 +381,10 @@ def test_scan_with_undeclared_table():
         table_name='undeclared-table',
         scan_filter={
             "SentBy": {
-                "AttributeValueList":[{
-                    "S":"User B"}
+                "AttributeValueList": [{
+                    "S": "User B"}
                 ],
-                "ComparisonOperator":"EQ"
+                "ComparisonOperator": "EQ"
             }
         },
     ).should.throw(DynamoDBResponseError)
