@@ -3,7 +3,7 @@
 exclude_lines =
     if __name__ == .__main__.:
     raise NotImplemented.
-
+    def __repr__
 
 [run]
 include = moto/*
