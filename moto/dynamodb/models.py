@@ -18,6 +18,10 @@ def dynamo_json_dump(dynamo_object):
 
 
 class DynamoType(object):
+    """
+    http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DataModel.html#DataModelDataTypes
+    """
+
     def __init__(self, type_as_dict):
         self.type = type_as_dict.keys()[0]
         self.value = type_as_dict.values()[0]
@@ -36,6 +40,14 @@ class DynamoType(object):
 
     def to_json(self):
         return {self.type: self.value}
+
+    def compare(self, range_comparison, range_objs):
+        """
+        Compares this type against comparison filters
+        """
+        range_values = [obj.value for obj in range_objs]
+        comparison_func = get_comparison_func(range_comparison)
+        return comparison_func(self.value, *range_values)
 
 
 class Item(object):
@@ -159,10 +171,8 @@ class Table(object):
 
         possible_results = list(self.all_items())
         if range_comparison:
-            comparison_func = get_comparison_func(range_comparison)
             for result in possible_results:
-                range_values = [obj.value for obj in range_objs]
-                if comparison_func(result.range_key.value, *range_values):
+                if result.range_key.compare(range_comparison, range_objs):
                     results.append(result)
         else:
             # If we're not filtering on range key, return all values
@@ -186,13 +196,11 @@ class Table(object):
             scanned_count += 1
             passes_all_conditions = True
             for attribute_name, (comparison_operator, comparison_objs) in filters.iteritems():
-                comparison_func = get_comparison_func(comparison_operator)
-
                 attribute = result.attrs.get(attribute_name)
+
                 if attribute:
                     # Attribute found
-                    comparison_values = [obj.value for obj in comparison_objs]
-                    if not comparison_func(attribute.value, *comparison_values):
+                    if not attribute.compare(comparison_operator, comparison_objs):
                         passes_all_conditions = False
                         break
                 elif comparison_operator == 'NULL':
