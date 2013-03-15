@@ -5,5 +5,5 @@ init:
 	pip install -r requirements.txt
 
 test:
-	rm .coverage
+	rm -f .coverage
 	nosetests --with-coverage ./tests/
