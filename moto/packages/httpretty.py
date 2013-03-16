@@ -54,13 +54,12 @@ else:
 
 
 class Py3kObject(object):
-    pass
-    # def __repr__(self):
-    #     ret = self.__str__()
-    #     if PY3:
-    #         return ret
-    #     else:
-    #         ret.encode('utf-8')
+    def __repr__(self):
+        ret = self.__str__()
+        if PY3:
+            return ret
+        else:
+            ret.encode('utf-8')
 
 from datetime import datetime
 from datetime import timedelta
@@ -265,6 +264,7 @@ class fakesock(object):
             hostnames = [getattr(i.info, 'hostname', None) for i in HTTPretty._entries.keys()]
             self.fd.seek(0)
             try:
+                print("data", data)
                 requestline, _ = data.split('\r\n', 1)
                 method, path, version = parse_requestline(requestline)
                 is_parsing_headers = True
