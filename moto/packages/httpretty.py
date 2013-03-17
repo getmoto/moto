@@ -277,7 +277,9 @@ class fakesock(object):
                 # if self._host not in hostnames:
                 #     return self._true_sendall(data)
 
+            import pdb;pdb.set_trace()
             if not is_parsing_headers:
+
                 if len(self._sent_data) > 1:
                     headers, body = map(utf8, self._sent_data[-2:])
 
@@ -292,7 +294,7 @@ class fakesock(object):
                     # If we are sending more data to a dynamic response entry,
                     # we need to call the method again.
                     if self._entry and self._entry.dynamic_response:
-                        self._entry.body(info, body, headers)
+                        self._entry.body(info, method, body, headers)
 
                     try:
                         return HTTPretty.historify_request(headers, body, False)
@@ -328,7 +330,7 @@ class fakesock(object):
             entry = matcher.get_next_entry()
             if entry.method == method:
                 self._entry = entry
-                self._request = (info, body, headers)
+                self._request = (info, method, body, headers)
             else:
                 raise ValueError("No match found for", method, entry.uri)
 
@@ -531,7 +533,7 @@ class Entry(Py3kObject):
         return new
 
     def fill_filekind(self, fk, request):
-        req_info, req_body, req_headers = request
+        req_info, method, req_body, req_headers = request
 
         now = datetime.utcnow()
 
@@ -543,7 +545,7 @@ class Entry(Py3kObject):
         }
 
         if self.dynamic_response:
-            response = self.body(req_info, req_body, req_headers)
+            response = self.body(req_info, method, req_body, req_headers)
             if isinstance(response, basestring):
                 body = response
                 new_headers = {}
