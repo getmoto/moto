@@ -7,10 +7,10 @@ from moto.core.utils import headers_to_dict, camelcase_to_underscores, method_na
 
 
 class BaseResponse(object):
-    def dispatch2(self, uri, body, headers):
-        return self.dispatch(uri, body, headers)
+    def dispatch2(self, uri, method, body, headers):
+        return self.dispatch(uri, method, body, headers)
 
-    def dispatch(self, uri, body, headers):
+    def dispatch(self, uri, method, body, headers):
         if body:
             querystring = parse_qs(body)
         else:
@@ -29,7 +29,7 @@ class BaseResponse(object):
         raise NotImplementedError("The {} action has not been implemented".format(action))
 
 
-def metadata_response(uri, body, headers):
+def metadata_response(uri, method, body, headers):
     """
     Mock response for localhost metadata
 

@@ -14,9 +14,8 @@ def all_buckets():
     return template.render(buckets=all_buckets)
 
 
-def bucket_response(uri, body, headers):
+def bucket_response(uri, method, body, headers):
     hostname = uri.hostname
-    method = uri.method
     querystring = parse_qs(uri.query)
 
     bucket_name = bucket_name_from_hostname(hostname)
@@ -60,11 +59,10 @@ def bucket_response(uri, body, headers):
         raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
 
 
-def key_response(uri_info, body, headers):
+def key_response(uri_info, method, body, headers):
 
     key_name = uri_info.path.lstrip('/')
     hostname = uri_info.hostname
-    method = uri_info.method
     headers = headers_to_dict(headers)
 
     bucket_name = bucket_name_from_hostname(hostname)

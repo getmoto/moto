@@ -1,7 +1,7 @@
 import functools
 import re
 
-from moto.packages.httpretty import HTTPretty
+from httpretty import HTTPretty
 from .responses import metadata_response
 from .utils import convert_regex_to_flask_path
 

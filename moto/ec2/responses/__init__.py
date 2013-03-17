@@ -65,7 +65,7 @@ class EC2Response(object):
         Windows,
     ]
 
-    def dispatch(self, uri, body, headers):
+    def dispatch(self, uri, method, body, headers):
         if body:
             querystring = parse_qs(body)
         else:

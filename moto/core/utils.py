@@ -102,7 +102,7 @@ class convert_flask_to_httpretty_response(object):
 
         body = request.data or query
         headers = dict(request.headers)
-        result = self.callback(uri, body, headers)
+        result = self.callback(uri, method, body, headers)
         if isinstance(result, basestring):
             # result is just the response
             return result
