@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='moto',
-    version='0.0.9',
+    version='0.0.10',
     description='Moto is a library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',
