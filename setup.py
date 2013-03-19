@@ -20,9 +20,5 @@ setup(
         "boto",
         "Jinja2",
         "flask",
-        "spulec-httpretty>=0.5.12",
     ],
-    dependency_links=[
-        'http://github.com/spulec/HTTPretty/tarball/master#egg=spulec-httpretty-0.5.12',
-    ]
 )
