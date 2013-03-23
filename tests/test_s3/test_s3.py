@@ -108,6 +108,12 @@ def test_missing_bucket():
 
 
 @mock_s3
+def test_bucket_with_dash():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    conn.get_bucket.when.called_with('mybucket-test').should.throw(S3ResponseError)
+
+
+@mock_s3
 def test_bucket_deletion():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")

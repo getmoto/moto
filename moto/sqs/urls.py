@@ -6,5 +6,5 @@ url_bases = [
 
 url_paths = {
     '{0}/$': QueuesResponse().dispatch2,
-    '{0}/(?P<account_id>\d+)/(?P<queue_name>\w+)': QueueResponse().dispatch,
+    '{0}/(?P<account_id>\d+)/(?P<queue_name>[a-zA-Z0-9\-_]+)': QueueResponse().dispatch,
 }

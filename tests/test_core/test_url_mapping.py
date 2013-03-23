@@ -13,7 +13,7 @@ def test_flask_path_converting_simple():
 
 
 def test_flask_path_converting_regex():
-    convert_regex_to_flask_path("/(?P<key_name>\w+)").should.equal('/<regex("\w+"):key_name>')
+    convert_regex_to_flask_path("/(?P<key_name>[a-zA-Z0-9\-_]+)").should.equal('/<regex("[a-zA-Z0-9\-_]+"):key_name>')
 
     convert_regex_to_flask_path("(?P<account_id>\d+)/(?P<queue_name>.*)$").should.equal(
         '<regex("\d+"):account_id>/<regex(".*"):queue_name>'
