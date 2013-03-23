@@ -1,4 +1,3 @@
-import base64
 import md5
 
 from moto.core import BaseBackend
@@ -9,7 +8,7 @@ from .utils import generate_receipt_handle
 class Message(object):
     def __init__(self, message_id, body):
         self.id = message_id
-        self._body = body
+        self.body = body
         self.receipt_handle = generate_receipt_handle()
 
     @property
@@ -17,11 +16,6 @@ class Message(object):
         body_md5 = md5.new()
         body_md5.update(self.body)
         return body_md5.hexdigest()
-
-    @property
-    def body(self):
-        # SQS Message bodies are base64 encoded by default
-        return base64.b64encode(self._body)
 
 
 class Queue(object):

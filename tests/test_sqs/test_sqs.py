@@ -1,5 +1,6 @@
 import boto
 from boto.exception import SQSError
+from boto.sqs.message import RawMessage
 import requests
 import sure  # flake8: noqa
 
@@ -56,6 +57,15 @@ def test_send_message():
 
 
 @mock_sqs
+def test_read_message_from_queue():
+    conn = boto.connect_sqs()
+    queue = conn.create_queue('testqueue')
+    queue.write(queue.new_message('foo bar baz'))
+    message = queue.read(1)
+    message.get_body().should.equal('foo bar baz')
+
+
+@mock_sqs
 def test_queue_length():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -84,7 +94,10 @@ def test_send_batch_operation():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
 
-    conn.send_message_batch(queue, [
+    # See https://github.com/boto/boto/issues/831
+    queue.set_message_class(RawMessage)
+
+    queue.write_batch([
         ("my_first_message", 'test message 1', 0),
         ("my_second_message", 'test message 2', 0),
         ("my_third_message", 'test message 3', 0),

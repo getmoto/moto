@@ -1,4 +1,3 @@
-import base64
 import re
 import sure  # flake8: noqa
 
@@ -10,7 +9,7 @@ Test the different server responses
 server.configure_urls("sqs")
 
 
-def test_ses_list_identities():
+def test_sqs_list_identities():
     test_client = server.app.test_client()
     res = test_client.get('/?Action=ListQueues')
     res.data.should.contain("ListQueuesResponse")
@@ -23,4 +22,4 @@ def test_ses_list_identities():
     res = test_client.get(
         '/123/testqueue?Action=ReceiveMessage&MaxNumberOfMessages=1')
     message = re.search("<Body>(.*?)</Body>", res.data).groups()[0]
-    base64.decodestring(message).should.equal('test-message')
+    message.should.equal('test-message')
