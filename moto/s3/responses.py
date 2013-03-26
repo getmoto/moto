@@ -64,6 +64,7 @@ def key_response(uri_info, method, body, headers):
     key_name = uri_info.path.lstrip('/')
     hostname = uri_info.hostname
     headers = headers_to_dict(headers)
+    query = parse_qs(uri_info.query)
 
     bucket_name = bucket_name_from_hostname(hostname)
 
@@ -74,12 +75,20 @@ def key_response(uri_info, method, body, headers):
         else:
             return "", dict(status=404)
     if method == 'PUT':
+        if 'uploadId' in query and 'partNumber' in query and body:
+            upload_id = query['uploadId'][0]
+            part_number = int(query['partNumber'][0])
+            key = s3_backend.set_part(bucket_name, upload_id, part_number, body)
+
+            return '', dict(etag=key.etag)
+
         if 'x-amz-copy-source' in headers:
             # Copy key
             src_bucket, src_key = headers.get("x-amz-copy-source").split("/")
             s3_backend.copy_key(src_bucket, src_key, bucket_name, key_name)
             template = Template(S3_OBJECT_COPY_RESPONSE)
             return template.render(key=src_key)
+
         if body is not None:
             key = s3_backend.get_key(bucket_name, key_name)
             if not key or body:
@@ -107,19 +116,30 @@ def key_response(uri_info, method, body, headers):
         template = Template(S3_DELETE_OBJECT_SUCCESS)
         return template.render(bucket=removed_key), dict(status=204)
     elif method == 'POST':
+        import pdb; pdb.set_trace()
         if body == '' and uri_info.query == 'uploads':
             multipart = s3_backend.initiate_multipart(bucket_name, key_name)
-            template = Template(S3_MULTIPART_RESPONSE)
+            template = Template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(
                 bucket_name=bucket_name,
                 key_name=key_name,
                 multipart_id=multipart.id,
             )
-            print response
             return response, dict()
+
+        if body == '' and 'uploadId' in query:
+            upload_id = query['uploadId'][0]
+            key = s3_backend.complete_multipart(bucket_name, upload_id)
+
+            if key is not None:
+                template = Template(S3_MULTIPART_COMPLETE_RESPONSE)
+                return template.render(
+                    bucket_name=bucket_name,
+                    key_name=key.name,
+                    etag=key.etag,
+                )
         else:
-            import pdb; pdb.set_trace()
-            raise NotImplementedError("POST is only allowed for multipart uploads")
+            raise NotImplementedError("Method POST had only been implemented for multipart uploads so far")
     else:
         raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
 
@@ -217,15 +237,18 @@ S3_OBJECT_COPY_RESPONSE = """<CopyObjectResponse xmlns="http://doc.s3.amazonaws.
   </CopyObjectResponse>
 </CopyObjectResponse>"""
 
-S3_MULTIPART_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+S3_MULTIPART_INITIATE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Bucket>{{ bucket_name }}</Bucket>
   <Key>{{ key_name }}</Key>
   <UploadId>{{ upload_id }}</UploadId>
 </InitiateMultipartUploadResult>"""
 
-S3_MULTIPART_COMPLETE_RESPONSE = """
-"""
-
-S3_MULTIPART_ERROR_RESPONSE = """
+S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CompleteMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Location>http://{{ bucket_name }}.s3.amazonaws.com/{{ key_name }}</Location>
+  <Bucket>{{ bucket_name }}</Bucket>
+  <Key>{{ key_name }}</Key>
+  <ETag>{{ etag }}</ETag>
+</CompleteMultipartUploadResult>
 """

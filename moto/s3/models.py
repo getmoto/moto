@@ -37,7 +37,7 @@ class FakeMultipart(object):
             if part_id != index:
                 return
 
-            total.extend(self.parts[part_id])
+            total.extend(self.parts[part_id].value)
 
         if len(total) < 5242880:
             return
@@ -46,10 +46,11 @@ class FakeMultipart(object):
 
     def set_part(self, part_id, value):
         if part_id < 1:
-            return False
+            return
 
-        self.parts[part_id] = value
-        return True
+        key = FakeKey(part_id, value)
+        self.parts[part_id] = key
+        return key
 
 
 class FakeBucket(object):
@@ -109,9 +110,10 @@ class S3Backend(BaseBackend):
         multipart = bucket.multiparts[multipart_id]
         value = multipart.complete()
         if value is None:
-            return False
+            return
+        del bucket.multiparts[multipart_id]
 
-        self.set_key(bucket_name, multipart.key_name, value)
+        return self.set_key(bucket_name, multipart.key_name, value)
 
     def set_part(self, bucket_name, multipart_id, part_id, value):
         bucket = self.buckets[bucket_name]
