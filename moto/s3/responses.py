@@ -80,10 +80,19 @@ def key_response(uri_info, method, body, headers):
             s3_backend.copy_key(src_bucket, src_key, bucket_name, key_name)
             template = Template(S3_OBJECT_COPY_RESPONSE)
             return template.render(key=src_key)
-        if body:
-            new_key = s3_backend.set_key(bucket_name, key_name, body)
-            template = Template(S3_OBJECT_RESPONSE)
-            return template.render(key=new_key), dict(etag=new_key.etag)
+        if body is not None:
+            key = s3_backend.get_key(bucket_name, key_name)
+            if not key or body:
+                # We want to write the key in once of two circumstances.
+                # - The key does not currently exist.
+                # - The key already exists, but body is a truthy value.
+                # This allows us to write empty strings to keys for the first
+                # write, but not subsequent. This is because HTTPretty sends
+                # an empty string on connection close. This is a temporary fix
+                # while HTTPretty gets fixed.
+                new_key = s3_backend.set_key(bucket_name, key_name, body)
+                template = Template(S3_OBJECT_RESPONSE)
+                return template.render(key=new_key), dict(etag=new_key.etag)
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
             return "", dict(etag=key.etag)

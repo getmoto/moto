@@ -52,6 +52,17 @@ def test_missing_key_urllib2():
 
 
 @mock_s3
+def test_empty_key():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string("")
+
+    bucket.get_key("the-key").get_contents_as_string().should.equal('')
+
+
+@mock_s3
 def test_copy_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
