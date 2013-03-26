@@ -1,5 +1,7 @@
 # from boto.s3.bucket import Bucket
 # from boto.s3.key import Key
+import os
+import base64
 import md5
 
 from moto.core import BaseBackend
@@ -21,10 +23,40 @@ class FakeKey(object):
         return len(self.value)
 
 
+class FakeMultipart(object):
+    def __init__(self, key_name):
+        self.key_name = key_name
+        self.parts = {}
+        self.id = base64.b64encode(os.urandom(43)).replace('=', '')
+
+    def complete(self):
+        total = bytearray()
+
+        for part_id, index in enumerate(sorted(self.parts.keys()), start=1):
+            # Make sure part ids are continuous
+            if part_id != index:
+                return
+
+            total.extend(self.parts[part_id])
+
+        if len(total) < 5242880:
+            return
+
+        return total
+
+    def set_part(self, part_id, value):
+        if part_id < 1:
+            return False
+
+        self.parts[part_id] = value
+        return True
+
+
 class FakeBucket(object):
     def __init__(self, name):
         self.name = name
         self.keys = {}
+        self.multiparts = {}
 
 
 class S3Backend(BaseBackend):
@@ -64,6 +96,27 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         if bucket:
             return bucket.keys.get(key_name)
+
+    def initiate_multipart(self, bucket_name, key_name):
+        bucket = self.buckets[bucket_name]
+        new_multipart = FakeMultipart(key_name)
+        bucket.multiparts[new_multipart.id] = new_multipart
+
+        return new_multipart
+
+    def complete_multipart(self, bucket_name, multipart_id):
+        bucket = self.buckets[bucket_name]
+        multipart = bucket.multiparts[multipart_id]
+        value = multipart.complete()
+        if value is None:
+            return False
+
+        self.set_key(bucket_name, multipart.key_name, value)
+
+    def set_part(self, bucket_name, multipart_id, part_id, value):
+        bucket = self.buckets[bucket_name]
+        multipart = bucket.multiparts[multipart_id]
+        return multipart.set_part(part_id, value)
 
     def prefix_query(self, bucket, prefix):
         key_results = set()

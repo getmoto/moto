@@ -106,6 +106,20 @@ def key_response(uri_info, method, body, headers):
         removed_key = s3_backend.delete_key(bucket_name, key_name)
         template = Template(S3_DELETE_OBJECT_SUCCESS)
         return template.render(bucket=removed_key), dict(status=204)
+    elif method == 'POST':
+        if body == '' and uri_info.query == 'uploads':
+            multipart = s3_backend.initiate_multipart(bucket_name, key_name)
+            template = Template(S3_MULTIPART_RESPONSE)
+            response = template.render(
+                bucket_name=bucket_name,
+                key_name=key_name,
+                multipart_id=multipart.id,
+            )
+            print response
+            return response, dict()
+        else:
+            import pdb; pdb.set_trace()
+            raise NotImplementedError("POST is only allowed for multipart uploads")
     else:
         raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
 
@@ -202,3 +216,16 @@ S3_OBJECT_COPY_RESPONSE = """<CopyObjectResponse xmlns="http://doc.s3.amazonaws.
     <LastModified>2008-02-18T13:54:10.183Z</LastModified>
   </CopyObjectResponse>
 </CopyObjectResponse>"""
+
+S3_MULTIPART_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Bucket>{{ bucket_name }}</Bucket>
+  <Key>{{ key_name }}</Key>
+  <UploadId>{{ upload_id }}</UploadId>
+</InitiateMultipartUploadResult>"""
+
+S3_MULTIPART_COMPLETE_RESPONSE = """
+"""
+
+S3_MULTIPART_ERROR_RESPONSE = """
+"""

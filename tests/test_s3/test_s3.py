@@ -1,4 +1,5 @@
 import urllib2
+from io import BytesIO
 
 import boto
 from boto.exception import S3ResponseError
@@ -34,6 +35,26 @@ def test_my_model_save():
     model_instance.save()
 
     conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal('is awesome')
+
+
+@mock_s3
+def test_multipart_upload():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    multipart.upload_part_from_file(BytesIO('hello'), 1)
+    multipart.upload_part_from_file(BytesIO('world'), 1)
+    # Multipart with total size under 5MB is refused
+    multipart.complete_upload().should.throw(S3ResponseError)
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = '0' * 5242880
+    multipart.upload_part_from_file(BytesIO('0' * 5242880), 1)
+    part2 = '1'
+    multipart.upload_part_from_file(BytesIO('1'), 1)
+    multipart.complete_upload()
+    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
 
 
 @mock_s3
