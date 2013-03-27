@@ -162,9 +162,6 @@ Then go to [localhost](http://localhost:5000/?Action=DescribeInstances) to see a
 $ pip install moto
 ```
 
-This library has been tested on boto v2.5+.
-
-
 ## Thanks
 
 A huge thanks to [Gabriel Falcão](https://github.com/gabrielfalcao) and his [HTTPretty](https://github.com/gabrielfalcao/HTTPretty) library. Moto would not exist without it.
