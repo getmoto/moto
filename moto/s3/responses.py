@@ -90,14 +90,14 @@ def key_response(uri_info, method, body, headers):
             # empty string as part of closing the connection.
             new_key = s3_backend.set_key(bucket_name, key_name, body)
             template = Template(S3_OBJECT_RESPONSE)
-            return template.render(key=new_key), dict(etag=new_key.etag)
+            return template.render(key=new_key), new_key.response_dict
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
-            return "", dict(etag=key.etag)
+            return "", key.response_dict
     elif method == 'HEAD':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
-            return S3_OBJECT_RESPONSE, dict(etag=key.etag)
+            return S3_OBJECT_RESPONSE, key.response_dict
         else:
             return "", dict(status=404)
     elif method == 'DELETE':
@@ -133,7 +133,7 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   {% for key in result_keys %}
     <Contents>
       <Key>{{ key.name }}</Key>
-      <LastModified>2006-01-01T12:00:00.000Z</LastModified>
+      <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       <ETag>{{ key.etag }}</ETag>
       <Size>{{ key.size }}</Size>
       <StorageClass>STANDARD</StorageClass>
@@ -190,13 +190,13 @@ S3_DELETE_OBJECT_SUCCESS = """<DeleteObjectResponse xmlns="http://s3.amazonaws.c
 S3_OBJECT_RESPONSE = """<PutObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
       <PutObjectResponse>
         <ETag>{{ key.etag }}</ETag>
-        <LastModified>2006-03-01T12:00:00.183Z</LastModified>
+        <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       </PutObjectResponse>
     </PutObjectResponse>"""
 
 S3_OBJECT_COPY_RESPONSE = """<CopyObjectResponse xmlns="http://doc.s3.amazonaws.com/2006-03-01">
   <CopyObjectResponse>
     <ETag>{{ key.etag }}</ETag>
-    <LastModified>2008-02-18T13:54:10.183Z</LastModified>
+    <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
   </CopyObjectResponse>
 </CopyObjectResponse>"""

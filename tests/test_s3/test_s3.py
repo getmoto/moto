@@ -1,8 +1,10 @@
+import datetime
 import urllib2
 
 import boto
 from boto.exception import S3ResponseError
 from boto.s3.key import Key
+from freezegun import freeze_time
 import requests
 
 import sure  # flake8: noqa
@@ -88,6 +90,22 @@ def test_copy_key():
 
     bucket.get_key("the-key").get_contents_as_string().should.equal("some value")
     bucket.get_key("new-key").get_contents_as_string().should.equal("some value")
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_s3
+def test_last_modified():
+    # See https://github.com/boto/boto/issues/466
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string("some value")
+
+    rs = bucket.get_all_keys()
+    rs[0].last_modified.should.equal('2012-01-01T12:00:00Z')
+
+    bucket.get_key("the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
 
 
 @mock_s3

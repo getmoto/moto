@@ -1,5 +1,4 @@
-# from boto.s3.bucket import Bucket
-# from boto.s3.key import Key
+import datetime
 import md5
 
 from moto.core import BaseBackend
@@ -9,12 +8,31 @@ class FakeKey(object):
     def __init__(self, name, value):
         self.name = name
         self.value = value
+        self.last_modified = datetime.datetime.now()
 
     @property
     def etag(self):
         value_md5 = md5.new()
         value_md5.update(self.value)
         return '"{0}"'.format(value_md5.hexdigest())
+
+    @property
+    def last_modified_ISO8601(self):
+        return self.last_modified.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    @property
+    def last_modified_RFC1123(self):
+        # Different datetime formats depending on how the key is obtained
+        # https://github.com/boto/boto/issues/466
+        RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
+        return self.last_modified.strftime(RFC1123)
+
+    @property
+    def response_dict(self):
+        return {
+            'etag': self.etag,
+            'last-modified': self.last_modified_RFC1123,
+        }
 
     @property
     def size(self):
