@@ -196,3 +196,12 @@ def test_bucket_method_not_implemented():
 @mock_s3
 def test_key_method_not_implemented():
     requests.post.when.called_with("https://foobar.s3.amazonaws.com/foo").should.throw(NotImplementedError)
+
+
+@mock_s3
+def test_bucket_name_with_dot():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('firstname.lastname')
+
+    k = Key(bucket, 'somekey')
+    k.set_contents_from_string('somedata')
