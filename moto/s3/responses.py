@@ -27,11 +27,13 @@ def bucket_response(uri, method, body, headers):
         bucket = s3_backend.get_bucket(bucket_name)
         if bucket:
             prefix = querystring.get('prefix', [None])[0]
-            result_keys, result_folders = s3_backend.prefix_query(bucket, prefix)
+            delimiter = querystring.get('delimiter')
+            result_keys, result_folders = s3_backend.prefix_query(bucket, prefix, delimiter)
             template = Template(S3_BUCKET_GET_RESPONSE)
             return template.render(
                 bucket=bucket,
                 prefix=prefix,
+                delimiter=delimiter,
                 result_keys=result_keys,
                 result_folders=result_folders
             )
@@ -128,7 +130,7 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <Name>{{ bucket.name }}</Name>
   <Prefix>{{ prefix }}</Prefix>
   <MaxKeys>1000</MaxKeys>
-  <Delimiter>/</Delimiter>
+  <Delimiter>{{ delimiter }}</Delimiter>
   <IsTruncated>false</IsTruncated>
   {% for key in result_keys %}
     <Contents>
@@ -144,11 +146,13 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       <StorageClass>STANDARD</StorageClass>
     </Contents>
   {% endfor %}
-  {% for folder in result_folders %}
-    <CommonPrefixes>
-      <Prefix>{{ folder }}</Prefix>
-    </CommonPrefixes>
-  {% endfor %}
+  {% if delimiter %}
+    {% for folder in result_folders %}
+      <CommonPrefixes>
+        <Prefix>{{ folder }}</Prefix>
+      </CommonPrefixes>
+    {% endfor %}
+  {% endif %}
   </ListBucketResult>"""
 
 S3_BUCKET_CREATE_RESPONSE = """<CreateBucketResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">

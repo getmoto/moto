@@ -109,42 +109,6 @@ def test_last_modified():
 
 
 @mock_s3
-def test_get_all_keys():
-    conn = boto.connect_s3('the_key', 'the_secret')
-    bucket = conn.create_bucket("foobar")
-    key = Key(bucket)
-    key.key = "the-key"
-    key.set_contents_from_string("some value")
-
-    key2 = Key(bucket)
-    key2.key = "folder/some-stuff"
-    key2.set_contents_from_string("some value")
-
-    key3 = Key(bucket)
-    key3.key = "folder/more-folder/foobar"
-    key3.set_contents_from_string("some value")
-
-    key4 = Key(bucket)
-    key4.key = "a-key"
-    key4.set_contents_from_string("some value")
-
-    keys = bucket.get_all_keys()
-    keys.should.have.length_of(3)
-
-    keys[0].name.should.equal("a-key")
-    keys[1].name.should.equal("the-key")
-
-    # Prefix
-    keys[2].name.should.equal("folder")
-
-    keys = bucket.get_all_keys(prefix="folder/")
-    keys.should.have.length_of(2)
-
-    keys[0].name.should.equal("folder/some-stuff")
-    keys[1].name.should.equal("folder/more-folder")
-
-
-@mock_s3
 def test_missing_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
     conn.get_bucket.when.called_with('mybucket').should.throw(S3ResponseError)
@@ -218,3 +182,37 @@ def test_key_with_special_characters():
     key_list = bucket.list('test_list_keys_2/', '/')
     keys = [x for x in key_list]
     keys[0].name.should.equal("test_list_keys_2/x?y")
+
+
+@mock_s3
+def test_bucket_key_listing_order():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+    prefix = 'toplevel/'
+
+    def store(name):
+        k = Key(bucket, prefix + name)
+        k.set_contents_from_string('somedata')
+
+    names = ['x/key', 'y.key1', 'y.key2', 'y.key3', 'x/y/key', 'x/y/z/key']
+
+    for name in names:
+        store(name)
+
+    delimiter = None
+    keys = [x.name for x in bucket.list(prefix, delimiter)]
+    keys.should.equal([
+        'toplevel/x/key', 'toplevel/x/y/key', 'toplevel/x/y/z/key',
+        'toplevel/y.key1', 'toplevel/y.key2', 'toplevel/y.key3'
+    ])
+
+    delimiter = '/'
+    keys = [x.name for x in bucket.list(prefix, delimiter)]
+    keys.should.equal([
+        'toplevel/y.key1', 'toplevel/y.key2', 'toplevel/y.key3', 'toplevel/x/'
+    ])
+
+    # Test delimiter with no prefix
+    delimiter = '/'
+    keys = [x.name for x in bucket.list(prefix=None, delimiter=delimiter)]
+    keys.should.equal(['toplevel'])

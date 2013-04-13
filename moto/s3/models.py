@@ -87,20 +87,22 @@ class S3Backend(BaseBackend):
         if bucket:
             return bucket.keys.get(key_name)
 
-    def prefix_query(self, bucket, prefix):
+    def prefix_query(self, bucket, prefix, delimiter):
         key_results = set()
         folder_results = set()
         if prefix:
             for key_name, key in bucket.keys.iteritems():
                 if key_name.startswith(prefix):
-                    if '/' in key_name.lstrip(prefix):
-                        key_without_prefix = key_name.lstrip(prefix).split("/")[0]
+                    if delimiter and '/' in key_name.lstrip(prefix):
+                        # If delimiter, we need to split out folder_results
+                        key_without_prefix = "{}/".format(key_name.lstrip(prefix).split("/")[0])
                         folder_results.add("{}{}".format(prefix, key_without_prefix))
                     else:
                         key_results.add(key)
         else:
             for key_name, key in bucket.keys.iteritems():
-                if '/' in key_name:
+                if delimiter and '/' in key_name:
+                    # If delimiter, we need to split out folder_results
                     folder_results.add(key_name.split("/")[0])
                 else:
                     key_results.add(key)
