@@ -1,4 +1,5 @@
 import re
+import urllib2
 import urlparse
 
 bucket_name_regex = re.compile("(.+).s3.amazonaws.com")
@@ -21,3 +22,7 @@ def bucket_name_from_hostname(hostname):
         else:
             # No subdomain found.
             return None
+
+
+def clean_key_name(key_name):
+    return urllib2.unquote(key_name)

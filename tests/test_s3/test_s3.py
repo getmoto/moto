@@ -205,3 +205,16 @@ def test_bucket_name_with_dot():
 
     k = Key(bucket, 'somekey')
     k.set_contents_from_string('somedata')
+
+
+@mock_s3
+def test_key_with_special_characters():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket_name')
+
+    key = Key(bucket, 'test_list_keys_2/x?y')
+    key.set_contents_from_string('value1')
+
+    key_list = bucket.list('test_list_keys_2/', '/')
+    keys = [x for x in key_list]
+    keys[0].name.should.equal("test_list_keys_2/x?y")
