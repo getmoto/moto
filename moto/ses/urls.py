@@ -1,7 +1,7 @@
 from .responses import EmailResponse
 
 url_bases = [
-    "https?://email.us-east-1.amazonaws.com"
+    "https?://email.(.+).amazonaws.com"
 ]
 
 url_paths = {

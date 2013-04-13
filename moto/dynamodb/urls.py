@@ -1,7 +1,7 @@
 from .responses import handler
 
 url_bases = [
-    "https?://dynamodb.us-east-1.amazonaws.com",
+    "https?://dynamodb.(.+).amazonaws.com",
     "https?://sts.amazonaws.com",
 ]
 

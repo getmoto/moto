@@ -43,3 +43,12 @@ def test_sts_handler():
     res = requests.post("https://sts.amazonaws.com/", data={"GetSessionToken": ""})
     res.ok.should.be.ok
     res.text.should.contain("SecretAccessKey")
+
+
+@mock_dynamodb
+def test_dynamodb_with_connect_to_region():
+    # this will work if connected with boto.connect_dynamodb()
+    dynamodb = boto.dynamodb.connect_to_region('us-west-2')
+
+    schema = dynamodb.create_schema('column1', str(), 'column2', int())
+    dynamodb.create_table('table1', schema, 200, 200)
