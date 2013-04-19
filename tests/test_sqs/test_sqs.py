@@ -19,6 +19,16 @@ def test_create_queue():
 
 
 @mock_sqs
+def test_get_queue():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    conn.create_queue("test-queue", visibility_timeout=60)
+
+    queue = conn.get_queue("test-queue")
+    queue.name.should.equal("test-queue")
+    queue.get_timeout().should.equal(60)
+
+
+@mock_sqs
 def test_delete_queue():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)

@@ -17,6 +17,12 @@ class QueuesResponse(BaseResponse):
         template = Template(CREATE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 
+    def get_queue_url(self):
+        queue_name = self.querystring.get("QueueName")[0]
+        queue = sqs_backend.get_queue(queue_name)
+        template = Template(GET_QUEUE_URL_RESPONSE)
+        return template.render(queue=queue)
+
     def list_queues(self):
         queues = sqs_backend.list_queues()
         template = Template(LIST_QUEUES_RESPONSE)
@@ -142,6 +148,15 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
         </RequestId>
     </ResponseMetadata>
 </CreateQueueResponse>"""
+
+GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
+    <GetQueueUrlResult>
+        <QueueUrl>http://sqs.us-east-1.amazonaws.com/123456789012/{{ queue.name }}</QueueUrl>
+    </GetQueueUrlResult>
+    <ResponseMetadata>
+        <RequestId>470a6f13-2ed9-4181-ad8a-2fdea142988e</RequestId>
+    </ResponseMetadata>
+</GetQueueUrlResponse>"""
 
 LIST_QUEUES_RESPONSE = """<ListQueuesResponse>
     <ListQueuesResult>
