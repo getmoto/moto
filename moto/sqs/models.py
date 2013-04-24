@@ -1,4 +1,5 @@
 import md5
+import time
 
 from moto.core import BaseBackend
 from moto.core.utils import camelcase_to_underscores, get_random_message_id
@@ -6,6 +7,7 @@ from .utils import generate_receipt_handle
 
 
 class Message(object):
+
     def __init__(self, message_id, body):
         self.id = message_id
         self.body = body
@@ -19,12 +21,34 @@ class Message(object):
 
 
 class Queue(object):
-    camelcase_attributes = ['VisibilityTimeout', 'ApproximateNumberOfMessages']
+    camelcase_attributes = ['ApproximateNumberOfMessages',
+                            'ApproximateNumberOfMessagesDelayed',
+                            'ApproximateNumberOfMessagesNotVisible',
+                            'CreatedTimestamp',
+                            'DelaySeconds',
+                            'LastModifiedTimestamp',
+                            'MaximumMessageSize',
+                            'MessageRetentionPeriod',
+                            'QueueArn',
+                            'ReceiveMessageWaitTimeSeconds',
+                            'VisibilityTimeout']
 
     def __init__(self, name, visibility_timeout):
         self.name = name
         self.visibility_timeout = visibility_timeout or 30
         self.messages = []
+
+        now = time.time()
+
+        self.approximate_number_of_messages_delayed = 0
+        self.approximate_number_of_messages_not_visible = 0
+        self.created_timestamp = now
+        self.delay_seconds = 0
+        self.last_modified_timestamp = now
+        self.maximum_message_size = 64 << 10
+        self.message_retention_period = 86400 * 4  # four days
+        self.queue_arn = 'arn:aws:sqs:sqs.us-east-1:123456789012:%s' % self.name
+        self.receive_message_wait_time_seconds = 0
 
     @property
     def attributes(self):
