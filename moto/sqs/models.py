@@ -53,7 +53,7 @@ class SQSBackend(BaseBackend):
         return self.queues.values()
 
     def get_queue(self, queue_name):
-        return self.queues[queue_name]
+        return self.queues.get(queue_name, None)
 
     def delete_queue(self, queue_name):
         if queue_name in self.queues:
