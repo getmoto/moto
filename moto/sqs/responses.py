@@ -20,8 +20,12 @@ class QueuesResponse(BaseResponse):
     def get_queue_url(self):
         queue_name = self.querystring.get("QueueName")[0]
         queue = sqs_backend.get_queue(queue_name)
-        template = Template(GET_QUEUE_URL_RESPONSE)
-        return template.render(queue=queue)
+        if queue:
+            template = Template(GET_QUEUE_URL_RESPONSE)
+            return template.render(queue=queue)
+        else:
+            return "", dict(status=404)
+
 
     def list_queues(self):
         queues = sqs_backend.list_queues()
