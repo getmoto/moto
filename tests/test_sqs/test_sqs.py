@@ -140,3 +140,33 @@ def test_delete_batch_operation():
 @mock_sqs
 def test_sqs_method_not_implemented():
     requests.post.when.called_with("https://sqs.amazonaws.com/?Action=[foobar]").should.throw(NotImplementedError)
+
+
+@mock_sqs
+def test_queue_attributes():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+
+    queue_name = 'test-queue'
+    visibility_timeout = 60
+
+    queue = conn.create_queue(queue_name, visibility_timeout=visibility_timeout)
+
+    attributes = queue.get_attributes()
+
+    attributes['QueueArn'].should.look_like(
+        'arn:aws:sqs:sqs.us-east-1:123456789012:%s' % queue_name)
+
+    attributes['VisibilityTimeout'].should.look_like(str(visibility_timeout))
+
+    attribute_names = queue.get_attributes().keys()
+    attribute_names.should.contain('ApproximateNumberOfMessagesNotVisible')
+    attribute_names.should.contain('MessageRetentionPeriod')
+    attribute_names.should.contain('ApproximateNumberOfMessagesDelayed')
+    attribute_names.should.contain('MaximumMessageSize')
+    attribute_names.should.contain('CreatedTimestamp')
+    attribute_names.should.contain('ApproximateNumberOfMessages')
+    attribute_names.should.contain('ReceiveMessageWaitTimeSeconds')
+    attribute_names.should.contain('DelaySeconds')
+    attribute_names.should.contain('VisibilityTimeout')
+    attribute_names.should.contain('LastModifiedTimestamp')
+    attribute_names.should.contain('QueueArn')
