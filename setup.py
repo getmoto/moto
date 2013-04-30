@@ -20,6 +20,5 @@ setup(
         "boto",
         "Jinja2",
         "flask",
-        "httpretty",
     ],
 )
