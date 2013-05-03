@@ -18,7 +18,11 @@ setup(
     packages=find_packages(),
     install_requires=[
         "boto",
-        "Jinja2",
         "flask",
+        "httpretty",
+        "Jinja2",
+    ],
+    dependency_links=[
+        "https://github.com/gabrielfalcao/HTTPretty/tarball/2347df40a3a3cd00e73f0353f5ea2670ad3405c1",
     ],
 )

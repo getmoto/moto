@@ -1,4 +1,3 @@
-from collections import namedtuple
 import inspect
 import random
 import re
@@ -91,23 +90,12 @@ class convert_flask_to_httpretty_response(object):
         return "{}.{}".format(outer, self.callback.__name__)
 
     def __call__(self, args=None, **kwargs):
-        hostname = request.host_url
-        method = request.method
-        path = request.path
-        query = request.query_string
-
-        # Mimic the HTTPretty URIInfo class
-        URI = namedtuple('URI', 'hostname method path query')
-        uri = URI(hostname, method, path, query)
-
-        body = request.data or query
         headers = dict(request.headers)
-        result = self.callback(uri, method, body, headers)
+        result = self.callback(request, request.url, headers)
         if isinstance(result, basestring):
             # result is just the response
             return result
         else:
-            # result is a responce, headers tuple
-            response, headers = result
-            status = headers.pop('status', None)
+            # result is a status, headers, response tuple
+            status, headers, response = result
             return response, status, headers

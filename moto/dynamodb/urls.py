@@ -1,4 +1,4 @@
-from .responses import handler
+from .responses import DynamoHandler
 
 url_bases = [
     "https?://dynamodb.(.+).amazonaws.com",
@@ -6,5 +6,5 @@ url_bases = [
 ]
 
 url_paths = {
-    "{0}/": handler,
+    "{0}/": DynamoHandler().dispatch,
 }
