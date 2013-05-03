@@ -19,10 +19,10 @@ setup(
     install_requires=[
         "boto",
         "flask",
-        "httpretty",
+        "httpretty==0.6.0a",
         "Jinja2",
     ],
     dependency_links=[
-        "https://github.com/gabrielfalcao/HTTPretty/tarball/2347df40a3a3cd00e73f0353f5ea2670ad3405c1",
+        "https://github.com/gabrielfalcao/HTTPretty/tarball/2347df40a3a3cd00e73f0353f5ea2670ad3405c1#egg=httpretty-0.6.0a",
     ],
 )
