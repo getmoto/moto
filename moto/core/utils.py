@@ -1,34 +1,8 @@
 import inspect
 import random
 import re
-from urlparse import parse_qs
 
 from flask import request
-
-
-def headers_to_dict(headers):
-    if isinstance(headers, dict):
-        # If already dict, return
-        return headers
-
-    result = {}
-    for index, header in enumerate(headers.split("\r\n")):
-        if not header:
-            continue
-        if index:
-            # Parsing headers
-            key, value = header.split(":", 1)
-            result[key.strip()] = value.strip()
-        else:
-            # Parsing method and path
-            path_and_querystring = header.split(" /")[1]
-            if '?' in path_and_querystring:
-                querystring = path_and_querystring.split("?")[1]
-            else:
-                querystring = path_and_querystring
-            queryset_dict = parse_qs(querystring)
-            result.update(queryset_dict)
-    return result
 
 
 def camelcase_to_underscores(argument):
@@ -92,10 +66,6 @@ class convert_flask_to_httpretty_response(object):
     def __call__(self, args=None, **kwargs):
         headers = dict(request.headers)
         result = self.callback(request, request.url, headers)
-        if isinstance(result, basestring):
-            # result is just the response
-            return result
-        else:
-            # result is a status, headers, response tuple
-            status, headers, response = result
-            return response, status, headers
+        # result is a status, headers, response tuple
+        status, headers, response = result
+        return response, status, headers

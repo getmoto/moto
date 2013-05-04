@@ -3,7 +3,7 @@ import json
 
 from urlparse import parse_qs, urlparse
 
-from moto.core.utils import headers_to_dict, camelcase_to_underscores, method_names_from_class
+from moto.core.utils import camelcase_to_underscores, method_names_from_class
 
 
 class BaseResponse(object):
@@ -20,7 +20,7 @@ class BaseResponse(object):
         if not querystring:
             querystring = parse_qs(self.body)
         if not querystring:
-            querystring = headers_to_dict(headers)
+            querystring = headers
 
         self.uri = full_url
         self.path = urlparse(full_url).path
@@ -59,11 +59,7 @@ def metadata_response(request, full_url, headers):
     parsed_url = urlparse(full_url)
     tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
     path = parsed_url.path.lstrip("/latest/meta-data/")
-    if path == '':
-        result = "iam/"
-    elif path == 'iam/':
-        result = 'security-credentials/'
-    elif path == 'iam/security-credentials/':
+    if path == 'iam/security-credentials/':
         result = 'default-role'
     elif path == 'iam/security-credentials/default-role':
         result = json.dumps(dict(

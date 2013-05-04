@@ -3,7 +3,6 @@ from urlparse import parse_qs, urlparse
 from jinja2 import Template
 
 from .models import s3_backend
-from moto.core.utils import headers_to_dict
 from .utils import bucket_name_from_url
 
 
@@ -15,7 +14,6 @@ def all_buckets():
 
 
 def bucket_response(request, full_url, headers):
-    headers = headers_to_dict(headers)
     response = _bucket_response(request, full_url, headers)
     if isinstance(response, basestring):
         return 200, headers, response
@@ -74,8 +72,6 @@ def _bucket_response(request, full_url, headers):
 
 
 def key_response(request, full_url, headers):
-    headers = headers_to_dict(headers)
-
     response = _key_response(request, full_url, headers)
     if isinstance(response, basestring):
         return 200, headers, response
@@ -110,22 +106,10 @@ def _key_response(request, full_url, headers):
             s3_backend.copy_key(src_bucket, src_key, bucket_name, key_name)
             template = Template(S3_OBJECT_COPY_RESPONSE)
             return template.render(key=src_key)
-        content_length = int(headers.get('Content-Length', 0))
-        if body or (body == '' and content_length == 0):
-            # We want to write the key in once of two circumstances.
-            # - Anytime we are given a truthy body value
-            # - We are given an empty body value and the content length is zero.
-            # The reason we do not set the key to an empty string if the
-            # content length is not zero is because we are sometimes sent an
-            # empty string as part of closing the connection.
-            new_key = s3_backend.set_key(bucket_name, key_name, body)
-            template = Template(S3_OBJECT_RESPONSE)
-            headers.update(new_key.response_dict)
-            return 200, headers, template.render(key=new_key)
-        key = s3_backend.get_key(bucket_name, key_name)
-        if key:
-            headers.update(key.response_dict)
-            return 200, headers, ""
+        new_key = s3_backend.set_key(bucket_name, key_name, body)
+        template = Template(S3_OBJECT_RESPONSE)
+        headers.update(new_key.response_dict)
+        return 200, headers, template.render(key=new_key)
     elif method == 'HEAD':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
