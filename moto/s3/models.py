@@ -11,6 +11,10 @@ class FakeKey(object):
         self.value = value
         self.last_modified = datetime.datetime.now()
 
+    def append_to_value(self, value):
+        self.value += value
+        self.last_modified = datetime.datetime.now()
+
     @property
     def etag(self):
         value_md5 = md5.new()
@@ -80,6 +84,13 @@ class S3Backend(BaseBackend):
         bucket.keys[key_name] = new_key
 
         return new_key
+
+    def append_to_key(self, bucket_name, key_name, value):
+        key_name = clean_key_name(key_name)
+
+        key = self.get_key(bucket_name, key_name)
+        key.append_to_value(value)
+        return key
 
     def get_key(self, bucket_name, key_name):
         key_name = clean_key_name(key_name)

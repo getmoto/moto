@@ -106,7 +106,18 @@ def _key_response(request, full_url, headers):
             s3_backend.copy_key(src_bucket, src_key, bucket_name, key_name)
             template = Template(S3_OBJECT_COPY_RESPONSE)
             return template.render(key=src_key)
-        new_key = s3_backend.set_key(bucket_name, key_name, body)
+        streaming_request = hasattr(request, 'streaming') and request.streaming
+        closing_connection = headers.get('connection') == 'close'
+        if closing_connection and streaming_request:
+            # Closing the connection of a streaming request. No more data
+            new_key = s3_backend.get_key(bucket_name, key_name)
+        elif streaming_request:
+            # Streaming request, more data
+            new_key = s3_backend.append_to_key(bucket_name, key_name, body)
+        else:
+            # Initial data
+            new_key = s3_backend.set_key(bucket_name, key_name, body)
+            request.streaming = True
         template = Template(S3_OBJECT_RESPONSE)
         headers.update(new_key.response_dict)
         return 200, headers, template.render(key=new_key)
