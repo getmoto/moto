@@ -37,7 +37,7 @@ def _bucket_response(request, full_url, headers):
         bucket = s3_backend.get_bucket(bucket_name)
         if bucket:
             prefix = querystring.get('prefix', [None])[0]
-            delimiter = querystring.get('delimiter')
+            delimiter = querystring.get('delimiter', [None])[0]
             result_keys, result_folders = s3_backend.prefix_query(bucket, prefix, delimiter)
             template = Template(S3_BUCKET_GET_RESPONSE)
             return template.render(

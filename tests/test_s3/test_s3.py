@@ -227,3 +227,11 @@ def test_bucket_key_listing_order():
     delimiter = '/'
     keys = [x.name for x in bucket.list(prefix=None, delimiter=delimiter)]
     keys.should.equal(['toplevel'])
+
+    delimiter = None
+    keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
+    keys.should.equal([u'toplevel/x/key', u'toplevel/x/y/key', u'toplevel/x/y/z/key'])
+
+    delimiter = '/'
+    keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
+    keys.should.equal([u'toplevel/x/'])
