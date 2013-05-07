@@ -5,17 +5,16 @@ from moto.ec2.utils import resource_ids_from_querystring
 
 
 class TagResponse(object):
-    def __init__(self, querystring):
-        self.querystring = querystring
-        self.resource_ids = resource_ids_from_querystring(querystring)
 
     def create_tags(self):
-        for resource_id, tag in self.resource_ids.iteritems():
+        resource_ids = resource_ids_from_querystring(self.querystring)
+        for resource_id, tag in resource_ids.iteritems():
             ec2_backend.create_tag(resource_id, tag[0], tag[1])
         return CREATE_RESPONSE
 
     def delete_tags(self):
-        for resource_id, tag in self.resource_ids.iteritems():
+        resource_ids = resource_ids_from_querystring(self.querystring)
+        for resource_id, tag in resource_ids.iteritems():
             ec2_backend.delete_tag(resource_id, tag[0])
         template = Template(DELETE_RESPONSE)
         return template.render(reservations=ec2_backend.all_reservations())
