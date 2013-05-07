@@ -6,6 +6,7 @@ from moto import mock_dynamodb
 from moto.dynamodb import dynamodb_backend
 
 from boto.dynamodb import condition
+from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
 from boto.exception import DynamoDBResponseError
 
 
@@ -101,6 +102,8 @@ def test_item_add_and_describe_and_update():
     )
     item.put()
 
+    table.has_item("LOLCat Forum", "Check this out!").should.equal(True)
+
     returned_item = table.get_item(
         hash_key='LOLCat Forum',
         range_key='Check this out!',
@@ -150,7 +153,8 @@ def test_get_missing_item():
     table.get_item.when.called_with(
         hash_key='tester',
         range_key='other',
-    ).should.throw(DynamoDBResponseError)
+    ).should.throw(DynamoDBKeyNotFoundError)
+    table.has_item("foobar").should.equal(False)
 
 
 @mock_dynamodb
@@ -163,7 +167,7 @@ def test_get_item_with_undeclared_table():
             'HashKeyElement': {'S': 'tester'},
             'RangeKeyElement': {'S': 'test-range'},
         },
-    ).should.throw(DynamoDBResponseError)
+    ).should.throw(DynamoDBKeyNotFoundError)
 
 
 @mock_dynamodb
