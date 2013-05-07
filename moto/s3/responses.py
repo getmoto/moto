@@ -1,10 +1,9 @@
-from urlparse import parse_qs
+from urlparse import parse_qs, urlparse
 
 from jinja2 import Template
 
 from .models import s3_backend
-from moto.core.utils import headers_to_dict
-from .utils import bucket_name_from_hostname
+from .utils import bucket_name_from_url
 
 
 def all_buckets():
@@ -14,11 +13,22 @@ def all_buckets():
     return template.render(buckets=all_buckets)
 
 
-def bucket_response(uri, method, body, headers):
-    hostname = uri.hostname
-    querystring = parse_qs(uri.query)
+def bucket_response(request, full_url, headers):
+    response = _bucket_response(request, full_url, headers)
+    if isinstance(response, basestring):
+        return 200, headers, response
 
-    bucket_name = bucket_name_from_hostname(hostname)
+    else:
+        status_code, headers, response_content = response
+        return status_code, headers, response_content
+
+
+def _bucket_response(request, full_url, headers):
+    parsed_url = urlparse(full_url)
+    querystring = parse_qs(parsed_url.query)
+    method = request.method
+
+    bucket_name = bucket_name_from_url(full_url)
     if not bucket_name:
         # If no bucket specified, list all buckets
         return all_buckets()
@@ -38,7 +48,7 @@ def bucket_response(uri, method, body, headers):
                 result_folders=result_folders
             )
         else:
-            return "", dict(status=404)
+            return 404, headers, ""
     elif method == 'PUT':
         new_bucket = s3_backend.create_bucket(bucket_name)
         template = Template(S3_BUCKET_CREATE_RESPONSE)
@@ -48,64 +58,69 @@ def bucket_response(uri, method, body, headers):
         if removed_bucket is None:
             # Non-existant bucket
             template = Template(S3_DELETE_NON_EXISTING_BUCKET)
-            return template.render(bucket_name=bucket_name), dict(status=404)
+            return 404, headers, template.render(bucket_name=bucket_name)
         elif removed_bucket:
             # Bucket exists
             template = Template(S3_DELETE_BUCKET_SUCCESS)
-            return template.render(bucket=removed_bucket), dict(status=204)
+            return 204, headers, template.render(bucket=removed_bucket)
         else:
             # Tried to delete a bucket that still has keys
             template = Template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
-            return template.render(bucket=removed_bucket), dict(status=409)
+            return 409, headers, template.render(bucket=removed_bucket)
     else:
         raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
 
 
-def key_response(uri_info, method, body, headers):
+def key_response(request, full_url, headers):
+    response = _key_response(request, full_url, headers)
+    if isinstance(response, basestring):
+        return 200, headers, response
+    else:
+        status_code, headers, response_content = response
+        return status_code, headers, response_content
 
-    key_name = uri_info.path.lstrip('/')
-    hostname = uri_info.hostname
-    headers = headers_to_dict(headers)
 
-    bucket_name = bucket_name_from_hostname(hostname)
+def _key_response(request, full_url, headers):
+    parsed_url = urlparse(full_url)
+    method = request.method
+
+    key_name = parsed_url.path.lstrip('/')
+    bucket_name = bucket_name_from_url(full_url)
+    if hasattr(request, 'body'):
+        # Boto
+        body = request.body
+    else:
+        # Flask server
+        body = request.data
 
     if method == 'GET':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
             return key.value
         else:
-            return "", dict(status=404)
+            return 404, headers, ""
     if method == 'PUT':
-        if 'x-amz-copy-source' in headers:
+        if 'x-amz-copy-source' in request.headers:
             # Copy key
-            src_bucket, src_key = headers.get("x-amz-copy-source").split("/")
+            src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/")
             s3_backend.copy_key(src_bucket, src_key, bucket_name, key_name)
             template = Template(S3_OBJECT_COPY_RESPONSE)
             return template.render(key=src_key)
-        content_length = int(headers.get('Content-Length', 0))
-        if body or (body == '' and content_length == 0):
-            # We want to write the key in once of two circumstances.
-            # - Anytime we are given a truthy body value
-            # - We are given an empty body value and the content length is zero.
-            # The reason we do not set the key to an empty string if the
-            # content length is not zero is because we are sometimes sent an
-            # empty string as part of closing the connection.
-            new_key = s3_backend.set_key(bucket_name, key_name, body)
-            template = Template(S3_OBJECT_RESPONSE)
-            return template.render(key=new_key), new_key.response_dict
-        key = s3_backend.get_key(bucket_name, key_name)
-        if key:
-            return "", key.response_dict
+        new_key = s3_backend.set_key(bucket_name, key_name, body)
+        template = Template(S3_OBJECT_RESPONSE)
+        headers.update(new_key.response_dict)
+        return 200, headers, template.render(key=new_key)
     elif method == 'HEAD':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
-            return S3_OBJECT_RESPONSE, key.response_dict
+            headers.update(key.response_dict)
+            return 200, headers, S3_OBJECT_RESPONSE
         else:
-            return "", dict(status=404)
+            return 404, headers, ""
     elif method == 'DELETE':
         removed_key = s3_backend.delete_key(bucket_name, key_name)
         template = Template(S3_DELETE_OBJECT_SUCCESS)
-        return template.render(bucket=removed_key), dict(status=204)
+        return 204, headers, template.render(bucket=removed_key)
     else:
         raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
 

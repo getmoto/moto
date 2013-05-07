@@ -6,10 +6,6 @@ from moto.ec2.utils import instance_ids_from_querystring
 
 
 class InstanceResponse(object):
-    def __init__(self, querystring):
-        self.querystring = querystring
-        self.instance_ids = instance_ids_from_querystring(querystring)
-
     def describe_instances(self):
         template = Template(EC2_DESCRIBE_INSTANCES)
         return template.render(reservations=ec2_backend.all_reservations())
@@ -22,22 +18,26 @@ class InstanceResponse(object):
         return template.render(reservation=new_reservation)
 
     def terminate_instances(self):
-        instances = ec2_backend.terminate_instances(self.instance_ids)
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instances = ec2_backend.terminate_instances(instance_ids)
         template = Template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
 
     def reboot_instances(self):
-        instances = ec2_backend.reboot_instances(self.instance_ids)
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instances = ec2_backend.reboot_instances(instance_ids)
         template = Template(EC2_REBOOT_INSTANCES)
         return template.render(instances=instances)
 
     def stop_instances(self):
-        instances = ec2_backend.stop_instances(self.instance_ids)
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instances = ec2_backend.stop_instances(instance_ids)
         template = Template(EC2_STOP_INSTANCES)
         return template.render(instances=instances)
 
     def start_instances(self):
-        instances = ec2_backend.start_instances(self.instance_ids)
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instances = ec2_backend.start_instances(instance_ids)
         template = Template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
@@ -45,7 +45,8 @@ class InstanceResponse(object):
         # TODO this and modify below should raise IncorrectInstanceState if instance not in stopped state
         attribute = self.querystring.get("Attribute")[0]
         key = camelcase_to_underscores(attribute)
-        instance_id = self.instance_ids[0]
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_id = instance_ids[0]
         instance, value = ec2_backend.describe_instance_attribute(instance_id, key)
         template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
         return template.render(instance=instance, attribute=attribute, value=value)
@@ -57,7 +58,8 @@ class InstanceResponse(object):
 
         value = self.querystring.get(key)[0]
         normalized_attribute = camelcase_to_underscores(key.split(".")[0])
-        instance_id = self.instance_ids[0]
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_id = instance_ids[0]
         ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 

@@ -4,9 +4,6 @@ from moto.ec2.models import ec2_backend
 
 
 class VPCs(object):
-    def __init__(self, querystring):
-        self.querystring = querystring
-
     def create_vpc(self):
         cidr_block = self.querystring.get('CidrBlock')[0]
         vpc = ec2_backend.create_vpc(cidr_block)

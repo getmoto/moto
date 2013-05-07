@@ -4,9 +4,6 @@ from moto.ec2.models import ec2_backend
 
 
 class ElasticBlockStore(object):
-    def __init__(self, querystring):
-        self.querystring = querystring
-
     def attach_volume(self):
         volume_id = self.querystring.get('VolumeId')[0]
         instance_id = self.querystring.get('InstanceId')[0]
