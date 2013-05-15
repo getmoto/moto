@@ -151,6 +151,7 @@ def _key_response(request, full_url, headers):
     elif method == 'HEAD':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
+            headers.update(key.metadata)
             headers.update(key.response_dict)
             return 200, headers, ""
         else:
