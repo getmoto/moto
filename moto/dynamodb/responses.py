@@ -188,12 +188,17 @@ class DynamoHandler(BaseResponse):
         hash_key = key['HashKeyElement']
         range_key = key.get('RangeKeyElement')
         attrs_to_get = self.body.get('AttributesToGet')
-        item = dynamodb_backend.get_item(name, hash_key, range_key)
+        try:
+            item = dynamodb_backend.get_item(name, hash_key, range_key)
+        except ValueError:
+            er = 'com.amazon.coral.validate#ValidationException'
+            return self.error(er, status=400)
         if item:
             item_dict = item.describe_attrs(attrs_to_get)
             item_dict['ConsumedCapacityUnits'] = 0.5
             return dynamo_json_dump(item_dict)
         else:
+            # Item not found
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er, status=404)
 

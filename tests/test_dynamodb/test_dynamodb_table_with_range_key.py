@@ -6,7 +6,7 @@ from moto import mock_dynamodb
 from moto.dynamodb import dynamodb_backend
 
 from boto.dynamodb import condition
-from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
+from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError, DynamoDBValidationError
 from boto.exception import DynamoDBResponseError
 
 
@@ -154,7 +154,7 @@ def test_get_missing_item():
         hash_key='tester',
         range_key='other',
     ).should.throw(DynamoDBKeyNotFoundError)
-    table.has_item("foobar").should.equal(False)
+    table.has_item("foobar", "more").should.equal(False)
 
 
 @mock_dynamodb
@@ -168,6 +168,30 @@ def test_get_item_with_undeclared_table():
             'RangeKeyElement': {'S': 'test-range'},
         },
     ).should.throw(DynamoDBKeyNotFoundError)
+
+
+@mock_dynamodb
+def test_get_item_without_range_key():
+    conn = boto.connect_dynamodb()
+    message_table_schema = conn.create_schema(
+        hash_key_name="test_hash",
+        hash_key_proto_value=int,
+        range_key_name="test_range",
+        range_key_proto_value=int,
+    )
+    table = conn.create_table(
+        name='messages',
+        schema=message_table_schema,
+        read_units=10,
+        write_units=10
+    )
+
+    hash_key = 3241526475
+    range_key = 1234567890987
+    new_item = table.new_item(hash_key=hash_key, range_key=range_key)
+    new_item.put()
+
+    table.get_item.when.called_with(hash_key=hash_key).should.throw(DynamoDBValidationError)
 
 
 @mock_dynamodb
