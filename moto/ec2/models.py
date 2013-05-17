@@ -16,10 +16,29 @@ from .utils import (
 
 
 class Instance(BotoInstance):
-    def __init__(self):
-        self._state_name = None
-        self._state_code = None
+    def __init__(self, image_id, user_data):
         super(Instance, self).__init__()
+        self.id = random_instance_id()
+        self.image_id = image_id
+        self._state_name = "pending"
+        self._state_code = 0
+        self.user_data = user_data
+
+    def start(self):
+        self._state_name = "pending"
+        self._state_code = 0
+
+    def stop(self):
+        self._state_name = "stopping"
+        self._state_code = 64
+
+    def terminate(self):
+        self._state_name = "shutting-down"
+        self._state_code = 32
+
+    def reboot(self):
+        self._state_name = "pending"
+        self._state_code = 0
 
 
 class InstanceBackend(object):
@@ -33,15 +52,14 @@ class InstanceBackend(object):
             if instance.id == instance_id:
                 return instance
 
-    def add_instances(self, image_id, count):
+    def add_instances(self, image_id, count, user_data):
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
         for index in range(count):
-            new_instance = Instance()
-            new_instance.id = random_instance_id()
-            new_instance.image_id = image_id
-            new_instance._state_name = "pending"
-            new_instance._state_code = 0
+            new_instance = Instance(
+                image_id,
+                user_data,
+            )
             new_reservation.instances.append(new_instance)
         self.reservations[new_reservation.id] = new_reservation
         return new_reservation
@@ -50,8 +68,7 @@ class InstanceBackend(object):
         started_instances = []
         for instance in self.all_instances():
             if instance.id in instance_ids:
-                instance._state_name = "pending"
-                instance._state_code = 0
+                instance.start()
                 started_instances.append(instance)
 
         return started_instances
@@ -60,8 +77,7 @@ class InstanceBackend(object):
         stopped_instances = []
         for instance in self.all_instances():
             if instance.id in instance_ids:
-                instance._state_name = "stopping"
-                instance._state_code = 64
+                instance.stop()
                 stopped_instances.append(instance)
 
         return stopped_instances
@@ -70,8 +86,7 @@ class InstanceBackend(object):
         terminated_instances = []
         for instance in self.all_instances():
             if instance.id in instance_ids:
-                instance._state_name = "shutting-down"
-                instance._state_code = 32
+                instance.terminate()
                 terminated_instances.append(instance)
 
         return terminated_instances
@@ -80,9 +95,7 @@ class InstanceBackend(object):
         rebooted_instances = []
         for instance in self.all_instances():
             if instance.id in instance_ids:
-                # TODO double check instances go to pending when reboot
-                instance._state_name = "pending"
-                instance._state_code = 0
+                instance.reboot()
                 rebooted_instances.append(instance)
 
         return rebooted_instances

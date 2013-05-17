@@ -1,3 +1,5 @@
+import base64
+
 import boto
 from boto.ec2.instance import Reservation, InstanceAttribute
 import sure  # flake8: noqa
@@ -98,3 +100,16 @@ def test_instance_attribute_user_data():
     instance_attribute = instance.get_attribute("userData")
     instance_attribute.should.be.a(InstanceAttribute)
     instance_attribute.get("userData").should.equal("this is my user data")
+
+
+@mock_ec2
+def test_user_data_with_run_instance():
+    user_data = "some user data"
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd', user_data=user_data)
+    instance = reservation.instances[0]
+
+    instance_attribute = instance.get_attribute("userData")
+    instance_attribute.should.be.a(InstanceAttribute)
+    decoded_user_data = base64.decodestring(instance_attribute.get("userData"))
+    decoded_user_data.should.equal("some user data")

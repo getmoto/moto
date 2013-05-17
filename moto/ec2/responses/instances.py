@@ -13,7 +13,8 @@ class InstanceResponse(object):
     def run_instances(self):
         min_count = int(self.querystring.get('MinCount', ['1'])[0])
         image_id = self.querystring.get('ImageId')[0]
-        new_reservation = ec2_backend.add_instances(image_id, min_count)
+        user_data = self.querystring.get('UserData')
+        new_reservation = ec2_backend.add_instances(image_id, min_count, user_data)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
