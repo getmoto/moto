@@ -70,18 +70,28 @@ def _bucket_response(request, full_url, headers):
             return 409, headers, template.render(bucket=removed_bucket)
     elif method == 'POST':
         #POST to bucket-url should create file from form
-        key = request.form['key']
-        f = request.form['file']
-        new_key = s3_backend.set_key(bucket_name, key, "")
-        #TODO Set actual file
+        if hasattr(request, 'form'):
+            #Not HTTPretty
+            form = request.form
+        else:
+            #HTTPretty, build new form object
+            form = {}
+            for kv in request.body.split('&'):
+                k, v = kv.split('=')
+                form[k] = v
+                
+        key = form['key']
+        f = form['file']
+            
+        new_key = s3_backend.set_key(bucket_name, key, f)
         
         #Metadata
         meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
-        for form_id in request.form:
+        for form_id in form:
             result = meta_regex.match(form_id)
             if result:
                 meta_key = result.group(0).lower()
-                metadata = request.form[form_id]
+                metadata = form[form_id]
                 new_key.set_metadata(meta_key, metadata)
         return 200, headers, ""
     else:
@@ -101,8 +111,8 @@ def _key_response(request, full_url, headers):
     parsed_url = urlparse(full_url)
     method = request.method
 
+    key_name = parsed_url.path.lstrip('/')
     bucket_name = bucket_name_from_url(full_url)
-    key_name = parsed_url.path.split(bucket_name + '/')[-1]
     if hasattr(request, 'body'):
         # Boto
         body = request.body
@@ -140,11 +150,12 @@ def _key_response(request, full_url, headers):
             #Metadata
             meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
             for header in request.headers:
-                result = meta_regex.match(header[0])
-                if result:
-                    meta_key = result.group(0).lower()
-                    metadata = header[1]
-                    new_key.set_metadata(meta_key, metadata)
+                if isinstance(header, basestring):
+                    result = meta_regex.match(header)
+                    if result:
+                        meta_key = result.group(0).lower()
+                        metadata = request.headers[header]
+                        new_key.set_metadata(meta_key, metadata)
         template = Template(S3_OBJECT_RESPONSE)
         headers.update(new_key.response_dict)
         return 200, headers, template.render(key=new_key)
