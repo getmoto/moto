@@ -1,4 +1,5 @@
 from urlparse import parse_qs, urlparse
+import re
 
 from jinja2 import Template
 
@@ -67,6 +68,32 @@ def _bucket_response(request, full_url, headers):
             # Tried to delete a bucket that still has keys
             template = Template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
             return 409, headers, template.render(bucket=removed_bucket)
+    elif method == 'POST':
+        #POST to bucket-url should create file from form
+        if hasattr(request, 'form'):
+            #Not HTTPretty
+            form = request.form
+        else:
+            #HTTPretty, build new form object
+            form = {}
+            for kv in request.body.split('&'):
+                k, v = kv.split('=')
+                form[k] = v
+                
+        key = form['key']
+        f = form['file']
+            
+        new_key = s3_backend.set_key(bucket_name, key, f)
+        
+        #Metadata
+        meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+        for form_id in form:
+            result = meta_regex.match(form_id)
+            if result:
+                meta_key = result.group(0).lower()
+                metadata = form[form_id]
+                new_key.set_metadata(meta_key, metadata)
+        return 200, headers, ""
     else:
         raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
 
@@ -96,7 +123,8 @@ def _key_response(request, full_url, headers):
     if method == 'GET':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
-            return key.value
+            headers.update(key.metadata)
+            return 200, headers, key.value
         else:
             return 404, headers, ""
     if method == 'PUT':
@@ -118,14 +146,25 @@ def _key_response(request, full_url, headers):
             # Initial data
             new_key = s3_backend.set_key(bucket_name, key_name, body)
             request.streaming = True
+            
+            #Metadata
+            meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+            for header in request.headers:
+                if isinstance(header, basestring):
+                    result = meta_regex.match(header)
+                    if result:
+                        meta_key = result.group(0).lower()
+                        metadata = request.headers[header]
+                        new_key.set_metadata(meta_key, metadata)
         template = Template(S3_OBJECT_RESPONSE)
         headers.update(new_key.response_dict)
         return 200, headers, template.render(key=new_key)
     elif method == 'HEAD':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
+            headers.update(key.metadata)
             headers.update(key.response_dict)
-            return 200, headers, S3_OBJECT_RESPONSE
+            return 200, headers, ""
         else:
             return 404, headers, ""
     elif method == 'DELETE':
