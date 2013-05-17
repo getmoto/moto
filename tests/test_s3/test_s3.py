@@ -101,7 +101,8 @@ def test_copy_key():
 
     bucket.get_key("the-key").get_contents_as_string().should.equal("some value")
     bucket.get_key("new-key").get_contents_as_string().should.equal("some value")
-    
+
+
 @mock_s3
 def test_set_metadata():
     conn = boto.connect_s3('the_key', 'the_secret')
@@ -112,6 +113,7 @@ def test_set_metadata():
     key.set_contents_from_string("Testval")
 
     bucket.get_key('the-key').get_metadata('md').should.equal('Metadatastring')
+
 
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3
@@ -177,19 +179,20 @@ def test_get_all_buckets():
 def test_post_to_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
-    
+
     requests.post("https://foobar.s3.amazonaws.com/", {
         'key': 'the-key',
         'file': 'nothing'
     })
 
     bucket.get_key('the-key').get_contents_as_string().should.equal('nothing')
-    
+
+
 @mock_s3
 def test_post_with_metadata_to_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
-    
+
     requests.post("https://foobar.s3.amazonaws.com/", {
         'key': 'the-key',
         'file': 'nothing',
@@ -197,6 +200,7 @@ def test_post_with_metadata_to_bucket():
     })
 
     bucket.get_key('the-key').get_metadata('test').should.equal('metadata')
+
 
 @mock_s3
 def test_bucket_method_not_implemented():

@@ -11,12 +11,9 @@ class FakeKey(object):
         self.value = value
         self.last_modified = datetime.datetime.now()
         self._metadata = {}
-        
+
     def set_metadata(self, key, metadata):
         self._metadata[key] = metadata
-        
-    def get_metadata(self, key):
-        return self._metadata[key]
 
     def append_to_value(self, value):
         self.value += value
@@ -38,7 +35,7 @@ class FakeKey(object):
         # https://github.com/boto/boto/issues/466
         RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
         return self.last_modified.strftime(RFC1123)
-    
+
     @property
     def metadata(self):
         return self._metadata
