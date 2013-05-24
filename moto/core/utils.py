@@ -69,3 +69,12 @@ class convert_flask_to_httpretty_response(object):
         # result is a status, headers, response tuple
         status, headers, response = result
         return response, status, headers
+
+
+def iso_8601_datetime(datetime):
+    return datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def rfc_1123_datetime(datetime):
+    RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
+    return datetime.strftime(RFC1123)

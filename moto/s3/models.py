@@ -2,6 +2,7 @@ import datetime
 import md5
 
 from moto.core import BaseBackend
+from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
 from .utils import clean_key_name
 
 
@@ -27,14 +28,13 @@ class FakeKey(object):
 
     @property
     def last_modified_ISO8601(self):
-        return self.last_modified.strftime("%Y-%m-%dT%H:%M:%SZ")
+        return iso_8601_datetime(self.last_modified)
 
     @property
     def last_modified_RFC1123(self):
         # Different datetime formats depending on how the key is obtained
         # https://github.com/boto/boto/issues/466
-        RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
-        return self.last_modified.strftime(RFC1123)
+        return rfc_1123_datetime(self.last_modified)
 
     @property
     def metadata(self):

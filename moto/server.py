@@ -8,6 +8,7 @@ from moto.ec2 import ec2_backend  # flake8: noqa
 from moto.s3 import s3_backend  # flake8: noqa
 from moto.ses import ses_backend  # flake8: noqa
 from moto.sqs import sqs_backend  # flake8: noqa
+from moto.sts import sts_backend  # flake8: noqa
 
 from moto.core.utils import convert_flask_to_httpretty_response
 
