@@ -26,6 +26,8 @@ class RegexConverter(BaseConverter):
 def configure_urls(service):
     backend = globals()["{}_backend".format(service)]
     from werkzeug.routing import Map
+    # Reset view functions to reset the app
+    app.view_functions = {}
     app.url_map = Map()
     app.url_map.converters['regex'] = RegexConverter
     for url_path, handler in backend.flask_paths.iteritems():
