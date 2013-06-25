@@ -24,7 +24,8 @@ class RegexConverter(BaseConverter):
 
 
 def configure_urls(service):
-    backend = globals()["{}_backend".format(service)]
+    module = sys.modules[__name__]
+    backend = getattr(module, "{}_backend".format(service))
     from werkzeug.routing import Map
     # Reset view functions to reset the app
     app.view_functions = {}
