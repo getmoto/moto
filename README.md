@@ -156,6 +156,14 @@ $ moto_server ec2
  * Running on http://127.0.0.1:5000/
 ```
 
+You can also pass the port as the second argument:
+
+```console
+$ moto_server ec2 3000
+ * Running on http://127.0.0.1:3000/
+```
+
+
 Then go to [localhost](http://localhost:5000/?Action=DescribeInstances) to see a list of running instances (it will be empty since you haven't added any yet).
 
 ## Install

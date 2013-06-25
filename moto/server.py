@@ -35,14 +35,18 @@ def configure_urls(service):
 
 
 def main(args=sys.argv):
-    if len(args) != 2:
-        print("Usage: moto_server <service>")
+    if len(args) not in range(2, 4):
+        print("Usage: moto_server <service> [port]")
         sys.exit(1)
     service_name = args[1]
     configure_urls(service_name)
+    try:
+        port = int(args[2])
+    except IndexError:
+        port = None
 
     app.testing = True
-    app.run()
+    app.run(port=port)
 
 if __name__ == '__main__':
     main()
