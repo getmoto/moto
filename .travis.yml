@@ -4,7 +4,9 @@ python:
 matrix:
   - BOTO_VERSION=2.9
   - BOTO_VERSION=2.8
+  - BOTO_VERSION=2.7
 install:
+  - pip install boto==$BOTO_VERSION
   - pip install .
   - pip install -r requirements.txt
 script:
