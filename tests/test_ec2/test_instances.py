@@ -9,7 +9,7 @@ from moto import mock_ec2
 
 ################ Test Readme ###############
 def add_servers(ami_id, count):
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.connect_ec2()
     for index in range(count):
         conn.run_instances(ami_id)
 
@@ -18,7 +18,7 @@ def add_servers(ami_id, count):
 def test_add_servers():
     add_servers('ami-1234abcd', 2)
 
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.connect_ec2()
     reservations = conn.get_all_instances()
     assert len(reservations) == 2
     instance1 = reservations[0].instances[0]

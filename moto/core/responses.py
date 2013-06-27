@@ -55,17 +55,26 @@ def metadata_response(request, full_url, headers):
 
     http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AESDG-chapter-instancedata.html
     """
-
     parsed_url = urlparse(full_url)
     tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
+    credentials = dict(
+        AccessKeyId="test-key",
+        SecretAccessKey="test-secret-key",
+        Token="test-session-token",
+        Expiration=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ")
+    )
+
     path = parsed_url.path.lstrip("/latest/meta-data/")
-    if path == 'iam/security-credentials/':
+    if path == '':
+        result = 'iam'
+    elif path == 'iam':
+        result = json.dumps({
+            'security-credentials': {
+                'default-role': credentials
+            }
+        })
+    elif path == 'iam/security-credentials/':
         result = 'default-role'
     elif path == 'iam/security-credentials/default-role':
-        result = json.dumps(dict(
-            AccessKeyId="test-key",
-            SecretAccessKey="test-secret-key",
-            Token="test-session-token",
-            Expiration=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ")
-        ))
+        result = json.dumps(credentials)
     return 200, headers, result
