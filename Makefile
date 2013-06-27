@@ -7,3 +7,4 @@ init:
 test:
 	rm -f .coverage
 	@nosetests --with-coverage ./tests/
+
