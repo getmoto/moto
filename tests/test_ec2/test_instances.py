@@ -51,6 +51,26 @@ def test_instance_launch_and_terminate():
 
 
 @mock_ec2
+def test_get_instances_by_id():
+    conn = boto.connect_ec2()
+    reservation = conn.run_instances('ami-1234abcd', min_count=2)
+    instance1, instance2 = reservation.instances
+
+    reservations = conn.get_all_instances(instance_ids=[instance1.id])
+    reservations.should.have.length_of(1)
+    reservation = reservations[0]
+    reservation.instances.should.have.length_of(1)
+    reservation.instances[0].id.should.equal(instance1.id)
+
+    reservations = conn.get_all_instances(instance_ids=[instance1.id, instance2.id])
+    reservations.should.have.length_of(1)
+    reservation = reservations[0]
+    reservation.instances.should.have.length_of(2)
+    instance_ids = [instance.id for instance in reservation.instances]
+    instance_ids.should.equal([instance1.id, instance2.id])
+
+
+@mock_ec2
 def test_instance_start_and_stop():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd', min_count=2)

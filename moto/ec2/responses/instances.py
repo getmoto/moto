@@ -7,8 +7,13 @@ from moto.ec2.utils import instance_ids_from_querystring
 
 class InstanceResponse(object):
     def describe_instances(self):
+        instance_ids = instance_ids_from_querystring(self.querystring)
         template = Template(EC2_DESCRIBE_INSTANCES)
-        return template.render(reservations=ec2_backend.all_reservations())
+        if instance_ids:
+            reservations = ec2_backend.get_reservations_by_instance_ids(instance_ids)
+        else:
+            reservations = ec2_backend.all_reservations()
+        return template.render(reservations=reservations)
 
     def run_instances(self):
         min_count = int(self.querystring.get('MinCount', ['1'])[0])

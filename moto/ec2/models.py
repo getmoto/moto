@@ -1,3 +1,4 @@
+import copy
 from collections import defaultdict
 
 from boto.ec2.instance import Instance as BotoInstance, Reservation
@@ -116,6 +117,22 @@ class InstanceBackend(object):
             for instance in reservation.instances:
                 instances.append(instance)
         return instances
+
+    def get_reservations_by_instance_ids(self, instance_ids):
+        """ Go through all of the reservations and filter to only return those
+        associated with the given instance_ids.
+        """
+        reservations = []
+        for reservation in self.reservations.values():
+            reservation_instance_ids = [instance.id for instance in reservation.instances]
+            matching_reservation = any(instance_id in reservation_instance_ids for instance_id in instance_ids)
+            if matching_reservation:
+                # We need to make a copy of the reservation because we have to modify the
+                # instances to limit to those requested
+                reservation_copy = copy.deepcopy(reservation)
+                reservation_copy.instances = [instance for instance in reservation_copy.instances if instance.id in instance_ids]
+                reservations.append(reservation_copy)
+        return reservations
 
     def all_reservations(self):
         return self.reservations.values()
