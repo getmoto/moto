@@ -1,4 +1,4 @@
-import md5
+import hashlib
 import time
 
 from moto.core import BaseBackend
@@ -15,7 +15,7 @@ class Message(object):
 
     @property
     def md5(self):
-        body_md5 = md5.new()
+        body_md5 = hashlib.md5()
         body_md5.update(self.body)
         return body_md5.hexdigest()
 

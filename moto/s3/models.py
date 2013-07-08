@@ -1,5 +1,5 @@
 import datetime
-import md5
+import hashlib
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
@@ -22,7 +22,7 @@ class FakeKey(object):
 
     @property
     def etag(self):
-        value_md5 = md5.new()
+        value_md5 = hashlib.md5()
         value_md5.update(self.value)
         return '"{0}"'.format(value_md5.hexdigest())
 
