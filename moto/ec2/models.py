@@ -4,6 +4,7 @@ from collections import defaultdict
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 
 from moto.core import BaseBackend
+from .exceptions import InvalidIdError
 from .utils import (
     random_ami_id,
     random_instance_id,
@@ -137,6 +138,10 @@ class InstanceBackend(object):
                 reservation_copy = copy.deepcopy(reservation)
                 reservation_copy.instances = [instance for instance in reservation_copy.instances if instance.id in instance_ids]
                 reservations.append(reservation_copy)
+        found_instance_ids = [instance.id for reservation in reservations for instance in reservation.instances]
+        if len(found_instance_ids) != len(instance_ids):
+            invalid_id = list(set(instance_ids).difference(set(found_instance_ids)))[0]
+            raise InvalidIdError(invalid_id)
         return reservations
 
     def all_reservations(self):

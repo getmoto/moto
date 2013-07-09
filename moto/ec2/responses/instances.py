@@ -2,17 +2,26 @@ from jinja2 import Template
 
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.models import ec2_backend
-from moto.ec2.utils import instance_ids_from_querystring
+from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations
+from moto.ec2.exceptions import InvalidIdError
 
 
 class InstanceResponse(object):
     def describe_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
-        template = Template(EC2_DESCRIBE_INSTANCES)
         if instance_ids:
-            reservations = ec2_backend.get_reservations_by_instance_ids(instance_ids)
+            try:
+                reservations = ec2_backend.get_reservations_by_instance_ids(instance_ids)
+            except InvalidIdError as exc:
+                template = Template(EC2_INVALID_INSTANCE_ID)
+                return template.render(instance_id=exc.instance_id), dict(status=400)
         else:
             reservations = ec2_backend.all_reservations()
+
+        filter_dict = filters_from_querystring(self.querystring)
+        reservations = filter_reservations(reservations, filter_dict)
+
+        template = Template(EC2_DESCRIBE_INSTANCES)
         return template.render(reservations=reservations)
 
     def run_instances(self):
@@ -263,3 +272,10 @@ EC2_MODIFY_INSTANCE_ATTRIBUTE = """<ModifyInstanceAttributeResponse xmlns="http:
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </ModifyInstanceAttributeResponse>"""
+
+
+EC2_INVALID_INSTANCE_ID = """<?xml version="1.0" encoding="UTF-8"?>
+<Response><Errors><Error><Code>InvalidInstanceID.NotFound</Code>
+<Message>The instance ID '{{ instance_id }}' does not exist</Message></Error>
+</Errors>
+<RequestID>39070fe4-6f6d-4565-aecd-7850607e4555</RequestID></Response>"""
