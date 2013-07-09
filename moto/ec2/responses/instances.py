@@ -16,7 +16,7 @@ class InstanceResponse(object):
                 template = Template(EC2_INVALID_INSTANCE_ID)
                 return template.render(instance_id=exc.instance_id), dict(status=400)
         else:
-            reservations = ec2_backend.all_reservations()
+            reservations = ec2_backend.all_reservations(make_copy=True)
 
         filter_dict = filters_from_querystring(self.querystring)
         reservations = filter_reservations(reservations, filter_dict)

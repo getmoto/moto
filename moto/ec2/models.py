@@ -129,23 +129,27 @@ class InstanceBackend(object):
         associated with the given instance_ids.
         """
         reservations = []
-        for reservation in self.reservations.values():
+        for reservation in self.all_reservations(make_copy=True):
             reservation_instance_ids = [instance.id for instance in reservation.instances]
             matching_reservation = any(instance_id in reservation_instance_ids for instance_id in instance_ids)
             if matching_reservation:
                 # We need to make a copy of the reservation because we have to modify the
                 # instances to limit to those requested
-                reservation_copy = copy.deepcopy(reservation)
-                reservation_copy.instances = [instance for instance in reservation_copy.instances if instance.id in instance_ids]
-                reservations.append(reservation_copy)
+                reservation.instances = [instance for instance in reservation.instances if instance.id in instance_ids]
+                reservations.append(reservation)
         found_instance_ids = [instance.id for reservation in reservations for instance in reservation.instances]
         if len(found_instance_ids) != len(instance_ids):
             invalid_id = list(set(instance_ids).difference(set(found_instance_ids)))[0]
             raise InvalidIdError(invalid_id)
         return reservations
 
-    def all_reservations(self):
-        return self.reservations.values()
+    def all_reservations(self, make_copy=False):
+        if make_copy:
+            # Return copies so that other functions can modify them with changing
+            # the originals
+            return [copy.deepcopy(reservation) for reservation in self.reservations.values()]
+        else:
+            return [reservation for reservation in self.reservations.values()]
 
 
 class TagBackend(object):
