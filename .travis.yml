@@ -1,10 +1,11 @@
 language: python
 python:
   - 2.7
-matrix:
-  - BOTO_VERSION=2.9
-  - BOTO_VERSION=2.8
-  - BOTO_VERSION=2.7
+env:
+    matrix:
+      - BOTO_VERSION=2.9
+      - BOTO_VERSION=2.8
+      - BOTO_VERSION=2.7
 install:
   - pip install boto==$BOTO_VERSION
   - pip install .
