@@ -98,10 +98,13 @@ def passes_filter_dict(instance, filter_dict):
 
 
 def filter_reservations(reservations, filter_dict):
+    result = []
     for reservation in reservations:
         new_instances = []
         for instance in reservation.instances:
             if passes_filter_dict(instance, filter_dict):
                 new_instances.append(instance)
-        reservation.instances = new_instances
-    return reservations
+        if new_instances:
+            reservation.instances = new_instances
+            result.append(reservation)
+    return result

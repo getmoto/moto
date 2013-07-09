@@ -96,6 +96,9 @@ def test_get_instances_filtering_by_state():
     instance_ids = [instance.id for instance in reservations[0].instances]
     instance_ids.should.equal([instance2.id])
 
+    reservations = conn.get_all_instances([instance2.id], filters={'instance-state-name': 'terminating'})
+    list(reservations).should.equal([])
+
     # get_all_instances should still return all 3
     reservations = conn.get_all_instances()
     reservations[0].instances.should.have.length_of(3)
