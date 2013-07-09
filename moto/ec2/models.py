@@ -16,30 +16,35 @@ from .utils import (
 )
 
 
+class InstanceState(object):
+    def __init__(self, name='pending', code=0):
+        self.name = name
+        self.code = code
+
+
 class Instance(BotoInstance):
     def __init__(self, image_id, user_data):
         super(Instance, self).__init__()
         self.id = random_instance_id()
         self.image_id = image_id
-        self._state_name = "pending"
-        self._state_code = 0
+        self._state = InstanceState()
         self.user_data = user_data
 
     def start(self):
-        self._state_name = "pending"
-        self._state_code = 0
+        self._state.name = "pending"
+        self._state.code = 0
 
     def stop(self):
-        self._state_name = "stopping"
-        self._state_code = 64
+        self._state.name = "stopping"
+        self._state.code = 64
 
     def terminate(self):
-        self._state_name = "shutting-down"
-        self._state_code = 32
+        self._state.name = "shutting-down"
+        self._state.code = 32
 
     def reboot(self):
-        self._state_name = "pending"
-        self._state_code = 0
+        self._state.name = "pending"
+        self._state.code = 0
 
 
 class InstanceBackend(object):

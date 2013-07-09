@@ -86,8 +86,8 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <instanceId>{{ instance.id }}</instanceId>
           <imageId>{{ instance.image_id }}</imageId>
           <instanceState>
-            <code>{{ instance._state_code }}</code>
-            <name>{{ instance._state_name }}</name>
+            <code>{{ instance._state.code }}</code>
+            <name>{{ instance._state.name }}</name>
           </instanceState>
           <privateDnsName/>
           <dnsName/>
@@ -138,8 +138,8 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <instanceId>{{ instance.id }}</instanceId>
                     <imageId>{{ instance.image_id }}</imageId>
                     <instanceState>
-                      <code>{{ instance._state_code }}</code>
-                      <name>{{ instance._state_name }}</name>
+                      <code>{{ instance._state.code }}</code>
+                      <name>{{ instance._state.name }}</name>
                     </instanceState>
                     <privateDnsName/>
                     <dnsName/>
@@ -198,8 +198,8 @@ EC2_TERMINATE_INSTANCES = """
           <name>running</name>
         </previousState>
         <currentState>
-          <code>{{ instance._state_code }}</code>
-          <name>{{ instance._state_name }}</name>
+          <code>{{ instance._state.code }}</code>
+          <name>{{ instance._state.name }}</name>
         </currentState>
       </item>
     {% endfor %}
@@ -218,8 +218,8 @@ EC2_STOP_INSTANCES = """
           <name>running</name>
         </previousState>
         <currentState>
-          <code>{{ instance._state_code }}</code>
-          <name>{{ instance._state_name }}</name>
+          <code>{{ instance._state.code }}</code>
+          <name>{{ instance._state.name }}</name>
         </currentState>
       </item>
     {% endfor %}
@@ -238,8 +238,8 @@ EC2_START_INSTANCES = """
           <name>running</name>
         </previousState>
         <currentState>
-          <code>{{ instance._state_code }}</code>
-          <name>{{ instance._state_name }}</name>
+          <code>{{ instance._state.code }}</code>
+          <name>{{ instance._state.name }}</name>
         </currentState>
       </item>
     {% endfor %}
