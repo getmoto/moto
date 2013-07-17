@@ -184,7 +184,16 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <blockDeviceMapping />
                     <virtualizationType>hvm</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
-                    <tagSet />
+                    <tagSet>
+                      {% for tag in instance.get_tags() %}
+                        <item>
+                          <resourceId>{{ tag.resource_id }}</resourceId>
+                          <resourceType>{{ tag.resource_type }}</resourceType>
+                          <key>{{ tag.key }}</key>
+                          <value>{{ tag.value }}</value>
+                        </item>
+                      {% endfor %}
+                    </tagSet>
                     <hypervisor>xen</hypervisor>
                     <networkInterfaceSet />
                   </item>

@@ -47,6 +47,10 @@ class Instance(BotoInstance):
         self._state.name = "pending"
         self._state.code = 0
 
+    def get_tags(self):
+        tags = ec2_backend.describe_tags(self.id)
+        return tags
+
 
 class InstanceBackend(object):
 
@@ -165,18 +169,21 @@ class TagBackend(object):
     def delete_tag(self, resource_id, key):
         return self.tags[resource_id].pop(key)
 
-    def describe_tags(self):
+    def describe_tags(self, filter_resource_ids=None):
         results = []
         for resource_id, tags in self.tags.iteritems():
             ami = 'ami' in resource_id
             for key, value in tags.iteritems():
-                result = {
-                    'resource_id': resource_id,
-                    'key': key,
-                    'value': value,
-                    'resource_type': 'image' if ami else 'instance',
-                }
-                results.append(result)
+                if not filter_resource_ids or resource_id in filter_resource_ids:
+                    # If we're not filtering, or we are filtering and this
+                    # resource id is in the filter list, add this tag
+                    result = {
+                        'resource_id': resource_id,
+                        'key': key,
+                        'value': value,
+                        'resource_type': 'image' if ami else 'instance',
+                    }
+                    results.append(result)
         return results
 
 
