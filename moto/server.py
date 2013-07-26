@@ -4,14 +4,7 @@ import argparse
 from flask import Flask
 from werkzeug.routing import BaseConverter
 
-from moto.dynamodb import dynamodb_backend  # flake8: noqa
-from moto.ec2 import ec2_backend  # flake8: noqa
-from moto.elb import elb_backend  # flake8: noqa
-from moto.s3 import s3_backend  # flake8: noqa
-from moto.ses import ses_backend  # flake8: noqa
-from moto.sqs import sqs_backend  # flake8: noqa
-from moto.sts import sts_backend  # flake8: noqa
-
+from moto.backends import BACKENDS
 from moto.core.utils import convert_flask_to_httpretty_response
 
 app = Flask(__name__)
@@ -26,8 +19,7 @@ class RegexConverter(BaseConverter):
 
 
 def configure_urls(service):
-    module = sys.modules[__name__]
-    backend = getattr(module, "{}_backend".format(service))
+    backend = BACKENDS[service]
     from werkzeug.routing import Map
     # Reset view functions to reset the app
     app.view_functions = {}
@@ -38,11 +30,7 @@ def configure_urls(service):
 
 
 def main(argv=sys.argv[1:]):
-    # Yes, I'm using those imports in the beginning of the file to create a
-    # dynamic list of available services to be shown in the help text when the
-    # user tries to interact with moto_server.
-    available_services = [
-        x.split('_')[0] for x in globals() if x.endswith('_backend')]
+    available_services = BACKENDS.keys()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
