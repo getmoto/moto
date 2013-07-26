@@ -1,4 +1,5 @@
 import sys
+import argparse
 
 from flask import Flask
 from werkzeug.routing import BaseConverter
@@ -36,19 +37,33 @@ def configure_urls(service):
         app.route(url_path, methods=HTTP_METHODS)(convert_flask_to_httpretty_response(handler))
 
 
-def main(args=sys.argv):
-    if len(args) not in range(2, 4):
-        print("Usage: moto_server <service> [port]")
-        sys.exit(1)
-    service_name = args[1]
-    configure_urls(service_name)
-    try:
-        port = int(args[2])
-    except IndexError:
-        port = None
+def main(argv=sys.argv):
+    # Yes, I'm using those imports in the beginning of the file to create a
+    # dynamic list of available services to be shown in the help text when the
+    # user tries to interact with moto_server.
+    available_services = [
+        x.split('_')[0] for x in globals() if x.endswith('_backend')]
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'service', type=str,
+        choices=available_services,
+        help='Choose which mechanism you want to run')
+    parser.add_argument(
+        '-H', '--host', type=str,
+        help='Which host to bind',
+        default='0.0.0.0')
+    parser.add_argument(
+        '-p', '--port', type=int,
+        help='Port number to use for connection',
+        default=5000)
+
+    args = parser.parse_args(argv)
+
+    configure_urls(args.service)
 
     app.testing = True
-    app.run(port=port)
+    app.run(host=args.host, port=args.port)
 
 if __name__ == '__main__':
     main()
