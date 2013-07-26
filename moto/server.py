@@ -37,7 +37,7 @@ def configure_urls(service):
         app.route(url_path, methods=HTTP_METHODS)(convert_flask_to_httpretty_response(handler))
 
 
-def main(argv=sys.argv):
+def main(argv=sys.argv[1:]):
     # Yes, I'm using those imports in the beginning of the file to create a
     # dynamic list of available services to be shown in the help text when the
     # user tries to interact with moto_server.
