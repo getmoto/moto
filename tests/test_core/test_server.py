@@ -15,11 +15,11 @@ def test_wrong_arguments():
 
 @patch('moto.server.app.run')
 def test_right_arguments(app_run):
-    main(["name", "s3"])
-    app_run.assert_called_once_with(port=None)
+    main(["s3"])
+    app_run.assert_called_once_with(host='0.0.0.0', port=5000)
 
 
 @patch('moto.server.app.run')
 def test_port_argument(app_run):
-    main(["name", "s3", 8080])
-    app_run.assert_called_once_with(port=8080)
+    main(["s3", "--port", "8080"])
+    app_run.assert_called_once_with(host='0.0.0.0', port=8080)

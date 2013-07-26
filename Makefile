@@ -6,5 +6,5 @@ init:
 
 test:
 	rm -f .coverage
-	@nosetests --with-coverage ./tests/
+	@nosetests -sv --with-coverage ./tests/
 
