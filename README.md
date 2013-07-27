@@ -49,26 +49,30 @@ With the decorator wrapping the test, all the calls to s3 are automatically mock
 It gets even better! Moto isn't just S3. Here's the status of the other AWS services implemented.
 
 ```gherkin
-|---------------------------------------------------------------------------|
-| Service Name          | Decorator      | Development Status               |
-|---------------------------------------------------------------------------|
-| DynamoDB              | @mock_dynamodb | core endpoints done              |
-|---------------------------------------------------------------------------|
-| EC2                   | @mock_ec2      | core endpoints done              |
-|     - AMI             |                | core endpoints done              |
-|     - EBS             |                | core endpoints done              |
-|     - Instances       |                | all  endpoints done              |
-|     - Security Groups |                | core endpoints done              |
-|     - Tags            |                | all  endpoints done              |
-|---------------------------------------------------------------------------|
-| S3                    | @mock_s3       | core endpoints done              |
-|---------------------------------------------------------------------------|
-| SES                   | @mock_ses      | core endpoints done              |
-|---------------------------------------------------------------------------|
-| SQS                   | @mock_sqs      | core endpoints done              |
-|---------------------------------------------------------------------------|
-| STS                   | @mock_sts      | core endpoints done              |
-|---------------------------------------------------------------------------|
+|------------------------------------------------------------------------------|
+| Service Name          | Decorator        | Development Status                |
+|------------------------------------------------------------------------------|
+| Autoscaling           | @mock_autoscaling| core endpoints done               |
+|------------------------------------------------------------------------------|
+| DynamoDB              | @mock_dynamodb   | core endpoints done               |
+|------------------------------------------------------------------------------|
+| EC2                   | @mock_ec2        | core endpoints done               |
+|     - AMI             |                  | core endpoints done               |
+|     - EBS             |                  | core endpoints done               |
+|     - Instances       |                  | all  endpoints done               |
+|     - Security Groups |                  | core endpoints done               |
+|     - Tags            |                  | all  endpoints done               |
+|------------------------------------------------------------------------------|
+| ELB                   | @mock_elb        | core endpoints done               |
+|------------------------------------------------------------------------------|
+| S3                    | @mock_s3         | core endpoints done               |
+|------------------------------------------------------------------------------|
+| SES                   | @mock_ses        | core endpoints done               |
+|------------------------------------------------------------------------------|
+| SQS                   | @mock_sqs        | core endpoints done               |
+|------------------------------------------------------------------------------|
+| STS                   | @mock_sts        | core endpoints done               |
+|------------------------------------------------------------------------------|
 ```
 
 ### Another Example
