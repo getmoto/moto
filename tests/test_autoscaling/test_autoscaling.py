@@ -1,9 +1,7 @@
 import boto
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.autoscale.group import AutoScalingGroup
-from nose.plugins.attrib import attr
-import sure  # flake8: noqa
-from unittest import skipIf
+import sure  # noqa
 
 from moto import mock_autoscaling, mock_ec2
 from tests.helpers import requires_boto_gte
@@ -22,11 +20,17 @@ def test_create_autoscaling_group():
     group = AutoScalingGroup(
         name='tester_group',
         availability_zones=['us-east-1c', 'us-east-1b'],
+        default_cooldown=60,
         desired_capacity=2,
+        health_check_period=100,
+        health_check_type="EC2",
         max_size=2,
         min_size=2,
         launch_config=config,
+        load_balancers=["test_lb"],
+        placement_group="test_placement",
         vpc_zone_identifier='subnet-1234abcd',
+        termination_policies=["OldestInstance", "NewestInstance"],
     )
     conn.create_auto_scaling_group(group)
 
@@ -38,6 +42,12 @@ def test_create_autoscaling_group():
     group.min_size.should.equal(2)
     group.vpc_zone_identifier.should.equal('subnet-1234abcd')
     group.launch_config_name.should.equal('tester')
+    group.default_cooldown.should.equal(60)
+    group.health_check_period.should.equal(100)
+    group.health_check_type.should.equal("EC2")
+    list(group.load_balancers).should.equal(["test_lb"])
+    group.placement_group.should.equal("test_placement")
+    list(group.termination_policies).should.equal(["OldestInstance", "NewestInstance"])
 
 
 @mock_autoscaling
@@ -70,6 +80,12 @@ def test_create_autoscaling_groups_defaults():
     list(group.availability_zones).should.equal([])
     group.desired_capacity.should.equal(2)
     group.vpc_zone_identifier.should.equal('')
+    group.default_cooldown.should.equal(300)
+    group.health_check_period.should.equal(None)
+    group.health_check_type.should.equal("EC2")
+    list(group.load_balancers).should.equal([])
+    group.placement_group.should.equal(None)
+    list(group.termination_policies).should.equal([])
 
 
 @mock_autoscaling

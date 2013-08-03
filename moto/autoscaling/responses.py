@@ -58,6 +58,12 @@ class AutoScalingResponse(BaseResponse):
             min_size=self._get_int_param('MinSize'),
             launch_config_name=self._get_param('LaunchConfigurationName'),
             vpc_zone_identifier=self._get_param('VPCZoneIdentifier'),
+            default_cooldown=self._get_int_param('DefaultCooldown'),
+            health_check_period=self._get_int_param('HealthCheckGracePeriod'),
+            health_check_type=self._get_param('HealthCheckType'),
+            load_balancers=self._get_multi_param('LoadBalancerNames.member'),
+            placement_group=self._get_param('PlacementGroup'),
+            termination_policies=self._get_multi_param('TerminationPolicies.member'),
         )
         template = Template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
@@ -77,6 +83,12 @@ class AutoScalingResponse(BaseResponse):
             min_size=self._get_int_param('MinSize'),
             launch_config_name=self._get_param('LaunchConfigurationName'),
             vpc_zone_identifier=self._get_param('VPCZoneIdentifier'),
+            default_cooldown=self._get_int_param('DefaultCooldown'),
+            health_check_period=self._get_int_param('HealthCheckGracePeriod'),
+            health_check_type=self._get_param('HealthCheckType'),
+            load_balancers=self._get_multi_param('LoadBalancerNames.member'),
+            placement_group=self._get_param('PlacementGroup'),
+            termination_policies=self._get_multi_param('TerminationPolicies.member'),
         )
         template = Template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
@@ -201,7 +213,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <Tags/>
         <SuspendedProcesses/>
         <AutoScalingGroupName>{{ group.name }}</AutoScalingGroupName>
-        <HealthCheckType>ELB</HealthCheckType>
+        <HealthCheckType>{{ group.health_check_type }}</HealthCheckType>
         <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
         <EnabledMetrics/>
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
@@ -212,23 +224,38 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           <member>{{ availability_zone }}</member>
           {% endfor %}
         </AvailabilityZones>
-        <LoadBalancerNames>
-          <member>my-test-asg-loadbalancer</member>
-        </LoadBalancerNames>
+        {% if group.load_balancers %}
+          <LoadBalancerNames>
+          {% for load_balancer in group.load_balancers %}
+            <member>{{ load_balancer }}</member>
+          {% endfor %}
+          </LoadBalancerNames>
+        {% else %}
+          <LoadBalancerNames/>
+        {% endif %}
         <MinSize>{{ group.min_size }}</MinSize>
         {% if group.vpc_zone_identifier %}
           <VPCZoneIdentifier>{{ group.vpc_zone_identifier }}</VPCZoneIdentifier>
         {% else %}
           <VPCZoneIdentifier/>
         {% endif %}
-        <HealthCheckGracePeriod>120</HealthCheckGracePeriod>
-        <DefaultCooldown>300</DefaultCooldown>
+        <HealthCheckGracePeriod>{{ group.health_check_period }}</HealthCheckGracePeriod>
+        <DefaultCooldown>{{ group.default_cooldown }}</DefaultCooldown>
         <AutoScalingGroupARN>arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb
         :autoScalingGroupName/my-test-asg-lbs</AutoScalingGroupARN>
+        {% if group.termination_policies %}
         <TerminationPolicies>
-          <member>Default</member>
+          {% for policy in group.termination_policies %}
+          <member>{{ policy }}</member>
+          {% endfor %}
         </TerminationPolicies>
+        {% else %}
+        <TerminationPolicies/>
+        {% endif %}
         <MaxSize>{{ group.max_size }}</MaxSize>
+        {% if group.placement_group %}
+        <PlacementGroup>{{ group.placement_group }}</PlacementGroup>
+        {% endif %}
       </member>
       {% endfor %}
     </AutoScalingGroups>
