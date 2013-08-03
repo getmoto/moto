@@ -411,4 +411,6 @@ def test_batch_read():
     item.put()
 
     items = table.batch_get_item([('the-key1'), ('another-key')])
-    items.should.have.length_of(2)
+    # Iterate through so that batch_item gets called
+    count = len([x for x in items])
+    count.should.have.equal(2)
