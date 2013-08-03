@@ -1,6 +1,6 @@
 import boto
 from boto.ec2.elb import HealthCheck
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_elb, mock_ec2
 
@@ -11,7 +11,7 @@ def test_create_load_balancer():
 
     zones = ['us-east-1a', 'us-east-1b']
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
-    lb = conn.create_load_balancer('my-lb', zones, ports)
+    conn.create_load_balancer('my-lb', zones, ports)
 
     balancers = conn.get_all_load_balancers()
     balancer = balancers[0]
@@ -33,9 +33,9 @@ def test_get_load_balancers_by_name():
 
     zones = ['us-east-1a', 'us-east-1b']
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
-    lb = conn.create_load_balancer('my-lb1', zones, ports)
-    lb = conn.create_load_balancer('my-lb2', zones, ports)
-    lb = conn.create_load_balancer('my-lb3', zones, ports)
+    conn.create_load_balancer('my-lb1', zones, ports)
+    conn.create_load_balancer('my-lb2', zones, ports)
+    conn.create_load_balancer('my-lb3', zones, ports)
 
     conn.get_all_load_balancers().should.have.length_of(3)
     conn.get_all_load_balancers(load_balancer_names=['my-lb1']).should.have.length_of(1)
@@ -48,7 +48,7 @@ def test_delete_load_balancer():
 
     zones = ['us-east-1a']
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
-    lb = conn.create_load_balancer('my-lb', zones, ports)
+    conn.create_load_balancer('my-lb', zones, ports)
 
     balancers = conn.get_all_load_balancers()
     balancers.should.have.length_of(1)

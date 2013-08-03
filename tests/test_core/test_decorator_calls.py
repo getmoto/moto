@@ -1,6 +1,6 @@
 import boto
 from boto.exception import EC2ResponseError
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_ec2
 
@@ -11,7 +11,7 @@ Test the different ways that the decorator can be used
 
 @mock_ec2
 def test_basic_connect():
-    conn = boto.connect_ec2()
+    boto.connect_ec2()
 
 
 @mock_ec2

@@ -1,7 +1,7 @@
 import boto
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_autoscaling
 

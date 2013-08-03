@@ -1,4 +1,4 @@
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto.core.utils import convert_regex_to_flask_path
 

@@ -1,7 +1,7 @@
 import itertools
 
 import boto
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_ec2
 
@@ -31,7 +31,7 @@ def test_instance_launch_and_retrieve_all_instances():
 
     instance.add_tag("a key", "some value")
     chain = itertools.chain.from_iterable
-    existing_instances = list(chain([reservation.instances for reservation in conn.get_all_instances()]))
+    existing_instances = list(chain([res.instances for res in conn.get_all_instances()]))
     existing_instances.should.have.length_of(1)
     existing_instance = existing_instances[0]
     existing_instance.tags["a key"].should.equal("some value")

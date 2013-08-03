@@ -2,9 +2,9 @@ import boto
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.autoscale.group import AutoScalingGroup
 from boto.ec2.autoscale.policy import ScalingPolicy
-import sure  # flake8: noqa
+import sure  # noqa
 
-from moto import mock_autoscaling, mock_ec2
+from moto import mock_autoscaling
 
 
 def setup_autoscale_group():
@@ -28,7 +28,7 @@ def setup_autoscale_group():
 
 @mock_autoscaling
 def test_create_policy():
-    group = setup_autoscale_group()
+    setup_autoscale_group()
     conn = boto.connect_autoscale()
     policy = ScalingPolicy(
         name='ScaleUp',
@@ -49,7 +49,7 @@ def test_create_policy():
 
 @mock_autoscaling
 def test_create_policy_default_values():
-    group = setup_autoscale_group()
+    setup_autoscale_group()
     conn = boto.connect_autoscale()
     policy = ScalingPolicy(
         name='ScaleUp',
@@ -68,7 +68,7 @@ def test_create_policy_default_values():
 
 @mock_autoscaling
 def test_update_policy():
-    group = setup_autoscale_group()
+    setup_autoscale_group()
     conn = boto.connect_autoscale()
     policy = ScalingPolicy(
         name='ScaleUp',
@@ -95,7 +95,7 @@ def test_update_policy():
 
 @mock_autoscaling
 def test_delete_policy():
-    group = setup_autoscale_group()
+    setup_autoscale_group()
     conn = boto.connect_autoscale()
     policy = ScalingPolicy(
         name='ScaleUp',
@@ -113,7 +113,7 @@ def test_delete_policy():
 
 @mock_autoscaling
 def test_execute_policy_exact_capacity():
-    group = setup_autoscale_group()
+    setup_autoscale_group()
     conn = boto.connect_autoscale()
     policy = ScalingPolicy(
         name='ScaleUp',
@@ -131,7 +131,7 @@ def test_execute_policy_exact_capacity():
 
 @mock_autoscaling
 def test_execute_policy_positive_change_in_capacity():
-    group = setup_autoscale_group()
+    setup_autoscale_group()
     conn = boto.connect_autoscale()
     policy = ScalingPolicy(
         name='ScaleUp',
@@ -149,7 +149,7 @@ def test_execute_policy_positive_change_in_capacity():
 
 @mock_autoscaling
 def test_execute_policy_percent_change_in_capacity():
-    group = setup_autoscale_group()
+    setup_autoscale_group()
     conn = boto.connect_autoscale()
     policy = ScalingPolicy(
         name='ScaleUp',
@@ -170,7 +170,7 @@ def test_execute_policy_small_percent_change_in_capacity():
     """ http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html
     If PercentChangeInCapacity returns a value between 0 and 1,
     Auto Scaling will round it off to 1."""
-    group = setup_autoscale_group()
+    setup_autoscale_group()
     conn = boto.connect_autoscale()
     policy = ScalingPolicy(
         name='ScaleUp',

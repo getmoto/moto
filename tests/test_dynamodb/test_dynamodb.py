@@ -1,12 +1,10 @@
 import boto
-import sure  # flake8: noqa
-from freezegun import freeze_time
+import sure  # noqa
 import requests
 
 from moto import mock_dynamodb
 from moto.dynamodb import dynamodb_backend
 
-from boto.dynamodb import condition
 from boto.exception import DynamoDBResponseError
 
 

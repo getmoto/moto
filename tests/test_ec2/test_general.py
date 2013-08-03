@@ -1,6 +1,6 @@
 import boto
 from boto.exception import EC2ResponseError
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_ec2
 

@@ -3,7 +3,7 @@ import base64
 import boto
 from boto.ec2.instance import Reservation, InstanceAttribute
 from boto.exception import EC2ResponseError
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_ec2
 

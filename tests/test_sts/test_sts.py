@@ -1,9 +1,8 @@
 import json
 
 import boto
-from boto.exception import BotoServerError
 from freezegun import freeze_time
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_sts
 

@@ -3,7 +3,7 @@ import email
 import boto
 from boto.exception import BotoServerError
 
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_ses
 
@@ -44,7 +44,8 @@ def test_delete_identity():
 def test_send_email():
     conn = boto.connect_ses('the_key', 'the_secret')
 
-    conn.send_email.when.called_with("test@example.com", "test subject",
+    conn.send_email.when.called_with(
+        "test@example.com", "test subject",
         "test body", "test_to@example.com").should.throw(BotoServerError)
 
     conn.verify_email_identity("test@example.com")
@@ -74,12 +75,18 @@ def test_send_raw_email():
     part.add_header('Content-Disposition', 'attachment; filename=test.txt')
     message.attach(part)
 
-    conn.send_raw_email.when.called_with(source=message['From'], raw_message=message.as_string(),
-        destinations=message['To']).should.throw(BotoServerError)
+    conn.send_raw_email.when.called_with(
+        source=message['From'],
+        raw_message=message.as_string(),
+        destinations=message['To']
+    ).should.throw(BotoServerError)
 
     conn.verify_email_identity("test@example.com")
-    conn.send_raw_email(source=message['From'], raw_message=message.as_string(),
-        destinations=message['To'])
+    conn.send_raw_email(
+        source=message['From'],
+        raw_message=message.as_string(),
+        destinations=message['To']
+    )
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota['GetSendQuotaResponse']['GetSendQuotaResult']['SentLast24Hours'])

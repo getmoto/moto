@@ -2,7 +2,7 @@ import boto
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage
 import requests
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_sqs
 

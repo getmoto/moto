@@ -1,9 +1,8 @@
 import boto
-import sure  # flake8: noqa
+import sure  # noqa
 from freezegun import freeze_time
 
 from moto import mock_dynamodb
-from moto.dynamodb import dynamodb_backend
 
 from boto.dynamodb import condition
 from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
@@ -412,5 +411,4 @@ def test_batch_read():
     item.put()
 
     items = table.batch_get_item([('the-key1'), ('another-key')])
-    count = len([item for item in items])
-    count.should.equal(2)
+    items.should.have.length_of(2)
