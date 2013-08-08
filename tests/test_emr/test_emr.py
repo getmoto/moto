@@ -4,6 +4,7 @@ from boto.emr.step import StreamingStep
 import sure  # noqa
 
 from moto import mock_emr
+from tests.helpers import requires_boto_gte
 
 
 @mock_emr
@@ -31,7 +32,6 @@ def test_create_job_flow():
         log_uri='s3://some_bucket/jobflow_logs',
         master_instance_type='m1.medium',
         slave_instance_type='m1.small',
-        job_flow_role='some-role-arn',
         steps=[step1, step2],
     )
 
@@ -71,6 +71,22 @@ def test_create_job_flow():
         '-output',
         's3n://output_bucket/output/wordcount_output2',
     ])
+
+
+@requires_boto_gte("2.8")
+@mock_emr
+def test_create_job_flow_with_new_params():
+    # Test that run_jobflow works with newer params
+    conn = boto.connect_emr()
+
+    conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        master_instance_type='m1.medium',
+        slave_instance_type='m1.small',
+        job_flow_role='some-role-arn',
+        steps=[],
+    )
 
 
 @mock_emr
