@@ -31,7 +31,8 @@ def test_create_job_flow():
         log_uri='s3://some_bucket/jobflow_logs',
         master_instance_type='m1.medium',
         slave_instance_type='m1.small',
-        steps=[step1, step2]
+        job_flow_role='some-role-arn',
+        steps=[step1, step2],
     )
 
     job_flow = conn.describe_jobflow(job_id)
@@ -169,7 +170,7 @@ def test_create_instance_groups():
     job_id = conn.run_jobflow(
         name='My jobflow',
         log_uri='s3://some_bucket/jobflow_logs',
-        steps=[step1]
+        steps=[step1],
     )
 
     instance_group = InstanceGroup(6, 'TASK', 'c1.medium', 'SPOT', 'spot-0.07', '0.07')

@@ -50,8 +50,9 @@ class ElasticMapReduceResponse(BaseResponse):
         log_uri = self._get_param('LogUri')
         steps = self._get_list_prefix('Steps.member')
         instance_attrs = self._get_dict_param('Instances.')
+        job_flow_role = self._get_param('JobFlowRole')
 
-        job_flow = emr_backend.run_job_flow(flow_name, log_uri, steps, instance_attrs)
+        job_flow = emr_backend.run_job_flow(flow_name, log_uri, job_flow_role, steps, instance_attrs)
         template = Template(RUN_JOB_FLOW_TEMPLATE)
         return template.render(job_flow=job_flow)
 
@@ -102,6 +103,7 @@ DESCRIBE_JOB_FLOWS_TEMPLATE = """<DescribeJobFlowsResponse xmlns="http://elastic
                <State>{{ job_flow.state }}</State>
             </ExecutionStatusDetail>
             <Name>{{ job_flow.name }}</Name>
+            <JobFlowRole>{{ job_flow.role }}</JobFlowRole>
             <LogUri>{{ job_flow.log_uri }}</LogUri>
             <Steps>
                {% for step in job_flow.steps %}

@@ -2,6 +2,8 @@ from moto.core import BaseBackend
 
 from .utils import random_job_id, random_instance_group_id
 
+DEFAULT_JOB_FLOW_ROLE = 'EMRJobflowDefault'
+
 
 class FakeInstanceGroup(object):
     def __init__(self, id, instance_count, instance_role, instance_type, market, name, bid_price=None):
@@ -48,10 +50,11 @@ class FakeStep(object):
 
 
 class FakeJobFlow(object):
-    def __init__(self, job_id, name, log_uri, steps, instance_attrs):
+    def __init__(self, job_id, name, log_uri, job_flow_role, steps, instance_attrs):
         self.id = job_id
         self.name = name
         self.log_uri = log_uri
+        self.role = job_flow_role or DEFAULT_JOB_FLOW_ROLE
         self.state = "STARTING"
         self.steps = []
         self.add_steps(steps)
@@ -119,9 +122,9 @@ class ElasticMapReduceBackend(BaseBackend):
         self.job_flows = {}
         self.instance_groups = {}
 
-    def run_job_flow(self, name, log_uri, steps, instance_attrs):
+    def run_job_flow(self, name, log_uri, job_flow_role, steps, instance_attrs):
         job_id = random_job_id()
-        job_flow = FakeJobFlow(job_id, name, log_uri, steps, instance_attrs)
+        job_flow = FakeJobFlow(job_id, name, log_uri, job_flow_role, steps, instance_attrs)
         self.job_flows[job_id] = job_flow
         return job_flow
 
