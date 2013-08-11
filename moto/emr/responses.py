@@ -51,8 +51,12 @@ class ElasticMapReduceResponse(BaseResponse):
         steps = self._get_list_prefix('Steps.member')
         instance_attrs = self._get_dict_param('Instances.')
         job_flow_role = self._get_param('JobFlowRole')
+        visible_to_all_users = self._get_param('VisibleToAllUsers')
 
-        job_flow = emr_backend.run_job_flow(flow_name, log_uri, job_flow_role, steps, instance_attrs)
+        job_flow = emr_backend.run_job_flow(
+            flow_name, log_uri, job_flow_role,
+            visible_to_all_users, steps, instance_attrs
+        )
         template = Template(RUN_JOB_FLOW_TEMPLATE)
         return template.render(job_flow=job_flow)
 
@@ -79,6 +83,13 @@ class ElasticMapReduceResponse(BaseResponse):
         instance_groups = emr_backend.modify_instance_groups(instance_groups)
         template = Template(MODIFY_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups)
+
+    def set_visible_to_all_users(self):
+        visible_to_all_users = self._get_param('VisibleToAllUsers')
+        job_ids = self._get_multi_param('JobFlowIds.member')
+        emr_backend.set_visible_to_all_users(job_ids, visible_to_all_users)
+        template = Template(SET_VISIBLE_TO_ALL_USERS_TEMPLATE)
+        return template.render()
 
 
 RUN_JOB_FLOW_TEMPLATE = """<RunJobFlowResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
@@ -137,6 +148,8 @@ DESCRIBE_JOB_FLOWS_TEMPLATE = """<DescribeJobFlowsResponse xmlns="http://elastic
                <SlaveInstanceType>{{ job_flow.slave_instance_type }}</SlaveInstanceType>
                <MasterInstanceType>{{ job_flow.master_instance_type }}</MasterInstanceType>
                <Ec2KeyName>{{ job_flow.ec2_key_name }}</Ec2KeyName>
+               <NormalizedInstanceHours>{{ job_flow.normalized_instance_hours }}</NormalizedInstanceHours>
+               <VisibleToAllUsers>{{ job_flow.visible_to_all_users }}</VisibleToAllUsers>
                <InstanceCount>{{ job_flow.instance_count }}</InstanceCount>
                <KeepJobFlowAliveWhenNoSteps>{{ job_flow.keep_job_flow_alive_when_no_steps }}</KeepJobFlowAliveWhenNoSteps>
                <TerminationProtected>{{ job_flow.termination_protected }}</TerminationProtected>
@@ -192,3 +205,11 @@ MODIFY_INSTANCE_GROUPS_TEMPLATE = """<ModifyInstanceGroupsResponse xmlns="http:/
       </RequestId>
    </ResponseMetadata>
 </ModifyInstanceGroupsResponse>"""
+
+SET_VISIBLE_TO_ALL_USERS_TEMPLATE = """<SetVisibleToAllUsersResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+   <ResponseMetadata>
+      <RequestId>
+         2690d7eb-ed86-11dd-9877-6fad448a8419
+      </RequestId>
+   </ResponseMetadata>
+</SetVisibleToAllUsersResponse>"""

@@ -50,7 +50,7 @@ class FakeStep(object):
 
 
 class FakeJobFlow(object):
-    def __init__(self, job_id, name, log_uri, job_flow_role, steps, instance_attrs):
+    def __init__(self, job_id, name, log_uri, job_flow_role, visible_to_all_users, steps, instance_attrs):
         self.id = job_id
         self.name = name
         self.log_uri = log_uri
@@ -63,6 +63,8 @@ class FakeJobFlow(object):
         self.initial_master_instance_type = instance_attrs.get('master_instance_type')
         self.initial_slave_instance_type = instance_attrs.get('slave_instance_type')
 
+        self.set_visibility(visible_to_all_users)
+        self.normalized_instance_hours = 0
         self.ec2_key_name = instance_attrs.get('ec2_key_name')
         self.availability_zone = instance_attrs.get('placement.availability_zone')
         self.keep_job_flow_alive_when_no_steps = instance_attrs.get('keep_job_flow_alive_when_no_steps')
@@ -72,6 +74,12 @@ class FakeJobFlow(object):
 
     def terminate(self):
         self.state = 'TERMINATED'
+
+    def set_visibility(self, visibility):
+        if visibility == 'true':
+            self.visible_to_all_users = True
+        else:
+            self.visible_to_all_users = False
 
     def add_steps(self, steps):
         for index, step in enumerate(steps):
@@ -122,9 +130,9 @@ class ElasticMapReduceBackend(BaseBackend):
         self.job_flows = {}
         self.instance_groups = {}
 
-    def run_job_flow(self, name, log_uri, job_flow_role, steps, instance_attrs):
+    def run_job_flow(self, name, log_uri, job_flow_role, visible_to_all_users, steps, instance_attrs):
         job_id = random_job_id()
-        job_flow = FakeJobFlow(job_id, name, log_uri, job_flow_role, steps, instance_attrs)
+        job_flow = FakeJobFlow(job_id, name, log_uri, job_flow_role, visible_to_all_users, steps, instance_attrs)
         self.job_flows[job_id] = job_flow
         return job_flow
 
@@ -166,5 +174,11 @@ class ElasticMapReduceBackend(BaseBackend):
             group = self.instance_groups[instance_group['instance_group_id']]
             group.set_instance_count(instance_group['instance_count'])
         return result_groups
+
+    def set_visible_to_all_users(self, job_ids, visible_to_all_users):
+        for job_id in job_ids:
+            job = self.job_flows[job_id]
+            job.set_visibility(visible_to_all_users)
+
 
 emr_backend = ElasticMapReduceBackend()

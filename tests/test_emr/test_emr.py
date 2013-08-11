@@ -42,6 +42,8 @@ def test_create_job_flow():
     job_flow.masterinstancetype.should.equal('m1.medium')
     job_flow.slaveinstancetype.should.equal('m1.small')
     job_flow.loguri.should.equal('s3://some_bucket/jobflow_logs')
+    job_flow.visibletoallusers.should.equal('False')
+    int(job_flow.normalizedinstancehours).should.equal(0)
     job_step = job_flow.steps[0]
     job_step.name.should.equal('My wordcount example')
     job_step.state.should.equal('STARTING')
@@ -87,6 +89,21 @@ def test_create_job_flow_with_new_params():
         job_flow_role='some-role-arn',
         steps=[],
     )
+
+
+@mock_emr
+def test_create_job_flow_visible_to_all_users():
+    conn = boto.connect_emr()
+
+    job_id = conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        job_flow_role='some-role-arn',
+        steps=[],
+        visible_to_all_users=True,
+    )
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.visibletoallusers.should.equal('True')
 
 
 @mock_emr
@@ -248,3 +265,28 @@ def test_modify_instance_groups():
         if group.instancegroupid == instance_group_ids[1]
     ][0]
     int(instance_group2.instancerunningcount).should.equal(3)
+
+
+@mock_emr
+def test_set_visible_to_all_users():
+    conn = boto.connect_emr()
+
+    job_id = conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        job_flow_role='some-role-arn',
+        steps=[],
+        visible_to_all_users=False,
+    )
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.visibletoallusers.should.equal('False')
+
+    conn.set_visible_to_all_users(job_id, True)
+
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.visibletoallusers.should.equal('True')
+
+    conn.set_visible_to_all_users(job_id, False)
+
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.visibletoallusers.should.equal('False')
