@@ -11,6 +11,7 @@ from .utils import (
     random_reservation_id,
     random_security_group_id,
     random_snapshot_id,
+    random_spot_request_id,
     random_subnet_id,
     random_volume_id,
     random_vpc_id,
@@ -306,11 +307,12 @@ class SecurityGroupBackend(object):
         self.groups = {}
         super(SecurityGroupBackend, self).__init__()
 
-    def create_security_group(self, name, description):
+    def create_security_group(self, name, description, force=False):
         group_id = random_security_group_id()
-        existing_group = self.get_security_group_from_name(name)
-        if existing_group:
-            return None
+        if not force:
+            existing_group = self.get_security_group_from_name(name)
+            if existing_group:
+                return None
         group = SecurityGroup(group_id, name, description)
         self.groups[group_id] = group
         return group
@@ -332,6 +334,11 @@ class SecurityGroupBackend(object):
         for group_id, group in self.groups.iteritems():
             if group.name == name:
                 return group
+
+        if name == 'default':
+            # If the request is for the default group and it does not exist, create it
+            default_group = ec2_backend.create_security_group("default", "The default security group", force=True)
+            return default_group
 
     def authorize_security_group_ingress(self, group_name, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None):
         group = self.get_security_group_from_name(group_name)
@@ -496,9 +503,77 @@ class SubnetBackend(object):
         return self.subnets.pop(subnet_id, None)
 
 
+class SpotInstanceRequest(object):
+    def __init__(self, spot_request_id, price, image_id, type, valid_from,
+                 valid_until, launch_group, availability_zone_group, key_name,
+                 security_groups, user_data, instance_type, placement, kernel_id,
+                 ramdisk_id, monitoring_enabled, subnet_id):
+        self.id = spot_request_id
+        self.state = "open"
+        self.price = price
+        self.image_id = image_id
+        self.type = type
+        self.valid_from = valid_from
+        self.valid_until = valid_until
+        self.launch_group = launch_group
+        self.availability_zone_group = availability_zone_group
+        self.key_name = key_name
+        self.user_data = user_data
+        self.instance_type = instance_type
+        self.placement = placement
+        self.kernel_id = kernel_id
+        self.ramdisk_id = ramdisk_id
+        self.monitoring_enabled = monitoring_enabled
+        self.subnet_id = subnet_id
+
+        self.security_groups = []
+        if security_groups:
+            for group_name in security_groups:
+                group = ec2_backend.get_security_group_from_name(group_name)
+                if group:
+                    self.security_groups.append(group)
+        else:
+            # If not security groups, add the default
+            default_group = ec2_backend.get_security_group_from_name("default")
+            self.security_groups.append(default_group)
+
+
+class SpotRequestBackend(object):
+    def __init__(self):
+        self.spot_instance_requests = {}
+        super(SpotRequestBackend, self).__init__()
+
+    def request_spot_instances(self, price, image_id, count, type, valid_from,
+                               valid_until, launch_group, availability_zone_group,
+                               key_name, security_groups, user_data,
+                               instance_type, placement, kernel_id, ramdisk_id,
+                               monitoring_enabled, subnet_id):
+        requests = []
+        for index in range(count):
+            spot_request_id = random_spot_request_id()
+            request = SpotInstanceRequest(
+                spot_request_id, price, image_id, type, valid_from, valid_until,
+                launch_group, availability_zone_group, key_name, security_groups,
+                user_data, instance_type, placement, kernel_id, ramdisk_id,
+                monitoring_enabled, subnet_id
+            )
+            self.spot_instance_requests[spot_request_id] = request
+            requests.append(request)
+        return requests
+
+    def describe_spot_instance_requests(self):
+        return self.spot_instance_requests.values()
+
+    def cancel_spot_instance_requests(self, request_ids):
+        requests = []
+        for request_id in request_ids:
+            requests.append(self.spot_instance_requests.pop(request_id))
+        return requests
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
-                 VPCBackend, SubnetBackend):
+                 VPCBackend, SubnetBackend, SpotRequestBackend):
     pass
 
 

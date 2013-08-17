@@ -10,6 +10,10 @@ def random_id(prefix=''):
     return '{}-{}'.format(prefix, instance_tag)
 
 
+def random_ami_id():
+    return random_id(prefix='ami')
+
+
 def random_instance_id():
     return random_id(prefix='i')
 
@@ -18,12 +22,20 @@ def random_reservation_id():
     return random_id(prefix='r')
 
 
-def random_ami_id():
-    return random_id(prefix='ami')
-
-
 def random_security_group_id():
     return random_id(prefix='sg')
+
+
+def random_snapshot_id():
+    return random_id(prefix='snap')
+
+
+def random_spot_request_id():
+    return random_id(prefix='sir')
+
+
+def random_subnet_id():
+    return random_id(prefix='subnet')
 
 
 def random_volume_id():
@@ -32,14 +44,6 @@ def random_volume_id():
 
 def random_vpc_id():
     return random_id(prefix='vpc')
-
-
-def random_subnet_id():
-    return random_id(prefix='subnet')
-
-
-def random_snapshot_id():
-    return random_id(prefix='snap')
 
 
 def instance_ids_from_querystring(querystring_dict):
