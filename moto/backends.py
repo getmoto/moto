@@ -1,4 +1,5 @@
 from moto.autoscaling import autoscaling_backend
+from moto.cloudwatch import cloudwatch_backend
 from moto.dynamodb import dynamodb_backend
 from moto.ec2 import ec2_backend
 from moto.elb import elb_backend
@@ -10,6 +11,7 @@ from moto.sts import sts_backend
 
 BACKENDS = {
     'autoscaling': autoscaling_backend,
+    'cloudwatch': cloudwatch_backend,
     'dynamodb': dynamodb_backend,
     'ec2': ec2_backend,
     'elb': elb_backend,

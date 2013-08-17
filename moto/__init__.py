@@ -2,6 +2,7 @@ import logging
 logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 from .autoscaling import mock_autoscaling
+from .cloudwatch import mock_cloudwatch
 from .dynamodb import mock_dynamodb
 from .ec2 import mock_ec2
 from .elb import mock_elb
