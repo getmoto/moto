@@ -29,24 +29,24 @@ class Instance(BotoInstance):
         super(Instance, self).__init__()
         self.id = random_instance_id()
         self.image_id = image_id
-        self._state = InstanceState()
+        self._state = InstanceState("running", 16)
         self.user_data = user_data
 
     def start(self):
-        self._state.name = "pending"
-        self._state.code = 0
+        self._state.name = "running"
+        self._state.code = 16
 
     def stop(self):
-        self._state.name = "stopping"
-        self._state.code = 64
+        self._state.name = "stopped"
+        self._state.code = 80
 
     def terminate(self):
-        self._state.name = "shutting-down"
-        self._state.code = 32
+        self._state.name = "terminated"
+        self._state.code = 48
 
     def reboot(self):
-        self._state.name = "pending"
-        self._state.code = 0
+        self._state.name = "running"
+        self._state.code = 16
 
     def get_tags(self):
         tags = ec2_backend.describe_tags(self.id)

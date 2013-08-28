@@ -7,7 +7,10 @@ from moto.ec2.utils import instance_ids_from_querystring
 class AmisResponse(object):
     def create_image(self):
         name = self.querystring.get('Name')[0]
-        description = self.querystring.get('Description')[0]
+        if "Description" in self.querystring:
+            description = self.querystring.get('Description')[0]
+        else:
+            description = ""
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
         image = ec2_backend.create_image(instance_id, name, description)

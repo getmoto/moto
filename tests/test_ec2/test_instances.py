@@ -35,6 +35,7 @@ def test_instance_launch_and_terminate():
     reservation.should.be.a(Reservation)
     reservation.instances.should.have.length_of(1)
     instance = reservation.instances[0]
+    instance.state.should.equal('pending')
 
     reservations = conn.get_all_instances()
     reservations.should.have.length_of(1)
@@ -42,13 +43,13 @@ def test_instance_launch_and_terminate():
     instances = reservations[0].instances
     instances.should.have.length_of(1)
     instances[0].id.should.equal(instance.id)
-    instances[0].state.should.equal('pending')
+    instances[0].state.should.equal('running')
 
     conn.terminate_instances([instances[0].id])
 
     reservations = conn.get_all_instances()
     instance = reservations[0].instances[0]
-    instance.state.should.equal('shutting-down')
+    instance.state.should.equal('terminated')
 
 
 @mock_ec2
@@ -85,18 +86,18 @@ def test_get_instances_filtering_by_state():
 
     conn.terminate_instances([instance1.id])
 
-    reservations = conn.get_all_instances(filters={'instance-state-name': 'pending'})
+    reservations = conn.get_all_instances(filters={'instance-state-name': 'running'})
     reservations.should.have.length_of(1)
     # Since we terminated instance1, only instance2 and instance3 should be returned
     instance_ids = [instance.id for instance in reservations[0].instances]
     set(instance_ids).should.equal(set([instance2.id, instance3.id]))
 
-    reservations = conn.get_all_instances([instance2.id], filters={'instance-state-name': 'pending'})
+    reservations = conn.get_all_instances([instance2.id], filters={'instance-state-name': 'running'})
     reservations.should.have.length_of(1)
     instance_ids = [instance.id for instance in reservations[0].instances]
     instance_ids.should.equal([instance2.id])
 
-    reservations = conn.get_all_instances([instance2.id], filters={'instance-state-name': 'terminating'})
+    reservations = conn.get_all_instances([instance2.id], filters={'instance-state-name': 'terminated'})
     list(reservations).should.equal([])
 
     # get_all_instances should still return all 3
