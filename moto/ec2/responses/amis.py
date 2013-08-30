@@ -1,7 +1,7 @@
 from jinja2 import Template
 
 from moto.ec2.models import ec2_backend
-from moto.ec2.utils import instance_ids_from_querystring
+from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring
 
 
 class AmisResponse(object):
@@ -33,7 +33,8 @@ class AmisResponse(object):
         raise NotImplementedError('AMIs.describe_image_attribute is not yet implemented')
 
     def describe_images(self):
-        images = ec2_backend.describe_images()
+        ami_ids = image_ids_from_querystring(self.querystring)
+        images = ec2_backend.describe_images(ami_ids=ami_ids)
         template = Template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 

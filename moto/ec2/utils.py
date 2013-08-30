@@ -54,6 +54,14 @@ def instance_ids_from_querystring(querystring_dict):
     return instance_ids
 
 
+def image_ids_from_querystring(querystring_dict):
+    image_ids = []
+    for key, value in querystring_dict.iteritems():
+        if 'ImageId' in key:
+            image_ids.append(value[0])
+    return image_ids
+
+
 def resource_ids_from_querystring(querystring_dict):
     prefix = 'ResourceId'
     response_values = {}

@@ -215,8 +215,12 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(self):
-        return self.amis.values()
+    def describe_images(self, ami_ids=None):
+        if ami_ids:
+            images = [image for image in self.amis.values() if image.id in ami_ids]
+        else:
+            images = self.amis.values()
+        return images
 
     def deregister_image(self, ami_id):
         if ami_id in self.amis:
