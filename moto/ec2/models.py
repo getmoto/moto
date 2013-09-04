@@ -15,6 +15,9 @@ from .utils import (
     random_subnet_id,
     random_volume_id,
     random_vpc_id,
+    random_eip_association_id,
+    random_eip_allocation_id,
+    random_ip,
 )
 
 
@@ -575,9 +578,92 @@ class SpotRequestBackend(object):
         return requests
 
 
+class ElasticAddress():
+    def __init__(self, domain):
+        self.public_ip = random_ip()
+        self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
+        self.domain = domain
+        self.instance = None
+        self.association_id = None
+
+
+class ElasticAddressBackend(object):
+
+    def __init__(self):
+        self.addresses = []
+        super(ElasticAddressBackend, self).__init__()
+
+    def allocate_address(self, domain):
+        address = ElasticAddress(domain)
+        self.addresses.append(address)
+        return address
+
+    def address_by_ip(self, ips):
+        return [address for address in self.addresses
+                if address.public_ip in ips]
+
+    def address_by_allocation(self, allocation_ids):
+        return [address for address in self.addresses
+                if address.allocation_id in allocation_ids]
+
+    def address_by_association(self, association_ids):
+        return [address for address in self.addresses
+                if address.association_id in association_ids]
+
+    def associate_address(self, instance, address=None, allocation_id=None, reassociate=False):
+        eips = []
+        if address:
+            eips = self.address_by_ip([address])
+        elif allocation_id:
+            eips = self.address_by_allocation([allocation_id])
+        eip = eips[0] if len(eips) > 0 else None
+
+        if eip and eip.instance is None or reassociate:
+            eip.instance = instance
+            if eip.domain == "vpc":
+                eip.association_id = random_eip_association_id()
+            return eip
+        else:
+            return None
+
+    def describe_addresses(self):
+        return self.addresses
+
+    def disassociate_address(self, address=None, association_id=None):
+        eips = []
+        if address:
+            eips = self.address_by_ip([address])
+        elif association_id:
+            eips = self.address_by_association([association_id])
+
+        if eips:
+            eip = eips[0]
+            eip.instance = None
+            eip.association_id = None
+            return True
+        else:
+            return False
+
+    def release_address(self, address=None, allocation_id=None):
+        eips = []
+        if address:
+            eips = self.address_by_ip([address])
+        elif allocation_id:
+            eips = self.address_by_allocation([allocation_id])
+
+        if eips:
+            eip = eips[0]
+            self.disassociate_address(address=eip.public_ip)
+            eip.allocation_id = None
+            self.addresses.remove(eip)
+            return True
+        else:
+            return False
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
-                 VPCBackend, SubnetBackend, SpotRequestBackend):
+                 VPCBackend, SubnetBackend, SpotRequestBackend, ElasticAddressBackend):
     pass
 
 
