@@ -1,4 +1,9 @@
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
+try:
+    from collections import OrderedDict
+except ImportError:
+    # Use backport for python 2.6 or earlier
+    from ordereddict import OrderedDict
 import datetime
 import json
 
