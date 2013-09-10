@@ -4,6 +4,7 @@ from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 import sure  # noqa
 
 from moto import mock_autoscaling
+from tests.helpers import requires_boto_gte
 
 
 @mock_autoscaling
@@ -36,6 +37,21 @@ def test_create_launch_configuration():
     launch_config.ebs_optimized.should.equal(True)
 
 
+@requires_boto_gte("2.12")
+@mock_autoscaling
+def test_create_launch_configuration_for_2_12():
+    conn = boto.connect_autoscale()
+    config = LaunchConfiguration(
+        name='tester',
+        image_id='ami-abcd1234',
+        ebs_optimized=True,
+    )
+    conn.create_launch_configuration(config)
+
+    launch_config = conn.get_all_launch_configurations()[0]
+    launch_config.ebs_optimized.should.equal(True)
+
+
 @mock_autoscaling
 def test_create_launch_configuration_defaults():
     """ Test with the minimum inputs and check that all of the proper defaults
@@ -60,6 +76,21 @@ def test_create_launch_configuration_defaults():
     launch_config.instance_monitoring.enabled.should.equal('false')
     launch_config.instance_profile_name.should.equal(None)
     launch_config.spot_price.should.equal(None)
+    launch_config.ebs_optimized.should.equal(False)
+
+
+@requires_boto_gte("2.12")
+@mock_autoscaling
+def test_create_launch_configuration_defaults_for_2_12():
+    conn = boto.connect_autoscale()
+    config = LaunchConfiguration(
+        name='tester',
+        image_id='ami-abcd1234',
+        ebs_optimized=True,
+    )
+    conn.create_launch_configuration(config)
+
+    launch_config = conn.get_all_launch_configurations()[0]
     launch_config.ebs_optimized.should.equal(False)
 
 
