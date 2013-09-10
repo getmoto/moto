@@ -47,6 +47,7 @@ class MockAWS(object):
                 result = func(*args, **kwargs)
             return result
         functools.update_wrapper(wrapper, func)
+        wrapper.__wrapped__ = func
         return wrapper
 
 
