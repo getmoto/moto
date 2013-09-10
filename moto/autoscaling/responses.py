@@ -33,6 +33,7 @@ class AutoScalingResponse(BaseResponse):
             instance_monitoring=instance_monitoring,
             instance_profile_name=self._get_param('IamInstanceProfile'),
             spot_price=self._get_param('SpotPrice'),
+            ebs_optimized=self._get_param('EbsOptimized'),
         )
         template = Template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
@@ -178,6 +179,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
             <KeyName/>
           {% endif %}
           <RamdiskId/>
+          <EbsOptimized>{{ launch_configuration.ebs_optimized }}</EbsOptimized>
           <InstanceMonitoring>
             <Enabled>{{ launch_configuration.instance_monitoring_enabled }}</Enabled>
           </InstanceMonitoring>

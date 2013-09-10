@@ -29,7 +29,7 @@ class FakeScalingPolicy(object):
 class FakeLaunchConfiguration(object):
     def __init__(self, name, image_id, key_name, security_groups, user_data,
                  instance_type, instance_monitoring, instance_profile_name,
-                 spot_price):
+                 spot_price, ebs_optimized):
         self.name = name
         self.image_id = image_id
         self.key_name = key_name
@@ -39,6 +39,7 @@ class FakeLaunchConfiguration(object):
         self.instance_monitoring = instance_monitoring
         self.instance_profile_name = instance_profile_name
         self.spot_price = spot_price
+        self.ebs_optimized = ebs_optimized
 
     @property
     def instance_monitoring_enabled(self):
@@ -126,7 +127,7 @@ class AutoScalingBackend(BaseBackend):
     def create_launch_configuration(self, name, image_id, key_name,
                                     security_groups, user_data, instance_type,
                                     instance_monitoring, instance_profile_name,
-                                    spot_price):
+                                    spot_price, ebs_optimized):
         launch_configuration = FakeLaunchConfiguration(
             name=name,
             image_id=image_id,
@@ -137,6 +138,7 @@ class AutoScalingBackend(BaseBackend):
             instance_monitoring=instance_monitoring,
             instance_profile_name=instance_profile_name,
             spot_price=spot_price,
+            ebs_optimized=ebs_optimized,
         )
         self.launch_configurations[name] = launch_configuration
         return launch_configuration
