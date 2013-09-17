@@ -13,4 +13,3 @@ def test_elb_describe_instances():
     res = test_client.get('/?Action=DescribeLoadBalancers')
 
     res.data.should.contain('DescribeLoadBalancersResponse')
-    res.data.should.contain('LoadBalancerName')

@@ -20,7 +20,6 @@ def test_create_launch_configuration():
         instance_monitoring=True,
         instance_profile_name='arn:aws:iam::123456789012:instance-profile/testing',
         spot_price=0.1,
-        ebs_optimized=True,
     )
     conn.create_launch_configuration(config)
 
@@ -34,7 +33,6 @@ def test_create_launch_configuration():
     launch_config.instance_monitoring.enabled.should.equal('true')
     launch_config.instance_profile_name.should.equal('arn:aws:iam::123456789012:instance-profile/testing')
     launch_config.spot_price.should.equal(0.1)
-    launch_config.ebs_optimized.should.equal(True)
 
 
 @requires_boto_gte("2.12")
@@ -86,7 +84,6 @@ def test_create_launch_configuration_defaults_for_2_12():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        ebs_optimized=True,
     )
     conn.create_launch_configuration(config)
 

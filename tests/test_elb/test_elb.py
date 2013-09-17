@@ -70,7 +70,8 @@ def test_create_health_check():
         timeout=23,
     )
 
-    lb = conn.create_load_balancer('my-lb', [], [])
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
     lb.configure_health_check(hc)
 
     balancer = conn.get_all_load_balancers()[0]
@@ -91,7 +92,8 @@ def test_register_instances():
     instance_id2 = reservation.instances[1].id
 
     conn = boto.connect_elb()
-    lb = conn.create_load_balancer('my-lb', [], [])
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
 
     lb.register_instances([instance_id1, instance_id2])
 
@@ -109,7 +111,8 @@ def test_deregister_instances():
     instance_id2 = reservation.instances[1].id
 
     conn = boto.connect_elb()
-    lb = conn.create_load_balancer('my-lb', [], [])
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
 
     lb.register_instances([instance_id1, instance_id2])
 

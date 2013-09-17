@@ -3,7 +3,11 @@ python:
   - 2.7
 env:
     matrix:
-      - BOTO_VERSION=2.9
+      #- BOTO_VERSION=2.13.3
+      - BOTO_VERSION=2.12.0
+      - BOTO_VERSION=2.11.0
+      - BOTO_VERSION=2.10.0
+      - BOTO_VERSION=2.9.9
       - BOTO_VERSION=2.8
       - BOTO_VERSION=2.7
 install:
