@@ -9,7 +9,7 @@ def bucket_name_from_url(url):
     domain = urlparse.urlparse(url).netloc
 
     # If 'www' prefixed, strip it.
-    domain = domain.lstrip("www.")
+    domain = domain.replace("www.", "")
 
     if 'amazonaws.com' in domain:
         bucket_result = bucket_name_regex.search(domain)
