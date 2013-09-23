@@ -8,8 +8,8 @@ bucket_name_regex = re.compile("(.+).s3.amazonaws.com")
 def bucket_name_from_url(url):
     domain = urlparse.urlparse(url).netloc
 
-    # If 'www' prefixed, strip it.
-    domain = domain.replace("www.", "")
+    if domain.startswith('www.'):
+        domain = domain[4:]
 
     if 'amazonaws.com' in domain:
         bucket_result = bucket_name_regex.search(domain)
