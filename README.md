@@ -37,10 +37,13 @@ from mymodule import MyModel
 
 @mock_s3
 def test_my_model_save():
+    conn = boto.connect_s3()
+    # We need to create the bucket since this is all in Moto's 'virtual' AWS account
+    conn.create_bucket('mybucket')
+
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn = boto.connect_s3()
     assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
 ```
 
