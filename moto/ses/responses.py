@@ -36,7 +36,10 @@ class EmailResponse(BaseResponse):
         return template.render()
 
     def send_email(self):
-        body = self.querystring.get('Message.Body.Text.Data')[0]
+        bodydatakey = 'Message.Body.Text.Data'
+        if 'Message.Body.Html.Data' in self.querystring:
+            bodydatakey = 'Message.Body.Html.Data'
+        body = self.querystring.get(bodydatakey)[0]
         source = self.querystring.get('Source')[0]
         subject = self.querystring.get('Message.Subject.Data')[0]
         destination = self.querystring.get('Destination.ToAddresses.member.1')[0]
