@@ -79,12 +79,12 @@ def _bucket_response(request, full_url, headers):
             for kv in request.body.split('&'):
                 k, v = kv.split('=')
                 form[k] = v
-                
+
         key = form['key']
         f = form['file']
-            
+
         new_key = s3_backend.set_key(bucket_name, key, f)
-        
+
         #Metadata
         meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
         for form_id in form:
@@ -130,7 +130,7 @@ def _key_response(request, full_url, headers):
     if method == 'PUT':
         if 'x-amz-copy-source' in request.headers:
             # Copy key
-            src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/")
+            src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/",2)
             s3_backend.copy_key(src_bucket, src_key, bucket_name, key_name)
             template = Template(S3_OBJECT_COPY_RESPONSE)
             return template.render(key=src_key)
@@ -146,7 +146,7 @@ def _key_response(request, full_url, headers):
             # Initial data
             new_key = s3_backend.set_key(bucket_name, key_name, body)
             request.streaming = True
-            
+
             #Metadata
             meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
             for header in request.headers:
