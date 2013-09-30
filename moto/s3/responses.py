@@ -187,7 +187,7 @@ def _key_response(request, full_url, headers):
             response = template.render(
                 bucket_name=bucket_name,
                 key_name=key_name,
-                multipart_id=multipart.id,
+                upload_id=multipart.id,
             )
             return 200, headers, response
 
