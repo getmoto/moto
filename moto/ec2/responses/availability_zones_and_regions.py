@@ -4,9 +4,6 @@ from moto.ec2.models import ec2_backend
 
 
 class AvailabilityZonesAndRegions(object):
-    def __init__(self, querystring):
-        self.querystring = querystring
-
     def describe_availability_zones(self):
         zones = ec2_backend.describe_availability_zones()
         template = Template(DESCRIBE_ZONES_RESPONSE)

@@ -4,9 +4,6 @@ from moto.ec2.models import ec2_backend
 
 
 class Subnets(object):
-    def __init__(self, querystring):
-        self.querystring = querystring
-
     def create_subnet(self):
         vpc_id = self.querystring.get('VpcId')[0]
         cidr_block = self.querystring.get('CidrBlock')[0]

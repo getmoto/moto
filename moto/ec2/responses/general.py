@@ -5,11 +5,8 @@ from moto.ec2.utils import instance_ids_from_querystring
 
 
 class General(object):
-    def __init__(self, querystring):
-        self.querystring = querystring
-        self.instance_ids = instance_ids_from_querystring(querystring)
-
     def get_console_output(self):
+        self.instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = self.instance_ids[0]
         instance = ec2_backend.get_instance(instance_id)
         if instance:

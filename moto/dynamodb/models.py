@@ -102,6 +102,10 @@ class Table(object):
         self.items = defaultdict(dict)
 
     @property
+    def has_range_key(self):
+        return self.range_key_attr is not None
+
+    @property
     def describe(self):
         results = {
             "Table": {
@@ -122,7 +126,7 @@ class Table(object):
                 "TableSizeBytes": 0,
             }
         }
-        if self.range_key_attr:
+        if self.has_range_key:
             results["Table"]["KeySchema"]["RangeKeyElement"] = {
                 "AttributeName": self.range_key_attr,
                 "AttributeType": self.range_key_type
@@ -132,7 +136,7 @@ class Table(object):
     def __len__(self):
         count = 0
         for key, value in self.items.iteritems():
-            if self.range_key_attr:
+            if self.has_range_key:
                 count += len(value)
             else:
                 count += 1
@@ -143,7 +147,7 @@ class Table(object):
 
     def put_item(self, item_attrs):
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))
-        if self.range_key_attr:
+        if self.has_range_key:
             range_value = DynamoType(item_attrs.get(self.range_key_attr))
         else:
             range_value = None
@@ -157,6 +161,8 @@ class Table(object):
         return item
 
     def get_item(self, hash_key, range_key):
+        if self.has_range_key and not range_key:
+            raise ValueError("Table has a range key, but no range key was passed into get_item")
         try:
             if range_key:
                 return self.items[hash_key][range_key]

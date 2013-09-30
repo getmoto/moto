@@ -2,42 +2,57 @@ from jinja2 import Template
 
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.models import ec2_backend
-from moto.ec2.utils import instance_ids_from_querystring
+from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations
+from moto.ec2.exceptions import InvalidIdError
 
 
 class InstanceResponse(object):
-    def __init__(self, querystring):
-        self.querystring = querystring
-        self.instance_ids = instance_ids_from_querystring(querystring)
-
     def describe_instances(self):
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        if instance_ids:
+            try:
+                reservations = ec2_backend.get_reservations_by_instance_ids(instance_ids)
+            except InvalidIdError as exc:
+                template = Template(EC2_INVALID_INSTANCE_ID)
+                return template.render(instance_id=exc.instance_id), dict(status=400)
+        else:
+            reservations = ec2_backend.all_reservations(make_copy=True)
+
+        filter_dict = filters_from_querystring(self.querystring)
+        reservations = filter_reservations(reservations, filter_dict)
+
         template = Template(EC2_DESCRIBE_INSTANCES)
-        return template.render(reservations=ec2_backend.all_reservations())
+        return template.render(reservations=reservations)
 
     def run_instances(self):
         min_count = int(self.querystring.get('MinCount', ['1'])[0])
         image_id = self.querystring.get('ImageId')[0]
-        new_reservation = ec2_backend.add_instances(image_id, min_count)
+        user_data = self.querystring.get('UserData')
+        new_reservation = ec2_backend.add_instances(image_id, min_count, user_data)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
     def terminate_instances(self):
-        instances = ec2_backend.terminate_instances(self.instance_ids)
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instances = ec2_backend.terminate_instances(instance_ids)
         template = Template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
 
     def reboot_instances(self):
-        instances = ec2_backend.reboot_instances(self.instance_ids)
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instances = ec2_backend.reboot_instances(instance_ids)
         template = Template(EC2_REBOOT_INSTANCES)
         return template.render(instances=instances)
 
     def stop_instances(self):
-        instances = ec2_backend.stop_instances(self.instance_ids)
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instances = ec2_backend.stop_instances(instance_ids)
         template = Template(EC2_STOP_INSTANCES)
         return template.render(instances=instances)
 
     def start_instances(self):
-        instances = ec2_backend.start_instances(self.instance_ids)
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instances = ec2_backend.start_instances(instance_ids)
         template = Template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
@@ -45,7 +60,8 @@ class InstanceResponse(object):
         # TODO this and modify below should raise IncorrectInstanceState if instance not in stopped state
         attribute = self.querystring.get("Attribute")[0]
         key = camelcase_to_underscores(attribute)
-        instance_id = self.instance_ids[0]
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_id = instance_ids[0]
         instance, value = ec2_backend.describe_instance_attribute(instance_id, key)
         template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
         return template.render(instance=instance, attribute=attribute, value=value)
@@ -57,7 +73,8 @@ class InstanceResponse(object):
 
         value = self.querystring.get(key)[0]
         normalized_attribute = camelcase_to_underscores(key.split(".")[0])
-        instance_id = self.instance_ids[0]
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_id = instance_ids[0]
         ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
@@ -78,8 +95,8 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <instanceId>{{ instance.id }}</instanceId>
           <imageId>{{ instance.image_id }}</imageId>
           <instanceState>
-            <code>{{ instance._state_code }}</code>
-            <name>{{ instance._state_name }}</name>
+            <code>{{ instance._state.code }}</code>
+            <name>{{ instance._state.name }}</name>
           </instanceState>
           <privateDnsName/>
           <dnsName/>
@@ -130,8 +147,8 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <instanceId>{{ instance.id }}</instanceId>
                     <imageId>{{ instance.image_id }}</imageId>
                     <instanceState>
-                      <code>{{ instance._state_code }}</code>
-                      <name>{{ instance._state_name }}</name>
+                      <code>{{ instance._state.code }}</code>
+                      <name>{{ instance._state.name }}</name>
                     </instanceState>
                     <privateDnsName/>
                     <dnsName/>
@@ -167,7 +184,16 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <blockDeviceMapping />
                     <virtualizationType>hvm</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
-                    <tagSet />
+                    <tagSet>
+                      {% for tag in instance.get_tags() %}
+                        <item>
+                          <resourceId>{{ tag.resource_id }}</resourceId>
+                          <resourceType>{{ tag.resource_type }}</resourceType>
+                          <key>{{ tag.key }}</key>
+                          <value>{{ tag.value }}</value>
+                        </item>
+                      {% endfor %}
+                    </tagSet>
                     <hypervisor>xen</hypervisor>
                     <networkInterfaceSet />
                   </item>
@@ -190,8 +216,8 @@ EC2_TERMINATE_INSTANCES = """
           <name>running</name>
         </previousState>
         <currentState>
-          <code>{{ instance._state_code }}</code>
-          <name>{{ instance._state_name }}</name>
+          <code>{{ instance._state.code }}</code>
+          <name>{{ instance._state.name }}</name>
         </currentState>
       </item>
     {% endfor %}
@@ -210,8 +236,8 @@ EC2_STOP_INSTANCES = """
           <name>running</name>
         </previousState>
         <currentState>
-          <code>{{ instance._state_code }}</code>
-          <name>{{ instance._state_name }}</name>
+          <code>{{ instance._state.code }}</code>
+          <name>{{ instance._state.name }}</name>
         </currentState>
       </item>
     {% endfor %}
@@ -230,8 +256,8 @@ EC2_START_INSTANCES = """
           <name>running</name>
         </previousState>
         <currentState>
-          <code>{{ instance._state_code }}</code>
-          <name>{{ instance._state_name }}</name>
+          <code>{{ instance._state.code }}</code>
+          <name>{{ instance._state.name }}</name>
         </currentState>
       </item>
     {% endfor %}
@@ -255,3 +281,10 @@ EC2_MODIFY_INSTANCE_ATTRIBUTE = """<ModifyInstanceAttributeResponse xmlns="http:
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </ModifyInstanceAttributeResponse>"""
+
+
+EC2_INVALID_INSTANCE_ID = """<?xml version="1.0" encoding="UTF-8"?>
+<Response><Errors><Error><Code>InvalidInstanceID.NotFound</Code>
+<Message>The instance ID '{{ instance_id }}' does not exist</Message></Error>
+</Errors>
+<RequestID>39070fe4-6f6d-4565-aecd-7850607e4555</RequestID></Response>"""

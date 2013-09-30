@@ -1,7 +1,6 @@
 from jinja2 import Template
 
 from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
 
 
 def process_rules_from_querystring(querystring):
@@ -22,9 +21,6 @@ def process_rules_from_querystring(querystring):
 
 
 class SecurityGroups(object):
-    def __init__(self, querystring):
-        self.querystring = querystring
-
     def authorize_security_group_egress(self):
         raise NotImplementedError('SecurityGroups.authorize_security_group_egress is not yet implemented')
 

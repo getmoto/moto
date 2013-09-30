@@ -1,12 +1,10 @@
 import boto
-import sure  # flake8: noqa
-from freezegun import freeze_time
+import sure  # noqa
 import requests
 
 from moto import mock_dynamodb
 from moto.dynamodb import dynamodb_backend
 
-from boto.dynamodb import condition
 from boto.exception import DynamoDBResponseError
 
 
@@ -43,3 +41,12 @@ def test_sts_handler():
     res = requests.post("https://sts.amazonaws.com/", data={"GetSessionToken": ""})
     res.ok.should.be.ok
     res.text.should.contain("SecretAccessKey")
+
+
+@mock_dynamodb
+def test_dynamodb_with_connect_to_region():
+    # this will work if connected with boto.connect_dynamodb()
+    dynamodb = boto.dynamodb.connect_to_region('us-west-2')
+
+    schema = dynamodb.create_schema('column1', str(), 'column2', int())
+    dynamodb.create_table('table1', schema, 200, 200)

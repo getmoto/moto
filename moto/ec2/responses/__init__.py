@@ -1,6 +1,4 @@
-from urlparse import parse_qs
-
-from moto.core.utils import camelcase_to_underscores, method_names_from_class
+from moto.core.responses import BaseResponse
 
 from .amazon_dev_pay import AmazonDevPay
 from .amis import AmisResponse
@@ -32,53 +30,35 @@ from .vpn_connections import VPNConnections
 from .windows import Windows
 
 
-class EC2Response(object):
-
-    sub_responses = [
-        AmazonDevPay,
-        AmisResponse,
-        AvailabilityZonesAndRegions,
-        CustomerGateways,
-        DHCPOptions,
-        ElasticBlockStore,
-        ElasticIPAddresses,
-        ElasticNetworkInterfaces,
-        General,
-        InstanceResponse,
-        InternetGateways,
-        IPAddresses,
-        KeyPairs,
-        Monitoring,
-        NetworkACLs,
-        PlacementGroups,
-        ReservedInstances,
-        RouteTables,
-        SecurityGroups,
-        SpotInstances,
-        Subnets,
-        TagResponse,
-        VirtualPrivateGateways,
-        VMExport,
-        VMImport,
-        VPCs,
-        VPNConnections,
-        Windows,
-    ]
-
-    def dispatch(self, uri, method, body, headers):
-        if body:
-            querystring = parse_qs(body)
-        else:
-            querystring = parse_qs(headers)
-
-        action = querystring.get('Action', [None])[0]
-        if action:
-            action = camelcase_to_underscores(action)
-
-        for sub_response in self.sub_responses:
-            method_names = method_names_from_class(sub_response)
-            if action in method_names:
-                response = sub_response(querystring)
-                method = getattr(response, action)
-                return method()
-        raise NotImplementedError("The {} action has not been implemented".format(action))
+class EC2Response(
+    BaseResponse,
+    AmazonDevPay,
+    AmisResponse,
+    AvailabilityZonesAndRegions,
+    CustomerGateways,
+    DHCPOptions,
+    ElasticBlockStore,
+    ElasticIPAddresses,
+    ElasticNetworkInterfaces,
+    General,
+    InstanceResponse,
+    InternetGateways,
+    IPAddresses,
+    KeyPairs,
+    Monitoring,
+    NetworkACLs,
+    PlacementGroups,
+    ReservedInstances,
+    RouteTables,
+    SecurityGroups,
+    SpotInstances,
+    Subnets,
+    TagResponse,
+    VirtualPrivateGateways,
+    VMExport,
+    VMImport,
+    VPCs,
+    VPNConnections,
+    Windows,
+):
+    pass

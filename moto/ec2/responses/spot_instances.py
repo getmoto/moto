@@ -1,12 +1,25 @@
 from jinja2 import Template
 
 from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
 
 
 class SpotInstances(object):
+    def _get_param(self, param_name):
+        return self.querystring.get(param_name, [None])[0]
+
+    def _get_int_param(self, param_name):
+        value = self._get_param(param_name)
+        if value is not None:
+            return int(value)
+
+    def _get_multi_param(self, param_prefix):
+        return [value[0] for key, value in self.querystring.items() if key.startswith(param_prefix)]
+
     def cancel_spot_instance_requests(self):
-        raise NotImplementedError('SpotInstances.cancel_spot_instance_requests is not yet implemented')
+        request_ids = self._get_multi_param('SpotInstanceRequestId')
+        requests = ec2_backend.cancel_spot_instance_requests(request_ids)
+        template = Template(CANCEL_SPOT_INSTANCES_TEMPLATE)
+        return template.render(requests=requests)
 
     def create_spot_datafeed_subscription(self):
         raise NotImplementedError('SpotInstances.create_spot_datafeed_subscription is not yet implemented')
@@ -18,10 +31,186 @@ class SpotInstances(object):
         raise NotImplementedError('SpotInstances.describe_spot_datafeed_subscription is not yet implemented')
 
     def describe_spot_instance_requests(self):
-        raise NotImplementedError('SpotInstances.describe_spot_instance_requests is not yet implemented')
+        requests = ec2_backend.describe_spot_instance_requests()
+        template = Template(DESCRIBE_SPOT_INSTANCES_TEMPLATE)
+        return template.render(requests=requests)
 
     def describe_spot_price_history(self):
         raise NotImplementedError('SpotInstances.describe_spot_price_history is not yet implemented')
 
     def request_spot_instances(self):
-        raise NotImplementedError('SpotInstances.request_spot_instances is not yet implemented')
+        price = self._get_param('SpotPrice')
+        image_id = self._get_param('LaunchSpecification.ImageId')
+        count = self._get_int_param('InstanceCount')
+        type = self._get_param('Type')
+        valid_from = self._get_param('ValidFrom')
+        valid_until = self._get_param('ValidUntil')
+        launch_group = self._get_param('LaunchGroup')
+        availability_zone_group = self._get_param('AvailabilityZoneGroup')
+        key_name = self._get_param('LaunchSpecification.KeyName')
+        security_groups = self._get_multi_param('LaunchSpecification.SecurityGroup.')
+        user_data = self._get_param('LaunchSpecification.UserData')
+        instance_type = self._get_param('LaunchSpecification.InstanceType')
+        placement = self._get_param('LaunchSpecification.Placement.AvailabilityZone')
+        kernel_id = self._get_param('LaunchSpecification.KernelId')
+        ramdisk_id = self._get_param('LaunchSpecification.RamdiskId')
+        monitoring_enabled = self._get_param('LaunchSpecification.Monitoring.Enabled')
+        subnet_id = self._get_param('LaunchSpecification.SubnetId')
+
+        requests = ec2_backend.request_spot_instances(
+            price=price,
+            image_id=image_id,
+            count=count,
+            type=type,
+            valid_from=valid_from,
+            valid_until=valid_until,
+            launch_group=launch_group,
+            availability_zone_group=availability_zone_group,
+            key_name=key_name,
+            security_groups=security_groups,
+            user_data=user_data,
+            instance_type=instance_type,
+            placement=placement,
+            kernel_id=kernel_id,
+            ramdisk_id=ramdisk_id,
+            monitoring_enabled=monitoring_enabled,
+            subnet_id=subnet_id,
+        )
+
+        template = Template(REQUEST_SPOT_INSTANCES_TEMPLATE)
+        return template.render(requests=requests)
+
+
+REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-06-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <spotInstanceRequestSet>
+    {% for request in requests %}
+    <item>
+      <spotInstanceRequestId>{{ request.price }}</spotInstanceRequestId>
+      <spotPrice>{{ request.price }}</spotPrice>
+      <type>{{ request.type }}</type>
+      <state>{{ request.state }}</state>
+      <status>
+        <code>pending-evaluation</code>
+        <updateTime>YYYY-MM-DDTHH:MM:SS.000Z</updateTime>
+        <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
+      </status>
+      <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
+      <launchSpecification>
+        <imageId>{{ request.image_id }}</imageId>
+        <keyName>{{ request.key_name }}</keyName>
+        <groupSet>
+          {% for group in request.security_groups %}
+          <item>
+            <groupId>{{ group.id }}</groupId>
+            <groupName>{{ group.name }}</groupName>
+          </item>
+          {% endfor %}
+        </groupSet>
+        <kernelId>{{ request.kernel_id }}</kernelId>
+        <ramdiskId>{{ request.ramdisk_id }}</ramdiskId>
+        <subnetId>{{ request.subnet_id }}</subnetId>
+        <instanceType>{{ request.instance_type }}</instanceType>
+        <blockDeviceMapping/>
+        <monitoring>
+          <enabled>{{ request.monitoring_enabled }}</enabled>
+        </monitoring>
+        <ebsOptimized>{{ request.ebs_optimized }}</ebsOptimized>
+        <PlacementRequestType>
+          <availabilityZone>{{ request.placement }}</availabilityZone>
+          <groupName></groupName>
+        </PlacementRequestType>
+      </launchSpecification>
+      <launchGroup>{{ request.launch_group }}</launchGroup>
+      <createTime>YYYY-MM-DDTHH:MM:SS.000Z</createTime>
+      {% if request.valid_from %}
+      <validFrom>{{ request.valid_from }}</validFrom>
+      {% endif %}
+      {% if request.valid_until %}
+      <validUntil>{{ request.valid_until }}</validUntil>
+      {% endif %}
+      <productDescription>Linux/UNIX</productDescription>
+    </item>
+    {% endfor %}
+ </spotInstanceRequestSet>
+</RequestSpotInstancesResponse>"""
+
+DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2013-06-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <spotInstanceRequestSet>
+    {% for request in requests %}
+    <item>
+      <spotInstanceRequestId>{{ request.id }}</spotInstanceRequestId>
+      <spotPrice>{{ request.price }}</spotPrice>
+      <type>{{ request.type }}</type>
+      <state>{{ request.state }}</state>
+      <status>
+        <code>pending-evaluation</code>
+        <updateTime>YYYY-MM-DDTHH:MM:SS.000Z</updateTime>
+        <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
+      </status>
+      {% if request.availability_zone_group %}
+        <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
+      {% endif %}
+      <launchSpecification>
+        <imageId>{{ request.image_id }}</imageId>
+        {% if request.key_name %}
+          <keyName>{{ request.key_name }}</keyName>
+        {% endif %}
+        <groupSet>
+          {% for group in request.security_groups %}
+          <item>
+            <groupId>{{ group.id }}</groupId>
+            <groupName>{{ group.name }}</groupName>
+          </item>
+          {% endfor %}
+        </groupSet>
+        {% if request.kernel_id %}
+        <kernelId>{{ request.kernel_id }}</kernelId>
+        {% endif %}
+        {% if request.ramdisk_id %}
+        <ramdiskId>{{ request.ramdisk_id }}</ramdiskId>
+        {% endif %}
+        {% if request.subnet_id %}
+        <subnetId>{{ request.subnet_id }}</subnetId>
+        {% endif %}
+        <instanceType>{{ request.instance_type }}</instanceType>
+        <blockDeviceMapping/>
+        <monitoring>
+          <enabled>{{ request.monitoring_enabled }}</enabled>
+        </monitoring>
+        <ebsOptimized>{{ request.ebs_optimized }}</ebsOptimized>
+        {% if request.placement %}
+          <PlacementRequestType>
+            <availabilityZone>{{ request.placement }}</availabilityZone>
+            <groupName></groupName>
+          </PlacementRequestType>
+        {% endif %}
+      </launchSpecification>
+      {% if request.launch_group %}
+        <launchGroup>{{ request.launch_group }}</launchGroup>
+      {% endif %}
+        <createTime>YYYY-MM-DDTHH:MM:SS.000Z</createTime>
+      {% if request.valid_from %}
+        <validFrom>{{ request.valid_from }}</validFrom>
+      {% endif %}
+      {% if request.valid_until %}
+        <validUntil>{{ request.valid_until }}</validUntil>
+      {% endif %}
+      <productDescription>Linux/UNIX</productDescription>
+    </item>
+    {% endfor %}
+  </spotInstanceRequestSet>
+</DescribeSpotInstanceRequestsResponse>"""
+
+CANCEL_SPOT_INSTANCES_TEMPLATE = """<CancelSpotInstanceRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2013-06-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <spotInstanceRequestSet>
+    {% for request in requests %}
+    <item>
+      <spotInstanceRequestId>{{ request.id }}</spotInstanceRequestId>
+      <state>cancelled</state>
+    </item>
+    {% endfor %}
+  </spotInstanceRequestSet>
+</CancelSpotInstanceRequestsResponse>"""

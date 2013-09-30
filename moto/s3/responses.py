@@ -1,10 +1,10 @@
-from urlparse import parse_qs
+from urlparse import parse_qs, urlparse
+import re
 
 from jinja2 import Template
 
 from .models import s3_backend
-from moto.core.utils import headers_to_dict
-from .utils import bucket_name_from_hostname
+from .utils import bucket_name_from_url
 
 
 def all_buckets():
@@ -14,11 +14,22 @@ def all_buckets():
     return template.render(buckets=all_buckets)
 
 
-def bucket_response(uri, method, body, headers):
-    hostname = uri.hostname
-    querystring = parse_qs(uri.query)
+def bucket_response(request, full_url, headers):
+    response = _bucket_response(request, full_url, headers)
+    if isinstance(response, basestring):
+        return 200, headers, response
 
-    bucket_name = bucket_name_from_hostname(hostname)
+    else:
+        status_code, headers, response_content = response
+        return status_code, headers, response_content
+
+
+def _bucket_response(request, full_url, headers):
+    parsed_url = urlparse(full_url)
+    querystring = parse_qs(parsed_url.query)
+    method = request.method
+
+    bucket_name = bucket_name_from_url(full_url)
     if not bucket_name:
         # If no bucket specified, list all buckets
         return all_buckets()
@@ -27,16 +38,18 @@ def bucket_response(uri, method, body, headers):
         bucket = s3_backend.get_bucket(bucket_name)
         if bucket:
             prefix = querystring.get('prefix', [None])[0]
-            result_keys, result_folders = s3_backend.prefix_query(bucket, prefix)
+            delimiter = querystring.get('delimiter', [None])[0]
+            result_keys, result_folders = s3_backend.prefix_query(bucket, prefix, delimiter)
             template = Template(S3_BUCKET_GET_RESPONSE)
             return template.render(
                 bucket=bucket,
                 prefix=prefix,
+                delimiter=delimiter,
                 result_keys=result_keys,
                 result_folders=result_folders
             )
         else:
-            return "", dict(status=404)
+            return 404, headers, ""
     elif method == 'PUT':
         new_bucket = s3_backend.create_bucket(bucket_name)
         template = Template(S3_BUCKET_CREATE_RESPONSE)
@@ -46,34 +59,75 @@ def bucket_response(uri, method, body, headers):
         if removed_bucket is None:
             # Non-existant bucket
             template = Template(S3_DELETE_NON_EXISTING_BUCKET)
-            return template.render(bucket_name=bucket_name), dict(status=404)
+            return 404, headers, template.render(bucket_name=bucket_name)
         elif removed_bucket:
             # Bucket exists
             template = Template(S3_DELETE_BUCKET_SUCCESS)
-            return template.render(bucket=removed_bucket), dict(status=204)
+            return 204, headers, template.render(bucket=removed_bucket)
         else:
             # Tried to delete a bucket that still has keys
             template = Template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
-            return template.render(bucket=removed_bucket), dict(status=409)
+            return 409, headers, template.render(bucket=removed_bucket)
+    elif method == 'POST':
+        #POST to bucket-url should create file from form
+        if hasattr(request, 'form'):
+            #Not HTTPretty
+            form = request.form
+        else:
+            #HTTPretty, build new form object
+            form = {}
+            for kv in request.body.split('&'):
+                k, v = kv.split('=')
+                form[k] = v
+                
+        key = form['key']
+        f = form['file']
+            
+        new_key = s3_backend.set_key(bucket_name, key, f)
+        
+        #Metadata
+        meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+        for form_id in form:
+            result = meta_regex.match(form_id)
+            if result:
+                meta_key = result.group(0).lower()
+                metadata = form[form_id]
+                new_key.set_metadata(meta_key, metadata)
+        return 200, headers, ""
     else:
         raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
 
 
-def key_response(uri_info, method, body, headers):
+def key_response(request, full_url, headers):
+    response = _key_response(request, full_url, headers)
+    if isinstance(response, basestring):
+        return 200, headers, response
+    else:
+        status_code, headers, response_content = response
+        return status_code, headers, response_content
 
-    key_name = uri_info.path.lstrip('/')
-    hostname = uri_info.hostname
-    headers = headers_to_dict(headers)
-    query = parse_qs(uri_info.query)
 
-    bucket_name = bucket_name_from_hostname(hostname)
+def _key_response(request, full_url, headers):
+    parsed_url = urlparse(full_url)
+    method = request.method
+
+    key_name = parsed_url.path.lstrip('/')
+    query = parse_qs(parsed_url.query)
+    bucket_name = bucket_name_from_url(full_url)
+    if hasattr(request, 'body'):
+        # Boto
+        body = request.body
+    else:
+        # Flask server
+        body = request.data
 
     if method == 'GET':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
-            return key.value
+            headers.update(key.metadata)
+            return 200, headers, key.value
         else:
-            return "", dict(status=404)
+            return 404, headers, ""
     if method == 'PUT':
         if 'uploadId' in query and 'partNumber' in query and body:
             upload_id = query['uploadId'][0]
@@ -82,42 +136,52 @@ def key_response(uri_info, method, body, headers):
 
             return '', dict(etag=key.etag)
 
-        if 'x-amz-copy-source' in headers:
+        if 'x-amz-copy-source' in request.headers:
             # Copy key
-            src_bucket, src_key = headers.get("x-amz-copy-source").split("/")
+            src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/")
             s3_backend.copy_key(src_bucket, src_key, bucket_name, key_name)
             template = Template(S3_OBJECT_COPY_RESPONSE)
             return template.render(key=src_key)
-
-        if body is not None:
-            key = s3_backend.get_key(bucket_name, key_name)
-            if not key or body:
-                # We want to write the key in once of two circumstances.
-                # - The key does not currently exist.
-                # - The key already exists, but body is a truthy value.
-                # This allows us to write empty strings to keys for the first
-                # write, but not subsequent. This is because HTTPretty sends
-                # an empty string on connection close. This is a temporary fix
-                # while HTTPretty gets fixed.
-                new_key = s3_backend.set_key(bucket_name, key_name, body)
-                template = Template(S3_OBJECT_RESPONSE)
-                return template.render(key=new_key), dict(etag=new_key.etag)
-        key = s3_backend.get_key(bucket_name, key_name)
-        if key:
-            return "", dict(etag=key.etag)
+        streaming_request = hasattr(request, 'streaming') and request.streaming
+        closing_connection = headers.get('connection') == 'close'
+        if closing_connection and streaming_request:
+            # Closing the connection of a streaming request. No more data
+            new_key = s3_backend.get_key(bucket_name, key_name)
+        elif streaming_request:
+            # Streaming request, more data
+            new_key = s3_backend.append_to_key(bucket_name, key_name, body)
+        else:
+            # Initial data
+            new_key = s3_backend.set_key(bucket_name, key_name, body)
+            request.streaming = True
+            
+            #Metadata
+            meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+            for header in request.headers:
+                if isinstance(header, basestring):
+                    result = meta_regex.match(header)
+                    if result:
+                        meta_key = result.group(0).lower()
+                        metadata = request.headers[header]
+                        new_key.set_metadata(meta_key, metadata)
+        template = Template(S3_OBJECT_RESPONSE)
+        headers.update(new_key.response_dict)
+        return 200, headers, template.render(key=new_key)
     elif method == 'HEAD':
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
-            return S3_OBJECT_RESPONSE, dict(etag=key.etag)
+            headers.update(key.metadata)
+            headers.update(key.response_dict)
+            return 200, headers, ""
         else:
-            return "", dict(status=404)
+            return 404, headers, ""
     elif method == 'DELETE':
         removed_key = s3_backend.delete_key(bucket_name, key_name)
         template = Template(S3_DELETE_OBJECT_SUCCESS)
-        return template.render(bucket=removed_key), dict(status=204)
+        return 204, headers, template.render(bucket=removed_key)
     elif method == 'POST':
         import pdb; pdb.set_trace()
-        if body == '' and uri_info.query == 'uploads':
+        if body == '' and parsed_url.query == 'uploads':
             multipart = s3_backend.initiate_multipart(bucket_name, key_name)
             template = Template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(
@@ -125,7 +189,7 @@ def key_response(uri_info, method, body, headers):
                 key_name=key_name,
                 multipart_id=multipart.id,
             )
-            return response, dict()
+            return 200, headers, response
 
         if body == '' and 'uploadId' in query:
             upload_id = query['uploadId'][0]
@@ -164,12 +228,12 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <Name>{{ bucket.name }}</Name>
   <Prefix>{{ prefix }}</Prefix>
   <MaxKeys>1000</MaxKeys>
-  <Delimiter>/</Delimiter>
+  <Delimiter>{{ delimiter }}</Delimiter>
   <IsTruncated>false</IsTruncated>
   {% for key in result_keys %}
     <Contents>
       <Key>{{ key.name }}</Key>
-      <LastModified>2006-01-01T12:00:00.000Z</LastModified>
+      <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       <ETag>{{ key.etag }}</ETag>
       <Size>{{ key.size }}</Size>
       <StorageClass>STANDARD</StorageClass>
@@ -180,11 +244,13 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       <StorageClass>STANDARD</StorageClass>
     </Contents>
   {% endfor %}
-  {% for folder in result_folders %}
-    <CommonPrefixes>
-      <Prefix>{{ folder }}</Prefix>
-    </CommonPrefixes>
-  {% endfor %}
+  {% if delimiter %}
+    {% for folder in result_folders %}
+      <CommonPrefixes>
+        <Prefix>{{ folder }}</Prefix>
+      </CommonPrefixes>
+    {% endfor %}
+  {% endif %}
   </ListBucketResult>"""
 
 S3_BUCKET_CREATE_RESPONSE = """<CreateBucketResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
@@ -226,14 +292,14 @@ S3_DELETE_OBJECT_SUCCESS = """<DeleteObjectResponse xmlns="http://s3.amazonaws.c
 S3_OBJECT_RESPONSE = """<PutObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
       <PutObjectResponse>
         <ETag>{{ key.etag }}</ETag>
-        <LastModified>2006-03-01T12:00:00.183Z</LastModified>
+        <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       </PutObjectResponse>
     </PutObjectResponse>"""
 
 S3_OBJECT_COPY_RESPONSE = """<CopyObjectResponse xmlns="http://doc.s3.amazonaws.com/2006-03-01">
   <CopyObjectResponse>
     <ETag>{{ key.etag }}</ETag>
-    <LastModified>2008-02-18T13:54:10.183Z</LastModified>
+    <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
   </CopyObjectResponse>
 </CopyObjectResponse>"""
 

@@ -4,9 +4,10 @@ from io import BytesIO
 import boto
 from boto.exception import S3ResponseError
 from boto.s3.key import Key
+from freezegun import freeze_time
 import requests
 
-import sure  # flake8: noqa
+import sure  # noqa
 
 from moto import mock_s3
 
@@ -84,6 +85,31 @@ def test_empty_key():
 
 
 @mock_s3
+def test_empty_key_set_on_existing_key():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string("foobar")
+
+    bucket.get_key("the-key").get_contents_as_string().should.equal('foobar')
+
+    key.set_contents_from_string("")
+    bucket.get_key("the-key").get_contents_as_string().should.equal('')
+
+
+@mock_s3
+def test_large_key_save():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string("foobar" * 100000)
+
+    bucket.get_key("the-key").get_contents_as_string().should.equal('foobar' * 100000)
+
+
+@mock_s3
 def test_copy_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -98,39 +124,31 @@ def test_copy_key():
 
 
 @mock_s3
-def test_get_all_keys():
+def test_set_metadata():
     conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = 'the-key'
+    key.set_metadata('md', 'Metadatastring')
+    key.set_contents_from_string("Testval")
+
+    bucket.get_key('the-key').get_metadata('md').should.equal('Metadatastring')
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_s3
+def test_last_modified():
+    # See https://github.com/boto/boto/issues/466
+    conn = boto.connect_s3()
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
     key.key = "the-key"
     key.set_contents_from_string("some value")
 
-    key2 = Key(bucket)
-    key2.key = "folder/some-stuff"
-    key2.set_contents_from_string("some value")
+    rs = bucket.get_all_keys()
+    rs[0].last_modified.should.equal('2012-01-01T12:00:00Z')
 
-    key3 = Key(bucket)
-    key3.key = "folder/more-folder/foobar"
-    key3.set_contents_from_string("some value")
-
-    key4 = Key(bucket)
-    key4.key = "a-key"
-    key4.set_contents_from_string("some value")
-
-    keys = bucket.get_all_keys()
-    keys.should.have.length_of(3)
-
-    keys[0].name.should.equal("a-key")
-    keys[1].name.should.equal("the-key")
-
-    # Prefix
-    keys[2].name.should.equal("folder")
-
-    keys = bucket.get_all_keys(prefix="folder/")
-    keys.should.have.length_of(2)
-
-    keys[0].name.should.equal("folder/some-stuff")
-    keys[1].name.should.equal("folder/more-folder")
+    bucket.get_key("the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
 
 
 @mock_s3
@@ -178,10 +196,101 @@ def test_get_all_buckets():
 
 
 @mock_s3
+def test_post_to_bucket():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+
+    requests.post("https://foobar.s3.amazonaws.com/", {
+        'key': 'the-key',
+        'file': 'nothing'
+    })
+
+    bucket.get_key('the-key').get_contents_as_string().should.equal('nothing')
+
+
+@mock_s3
+def test_post_with_metadata_to_bucket():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+
+    requests.post("https://foobar.s3.amazonaws.com/", {
+        'key': 'the-key',
+        'file': 'nothing',
+        'x-amz-meta-test': 'metadata'
+    })
+
+    bucket.get_key('the-key').get_metadata('test').should.equal('metadata')
+
+
+@mock_s3
 def test_bucket_method_not_implemented():
-    requests.post.when.called_with("https://foobar.s3.amazonaws.com/").should.throw(NotImplementedError)
+    requests.patch.when.called_with("https://foobar.s3.amazonaws.com/").should.throw(NotImplementedError)
 
 
 @mock_s3
 def test_key_method_not_implemented():
     requests.post.when.called_with("https://foobar.s3.amazonaws.com/foo").should.throw(NotImplementedError)
+
+
+@mock_s3
+def test_bucket_name_with_dot():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('firstname.lastname')
+
+    k = Key(bucket, 'somekey')
+    k.set_contents_from_string('somedata')
+
+
+@mock_s3
+def test_key_with_special_characters():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket_name')
+
+    key = Key(bucket, 'test_list_keys_2/x?y')
+    key.set_contents_from_string('value1')
+
+    key_list = bucket.list('test_list_keys_2/', '/')
+    keys = [x for x in key_list]
+    keys[0].name.should.equal("test_list_keys_2/x?y")
+
+
+@mock_s3
+def test_bucket_key_listing_order():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+    prefix = 'toplevel/'
+
+    def store(name):
+        k = Key(bucket, prefix + name)
+        k.set_contents_from_string('somedata')
+
+    names = ['x/key', 'y.key1', 'y.key2', 'y.key3', 'x/y/key', 'x/y/z/key']
+
+    for name in names:
+        store(name)
+
+    delimiter = None
+    keys = [x.name for x in bucket.list(prefix, delimiter)]
+    keys.should.equal([
+        'toplevel/x/key', 'toplevel/x/y/key', 'toplevel/x/y/z/key',
+        'toplevel/y.key1', 'toplevel/y.key2', 'toplevel/y.key3'
+    ])
+
+    delimiter = '/'
+    keys = [x.name for x in bucket.list(prefix, delimiter)]
+    keys.should.equal([
+        'toplevel/y.key1', 'toplevel/y.key2', 'toplevel/y.key3', 'toplevel/x/'
+    ])
+
+    # Test delimiter with no prefix
+    delimiter = '/'
+    keys = [x.name for x in bucket.list(prefix=None, delimiter=delimiter)]
+    keys.should.equal(['toplevel'])
+
+    delimiter = None
+    keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
+    keys.should.equal([u'toplevel/x/key', u'toplevel/x/y/key', u'toplevel/x/y/z/key'])
+
+    delimiter = '/'
+    keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
+    keys.should.equal([u'toplevel/x/'])

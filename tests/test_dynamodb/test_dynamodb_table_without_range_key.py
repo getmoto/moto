@@ -1,11 +1,11 @@
 import boto
-import sure  # flake8: noqa
+import sure  # noqa
 from freezegun import freeze_time
 
 from moto import mock_dynamodb
-from moto.dynamodb import dynamodb_backend
 
 from boto.dynamodb import condition
+from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
 from boto.exception import DynamoDBResponseError
 
 
@@ -137,7 +137,7 @@ def test_get_missing_item():
 
     table.get_item.when.called_with(
         hash_key='tester',
-    ).should.throw(DynamoDBResponseError)
+    ).should.throw(DynamoDBKeyNotFoundError)
 
 
 @mock_dynamodb
@@ -149,7 +149,7 @@ def test_get_item_with_undeclared_table():
         key={
             'HashKeyElement': {'S': 'tester'},
         },
-    ).should.throw(DynamoDBResponseError)
+    ).should.throw(DynamoDBKeyNotFoundError)
 
 
 @mock_dynamodb
@@ -411,5 +411,6 @@ def test_batch_read():
     item.put()
 
     items = table.batch_get_item([('the-key1'), ('another-key')])
-    count = len([item for item in items])
-    count.should.equal(2)
+    # Iterate through so that batch_item gets called
+    count = len([x for x in items])
+    count.should.have.equal(2)

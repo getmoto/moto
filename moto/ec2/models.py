@@ -1,25 +1,56 @@
+import copy
 from collections import defaultdict
 
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 
 from moto.core import BaseBackend
+from .exceptions import InvalidIdError
 from .utils import (
     random_ami_id,
     random_instance_id,
     random_reservation_id,
     random_security_group_id,
     random_snapshot_id,
+    random_spot_request_id,
     random_subnet_id,
     random_volume_id,
     random_vpc_id,
 )
 
 
+class InstanceState(object):
+    def __init__(self, name='pending', code=0):
+        self.name = name
+        self.code = code
+
+
 class Instance(BotoInstance):
-    def __init__(self):
-        self._state_name = None
-        self._state_code = None
+    def __init__(self, image_id, user_data):
         super(Instance, self).__init__()
+        self.id = random_instance_id()
+        self.image_id = image_id
+        self._state = InstanceState()
+        self.user_data = user_data
+
+    def start(self):
+        self._state.name = "pending"
+        self._state.code = 0
+
+    def stop(self):
+        self._state.name = "stopping"
+        self._state.code = 64
+
+    def terminate(self):
+        self._state.name = "shutting-down"
+        self._state.code = 32
+
+    def reboot(self):
+        self._state.name = "pending"
+        self._state.code = 0
+
+    def get_tags(self):
+        tags = ec2_backend.describe_tags(self.id)
+        return tags
 
 
 class InstanceBackend(object):
@@ -33,15 +64,14 @@ class InstanceBackend(object):
             if instance.id == instance_id:
                 return instance
 
-    def add_instances(self, image_id, count):
+    def add_instances(self, image_id, count, user_data):
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
         for index in range(count):
-            new_instance = Instance()
-            new_instance.id = random_instance_id()
-            new_instance.image_id = image_id
-            new_instance._state_name = "pending"
-            new_instance._state_code = 0
+            new_instance = Instance(
+                image_id,
+                user_data,
+            )
             new_reservation.instances.append(new_instance)
         self.reservations[new_reservation.id] = new_reservation
         return new_reservation
@@ -50,8 +80,7 @@ class InstanceBackend(object):
         started_instances = []
         for instance in self.all_instances():
             if instance.id in instance_ids:
-                instance._state_name = "pending"
-                instance._state_code = 0
+                instance.start()
                 started_instances.append(instance)
 
         return started_instances
@@ -60,8 +89,7 @@ class InstanceBackend(object):
         stopped_instances = []
         for instance in self.all_instances():
             if instance.id in instance_ids:
-                instance._state_name = "stopping"
-                instance._state_code = 64
+                instance.stop()
                 stopped_instances.append(instance)
 
         return stopped_instances
@@ -70,8 +98,7 @@ class InstanceBackend(object):
         terminated_instances = []
         for instance in self.all_instances():
             if instance.id in instance_ids:
-                instance._state_name = "shutting-down"
-                instance._state_code = 32
+                instance.terminate()
                 terminated_instances.append(instance)
 
         return terminated_instances
@@ -80,9 +107,7 @@ class InstanceBackend(object):
         rebooted_instances = []
         for instance in self.all_instances():
             if instance.id in instance_ids:
-                # TODO double check instances go to pending when reboot
-                instance._state_name = "pending"
-                instance._state_code = 0
+                instance.reboot()
                 rebooted_instances.append(instance)
 
         return rebooted_instances
@@ -104,8 +129,32 @@ class InstanceBackend(object):
                 instances.append(instance)
         return instances
 
-    def all_reservations(self):
-        return self.reservations.values()
+    def get_reservations_by_instance_ids(self, instance_ids):
+        """ Go through all of the reservations and filter to only return those
+        associated with the given instance_ids.
+        """
+        reservations = []
+        for reservation in self.all_reservations(make_copy=True):
+            reservation_instance_ids = [instance.id for instance in reservation.instances]
+            matching_reservation = any(instance_id in reservation_instance_ids for instance_id in instance_ids)
+            if matching_reservation:
+                # We need to make a copy of the reservation because we have to modify the
+                # instances to limit to those requested
+                reservation.instances = [instance for instance in reservation.instances if instance.id in instance_ids]
+                reservations.append(reservation)
+        found_instance_ids = [instance.id for reservation in reservations for instance in reservation.instances]
+        if len(found_instance_ids) != len(instance_ids):
+            invalid_id = list(set(instance_ids).difference(set(found_instance_ids)))[0]
+            raise InvalidIdError(invalid_id)
+        return reservations
+
+    def all_reservations(self, make_copy=False):
+        if make_copy:
+            # Return copies so that other functions can modify them with changing
+            # the originals
+            return [copy.deepcopy(reservation) for reservation in self.reservations.values()]
+        else:
+            return [reservation for reservation in self.reservations.values()]
 
 
 class TagBackend(object):
@@ -121,18 +170,21 @@ class TagBackend(object):
     def delete_tag(self, resource_id, key):
         return self.tags[resource_id].pop(key)
 
-    def describe_tags(self):
+    def describe_tags(self, filter_resource_ids=None):
         results = []
         for resource_id, tags in self.tags.iteritems():
             ami = 'ami' in resource_id
             for key, value in tags.iteritems():
-                result = {
-                    'resource_id': resource_id,
-                    'key': key,
-                    'value': value,
-                    'resource_type': 'image' if ami else 'instance',
-                }
-                results.append(result)
+                if not filter_resource_ids or resource_id in filter_resource_ids:
+                    # If we're not filtering, or we are filtering and this
+                    # resource id is in the filter list, add this tag
+                    result = {
+                        'resource_id': resource_id,
+                        'key': key,
+                        'value': value,
+                        'resource_type': 'image' if ami else 'instance',
+                    }
+                    results.append(result)
         return results
 
 
@@ -255,11 +307,12 @@ class SecurityGroupBackend(object):
         self.groups = {}
         super(SecurityGroupBackend, self).__init__()
 
-    def create_security_group(self, name, description):
+    def create_security_group(self, name, description, force=False):
         group_id = random_security_group_id()
-        existing_group = self.get_security_group_from_name(name)
-        if existing_group:
-            return None
+        if not force:
+            existing_group = self.get_security_group_from_name(name)
+            if existing_group:
+                return None
         group = SecurityGroup(group_id, name, description)
         self.groups[group_id] = group
         return group
@@ -281,6 +334,11 @@ class SecurityGroupBackend(object):
         for group_id, group in self.groups.iteritems():
             if group.name == name:
                 return group
+
+        if name == 'default':
+            # If the request is for the default group and it does not exist, create it
+            default_group = ec2_backend.create_security_group("default", "The default security group", force=True)
+            return default_group
 
     def authorize_security_group_ingress(self, group_name, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None):
         group = self.get_security_group_from_name(group_name)
@@ -445,9 +503,77 @@ class SubnetBackend(object):
         return self.subnets.pop(subnet_id, None)
 
 
+class SpotInstanceRequest(object):
+    def __init__(self, spot_request_id, price, image_id, type, valid_from,
+                 valid_until, launch_group, availability_zone_group, key_name,
+                 security_groups, user_data, instance_type, placement, kernel_id,
+                 ramdisk_id, monitoring_enabled, subnet_id):
+        self.id = spot_request_id
+        self.state = "open"
+        self.price = price
+        self.image_id = image_id
+        self.type = type
+        self.valid_from = valid_from
+        self.valid_until = valid_until
+        self.launch_group = launch_group
+        self.availability_zone_group = availability_zone_group
+        self.key_name = key_name
+        self.user_data = user_data
+        self.instance_type = instance_type
+        self.placement = placement
+        self.kernel_id = kernel_id
+        self.ramdisk_id = ramdisk_id
+        self.monitoring_enabled = monitoring_enabled
+        self.subnet_id = subnet_id
+
+        self.security_groups = []
+        if security_groups:
+            for group_name in security_groups:
+                group = ec2_backend.get_security_group_from_name(group_name)
+                if group:
+                    self.security_groups.append(group)
+        else:
+            # If not security groups, add the default
+            default_group = ec2_backend.get_security_group_from_name("default")
+            self.security_groups.append(default_group)
+
+
+class SpotRequestBackend(object):
+    def __init__(self):
+        self.spot_instance_requests = {}
+        super(SpotRequestBackend, self).__init__()
+
+    def request_spot_instances(self, price, image_id, count, type, valid_from,
+                               valid_until, launch_group, availability_zone_group,
+                               key_name, security_groups, user_data,
+                               instance_type, placement, kernel_id, ramdisk_id,
+                               monitoring_enabled, subnet_id):
+        requests = []
+        for index in range(count):
+            spot_request_id = random_spot_request_id()
+            request = SpotInstanceRequest(
+                spot_request_id, price, image_id, type, valid_from, valid_until,
+                launch_group, availability_zone_group, key_name, security_groups,
+                user_data, instance_type, placement, kernel_id, ramdisk_id,
+                monitoring_enabled, subnet_id
+            )
+            self.spot_instance_requests[spot_request_id] = request
+            requests.append(request)
+        return requests
+
+    def describe_spot_instance_requests(self):
+        return self.spot_instance_requests.values()
+
+    def cancel_spot_instance_requests(self, request_ids):
+        requests = []
+        for request_id in request_ids:
+            requests.append(self.spot_instance_requests.pop(request_id))
+        return requests
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
-                 VPCBackend, SubnetBackend):
+                 VPCBackend, SubnetBackend, SpotRequestBackend):
     pass
 
 

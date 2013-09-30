@@ -1,11 +1,11 @@
 import boto
-import sure  # flake8: noqa
+import sure  # noqa
 from freezegun import freeze_time
 
 from moto import mock_dynamodb
-from moto.dynamodb import dynamodb_backend
 
 from boto.dynamodb import condition
+from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError, DynamoDBValidationError
 from boto.exception import DynamoDBResponseError
 
 
@@ -101,6 +101,8 @@ def test_item_add_and_describe_and_update():
     )
     item.put()
 
+    table.has_item("LOLCat Forum", "Check this out!").should.equal(True)
+
     returned_item = table.get_item(
         hash_key='LOLCat Forum',
         range_key='Check this out!',
@@ -150,7 +152,8 @@ def test_get_missing_item():
     table.get_item.when.called_with(
         hash_key='tester',
         range_key='other',
-    ).should.throw(DynamoDBResponseError)
+    ).should.throw(DynamoDBKeyNotFoundError)
+    table.has_item("foobar", "more").should.equal(False)
 
 
 @mock_dynamodb
@@ -163,7 +166,31 @@ def test_get_item_with_undeclared_table():
             'HashKeyElement': {'S': 'tester'},
             'RangeKeyElement': {'S': 'test-range'},
         },
-    ).should.throw(DynamoDBResponseError)
+    ).should.throw(DynamoDBKeyNotFoundError)
+
+
+@mock_dynamodb
+def test_get_item_without_range_key():
+    conn = boto.connect_dynamodb()
+    message_table_schema = conn.create_schema(
+        hash_key_name="test_hash",
+        hash_key_proto_value=int,
+        range_key_name="test_range",
+        range_key_proto_value=int,
+    )
+    table = conn.create_table(
+        name='messages',
+        schema=message_table_schema,
+        read_units=10,
+        write_units=10
+    )
+
+    hash_key = 3241526475
+    range_key = 1234567890987
+    new_item = table.new_item(hash_key=hash_key, range_key=range_key)
+    new_item.put()
+
+    table.get_item.when.called_with(hash_key=hash_key).should.throw(DynamoDBValidationError)
 
 
 @mock_dynamodb
@@ -473,5 +500,6 @@ def test_batch_read():
     item.put()
 
     items = table.batch_get_item([('the-key', '123'), ('another-key', '789')])
-    count = len([item for item in items])
+    # Iterate through so that batch_item gets called
+    count = len([x for x in items])
     count.should.equal(2)
