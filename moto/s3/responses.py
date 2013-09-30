@@ -145,6 +145,7 @@ def _key_response(request, full_url, headers):
             part_number = int(query['partNumber'][0])
             key = s3_backend.set_part(bucket_name, upload_id, part_number, body)
             template = Template(S3_MULTIPART_UPLOAD_RESPONSE)
+            headers.update(key.response_dict)
             return 200, headers, template.render(part=key)
 
         if 'x-amz-copy-source' in request.headers:
