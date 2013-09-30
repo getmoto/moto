@@ -45,7 +45,7 @@ def test_multipart_upload():
 
     multipart = bucket.initiate_multipart_upload("the-key")
     multipart.upload_part_from_file(BytesIO('hello'), 1)
-    multipart.upload_part_from_file(BytesIO('world'), 1)
+    multipart.upload_part_from_file(BytesIO('world'), 2)
     # Multipart with total size under 5MB is refused
     multipart.complete_upload().should.throw(S3ResponseError)
 
@@ -53,7 +53,7 @@ def test_multipart_upload():
     part1 = '0' * 5242880
     multipart.upload_part_from_file(BytesIO('0' * 5242880), 1)
     part2 = '1'
-    multipart.upload_part_from_file(BytesIO('1'), 1)
+    multipart.upload_part_from_file(BytesIO('1'), 2)
     multipart.complete_upload()
     bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
 
