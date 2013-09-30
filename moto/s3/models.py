@@ -164,6 +164,10 @@ class S3Backend(BaseBackend):
 
         return self.set_key(bucket_name, multipart.key_name, value)
 
+    def cancel_multipart(self, bucket_name, multipart_id):
+        bucket = self.buckets[bucket_name]
+        del bucket.multiparts[multipart_id]
+
     def list_multipart(self, bucket_name, multipart_id):
         bucket = self.buckets[bucket_name]
         return bucket.multiparts[multipart_id].list_parts()

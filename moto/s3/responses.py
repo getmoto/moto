@@ -188,6 +188,10 @@ def _key_response(request, full_url, headers):
         else:
             return 404, headers, ""
     elif method == 'DELETE':
+        if 'uploadId' in query:
+            upload_id = query['uploadId'][0]
+            s3_backend.cancel_multipart(bucket_name, upload_id)
+            return 204, headers, ""
         removed_key = s3_backend.delete_key(bucket_name, key_name)
         template = Template(S3_DELETE_OBJECT_SUCCESS)
         return 204, headers, template.render(bucket=removed_key)
