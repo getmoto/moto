@@ -122,6 +122,17 @@ def _key_response(request, full_url, headers):
         body = request.data
 
     if method == 'GET':
+        if 'uploadId' in query:
+            upload_id = query['uploadId'][0]
+            parts = s3_backend.list_multipart(bucket_name, upload_id)
+            template = Template(S3_MULTIPART_LIST_RESPONSE)
+            return 200, headers, template.render(
+                bucket_name=bucket_name,
+                key_name=key_name,
+                upload_id=upload_id,
+                count=len(parts),
+                parts=parts
+                )
         key = s3_backend.get_key(bucket_name, key_name)
         if key:
             headers.update(key.metadata)
@@ -315,6 +326,35 @@ S3_MULTIPART_UPLOAD_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <LastModified>{{ part.last_modified_ISO8601 }}</LastModified>
   <ETag>{{ part.etag }}</ETag>
 </CopyPartResult>"""
+
+S3_MULTIPART_LIST_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListPartsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Bucket>{{ bucket_name }}</Bucket>
+  <Key>{{ key_name }}</Key>
+  <UploadId>{{ upload_id }}</UploadId>
+  <StorageClass>STANDARD</StorageClass>
+  <Initiator>
+    <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+    <DisplayName>webfile</DisplayName>
+  </Initiator>
+  <Owner>
+    <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+    <DisplayName>webfile</DisplayName>
+  </Owner>
+  <StorageClass>STANDARD</StorageClass>
+  <PartNumberMarker>1</PartNumberMarker>
+  <NextPartNumberMarker>{{ count }} </NextPartNumberMarker>
+  <MaxParts>{{ count }}</MaxParts>
+  <IsTruncated>false</IsTruncated>
+  {% for part in parts %}
+  <Part>
+    <PartNumber>{{ part.name }}</PartNumber>
+    <LastModified>{{ part.last_modified_ISO8601 }}</LastModified>
+    <ETag>{{ part.etag }}</ETag>
+    <Size>{{ part.size }}</Size>
+  </Part>
+  {% endfor %}
+</ListPartsResult>"""
 
 S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CompleteMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">

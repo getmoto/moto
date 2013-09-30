@@ -63,12 +63,8 @@ class FakeMultipart(object):
     def complete(self):
         total = bytearray()
 
-        for part_id, index in enumerate(sorted(self.parts.keys()), start=1):
-            # Make sure part ids are continuous
-            if part_id != index:
-                return
-
-            total.extend(self.parts[part_id].value)
+        for part in self.list_parts():
+            total.extend(part.value)
 
         if len(total) < 5242880:
             return
@@ -82,6 +78,17 @@ class FakeMultipart(object):
         key = FakeKey(part_id, value)
         self.parts[part_id] = key
         return key
+
+    def list_parts(self):
+        parts = []
+
+        for part_id, index in enumerate(sorted(self.parts.keys()), start=1):
+            # Make sure part ids are continuous
+            if part_id != index:
+                return
+            parts.append(self.parts[part_id])
+
+        return parts
 
 
 class FakeBucket(object):
@@ -155,6 +162,10 @@ class S3Backend(BaseBackend):
         del bucket.multiparts[multipart_id]
 
         return self.set_key(bucket_name, multipart.key_name, value)
+
+    def list_multipart(self, bucket_name, multipart_id):
+        bucket = self.buckets[bucket_name]
+        return bucket.multiparts[multipart_id].list_parts()
 
     def set_part(self, bucket_name, multipart_id, part_id, value):
         bucket = self.buckets[bucket_name]
