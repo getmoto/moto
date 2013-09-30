@@ -133,8 +133,8 @@ def _key_response(request, full_url, headers):
             upload_id = query['uploadId'][0]
             part_number = int(query['partNumber'][0])
             key = s3_backend.set_part(bucket_name, upload_id, part_number, body)
-
-            return '', dict(etag=key.etag)
+            template = Template(S3_MULTIPART_UPLOAD_RESPONSE)
+            return 200, headers, template.render(part=key)
 
         if 'x-amz-copy-source' in request.headers:
             # Copy key
@@ -309,6 +309,12 @@ S3_MULTIPART_INITIATE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <Key>{{ key_name }}</Key>
   <UploadId>{{ upload_id }}</UploadId>
 </InitiateMultipartUploadResult>"""
+
+S3_MULTIPART_UPLOAD_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CopyPartResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <LastModified>{{ part.last_modified_ISO8601 }}</LastModified>
+  <ETag>{{ part.etag }}</ETag>
+</CopyPartResult>"""
 
 S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CompleteMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
