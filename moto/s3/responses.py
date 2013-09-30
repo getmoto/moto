@@ -203,7 +203,7 @@ def _key_response(request, full_url, headers):
             )
             return 200, headers, response
 
-        if body == '' and 'uploadId' in query:
+        if 'uploadId' in query:
             upload_id = query['uploadId'][0]
             key = s3_backend.complete_multipart(bucket_name, upload_id)
 
