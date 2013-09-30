@@ -214,6 +214,8 @@ def _key_response(request, full_url, headers):
                     key_name=key.name,
                     etag=key.etag,
                 )
+            template = Template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
+            return 400, headers, template.render()
         else:
             raise NotImplementedError("Method POST had only been implemented for multipart uploads so far")
     else:
@@ -365,3 +367,11 @@ S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <ETag>{{ etag }}</ETag>
 </CompleteMultipartUploadResult>
 """
+
+S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>EntityTooSmall</Code>
+  <Message>Your proposed upload is smaller than the minimum allowed object size.</Message>
+  <RequestId>asdfasdfsdafds</RequestId>
+  <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
+</Error>"""
