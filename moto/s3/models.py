@@ -58,7 +58,6 @@ class FakeMultipart(object):
     def __init__(self, key_name):
         self.key_name = key_name
         self.parts = {}
-        import pdb; pdb.set_trace()
         self.id = base64.b64encode(os.urandom(43)).replace('=', '').replace('+', '')
 
 

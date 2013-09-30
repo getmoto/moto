@@ -192,7 +192,6 @@ def _key_response(request, full_url, headers):
         template = Template(S3_DELETE_OBJECT_SUCCESS)
         return 204, headers, template.render(bucket=removed_key)
     elif method == 'POST':
-        import pdb; pdb.set_trace()
         if body == '' and parsed_url.query == 'uploads':
             multipart = s3_backend.initiate_multipart(bucket_name, key_name)
             template = Template(S3_MULTIPART_INITIATE_RESPONSE)
