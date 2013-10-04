@@ -26,7 +26,6 @@ class QueuesResponse(BaseResponse):
         else:
             return "", dict(status=404)
 
-
     def list_queues(self):
         queues = sqs_backend.list_queues()
         template = Template(LIST_QUEUES_RESPONSE)
@@ -51,7 +50,7 @@ class QueueResponse(BaseResponse):
         queue_name = self.path.split("/")[-1]
         queue = sqs_backend.delete_queue(queue_name)
         if not queue:
-            return "A queue with name {} does not exist".format(queue_name), dict(status=404)
+            return "A queue with name {0} does not exist".format(queue_name), dict(status=404)
         template = Template(DELETE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 
@@ -79,15 +78,15 @@ class QueueResponse(BaseResponse):
         messages = []
         for index in range(1, 11):
             # Loop through looking for messages
-            message_key = 'SendMessageBatchRequestEntry.{}.MessageBody'.format(index)
+            message_key = 'SendMessageBatchRequestEntry.{0}.MessageBody'.format(index)
             message_body = self.querystring.get(message_key)
             if not message_body:
                 # Found all messages
                 break
 
-            message_user_id_key = 'SendMessageBatchRequestEntry.{}.Id'.format(index)
+            message_user_id_key = 'SendMessageBatchRequestEntry.{0}.Id'.format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
-            delay_key = 'SendMessageBatchRequestEntry.{}.DelaySeconds'.format(index)
+            delay_key = 'SendMessageBatchRequestEntry.{0}.DelaySeconds'.format(index)
             delay_seconds = self.querystring.get(delay_key, [None])[0]
             message = sqs_backend.send_message(queue_name, message_body[0], delay_seconds=delay_seconds)
             message.user_id = message_user_id
@@ -118,7 +117,7 @@ class QueueResponse(BaseResponse):
         message_ids = []
         for index in range(1, 11):
             # Loop through looking for messages
-            receipt_key = 'DeleteMessageBatchRequestEntry.{}.ReceiptHandle'.format(index)
+            receipt_key = 'DeleteMessageBatchRequestEntry.{0}.ReceiptHandle'.format(index)
             receipt_handle = self.querystring.get(receipt_key)
             if not receipt_handle:
                 # Found all messages
@@ -126,7 +125,7 @@ class QueueResponse(BaseResponse):
 
             sqs_backend.delete_message(queue_name, receipt_handle[0])
 
-            message_user_id_key = 'DeleteMessageBatchRequestEntry.{}.Id'.format(index)
+            message_user_id_key = 'DeleteMessageBatchRequestEntry.{0}.Id'.format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
             message_ids.append(message_user_id)
 

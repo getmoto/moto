@@ -2,6 +2,19 @@
 
 from setuptools import setup, find_packages
 
+install_requires = [
+    "boto",
+    "flask",
+    "httpretty>=0.6.1",
+    "Jinja2",
+]
+
+import sys
+
+if sys.version_info < (2, 7):
+    # No buildint OrderedDict before 2.7
+    install_requires.append('ordereddict')
+
 setup(
     name='moto',
     version='0.2.9',
@@ -16,10 +29,5 @@ setup(
         ],
     },
     packages=find_packages(),
-    install_requires=[
-        "boto",
-        "flask",
-        "httpretty>=0.6.1",
-        "Jinja2",
-    ],
+    install_requires=install_requires,
 )

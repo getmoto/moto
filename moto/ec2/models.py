@@ -280,7 +280,7 @@ class SecurityRule(object):
 
     @property
     def unique_representation(self):
-        return "{}-{}-{}-{}-{}".format(
+        return "{0}-{1}-{2}-{3}-{4}".format(
                self.ip_protocol,
                self.from_port,
                self.to_port,

@@ -95,7 +95,7 @@ def _bucket_response(request, full_url, headers):
                 new_key.set_metadata(meta_key, metadata)
         return 200, headers, ""
     else:
-        raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
+        raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
 
 def key_response(request, full_url, headers):
@@ -172,7 +172,7 @@ def _key_response(request, full_url, headers):
         template = Template(S3_DELETE_OBJECT_SUCCESS)
         return 204, headers, template.render(bucket=removed_key)
     else:
-        raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
+        raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
 
 S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
