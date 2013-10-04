@@ -34,7 +34,7 @@ class SecurityGroups(object):
         group = ec2_backend.create_security_group(name, description)
         if not group:
             # There was an exisitng group
-            return "There was an existing security group with name {}".format(name), dict(status=409)
+            return "There was an existing security group with name {0}".format(name), dict(status=409)
         template = Template(CREATE_SECURITY_GROUP_RESPONSE)
         return template.render(group=group)
 
@@ -45,7 +45,7 @@ class SecurityGroups(object):
 
         if not group:
             # There was no such group
-            return "There was no security group with name {}".format(name), dict(status=404)
+            return "There was no security group with name {0}".format(name), dict(status=404)
         return DELETE_GROUP_RESPONSE
 
     def describe_security_groups(self):

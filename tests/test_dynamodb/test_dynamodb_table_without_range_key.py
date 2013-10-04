@@ -282,7 +282,7 @@ def test_scan():
         'Body': 'http://url_to_lolcat.gif',
         'SentBy': 'User B',
         'ReceivedTime': '12/9/2011 11:36:03 PM',
-        'Ids': {1, 2, 3},
+        'Ids': set([1, 2, 3]),
         'PK': 7,
     }
     item = table.new_item(
@@ -356,7 +356,7 @@ def test_write_batch():
             'Body': 'http://url_to_lolcat.gif',
             'SentBy': 'User B',
             'ReceivedTime': '12/9/2011 11:36:03 PM',
-            'Ids': {1, 2, 3},
+            'Ids': set([1, 2, 3]),
             'PK': 7,
         },
     ))
@@ -401,7 +401,7 @@ def test_batch_read():
         'Body': 'http://url_to_lolcat.gif',
         'SentBy': 'User B',
         'ReceivedTime': '12/9/2011 11:36:03 PM',
-        'Ids': {1, 2, 3},
+        'Ids': set([1, 2, 3]),
         'PK': 7,
     }
     item = table.new_item(

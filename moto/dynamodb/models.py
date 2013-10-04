@@ -1,6 +1,13 @@
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 import datetime
 import json
+
+try:
+        from collections import OrderedDict
+except ImportError:
+        # python 2.6 or earlier, use backport
+        from ordereddict import OrderedDict
+
 
 from moto.core import BaseBackend
 from .comparisons import get_comparison_func
@@ -36,7 +43,7 @@ class DynamoType(object):
         )
 
     def __repr__(self):
-        return "DynamoType: {}".format(self.to_json())
+        return "DynamoType: {0}".format(self.to_json())
 
     def to_json(self):
         return {self.type: self.value}
@@ -62,7 +69,7 @@ class Item(object):
             self.attrs[key] = DynamoType(value)
 
     def __repr__(self):
-        return "Item: {}".format(self.to_json())
+        return "Item: {0}".format(self.to_json())
 
     def to_json(self):
         attributes = {}

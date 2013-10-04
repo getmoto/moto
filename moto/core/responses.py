@@ -46,7 +46,7 @@ class BaseResponse(object):
                 status = new_headers.pop('status', 200)
                 headers.update(new_headers)
                 return status, headers, body
-        raise NotImplementedError("The {} action has not been implemented".format(action))
+        raise NotImplementedError("The {0} action has not been implemented".format(action))
 
 
 def metadata_response(request, full_url, headers):

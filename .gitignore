@@ -1,4 +1,5 @@
 moto.egg-info/*
 dist/*
+.tox
 .coverage
 *.pyc
