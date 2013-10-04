@@ -79,12 +79,12 @@ def _bucket_response(request, full_url, headers):
             for kv in request.body.split('&'):
                 k, v = kv.split('=')
                 form[k] = v
-                
+
         key = form['key']
         f = form['file']
-            
+
         new_key = s3_backend.set_key(bucket_name, key, f)
-        
+
         #Metadata
         meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
         for form_id in form:
@@ -95,7 +95,7 @@ def _bucket_response(request, full_url, headers):
                 new_key.set_metadata(meta_key, metadata)
         return 200, headers, ""
     else:
-        raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
+        raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
 
 def key_response(request, full_url, headers):
@@ -146,7 +146,7 @@ def _key_response(request, full_url, headers):
             # Initial data
             new_key = s3_backend.set_key(bucket_name, key_name, body)
             request.streaming = True
-            
+
             #Metadata
             meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
             for header in request.headers:
@@ -172,7 +172,7 @@ def _key_response(request, full_url, headers):
         template = Template(S3_DELETE_OBJECT_SUCCESS)
         return 204, headers, template.render(bucket=removed_key)
     else:
-        raise NotImplementedError("Method {} has not been impelemented in the S3 backend yet".format(method))
+        raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
 
 S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">

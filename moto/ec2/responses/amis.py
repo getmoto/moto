@@ -12,7 +12,7 @@ class AmisResponse(object):
         instance_id = instance_ids[0]
         image = ec2_backend.create_image(instance_id, name, description)
         if not image:
-            return "There is not instance with id {}".format(instance_id), dict(status=404)
+            return "There is not instance with id {0}".format(instance_id), dict(status=404)
         template = Template(CREATE_IMAGE_RESPONSE)
         return template.render(image=image)
 

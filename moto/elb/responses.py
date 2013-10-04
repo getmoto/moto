@@ -16,11 +16,11 @@ class ELBResponse(BaseResponse):
         port_index = 1
         while True:
             try:
-                protocol = self.querystring['Listeners.member.{}.Protocol'.format(port_index)][0]
+                protocol = self.querystring['Listeners.member.{0}.Protocol'.format(port_index)][0]
             except KeyError:
                 break
-            lb_port = self.querystring['Listeners.member.{}.LoadBalancerPort'.format(port_index)][0]
-            instance_port = self.querystring['Listeners.member.{}.InstancePort'.format(port_index)][0]
+            lb_port = self.querystring['Listeners.member.{0}.LoadBalancerPort'.format(port_index)][0]
+            instance_port = self.querystring['Listeners.member.{0}.InstancePort'.format(port_index)][0]
             ports.append([protocol, lb_port, instance_port])
             port_index += 1
         elb_backend.create_load_balancer(
