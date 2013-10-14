@@ -7,3 +7,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Dan Berglund](https://github.com/cheif)
 * [Lincoln de Sousa](https://github.com/clarete)
 * [mhock](https://github.com/mhock)
+* [Ilya Sukhanov](https://github.com/IlyaSukhanov)
