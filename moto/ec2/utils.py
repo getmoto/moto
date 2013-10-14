@@ -46,12 +46,44 @@ def random_vpc_id():
     return random_id(prefix='vpc')
 
 
+def random_eip_association_id():
+    return random_id(prefix='eipassoc')
+
+
+def random_eip_allocation_id():
+    return random_id(prefix='eipalloc')
+
+
+def random_ip():
+    return "127.{0}.{1}.{2}".format(
+        random.randint(0, 255),
+        random.randint(0, 255),
+        random.randint(0, 255)
+    )
+
+
 def instance_ids_from_querystring(querystring_dict):
     instance_ids = []
     for key, value in querystring_dict.iteritems():
         if 'InstanceId' in key:
             instance_ids.append(value[0])
     return instance_ids
+
+
+def image_ids_from_querystring(querystring_dict):
+    image_ids = []
+    for key, value in querystring_dict.iteritems():
+        if 'ImageId' in key:
+            image_ids.append(value[0])
+    return image_ids
+
+
+def sequence_from_querystring(parameter, querystring_dict):
+    parameter_values = []
+    for key, value in querystring_dict.iteritems():
+        if parameter in key:
+            parameter_values.append(value[0])
+    return parameter_values
 
 
 def resource_ids_from_querystring(querystring_dict):

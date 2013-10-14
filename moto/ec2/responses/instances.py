@@ -95,8 +95,8 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <instanceId>{{ instance.id }}</instanceId>
           <imageId>{{ instance.image_id }}</imageId>
           <instanceState>
-            <code>{{ instance._state.code }}</code>
-            <name>{{ instance._state.name }}</name>
+            <code>0</code>
+            <name>pending</name>
           </instanceState>
           <privateDnsName/>
           <dnsName/>
@@ -150,8 +150,8 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       <code>{{ instance._state.code }}</code>
                       <name>{{ instance._state.name }}</name>
                     </instanceState>
-                    <privateDnsName/>
-                    <dnsName/>
+                    <privateDnsName>ip-10.0.0.12.ec2.internal</privateDnsName>
+                    <dnsName>ec2-46.51.219.63.compute-1.amazonaws.com</dnsName>
                     <reason/>
                     <keyName>gsg-keypair</keyName>
                     <amiLaunchIndex>0</amiLaunchIndex>
@@ -216,8 +216,8 @@ EC2_TERMINATE_INSTANCES = """
           <name>running</name>
         </previousState>
         <currentState>
-          <code>{{ instance._state.code }}</code>
-          <name>{{ instance._state.name }}</name>
+          <code>32</code>
+          <name>shutting-down</name>
         </currentState>
       </item>
     {% endfor %}
@@ -236,8 +236,8 @@ EC2_STOP_INSTANCES = """
           <name>running</name>
         </previousState>
         <currentState>
-          <code>{{ instance._state.code }}</code>
-          <name>{{ instance._state.name }}</name>
+          <code>64</code>
+          <name>stopping</name>
         </currentState>
       </item>
     {% endfor %}
@@ -256,8 +256,8 @@ EC2_START_INSTANCES = """
           <name>running</name>
         </previousState>
         <currentState>
-          <code>{{ instance._state.code }}</code>
-          <name>{{ instance._state.name }}</name>
+          <code>0</code>
+          <name>pending</name>
         </currentState>
       </item>
     {% endfor %}
