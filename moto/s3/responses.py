@@ -95,6 +95,7 @@ class ResponseObject(object):
 
             #Metadata
             meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+
             for form_id in form:
                 result = meta_regex.match(form_id)
                 if result:
