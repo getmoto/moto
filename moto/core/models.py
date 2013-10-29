@@ -9,6 +9,7 @@ from .utils import convert_regex_to_flask_path
 class MockAWS(object):
     def __init__(self, backend):
         self.backend = backend
+        HTTPretty.reset()
 
     def __call__(self, func):
         return self.decorate_callable(func)
