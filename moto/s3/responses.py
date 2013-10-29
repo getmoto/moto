@@ -164,7 +164,7 @@ def _key_response(request, full_url, headers):
         if key:
             headers.update(key.metadata)
             headers.update(key.response_dict)
-            return 200, headers, ""
+            return 200, headers, key.value
         else:
             return 404, headers, ""
     elif method == 'DELETE':
