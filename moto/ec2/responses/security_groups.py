@@ -84,7 +84,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
-             <vpcId>{{ group.vpc_id if group.vpc_id != None}}</vpcId>
+             <vpcId>{{ group.vpc_id or ""}}</vpcId>
              <ipPermissions>
                {% for rule in group.ingress_rules %}
                     <item>
