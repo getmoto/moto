@@ -1,4 +1,5 @@
 import copy
+import itertools
 from collections import defaultdict
 
 from boto.ec2.instance import Instance as BotoInstance, Reservation
@@ -312,36 +313,36 @@ class SecurityGroup(object):
 class SecurityGroupBackend(object):
 
     def __init__(self):
-        self.groups = {}
-        self.vpc_groups = {}
-
+        # the key in the dict group is the vpc_id or None (non-vpc)
+        self.groups = defaultdict(dict)
         super(SecurityGroupBackend, self).__init__()
 
     def create_security_group(self, name, description, vpc_id=None, force=False):
         group_id = random_security_group_id()
         if not force:
-            existing_group = self.get_security_group_from_name(name)
+            existing_group = self.get_security_group_from_name(name, vpc_id)
             if existing_group:
                 return None
         group = SecurityGroup(group_id, name, description, vpc_id=vpc_id)
-        self.groups[group_id] = group
+
+        self.groups[vpc_id][group_id] = group
         return group
 
     def describe_security_groups(self):
-        return self.groups.values()
+        return itertools.chain(*[x.values() for x in self.groups.values()])
 
-    def delete_security_group(self, name_or_group_id):
-        if name_or_group_id in self.groups:
+    def delete_security_group(self, name_or_group_id, vpc_id):
+        if name_or_group_id in self.groups[vpc_id]:
             # Group Id
-            return self.groups.pop(name_or_group_id)
+            return self.groups[vpc_id].pop(name_or_group_id)
         else:
             # Group Name
-            group = self.get_security_group_from_name(name_or_group_id)
+            group = self.get_security_group_from_name(name_or_group_id, vpc_id)
             if group:
-                return self.groups.pop(group.id)
+                return self.groups[vpc_id].pop(group.id)
 
-    def get_security_group_from_name(self, name):
-        for group_id, group in self.groups.iteritems():
+    def get_security_group_from_name(self, name, vpc_id):
+        for group_id, group in self.groups[vpc_id].iteritems():
             if group.name == name:
                 return group
 
@@ -350,16 +351,16 @@ class SecurityGroupBackend(object):
             default_group = ec2_backend.create_security_group("default", "The default security group", force=True)
             return default_group
 
-    def authorize_security_group_ingress(self, group_name, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None):
-        group = self.get_security_group_from_name(group_name)
+    def authorize_security_group_ingress(self, group_name, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None, vpc_id=None):
+        group = self.get_security_group_from_name(group_name, vpc_id)
         source_groups = []
         for source_group_name in source_group_names:
-            source_groups.append(self.get_security_group_from_name(source_group_name))
+            source_groups.append(self.get_security_group_from_name(source_group_name, vpc_id))
 
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
         group.ingress_rules.append(security_rule)
 
-    def revoke_security_group_ingress(self, group_name, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None):
+    def revoke_security_group_ingress(self, group_name, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None, vpc_id=None):
         group = self.get_security_group_from_name(group_name)
         source_groups = []
         for source_group_name in source_group_names:
