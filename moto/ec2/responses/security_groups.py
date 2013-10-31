@@ -31,7 +31,8 @@ class SecurityGroups(object):
     def create_security_group(self):
         name = self.querystring.get('GroupName')[0]
         description = self.querystring.get('GroupDescription')[0]
-        group = ec2_backend.create_security_group(name, description)
+        vpc_id = self.querystring.get("VpcId", [None])[0]
+        group = ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
         if not group:
             # There was an exisitng group
             return "There was an existing security group with name {0}".format(name), dict(status=409)
@@ -83,7 +84,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
-             <vpcId/>
+             <vpcId>{{ group.vpc_id if group.vpc_id != None}}</vpcId>
              <ipPermissions>
                {% for rule in group.ingress_rules %}
                     <item>

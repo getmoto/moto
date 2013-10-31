@@ -300,27 +300,30 @@ class SecurityRule(object):
 
 
 class SecurityGroup(object):
-    def __init__(self, group_id, name, description):
+    def __init__(self, group_id, name, description, vpc_id=None):
         self.id = group_id
         self.name = name
         self.description = description
         self.ingress_rules = []
         self.egress_rules = []
+        self.vpc_id = vpc_id
 
 
 class SecurityGroupBackend(object):
 
     def __init__(self):
         self.groups = {}
+        self.vpc_groups = {}
+
         super(SecurityGroupBackend, self).__init__()
 
-    def create_security_group(self, name, description, force=False):
+    def create_security_group(self, name, description, vpc_id=None, force=False):
         group_id = random_security_group_id()
         if not force:
             existing_group = self.get_security_group_from_name(name)
             if existing_group:
                 return None
-        group = SecurityGroup(group_id, name, description)
+        group = SecurityGroup(group_id, name, description, vpc_id=vpc_id)
         self.groups[group_id] = group
         return group
 
