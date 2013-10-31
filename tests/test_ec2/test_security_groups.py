@@ -20,6 +20,27 @@ def test_create_and_describe_security_group():
     all_groups.should.have.length_of(1)
     all_groups[0].name.should.equal('test security group')
 
+@mock_ec2
+def test_create_and_describe_vpc_security_group():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    vpc_id = 'vpc-5300000c'
+    security_group = conn.create_security_group('test security group', 'this is a test security group', vpc_id)
+
+    security_group.vpc_id.should.equal(vpc_id)
+
+    security_group.name.should.equal('test security group')
+    security_group.description.should.equal('this is a test security group')
+
+    # Trying to create another group with the same name should throw an error
+    conn.create_security_group.when.called_with('test security group', 'this is a test security group').should.throw(EC2ResponseError)
+
+    all_groups = conn.get_all_security_groups()
+
+    all_groups[0].vpc_id.should.equal(vpc_id)
+
+    all_groups.should.have.length_of(1)
+    all_groups[0].name.should.equal('test security group')
+
 
 @mock_ec2
 def test_deleting_security_groups():
