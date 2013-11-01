@@ -361,10 +361,10 @@ class SecurityGroupBackend(object):
         group.ingress_rules.append(security_rule)
 
     def revoke_security_group_ingress(self, group_name, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None, vpc_id=None):
-        group = self.get_security_group_from_name(group_name)
+        group = self.get_security_group_from_name(group_name, vpc_id)
         source_groups = []
         for source_group_name in source_group_names:
-            source_groups.append(self.get_security_group_from_name(source_group_name))
+            source_groups.append(self.get_security_group_from_name(source_group_name, vpc_id))
 
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
         if security_rule in group.ingress_rules:
