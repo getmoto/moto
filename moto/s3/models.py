@@ -60,15 +60,14 @@ class FakeMultipart(object):
         self.parts = {}
         self.id = base64.b64encode(os.urandom(43)).replace('=', '').replace('+', '')
 
-
     def complete(self):
         total = bytearray()
+        last_part_name = len(self.list_parts())
 
         for part in self.list_parts():
+            if part.name != last_part_name and len(part.value) < 5242880:
+                return
             total.extend(part.value)
-
-        if len(total) < 5242880:
-            return
 
         return total
 
