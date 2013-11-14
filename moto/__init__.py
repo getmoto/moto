@@ -11,3 +11,4 @@ from .s3bucket_path import mock_s3bucket_path
 from .ses import mock_ses
 from .sqs import mock_sqs
 from .sts import mock_sts
+from .route53 import mock_route53

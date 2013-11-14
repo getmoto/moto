@@ -5,3 +5,5 @@ nose
 https://github.com/spulec/python-coveralls/tarball/796d9dba34b759664e42ba39e6414209a0f319ad
 requests
 sure
+xmltodict
+dicttoxml
