@@ -186,7 +186,7 @@ class S3Backend(BaseBackend):
                     if delimiter and delimiter in key_without_prefix:
                         # If delimiter, we need to split out folder_results
                         key_without_delimiter = key_without_prefix.split(delimiter)[0]
-                        folder_results.add("{}{}{}".format(prefix, key_without_delimiter, delimiter))
+                        folder_results.add("{0}{1}{2}".format(prefix, key_without_delimiter, delimiter))
                     else:
                         key_results.add(key)
         else:

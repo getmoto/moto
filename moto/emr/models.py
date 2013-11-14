@@ -41,7 +41,7 @@ class FakeStep(object):
 
         arg_index = 1
         while True:
-            arg = kwargs.get('hadoop_jar_step._args.member.{}'.format(arg_index))
+            arg = kwargs.get('hadoop_jar_step._args.member.{0}'.format(arg_index))
             if arg:
                 self.args.append(arg)
                 arg_index += 1
