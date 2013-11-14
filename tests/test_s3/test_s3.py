@@ -47,7 +47,7 @@ def test_multipart_upload():
     multipart.upload_part_from_file(BytesIO('hello'), 1)
     multipart.upload_part_from_file(BytesIO('world'), 2)
     # Multipart with total size under 5MB is refused
-    multipart.complete_upload().should.throw(S3ResponseError)
+    multipart.complete_upload.should.throw(S3ResponseError)
 
     multipart = bucket.initiate_multipart_upload("the-key")
     part1 = '0' * 5242880
