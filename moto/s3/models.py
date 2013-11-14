@@ -25,7 +25,7 @@ class FakeKey(object):
     @property
     def etag(self):
         value_md5 = hashlib.md5()
-        value_md5.update(self.value)
+        value_md5.update(bytes(self.value))
         return '"{0}"'.format(value_md5.hexdigest())
 
     @property
