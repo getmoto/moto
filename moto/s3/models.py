@@ -7,6 +7,9 @@ from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
 from .utils import clean_key_name
 
+UPLOAD_ID_BYTES=43
+UPLOAD_PART_MIN_SIZE=5242880
+
 
 class FakeKey(object):
     def __init__(self, name, value):
@@ -58,14 +61,14 @@ class FakeMultipart(object):
     def __init__(self, key_name):
         self.key_name = key_name
         self.parts = {}
-        self.id = base64.b64encode(os.urandom(43)).replace('=', '').replace('+', '')
+        self.id = base64.b64encode(os.urandom(UPLOAD_ID_BYTES)).replace('=', '').replace('+', '')
 
     def complete(self):
         total = bytearray()
         last_part_name = len(self.list_parts())
 
         for part in self.list_parts():
-            if part.name != last_part_name and len(part.value) < 5242880:
+            if part.name != last_part_name and len(part.value) < UPLOAD_PART_MIN_SIZE:
                 return
             total.extend(part.value)
 
