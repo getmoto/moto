@@ -17,11 +17,13 @@ class FakeZone:
 
 
 class FakeResourceRecordSet:
+
     def __init__(self, name, type, ttl, rrlist):
         self.name = name
         self.type = type
         self.ttl = ttl
         self.rrList = rrlist
+
 
 class Route53Backend(BaseBackend):
 
@@ -49,5 +51,3 @@ class Route53Backend(BaseBackend):
 
 
 route53_backend = Route53Backend()
-
-

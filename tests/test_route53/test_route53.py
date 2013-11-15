@@ -23,7 +23,7 @@ def test_hosted_zone():
     zones = conn.get_all_hosted_zones()
     len(zones["ListHostedZonesResponse"]["HostedZones"]).should.equal(2)
 
-    id1 = firstzone["CreateHostedZoneResponse"]["HostedZone"]["Id"]    
+    id1 = firstzone["CreateHostedZoneResponse"]["HostedZone"]["Id"]
     zone = conn.get_hosted_zone(id1)
     zone["GetHostedZoneResponse"]["HostedZone"]["Name"].should.equal("testdns.aws.com")
 
@@ -52,7 +52,6 @@ def test_rrset():
     rrsets = conn.get_all_rrsets(zoneid, type="CNAME")
     rrsets.should.have.length_of(0)
 
-        
     changes = ResourceRecordSets(conn, zoneid)
     changes.add_change("DELETE", "foo.bar.testdns.aws.com", "A")
     changes.commit()

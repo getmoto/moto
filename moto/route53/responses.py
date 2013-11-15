@@ -33,6 +33,7 @@ def get_or_delete_hostzone_response(request, full_url, headers):
         route53_backend.delete_hosted_zone(zoneid)
         return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
 
+
 def rrset_response(request, full_url, headers):
     parsed_url = urlparse(full_url)
     method = request.method
@@ -120,5 +121,4 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
       </HostedZone>
       {% endfor %}
    </HostedZones>
-</ListHostedZonesResponse>"""   
-
+</ListHostedZonesResponse>"""
