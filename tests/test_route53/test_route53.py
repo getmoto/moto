@@ -59,11 +59,3 @@ def test_rrset():
 
     rrsets = conn.get_all_rrsets(zoneid)
     rrsets.should.have.length_of(0)
-        
-
-
-        
-
-
-
-    

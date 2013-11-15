@@ -16,10 +16,6 @@ class FakeZone:
         del self.rrsets[name]
 
 
-class FakeResourceRecord:
-    def __init__(self, value):
-        pass
-
 class FakeResourceRecordSet:
     def __init__(self, name, type, ttl, rrlist):
         self.name = name

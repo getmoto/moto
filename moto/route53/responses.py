@@ -8,8 +8,8 @@ import dicttoxml
 def list_or_create_hostzone_response(request, full_url, headers):
 
     if request.method == "POST":
-        r = xmltodict.parse(request.body)
-        new_zone = route53_backend.create_hosted_zone(r["CreateHostedZoneRequest"]["Name"])
+        elements = xmltodict.parse(request.body)
+        new_zone = route53_backend.create_hosted_zone(elements["CreateHostedZoneRequest"]["Name"])
         template = Template(CREATE_HOSTED_ZONE_RESPONSE)
         return 201, headers, template.render(zone=new_zone)
 
@@ -43,10 +43,10 @@ def rrset_response(request, full_url, headers):
         return 404, headers, "Zone %s Not Found" % zoneid
 
     if method == "POST":
-        r = xmltodict.parse(request.body)
-        for k, v in r['ChangeResourceRecordSetsRequest']['ChangeBatch']['Changes'].items():
-            action = v['Action']
-            rrset = v['ResourceRecordSet']
+        elements = xmltodict.parse(request.body)
+        for key, value in elements['ChangeResourceRecordSetsRequest']['ChangeBatch']['Changes'].items():
+            action = value['Action']
+            rrset = value['ResourceRecordSet']
 
             if action == 'CREATE':
                 the_zone.add_rrset(rrset["Name"], rrset)
@@ -64,12 +64,6 @@ def rrset_response(request, full_url, headers):
                 rrset_list.append(dicttoxml.dicttoxml({"ResourceRecordSet": value}, root=False))
 
         return 200, headers, template.render(rrsets=rrset_list)
-                
-
-
-def not_implemented_response(request, full_url, headers):
-    parsed_url = urlparse(full_url)
-    raise NotImplementedError('handling of %s is not yet implemented' % parsed_url.path)
 
 
 LIST_RRSET_REPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">

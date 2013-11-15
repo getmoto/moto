@@ -1,7 +1,6 @@
 import responses
 
 url_bases = [
-    #"https://route53.amazonaws.com/201\d-\d\d-\d\d/hostedzone",
     "https://route53.amazonaws.com/201.-..-../hostedzone",
 ]
 
