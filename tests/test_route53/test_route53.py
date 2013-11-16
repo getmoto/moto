@@ -37,6 +37,10 @@ def test_hosted_zone():
 @mock_route53
 def test_rrset():
     conn = boto.connect_route53('the_key', 'the_secret')
+
+    conn.get_all_rrsets.when.called_with("abcd", type="A").\
+                should.throw(boto.route53.exception.DNSServerError, "404 Not Found")
+
     zone = conn.create_hosted_zone("testdns.aws.com")
     zoneid = zone["CreateHostedZoneResponse"]["HostedZone"]["Id"]
 

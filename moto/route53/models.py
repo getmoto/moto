@@ -16,15 +16,6 @@ class FakeZone:
         del self.rrsets[name]
 
 
-class FakeResourceRecordSet:
-
-    def __init__(self, name, type, ttl, rrlist):
-        self.name = name
-        self.type = type
-        self.ttl = ttl
-        self.rrList = rrlist
-
-
 class Route53Backend(BaseBackend):
 
     def __init__(self):
