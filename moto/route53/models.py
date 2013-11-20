@@ -13,7 +13,7 @@ class FakeZone:
         self.rrsets[name] = rrset
 
     def delete_rrset(self, name):
-        del self.rrsets[name]
+        self.rrsets.pop(name, None)
 
 
 class Route53Backend(BaseBackend):
