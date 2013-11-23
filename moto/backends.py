@@ -8,6 +8,7 @@ from moto.s3bucket_path import s3bucket_path_backend
 from moto.ses import ses_backend
 from moto.sqs import sqs_backend
 from moto.sts import sts_backend
+from moto.route53 import route53_backend
 
 BACKENDS = {
     'autoscaling': autoscaling_backend,
@@ -20,4 +21,5 @@ BACKENDS = {
     'ses': ses_backend,
     'sqs': sqs_backend,
     'sts': sts_backend,
+    'route53': route53_backend
 }
