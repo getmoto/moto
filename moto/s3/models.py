@@ -1,9 +1,14 @@
+import os
+import base64
 import datetime
 import hashlib
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
 from .utils import clean_key_name
+
+UPLOAD_ID_BYTES=43
+UPLOAD_PART_MIN_SIZE=5242880
 
 
 class FakeKey(object):
@@ -23,7 +28,7 @@ class FakeKey(object):
     @property
     def etag(self):
         value_md5 = hashlib.md5()
-        value_md5.update(self.value)
+        value_md5.update(bytes(self.value))
         return '"{0}"'.format(value_md5.hexdigest())
 
     @property
@@ -52,10 +57,48 @@ class FakeKey(object):
         return len(self.value)
 
 
+class FakeMultipart(object):
+    def __init__(self, key_name):
+        self.key_name = key_name
+        self.parts = {}
+        self.id = base64.b64encode(os.urandom(UPLOAD_ID_BYTES)).replace('=', '').replace('+', '')
+
+    def complete(self):
+        total = bytearray()
+        last_part_name = len(self.list_parts())
+
+        for part in self.list_parts():
+            if part.name != last_part_name and len(part.value) < UPLOAD_PART_MIN_SIZE:
+                return
+            total.extend(part.value)
+
+        return total
+
+    def set_part(self, part_id, value):
+        if part_id < 1:
+            return
+
+        key = FakeKey(part_id, value)
+        self.parts[part_id] = key
+        return key
+
+    def list_parts(self):
+        parts = []
+
+        for part_id, index in enumerate(sorted(self.parts.keys()), start=1):
+            # Make sure part ids are continuous
+            if part_id != index:
+                return
+            parts.append(self.parts[part_id])
+
+        return parts
+
+
 class FakeBucket(object):
     def __init__(self, name):
         self.name = name
         self.keys = {}
+        self.multiparts = {}
 
 
 class S3Backend(BaseBackend):
@@ -105,6 +148,36 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         if bucket:
             return bucket.keys.get(key_name)
+
+    def initiate_multipart(self, bucket_name, key_name):
+        bucket = self.buckets[bucket_name]
+        new_multipart = FakeMultipart(key_name)
+        bucket.multiparts[new_multipart.id] = new_multipart
+
+        return new_multipart
+
+    def complete_multipart(self, bucket_name, multipart_id):
+        bucket = self.buckets[bucket_name]
+        multipart = bucket.multiparts[multipart_id]
+        value = multipart.complete()
+        if value is None:
+            return
+        del bucket.multiparts[multipart_id]
+
+        return self.set_key(bucket_name, multipart.key_name, value)
+
+    def cancel_multipart(self, bucket_name, multipart_id):
+        bucket = self.buckets[bucket_name]
+        del bucket.multiparts[multipart_id]
+
+    def list_multipart(self, bucket_name, multipart_id):
+        bucket = self.buckets[bucket_name]
+        return bucket.multiparts[multipart_id].list_parts()
+
+    def set_part(self, bucket_name, multipart_id, part_id, value):
+        bucket = self.buckets[bucket_name]
+        multipart = bucket.multiparts[multipart_id]
+        return multipart.set_part(part_id, value)
 
     def prefix_query(self, bucket, prefix, delimiter):
         key_results = set()

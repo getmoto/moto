@@ -116,6 +116,7 @@ class ResponseObject(object):
 
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
+        query = parse_qs(parsed_url.query)
         method = request.method
 
         key_name = self.parse_key_name(parsed_url.path)
@@ -130,6 +131,17 @@ class ResponseObject(object):
             body = request.data
 
         if method == 'GET':
+            if 'uploadId' in query:
+                upload_id = query['uploadId'][0]
+                parts = self.backend.list_multipart(bucket_name, upload_id)
+                template = Template(S3_MULTIPART_LIST_RESPONSE)
+                return 200, headers, template.render(
+                    bucket_name=bucket_name,
+                    key_name=key_name,
+                    upload_id=upload_id,
+                    count=len(parts),
+                    parts=parts
+                    )
             key = self.backend.get_key(bucket_name, key_name)
             if key:
                 headers.update(key.metadata)
@@ -137,6 +149,14 @@ class ResponseObject(object):
             else:
                 return 404, headers, ""
         if method == 'PUT':
+            if 'uploadId' in query and 'partNumber' in query and body:
+                upload_id = query['uploadId'][0]
+                part_number = int(query['partNumber'][0])
+                key = self.backend.set_part(bucket_name, upload_id, part_number, body)
+                template = Template(S3_MULTIPART_UPLOAD_RESPONSE)
+                headers.update(key.response_dict)
+                return 200, headers, template.render(part=key)
+
             if 'x-amz-copy-source' in request.headers:
                 # Copy key
                 src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/", 1)
@@ -177,9 +197,39 @@ class ResponseObject(object):
             else:
                 return 404, headers, ""
         elif method == 'DELETE':
+            if 'uploadId' in query:
+                upload_id = query['uploadId'][0]
+                self.backend.cancel_multipart(bucket_name, upload_id)
+                return 204, headers, ""
             removed_key = self.backend.delete_key(bucket_name, key_name)
             template = Template(S3_DELETE_OBJECT_SUCCESS)
             return 204, headers, template.render(bucket=removed_key)
+        elif method == 'POST':
+            if body == '' and parsed_url.query == 'uploads':
+                multipart = self.backend.initiate_multipart(bucket_name, key_name)
+                template = Template(S3_MULTIPART_INITIATE_RESPONSE)
+                response = template.render(
+                    bucket_name=bucket_name,
+                    key_name=key_name,
+                    upload_id=multipart.id,
+                )
+                return 200, headers, response
+
+            if 'uploadId' in query:
+                upload_id = query['uploadId'][0]
+                key = self.backend.complete_multipart(bucket_name, upload_id)
+
+                if key is not None:
+                    template = Template(S3_MULTIPART_COMPLETE_RESPONSE)
+                    return template.render(
+                        bucket_name=bucket_name,
+                        key_name=key.name,
+                        etag=key.etag,
+                    )
+                template = Template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
+                return 400, headers, template.render()
+            else:
+                raise NotImplementedError("Method POST had only been implemented for multipart uploads so far")
         else:
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
@@ -279,3 +329,62 @@ S3_OBJECT_COPY_RESPONSE = """<CopyObjectResponse xmlns="http://doc.s3.amazonaws.
     <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
   </CopyObjectResponse>
 </CopyObjectResponse>"""
+
+S3_MULTIPART_INITIATE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Bucket>{{ bucket_name }}</Bucket>
+  <Key>{{ key_name }}</Key>
+  <UploadId>{{ upload_id }}</UploadId>
+</InitiateMultipartUploadResult>"""
+
+S3_MULTIPART_UPLOAD_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CopyPartResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <LastModified>{{ part.last_modified_ISO8601 }}</LastModified>
+  <ETag>{{ part.etag }}</ETag>
+</CopyPartResult>"""
+
+S3_MULTIPART_LIST_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListPartsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Bucket>{{ bucket_name }}</Bucket>
+  <Key>{{ key_name }}</Key>
+  <UploadId>{{ upload_id }}</UploadId>
+  <StorageClass>STANDARD</StorageClass>
+  <Initiator>
+    <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+    <DisplayName>webfile</DisplayName>
+  </Initiator>
+  <Owner>
+    <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+    <DisplayName>webfile</DisplayName>
+  </Owner>
+  <StorageClass>STANDARD</StorageClass>
+  <PartNumberMarker>1</PartNumberMarker>
+  <NextPartNumberMarker>{{ count }} </NextPartNumberMarker>
+  <MaxParts>{{ count }}</MaxParts>
+  <IsTruncated>false</IsTruncated>
+  {% for part in parts %}
+  <Part>
+    <PartNumber>{{ part.name }}</PartNumber>
+    <LastModified>{{ part.last_modified_ISO8601 }}</LastModified>
+    <ETag>{{ part.etag }}</ETag>
+    <Size>{{ part.size }}</Size>
+  </Part>
+  {% endfor %}
+</ListPartsResult>"""
+
+S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CompleteMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Location>http://{{ bucket_name }}.s3.amazonaws.com/{{ key_name }}</Location>
+  <Bucket>{{ bucket_name }}</Bucket>
+  <Key>{{ key_name }}</Key>
+  <ETag>{{ etag }}</ETag>
+</CompleteMultipartUploadResult>
+"""
+
+S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>EntityTooSmall</Code>
+  <Message>Your proposed upload is smaller than the minimum allowed object size.</Message>
+  <RequestId>asdfasdfsdafds</RequestId>
+  <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
+</Error>"""
