@@ -540,12 +540,12 @@ class SpotInstanceRequest(object):
         self.security_groups = []
         if security_groups:
             for group_name in security_groups:
-                group = ec2_backend.get_security_group_from_name(group_name)
+                group = ec2_backend.get_security_group_from_name(group_name, None)
                 if group:
                     self.security_groups.append(group)
         else:
             # If not security groups, add the default
-            default_group = ec2_backend.get_security_group_from_name("default")
+            default_group = ec2_backend.get_security_group_from_name("default", None)
             self.security_groups.append(default_group)
 
 
