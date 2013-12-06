@@ -331,15 +331,17 @@ class SecurityGroupBackend(object):
     def describe_security_groups(self):
         return itertools.chain(*[x.values() for x in self.groups.values()])
 
-    def delete_security_group(self, name_or_group_id, vpc_id):
-        if name_or_group_id in self.groups[vpc_id]:
-            # Group Id
-            return self.groups[vpc_id].pop(name_or_group_id)
-        else:
-            # Group Name
-            group = self.get_security_group_from_name(name_or_group_id, vpc_id)
+    def delete_security_group(self, name=None, group_id=None):
+        if group_id:
+            # loop over all the SGs, find the right one
+            for vpc in self.groups.values():
+                if group_id in vpc:
+                    return vpc.pop(group_id)
+        elif name:
+            # Group Name.  Has to be in standard EC2, VPC needs to be identified by group_id
+            group = self.get_security_group_from_name(name, None)
             if group:
-                return self.groups[vpc_id].pop(group.id)
+                return self.groups[None].pop(group.id)
 
     def get_security_group_from_name(self, name, vpc_id):
         for group_id, group in self.groups[vpc_id].iteritems():

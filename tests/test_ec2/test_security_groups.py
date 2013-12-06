@@ -73,7 +73,7 @@ def test_deleting_security_groups():
     conn.get_all_security_groups().should.have.length_of(1)
 
     # Delete by group id
-    conn.delete_security_group(security_group1.id)
+    conn.delete_security_group(group_id=security_group1.id)
     conn.get_all_security_groups().should.have.length_of(0)
 
 @mock_ec2
@@ -82,15 +82,8 @@ def test_delete_security_group_in_vpc():
     vpc_id = "vpc-12345"
     security_group1 = conn.create_security_group('test1', 'test1', vpc_id)
 
-    # Deleting a group that doesn't exist in the VPC should throw an error
-    conn.delete_security_group.when.called_with('test1').should.throw(EC2ResponseError)
-
     # this should not throw an exception
-    conn.delete_security_group("test1", vpc_id=vpc_id)
-
-    # Delete by group id
-    # conn.delete_security_group(security_group1.id)
-    # conn.get_all_security_groups().should.have.length_of(0)
+    conn.delete_security_group(group_id=security_group1.id)
 
 
 @mock_ec2
