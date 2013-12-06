@@ -1,15 +1,20 @@
 import urllib2
-from io import BytesIO
 
 import boto
 from boto.exception import S3ResponseError
 from boto.s3.key import Key
+from boto.s3.connection import OrdinaryCallingFormat
+
 from freezegun import freeze_time
 import requests
 
 import sure  # noqa
 
-from moto import mock_s3
+from moto import mock_s3bucket_path
+
+
+def create_connection(key=None, secret=None):
+    return boto.connect_s3(key, secret, calling_format=OrdinaryCallingFormat())
 
 
 class MyModel(object):
@@ -18,17 +23,17 @@ class MyModel(object):
         self.value = value
 
     def save(self):
-        conn = boto.connect_s3('the_key', 'the_secret')
+        conn = create_connection('the_key', 'the_secret')
         bucket = conn.get_bucket('mybucket')
         k = Key(bucket)
         k.key = self.name
         k.set_contents_from_string(self.value)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_my_model_save():
     # Create Bucket so that test can run
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     conn.create_bucket('mybucket')
     ####################################
 
@@ -38,52 +43,24 @@ def test_my_model_save():
     conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal('is awesome')
 
 
-@mock_s3
-def test_multipart_upload_too_small():
-    conn = boto.connect_s3('the_key', 'the_secret')
-    bucket = conn.create_bucket("foobar")
-
-    multipart = bucket.initiate_multipart_upload("the-key")
-    multipart.upload_part_from_file(BytesIO('hello'), 1)
-    multipart.upload_part_from_file(BytesIO('world'), 2)
-    # Multipart with total size under 5MB is refused
-    multipart.complete_upload.should.throw(S3ResponseError)
-
-
-@mock_s3
-def test_multipart_upload():
-    conn = boto.connect_s3('the_key', 'the_secret')
-    bucket = conn.create_bucket("foobar")
-
-    multipart = bucket.initiate_multipart_upload("the-key")
-    part1 = '0' * 5242880
-    multipart.upload_part_from_file(BytesIO(part1), 1)
-    # last part, can be less than 5 MB
-    part2 = '1'
-    multipart.upload_part_from_file(BytesIO(part2), 2)
-    multipart.complete_upload()
-    # we should get both parts as the key contents
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
-
-
-@mock_s3
+@mock_s3bucket_path
 def test_missing_key():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
     bucket.get_key("the-key").should.equal(None)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_missing_key_urllib2():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     conn.create_bucket("foobar")
 
-    urllib2.urlopen.when.called_with("http://foobar.s3.amazonaws.com/the-key").should.throw(urllib2.HTTPError)
+    urllib2.urlopen.when.called_with("http://s3.amazonaws.com/foobar/the-key").should.throw(urllib2.HTTPError)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_empty_key():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
     key.key = "the-key"
@@ -92,9 +69,9 @@ def test_empty_key():
     bucket.get_key("the-key").get_contents_as_string().should.equal('')
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_empty_key_set_on_existing_key():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
     key.key = "the-key"
@@ -106,9 +83,9 @@ def test_empty_key_set_on_existing_key():
     bucket.get_key("the-key").get_contents_as_string().should.equal('')
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_large_key_save():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
     key.key = "the-key"
@@ -117,9 +94,9 @@ def test_large_key_save():
     bucket.get_key("the-key").get_contents_as_string().should.equal('foobar' * 100000)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_copy_key():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
     key.key = "the-key"
@@ -131,9 +108,9 @@ def test_copy_key():
     bucket.get_key("new-key").get_contents_as_string().should.equal("some value")
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_set_metadata():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
     key.key = 'the-key'
@@ -144,10 +121,10 @@ def test_set_metadata():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_s3
+@mock_s3bucket_path
 def test_last_modified():
     # See https://github.com/boto/boto/issues/466
-    conn = boto.connect_s3()
+    conn = create_connection()
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
     key.key = "the-key"
@@ -159,21 +136,21 @@ def test_last_modified():
     bucket.get_key("the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_missing_bucket():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     conn.get_bucket.when.called_with('mybucket').should.throw(S3ResponseError)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_bucket_with_dash():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     conn.get_bucket.when.called_with('mybucket-test').should.throw(S3ResponseError)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_bucket_deletion():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
 
     key = Key(bucket)
@@ -193,9 +170,9 @@ def test_bucket_deletion():
     conn.delete_bucket.when.called_with("foobar").should.throw(S3ResponseError)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_get_all_buckets():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     conn.create_bucket("foobar")
     conn.create_bucket("foobar2")
     buckets = conn.get_all_buckets()
@@ -203,12 +180,12 @@ def test_get_all_buckets():
     buckets.should.have.length_of(2)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_post_to_bucket():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
 
-    requests.post("https://foobar.s3.amazonaws.com/", {
+    requests.post("https://s3.amazonaws.com/foobar", {
         'key': 'the-key',
         'file': 'nothing'
     })
@@ -216,12 +193,12 @@ def test_post_to_bucket():
     bucket.get_key('the-key').get_contents_as_string().should.equal('nothing')
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_post_with_metadata_to_bucket():
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = create_connection('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
 
-    requests.post("https://foobar.s3.amazonaws.com/", {
+    requests.post("https://s3.amazonaws.com/foobar", {
         'key': 'the-key',
         'file': 'nothing',
         'x-amz-meta-test': 'metadata'
@@ -230,28 +207,28 @@ def test_post_with_metadata_to_bucket():
     bucket.get_key('the-key').get_metadata('test').should.equal('metadata')
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_bucket_method_not_implemented():
-    requests.patch.when.called_with("https://foobar.s3.amazonaws.com/").should.throw(NotImplementedError)
+    requests.patch.when.called_with("https://s3.amazonaws.com/foobar").should.throw(NotImplementedError)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_key_method_not_implemented():
-    requests.post.when.called_with("https://foobar.s3.amazonaws.com/foo").should.throw(NotImplementedError)
+    requests.post.when.called_with("https://s3.amazonaws.com/foobar/foo").should.throw(NotImplementedError)
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_bucket_name_with_dot():
-    conn = boto.connect_s3()
+    conn = create_connection()
     bucket = conn.create_bucket('firstname.lastname')
 
     k = Key(bucket, 'somekey')
     k.set_contents_from_string('somedata')
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_key_with_special_characters():
-    conn = boto.connect_s3()
+    conn = create_connection()
     bucket = conn.create_bucket('test_bucket_name')
 
     key = Key(bucket, 'test_list_keys_2/x?y')
@@ -262,9 +239,9 @@ def test_key_with_special_characters():
     keys[0].name.should.equal("test_list_keys_2/x?y")
 
 
-@mock_s3
+@mock_s3bucket_path
 def test_bucket_key_listing_order():
-    conn = boto.connect_s3()
+    conn = create_connection()
     bucket = conn.create_bucket('test_bucket')
     prefix = 'toplevel/'
 
