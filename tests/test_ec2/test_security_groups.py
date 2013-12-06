@@ -76,6 +76,21 @@ def test_deleting_security_groups():
     conn.delete_security_group(security_group1.id)
     conn.get_all_security_groups().should.have.length_of(0)
 
+@mock_ec2
+def test_delete_security_group_in_vpc():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    vpc_id = "vpc-12345"
+    security_group1 = conn.create_security_group('test1', 'test1', vpc_id)
+
+    # Deleting a group that doesn't exist in the VPC should throw an error
+    conn.delete_security_group.when.called_with('test1').should.throw(EC2ResponseError)
+
+    conn.delete_security_group("test1", vpc_id=vpc_id)
+
+    # Delete by group id
+    # conn.delete_security_group(security_group1.id)
+    # conn.get_all_security_groups().should.have.length_of(0)
+
 
 @mock_ec2
 def test_authorize_ip_range_and_revoke():
