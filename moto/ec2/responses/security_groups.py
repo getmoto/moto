@@ -42,8 +42,10 @@ class SecurityGroups(object):
     def delete_security_group(self):
         # TODO this should raise an error if there are instances in the group. See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DeleteSecurityGroup.html
         name = self.querystring.get('GroupName')[0]
-        group = ec2_backend.delete_security_group(name)
+        vpc_id = self.querystring.get("VpcId", [None])[0]
 
+        # needs vpc now
+        group = ec2_backend.delete_security_group(name, vpc_id)
         if not group:
             # There was no such group
             return "There was no security group with name {0}".format(name), dict(status=404)
