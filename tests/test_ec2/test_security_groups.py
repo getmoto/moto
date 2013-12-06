@@ -24,7 +24,7 @@ def test_create_and_describe_security_group():
 def test_create_and_describe_vpc_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vpc_id = 'vpc-5300000c'
-    security_group = conn.create_security_group('test security group', 'this is a test security group', vpc_id)
+    security_group = conn.create_security_group('test security group', 'this is a test security group', vpc_id=vpc_id)
 
     security_group.vpc_id.should.equal(vpc_id)
 
@@ -85,6 +85,7 @@ def test_delete_security_group_in_vpc():
     # Deleting a group that doesn't exist in the VPC should throw an error
     conn.delete_security_group.when.called_with('test1').should.throw(EC2ResponseError)
 
+    # this should not throw an exception
     conn.delete_security_group("test1", vpc_id=vpc_id)
 
     # Delete by group id
