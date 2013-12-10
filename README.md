@@ -58,6 +58,7 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 | Autoscaling           | @mock_autoscaling| core endpoints done               |
 |------------------------------------------------------------------------------|
 | DynamoDB              | @mock_dynamodb   | core endpoints done               |
+| DynamoDB2             | @mock_dynamodb2  | core endpoints done - no indexes  |
 |------------------------------------------------------------------------------|
 | EC2                   | @mock_ec2        | core endpoints done               |
 |     - AMI             |                  | core endpoints done               |
