@@ -28,6 +28,6 @@ setup(
             'moto_server = moto.server:main',
         ],
     },
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
 )
