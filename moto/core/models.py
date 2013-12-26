@@ -25,6 +25,7 @@ class MockAWS(object):
         self.stop()
 
     def start(self):
+        self.__class__.nested_count += 1
         self.backend.reset()
 
         if not HTTPretty.is_enabled():
@@ -47,6 +48,9 @@ class MockAWS(object):
 
     def stop(self):
         self.__class__.nested_count -= 1
+
+        if self.__class__.nested_count < 0:
+            raise RuntimeError('Called stop() before start().')
 
         if self.__class__.nested_count == 0:
             HTTPretty.disable()
