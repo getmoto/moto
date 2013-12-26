@@ -5,3 +5,4 @@ dist/*
 *.pyc
 .noseids
 build/
+.idea/
