@@ -7,9 +7,13 @@ from .utils import convert_regex_to_flask_path
 
 
 class MockAWS(object):
+    nested_count = 0
+
     def __init__(self, backend):
         self.backend = backend
-        HTTPretty.reset()
+
+        if self.__class__.nested_count == 0:
+            HTTPretty.reset()
 
     def __call__(self, func):
         return self.decorate_callable(func)
@@ -22,7 +26,9 @@ class MockAWS(object):
 
     def start(self):
         self.backend.reset()
-        HTTPretty.enable()
+
+        if not HTTPretty.is_enabled():
+            HTTPretty.enable()
 
         for method in HTTPretty.METHODS:
             for key, value in self.backend.urls.iteritems():
@@ -40,7 +46,10 @@ class MockAWS(object):
             )
 
     def stop(self):
-        HTTPretty.disable()
+        self.__class__.nested_count -= 1
+
+        if self.__class__.nested_count == 0:
+            HTTPretty.disable()
 
     def decorate_callable(self, func):
         def wrapper(*args, **kwargs):
