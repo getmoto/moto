@@ -29,7 +29,6 @@ class DomainDispatcherApplication(object):
         for backend in BACKENDS.itervalues():
             for url_base in backend.url_bases:
                 if re.match(url_base, 'http://%s' % host):
-                    print url_base, 'http://%s' % host
                     return backend
 
         raise RuntimeError('Invalid host: "%s"' % host)
