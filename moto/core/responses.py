@@ -9,7 +9,7 @@ from moto.core.utils import camelcase_to_underscores, method_names_from_class
 class BaseResponse(object):
 
     def dispatch(self, request, full_url, headers):
-        querystring = None
+        querystring = {}
 
         if hasattr(request, 'body'):
             # Boto
@@ -26,12 +26,12 @@ class BaseResponse(object):
             for key, value in request.form.iteritems():
                 querystring[key] = [value, ]
 
+        if querystring is None:
+            querystring.update(parse_qs(urlparse(full_url).query))
         if not querystring:
-            querystring = parse_qs(urlparse(full_url).query)
+            querystring.update(parse_qs(self.body))
         if not querystring:
-            querystring = parse_qs(self.body)
-        if not querystring:
-            querystring = headers
+            querystring.update(headers)
 
         self.uri = full_url
         self.path = urlparse(full_url).path
