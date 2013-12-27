@@ -26,6 +26,9 @@ class BaseResponse(object):
             for key, value in request.form.iteritems():
                 querystring[key] = [value,]
 
+            # Also merge the real query string
+            real_qs = parse_qs(urlparse(full_url).query)
+            querystring.update(real_qs)
 
         if querystring is None:
             querystring = parse_qs(urlparse(full_url).query)
