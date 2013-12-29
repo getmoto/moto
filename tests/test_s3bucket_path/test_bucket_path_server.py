@@ -5,18 +5,21 @@ import moto.server as server
 '''
 Test the different server responses
 '''
-server.configure_urls("s3bucket_path")
 
 
 def test_s3_server_get():
-    test_client = server.app.test_client()
+    backend = server.create_backend_app("s3bucket_path")
+    test_client = backend.test_client()
+
     res = test_client.get('/')
 
     res.data.should.contain('ListAllMyBucketsResult')
 
 
 def test_s3_server_bucket_create():
-    test_client = server.app.test_client()
+    backend = server.create_backend_app("s3bucket_path")
+    test_client = backend.test_client()
+
     res = test_client.put('/foobar', 'http://localhost:5000')
     res.status_code.should.equal(200)
 
@@ -36,7 +39,9 @@ def test_s3_server_bucket_create():
 
 
 def test_s3_server_post_to_bucket():
-    test_client = server.app.test_client()
+    backend = server.create_backend_app("s3bucket_path")
+    test_client = backend.test_client()
+
     res = test_client.put('/foobar', 'http://localhost:5000/')
     res.status_code.should.equal(200)
 
