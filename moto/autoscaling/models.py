@@ -83,6 +83,8 @@ class FakeAutoScalingGroup(object):
         self.launch_config = autoscaling_backend.launch_configurations[launch_config_name]
         self.launch_config_name = launch_config_name
         self.vpc_zone_identifier = vpc_zone_identifier
+        self.health_check_period = health_check_period
+        self.health_check_type = health_check_type
 
         self.set_desired_capacity(desired_capacity)
 

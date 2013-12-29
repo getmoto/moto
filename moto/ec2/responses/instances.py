@@ -68,12 +68,16 @@ class InstanceResponse(BaseResponse):
         return template.render(instance=instance, attribute=attribute, value=value)
 
     def modify_instance_attribute(self):
+        attribute_key = None
         for key, value in self.querystring.iteritems():
             if '.Value' in key:
+                attribute_key = key
                 break
 
-        value = self.querystring.get(key)[0]
-        normalized_attribute = camelcase_to_underscores(key.split(".")[0])
+        if not attribute_key:
+            return
+        value = self.querystring.get(attribute_key)[0]
+        normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
         ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)

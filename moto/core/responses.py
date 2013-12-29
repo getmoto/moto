@@ -75,7 +75,13 @@ def metadata_response(request, full_url, headers):
         Expiration=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ")
     )
 
-    path = parsed_url.path.lstrip("/latest/meta-data/")
+    path = parsed_url.path
+
+    meta_data_prefix = "/latest/meta-data/"
+    # Strip prefix if it is there
+    if path.startswith(meta_data_prefix):
+        path = path[len(meta_data_prefix):]
+
     if path == '':
         result = 'iam'
     elif path == 'iam':

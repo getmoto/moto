@@ -36,23 +36,23 @@ class Instance(BotoInstance):
         self._state = InstanceState("running", 16)
         self.user_data = user_data
 
-    def start(self):
+    def start(self, *args, **kwargs):
         self._state.name = "running"
         self._state.code = 16
 
-    def stop(self):
+    def stop(self, *args, **kwargs):
         self._state.name = "stopped"
         self._state.code = 80
 
-    def terminate(self):
+    def terminate(self, *args, **kwargs):
         self._state.name = "terminated"
         self._state.code = 48
 
-    def reboot(self):
+    def reboot(self, *args, **kwargs):
         self._state.name = "running"
         self._state.code = 16
 
-    def get_tags(self):
+    def get_tags(self, *args, **kwargs):
         tags = ec2_backend.describe_tags(self.id)
         return tags
 
@@ -562,7 +562,7 @@ class SpotRequestBackend(object):
                                instance_type, placement, kernel_id, ramdisk_id,
                                monitoring_enabled, subnet_id):
         requests = []
-        for index in range(count):
+        for _ in range(count):
             spot_request_id = random_spot_request_id()
             request = SpotInstanceRequest(
                 spot_request_id, price, image_id, type, valid_from, valid_until,
@@ -584,7 +584,7 @@ class SpotRequestBackend(object):
         return requests
 
 
-class ElasticAddress():
+class ElasticAddress(object):
     def __init__(self, domain):
         self.public_ip = random_ip()
         self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
