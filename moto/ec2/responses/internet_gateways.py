@@ -1,10 +1,7 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from moto.core.responses import BaseResponse
 
 
-class InternetGateways(object):
+class InternetGateways(BaseResponse):
     def attach_internet_gateway(self):
         raise NotImplementedError('InternetGateways(AmazonVPC).attach_internet_gateway is not yet implemented')
 

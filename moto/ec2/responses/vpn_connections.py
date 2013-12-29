@@ -1,10 +1,7 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from moto.core.responses import BaseResponse
 
 
-class VPNConnections(object):
+class VPNConnections(BaseResponse):
     def create_vpn_connection(self):
         raise NotImplementedError('VPNConnections(AmazonVPC).create_vpn_connection is not yet implemented')
 

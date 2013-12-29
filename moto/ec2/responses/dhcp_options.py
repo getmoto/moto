@@ -1,10 +1,7 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from moto.core.responses import BaseResponse
 
 
-class DHCPOptions(object):
+class DHCPOptions(BaseResponse):
     def associate_dhcp_options(self):
         raise NotImplementedError('DHCPOptions(AmazonVPC).associate_dhcp_options is not yet implemented')
 

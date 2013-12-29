@@ -1,10 +1,7 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from moto.core.responses import BaseResponse
 
 
-class ElasticNetworkInterfaces(object):
+class ElasticNetworkInterfaces(BaseResponse):
     def attach_network_interface(self):
         raise NotImplementedError('ElasticNetworkInterfaces(AmazonVPC).attach_network_interface is not yet implemented')
 

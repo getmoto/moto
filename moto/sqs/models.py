@@ -100,7 +100,7 @@ class SQSBackend(BaseBackend):
     def receive_messages(self, queue_name, count):
         queue = self.get_queue(queue_name)
         result = []
-        for index in range(count):
+        for _ in range(count):
             if queue.messages:
                 result.append(queue.messages.pop(0))
         return result

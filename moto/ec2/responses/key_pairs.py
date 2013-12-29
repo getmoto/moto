@@ -1,10 +1,7 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from moto.core.responses import BaseResponse
 
 
-class KeyPairs(object):
+class KeyPairs(BaseResponse):
     def create_key_pair(self):
         raise NotImplementedError('KeyPairs.create_key_pair is not yet implemented')
 

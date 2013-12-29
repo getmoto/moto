@@ -1,10 +1,7 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from moto.core.responses import BaseResponse
 
 
-class RouteTables(object):
+class RouteTables(BaseResponse):
     def associate_route_table(self):
         raise NotImplementedError('RouteTables(AmazonVPC).associate_route_table is not yet implemented')
 
