@@ -1,9 +1,10 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 
 
-class ElasticBlockStore(object):
+class ElasticBlockStore(BaseResponse):
     def attach_volume(self):
         volume_id = self.querystring.get('VolumeId')[0]
         instance_id = self.querystring.get('InstanceId')[0]

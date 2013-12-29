@@ -1,10 +1,11 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring
 
 
-class AmisResponse(object):
+class AmisResponse(BaseResponse):
     def create_image(self):
         name = self.querystring.get('Name')[0]
         if "Description" in self.querystring:

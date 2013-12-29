@@ -1,9 +1,10 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 
 
-class Subnets(object):
+class Subnets(BaseResponse):
     def create_subnet(self):
         vpc_id = self.querystring.get('VpcId')[0]
         cidr_block = self.querystring.get('CidrBlock')[0]

@@ -1,12 +1,13 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.models import ec2_backend
 from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations
 from moto.ec2.exceptions import InvalidIdError
 
 
-class InstanceResponse(object):
+class InstanceResponse(BaseResponse):
     def describe_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         if instance_ids:

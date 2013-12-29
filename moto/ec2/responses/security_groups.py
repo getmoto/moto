@@ -1,5 +1,6 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 
 
@@ -20,7 +21,7 @@ def process_rules_from_querystring(querystring):
     return (name, ip_protocol, from_port, to_port, ip_ranges, source_groups)
 
 
-class SecurityGroups(object):
+class SecurityGroups(BaseResponse):
     def authorize_security_group_egress(self):
         raise NotImplementedError('SecurityGroups.authorize_security_group_egress is not yet implemented')
 

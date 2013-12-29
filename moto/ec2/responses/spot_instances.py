@@ -1,9 +1,10 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 
 
-class SpotInstances(object):
+class SpotInstances(BaseResponse):
     def _get_param(self, param_name):
         return self.querystring.get(param_name, [None])[0]
 
