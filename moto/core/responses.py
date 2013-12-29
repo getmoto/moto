@@ -24,15 +24,14 @@ class BaseResponse(object):
 
             querystring = {}
             for key, value in request.form.iteritems():
-                querystring[key] = [value,]
+                querystring[key] = [value, ]
 
-
-        if querystring is None:
+        if not querystring:
             querystring = parse_qs(urlparse(full_url).query)
-            if not querystring:
-                querystring = parse_qs(self.body)
-            if not querystring:
-                querystring = headers
+        if not querystring:
+            querystring = parse_qs(self.body)
+        if not querystring:
+            querystring = headers
 
         self.uri = full_url
         self.path = urlparse(full_url).path
