@@ -9,18 +9,33 @@ from moto.core.utils import camelcase_to_underscores, method_names_from_class
 class BaseResponse(object):
 
     def dispatch(self, request, full_url, headers):
+        querystring = None
+
         if hasattr(request, 'body'):
             # Boto
             self.body = request.body
         else:
             # Flask server
+
+            # FIXME: At least in Flask==0.10.1, request.data is an empty string
+            # and the information we want is in request.form. Keeping self.body
+            # definition for back-compatibility
             self.body = request.data
 
-        querystring = parse_qs(urlparse(full_url).query)
-        if not querystring:
-            querystring = parse_qs(self.body)
-        if not querystring:
-            querystring = headers
+            querystring = {}
+            for key, value in request.form.iteritems():
+                querystring[key] = [value,]
+
+            # Also merge the real query string
+            real_qs = parse_qs(urlparse(full_url).query)
+            querystring.update(real_qs)
+
+        if querystring is None:
+            querystring = parse_qs(urlparse(full_url).query)
+            if not querystring:
+                querystring = parse_qs(self.body)
+            if not querystring:
+                querystring = headers
 
         self.uri = full_url
         self.path = urlparse(full_url).path

@@ -111,6 +111,13 @@ class BaseBackend(object):
         return paths
 
     @property
+    def url_bases(self):
+        """
+        A list containing the url_bases extracted from urls.py
+        """
+        return self._url_module.url_bases
+
+    @property
     def flask_paths(self):
         """
         The url paths that will be used for the flask server

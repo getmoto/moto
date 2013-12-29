@@ -1,7 +1,7 @@
 from .responses import QueueResponse, QueuesResponse
 
 url_bases = [
-    "https?://(.*).amazonaws.com"
+    "https?://queue(.*).amazonaws.com"
 ]
 
 url_paths = {
