@@ -82,7 +82,11 @@ def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
 
     # Keep this for backwards compat
-    parser.add_argument("service", type=str)
+    parser.add_argument(
+        "service",
+        type=str,
+        nargs='?',
+        default=None)
     parser.add_argument(
         '-H', '--host', type=str,
         help='Which host to bind',
