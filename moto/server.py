@@ -28,12 +28,12 @@ class DomainDispatcherApplication(object):
 
     def get_backend_for_host(self, host):
         if self.service:
-            return BACKENDS[self.service]
+            return self.service
 
-        for backend in BACKENDS.itervalues():
+        for backend_name, backend in BACKENDS.iteritems():
             for url_base in backend.url_bases:
                 if re.match(url_base, 'http://%s' % host):
-                    return backend
+                    return backend_name
 
         raise RuntimeError('Invalid host: "%s"' % host)
 
