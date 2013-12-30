@@ -85,7 +85,7 @@ def main(argv=sys.argv[1:]):
     parser.add_argument(
         "service",
         type=str,
-        nargs='?',
+        nargs='?',  # http://stackoverflow.com/a/4480202/731592
         default=None)
     parser.add_argument(
         '-H', '--host', type=str,
