@@ -7,6 +7,7 @@ from boto.dynamodb2.fields import HashKey
 from boto.dynamodb2.fields import RangeKey
 from boto.dynamodb2.table import Table
 from boto.dynamodb2.table import Item
+from tests.helpers import requires_boto_gte
 
 def create_table():
     table = Table.create('messages', schema=[
@@ -18,8 +19,10 @@ def create_table():
     return table
 
 
-@freeze_time("2012-01-14")
+
+@requires_boto_gte("2.9")
 @mock_dynamodb2
+@freeze_time("2012-01-14")
 def test_create_table():
     table = create_table()
     expected = {
@@ -47,6 +50,7 @@ def test_create_table():
     conn.describe_table('messages').should.equal(expected)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_delete_table():
     create_table()
@@ -59,6 +63,7 @@ def test_delete_table():
     conn.delete_table.when.called_with('messages').should.throw(JSONResponseError)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_update_table_throughput():
     table = create_table()
@@ -75,6 +80,7 @@ def test_update_table_throughput():
     table.throughput["write"].should.equal(6)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_item_add_and_describe_and_update():
     table = create_table()
@@ -108,6 +114,7 @@ def test_item_add_and_describe_and_update():
     })
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_item_put_without_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -122,6 +129,7 @@ def test_item_put_without_table():
     ).should.throw(JSONResponseError)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_get_missing_item():
     table = create_table()
@@ -129,6 +137,7 @@ def test_get_missing_item():
     table.get_item.when.called_with(test_hash=3241526475).should.throw(JSONResponseError)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_get_item_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -139,6 +148,7 @@ def test_get_item_with_undeclared_table():
     ).should.throw(JSONResponseError)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_delete_item():
     table = create_table()
@@ -162,6 +172,7 @@ def test_delete_item():
     item.delete.when.called_with().should.throw(JSONResponseError)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_delete_item_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -172,6 +183,7 @@ def test_delete_item_with_undeclared_table():
     ).should.throw(JSONResponseError)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_query():
     table = create_table()
@@ -191,6 +203,7 @@ def test_query():
     sum(1 for _ in results).should.equal(1)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_query_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -201,6 +214,7 @@ def test_query_with_undeclared_table():
     ).should.throw(JSONResponseError)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_scan():
     table = create_table()
@@ -251,6 +265,7 @@ def test_scan():
     sum(1 for _ in results).should.equal(1)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_scan_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -268,6 +283,7 @@ def test_scan_with_undeclared_table():
     ).should.throw(JSONResponseError)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_write_batch():
     table = create_table()
@@ -298,6 +314,7 @@ def test_write_batch():
     table.count().should.equal(1)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_batch_read():
     table = create_table()
@@ -335,6 +352,7 @@ def test_batch_read():
     count.should.equal(2)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_get_key_fields():
     table = create_table()
@@ -342,6 +360,7 @@ def test_get_key_fields():
     kf[0].should.equal('forum_name')
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_get_special_item():
     table = Table.create('messages', schema=[

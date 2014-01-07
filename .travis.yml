@@ -9,6 +9,8 @@ env:
       - BOTO_VERSION=2.11.0
       - BOTO_VERSION=2.10.0
       - BOTO_VERSION=2.9.9
+      - BOTO_VERSION=2.8
+      - BOTO_VERSION=2.7
 install:
   - pip install boto==$BOTO_VERSION
   - pip install https://github.com/gabrielfalcao/HTTPretty/tarball/8bbbdfc14326678b1aeba6a2d81af0d835a2cd6f

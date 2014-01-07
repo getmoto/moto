@@ -5,8 +5,10 @@ import boto.dynamodb2
 from moto import mock_dynamodb2
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
+from tests.helpers import requires_boto_gte
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_list_tables():
     name = 'TestTable'    
@@ -22,6 +24,7 @@ def test_list_tables():
     assert conn.list_tables()["TableNames"] == [name]
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_list_tables_layer_1():
     dynamodb_backend2.create_table("test_1",schema=[
@@ -44,6 +47,7 @@ def test_list_tables_layer_1():
     res.should.equal(expected)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_describe_missing_table():
     conn =  boto.dynamodb2.connect_to_region(
@@ -53,6 +57,7 @@ def test_describe_missing_table():
     conn.describe_table.when.called_with('messages').should.throw(JSONResponseError)
 
 
+@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_sts_handler():
     res = requests.post("https://sts.amazonaws.com/", data={"GetSessionToken": ""})
