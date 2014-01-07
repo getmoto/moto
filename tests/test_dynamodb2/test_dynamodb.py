@@ -1,12 +1,14 @@
 import boto
 import sure  # noqa
 import requests
-import boto.dynamodb2
 from moto import mock_dynamodb2
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
-
+try:
+    import boto.dynamodb2
+except ImportError:
+    print "This boto version is not supported"
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2

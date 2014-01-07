@@ -2,16 +2,19 @@ import boto
 import sure  # noqa
 from freezegun import freeze_time
 from moto import mock_dynamodb2
-from boto.dynamodb2.fields import HashKey
-from boto.dynamodb2.fields import RangeKey
-from boto.dynamodb2.table import Table
-from boto.dynamodb2.table import Item
-from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
-from boto.dynamodb2.exceptions import ValidationException
-from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
-
+try:
+    from boto.dynamodb2.fields import HashKey
+    from boto.dynamodb2.fields import RangeKey
+    from boto.dynamodb2.table import Table
+    from boto.dynamodb2.table import Item
+    from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
+    from boto.dynamodb2.exceptions import ValidationException
+    from boto.dynamodb2.exceptions import ConditionalCheckFailedException
+except ImportError:
+    print "This boto version is not supported"
+    
 def create_table():
     table = Table.create('messages', schema=[
         HashKey('forum_name'),
