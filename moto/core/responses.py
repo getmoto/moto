@@ -9,18 +9,29 @@ from moto.core.utils import camelcase_to_underscores, method_names_from_class
 class BaseResponse(object):
 
     def dispatch(self, request, full_url, headers):
+        querystring = {}
+
         if hasattr(request, 'body'):
             # Boto
             self.body = request.body
         else:
             # Flask server
+
+            # FIXME: At least in Flask==0.10.1, request.data is an empty string
+            # and the information we want is in request.form. Keeping self.body
+            # definition for back-compatibility
             self.body = request.data
 
-        querystring = parse_qs(urlparse(full_url).query)
+            querystring = {}
+            for key, value in request.form.iteritems():
+                querystring[key] = [value, ]
+
         if not querystring:
-            querystring = parse_qs(self.body)
+            querystring.update(parse_qs(urlparse(full_url).query))
         if not querystring:
-            querystring = headers
+            querystring.update(parse_qs(self.body))
+        if not querystring:
+            querystring.update(headers)
 
         self.uri = full_url
         self.path = urlparse(full_url).path
@@ -64,7 +75,13 @@ def metadata_response(request, full_url, headers):
         Expiration=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ")
     )
 
-    path = parsed_url.path.lstrip("/latest/meta-data/")
+    path = parsed_url.path
+
+    meta_data_prefix = "/latest/meta-data/"
+    # Strip prefix if it is there
+    if path.startswith(meta_data_prefix):
+        path = path[len(meta_data_prefix):]
+
     if path == '':
         result = 'iam'
     elif path == 'iam':

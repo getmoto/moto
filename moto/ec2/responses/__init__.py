@@ -1,5 +1,3 @@
-from moto.core.responses import BaseResponse
-
 from .amazon_dev_pay import AmazonDevPay
 from .amis import AmisResponse
 from .availability_zones_and_regions import AvailabilityZonesAndRegions
@@ -31,7 +29,6 @@ from .windows import Windows
 
 
 class EC2Response(
-    BaseResponse,
     AmazonDevPay,
     AmisResponse,
     AvailabilityZonesAndRegions,

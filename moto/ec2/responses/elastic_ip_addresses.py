@@ -1,11 +1,11 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 from moto.ec2.utils import sequence_from_querystring
 
 
-
-class ElasticIPAddresses(object):
+class ElasticIPAddresses(BaseResponse):
     def allocate_address(self):
         if "Domain" in self.querystring:
             domain = self.querystring.get('Domain')[0]

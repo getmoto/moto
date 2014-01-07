@@ -100,7 +100,7 @@ class FakeJobFlow(object):
     def master_instance_type(self):
         groups = self.instance_groups
         if groups:
-            groups[0].type
+            return groups[0].type
         else:
             return self.initial_master_instance_type
 
@@ -108,7 +108,7 @@ class FakeJobFlow(object):
     def slave_instance_type(self):
         groups = self.instance_groups
         if groups:
-            groups[0].type
+            return groups[0].type
         else:
             return self.initial_slave_instance_type
 

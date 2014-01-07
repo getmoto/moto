@@ -1,5 +1,6 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 
 
@@ -20,7 +21,7 @@ def process_rules_from_querystring(querystring):
     return (name, ip_protocol, from_port, to_port, ip_ranges, source_groups)
 
 
-class SecurityGroups(object):
+class SecurityGroups(BaseResponse):
     def authorize_security_group_egress(self):
         raise NotImplementedError('SecurityGroups.authorize_security_group_egress is not yet implemented')
 
@@ -31,7 +32,8 @@ class SecurityGroups(object):
     def create_security_group(self):
         name = self.querystring.get('GroupName')[0]
         description = self.querystring.get('GroupDescription')[0]
-        group = ec2_backend.create_security_group(name, description)
+        vpc_id = self.querystring.get("VpcId", [None])[0]
+        group = ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
         if not group:
             # There was an exisitng group
             return "There was an existing security group with name {0}".format(name), dict(status=409)
@@ -40,9 +42,16 @@ class SecurityGroups(object):
 
     def delete_security_group(self):
         # TODO this should raise an error if there are instances in the group. See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DeleteSecurityGroup.html
-        name = self.querystring.get('GroupName')[0]
-        group = ec2_backend.delete_security_group(name)
 
+        name = self.querystring.get('GroupName')
+        sg_id = self.querystring.get('GroupId')
+
+        if name:
+            group = ec2_backend.delete_security_group(name[0])
+        elif sg_id:
+            group = ec2_backend.delete_security_group(group_id=sg_id[0])
+
+        # needs name or group now
         if not group:
             # There was no such group
             return "There was no security group with name {0}".format(name), dict(status=404)
@@ -83,7 +92,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
-             <vpcId/>
+             <vpcId>{{ group.vpc_id or ""}}</vpcId>
              <ipPermissions>
                {% for rule in group.ingress_rules %}
                     <item>

@@ -1,9 +1,10 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 
 
-class AvailabilityZonesAndRegions(object):
+class AvailabilityZonesAndRegions(BaseResponse):
     def describe_availability_zones(self):
         zones = ec2_backend.describe_availability_zones()
         template = Template(DESCRIBE_ZONES_RESPONSE)

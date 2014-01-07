@@ -17,7 +17,7 @@ if sys.version_info < (2, 7):
 
 setup(
     name='moto',
-    version='0.2.11',
+    version='0.2.15',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',
@@ -28,6 +28,6 @@ setup(
             'moto_server = moto.server:main',
         ],
     },
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
 )

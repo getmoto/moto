@@ -1,12 +1,13 @@
 from jinja2 import Template
 
+from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.models import ec2_backend
 from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations
 from moto.ec2.exceptions import InvalidIdError
 
 
-class InstanceResponse(object):
+class InstanceResponse(BaseResponse):
     def describe_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         if instance_ids:
@@ -67,12 +68,16 @@ class InstanceResponse(object):
         return template.render(instance=instance, attribute=attribute, value=value)
 
     def modify_instance_attribute(self):
+        attribute_key = None
         for key, value in self.querystring.iteritems():
             if '.Value' in key:
+                attribute_key = key
                 break
 
-        value = self.querystring.get(key)[0]
-        normalized_attribute = camelcase_to_underscores(key.split(".")[0])
+        if not attribute_key:
+            return
+        value = self.querystring.get(attribute_key)[0]
+        normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
         ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)

@@ -2,7 +2,7 @@ from moto.core import BaseBackend
 from moto.core.utils import get_random_hex
 
 
-class FakeZone:
+class FakeZone(object):
 
     def __init__(self, name, id):
         self.name = name

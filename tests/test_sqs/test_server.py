@@ -6,11 +6,12 @@ import moto.server as server
 '''
 Test the different server responses
 '''
-server.configure_urls("sqs")
 
 
 def test_sqs_list_identities():
-    test_client = server.app.test_client()
+    backend = server.create_backend_app("sqs")
+    test_client = backend.test_client()
+
     res = test_client.get('/?Action=ListQueues')
     res.data.should.contain("ListQueuesResponse")
 
