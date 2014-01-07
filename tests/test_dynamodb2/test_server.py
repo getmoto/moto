@@ -5,11 +5,11 @@ import moto.server as server
 '''
 Test the different server responses
 '''
-server.configure_urls("dynamodb2")
 
 
 def test_table_list():
-    test_client = server.app.test_client()
+    backend = server.create_backend_app("dynamodb2")
+    test_client = backend.test_client()
     res = test_client.get('/')
     res.status_code.should.equal(404)
 
