@@ -1,0 +1,383 @@
+import boto
+import sure  # noqa
+from freezegun import freeze_time
+from boto.exception import JSONResponseError
+from moto import mock_dynamodb2
+from tests.helpers import requires_boto_gte
+try:
+    from boto.dynamodb2.fields import HashKey
+    from boto.dynamodb2.fields import RangeKey
+    from boto.dynamodb2.table import Table
+    from boto.dynamodb2.table import Item
+except ImportError:
+    print "This boto version is not supported"
+    
+def create_table():
+    table = Table.create('messages', schema=[
+        HashKey('forum_name')
+    ], throughput={
+        'read': 10,
+        'write': 10,
+    })
+    return table
+
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+@freeze_time("2012-01-14")
+def test_create_table():
+    table = create_table()
+    expected = {
+        'Table': {
+            'AttributeDefinitions': [
+                {'AttributeName': 'forum_name', 'AttributeType': 'S'}    
+            ], 
+            'ProvisionedThroughput': {
+                'NumberOfDecreasesToday': 0, 'WriteCapacityUnits': 10, 'ReadCapacityUnits': 10
+                }, 
+            'TableSizeBytes': 0, 
+            'TableName': 'messages', 
+            'TableStatus': 'ACTIVE', 
+            'KeySchema': [
+                {'KeyType': 'HASH', 'AttributeName': 'forum_name'} 
+            ], 
+            'ItemCount': 0, 'CreationDateTime': 1326499200.0
+        }
+    }
+    conn =  boto.dynamodb2.connect_to_region(
+            'us-west-2',
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk")
+    
+    conn.describe_table('messages').should.equal(expected)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_delete_table():
+    create_table()
+    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+    conn.list_tables()["TableNames"].should.have.length_of(1)
+
+    conn.delete_table('messages')
+    conn.list_tables()["TableNames"].should.have.length_of(0)
+
+    conn.delete_table.when.called_with('messages').should.throw(JSONResponseError)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_update_table_throughput():
+    table = create_table()
+    table.throughput["read"].should.equal(10)
+    table.throughput["write"].should.equal(10)    
+
+    table.update(throughput={
+        'read': 5,
+        'write': 6,
+     })
+
+
+    table.throughput["read"].should.equal(5)
+    table.throughput["write"].should.equal(6)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_item_add_and_describe_and_update():
+    table = create_table()
+    
+    data={
+        'forum_name': 'LOLCat Forum',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+     }
+    
+    table.put_item(data = data)
+    returned_item = table.get_item(forum_name="LOLCat Forum")
+    returned_item.should_not.be.none
+    
+    dict(returned_item).should.equal({
+        'forum_name': 'LOLCat Forum',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+    })
+
+    returned_item['SentBy'] = 'User B'
+    returned_item.save(overwrite=True)
+
+    returned_item = table.get_item(
+          forum_name='LOLCat Forum'
+    )
+    dict(returned_item).should.equal({
+        'forum_name': 'LOLCat Forum',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User B',
+    })
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_item_put_without_table():
+    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+
+    conn.put_item.when.called_with(
+        table_name='undeclared-table',
+        item={
+        'forum_name': 'LOLCat Forum',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+        }
+    ).should.throw(JSONResponseError)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_get_missing_item():
+    table = create_table()
+
+    table.get_item.when.called_with(test_hash=3241526475).should.throw(JSONResponseError)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_get_item_with_undeclared_table():
+    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+
+    conn.get_item.when.called_with(
+        table_name='undeclared-table',
+        key={"forum_name": {"S": "LOLCat Forum"}},
+    ).should.throw(JSONResponseError)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_delete_item():
+    table = create_table()
+
+    item_data = {
+        'forum_name': 'LOLCat Forum',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+    }
+    item =Item(table,item_data)
+    item.save()
+    table.count().should.equal(1)
+
+    response = item.delete()
+    
+    response.should.equal(True)
+
+    table.count().should.equal(0)
+
+    item.delete.when.called_with().should.throw(JSONResponseError)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_delete_item_with_undeclared_table():
+    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+
+    conn.delete_item.when.called_with(
+        table_name='undeclared-table',
+        key={"forum_name": {"S": "LOLCat Forum"}},
+    ).should.throw(JSONResponseError)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query():
+    table = create_table()
+
+    item_data = {
+        'forum_name': 'the-key',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+    }
+    item =Item(table,item_data)     
+    item.save(overwrite = True)
+    table.count().should.equal(1)
+    table = Table("messages")
+    
+    results = table.query(forum_name__eq='the-key')
+    sum(1 for _ in results).should.equal(1)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_with_undeclared_table():
+    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+
+    conn.query.when.called_with(
+        table_name='undeclared-table',
+         key_conditions= {"forum_name": {"ComparisonOperator": "EQ", "AttributeValueList": [{"S": "the-key"}]}}
+    ).should.throw(JSONResponseError)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_scan():
+    table = create_table()
+
+    item_data = {
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+    }
+    item_data['forum_name'] = 'the-key'
+    
+    item = Item(table,item_data)     
+    item.save()    
+
+    item['forum_name'] = 'the-key2'
+    item.save(overwrite=True)
+
+    item_data = {
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User B',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+        'Ids': set([1, 2, 3]),
+        'PK': 7,
+    }
+    item_data['forum_name'] = 'the-key3'
+    item = Item(table,item_data)     
+    item.save() 
+
+    results = table.scan()
+    sum(1 for _ in results).should.equal(3)
+
+    results = table.scan(SentBy__eq='User B')
+    sum(1 for _ in results).should.equal(1)
+
+    results = table.scan(Body__beginswith='http')
+    sum(1 for _ in results).should.equal(3)
+
+    results = table.scan(Ids__null=False)
+    sum(1 for _ in results).should.equal(1)
+
+    results = table.scan(Ids__null=True)
+    sum(1 for _ in results).should.equal(2)
+
+    results = table.scan(PK__between=[8, 9])
+    sum(1 for _ in results).should.equal(0)
+
+    results = table.scan(PK__between=[5, 8])
+    sum(1 for _ in results).should.equal(1)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_scan_with_undeclared_table():
+    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+
+    conn.scan.when.called_with(
+        table_name='undeclared-table',
+        scan_filter={
+            "SentBy": {
+                "AttributeValueList": [{
+                    "S": "User B"}
+                ],
+                "ComparisonOperator": "EQ"
+            }
+        },
+    ).should.throw(JSONResponseError)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_write_batch():
+    table = create_table()
+
+    with table.batch_write() as batch:
+        batch.put_item(data={
+            'forum_name': 'the-key',
+            'subject': '123',
+            'Body': 'http://url_to_lolcat.gif',
+            'SentBy': 'User A',
+            'ReceivedTime': '12/9/2011 11:36:03 PM',
+        })  
+        batch.put_item(data={
+            'forum_name': 'the-key2',
+            'subject': '789',
+            'Body': 'http://url_to_lolcat.gif',
+            'SentBy': 'User B',
+            'ReceivedTime': '12/9/2011 11:36:03 PM',
+        }) 
+
+    table.count().should.equal(2)
+    with table.batch_write() as batch:
+        batch.delete_item(
+            forum_name='the-key',
+            subject='789'
+        )
+
+    table.count().should.equal(1)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_batch_read():
+    table = create_table()
+
+    item_data = {
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+    }
+    item_data['forum_name'] = 'the-key1'
+    item = Item(table,item_data)     
+    item.save()  
+
+    item = Item(table,item_data)
+    item_data['forum_name'] = 'the-key2'
+    item.save(overwrite = True)
+
+    item_data = {
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User B',
+        'ReceivedTime': '12/9/2011 11:36:03 PM',
+        'Ids': set([1, 2, 3]),
+        'PK': 7,
+    }
+    item = Item(table,item_data) 
+    item_data['forum_name'] = 'another-key'
+    item.save(overwrite = True)
+    
+    results = table.batch_get(keys=[
+                {'forum_name': 'the-key1'},
+                {'forum_name': 'another-key'}])
+
+    # Iterate through so that batch_item gets called
+    count = len([x for x in results])
+    count.should.equal(2)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_get_key_fields():
+    table = create_table()
+    kf = table.get_key_fields()
+    kf[0].should.equal('forum_name')
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_get_special_item():
+    table = Table.create('messages', schema=[
+        HashKey('date-joined')
+    ], throughput={
+        'read': 10,
+        'write': 10,
+    })
+    
+    data={
+        'date-joined': 127549192,
+        'SentBy': 'User A',
+    }
+    table.put_item(data = data)
+    returned_item = table.get_item(**{'date-joined': 127549192})
+    dict(returned_item).should.equal(data)
+    
