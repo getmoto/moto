@@ -4,9 +4,11 @@ from setuptools import setup, find_packages
 
 install_requires = [
     "boto",
+    "dicttoxml",
     "flask",
     "httpretty>=0.6.1",
     "Jinja2",
+    "xmltodict",
 ]
 
 import sys

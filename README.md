@@ -69,6 +69,8 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |------------------------------------------------------------------------------|
 | ELB                   | @mock_elb        | core endpoints done               |
 |------------------------------------------------------------------------------|
+| Route53               | @mock_route53    | core endpoints done               |
+|------------------------------------------------------------------------------|
 | S3                    | @mock_s3         | core endpoints done               |
 |------------------------------------------------------------------------------|
 | SES                   | @mock_ses        | core endpoints done               |
