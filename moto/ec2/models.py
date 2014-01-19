@@ -357,7 +357,9 @@ class SecurityGroupBackend(object):
         group = self.get_security_group_from_name(group_name, vpc_id)
         source_groups = []
         for source_group_name in source_group_names:
-            source_groups.append(self.get_security_group_from_name(source_group_name, vpc_id))
+            source_group = self.get_security_group_from_name(source_group_name, vpc_id)
+            if source_group:
+                source_groups.append(source_group)
 
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
         group.ingress_rules.append(security_rule)
@@ -366,7 +368,9 @@ class SecurityGroupBackend(object):
         group = self.get_security_group_from_name(group_name, vpc_id)
         source_groups = []
         for source_group_name in source_group_names:
-            source_groups.append(self.get_security_group_from_name(source_group_name, vpc_id))
+            source_group = self.get_security_group_from_name(source_group_name, vpc_id)
+            if source_group:
+                source_groups.append(source_group)
 
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
         if security_rule in group.ingress_rules:
