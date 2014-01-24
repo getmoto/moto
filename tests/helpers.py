@@ -15,5 +15,5 @@ class requires_boto_gte(object):
         boto_version = version_tuple(boto.__version__)
         required = version_tuple(self.version)
         if boto_version >= required:
-            return test()
+            return test
         raise SkipTest
