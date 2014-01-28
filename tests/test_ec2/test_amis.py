@@ -39,3 +39,9 @@ def test_ami_pulls_attributes_from_instance():
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_image(image_id)
     image.kernel_id.should.equal('test-kernel')
+
+
+@mock_ec2
+def test_getting_missing_ami():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn.get_image.when.called_with('ami-missing').should.throw(EC2ResponseError)
