@@ -219,14 +219,14 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(self, ami_ids=None):
-        if ami_ids:
-            images = [image for image in self.amis.values() if image.id in ami_ids]
-            for missing_ami in set(ami_ids) - set(ami.id for ami in images):
-                raise InvalidIdError(missing_ami)
-        else:
-            images = self.amis.values()
-        return images
+    def describe_images(self, ami_ids=()):
+        images = []
+        for ami_id in ami_ids:
+            if ami_id in self.amis:
+                images.append(self.amis[ami_id])
+            else:
+                raise InvalidIdError(ami_id)
+        return images or self.amis.values()
 
     def deregister_image(self, ami_id):
         if ami_id in self.amis:
