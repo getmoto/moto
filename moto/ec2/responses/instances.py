@@ -15,7 +15,7 @@ class InstanceResponse(BaseResponse):
                 reservations = ec2_backend.get_reservations_by_instance_ids(instance_ids)
             except InvalidIdError as exc:
                 template = Template(EC2_INVALID_INSTANCE_ID)
-                return template.render(instance_id=exc.instance_id), dict(status=400)
+                return template.render(instance_id=exc.id), dict(status=400)
         else:
             reservations = ec2_backend.all_reservations(make_copy=True)
 

@@ -1,4 +1,4 @@
 class InvalidIdError(RuntimeError):
-    def __init__(self, instance_id):
+    def __init__(self, id_value):
         super(InvalidIdError, self).__init__()
-        self.instance_id = instance_id
+        self.id = id_value

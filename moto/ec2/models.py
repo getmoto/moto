@@ -222,6 +222,8 @@ class AmiBackend(object):
     def describe_images(self, ami_ids=None):
         if ami_ids:
             images = [image for image in self.amis.values() if image.id in ami_ids]
+            for missing_ami in set(ami_ids) - set(ami.id for ami in images):
+                raise InvalidIdError(missing_ami)
         else:
             images = self.amis.values()
         return images
