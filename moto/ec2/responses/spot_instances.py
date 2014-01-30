@@ -87,7 +87,7 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
   <spotInstanceRequestSet>
     {% for request in requests %}
     <item>
-      <spotInstanceRequestId>{{ request.price }}</spotInstanceRequestId>
+      <spotInstanceRequestId>{{ request.id }}</spotInstanceRequestId>
       <spotPrice>{{ request.price }}</spotPrice>
       <type>{{ request.type }}</type>
       <state>{{ request.state }}</state>
