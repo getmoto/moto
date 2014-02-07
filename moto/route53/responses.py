@@ -45,7 +45,12 @@ def rrset_response(request, full_url, headers):
 
     if method == "POST":
         elements = xmltodict.parse(request.body)
-        for key, value in elements['ChangeResourceRecordSetsRequest']['ChangeBatch']['Changes'].items():
+
+        change_list = elements['ChangeResourceRecordSetsRequest']['ChangeBatch']['Changes']['Change']
+        if not isinstance(change_list, list):
+            change_list = [elements['ChangeResourceRecordSetsRequest']['ChangeBatch']['Changes']['Change']]
+
+        for value in change_list:
             action = value['Action']
             rrset = value['ResourceRecordSet']
 
