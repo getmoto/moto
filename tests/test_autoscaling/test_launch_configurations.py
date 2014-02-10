@@ -50,7 +50,7 @@ def test_create_launch_configuration_for_2_12():
     launch_config.ebs_optimized.should.equal(True)
 
 
-@requires_boto_gte("2.23")
+@requires_boto_gte("2.25.0")
 @mock_autoscaling
 def test_create_launch_configuration_using_ip_association():
     conn = boto.connect_autoscale()
@@ -65,7 +65,7 @@ def test_create_launch_configuration_using_ip_association():
     launch_config.associate_public_ip_address.should.equal(True)
 
 
-@requires_boto_gte("2.23")
+@requires_boto_gte("2.25.0")
 @mock_autoscaling
 def test_create_launch_configuration_using_ip_association_should_default_to_false():
     conn = boto.connect_autoscale()
