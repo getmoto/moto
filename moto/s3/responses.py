@@ -42,7 +42,14 @@ class ResponseObject(object):
             # If no bucket specified, list all buckets
             return self.all_buckets()
 
-        if method == 'GET':
+        if method == 'HEAD':
+            bucket = self.backend.get_bucket(bucket_name)
+            if bucket:
+                return 200, headers, ""
+            else:
+                return 404, headers, ""
+
+        elif method == 'GET':
             bucket = self.backend.get_bucket(bucket_name)
             if bucket:
                 prefix = querystring.get('prefix', [None])[0]
