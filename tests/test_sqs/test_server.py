@@ -16,6 +16,10 @@ def test_sqs_list_identities():
     res.data.should.contain("ListQueuesResponse")
 
     res = test_client.put('/?Action=CreateQueue&QueueName=testqueue')
+    res = test_client.put('/?Action=CreateQueue&QueueName=otherqueue')
+
+    res = test_client.get('/?Action=ListQueues&QueueNamePrefix=other')
+    res.data.should_not.contain('testqueue')
 
     res = test_client.put(
         '/123/testqueue?MessageBody=test-message&Action=SendMessage')
