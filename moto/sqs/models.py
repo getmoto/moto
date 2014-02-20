@@ -1,5 +1,6 @@
 import hashlib
 import time
+import re
 
 from moto.core import BaseBackend
 from moto.core.utils import camelcase_to_underscores, get_random_message_id
@@ -73,8 +74,16 @@ class SQSBackend(BaseBackend):
         self.queues[name] = queue
         return queue
 
-    def list_queues(self):
-        return self.queues.values()
+    def list_queues(self, queue_name_prefix):
+        re_str = '.*'
+        if queue_name_prefix:
+            re_str = '^{0}.*'.format(queue_name_prefix)
+        prefix_re = re.compile(re_str)
+        qs = []
+        for name, q in self.queues.items():
+            if prefix_re.search(name):
+                qs.append(q)
+        return qs
 
     def get_queue(self, queue_name):
         return self.queues.get(queue_name, None)

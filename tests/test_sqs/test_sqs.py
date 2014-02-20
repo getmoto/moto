@@ -32,6 +32,20 @@ def test_get_queue():
 
 
 @mock_sqs
+def test_get_queue_with_prefix():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    conn.create_queue("prefixa-queue")
+    conn.create_queue("prefixb-queue")
+    conn.create_queue("test-queue")
+
+    conn.get_all_queues().should.have.length_of(3)
+
+    queue = conn.get_all_queues("test-")
+    queue.should.have.length_of(1)
+    queue[0].name.should.equal("test-queue")
+
+
+@mock_sqs
 def test_delete_queue():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
