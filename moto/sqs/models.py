@@ -77,7 +77,7 @@ class SQSBackend(BaseBackend):
     def list_queues(self, queue_name_prefix):
         re_str = '.*'
         if queue_name_prefix:
-            re_str = '^{}.*'.format(queue_name_prefix)
+            re_str = '^{0}.*'.format(queue_name_prefix)
         prefix_re = re.compile(re_str)
         qs = []
         for name, q in self.queues.items():
