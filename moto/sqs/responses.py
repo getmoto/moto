@@ -27,7 +27,8 @@ class QueuesResponse(BaseResponse):
             return "", dict(status=404)
 
     def list_queues(self):
-        queues = sqs_backend.list_queues()
+        queue_name_prefix = self.querystring.get("QueueNamePrefix", [None])[0]
+        queues = sqs_backend.list_queues(queue_name_prefix)
         template = Template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues)
 
