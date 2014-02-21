@@ -14,3 +14,4 @@ Moto is written by Steve Pulec with contributions from:
 * [JJ Zeng](https://github.com/jjofseattle)
 * [Jon Haddad](https://github.com/rustyrazorblade)
 * [Andres Riancho](https://github.com/andresriancho)
+* [Michael Ossareh](https://github.com/ossareh)
