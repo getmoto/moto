@@ -42,6 +42,18 @@ class DynamoType(object):
             self.value == other.value
         )
 
+    def __lt__(self, other):
+        return self.value < other.value
+
+    def __le__(self, other):
+        return self.value <= other.value
+
+    def __gt__(self, other):
+        return self.value > other.value
+
+    def __ge__(self, other):
+        return self.value >= other.value
+
     def __repr__(self):
         return "DynamoType: {0}".format(self.to_json())
 
@@ -196,6 +208,8 @@ class Table(object):
         else:
             # If we're not filtering on range key, return all values
             results = possible_results
+
+        results.sort(key=lambda item: item.range_key)
         return results, last_page
 
     def all_items(self):
