@@ -51,3 +51,12 @@ def test_key_pairs_delete_no_exist():
     assert len(conn.get_all_key_pairs()) == 0
     r = conn.delete_key_pair('foo')
     r.should.be.ok
+
+
+@mock_ec2
+def test_key_pairs_delete_exist():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn.create_key_pair('foo')
+    r = conn.delete_key_pair('foo')
+    r.should.be.ok
+    assert len(conn.get_all_key_pairs()) == 0
