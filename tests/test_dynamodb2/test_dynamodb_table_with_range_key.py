@@ -257,6 +257,11 @@ def test_query():
     table.count().should.equal(4)
 
     results = table.query(forum_name__eq='the-key', subject__gt='1',consistent=True)
+    expected = ["123", "456", "789"]
+    for index, item in enumerate(results):
+        item["subject"].should.equal(expected[index])
+
+    results = table.query(forum_name__eq='the-key', subject__gt='1',consistent=True)
     sum(1 for _ in results).should.equal(3)
 
     results = table.query(forum_name__eq='the-key', subject__gt='234',consistent=True)
