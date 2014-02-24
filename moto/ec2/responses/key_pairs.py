@@ -2,7 +2,7 @@ from jinja2 import Template
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 from moto.ec2.exceptions import InvalidIdError
-from moto.ec2.utils import keypair_names_from_querystring
+from moto.ec2.utils import keypair_names_from_querystring, filters_from_querystring
 
 
 class KeyPairs(BaseResponse):
@@ -25,6 +25,10 @@ class KeyPairs(BaseResponse):
 
     def describe_key_pairs(self):
         names = keypair_names_from_querystring(self.querystring)
+        filters = filters_from_querystring(self.querystring)
+        if len(filters) > 0:
+            raise NotImplementedError('Using filters in KeyPairs.describe_key_pairs is not yet implemented')
+
         try:
             keypairs = ec2_backend.describe_key_pairs(names)
         except InvalidIdError as exc:
