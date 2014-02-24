@@ -2,6 +2,7 @@ from jinja2 import Template
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 from moto.ec2.exceptions import InvalidIdError
+from moto.ec2.utils import keypair_names_from_querystring
 
 
 class KeyPairs(BaseResponse):
@@ -23,8 +24,15 @@ class KeyPairs(BaseResponse):
         return Template(DELETE_KEY_PAIR_RESPONSE).render(success=success)
 
     def describe_key_pairs(self):
-        template = Template(DESCRIBE_KEY_PAIRS_RESPONSE)
-        return template.render(keypairs=ec2_backend.describe_key_pairs())
+        names = keypair_names_from_querystring(self.querystring)
+        try:
+            keypairs = ec2_backend.describe_key_pairs(names)
+        except InvalidIdError as exc:
+            template = Template(CREATE_KEY_PAIR_NOT_FOUND)
+            return template.render(keypair_id=exc.id), dict(status=400)
+        else:
+            template = Template(DESCRIBE_KEY_PAIRS_RESPONSE)
+            return template.render(keypairs=keypairs)
 
     def import_key_pair(self):
         raise NotImplementedError('KeyPairs.import_key_pair is not yet implemented')
@@ -55,6 +63,11 @@ CREATE_KEY_PAIR_RESPONSE = """<CreateKeyPairResponse xmlns="http://ec2.amazonaws
 
 CREATE_KEY_PAIR_INVALID_NAME = """<?xml version="1.0" encoding="UTF-8"?>
 <Response><Errors><Error><Code>InvalidKeyPair.Duplicate</Code><Message>The keypair '{{ keypair_id }}' already exists.</Message></Error></Errors><RequestID>f4f76e81-8ca5-4e61-a6d5-a4a96EXAMPLE</RequestID></Response>
+"""
+
+
+CREATE_KEY_PAIR_NOT_FOUND = """<?xml version="1.0" encoding="UTF-8"?>
+<Response><Errors><Error><Code>InvalidKeyPair.NotFound</Code><Message>The keypair '{{ keypair_id }}' does not exist.</Message></Error></Errors><RequestID>f4f76e81-8ca5-4e61-a6d5-a4a96EXAMPLE</RequestID></Response>
 """
 
 

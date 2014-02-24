@@ -116,6 +116,15 @@ def filters_from_querystring(querystring_dict):
     return response_values
 
 
+def keypair_names_from_querystring(querystring_dict):
+    keypair_names = []
+    for key, value in querystring_dict.iteritems():
+        if 'KeyName' in key:
+            keypair_names.append(value[0])
+    return keypair_names
+
+
+
 filter_dict_attribute_mapping = {
     'instance-state-name': 'state'
 }

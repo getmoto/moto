@@ -31,6 +31,9 @@ def test_key_pairs_create_two():
     assert len(kps) == 2
     assert kps[0].name == 'foo'
     assert kps[1].name == 'bar'
+    kps = conn.get_all_key_pairs('foo')
+    assert len(kps) == 1
+    assert kps[0].name == 'foo'
 
 
 @mock_ec2
