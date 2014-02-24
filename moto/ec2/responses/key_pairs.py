@@ -18,7 +18,9 @@ class KeyPairs(BaseResponse):
             return template.render(**keypair)
 
     def delete_key_pair(self):
-        return Template(DELETE_KEY_PAIR_RESPONSE).render(success="true")
+        name = self.querystring.get('KeyName')[0]
+        success = str(ec2_backend.delete_key_pair(name)).lower()
+        return Template(DELETE_KEY_PAIR_RESPONSE).render(success=success)
 
     def describe_key_pairs(self):
         template = Template(DESCRIBE_KEY_PAIRS_RESPONSE)

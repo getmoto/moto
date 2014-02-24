@@ -176,9 +176,9 @@ class KeyPairBackend(object):
         return keypair
 
     def delete_key_pair(self, name):
-        keypair = self.keypairs.pop(name)
-        keypair['name'] = name
-        return keypair
+        if name in self.keypairs:
+            self.keypairs.pop(name)
+        return True
 
     def describe_key_pairs(self, filter_names=None):
         results = []
