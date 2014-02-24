@@ -18,7 +18,7 @@ class KeyPairs(BaseResponse):
             return template.render(**keypair)
 
     def delete_key_pair(self):
-        raise NotImplementedError('KeyPairs.delete_key_pair is not yet implemented')
+        return Template(DELETE_KEY_PAIR_RESPONSE).render(success="true")
 
     def describe_key_pairs(self):
         template = Template(DESCRIBE_KEY_PAIRS_RESPONSE)
@@ -54,3 +54,9 @@ CREATE_KEY_PAIR_RESPONSE = """<CreateKeyPairResponse xmlns="http://ec2.amazonaws
 CREATE_KEY_PAIR_INVALID_NAME = """<?xml version="1.0" encoding="UTF-8"?>
 <Response><Errors><Error><Code>InvalidKeyPair.Duplicate</Code><Message>The keypair '{{ keypair_id }}' already exists.</Message></Error></Errors><RequestID>f4f76e81-8ca5-4e61-a6d5-a4a96EXAMPLE</RequestID></Response>
 """
+
+
+DELETE_KEY_PAIR_RESPONSE = """<DeleteKeyPairResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId> 
+  <return>{{ success }}</return>
+</DeleteKeyPairResponse>"""

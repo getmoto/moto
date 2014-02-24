@@ -39,8 +39,15 @@ def test_key_pairs_create_exist():
     kp = conn.create_key_pair('foo')
     assert kp.material.startswith('---- BEGIN RSA PRIVATE KEY ----')
     assert len(conn.get_all_key_pairs()) == 1
-    # Call get_all_instances with a bad id should raise an error
     conn.create_key_pair.when.called_with('foo').should.throw(
         EC2ResponseError,
         "The keypair 'foo' already exists."
     )
+
+
+@mock_ec2
+def test_key_pairs_delete_no_exist():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    assert len(conn.get_all_key_pairs()) == 0
+    r = conn.delete_key_pair('foo')
+    r.should.be.ok
