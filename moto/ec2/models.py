@@ -169,6 +169,8 @@ class KeyPairBackend(object):
         super(KeyPairBackend, self).__init__()
 
     def create_key_pair(self, name):
+        if name in self.keypairs:
+            raise InvalidIdError(name)
         self.keypairs[name] = keypair = random_key_pair()
         keypair['name'] = name
         return keypair
