@@ -31,6 +31,12 @@ class KeyPairs(BaseResponse):
 DESCRIBE_KEY_PAIRS_RESPONSE = """<DescribeKeyPairsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId> 
     <keySet>
+    {% for keypair in keypairs %}
+      <item>
+           <keyName>{{ keypair.name }}</keyName>
+           <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
+      </item>
+    {% endfor %}
     </keySet>
  </DescribeKeyPairsResponse>"""
 
