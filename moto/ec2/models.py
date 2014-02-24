@@ -19,6 +19,7 @@ from .utils import (
     random_eip_association_id,
     random_eip_allocation_id,
     random_ip,
+    random_key_pair,
 )
 
 
@@ -163,25 +164,26 @@ class InstanceBackend(object):
 
 class KeyPairBackend(object):
 
-    class KeyPair(object):
-        pass
-
     def __init__(self):
         self.keypairs = defaultdict(dict)
         super(KeyPairBackend, self).__init__()
 
     def create_key_pair(self, name):
-        self.keypairs[name] = self.KeyPair()
-        return name
+        self.keypairs[name] = keypair = random_key_pair()
+        keypair['name'] = name
+        return keypair
 
     def delete_key_pair(self, name):
-        return self.keypairs.pop(name)
+        keypair = self.keypairs.pop(name)
+        keypair['name'] = name
+        return keypair
 
     def describe_key_pairs(self, filter_names=None):
         results = []
         for name, keypair in self.keypairs.iteritems():
             if not filter_names or name in filter_names:
-                results.append({name: keypair})
+                keypair['name'] = name
+                results.append(keypair)
         return results
 
 

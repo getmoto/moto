@@ -14,4 +14,4 @@ def test_key_pairs_empty():
 def test_key_pairs_create():
     conn = boto.connect_ec2('the_key', 'the_secret')
     kp = conn.create_key_pair('foo')
-    assert kp.material.startswith('-----BEGIN RSA PRIVATE KEY-----')
+    assert kp.material.startswith('---- BEGIN RSA PRIVATE KEY ----')
