@@ -161,6 +161,30 @@ class InstanceBackend(object):
             return [reservation for reservation in self.reservations.values()]
 
 
+class KeyPairBackend(object):
+
+    class KeyPair(object):
+        pass
+
+    def __init__(self):
+        self.keypairs = defaultdict(dict)
+        super(KeyPairBackend, self).__init__()
+
+    def create_key_pair(self, name):
+        self.keypairs[name] = self.KeyPair()
+        return name
+
+    def delete_key_pair(self, name):
+        return self.keypairs.pop(name)
+
+    def describe_key_pairs(self, filter_names=None):
+        results = []
+        for name, keypair in self.keypairs.iteritems():
+            if not filter_names or name in filter_names:
+                results.append({name: keypair})
+        return results
+
+
 class TagBackend(object):
 
     def __init__(self):
@@ -675,7 +699,8 @@ class ElasticAddressBackend(object):
 
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
-                 VPCBackend, SubnetBackend, SpotRequestBackend, ElasticAddressBackend):
+                 VPCBackend, SubnetBackend, SpotRequestBackend, ElasticAddressBackend,
+                 KeyPairBackend):
     pass
 
 

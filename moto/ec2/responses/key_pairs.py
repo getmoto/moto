@@ -1,8 +1,10 @@
 from jinja2 import Template
 from moto.core.responses import BaseResponse
+from moto.ec2.models import ec2_backend
 
 
 class KeyPairs(BaseResponse):
+
     def create_key_pair(self):
         raise NotImplementedError('KeyPairs.create_key_pair is not yet implemented')
 
@@ -11,7 +13,7 @@ class KeyPairs(BaseResponse):
 
     def describe_key_pairs(self):
         template = Template(DESCRIBE_KEY_PAIRS_RESPONSE)
-        return template.render(keypairs=[])
+        return template.render(keypairs=ec2_backend.describe_key_pairs())
 
     def import_key_pair(self):
         raise NotImplementedError('KeyPairs.import_key_pair is not yet implemented')
