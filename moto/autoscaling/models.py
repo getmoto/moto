@@ -1,3 +1,4 @@
+from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backend
 
@@ -29,7 +30,7 @@ class FakeScalingPolicy(object):
 class FakeLaunchConfiguration(object):
     def __init__(self, name, image_id, key_name, security_groups, user_data,
                  instance_type, instance_monitoring, instance_profile_name,
-                 spot_price, ebs_optimized, associate_public_ip_address):
+                 spot_price, ebs_optimized, associate_public_ip_address, block_device_mapping_dict):
         self.name = name
         self.image_id = image_id
         self.key_name = key_name
@@ -40,6 +41,7 @@ class FakeLaunchConfiguration(object):
         self.instance_profile_name = instance_profile_name
         self.spot_price = spot_price
         self.ebs_optimized = ebs_optimized
+<<<<<<< HEAD
         self.associate_public_ip_address = associate_public_ip_address
 
     @classmethod
@@ -66,12 +68,38 @@ class FakeLaunchConfiguration(object):
     @property
     def physical_resource_id(self):
         return self.name
+=======
+        self.block_device_mapping_dict = block_device_mapping_dict
+
+    @property
+    def block_device_mappings(self):
+        if not self.block_device_mapping_dict:
+            return None
+        else:
+            return self._parse_block_device_mappings()
+>>>>>>> [Block Device] Add block device mapping to launch config backend
 
     @property
     def instance_monitoring_enabled(self):
         if self.instance_monitoring:
             return 'true'
         return 'false'
+
+    def _parse_block_device_mappings(self):
+        block_device_map = BlockDeviceMapping()
+        for mapping in self.block_device_mapping_dict:
+            block_type = BlockDeviceType()
+            mount_point = mapping.get('device_name')
+            if 'ephemeral' in mapping.get('virtual_name', ''):
+                block_type.ephemeral_name = mapping.get('virtual_name')
+            else:
+                block_type.volume_type = mapping.get('ebs._volume_type')
+                block_type.snapshot_id = mapping.get('ebs._snapshot_id')
+                block_type.delete_on_termination = mapping.get('ebs._delete_on_termination')
+                block_type.size = mapping.get('ebs._volume_size')
+                block_type.iops = mapping.get('ebs._iops')
+            block_device_map[mount_point] = block_type
+        return block_device_map
 
 
 class FakeAutoScalingGroup(object):
@@ -184,7 +212,11 @@ class AutoScalingBackend(BaseBackend):
     def create_launch_configuration(self, name, image_id, key_name,
                                     security_groups, user_data, instance_type,
                                     instance_monitoring, instance_profile_name,
+<<<<<<< HEAD
                                     spot_price, ebs_optimized, associate_public_ip_address):
+=======
+                                    spot_price, ebs_optimized, block_device_mappings):
+>>>>>>> [Block Device] Add block device mapping to launch config backend
         launch_configuration = FakeLaunchConfiguration(
             name=name,
             image_id=image_id,
@@ -196,7 +228,11 @@ class AutoScalingBackend(BaseBackend):
             instance_profile_name=instance_profile_name,
             spot_price=spot_price,
             ebs_optimized=ebs_optimized,
+<<<<<<< HEAD
             associate_public_ip_address=associate_public_ip_address,
+=======
+            block_device_mapping_dict=block_device_mappings,
+>>>>>>> [Block Device] Add block device mapping to launch config backend
         )
         self.launch_configurations[name] = launch_configuration
         return launch_configuration

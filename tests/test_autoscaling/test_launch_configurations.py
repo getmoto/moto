@@ -1,5 +1,6 @@
 import boto
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
+from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 
 import sure  # noqa
 
@@ -33,6 +34,72 @@ def test_create_launch_configuration():
     launch_config.instance_monitoring.enabled.should.equal('true')
     launch_config.instance_profile_name.should.equal('arn:aws:iam::123456789012:instance-profile/testing')
     launch_config.spot_price.should.equal(0.1)
+
+
+@mock_autoscaling
+def test_create_launch_configuration_with_block_device_mappings():
+    block_device_mapping = BlockDeviceMapping()
+
+    ephemeral_drive = BlockDeviceType()
+    ephemeral_drive.ephemeral_name = 'ephemeral0'
+    block_device_mapping['/dev/xvdb'] = ephemeral_drive
+
+    snapshot_drive = BlockDeviceType()
+    snapshot_drive.snapshot_id = "snap-1234abcd"
+    snapshot_drive.volume_type = "standard"
+    block_device_mapping['/dev/xvdp'] = snapshot_drive
+
+    ebs_drive = BlockDeviceType()
+    ebs_drive.volume_type = "io1"
+    ebs_drive.size = 100
+    ebs_drive.iops = 1000
+    ebs_drive.delete_on_termination = False
+    block_device_mapping['/dev/xvdh'] = ebs_drive
+
+    conn = boto.connect_autoscale()
+    config = LaunchConfiguration(
+        name='tester',
+        image_id='ami-abcd1234',
+        instance_type='m1.small',
+        key_name='the_keys',
+        security_groups=["default", "default2"],
+        user_data="This is some user_data",
+        instance_monitoring=True,
+        instance_profile_name='arn:aws:iam::123456789012:instance-profile/testing',
+        spot_price=0.1,
+        block_device_mappings=[block_device_mapping]
+    )
+    conn.create_launch_configuration(config)
+
+    launch_config = conn.get_all_launch_configurations()[0]
+    launch_config.name.should.equal('tester')
+    launch_config.image_id.should.equal('ami-abcd1234')
+    launch_config.instance_type.should.equal('m1.small')
+    launch_config.key_name.should.equal('the_keys')
+    set(launch_config.security_groups).should.equal(set(['default', 'default2']))
+    launch_config.user_data.should.equal("This is some user_data")
+    launch_config.instance_monitoring.enabled.should.equal('true')
+    launch_config.instance_profile_name.should.equal('arn:aws:iam::123456789012:instance-profile/testing')
+    launch_config.spot_price.should.equal(0.1)
+    len(launch_config.block_device_mappings).should.equal(3)
+
+    # Unsure why boto returns results in a different format than it takes them
+    # returned_mapping = BlockDeviceMapping()
+    # for mapping in launch_config.block_device_mappings:
+    #     returned_mapping[mapping.device_name] = mapping
+
+    # Broken due to Boto bug
+    # set(returned_mapping.keys()).should.equal(set(['/dev/xvdb', '/dev/xvdp', '/dev/xvdh']))
+
+    # returned_mapping['/dev/xvdh'].ebs.iops.should.equal(1000)
+    # returned_mapping['/dev/xvdh'].ebs.volume_size.should.equal(100)
+    # returned_mapping['/dev/xvdh'].ebs.volume_type.shoud.equal("io1")
+    # returned_mapping['/dev/xvdh'].ebs.delete_on_termination.shoud.be.false
+
+    # returned_mapping['/dev/xvdp'].ebs.snapshot_id.should.equal("snap-1234abcd")
+    # returned_mapping['/dev/xvdp'].ebs.volume_type.shoud.equal("standard")
+
+    # returned_mapping['/dev/xvdb'].ephemeral_name.should.equal('ephemeral0')
 
 
 @requires_boto_gte("2.12")
