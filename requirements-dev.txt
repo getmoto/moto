@@ -1,4 +1,4 @@
 -r requirements.txt
 flask
-boto
+https://github.com/andrewgross/boto/tarball/52543eebe88eae6e3f403d3692e5600188cf304f
 httpretty
