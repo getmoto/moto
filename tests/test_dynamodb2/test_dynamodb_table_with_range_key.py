@@ -261,6 +261,10 @@ def test_query():
     for index, item in enumerate(results):
         item["subject"].should.equal(expected[index])
 
+    results = table.query(forum_name__eq="the-key", subject__gt='1', reverse=True)
+    for index, item in enumerate(results):
+        item["subject"].should.equal(expected[len(expected)-1-index])
+
     results = table.query(forum_name__eq='the-key', subject__gt='1',consistent=True)
     sum(1 for _ in results).should.equal(3)
 
