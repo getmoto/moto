@@ -116,6 +116,15 @@ def filters_from_querystring(querystring_dict):
     return response_values
 
 
+def keypair_names_from_querystring(querystring_dict):
+    keypair_names = []
+    for key, value in querystring_dict.iteritems():
+        if 'KeyName' in key:
+            keypair_names.append(value[0])
+    return keypair_names
+
+
+
 filter_dict_attribute_mapping = {
     'instance-state-name': 'state'
 }
@@ -144,3 +153,27 @@ def filter_reservations(reservations, filter_dict):
             reservation.instances = new_instances
             result.append(reservation)
     return result
+
+
+# not really random
+def random_key_pair():
+    return {
+        'fingerprint': ('1f:51:ae:28:bf:89:e9:d8:1f:25:5d:37:2d:'
+                        '7d:b8:ca:9f:f5:f1:6f'),
+        'material': """---- BEGIN RSA PRIVATE KEY ----
+MIICiTCCAfICCQD6m7oRw0uXOjANBgkqhkiG9w0BAQUFADCBiDELMAkGA1UEBhMC
+VVMxCzAJBgNVBAgTAldBMRAwDgYDVQQHEwdTZWF0dGxlMQ8wDQYDVQQKEwZBbWF6
+b24xFDASBgNVBAsTC0lBTSBDb25zb2xlMRIwEAYDVQQDEwlUZXN0Q2lsYWMxHzAd
+BgkqhkiG9w0BCQEWEG5vb25lQGFtYXpvbi5jb20wHhcNMTEwNDI1MjA0NTIxWhcN
+MTIwNDI0MjA0NTIxWjCBiDELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAldBMRAwDgYD
+VQQHEwdTZWF0dGxlMQ8wDQYDVQQKEwZBbWF6b24xFDASBgNVBAsTC0lBTSBDb25z
+b2xlMRIwEAYDVQQDEwlUZXN0Q2lsYWMxHzAdBgkqhkiG9w0BCQEWEG5vb25lQGFt
+YXpvbi5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMaK0dn+a4GmWIWJ
+21uUSfwfEvySWtC2XADZ4nB+BLYgVIk60CpiwsZ3G93vUEIO3IyNoH/f0wYK8m9T
+rDHudUZg3qX4waLG5M43q7Wgc/MbQITxOUSQv7c7ugFFDzQGBzZswY6786m86gpE
+Ibb3OhjZnzcvQAaRHhdlQWIMm2nrAgMBAAEwDQYJKoZIhvcNAQEFBQADgYEAtCu4
+nUhVVxYUntneD9+h8Mg9q6q+auNKyExzyLwaxlAoo7TJHidbtS4J5iNmZgXL0Fkb
+FFBjvSfpJIlJ00zbhNYS5f6GuoEDmFJl0ZxBHjJnyp378OD8uTs7fLvjx79LjSTb
+NYiytVbZPQUQ5Yaxu2jXnimvw3rrszlaEXAMPLE
+-----END RSA PRIVATE KEY-----"""
+    }

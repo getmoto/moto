@@ -19,6 +19,7 @@ from .utils import (
     random_eip_association_id,
     random_eip_allocation_id,
     random_ip,
+    random_key_pair,
 )
 
 
@@ -159,6 +160,33 @@ class InstanceBackend(object):
             return [copy.deepcopy(reservation) for reservation in self.reservations.values()]
         else:
             return [reservation for reservation in self.reservations.values()]
+
+
+class KeyPairBackend(object):
+
+    def __init__(self):
+        self.keypairs = defaultdict(dict)
+        super(KeyPairBackend, self).__init__()
+
+    def create_key_pair(self, name):
+        if name in self.keypairs:
+            raise InvalidIdError(name)
+        self.keypairs[name] = keypair = random_key_pair()
+        keypair['name'] = name
+        return keypair
+
+    def delete_key_pair(self, name):
+        if name in self.keypairs:
+            self.keypairs.pop(name)
+        return True
+
+    def describe_key_pairs(self, filter_names=None):
+        results = []
+        for name, keypair in self.keypairs.iteritems():
+            if not filter_names or name in filter_names:
+                keypair['name'] = name
+                results.append(keypair)
+        return results
 
 
 class TagBackend(object):
@@ -675,7 +703,8 @@ class ElasticAddressBackend(object):
 
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
-                 VPCBackend, SubnetBackend, SpotRequestBackend, ElasticAddressBackend):
+                 VPCBackend, SubnetBackend, SpotRequestBackend, ElasticAddressBackend,
+                 KeyPairBackend):
     pass
 
 
