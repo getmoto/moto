@@ -243,6 +243,10 @@ class DynamoHandler(BaseResponse):
         if limit:
             items = items[:limit]
 
+        reversed = self.body.get("ScanIndexForward")
+        if reversed != False:
+            items.reverse()
+
         result = {
             "Count": len(items),
             "Items": [item.attrs for item in items],
