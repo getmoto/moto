@@ -34,6 +34,7 @@ class AutoScalingResponse(BaseResponse):
             instance_profile_name=self._get_param('IamInstanceProfile'),
             spot_price=self._get_param('SpotPrice'),
             ebs_optimized=self._get_param('EbsOptimized'),
+            associate_public_ip_address=self._get_param("AssociatePublicIpAddress"),
         )
         template = Template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
@@ -152,6 +153,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
     <LaunchConfigurations>
       {% for launch_configuration in launch_configurations %}
         <member>
+          <AssociatePublicIpAddress>{{ launch_configuration.associate_public_ip_address }}</AssociatePublicIpAddress>
           <SecurityGroups>
             {% for security_group in launch_configuration.security_groups %}
               <member>{{ security_group }}</member>

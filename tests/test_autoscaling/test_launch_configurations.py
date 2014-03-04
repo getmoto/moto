@@ -50,6 +50,35 @@ def test_create_launch_configuration_for_2_12():
     launch_config.ebs_optimized.should.equal(True)
 
 
+@requires_boto_gte("2.25.0")
+@mock_autoscaling
+def test_create_launch_configuration_using_ip_association():
+    conn = boto.connect_autoscale()
+    config = LaunchConfiguration(
+        name='tester',
+        image_id='ami-abcd1234',
+        associate_public_ip_address=True,
+    )
+    conn.create_launch_configuration(config)
+
+    launch_config = conn.get_all_launch_configurations()[0]
+    launch_config.associate_public_ip_address.should.equal(True)
+
+
+@requires_boto_gte("2.25.0")
+@mock_autoscaling
+def test_create_launch_configuration_using_ip_association_should_default_to_false():
+    conn = boto.connect_autoscale()
+    config = LaunchConfiguration(
+        name='tester',
+        image_id='ami-abcd1234',    )
+    conn.create_launch_configuration(config)
+
+    launch_config = conn.get_all_launch_configurations()[0]
+    launch_config.associate_public_ip_address.should.equal(False)
+
+
+
 @mock_autoscaling
 def test_create_launch_configuration_defaults():
     """ Test with the minimum inputs and check that all of the proper defaults
