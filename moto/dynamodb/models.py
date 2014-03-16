@@ -182,7 +182,11 @@ class Table(object):
         results = []
         last_page = True  # Once pagination is implemented, change this
 
-        possible_results = list(self.all_items())
+        if self.range_key_attr:
+            possible_results = self.items[hash_key].values()
+        else:
+            possible_results = list(self.all_items())
+
         if range_comparison:
             for result in possible_results:
                 if result.range_key.compare(range_comparison, range_objs):
