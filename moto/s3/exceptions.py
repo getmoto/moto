@@ -1,0 +1,2 @@
+class BucketAlreadyExists(Exception):
+    pass

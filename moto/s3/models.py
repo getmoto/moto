@@ -5,10 +5,11 @@ import hashlib
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
+from .exceptions import BucketAlreadyExists
 from .utils import clean_key_name
 
-UPLOAD_ID_BYTES=43
-UPLOAD_PART_MIN_SIZE=5242880
+UPLOAD_ID_BYTES = 43
+UPLOAD_PART_MIN_SIZE = 5242880
 
 
 class FakeKey(object):
@@ -107,6 +108,8 @@ class S3Backend(BaseBackend):
         self.buckets = {}
 
     def create_bucket(self, bucket_name):
+        if bucket_name in self.buckets:
+            raise BucketAlreadyExists()
         new_bucket = FakeBucket(name=bucket_name)
         self.buckets[bucket_name] = new_bucket
         return new_bucket

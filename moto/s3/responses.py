@@ -3,6 +3,7 @@ import re
 
 from jinja2 import Template
 
+from .exceptions import BucketAlreadyExists
 from .models import s3_backend
 from .utils import bucket_name_from_url
 
@@ -66,7 +67,10 @@ class ResponseObject(object):
             else:
                 return 404, headers, ""
         elif method == 'PUT':
-            new_bucket = self.backend.create_bucket(bucket_name)
+            try:
+                new_bucket = self.backend.create_bucket(bucket_name)
+            except BucketAlreadyExists:
+                return 409, headers, ""
             template = Template(S3_BUCKET_CREATE_RESPONSE)
             return template.render(bucket=new_bucket)
         elif method == 'DELETE':
@@ -148,7 +152,7 @@ class ResponseObject(object):
                     upload_id=upload_id,
                     count=len(parts),
                     parts=parts
-                    )
+                )
             key = self.backend.get_key(bucket_name, key_name)
             if key:
                 headers.update(key.metadata)

@@ -2,7 +2,7 @@ import urllib2
 from io import BytesIO
 
 import boto
-from boto.exception import S3ResponseError
+from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.key import Key
 from freezegun import freeze_time
 import requests
@@ -169,6 +169,14 @@ def test_missing_bucket():
 def test_bucket_with_dash():
     conn = boto.connect_s3('the_key', 'the_secret')
     conn.get_bucket.when.called_with('mybucket-test').should.throw(S3ResponseError)
+
+
+@mock_s3
+def test_create_existing_bucket():
+    "Trying to create a bucket that already exists should raise an Error"
+    conn = boto.connect_s3('the_key', 'the_secret')
+    conn.create_bucket("foobar")
+    conn.create_bucket.when.called_with('foobar').should.throw(S3CreateError)
 
 
 @mock_s3

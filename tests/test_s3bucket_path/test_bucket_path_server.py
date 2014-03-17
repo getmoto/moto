@@ -42,14 +42,14 @@ def test_s3_server_post_to_bucket():
     backend = server.create_backend_app("s3bucket_path")
     test_client = backend.test_client()
 
-    res = test_client.put('/foobar', 'http://localhost:5000/')
+    res = test_client.put('/foobar2', 'http://localhost:5000/')
     res.status_code.should.equal(200)
 
-    test_client.post('/foobar', "https://localhost:5000/", data={
+    test_client.post('/foobar2', "https://localhost:5000/", data={
         'key': 'the-key',
         'file': 'nothing'
     })
 
-    res = test_client.get('/foobar/the-key', 'http://localhost:5000/')
+    res = test_client.get('/foobar2/the-key', 'http://localhost:5000/')
     res.status_code.should.equal(200)
     res.data.should.equal("nothing")
