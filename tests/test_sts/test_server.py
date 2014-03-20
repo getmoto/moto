@@ -15,3 +15,13 @@ def test_sts_get_session_token():
     res.status_code.should.equal(200)
     res.data.should.contain("SessionToken")
     res.data.should.contain("AccessKeyId")
+
+
+def test_sts_get_federation_token():
+    backend = server.create_backend_app("sts")
+    test_client = backend.test_client()
+
+    res = test_client.get('/?Action=GetFederationToken&Name=Bob')
+    res.status_code.should.equal(200)
+    res.data.should.contain("SessionToken")
+    res.data.should.contain("AccessKeyId")
