@@ -182,6 +182,14 @@ class S3Backend(BaseBackend):
         multipart = bucket.multiparts[multipart_id]
         return multipart.set_part(part_id, value)
 
+    def copy_part(self, dest_bucket_name, multipart_id, part_id,
+                  src_bucket_name, src_key_name):
+        src_key_name = clean_key_name(src_key_name)
+        src_bucket = self.buckets[src_bucket_name]
+        dest_bucket = self.buckets[dest_bucket_name]
+        multipart = dest_bucket.multiparts[multipart_id]
+        return multipart.set_part(part_id, src_bucket.keys[src_key_name].value)
+
     def prefix_query(self, bucket, prefix, delimiter):
         key_results = set()
         folder_results = set()

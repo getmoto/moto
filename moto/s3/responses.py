@@ -160,13 +160,23 @@ class ResponseObject(object):
             else:
                 return 404, headers, ""
         if method == 'PUT':
-            if 'uploadId' in query and 'partNumber' in query and body:
+            if 'uploadId' in query and 'partNumber' in query:
                 upload_id = query['uploadId'][0]
                 part_number = int(query['partNumber'][0])
-                key = self.backend.set_part(bucket_name, upload_id, part_number, body)
-                template = Template(S3_MULTIPART_UPLOAD_RESPONSE)
+                if 'x-amz-copy-source' in request.headers:
+                    src = request.headers.get("x-amz-copy-source")
+                    src_bucket, src_key = src.split("/", 1)
+                    key = self.backend.copy_part(
+                        bucket_name, upload_id, part_number, src_bucket,
+                        src_key)
+                    template = Template(S3_MULTIPART_UPLOAD_RESPONSE)
+                    response = template.render(part=key)
+                else:
+                    key = self.backend.set_part(
+                        bucket_name, upload_id, part_number, body)
+                    response = ""
                 headers.update(key.response_dict)
-                return 200, headers, template.render(part=key)
+                return 200, headers, response
 
             if 'x-amz-copy-source' in request.headers:
                 # Copy key
