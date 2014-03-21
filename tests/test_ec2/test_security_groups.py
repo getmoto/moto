@@ -133,7 +133,7 @@ def test_authorize_other_group_and_revoke():
     security_group.rules.should.have.length_of(0)
 
 @mock_ec2
-def test_authorize_ip_in_vpc():
+def test_authorize_group_in_vpc():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vpc_id = "vpc-12345"
 
@@ -142,5 +142,6 @@ def test_authorize_ip_in_vpc():
     security_group2 = conn.create_security_group('test2', 'test2', vpc_id)
 
     success = security_group1.authorize(ip_protocol="tcp", from_port="22", to_port="2222", src_group=security_group2)
+    success = security_group1.revoke(ip_protocol="tcp", from_port="22", to_port="2222", src_group=security_group2)
 
 
