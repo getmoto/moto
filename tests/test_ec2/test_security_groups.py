@@ -142,6 +142,8 @@ def test_authorize_group_in_vpc():
     security_group2 = conn.create_security_group('test2', 'test2', vpc_id)
 
     success = security_group1.authorize(ip_protocol="tcp", from_port="22", to_port="2222", src_group=security_group2)
+    success.should.be.true
     success = security_group1.revoke(ip_protocol="tcp", from_port="22", to_port="2222", src_group=security_group2)
+    success.should.be.true
 
 

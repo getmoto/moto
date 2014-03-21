@@ -377,7 +377,7 @@ class SecurityGroupBackend(object):
         # 2 levels of chaining necessary since it's a complex structure
         all_groups = itertools.chain.from_iterable([x.values() for x in self.groups.values()])
 
-        for group in itertools.chain(all_groups):
+        for group in all_groups:
             if group.id == group_id:
                 return group
 
@@ -452,7 +452,7 @@ class SecurityGroupBackend(object):
             source_group = self.get_security_group_from_id(source_group_id)
             if source_group:
                 source_groups.append(source_group)
-                
+
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
         if security_rule in group.ingress_rules:
             group.ingress_rules.remove(security_rule)
