@@ -393,25 +393,55 @@ class SecurityGroupBackend(object):
             default_group = ec2_backend.create_security_group("default", "The default security group", force=True)
             return default_group
 
-    def authorize_security_group_ingress(self, group_name, group_id, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None, vpc_id=None):
+    def authorize_security_group_ingress(self,
+                                         group_name,
+                                         group_id,
+                                         ip_protocol,
+                                         from_port,
+                                         to_port,
+                                         ip_ranges=None,
+                                         source_group_names=None,
+                                         source_group_ids=None,
+                                         vpc_id=None):
         # to auth a group in a VPC you need the group_id the name isn't enough
 
         if group_name:
             group = self.get_security_group_from_name(group_name, vpc_id)
         elif group_id:
             group = self.get_security_group_from_id(group_id)
-        
+
         source_groups = []
         for source_group_name in source_group_names:
             source_group = self.get_security_group_from_name(source_group_name, vpc_id)
             if source_group:
                 source_groups.append(source_group)
 
+        # for VPCs
+        for source_group_id in source_group_ids:
+            source_group = self.get_security_group_from_id(source_group_id)
+            if source_group:
+                source_groups.append(source_group)
+
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
         group.ingress_rules.append(security_rule)
 
-    def revoke_security_group_ingress(self, group_name, group_id, ip_protocol, from_port, to_port, ip_ranges=None, source_group_names=None, vpc_id=None):
-        group = self.get_security_group_from_name(group_name, vpc_id)
+    def revoke_security_group_ingress(self,
+                                      group_name,
+                                      group_id,
+                                      ip_protocol,
+                                      from_port,
+                                      to_port,
+                                      ip_ranges=None,
+                                      source_group_names=None,
+                                      source_group_ids=None,
+                                      vpc_id=None):
+        
+        if group_name:
+            group = self.get_security_group_from_name(group_name, vpc_id)
+        elif group_id:
+            group = self.get_security_group_from_id(group_id)
+
+
         source_groups = []
         for source_group_name in source_group_names:
             source_group = self.get_security_group_from_name(source_group_name, vpc_id)

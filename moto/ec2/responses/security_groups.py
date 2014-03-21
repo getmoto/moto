@@ -22,11 +22,17 @@ def process_rules_from_querystring(querystring):
         if 'IpPermissions.1.IpRanges' in key:
             ip_ranges.append(value[0])
 
+
     source_groups = []
+    source_group_ids = []
+
     for key, value in querystring.iteritems():
-        if 'IpPermissions.1.Groups' in key:
+        if 'IpPermissions.1.Groups.1.GroupId' in key:
+            source_group_ids.append(value[0])
+        elif 'IpPermissions.1.Groups' in key:
             source_groups.append(value[0])
-    return (name, group_id, ip_protocol, from_port, to_port, ip_ranges, source_groups)
+
+    return (name, group_id, ip_protocol, from_port, to_port, ip_ranges, source_groups, source_group_ids)
 
 
 class SecurityGroups(BaseResponse):
