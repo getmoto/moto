@@ -14,7 +14,7 @@ class TokenResponse(BaseResponse):
 
     def get_federation_token(self):
         duration = int(self.querystring.get('DurationSeconds', [43200])[0])
-        policy = self.querystring.get('Policy', None)[0]
+        policy = self.querystring.get('Policy', [None])[0]
         name = self.querystring.get('Name')[0]
         token = sts_backend.get_federation_token(
             duration=duration, name=name, policy=policy)
