@@ -435,7 +435,7 @@ class SecurityGroupBackend(object):
                                       source_group_names=None,
                                       source_group_ids=None,
                                       vpc_id=None):
-        
+
         if group_name:
             group = self.get_security_group_from_name(group_name, vpc_id)
         elif group_id:
@@ -448,6 +448,11 @@ class SecurityGroupBackend(object):
             if source_group:
                 source_groups.append(source_group)
 
+        for source_group_id in source_group_ids:
+            source_group = self.get_security_group_from_id(source_group_id)
+            if source_group:
+                source_groups.append(source_group)
+                
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
         if security_rule in group.ingress_rules:
             group.ingress_rules.remove(security_rule)
