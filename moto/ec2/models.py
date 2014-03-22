@@ -30,12 +30,13 @@ class InstanceState(object):
 
 
 class Instance(BotoInstance):
-    def __init__(self, image_id, user_data):
+    def __init__(self, image_id, user_data, security_groups):
         super(Instance, self).__init__()
         self.id = random_instance_id()
         self.image_id = image_id
         self._state = InstanceState("running", 16)
         self.user_data = user_data
+        self.security_groups = security_groups
 
     def start(self, *args, **kwargs):
         self._state.name = "running"
@@ -69,13 +70,16 @@ class InstanceBackend(object):
             if instance.id == instance_id:
                 return instance
 
-    def add_instances(self, image_id, count, user_data):
+    def add_instances(self, image_id, count, user_data, security_group_names):
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
+
+        security_groups = [self.get_security_group_from_name(name) for name in security_group_names]
         for index in range(count):
             new_instance = Instance(
                 image_id,
                 user_data,
+                security_groups,
             )
             new_reservation.instances.append(new_instance)
         self.reservations[new_reservation.id] = new_reservation
@@ -369,7 +373,7 @@ class SecurityGroupBackend(object):
                     return vpc.pop(group_id)
         elif name:
             # Group Name.  Has to be in standard EC2, VPC needs to be identified by group_id
-            group = self.get_security_group_from_name(name, None)
+            group = self.get_security_group_from_name(name)
             if group:
                 return self.groups[None].pop(group.id)
 
@@ -381,9 +385,7 @@ class SecurityGroupBackend(object):
             if group.id == group_id:
                 return group
 
-
-
-    def get_security_group_from_name(self, name, vpc_id):
+    def get_security_group_from_name(self, name, vpc_id=None):
         for group_id, group in self.groups[vpc_id].iteritems():
             if group.name == name:
                 return group
@@ -440,7 +442,6 @@ class SecurityGroupBackend(object):
             group = self.get_security_group_from_name(group_name, vpc_id)
         elif group_id:
             group = self.get_security_group_from_id(group_id)
-
 
         source_groups = []
         for source_group_name in source_group_names:
@@ -627,12 +628,12 @@ class SpotInstanceRequest(object):
         self.security_groups = []
         if security_groups:
             for group_name in security_groups:
-                group = ec2_backend.get_security_group_from_name(group_name, None)
+                group = ec2_backend.get_security_group_from_name(group_name)
                 if group:
                     self.security_groups.append(group)
         else:
             # If not security groups, add the default
-            default_group = ec2_backend.get_security_group_from_name("default", None)
+            default_group = ec2_backend.get_security_group_from_name("default")
             self.security_groups.append(default_group)
 
 

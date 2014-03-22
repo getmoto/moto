@@ -106,7 +106,8 @@ class FakeAutoScalingGroup(object):
             reservation = ec2_backend.add_instances(
                 self.launch_config.image_id,
                 count_needed,
-                self.launch_config.user_data
+                self.launch_config.user_data,
+                self.launch_config.security_groups,
             )
             for instance in reservation.instances:
                 instance.autoscaling_group = self
