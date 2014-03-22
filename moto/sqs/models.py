@@ -52,10 +52,12 @@ class Queue(object):
         self.receive_message_wait_time_seconds = 0
 
     @classmethod
-    def create_from_cloudformation_json(cls, cloudformation_json):
+    def create_from_cloudformation_json(cls, cloudformation_json, resource_map):
+        properties = cloudformation_json['Properties']
+
         return sqs_backend.create_queue(
-            name=cloudformation_json['QueueName'],
-            visibility_timeout=cloudformation_json.get('VisibilityTimeout'),
+            name=properties['QueueName'],
+            visibility_timeout=properties.get('VisibilityTimeout'),
         )
 
     @property

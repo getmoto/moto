@@ -2,7 +2,7 @@ import json
 
 from moto.core import BaseBackend
 
-from .parsing import parse_resources
+from .parsing import ResourceMap
 from .utils import generate_stack_id
 
 
@@ -13,7 +13,9 @@ class FakeStack(object):
         self.template = template
 
         template_dict = json.loads(self.template)
-        self.resource_map = parse_resources(template_dict)
+
+        self.resource_map = ResourceMap(template_dict)
+        self.resource_map.create()
 
     @property
     def stack_resources(self):

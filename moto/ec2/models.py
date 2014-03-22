@@ -38,10 +38,12 @@ class Instance(BotoInstance):
         self.user_data = user_data
 
     @classmethod
-    def create_from_cloudformation_json(cls, cloudformation_json):
+    def create_from_cloudformation_json(cls, cloudformation_json, resource_map):
+        properties = cloudformation_json['Properties']
+
         reservation = ec2_backend.add_instances(
-            image_id=cloudformation_json['ImageId'],
-            user_data=cloudformation_json.get('UserData'),
+            image_id=properties['ImageId'],
+            user_data=properties.get('UserData'),
             count=1,
         )
         return reservation.instances[0]

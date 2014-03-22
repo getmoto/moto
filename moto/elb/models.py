@@ -34,12 +34,19 @@ class FakeLoadBalancer(object):
             self.listeners.append(listener)
 
     @classmethod
-    def create_from_cloudformation_json(cls, cloudformation_json):
-        return elb_backend.create_load_balancer(
-            name=cloudformation_json['LoadBalancerName'],
-            zones=cloudformation_json.get('AvailabilityZones'),
+    def create_from_cloudformation_json(cls, cloudformation_json, resource_map):
+        properties = cloudformation_json['Properties']
+
+        new_elb = elb_backend.create_load_balancer(
+            name=properties['LoadBalancerName'],
+            zones=properties.get('AvailabilityZones'),
             ports=[],
         )
+
+        for instance_json in cloudformation_json.get('Instances', []):
+            instance = resource_map.get(instance_json['Ref'])
+            elb_backend.register_instances(new_elb.name, [instance.id])
+        return new_elb
 
     @property
     def physical_resource_id(self):

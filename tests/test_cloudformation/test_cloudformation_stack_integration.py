@@ -76,9 +76,17 @@ elb_template = {
     "Resources": {
         "MyELB": {
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Instances": [{"Ref": "Ec2Instance1"}],
             "Properties": {
                 "LoadBalancerName": "test-elb",
                 "AvailabilityZones": ['us-east1'],
+            }
+        },
+        "Ec2Instance1": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-1234abcd",
+                "UserData": "some user data",
             }
         },
     },
@@ -86,9 +94,10 @@ elb_template = {
 elb_template_json = json.dumps(elb_template)
 
 
+@mock_ec2()
 @mock_elb()
 @mock_cloudformation()
-def test_stack_elb_integration():
+def test_stack_elb_integration_with_attached_ec2_instances():
     conn = boto.connect_cloudformation()
     conn.create_stack(
         "elb_stack",
@@ -98,8 +107,23 @@ def test_stack_elb_integration():
     elb_conn = boto.connect_elb()
     load_balancer = elb_conn.get_all_load_balancers()[0]
 
+    ec2_conn = boto.connect_ec2()
+    reservation = ec2_conn.get_all_instances()[0]
+    ec2_instance = reservation.instances[0]
+    instance_id = ec2_instance.id
+
+    load_balancer.instances[0].id.should.equal(ec2_instance.id)
+    load_balancer_name = load_balancer.name
+
     stack = conn.describe_stacks()[0]
-    stack_elb = stack.describe_resources()[0]
-    stack_elb.resource_type.should.equal('AWS::ElasticLoadBalancing::LoadBalancer')
-    stack_elb.logical_resource_id.should.equal("MyELB")
-    stack_elb.physical_resource_id.should.equal(load_balancer.name)
+    stack_resources = stack.describe_resources()
+    stack_resources.should.have.length_of(2)
+    for resource in stack_resources:
+        if resource.resource_type == 'AWS::ElasticLoadBalancing::LoadBalancer':
+            load_balancer = resource
+        else:
+            ec2_instance = resource
+
+    load_balancer.logical_resource_id.should.equal("MyELB")
+    load_balancer.physical_resource_id.should.equal(load_balancer_name)
+    ec2_instance.physical_resource_id.should.equal(instance_id)
