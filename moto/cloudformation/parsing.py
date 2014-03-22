@@ -1,12 +1,16 @@
 import collections
 
-from moto.ec2.models import Instance
+from moto.autoscaling.models import FakeAutoScalingGroup, FakeLaunchConfiguration
+from moto.ec2.models import Instance, SecurityGroup
 from moto.elb.models import FakeLoadBalancer
 from moto.sqs.models import Queue
 
 
 MODEL_MAP = {
+    "AWS::AutoScaling::AutoScalingGroup": FakeAutoScalingGroup,
+    "AWS::AutoScaling::LaunchConfiguration": FakeLaunchConfiguration,
     "AWS::EC2::Instance": Instance,
+    "AWS::EC2::SecurityGroup": SecurityGroup,
     "AWS::ElasticLoadBalancing::LoadBalancer": FakeLoadBalancer,
     "AWS::SQS::Queue": Queue,
 }
@@ -14,15 +18,15 @@ MODEL_MAP = {
 
 def resource_class_from_type(resource_type):
     if resource_type not in MODEL_MAP:
-        raise NotImplemented("No Moto CloudFormation support for %s", resource_type)
+        raise NotImplementedError("No Moto CloudFormation support for {0}".format(resource_type))
     return MODEL_MAP.get(resource_type)
 
 
-def parse_resource(resource_name, resource_json, resource_map):
+def parse_resource(resource_name, resource_json, resources_map):
     resource_type = resource_json['Type']
 
     resource_class = resource_class_from_type(resource_type)
-    resource = resource_class.create_from_cloudformation_json(resource_json, resource_map)
+    resource = resource_class.create_from_cloudformation_json(resource_name, resource_json, resources_map)
     resource.type = resource_type
     resource.logical_resource_id = resource_name
     return resource

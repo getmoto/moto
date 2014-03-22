@@ -33,7 +33,7 @@ class FakeLaunchConfiguration(object):
         self.name = name
         self.image_id = image_id
         self.key_name = key_name
-        self.security_groups = security_groups
+        self.security_groups = security_groups if security_groups else []
         self.user_data = user_data
         self.instance_type = instance_type
         self.instance_monitoring = instance_monitoring
@@ -41,6 +41,29 @@ class FakeLaunchConfiguration(object):
         self.spot_price = spot_price
         self.ebs_optimized = ebs_optimized
         self.associate_public_ip_address = associate_public_ip_address
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        config = autoscaling_backend.create_launch_configuration(
+            name=resource_name,
+            image_id=properties.get("ImageId"),
+            key_name=properties.get("KeyName"),
+            security_groups=properties.get("SecurityGroups"),
+            user_data=properties.get("UserData"),
+            instance_type=properties.get("InstanceType"),
+            instance_monitoring=properties.get("InstanceMonitoring"),
+            instance_profile_name=properties.get("IamInstanceProfile"),
+            spot_price=properties.get("SpotPrice"),
+            ebs_optimized=properties.get("EbsOptimized"),
+            associate_public_ip_address=properties.get("AssociatePublicIpAddress"),
+        )
+        return config
+
+    @property
+    def physical_resource_id(self):
+        return self.name
 
     @property
     def instance_monitoring_enabled(self):
@@ -72,6 +95,43 @@ class FakeAutoScalingGroup(object):
 
         self.instances = []
         self.set_desired_capacity(desired_capacity)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        launch_config_name = None
+        launch_config_ref = properties.get("LaunchConfigurationName")
+        if launch_config_ref:
+            launch_config = resources_map[launch_config_ref['Ref']]
+            launch_config_name = launch_config.name
+
+        load_balancer_names = []
+        load_balancer_refs = properties.get("LoadBalancerNames", [])
+        for load_balancer_ref in load_balancer_refs:
+            load_balancer = resources_map[load_balancer_ref['Ref']]
+            load_balancer_names.append(load_balancer.name)
+
+        group = autoscaling_backend.create_autoscaling_group(
+            name=properties.get(""),
+            availability_zones=properties.get("AvailabilityZones", []),
+            desired_capacity=properties.get("DesiredCapacity"),
+            max_size=properties.get("MaxSize"),
+            min_size=properties.get("MinSize"),
+            launch_config_name=launch_config_name,
+            vpc_zone_identifier=properties.get("VPCZoneIdentifier"),
+            default_cooldown=properties.get("Cooldown"),
+            health_check_period=properties.get("HealthCheckGracePeriod"),
+            health_check_type=properties.get("HealthCheckType"),
+            load_balancers=load_balancer_names,
+            placement_group=None,
+            termination_policies=properties.get("TerminationPolicies", []),
+        )
+        return group
+
+    @property
+    def physical_resource_id(self):
+        return self.name
 
     def update(self, availability_zones, desired_capacity, max_size, min_size,
                launch_config_name, vpc_zone_identifier, default_cooldown,
@@ -164,6 +224,15 @@ class AutoScalingBackend(BaseBackend):
                                  default_cooldown, health_check_period,
                                  health_check_type, load_balancers,
                                  placement_group, termination_policies):
+
+        def make_int(value):
+            return int(value) if value is not None else value
+
+        max_size = make_int(max_size)
+        min_size = make_int(min_size)
+        default_cooldown = make_int(default_cooldown)
+        health_check_period = make_int(health_check_period)
+
         group = FakeAutoScalingGroup(
             name=name,
             availability_zones=availability_zones,

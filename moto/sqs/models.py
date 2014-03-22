@@ -52,7 +52,7 @@ class Queue(object):
         self.receive_message_wait_time_seconds = 0
 
     @classmethod
-    def create_from_cloudformation_json(cls, cloudformation_json, resource_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
         properties = cloudformation_json['Properties']
 
         return sqs_backend.create_queue(

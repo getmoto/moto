@@ -39,13 +39,19 @@ class Instance(BotoInstance):
         self.security_groups = security_groups
 
     @classmethod
-    def create_from_cloudformation_json(cls, cloudformation_json, resource_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
         properties = cloudformation_json['Properties']
+
+        security_group_names = []
+        for security_group_json in properties.get('SecurityGroups', []):
+            security_group = resources_map[security_group_json['Ref']]
+            security_group_names.append(security_group.name)
 
         reservation = ec2_backend.add_instances(
             image_id=properties['ImageId'],
             user_data=properties.get('UserData'),
             count=1,
+            security_group_names=security_group_names,
         )
         return reservation.instances[0]
 
@@ -357,6 +363,20 @@ class SecurityGroup(object):
         self.ingress_rules = []
         self.egress_rules = []
         self.vpc_id = vpc_id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        security_group = ec2_backend.create_security_group(
+            name=resource_name,
+            description=properties.get('GroupDescription'),
+        )
+        return security_group
+
+    @property
+    def physical_resource_id(self):
+        return self.id
 
 
 class SecurityGroupBackend(object):
