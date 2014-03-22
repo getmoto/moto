@@ -33,6 +33,18 @@ class FakeLoadBalancer(object):
             )
             self.listeners.append(listener)
 
+    @classmethod
+    def create_from_cloudformation_json(cls, cloudformation_json):
+        return elb_backend.create_load_balancer(
+            name=cloudformation_json['LoadBalancerName'],
+            zones=cloudformation_json.get('AvailabilityZones'),
+            ports=[],
+        )
+
+    @property
+    def physical_resource_id(self):
+        return self.name
+
 
 class ELBBackend(BaseBackend):
 

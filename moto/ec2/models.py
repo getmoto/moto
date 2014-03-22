@@ -37,6 +37,19 @@ class Instance(BotoInstance):
         self._state = InstanceState("running", 16)
         self.user_data = user_data
 
+    @classmethod
+    def create_from_cloudformation_json(cls, cloudformation_json):
+        reservation = ec2_backend.add_instances(
+            image_id=cloudformation_json['ImageId'],
+            user_data=cloudformation_json.get('UserData'),
+            count=1,
+        )
+        return reservation.instances[0]
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
     def start(self, *args, **kwargs):
         self._state.name = "running"
         self._state.code = 16
@@ -381,8 +394,6 @@ class SecurityGroupBackend(object):
             if group.id == group_id:
                 return group
 
-
-
     def get_security_group_from_name(self, name, vpc_id):
         for group_id, group in self.groups[vpc_id].iteritems():
             if group.name == name:
@@ -440,7 +451,6 @@ class SecurityGroupBackend(object):
             group = self.get_security_group_from_name(group_name, vpc_id)
         elif group_id:
             group = self.get_security_group_from_id(group_id)
-
 
         source_groups = []
         for source_group_name in source_group_names:

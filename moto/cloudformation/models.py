@@ -1,5 +1,8 @@
+import json
+
 from moto.core import BaseBackend
 
+from .parsing import parse_resources
 from .utils import generate_stack_id
 
 
@@ -8,6 +11,13 @@ class FakeStack(object):
         self.stack_id = stack_id
         self.name = name
         self.template = template
+
+        template_dict = json.loads(self.template)
+        self.resource_map = parse_resources(template_dict)
+
+    @property
+    def stack_resources(self):
+        return self.resource_map.values()
 
 
 class CloudFormationBackend(BaseBackend):

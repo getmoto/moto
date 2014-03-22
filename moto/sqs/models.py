@@ -51,6 +51,17 @@ class Queue(object):
         self.queue_arn = 'arn:aws:sqs:sqs.us-east-1:123456789012:%s' % self.name
         self.receive_message_wait_time_seconds = 0
 
+    @classmethod
+    def create_from_cloudformation_json(cls, cloudformation_json):
+        return sqs_backend.create_queue(
+            name=cloudformation_json['QueueName'],
+            visibility_timeout=cloudformation_json.get('VisibilityTimeout'),
+        )
+
+    @property
+    def physical_resource_id(self):
+        return self.name
+
     @property
     def attributes(self):
         result = {}

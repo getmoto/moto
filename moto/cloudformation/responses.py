@@ -32,6 +32,13 @@ class CloudFormationResponse(BaseResponse):
         template = Template(DESCRIBE_STACKS_TEMPLATE)
         return template.render(stacks=stacks)
 
+    def describe_stack_resources(self):
+        stack_name = self._get_param('StackName')
+        stack = cloudformation_backend.get_stack(stack_name)
+
+        template = Template(LIST_STACKS_RESOURCES_RESPONSE)
+        return template.render(stack=stack)
+
     def list_stacks(self):
         stacks = cloudformation_backend.list_stacks()
         template = Template(LIST_STACKS_RESPONSE)
@@ -107,3 +114,20 @@ LIST_STACKS_RESPONSE = """<ListStacksResponse>
   </StackSummaries>
  </ListStacksResult>
 </ListStacksResponse>"""
+
+
+LIST_STACKS_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
+  <StackResources>
+    {% for resource in stack.stack_resources %}
+    <member>
+      <StackId>{{ stack.stack_id }}</StackId>
+      <StackName>{{ stack.name }}</StackName>
+      <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
+      <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
+      <ResourceType>{{ resource.type }}</ResourceType>
+      <Timestamp>2010-07-27T22:27:28Z</Timestamp>
+      <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+    </member>
+    {% endfor %}
+  </StackResources>
+</DescribeStackResourcesResult>"""
