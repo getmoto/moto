@@ -170,3 +170,15 @@ def test_user_data_with_run_instance():
     instance_attribute.should.be.a(InstanceAttribute)
     decoded_user_data = base64.decodestring(instance_attribute.get("userData"))
     decoded_user_data.should.equal("some user data")
+
+
+@mock_ec2
+def test_run_instance_with_security_group():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    group = conn.create_security_group('group1', "some description")
+
+    reservation = conn.run_instances('ami-1234abcd', security_groups=['group1'])
+    instance = reservation.instances[0]
+
+    instance.groups[0].id.should.equal(group.id)
+    instance.groups[0].name.should.equal("group1")

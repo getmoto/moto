@@ -8,6 +8,9 @@ from moto.ec2.exceptions import InvalidIdError
 
 
 class InstanceResponse(BaseResponse):
+    def _get_multi_param(self, param_prefix):
+        return [value[0] for key, value in self.querystring.items() if key.startswith(param_prefix)]
+
     def describe_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         if instance_ids:
@@ -29,7 +32,8 @@ class InstanceResponse(BaseResponse):
         min_count = int(self.querystring.get('MinCount', ['1'])[0])
         image_id = self.querystring.get('ImageId')[0]
         user_data = self.querystring.get('UserData')
-        new_reservation = ec2_backend.add_instances(image_id, min_count, user_data)
+        security_group_names = self._get_multi_param('SecurityGroup')
+        new_reservation = ec2_backend.add_instances(image_id, min_count, user_data, security_group_names)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
@@ -119,10 +123,12 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           </monitoring>
           <sourceDestCheck>true</sourceDestCheck>
           <groupSet>
+             {% for group in instance.security_groups %}
              <item>
-                <groupId>sg-245f6a01</groupId>
-                <groupName>default</groupName>
+                <groupId>{{ group.id }}</groupId>
+                <groupName>{{ group.name }}</groupName>
              </item>
+             {% endfor %}
           </groupSet>
           <virtualizationType>paravirtual</virtualizationType>
           <clientToken/>
@@ -140,12 +146,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
           <item>
             <reservationId>{{ reservation.id }}</reservationId>
             <ownerId>111122223333</ownerId>
-            <groupSet>
-              <item>
-                <groupId>sg-1a2b3c4d</groupId>
-                <groupName>my-security-group</groupName>
-              </item>
-            </groupSet>
+            <groupSet></groupSet>
             <instancesSet>
                 {% for instance in reservation.instances %}
                   <item>
@@ -178,10 +179,12 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <ipAddress>46.51.219.63</ipAddress>
                     <sourceDestCheck>true</sourceDestCheck>
                     <groupSet>
+                      {% for group in instance.security_groups %}
                       <item>
-                        <groupId>sg-1a2b3c4d</groupId>
-                        <groupName>my-security-group</groupName>
+                        <groupId>{{ group.id }}</groupId>
+                        <groupName>{{ group.name }}</groupName>
                       </item>
+                      {% endfor %}
                     </groupSet>
                     <architecture>x86_64</architecture>
                     <rootDeviceType>ebs</rootDeviceType>
