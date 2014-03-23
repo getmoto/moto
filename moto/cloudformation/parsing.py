@@ -1,22 +1,37 @@
 import collections
 
-from moto.autoscaling.models import FakeAutoScalingGroup, FakeLaunchConfiguration
-from moto.ec2.models import Instance, SecurityGroup
-from moto.elb.models import FakeLoadBalancer
-from moto.sqs.models import Queue
-
+from moto.autoscaling import models as autoscaling_models
+from moto.ec2 import models as ec2_models
+from moto.elb import models as elb_models
+from moto.sqs import models as sqs_models
 
 MODEL_MAP = {
-    "AWS::AutoScaling::AutoScalingGroup": FakeAutoScalingGroup,
-    "AWS::AutoScaling::LaunchConfiguration": FakeLaunchConfiguration,
-    "AWS::EC2::Instance": Instance,
-    "AWS::EC2::SecurityGroup": SecurityGroup,
-    "AWS::ElasticLoadBalancing::LoadBalancer": FakeLoadBalancer,
-    "AWS::SQS::Queue": Queue,
+    "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
+    "AWS::AutoScaling::LaunchConfiguration": autoscaling_models.FakeLaunchConfiguration,
+    "AWS::EC2::EIP": ec2_models.ElasticAddress,
+    "AWS::EC2::Instance": ec2_models.Instance,
+    "AWS::EC2::InternetGateway": ec2_models.InternetGateway,
+    "AWS::EC2::Route": ec2_models.Route,
+    "AWS::EC2::RouteTable": ec2_models.RouteTable,
+    "AWS::EC2::SecurityGroup": ec2_models.SecurityGroup,
+    "AWS::EC2::Subnet": ec2_models.Subnet,
+    "AWS::EC2::SubnetRouteTableAssociation": ec2_models.SubnetRouteTableAssociation,
+    "AWS::EC2::VPC": ec2_models.VPC,
+    "AWS::EC2::VPCGatewayAttachment": ec2_models.VPCGatewayAttachment,
+    "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
+    "AWS::SQS::Queue": sqs_models.Queue,
 }
+
+# Just ignore these models types for now
+NULL_MODELS = [
+    "AWS::CloudFormation::WaitCondition",
+    "AWS::CloudFormation::WaitConditionHandle",
+]
 
 
 def resource_class_from_type(resource_type):
+    if resource_type in NULL_MODELS:
+        return None
     if resource_type not in MODEL_MAP:
         raise NotImplementedError("No Moto CloudFormation support for {0}".format(resource_type))
     return MODEL_MAP.get(resource_type)
@@ -26,6 +41,8 @@ def parse_resource(resource_name, resource_json, resources_map):
     resource_type = resource_json['Type']
 
     resource_class = resource_class_from_type(resource_type)
+    if not resource_class:
+        return None
     resource = resource_class.create_from_cloudformation_json(resource_name, resource_json, resources_map)
     resource.type = resource_type
     resource.logical_resource_id = resource_name

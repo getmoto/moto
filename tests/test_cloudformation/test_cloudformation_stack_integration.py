@@ -5,6 +5,8 @@ import sure  # noqa
 
 from moto import mock_autoscaling, mock_cloudformation, mock_ec2, mock_elb
 
+from .fixtures import vpc_single_instance_in_subnet
+
 
 @mock_cloudformation()
 def test_stack_sqs_integration():
@@ -245,3 +247,33 @@ def test_autoscaling_group_with_elb():
     # Confirm the ELB was actually created
     elb_conn = boto.connect_elb()
     elb_conn.get_all_load_balancers().should.have.length_of(1)
+
+
+@mock_ec2()
+@mock_cloudformation()
+def test_vpc_single_instance_in_subnet():
+
+    template_json = json.dumps(vpc_single_instance_in_subnet.template)
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    vpc_conn = boto.connect_vpc()
+    vpc = vpc_conn.get_all_vpcs()[0]
+    vpc.cidr_block.should.equal("10.0.0.0/16")
+
+    # Add this once we implement the endpoint
+    # vpc_conn.get_all_internet_gateways().should.have.length_of(1)
+
+    subnet = vpc_conn.get_all_subnets()[0]
+    subnet.vpc_id.should.equal(vpc.id)
+
+    ec2_conn = boto.connect_ec2()
+    reservation = ec2_conn.get_all_instances()[0]
+    instance = reservation.instances[0]
+    # Check that the EIP is attached the the EC2 instance
+    eip = ec2_conn.get_all_addresses()[0]
+    eip.domain.should.equal('vpc')
+    eip.instance_id.should.equal(instance.id)

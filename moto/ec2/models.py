@@ -8,18 +8,20 @@ from moto.core import BaseBackend
 from .exceptions import InvalidIdError
 from .utils import (
     random_ami_id,
+    random_eip_allocation_id,
+    random_eip_association_id,
+    random_gateway_id,
     random_instance_id,
+    random_ip,
+    random_key_pair,
     random_reservation_id,
+    random_route_table_id,
     random_security_group_id,
     random_snapshot_id,
     random_spot_request_id,
     random_subnet_id,
     random_volume_id,
     random_vpc_id,
-    random_eip_association_id,
-    random_eip_allocation_id,
-    random_ip,
-    random_key_pair,
 )
 
 
@@ -589,6 +591,19 @@ class VPC(object):
         self.id = vpc_id
         self.cidr_block = cidr_block
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        vpc = ec2_backend.create_vpc(
+            cidr_block=properties['CidrBlock'],
+        )
+        return vpc
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
 
 class VPCBackend(object):
     def __init__(self):
@@ -617,6 +632,22 @@ class Subnet(object):
         self.vpc = vpc
         self.cidr_block = cidr_block
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        vpc = resources_map[properties['VpcId']['Ref']]
+
+        subnet = ec2_backend.create_subnet(
+            vpc_id=vpc.id,
+            cidr_block=properties['CidrBlock']
+        )
+        return subnet
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
 
 class SubnetBackend(object):
     def __init__(self):
@@ -635,6 +666,156 @@ class SubnetBackend(object):
 
     def delete_subnet(self, subnet_id):
         return self.subnets.pop(subnet_id, None)
+
+
+class SubnetRouteTableAssociation(object):
+    def __init__(self, route_table_id, subnet_id):
+        self.route_table_id = route_table_id
+        self.subnet_id = subnet_id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        route_table = resources_map[properties['RouteTableId']['Ref']]
+        subnet = resources_map[properties['SubnetId']['Ref']]
+
+        subnet_association = ec2_backend.create_subnet_association(
+            route_table_id=route_table.id,
+            subnet_id=subnet.id,
+        )
+        return subnet_association
+
+
+class SubnetRouteTableAssociationBackend(object):
+    def __init__(self):
+        self.subnet_associations = {}
+        super(SubnetRouteTableAssociationBackend, self).__init__()
+
+    def create_subnet_association(self, route_table_id, subnet_id):
+        subnet_association = SubnetRouteTableAssociation(route_table_id, subnet_id)
+        self.subnet_associations["{0}:{1}".format(route_table_id, subnet_id)] = subnet_association
+        return subnet_association
+
+
+class RouteTable(object):
+    def __init__(self, route_table_id, vpc_id):
+        self.id = route_table_id
+        self.vpc_id = vpc_id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        vpc = resources_map[properties['VpcId']['Ref']]
+
+        route_table = ec2_backend.create_route_table(
+            vpc_id=vpc.id,
+        )
+        return route_table
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+
+class RouteTableBackend(object):
+    def __init__(self):
+        self.route_tables = {}
+        super(RouteTableBackend, self).__init__()
+
+    def create_route_table(self, vpc_id):
+        route_table_id = random_route_table_id()
+        route_table = RouteTable(route_table_id, vpc_id)
+        self.route_tables[route_table_id] = route_table
+        return route_table
+
+
+class Route(object):
+    def __init__(self, route_table_id, destination_cidr_block, gateway_id):
+        self.route_table_id = route_table_id
+        self.destination_cidr_block = destination_cidr_block
+        self.gateway_id = gateway_id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        gateway = resources_map[properties['GatewayId']['Ref']]
+        route_table = resources_map[properties['RouteTableId']['Ref']]
+
+        route_table = ec2_backend.create_route(
+            route_table_id=route_table.id,
+            destination_cidr_block=properties['DestinationCidrBlock'],
+            gateway_id=gateway.id,
+        )
+        return route_table
+
+
+class RouteBackend(object):
+    def __init__(self):
+        self.routes = {}
+        super(RouteBackend, self).__init__()
+
+    def create_route(self, route_table_id, destination_cidr_block, gateway_id):
+        route = Route(route_table_id, destination_cidr_block, gateway_id)
+        self.routes[destination_cidr_block] = route
+        return route
+
+
+class InternetGateway(object):
+    def __init__(self, gateway_id):
+        self.id = gateway_id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        return ec2_backend.create_gateway()
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+
+class InternetGatewayBackend(object):
+    def __init__(self):
+        self.gateways = {}
+        super(InternetGatewayBackend, self).__init__()
+
+    def create_gateway(self):
+        gateway_id = random_gateway_id()
+        gateway = InternetGateway(gateway_id)
+        self.gateways[gateway_id] = gateway
+        return gateway
+
+
+class VPCGatewayAttachment(object):
+    def __init__(self, gateway_id, vpc_id):
+        self.gateway_id = gateway_id
+        self.vpc_id = vpc_id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        return ec2_backend.create_vpc_gateway_attachment(
+            gateway_id=properties['InternetGatewayId']['Ref'],
+            vpc_id=properties['VpcId'],
+        )
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+
+class VPCGatewayAttachmentBackend(object):
+    def __init__(self):
+        self.gateway_attachments = {}
+        super(VPCGatewayAttachmentBackend, self).__init__()
+
+    def create_vpc_gateway_attachment(self, vpc_id, gateway_id):
+        attachment = VPCGatewayAttachment(vpc_id, gateway_id)
+        self.gateway_attachments[gateway_id] = attachment
+        return attachment
 
 
 class SpotInstanceRequest(object):
@@ -713,6 +894,25 @@ class ElasticAddress(object):
         self.instance = None
         self.association_id = None
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        eip = ec2_backend.allocate_address(
+            domain=properties['Domain']
+        )
+
+        instance_ref = properties.get('InstanceId')
+        if instance_ref:
+            instance = resources_map[instance_ref['Ref']]
+            ec2_backend.associate_address(instance, eip.public_ip)
+
+        return eip
+
+    @property
+    def physical_resource_id(self):
+        return self.allocation_id
+
 
 class ElasticAddressBackend(object):
 
@@ -790,8 +990,10 @@ class ElasticAddressBackend(object):
 
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
-                 VPCBackend, SubnetBackend, SpotRequestBackend, ElasticAddressBackend,
-                 KeyPairBackend):
+                 VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
+                 RouteTableBackend, RouteBackend, InternetGatewayBackend,
+                 VPCGatewayAttachmentBackend, SpotRequestBackend,
+                 ElasticAddressBackend, KeyPairBackend):
     pass
 
 
