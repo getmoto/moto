@@ -8,6 +8,7 @@ from .dynamodb2 import mock_dynamodb2
 from .ec2 import mock_ec2
 from .elb import mock_elb
 from .emr import mock_emr
+from .iam import mock_iam
 from .s3 import mock_s3
 from .s3bucket_path import mock_s3bucket_path
 from .ses import mock_ses

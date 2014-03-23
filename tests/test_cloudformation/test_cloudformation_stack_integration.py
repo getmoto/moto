@@ -3,7 +3,13 @@ import json
 import boto
 import sure  # noqa
 
-from moto import mock_autoscaling, mock_cloudformation, mock_ec2, mock_elb
+from moto import (
+    mock_autoscaling,
+    mock_cloudformation,
+    mock_ec2,
+    mock_elb,
+    mock_iam,
+)
 
 from .fixtures import vpc_single_instance_in_subnet
 
@@ -277,3 +283,110 @@ def test_vpc_single_instance_in_subnet():
     eip = ec2_conn.get_all_addresses()[0]
     eip.domain.should.equal('vpc')
     eip.instance_id.should.equal(instance.id)
+
+
+@mock_iam()
+@mock_cloudformation()
+def test_iam_roles():
+    iam_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+
+        "Resources": {
+
+            "my-launch-config": {
+                "Properties": {
+                    "IamInstanceProfile": {"Ref": "my-instance-profile"},
+                    "ImageId": "ami-1234abcd",
+                },
+                "Type": "AWS::AutoScaling::LaunchConfiguration"
+            },
+            "my-instance-profile": {
+                "Properties": {
+                    "Path": "my-path",
+                    "Roles": [{"Ref": "my-role"}],
+                },
+                "Type": "AWS::IAM::InstanceProfile"
+            },
+            "my-role": {
+                "Properties": {
+                    "AssumeRolePolicyDocument": {
+                        "Statement": [
+                            {
+                                "Action": [
+                                    "sts:AssumeRole"
+                                ],
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "Service": [
+                                        "ec2.amazonaws.com"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "Path": "my-path",
+                    "Policies": [
+                        {
+                            "PolicyDocument": {
+                                "Statement": [
+                                    {
+                                        "Action": [
+                                            "ec2:CreateTags",
+                                            "ec2:DescribeInstances",
+                                            "ec2:DescribeTags"
+                                        ],
+                                        "Effect": "Allow",
+                                        "Resource": [
+                                            "*"
+                                        ]
+                                    }
+                                ],
+                                "Version": "2012-10-17"
+                            },
+                            "PolicyName": "EC2_Tags"
+                        },
+                        {
+                            "PolicyDocument": {
+                                "Statement": [
+                                    {
+                                        "Action": [
+                                            "sqs:*"
+                                        ],
+                                        "Effect": "Allow",
+                                        "Resource": [
+                                            "*"
+                                        ]
+                                    }
+                                ],
+                                "Version": "2012-10-17"
+                            },
+                            "PolicyName": "SQS"
+                        },
+                    ]
+                },
+                "Type": "AWS::IAM::Role"
+            }
+        }
+    }
+
+    iam_template_json = json.dumps(iam_template)
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=iam_template_json,
+    )
+
+    iam_conn = boto.connect_iam()
+
+    role = iam_conn.get_role("my-role")
+    role.role_name.should.equal("my-role")
+    role.path.should.equal("my-path")
+
+    instance_profile = iam_conn.get_instance_profile("my-instance-profile")
+    instance_profile.instance_profile_name.should.equal("my-instance-profile")
+    instance_profile.path.should.equal("my-path")
+    instance_profile.role_id.should.equal(role.role_id)
+
+    autoscale_conn = boto.connect_autoscale()
+    launch_config = autoscale_conn.get_all_launch_configurations()[0]
+    launch_config.instance_profile_name.should.equal("my-instance-profile")

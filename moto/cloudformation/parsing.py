@@ -3,6 +3,7 @@ import collections
 from moto.autoscaling import models as autoscaling_models
 from moto.ec2 import models as ec2_models
 from moto.elb import models as elb_models
+from moto.iam import models as iam_models
 from moto.sqs import models as sqs_models
 
 MODEL_MAP = {
@@ -19,6 +20,8 @@ MODEL_MAP = {
     "AWS::EC2::VPC": ec2_models.VPC,
     "AWS::EC2::VPCGatewayAttachment": ec2_models.VPCGatewayAttachment,
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
+    "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
+    "AWS::IAM::Role": iam_models.Role,
     "AWS::SQS::Queue": sqs_models.Queue,
 }
 

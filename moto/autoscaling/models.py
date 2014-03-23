@@ -46,6 +46,12 @@ class FakeLaunchConfiguration(object):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
         properties = cloudformation_json['Properties']
 
+        instance_profile_name = None
+        instance_profile_ref = properties.get("IamInstanceProfile")
+        if instance_profile_ref:
+            instance_profile = resources_map[instance_profile_ref['Ref']]
+            instance_profile_name = instance_profile.name
+
         config = autoscaling_backend.create_launch_configuration(
             name=resource_name,
             image_id=properties.get("ImageId"),
@@ -54,7 +60,7 @@ class FakeLaunchConfiguration(object):
             user_data=properties.get("UserData"),
             instance_type=properties.get("InstanceType"),
             instance_monitoring=properties.get("InstanceMonitoring"),
-            instance_profile_name=properties.get("IamInstanceProfile"),
+            instance_profile_name=instance_profile_name,
             spot_price=properties.get("SpotPrice"),
             ebs_optimized=properties.get("EbsOptimized"),
             associate_public_ip_address=properties.get("AssociatePublicIpAddress"),
