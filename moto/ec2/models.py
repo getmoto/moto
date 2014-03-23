@@ -374,6 +374,17 @@ class SecurityGroup(object):
             name=resource_name,
             description=properties.get('GroupDescription'),
         )
+
+        for ingress_rule in properties.get('SecurityGroupIngress', []):
+            ec2_backend.authorize_security_group_ingress(
+                group_name=security_group.name,
+                group_id=security_group.id,
+                ip_protocol=ingress_rule['IpProtocol'],
+                from_port=ingress_rule['FromPort'],
+                to_port=ingress_rule['ToPort'],
+                ip_ranges=[ingress_rule['CidrIp']],
+            )
+
         return security_group
 
     @property
@@ -448,6 +459,9 @@ class SecurityGroupBackend(object):
             group = self.get_security_group_from_name(group_name, vpc_id)
         elif group_id:
             group = self.get_security_group_from_id(group_id)
+
+        source_group_names = source_group_names if source_group_names else []
+        source_group_ids = source_group_ids if source_group_ids else []
 
         source_groups = []
         for source_group_name in source_group_names:

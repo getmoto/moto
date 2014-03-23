@@ -157,12 +157,12 @@ def test_stack_security_groups():
                         "IpProtocol": "tcp",
                         "FromPort": "22",
                         "ToPort": "22",
-                        "CidrIp": {"Ref": "SSHLocation"}
+                        "CidrIp": "123.123.123.123/32",
                     }, {
                         "IpProtocol": "tcp",
-                        "FromPort": {"Ref": "WebServerPort"},
-                        "ToPort": {"Ref": "WebServerPort"},
-                        "CidrIp": "0.0.0.0/0"
+                        "FromPort": "80",
+                        "ToPort": "8000",
+                        "CidrIp": "0.0.0.0/0",
                     }]
                 }
             }
@@ -183,6 +183,16 @@ def test_stack_security_groups():
 
     ec2_instance.groups[0].id.should.equal(security_group.id)
     security_group.description.should.equal("My security group")
+    rule1, rule2 = security_group.rules
+    int(rule1.to_port).should.equal(22)
+    int(rule1.from_port).should.equal(22)
+    rule1.grants[0].cidr_ip.should.equal("123.123.123.123/32")
+    rule1.ip_protocol.should.equal('tcp')
+
+    int(rule2.to_port).should.equal(8000)
+    int(rule2.from_port).should.equal(80)
+    rule2.grants[0].cidr_ip.should.equal("0.0.0.0/0")
+    rule2.ip_protocol.should.equal('tcp')
 
 
 @mock_autoscaling()
