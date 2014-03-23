@@ -518,6 +518,24 @@ class VolumeAttachment(object):
         self.instance = instance
         self.device = device
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        instance = resources_map[properties['InstanceId']['Ref']]
+        volume = resources_map[properties['VolumeId']['Ref']]
+
+        attachment = ec2_backend.attach_volume(
+            volume_id=volume.id,
+            instance_id=instance.id,
+            device_path=properties['Device'],
+        )
+        return attachment
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
 
 class Volume(object):
     def __init__(self, volume_id, size, zone):
@@ -525,6 +543,20 @@ class Volume(object):
         self.size = size
         self.zone = zone
         self.attachment = None
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+        properties = cloudformation_json['Properties']
+
+        volume = ec2_backend.create_volume(
+            size=properties.get('Size'),
+            zone_name=properties.get('AvailabilityZone'),
+        )
+        return volume
+
+    @property
+    def physical_resource_id(self):
+        return self.id
 
     @property
     def status(self):

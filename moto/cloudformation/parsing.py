@@ -17,6 +17,8 @@ MODEL_MAP = {
     "AWS::EC2::SecurityGroup": ec2_models.SecurityGroup,
     "AWS::EC2::Subnet": ec2_models.Subnet,
     "AWS::EC2::SubnetRouteTableAssociation": ec2_models.SubnetRouteTableAssociation,
+    "AWS::EC2::Volume": ec2_models.Volume,
+    "AWS::EC2::VolumeAttachment": ec2_models.VolumeAttachment,
     "AWS::EC2::VPC": ec2_models.VPC,
     "AWS::EC2::VPCGatewayAttachment": ec2_models.VPCGatewayAttachment,
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,

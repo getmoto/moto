@@ -11,7 +11,7 @@ from moto import (
     mock_iam,
 )
 
-from .fixtures import vpc_single_instance_in_subnet
+from .fixtures import single_instance_with_ebs_volume, vpc_single_instance_in_subnet
 
 
 @mock_cloudformation()
@@ -400,3 +400,23 @@ def test_iam_roles():
     autoscale_conn = boto.connect_autoscale()
     launch_config = autoscale_conn.get_all_launch_configurations()[0]
     launch_config.instance_profile_name.should.equal("my-instance-profile")
+
+
+@mock_ec2()
+@mock_cloudformation()
+def test_single_instance_with_ebs_volume():
+
+    template_json = json.dumps(single_instance_with_ebs_volume.template)
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    ec2_conn = boto.connect_ec2()
+    reservation = ec2_conn.get_all_instances()[0]
+    ec2_instance = reservation.instances[0]
+
+    volume = ec2_conn.get_all_volumes()[0]
+    volume.volume_state().should.equal('in-use')
+    volume.attach_data.instance_id.should.equal(ec2_instance.id)
