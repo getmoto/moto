@@ -59,6 +59,11 @@ def parse_resource(resource_name, resource_json, resources_map):
 
 
 class ResourceMap(collections.Mapping):
+    """
+    This is a lazy loading map for resources. This allows us to create resources
+    without needing to create a full dependency tree. Upon creation, each
+    each resources is passed this lazy map that it can grab dependencies from.
+    """
 
     def __init__(self, template):
         self._template = template
