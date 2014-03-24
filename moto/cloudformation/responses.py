@@ -103,7 +103,7 @@ LIST_STACKS_RESPONSE = """<ListStacksResponse>
         <StackStatus>CREATE_IN_PROGRESS</StackStatus>
         <StackName>{{ stack.name }}</StackName>
         <CreationTime>2011-05-23T15:47:44Z</CreationTime>
-        <TemplateDescription>Creates one EC2 instance and a load balancer.</TemplateDescription>
+        <TemplateDescription>{{ stack.description }}</TemplateDescription>
     </member>
     {% endfor %}
   </StackSummaries>

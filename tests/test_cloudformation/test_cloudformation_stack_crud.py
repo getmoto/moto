@@ -72,6 +72,7 @@ def test_list_stacks():
 
     stacks = conn.list_stacks()
     stacks.should.have.length_of(2)
+    stacks[0].template_description.should.equal("Stack 1")
 
 
 @mock_cloudformation
