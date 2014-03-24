@@ -113,6 +113,9 @@ DESCRIBE_ADDRESS_RESPONSE = """<DescribeAddressesResponse xmlns="http://ec2.amaz
           {% else %}
             <instanceId/>
           {% endif %}
+          {% if address.allocation_id %}
+            <allocationId>{{ address.allocation_id }}</allocationId>
+          {% endif %}
           {% if address.association_id %}
             <associationId>{{ address.association_id }}</associationId>
           {% endif %}

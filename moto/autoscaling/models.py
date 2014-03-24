@@ -119,7 +119,7 @@ class FakeAutoScalingGroup(object):
             load_balancer_names.append(load_balancer.name)
 
         group = autoscaling_backend.create_autoscaling_group(
-            name=properties.get(""),
+            name=resource_name,
             availability_zones=properties.get("AvailabilityZones", []),
             desired_capacity=properties.get("DesiredCapacity"),
             max_size=properties.get("MaxSize"),

@@ -532,10 +532,6 @@ class VolumeAttachment(object):
         )
         return attachment
 
-    @property
-    def physical_resource_id(self):
-        return self.id
-
 
 class Volume(object):
     def __init__(self, volume_id, size, zone):

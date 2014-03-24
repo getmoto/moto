@@ -22,3 +22,6 @@ def test_create_role_and_instance_profile():
     role_from_profile = profile.roles.values()[0]
     role_from_profile['role_id'].should.equal(role.role_id)
     role_from_profile['role_name'].should.equal("my-role")
+
+    conn.list_roles().roles[0].role_name.should.equal('my-role')
+    conn.list_instance_profiles().instance_profiles[0].instance_profile_name.should.equal("my-profile")

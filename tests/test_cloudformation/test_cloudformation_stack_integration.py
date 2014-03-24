@@ -264,6 +264,17 @@ def test_autoscaling_group_with_elb():
     elb_conn = boto.connect_elb()
     elb_conn.get_all_load_balancers().should.have.length_of(1)
 
+    stack = conn.describe_stacks()[0]
+    resources = stack.describe_resources()
+    as_group_resource = [resource for resource in resources if resource.resource_type == 'AWS::AutoScaling::AutoScalingGroup'][0]
+    as_group_resource.physical_resource_id.should.equal("my-as-group")
+
+    launch_config_resource = [resource for resource in resources if resource.resource_type == 'AWS::AutoScaling::LaunchConfiguration'][0]
+    launch_config_resource.physical_resource_id.should.equal("my-launch-config")
+
+    elb_resource = [resource for resource in resources if resource.resource_type == 'AWS::ElasticLoadBalancing::LoadBalancer'][0]
+    elb_resource.physical_resource_id.should.equal("my-elb")
+
 
 @mock_ec2()
 @mock_cloudformation()
@@ -293,6 +304,17 @@ def test_vpc_single_instance_in_subnet():
     eip = ec2_conn.get_all_addresses()[0]
     eip.domain.should.equal('vpc')
     eip.instance_id.should.equal(instance.id)
+
+    stack = conn.describe_stacks()[0]
+    resources = stack.describe_resources()
+    vpc_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::VPC'][0]
+    vpc_resource.physical_resource_id.should.equal(vpc.id)
+
+    subnet_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Subnet'][0]
+    subnet_resource.physical_resource_id.should.equal(subnet.id)
+
+    eip_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
+    eip_resource.physical_resource_id.should.equal(eip.allocation_id)
 
 
 @mock_iam()
@@ -401,6 +423,14 @@ def test_iam_roles():
     launch_config = autoscale_conn.get_all_launch_configurations()[0]
     launch_config.instance_profile_name.should.equal("my-instance-profile")
 
+    stack = conn.describe_stacks()[0]
+    resources = stack.describe_resources()
+    instance_profile_resource = [resource for resource in resources if resource.resource_type == 'AWS::IAM::InstanceProfile'][0]
+    instance_profile_resource.physical_resource_id.should.equal(instance_profile.instance_profile_id)
+
+    role_resource = [resource for resource in resources if resource.resource_type == 'AWS::IAM::Role'][0]
+    role_resource.physical_resource_id.should.equal(role.role_id)
+
 
 @mock_ec2()
 @mock_cloudformation()
@@ -420,3 +450,8 @@ def test_single_instance_with_ebs_volume():
     volume = ec2_conn.get_all_volumes()[0]
     volume.volume_state().should.equal('in-use')
     volume.attach_data.instance_id.should.equal(ec2_instance.id)
+
+    stack = conn.describe_stacks()[0]
+    resources = stack.describe_resources()
+    ebs_volume = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Volume'][0]
+    ebs_volume.physical_resource_id.should.equal(volume.id)

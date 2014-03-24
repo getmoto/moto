@@ -58,7 +58,7 @@ class IamResponse(BaseResponse):
         profiles = iam_backend.get_instance_profiles()
 
         template = Template(LIST_INSTANCE_PROFILES_TEMPLATE)
-        return template.render(profiles=profiles)
+        return template.render(instance_profiles=profiles)
 
 CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <CreateInstanceProfileResult>
