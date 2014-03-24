@@ -87,12 +87,7 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResult>
       <CreationTime>2010-07-27T22:28:28Z</CreationTime>
       <StackStatus>CREATE_COMPLETE</StackStatus>
       <DisableRollback>false</DisableRollback>
-      <Outputs>
-        <member>
-          <OutputKey>StartPage</OutputKey>
-          <OutputValue>http://my-load-balancer.amazonaws.com:80/index.html</OutputValue>
-        </member>
-      </Outputs>
+      <Outputs></Outputs>
     </member>
     {% endfor %}
   </Stacks>
