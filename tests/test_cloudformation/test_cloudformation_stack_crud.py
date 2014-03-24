@@ -100,15 +100,15 @@ def test_delete_stack_by_id():
     conn.list_stacks().should.have.length_of(0)
 
 
-@mock_cloudformation
-def test_update_stack():
-    conn = boto.connect_cloudformation()
-    conn.create_stack(
-        "test_stack",
-        template_body=dummy_template_json,
-    )
+# @mock_cloudformation
+# def test_update_stack():
+#     conn = boto.connect_cloudformation()
+#     conn.create_stack(
+#         "test_stack",
+#         template_body=dummy_template_json,
+#     )
 
-    conn.update_stack("test_stack", dummy_template_json2)
+#     conn.update_stack("test_stack", dummy_template_json2)
 
-    stack = conn.describe_stacks()[0]
-    stack.get_template().should.equal(dummy_template2)
+#     stack = conn.describe_stacks()[0]
+#     stack.get_template().should.equal(dummy_template2)

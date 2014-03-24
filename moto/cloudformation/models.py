@@ -51,10 +51,10 @@ class CloudFormationBackend(BaseBackend):
             # Lookup by stack name
             return [stack for stack in self.stacks.values() if stack.name == name_or_stack_id][0]
 
-    def update_stack(self, name, template):
-        stack = self.get_stack(name)
-        stack.template = template
-        return stack
+    # def update_stack(self, name, template):
+    #     stack = self.get_stack(name)
+    #     stack.template = template
+    #     return stack
 
     def delete_stack(self, name_or_stack_id):
         if name_or_stack_id in self.stacks:

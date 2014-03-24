@@ -50,22 +50,22 @@ class CloudFormationResponse(BaseResponse):
         stack = cloudformation_backend.get_stack(name_or_stack_id)
         return stack.template
 
-    def update_stack(self):
-        stack_name = self._get_param('StackName')
-        stack_body = self._get_param('TemplateBody')
+    # def update_stack(self):
+    #     stack_name = self._get_param('StackName')
+    #     stack_body = self._get_param('TemplateBody')
 
-        stack = cloudformation_backend.update_stack(
-            name=stack_name,
-            template=stack_body,
-        )
-        stack_body = {
-            'UpdateStackResponse': {
-                'UpdateStackResult': {
-                    'StackId': stack.name,
-                }
-            }
-        }
-        return json.dumps(stack_body)
+    #     stack = cloudformation_backend.update_stack(
+    #         name=stack_name,
+    #         template=stack_body,
+    #     )
+    #     stack_body = {
+    #         'UpdateStackResponse': {
+    #             'UpdateStackResult': {
+    #                 'StackId': stack.name,
+    #             }
+    #         }
+    #     }
+    #     return json.dumps(stack_body)
 
     def delete_stack(self):
         name_or_stack_id = self.querystring.get('StackName')[0]
