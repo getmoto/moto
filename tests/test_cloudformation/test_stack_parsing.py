@@ -1,7 +1,10 @@
 import json
+
+from mock import patch
 import sure  # noqa
 
 from moto.cloudformation.models import FakeStack
+from moto.cloudformation.parsing import resource_class_from_type
 from moto.sqs.models import Queue
 
 dummy_template = {
@@ -36,3 +39,9 @@ def test_parse_stack_resources():
     queue = stack.resource_map.values()[0]
     queue.should.be.a(Queue)
     queue.name.should.equal("my-queue")
+
+
+@patch("moto.cloudformation.parsing.logger")
+def test_missing_resource_logs(logger):
+    resource_class_from_type("foobar")
+    logger.warning.assert_called_with('No Moto CloudFormation support for %s', 'foobar')

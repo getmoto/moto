@@ -1,4 +1,5 @@
 import collections
+import logging
 
 from moto.autoscaling import models as autoscaling_models
 from moto.ec2 import models as ec2_models
@@ -33,12 +34,15 @@ NULL_MODELS = [
     "AWS::CloudFormation::WaitConditionHandle",
 ]
 
+logger = logging.getLogger("moto")
+
 
 def resource_class_from_type(resource_type):
     if resource_type in NULL_MODELS:
         return None
     if resource_type not in MODEL_MAP:
-        raise NotImplementedError("No Moto CloudFormation support for {0}".format(resource_type))
+        logger.warning("No Moto CloudFormation support for %s", resource_type)
+        return None
     return MODEL_MAP.get(resource_type)
 
 
