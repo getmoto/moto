@@ -142,6 +142,12 @@ def test_stack_security_groups():
     security_group_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
+            "my-security-group": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription": "My other group",
+                },
+            },
             "Ec2Instance2": {
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
@@ -162,7 +168,7 @@ def test_stack_security_groups():
                         "IpProtocol": "tcp",
                         "FromPort": "80",
                         "ToPort": "8000",
-                        "CidrIp": "0.0.0.0/0",
+                        "SourceSecurityGroupId": {"Ref": "my-security-group"},
                     }]
                 }
             }
@@ -177,13 +183,19 @@ def test_stack_security_groups():
     )
 
     ec2_conn = boto.connect_ec2()
-    security_group = ec2_conn.get_all_security_groups()[0]
+    security_groups = ec2_conn.get_all_security_groups()
+    for group in security_groups:
+        if group.name == "InstanceSecurityGroup":
+            instance_group = group
+        else:
+            other_group = group
+
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
 
-    ec2_instance.groups[0].id.should.equal(security_group.id)
-    security_group.description.should.equal("My security group")
-    rule1, rule2 = security_group.rules
+    ec2_instance.groups[0].id.should.equal(instance_group.id)
+    instance_group.description.should.equal("My security group")
+    rule1, rule2 = instance_group.rules
     int(rule1.to_port).should.equal(22)
     int(rule1.from_port).should.equal(22)
     rule1.grants[0].cidr_ip.should.equal("123.123.123.123/32")
@@ -191,8 +203,8 @@ def test_stack_security_groups():
 
     int(rule2.to_port).should.equal(8000)
     int(rule2.from_port).should.equal(80)
-    rule2.grants[0].cidr_ip.should.equal("0.0.0.0/0")
     rule2.ip_protocol.should.equal('tcp')
+    rule2.grants[0].group_id.should.equal(other_group.id)
 
 
 @mock_autoscaling()

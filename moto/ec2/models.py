@@ -376,13 +376,20 @@ class SecurityGroup(object):
         )
 
         for ingress_rule in properties.get('SecurityGroupIngress', []):
+            source_group_ids = []
+            source_group_ids_ref = ingress_rule.get('SourceSecurityGroupId')
+            if source_group_ids_ref:
+                source_group = resources_map[source_group_ids_ref['Ref']]
+                source_group_ids.append(source_group.id)
+
             ec2_backend.authorize_security_group_ingress(
                 group_name=security_group.name,
                 group_id=security_group.id,
                 ip_protocol=ingress_rule['IpProtocol'],
                 from_port=ingress_rule['FromPort'],
                 to_port=ingress_rule['ToPort'],
-                ip_ranges=[ingress_rule['CidrIp']],
+                ip_ranges=ingress_rule.get('CidrIp'),
+                source_group_ids=source_group_ids,
             )
 
         return security_group
@@ -449,7 +456,7 @@ class SecurityGroupBackend(object):
                                          ip_protocol,
                                          from_port,
                                          to_port,
-                                         ip_ranges=None,
+                                         ip_ranges,
                                          source_group_names=None,
                                          source_group_ids=None,
                                          vpc_id=None):
@@ -459,6 +466,9 @@ class SecurityGroupBackend(object):
             group = self.get_security_group_from_name(group_name, vpc_id)
         elif group_id:
             group = self.get_security_group_from_id(group_id)
+
+        if ip_ranges and not isinstance(ip_ranges, list):
+            ip_ranges = [ip_ranges]
 
         source_group_names = source_group_names if source_group_names else []
         source_group_ids = source_group_ids if source_group_ids else []
@@ -484,7 +494,7 @@ class SecurityGroupBackend(object):
                                       ip_protocol,
                                       from_port,
                                       to_port,
-                                      ip_ranges=None,
+                                      ip_ranges,
                                       source_group_names=None,
                                       source_group_ids=None,
                                       vpc_id=None):
