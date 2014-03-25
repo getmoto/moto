@@ -317,6 +317,9 @@ def test_vpc_single_instance_in_subnet():
     eip.domain.should.equal('vpc')
     eip.instance_id.should.equal(instance.id)
 
+    security_group = ec2_conn.get_all_security_groups()[0]
+    security_group.vpc_id.should.equal(vpc.id)
+
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
     vpc_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::VPC'][0]

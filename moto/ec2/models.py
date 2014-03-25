@@ -370,9 +370,15 @@ class SecurityGroup(object):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
         properties = cloudformation_json['Properties']
 
+        vpc_id = None
+        vpc_ref = properties.get('VpcId')
+        if vpc_ref:
+            vpc_id = resources_map[vpc_ref['Ref']].id
+
         security_group = ec2_backend.create_security_group(
             name=resource_name,
             description=properties.get('GroupDescription'),
+            vpc_id=vpc_id,
         )
 
         for ingress_rule in properties.get('SecurityGroupIngress', []):
@@ -390,6 +396,7 @@ class SecurityGroup(object):
                 to_port=ingress_rule['ToPort'],
                 ip_ranges=ingress_rule.get('CidrIp'),
                 source_group_ids=source_group_ids,
+                vpc_id=vpc_id,
             )
 
         return security_group
