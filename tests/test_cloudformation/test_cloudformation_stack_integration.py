@@ -332,6 +332,7 @@ def test_vpc_single_instance_in_subnet():
     eip_resource.physical_resource_id.should.equal(eip.allocation_id)
 
 
+@mock_autoscaling()
 @mock_iam()
 @mock_cloudformation()
 def test_iam_roles():
@@ -441,7 +442,7 @@ def test_iam_roles():
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
     instance_profile_resource = [resource for resource in resources if resource.resource_type == 'AWS::IAM::InstanceProfile'][0]
-    instance_profile_resource.physical_resource_id.should.equal(instance_profile.instance_profile_id)
+    instance_profile_resource.physical_resource_id.should.equal(instance_profile.instance_profile_name)
 
     role_resource = [resource for resource in resources if resource.resource_type == 'AWS::IAM::Role'][0]
     role_resource.physical_resource_id.should.equal(role.role_id)

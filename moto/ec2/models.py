@@ -41,19 +41,17 @@ class Instance(BotoInstance):
         self.security_groups = security_groups
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        security_group_names = []
-        for security_group_json in properties.get('SecurityGroups', []):
-            security_group = resources_map[security_group_json['Ref']]
-            security_group_names.append(security_group.name)
+        security_group_ids = properties.get('SecurityGroups', [])
+        group_names = [ec2_backend.get_security_group_from_id(group_id).name for group_id in security_group_ids]
 
         reservation = ec2_backend.add_instances(
             image_id=properties['ImageId'],
             user_data=properties.get('UserData'),
             count=1,
-            security_group_names=security_group_names,
+            security_group_names=group_names,
         )
         return reservation.instances[0]
 
@@ -160,6 +158,12 @@ class InstanceBackend(object):
             for instance in reservation.instances:
                 instances.append(instance)
         return instances
+
+    def get_instance_by_id(self, instance_id):
+        for reservation in self.all_reservations():
+            for instance in reservation.instances:
+                if instance.id == instance_id:
+                    return instance
 
     def get_reservations_by_instance_ids(self, instance_ids):
         """ Go through all of the reservations and filter to only return those
@@ -367,14 +371,10 @@ class SecurityGroup(object):
         self.vpc_id = vpc_id
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        vpc_id = None
-        vpc_ref = properties.get('VpcId')
-        if vpc_ref:
-            vpc_id = resources_map[vpc_ref['Ref']].id
-
+        vpc_id = properties.get('VpcId')
         security_group = ec2_backend.create_security_group(
             name=resource_name,
             description=properties.get('GroupDescription'),
@@ -382,11 +382,7 @@ class SecurityGroup(object):
         )
 
         for ingress_rule in properties.get('SecurityGroupIngress', []):
-            source_group_ids = []
-            source_group_ids_ref = ingress_rule.get('SourceSecurityGroupId')
-            if source_group_ids_ref:
-                source_group = resources_map[source_group_ids_ref['Ref']]
-                source_group_ids.append(source_group.id)
+            source_group_id = ingress_rule.get('SourceSecurityGroupId')
 
             ec2_backend.authorize_security_group_ingress(
                 group_name=security_group.name,
@@ -395,7 +391,7 @@ class SecurityGroup(object):
                 from_port=ingress_rule['FromPort'],
                 to_port=ingress_rule['ToPort'],
                 ip_ranges=ingress_rule.get('CidrIp'),
-                source_group_ids=source_group_ids,
+                source_group_ids=[source_group_id],
                 vpc_id=vpc_id,
             )
 
@@ -536,15 +532,15 @@ class VolumeAttachment(object):
         self.device = device
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        instance = resources_map[properties['InstanceId']['Ref']]
-        volume = resources_map[properties['VolumeId']['Ref']]
+        instance_id = properties['InstanceId']
+        volume_id = properties['VolumeId']
 
         attachment = ec2_backend.attach_volume(
-            volume_id=volume.id,
-            instance_id=instance.id,
+            volume_id=volume_id,
+            instance_id=instance_id,
             device_path=properties['Device'],
         )
         return attachment
@@ -558,7 +554,7 @@ class Volume(object):
         self.attachment = None
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
         volume = ec2_backend.create_volume(
@@ -651,7 +647,7 @@ class VPC(object):
         self.cidr_block = cidr_block
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
         vpc = ec2_backend.create_vpc(
@@ -692,13 +688,12 @@ class Subnet(object):
         self.cidr_block = cidr_block
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        vpc = resources_map[properties['VpcId']['Ref']]
-
+        vpc_id = properties['VpcId']
         subnet = ec2_backend.create_subnet(
-            vpc_id=vpc.id,
+            vpc_id=vpc_id,
             cidr_block=properties['CidrBlock']
         )
         return subnet
@@ -733,15 +728,15 @@ class SubnetRouteTableAssociation(object):
         self.subnet_id = subnet_id
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        route_table = resources_map[properties['RouteTableId']['Ref']]
-        subnet = resources_map[properties['SubnetId']['Ref']]
+        route_table_id = properties['RouteTableId']
+        subnet_id = properties['SubnetId']
 
         subnet_association = ec2_backend.create_subnet_association(
-            route_table_id=route_table.id,
-            subnet_id=subnet.id,
+            route_table_id=route_table_id,
+            subnet_id=subnet_id,
         )
         return subnet_association
 
@@ -763,13 +758,12 @@ class RouteTable(object):
         self.vpc_id = vpc_id
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        vpc = resources_map[properties['VpcId']['Ref']]
-
+        vpc_id = properties['VpcId']
         route_table = ec2_backend.create_route_table(
-            vpc_id=vpc.id,
+            vpc_id=vpc_id,
         )
         return route_table
 
@@ -797,16 +791,15 @@ class Route(object):
         self.gateway_id = gateway_id
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        gateway = resources_map[properties['GatewayId']['Ref']]
-        route_table = resources_map[properties['RouteTableId']['Ref']]
-
+        gateway_id = properties['GatewayId']
+        route_table_id = properties['RouteTableId']
         route_table = ec2_backend.create_route(
-            route_table_id=route_table.id,
+            route_table_id=route_table_id,
             destination_cidr_block=properties['DestinationCidrBlock'],
-            gateway_id=gateway.id,
+            gateway_id=gateway_id,
         )
         return route_table
 
@@ -827,7 +820,7 @@ class InternetGateway(object):
         self.id = gateway_id
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         return ec2_backend.create_gateway()
 
     @property
@@ -853,11 +846,11 @@ class VPCGatewayAttachment(object):
         self.vpc_id = vpc_id
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
         return ec2_backend.create_vpc_gateway_attachment(
-            gateway_id=properties['InternetGatewayId']['Ref'],
+            gateway_id=properties['InternetGatewayId'],
             vpc_id=properties['VpcId'],
         )
 
@@ -954,16 +947,16 @@ class ElasticAddress(object):
         self.association_id = None
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
         eip = ec2_backend.allocate_address(
             domain=properties['Domain']
         )
 
-        instance_ref = properties.get('InstanceId')
-        if instance_ref:
-            instance = resources_map[instance_ref['Ref']]
+        instance_id = properties.get('InstanceId')
+        if instance_id:
+            instance = ec2_backend.get_instance_by_id(instance_id)
             ec2_backend.associate_address(instance, eip.public_ip)
 
         return eip

@@ -15,7 +15,7 @@ class FakeStack(object):
         template_dict = json.loads(self.template)
         self.description = template_dict.get('Description')
 
-        self.resource_map = ResourceMap(template_dict)
+        self.resource_map = ResourceMap(stack_id, name, template_dict)
         self.resource_map.create()
 
     @property

@@ -37,6 +37,32 @@ NULL_MODELS = [
 logger = logging.getLogger("moto")
 
 
+def clean_json(resource_json, resources_map):
+    """
+    Cleanup the a resource dict. For now, this just means replacing any Ref node
+    with the corresponding physical_resource_id.
+
+    Eventually, this is where we would add things like function parsing (fn::)
+    """
+    if isinstance(resource_json, dict):
+        if 'Ref' in resource_json:
+            # Parse resource reference
+            resource = resources_map[resource_json['Ref']]
+            if hasattr(resource, 'physical_resource_id'):
+                return resource.physical_resource_id
+            else:
+                return resource
+
+        cleaned_json = {}
+        for key, value in resource_json.iteritems():
+            cleaned_json[key] = clean_json(value, resources_map)
+        return cleaned_json
+    elif isinstance(resource_json, list):
+        return [clean_json(val, resources_map) for val in resource_json]
+    else:
+        return resource_json
+
+
 def resource_class_from_type(resource_type):
     if resource_type in NULL_MODELS:
         return None
@@ -48,11 +74,12 @@ def resource_class_from_type(resource_type):
 
 def parse_resource(resource_name, resource_json, resources_map):
     resource_type = resource_json['Type']
-
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
         return None
-    resource = resource_class.create_from_cloudformation_json(resource_name, resource_json, resources_map)
+
+    resource_json = clean_json(resource_json, resources_map)
+    resource = resource_class.create_from_cloudformation_json(resource_name, resource_json)
     resource.type = resource_type
     resource.logical_resource_id = resource_name
     return resource
@@ -65,11 +92,17 @@ class ResourceMap(collections.Mapping):
     each resources is passed this lazy map that it can grab dependencies from.
     """
 
-    def __init__(self, template):
+    def __init__(self, stack_id, stack_name, template):
         self._template = template
         self._resource_json_map = template['Resources']
 
-        self._parsed_resources = dict()
+        # Create the default resources
+        self._parsed_resources = {
+            "AWS::AccountId": "123456789012",
+            "AWS::Region": "us-east-1",
+            "AWS::StackId": stack_id,
+            "AWS::StackName": stack_name,
+        }
 
     def __getitem__(self, key):
         resource_name = key
@@ -92,7 +125,15 @@ class ResourceMap(collections.Mapping):
     def resource_names(self):
         return self._resource_json_map.keys()
 
+    def load_parameters(self):
+        parameters = self._template.get('Parameters', {})
+        for parameter_name, parameter in parameters.items():
+            # Just initialize parameters to empty string for now.
+            self._parsed_resources[parameter_name] = ""
+
     def create(self):
+        self.load_parameters()
+
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.
         for resource_name in self.resource_names:

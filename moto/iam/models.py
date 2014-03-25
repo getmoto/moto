@@ -13,7 +13,7 @@ class Role(object):
         self.policies = policies
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
         return iam_backend.create_role(
@@ -33,26 +33,22 @@ class InstanceProfile(object):
         self.id = instance_profile_id
         self.name = name
         self.path = path
-        self.roles = roles if roles else {}
+        self.roles = roles if roles else []
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        roles = {}
-        for role_ref in properties['Roles']:
-            role = resources_map[role_ref['Ref']]
-            roles[role.name] = role
-
+        role_ids = properties['Roles']
         return iam_backend.create_instance_profile(
             name=resource_name,
             path=properties['Path'],
-            roles=roles,
+            role_ids=role_ids,
         )
 
     @property
     def physical_resource_id(self):
-        return self.id
+        return self.name
 
 
 class IAMBackend(BaseBackend):
@@ -68,6 +64,9 @@ class IAMBackend(BaseBackend):
         self.roles[role_id] = role
         return role
 
+    def get_role_by_id(self, role_id):
+        return self.roles.get(role_id)
+
     def get_role(self, role_name):
         for role in self.get_roles():
             if role.name == role_name:
@@ -76,8 +75,10 @@ class IAMBackend(BaseBackend):
     def get_roles(self):
         return self.roles.values()
 
-    def create_instance_profile(self, name, path, roles):
+    def create_instance_profile(self, name, path, role_ids):
         instance_profile_id = random_resource_id()
+
+        roles = [iam_backend.get_role_by_id(role_id) for role_id in role_ids]
         instance_profile = InstanceProfile(instance_profile_id, name, path, roles)
         self.instance_profiles[instance_profile_id] = instance_profile
         return instance_profile
@@ -93,6 +94,6 @@ class IAMBackend(BaseBackend):
     def add_role_to_instance_profile(self, profile_name, role_name):
         profile = self.get_instance_profile(profile_name)
         role = self.get_role(role_name)
-        profile.roles[role.id] = role
+        profile.roles.append(role)
 
 iam_backend = IAMBackend()

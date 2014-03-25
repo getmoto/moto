@@ -29,7 +29,7 @@ class IamResponse(BaseResponse):
         profile_name = self._get_param('InstanceProfileName')
         path = self._get_param('Path')
 
-        profile = iam_backend.create_instance_profile(profile_name, path, roles={})
+        profile = iam_backend.create_instance_profile(profile_name, path, role_ids=[])
         template = Template(CREATE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
 
@@ -81,7 +81,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
     <InstanceProfile>
       <InstanceProfileId>{{ profile.id }}</InstanceProfileId>
       <Roles>
-        {% for role_name, role in profile.roles.items() %}
+        {% for role in profile.roles %}
         <member>
           <Path>{{ role.path }}</Path>
           <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>

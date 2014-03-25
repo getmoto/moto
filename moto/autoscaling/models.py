@@ -43,14 +43,10 @@ class FakeLaunchConfiguration(object):
         self.associate_public_ip_address = associate_public_ip_address
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        instance_profile_name = None
-        instance_profile_ref = properties.get("IamInstanceProfile")
-        if instance_profile_ref:
-            instance_profile = resources_map[instance_profile_ref['Ref']]
-            instance_profile_name = instance_profile.name
+        instance_profile_name = properties.get("IamInstanceProfile")
 
         config = autoscaling_backend.create_launch_configuration(
             name=resource_name,
@@ -103,20 +99,11 @@ class FakeAutoScalingGroup(object):
         self.set_desired_capacity(desired_capacity)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, resources_map):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        launch_config_name = None
-        launch_config_ref = properties.get("LaunchConfigurationName")
-        if launch_config_ref:
-            launch_config = resources_map[launch_config_ref['Ref']]
-            launch_config_name = launch_config.name
-
-        load_balancer_names = []
-        load_balancer_refs = properties.get("LoadBalancerNames", [])
-        for load_balancer_ref in load_balancer_refs:
-            load_balancer = resources_map[load_balancer_ref['Ref']]
-            load_balancer_names.append(load_balancer.name)
+        launch_config_name = properties.get("LaunchConfigurationName")
+        load_balancer_names = properties.get("LoadBalancerNames", [])
 
         group = autoscaling_backend.create_autoscaling_group(
             name=resource_name,
