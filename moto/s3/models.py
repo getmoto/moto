@@ -14,10 +14,11 @@ UPLOAD_PART_MIN_SIZE = 5242880
 
 
 class FakeKey(object):
-    def __init__(self, name, value):
+    def __init__(self, name, value, storage=None):
         self.name = name
         self.value = value
         self.last_modified = datetime.datetime.now()
+        self._storage_class = storage
         self._metadata = {}
 
     def copy(self, new_name = None):
@@ -31,6 +32,9 @@ class FakeKey(object):
 
     def clear_metadata(self):
         self._metadata = {}
+
+    def set_storage_class(self, storage_class):
+        self._storage_class = storage_class
 
     def append_to_value(self, value):
         self.value += value
@@ -58,14 +62,26 @@ class FakeKey(object):
 
     @property
     def response_dict(self):
-        return {
+        r = {
             'etag': self.etag,
             'last-modified': self.last_modified_RFC1123,
         }
+        if self._storage_class is not None:
+            if self._storage_class != 'STANDARD':
+                r['x-amz-storage-class'] = self._storage_class
+
+        return r
 
     @property
     def size(self):
         return len(self.value)
+
+    @property
+    def storage_class(self):
+        if self._storage_class is not None:
+            return self._storage_class
+        else:
+            return 'STANDARD'
 
 
 class FakeMultipart(object):
@@ -140,11 +156,12 @@ class S3Backend(BaseBackend):
                 return self.buckets.pop(bucket_name)
         return None
 
-    def set_key(self, bucket_name, key_name, value):
+    def set_key(self, bucket_name, key_name, value, storage=None):
         key_name = clean_key_name(key_name)
 
         bucket = self.buckets[bucket_name]
-        new_key = FakeKey(name=key_name, value=value)
+        new_key = FakeKey(name=key_name, value=value,
+                          storage=storage)
         bucket.keys[key_name] = new_key
 
         return new_key
@@ -231,7 +248,7 @@ class S3Backend(BaseBackend):
         bucket = self.buckets[bucket_name]
         return bucket.keys.pop(key_name)
 
-    def copy_key(self, src_bucket_name, src_key_name, dest_bucket_name, dest_key_name):
+    def copy_key(self, src_bucket_name, src_key_name, dest_bucket_name, dest_key_name, storage=None):
         src_key_name = clean_key_name(src_key_name)
         dest_key_name = clean_key_name(dest_key_name)
         src_bucket = self.buckets[src_bucket_name]
@@ -240,5 +257,7 @@ class S3Backend(BaseBackend):
         if dest_key_name != src_key_name:
             key = key.copy(dest_key_name)
         dest_bucket.keys[dest_key_name] = key
+        if storage is not None:
+            dest_bucket.keys[dest_key_name].set_storage_class(storage)
 
 s3_backend = S3Backend()

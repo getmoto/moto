@@ -326,3 +326,32 @@ def test_bucket_key_listing_order():
     delimiter = '/'
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
     keys.should.equal([u'toplevel/x/'])
+
+
+@mock_s3
+def test_key_with_reduced_redundancy():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket_name')
+
+    key = Key(bucket, 'test_rr_key')
+    key.set_contents_from_string('value1', reduced_redundancy=True)
+    # we use the bucket iterator because of:
+    # https:/github.com/boto/boto/issues/1173
+    list(bucket)[0].storage_class.should.equal('REDUCED_REDUNDANCY')
+
+
+@mock_s3
+def test_copy_key_reduced_redundancy():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string("some value")
+
+    bucket.copy_key('new-key', 'foobar', 'the-key', storage_class='REDUCED_REDUNDANCY')
+
+    # we use the bucket iterator because of:
+    # https:/github.com/boto/boto/issues/1173
+    keys = dict([(k.name, k) for k in bucket])
+    keys['new-key'].storage_class.should.equal("REDUCED_REDUNDANCY")
+    keys['the-key'].storage_class.should.equal("STANDARD")

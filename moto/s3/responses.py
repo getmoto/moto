@@ -190,10 +190,13 @@ class ResponseObject(object):
                 headers.update(key.response_dict)
                 return 200, headers, response
 
+            storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
+
             if 'x-amz-copy-source' in request.headers:
                 # Copy key
                 src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/", 1)
-                self.backend.copy_key(src_bucket, src_key, bucket_name, key_name)
+                self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
+                                      storage=storage_class)
                 mdirective = request.headers.get('x-amz-metadata-directive')
                 if mdirective is not None and mdirective == 'REPLACE':
                     new_key = self.backend.get_key(bucket_name, key_name)
@@ -210,7 +213,8 @@ class ResponseObject(object):
                 new_key = self.backend.append_to_key(bucket_name, key_name, body)
             else:
                 # Initial data
-                new_key = self.backend.set_key(bucket_name, key_name, body)
+                new_key = self.backend.set_key(bucket_name, key_name, body,
+                                               storage=storage_class)
                 request.streaming = True
                 self._key_set_metadata(request, new_key)
 
@@ -292,12 +296,11 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       <ETag>{{ key.etag }}</ETag>
       <Size>{{ key.size }}</Size>
-      <StorageClass>STANDARD</StorageClass>
+      <StorageClass>{{ key.storage_class }}</StorageClass>
       <Owner>
         <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
         <DisplayName>webfile</DisplayName>
       </Owner>
-      <StorageClass>STANDARD</StorageClass>
     </Contents>
   {% endfor %}
   {% if delimiter %}
