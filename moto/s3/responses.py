@@ -6,6 +6,7 @@ from jinja2 import Template
 from .exceptions import BucketAlreadyExists
 from .models import s3_backend
 from .utils import bucket_name_from_url
+from xml.dom import minidom
 
 
 def parse_key_name(pth):
@@ -261,8 +262,17 @@ class ResponseObject(object):
                     )
                 template = Template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
                 return 400, headers, template.render()
+            elif parsed_url.query == 'restore':
+                es = minidom.parseString(body).getElementsByTagName('Days')
+                days = es[0].childNodes[0].wholeText
+                key = self.backend.get_key(bucket_name, key_name)
+                r = 202
+                if key.expiry_date is not None:
+                    r = 200
+                key.restore(int(days))
+                return r, headers, ""
             else:
-                raise NotImplementedError("Method POST had only been implemented for multipart uploads so far")
+                raise NotImplementedError("Method POST had only been implemented for multipart uploads and restore operations, so far")
         else:
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 

@@ -355,3 +355,39 @@ def test_copy_key_reduced_redundancy():
     keys = dict([(k.name, k) for k in bucket])
     keys['new-key'].storage_class.should.equal("REDUCED_REDUNDANCY")
     keys['the-key'].storage_class.should.equal("STANDARD")
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_s3
+def test_restore_key():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string("some value")
+    list(bucket)[0].ongoing_restore.should.be.none
+    key.restore(1)
+    key = bucket.get_key('the-key')
+    key.ongoing_restore.should_not.be.none
+    key.ongoing_restore.should.be.false
+    key.expiry_date.should.equal("Mon, 02 Jan 2012 12:00:00 GMT")
+    key.restore(2)
+    key = bucket.get_key('the-key')
+    key.ongoing_restore.should_not.be.none
+    key.ongoing_restore.should.be.false
+    key.expiry_date.should.equal("Tue, 03 Jan 2012 12:00:00 GMT")
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_s3
+def test_restore_key_headers():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string("some value")
+    key.restore(1, headers={'foo': 'bar'})
+    key = bucket.get_key('the-key')
+    key.ongoing_restore.should_not.be.none
+    key.ongoing_restore.should.be.false
+    key.expiry_date.should.equal("Mon, 02 Jan 2012 12:00:00 GMT")

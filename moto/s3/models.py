@@ -20,6 +20,7 @@ class FakeKey(object):
         self.last_modified = datetime.datetime.now()
         self._storage_class = storage
         self._metadata = {}
+        self._expiry = None
 
     def copy(self, new_name = None):
         r = copy.deepcopy(self)
@@ -39,6 +40,9 @@ class FakeKey(object):
     def append_to_value(self, value):
         self.value += value
         self.last_modified = datetime.datetime.now()
+
+    def restore(self, days):
+        self._expiry = datetime.datetime.now() + datetime.timedelta(days)
 
     @property
     def etag(self):
@@ -69,7 +73,9 @@ class FakeKey(object):
         if self._storage_class is not None:
             if self._storage_class != 'STANDARD':
                 r['x-amz-storage-class'] = self._storage_class
-
+        if self._expiry is not None:
+            r['x-amz-restore'] = 'ongoing-request="false", expiry-date={}'.format(
+                self.expiry_date)
         return r
 
     @property
@@ -82,6 +88,11 @@ class FakeKey(object):
             return self._storage_class
         else:
             return 'STANDARD'
+
+    @property
+    def expiry_date(self):
+        if self._expiry is not None:
+            return self._expiry.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 
 class FakeMultipart(object):
