@@ -100,7 +100,10 @@ class ResponseObject(object):
                     form[k] = v
 
             key = form['key']
-            f = form['file']
+            if 'file' in form:
+                f = form['file']
+            else:
+                f = request.files['file'].stream.read()
 
             new_key = self.backend.set_key(bucket_name, key, f)
 
