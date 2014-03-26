@@ -2,6 +2,7 @@ import os
 import base64
 import datetime
 import hashlib
+import copy
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
@@ -18,6 +19,12 @@ class FakeKey(object):
         self.value = value
         self.last_modified = datetime.datetime.now()
         self._metadata = {}
+
+    def copy(self, new_name = None):
+        r = copy.deepcopy(self)
+        if new_name is not None:
+            r.name = new_name
+        return r
 
     def set_metadata(self, key, metadata):
         self._metadata[key] = metadata
@@ -229,6 +236,9 @@ class S3Backend(BaseBackend):
         dest_key_name = clean_key_name(dest_key_name)
         src_bucket = self.buckets[src_bucket_name]
         dest_bucket = self.buckets[dest_bucket_name]
-        dest_bucket.keys[dest_key_name] = src_bucket.keys[src_key_name]
+        key = src_bucket.keys[src_key_name]
+        if dest_key_name != src_key_name:
+            key = key.copy(dest_key_name)
+        dest_bucket.keys[dest_key_name] = key
 
 s3_backend = S3Backend()
