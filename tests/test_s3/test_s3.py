@@ -143,6 +143,22 @@ def test_set_metadata():
     bucket.get_key('the-key').get_metadata('md').should.equal('Metadatastring')
 
 
+@mock_s3
+def test_copy_key_replace_metadata():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_metadata('md', 'Metadatastring')
+    key.set_contents_from_string("some value")
+
+    bucket.copy_key('new-key', 'foobar', 'the-key',
+                    metadata={'momd': 'Mometadatastring'})
+
+    bucket.get_key("new-key").get_metadata('md').should.be.none
+    bucket.get_key("new-key").get_metadata('momd').should.equal('Mometadatastring')
+
+
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3
 def test_last_modified():

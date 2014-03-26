@@ -22,6 +22,9 @@ class FakeKey(object):
     def set_metadata(self, key, metadata):
         self._metadata[key] = metadata
 
+    def clear_metadata(self):
+        self._metadata = {}
+
     def append_to_value(self, value):
         self.value += value
         self.last_modified = datetime.datetime.now()

@@ -125,6 +125,18 @@ class ResponseObject(object):
             status_code, headers, response_content = response
             return status_code, headers, response_content
 
+    def _key_set_metadata(self, request, key, replace=False):
+        meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+        if replace is True:
+            key.clear_metadata()
+        for header in request.headers:
+            if isinstance(header, basestring):
+                result = meta_regex.match(header)
+                if result:
+                    meta_key = result.group(0).lower()
+                    metadata = request.headers[header]
+                    key.set_metadata(meta_key, metadata)
+
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
         query = parse_qs(parsed_url.query)
@@ -182,6 +194,10 @@ class ResponseObject(object):
                 # Copy key
                 src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/", 1)
                 self.backend.copy_key(src_bucket, src_key, bucket_name, key_name)
+                mdirective = request.headers.get('x-amz-metadata-directive')
+                if mdirective is not None and mdirective == 'REPLACE':
+                    new_key = self.backend.get_key(bucket_name, key_name)
+                    self._key_set_metadata(request, new_key, replace=True)
                 template = Template(S3_OBJECT_COPY_RESPONSE)
                 return template.render(key=src_key)
             streaming_request = hasattr(request, 'streaming') and request.streaming
@@ -196,16 +212,8 @@ class ResponseObject(object):
                 # Initial data
                 new_key = self.backend.set_key(bucket_name, key_name, body)
                 request.streaming = True
+                self._key_set_metadata(request, new_key)
 
-                #Metadata
-                meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
-                for header in request.headers:
-                    if isinstance(header, basestring):
-                        result = meta_regex.match(header)
-                        if result:
-                            meta_key = result.group(0).lower()
-                            metadata = request.headers[header]
-                            new_key.set_metadata(meta_key, metadata)
             template = Template(S3_OBJECT_RESPONSE)
             headers.update(new_key.response_dict)
             return 200, headers, template.render(key=new_key)
