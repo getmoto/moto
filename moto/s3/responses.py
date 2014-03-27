@@ -6,6 +6,7 @@ from jinja2 import Template
 from .exceptions import BucketAlreadyExists
 from .models import s3_backend
 from .utils import bucket_name_from_url
+from xml.dom import minidom
 
 
 def parse_key_name(pth):
@@ -128,6 +129,18 @@ class ResponseObject(object):
             status_code, headers, response_content = response
             return status_code, headers, response_content
 
+    def _key_set_metadata(self, request, key, replace=False):
+        meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+        if replace is True:
+            key.clear_metadata()
+        for header in request.headers:
+            if isinstance(header, basestring):
+                result = meta_regex.match(header)
+                if result:
+                    meta_key = result.group(0).lower()
+                    metadata = request.headers[header]
+                    key.set_metadata(meta_key, metadata)
+
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
         query = parse_qs(parsed_url.query)
@@ -181,10 +194,17 @@ class ResponseObject(object):
                 headers.update(key.response_dict)
                 return 200, headers, response
 
+            storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
+
             if 'x-amz-copy-source' in request.headers:
                 # Copy key
                 src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/", 1)
-                self.backend.copy_key(src_bucket, src_key, bucket_name, key_name)
+                self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
+                                      storage=storage_class)
+                mdirective = request.headers.get('x-amz-metadata-directive')
+                if mdirective is not None and mdirective == 'REPLACE':
+                    new_key = self.backend.get_key(bucket_name, key_name)
+                    self._key_set_metadata(request, new_key, replace=True)
                 template = Template(S3_OBJECT_COPY_RESPONSE)
                 return template.render(key=src_key)
             streaming_request = hasattr(request, 'streaming') and request.streaming
@@ -197,18 +217,11 @@ class ResponseObject(object):
                 new_key = self.backend.append_to_key(bucket_name, key_name, body)
             else:
                 # Initial data
-                new_key = self.backend.set_key(bucket_name, key_name, body)
+                new_key = self.backend.set_key(bucket_name, key_name, body,
+                                               storage=storage_class)
                 request.streaming = True
+                self._key_set_metadata(request, new_key)
 
-                #Metadata
-                meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
-                for header in request.headers:
-                    if isinstance(header, basestring):
-                        result = meta_regex.match(header)
-                        if result:
-                            meta_key = result.group(0).lower()
-                            metadata = request.headers[header]
-                            new_key.set_metadata(meta_key, metadata)
             template = Template(S3_OBJECT_RESPONSE)
             headers.update(new_key.response_dict)
             return 200, headers, template.render(key=new_key)
@@ -252,8 +265,17 @@ class ResponseObject(object):
                     )
                 template = Template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
                 return 400, headers, template.render()
+            elif parsed_url.query == 'restore':
+                es = minidom.parseString(body).getElementsByTagName('Days')
+                days = es[0].childNodes[0].wholeText
+                key = self.backend.get_key(bucket_name, key_name)
+                r = 202
+                if key.expiry_date is not None:
+                    r = 200
+                key.restore(int(days))
+                return r, headers, ""
             else:
-                raise NotImplementedError("Method POST had only been implemented for multipart uploads so far")
+                raise NotImplementedError("Method POST had only been implemented for multipart uploads and restore operations, so far")
         else:
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
@@ -287,12 +309,11 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       <ETag>{{ key.etag }}</ETag>
       <Size>{{ key.size }}</Size>
-      <StorageClass>STANDARD</StorageClass>
+      <StorageClass>{{ key.storage_class }}</StorageClass>
       <Owner>
         <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
         <DisplayName>webfile</DisplayName>
       </Owner>
-      <StorageClass>STANDARD</StorageClass>
     </Contents>
   {% endfor %}
   {% if delimiter %}
