@@ -50,6 +50,14 @@ def random_eip_association_id():
     return random_id(prefix='eipassoc')
 
 
+def random_gateway_id():
+    return random_id(prefix='igw')
+
+
+def random_route_table_id():
+    return random_id(prefix='rtb')
+
+
 def random_eip_allocation_id():
     return random_id(prefix='eipalloc')
 
@@ -122,8 +130,6 @@ def keypair_names_from_querystring(querystring_dict):
         if 'KeyName' in key:
             keypair_names.append(value[0])
     return keypair_names
-
-
 
 filter_dict_attribute_mapping = {
     'instance-state-name': 'state'

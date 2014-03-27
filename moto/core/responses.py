@@ -59,6 +59,9 @@ class BaseResponse(object):
                 return status, headers, body
         raise NotImplementedError("The {0} action has not been implemented".format(action))
 
+    def _get_param(self, param_name):
+        return self.querystring.get(param_name, [None])[0]
+
 
 def metadata_response(request, full_url, headers):
     """
