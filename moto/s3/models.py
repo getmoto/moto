@@ -74,8 +74,8 @@ class FakeKey(object):
             if self._storage_class != 'STANDARD':
                 r['x-amz-storage-class'] = self._storage_class
         if self._expiry is not None:
-            r['x-amz-restore'] = 'ongoing-request="false", expiry-date={}'.format(
-                self.expiry_date)
+            rhdr = 'ongoing-request="false", expiry-date="{0}"'
+            r['x-amz-restore'] = rhdr.format(self.expiry_date)
         return r
 
     @property
