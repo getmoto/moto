@@ -682,9 +682,9 @@ class VPCBackend(object):
 
 
 class Subnet(object):
-    def __init__(self, subnet_id, vpc, cidr_block):
+    def __init__(self, subnet_id, vpc_id, cidr_block):
         self.id = subnet_id
-        self.vpc = vpc
+        self.vpc_id = vpc_id
         self.cidr_block = cidr_block
 
     @classmethod
@@ -710,8 +710,7 @@ class SubnetBackend(object):
 
     def create_subnet(self, vpc_id, cidr_block):
         subnet_id = random_subnet_id()
-        vpc = self.get_vpc(vpc_id)
-        subnet = Subnet(subnet_id, vpc, cidr_block)
+        subnet = Subnet(subnet_id, vpc_id, cidr_block)
         self.subnets[subnet_id] = subnet
         return subnet
 
