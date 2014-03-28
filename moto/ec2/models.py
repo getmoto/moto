@@ -794,7 +794,7 @@ class Route(object):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        gateway_id = properties['GatewayId']
+        gateway_id = properties.get('GatewayId')
         route_table_id = properties['RouteTableId']
         route_table = ec2_backend.create_route(
             route_table_id=route_table_id,
