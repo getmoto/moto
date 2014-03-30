@@ -67,6 +67,35 @@ def test_multipart_upload():
 
 
 @mock_s3
+def test_multipart_upload_with_copy_key():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "original-key"
+    key.set_contents_from_string("key_value")
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = '0' * 5242880
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    multipart.copy_part_from_key("foobar", "original-key", 2)
+    multipart.complete_upload()
+    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + "key_value")
+
+
+@mock_s3
+def test_multipart_upload_cancel():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = '0' * 5242880
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    multipart.cancel_upload()
+    # TODO we really need some sort of assertion here, but we don't currently
+    # have the ability to list mulipart uploads for a bucket.
+
+
+@mock_s3
 def test_missing_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")

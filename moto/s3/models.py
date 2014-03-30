@@ -14,7 +14,7 @@ UPLOAD_PART_MIN_SIZE = 5242880
 
 
 class FakeKey(object):
-    def __init__(self, name, value, storage=None):
+    def __init__(self, name, value, storage="STANDARD"):
         self.name = name
         self.value = value
         self.last_modified = datetime.datetime.now()
@@ -22,7 +22,7 @@ class FakeKey(object):
         self._metadata = {}
         self._expiry = None
 
-    def copy(self, new_name = None):
+    def copy(self, new_name=None):
         r = copy.deepcopy(self)
         if new_name is not None:
             r.name = new_name
@@ -70,9 +70,8 @@ class FakeKey(object):
             'etag': self.etag,
             'last-modified': self.last_modified_RFC1123,
         }
-        if self._storage_class is not None:
-            if self._storage_class != 'STANDARD':
-                r['x-amz-storage-class'] = self._storage_class
+        if self._storage_class != 'STANDARD':
+            r['x-amz-storage-class'] = self._storage_class
         if self._expiry is not None:
             rhdr = 'ongoing-request="false", expiry-date="{0}"'
             r['x-amz-restore'] = rhdr.format(self.expiry_date)
@@ -84,10 +83,7 @@ class FakeKey(object):
 
     @property
     def storage_class(self):
-        if self._storage_class is not None:
-            return self._storage_class
-        else:
-            return 'STANDARD'
+        return self._storage_class
 
     @property
     def expiry_date(self):

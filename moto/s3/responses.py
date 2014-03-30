@@ -29,7 +29,6 @@ class ResponseObject(object):
         response = self._bucket_response(request, full_url, headers)
         if isinstance(response, basestring):
             return 200, headers, response
-
         else:
             status_code, headers, response_content = response
             return status_code, headers, response_content
@@ -45,81 +44,95 @@ class ResponseObject(object):
             return self.all_buckets()
 
         if method == 'HEAD':
-            bucket = self.backend.get_bucket(bucket_name)
-            if bucket:
-                return 200, headers, ""
-            else:
-                return 404, headers, ""
-
+            return self._bucket_response_head(bucket_name, headers)
         elif method == 'GET':
-            bucket = self.backend.get_bucket(bucket_name)
-            if bucket:
-                prefix = querystring.get('prefix', [None])[0]
-                delimiter = querystring.get('delimiter', [None])[0]
-                result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
-                template = Template(S3_BUCKET_GET_RESPONSE)
-                return template.render(
-                    bucket=bucket,
-                    prefix=prefix,
-                    delimiter=delimiter,
-                    result_keys=result_keys,
-                    result_folders=result_folders
-                )
-            else:
-                return 404, headers, ""
+            return self._bucket_response_get(bucket_name, querystring, headers)
         elif method == 'PUT':
-            try:
-                new_bucket = self.backend.create_bucket(bucket_name)
-            except BucketAlreadyExists:
-                return 409, headers, ""
-            template = Template(S3_BUCKET_CREATE_RESPONSE)
-            return template.render(bucket=new_bucket)
+            return self._bucket_response_put(bucket_name, headers)
         elif method == 'DELETE':
-            removed_bucket = self.backend.delete_bucket(bucket_name)
-            if removed_bucket is None:
-                # Non-existant bucket
-                template = Template(S3_DELETE_NON_EXISTING_BUCKET)
-                return 404, headers, template.render(bucket_name=bucket_name)
-            elif removed_bucket:
-                # Bucket exists
-                template = Template(S3_DELETE_BUCKET_SUCCESS)
-                return 204, headers, template.render(bucket=removed_bucket)
-            else:
-                # Tried to delete a bucket that still has keys
-                template = Template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
-                return 409, headers, template.render(bucket=removed_bucket)
+            return self._bucket_response_delete(bucket_name, headers)
         elif method == 'POST':
-            #POST to bucket-url should create file from form
-            if hasattr(request, 'form'):
-                #Not HTTPretty
-                form = request.form
-            else:
-                #HTTPretty, build new form object
-                form = {}
-                for kv in request.body.split('&'):
-                    k, v = kv.split('=')
-                    form[k] = v
-
-            key = form['key']
-            if 'file' in form:
-                f = form['file']
-            else:
-                f = request.files['file'].stream.read()
-
-            new_key = self.backend.set_key(bucket_name, key, f)
-
-            #Metadata
-            meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
-
-            for form_id in form:
-                result = meta_regex.match(form_id)
-                if result:
-                    meta_key = result.group(0).lower()
-                    metadata = form[form_id]
-                    new_key.set_metadata(meta_key, metadata)
-            return 200, headers, ""
+            return self._bucket_response_post(request, bucket_name, headers)
         else:
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
+
+    def _bucket_response_head(self, bucket_name, headers):
+        bucket = self.backend.get_bucket(bucket_name)
+        if bucket:
+            return 200, headers, ""
+        else:
+            return 404, headers, ""
+
+    def _bucket_response_get(self, bucket_name, querystring, headers):
+        bucket = self.backend.get_bucket(bucket_name)
+        if bucket:
+            prefix = querystring.get('prefix', [None])[0]
+            delimiter = querystring.get('delimiter', [None])[0]
+            result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
+            template = Template(S3_BUCKET_GET_RESPONSE)
+            return template.render(
+                bucket=bucket,
+                prefix=prefix,
+                delimiter=delimiter,
+                result_keys=result_keys,
+                result_folders=result_folders
+            )
+        else:
+            return 404, headers, ""
+
+    def _bucket_response_put(self, bucket_name, headers):
+        try:
+            new_bucket = self.backend.create_bucket(bucket_name)
+        except BucketAlreadyExists:
+            return 409, headers, ""
+        template = Template(S3_BUCKET_CREATE_RESPONSE)
+        return template.render(bucket=new_bucket)
+
+    def _bucket_response_delete(self, bucket_name, headers):
+        removed_bucket = self.backend.delete_bucket(bucket_name)
+        if removed_bucket is None:
+            # Non-existant bucket
+            template = Template(S3_DELETE_NON_EXISTING_BUCKET)
+            return 404, headers, template.render(bucket_name=bucket_name)
+        elif removed_bucket:
+            # Bucket exists
+            template = Template(S3_DELETE_BUCKET_SUCCESS)
+            return 204, headers, template.render(bucket=removed_bucket)
+        else:
+            # Tried to delete a bucket that still has keys
+            template = Template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
+            return 409, headers, template.render(bucket=removed_bucket)
+
+    def _bucket_response_post(self, request, bucket_name, headers):
+        #POST to bucket-url should create file from form
+        if hasattr(request, 'form'):
+            #Not HTTPretty
+            form = request.form
+        else:
+            #HTTPretty, build new form object
+            form = {}
+            for kv in request.body.split('&'):
+                k, v = kv.split('=')
+                form[k] = v
+
+        key = form['key']
+        if 'file' in form:
+            f = form['file']
+        else:
+            f = request.files['file'].stream.read()
+
+        new_key = self.backend.set_key(bucket_name, key, f)
+
+        #Metadata
+        meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+
+        for form_id in form:
+            result = meta_regex.match(form_id)
+            if result:
+                meta_key = result.group(0).lower()
+                metadata = form[form_id]
+                new_key.set_metadata(meta_key, metadata)
+        return 200, headers, ""
 
     def key_response(self, request, full_url, headers):
         response = self._key_response(request, full_url, headers)
@@ -147,7 +160,6 @@ class ResponseObject(object):
         method = request.method
 
         key_name = self.parse_key_name(parsed_url.path)
-
         bucket_name = self.bucket_name_from_url(full_url)
 
         if hasattr(request, 'body'):
@@ -158,126 +170,141 @@ class ResponseObject(object):
             body = request.data
 
         if method == 'GET':
-            if 'uploadId' in query:
-                upload_id = query['uploadId'][0]
-                parts = self.backend.list_multipart(bucket_name, upload_id)
-                template = Template(S3_MULTIPART_LIST_RESPONSE)
-                return 200, headers, template.render(
-                    bucket_name=bucket_name,
-                    key_name=key_name,
-                    upload_id=upload_id,
-                    count=len(parts),
-                    parts=parts
-                )
-            key = self.backend.get_key(bucket_name, key_name)
-            if key:
-                headers.update(key.metadata)
-                return 200, headers, key.value
-            else:
-                return 404, headers, ""
-        if method == 'PUT':
-            if 'uploadId' in query and 'partNumber' in query:
-                upload_id = query['uploadId'][0]
-                part_number = int(query['partNumber'][0])
-                if 'x-amz-copy-source' in request.headers:
-                    src = request.headers.get("x-amz-copy-source")
-                    src_bucket, src_key = src.split("/", 1)
-                    key = self.backend.copy_part(
-                        bucket_name, upload_id, part_number, src_bucket,
-                        src_key)
-                    template = Template(S3_MULTIPART_UPLOAD_RESPONSE)
-                    response = template.render(part=key)
-                else:
-                    key = self.backend.set_part(
-                        bucket_name, upload_id, part_number, body)
-                    response = ""
-                headers.update(key.response_dict)
-                return 200, headers, response
-
-            storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
-
-            if 'x-amz-copy-source' in request.headers:
-                # Copy key
-                src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/", 1)
-                self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
-                                      storage=storage_class)
-                mdirective = request.headers.get('x-amz-metadata-directive')
-                if mdirective is not None and mdirective == 'REPLACE':
-                    new_key = self.backend.get_key(bucket_name, key_name)
-                    self._key_set_metadata(request, new_key, replace=True)
-                template = Template(S3_OBJECT_COPY_RESPONSE)
-                return template.render(key=src_key)
-            streaming_request = hasattr(request, 'streaming') and request.streaming
-            closing_connection = headers.get('connection') == 'close'
-            if closing_connection and streaming_request:
-                # Closing the connection of a streaming request. No more data
-                new_key = self.backend.get_key(bucket_name, key_name)
-            elif streaming_request:
-                # Streaming request, more data
-                new_key = self.backend.append_to_key(bucket_name, key_name, body)
-            else:
-                # Initial data
-                new_key = self.backend.set_key(bucket_name, key_name, body,
-                                               storage=storage_class)
-                request.streaming = True
-                self._key_set_metadata(request, new_key)
-
-            template = Template(S3_OBJECT_RESPONSE)
-            headers.update(new_key.response_dict)
-            return 200, headers, template.render(key=new_key)
+            return self._key_response_get(bucket_name, query, key_name, headers)
+        elif method == 'PUT':
+            return self._key_response_put(request, body, bucket_name, query, key_name, headers)
         elif method == 'HEAD':
-            key = self.backend.get_key(bucket_name, key_name)
-            if key:
-                headers.update(key.metadata)
-                headers.update(key.response_dict)
-                return 200, headers, ""
-            else:
-                return 404, headers, ""
+            return self._key_response_head(bucket_name, key_name, headers)
         elif method == 'DELETE':
-            if 'uploadId' in query:
-                upload_id = query['uploadId'][0]
-                self.backend.cancel_multipart(bucket_name, upload_id)
-                return 204, headers, ""
-            removed_key = self.backend.delete_key(bucket_name, key_name)
-            template = Template(S3_DELETE_OBJECT_SUCCESS)
-            return 204, headers, template.render(bucket=removed_key)
+            return self._key_response_delete(bucket_name, query, key_name, headers)
         elif method == 'POST':
-            if body == '' and parsed_url.query == 'uploads':
-                multipart = self.backend.initiate_multipart(bucket_name, key_name)
-                template = Template(S3_MULTIPART_INITIATE_RESPONSE)
-                response = template.render(
-                    bucket_name=bucket_name,
-                    key_name=key_name,
-                    upload_id=multipart.id,
-                )
-                return 200, headers, response
-
-            if 'uploadId' in query:
-                upload_id = query['uploadId'][0]
-                key = self.backend.complete_multipart(bucket_name, upload_id)
-
-                if key is not None:
-                    template = Template(S3_MULTIPART_COMPLETE_RESPONSE)
-                    return template.render(
-                        bucket_name=bucket_name,
-                        key_name=key.name,
-                        etag=key.etag,
-                    )
-                template = Template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
-                return 400, headers, template.render()
-            elif parsed_url.query == 'restore':
-                es = minidom.parseString(body).getElementsByTagName('Days')
-                days = es[0].childNodes[0].wholeText
-                key = self.backend.get_key(bucket_name, key_name)
-                r = 202
-                if key.expiry_date is not None:
-                    r = 200
-                key.restore(int(days))
-                return r, headers, ""
-            else:
-                raise NotImplementedError("Method POST had only been implemented for multipart uploads and restore operations, so far")
+            return self._key_response_post(body, parsed_url, bucket_name, query, key_name, headers)
         else:
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
+
+    def _key_response_get(self, bucket_name, query, key_name, headers):
+        if 'uploadId' in query:
+            upload_id = query['uploadId'][0]
+            parts = self.backend.list_multipart(bucket_name, upload_id)
+            template = Template(S3_MULTIPART_LIST_RESPONSE)
+            return 200, headers, template.render(
+                bucket_name=bucket_name,
+                key_name=key_name,
+                upload_id=upload_id,
+                count=len(parts),
+                parts=parts
+            )
+        key = self.backend.get_key(bucket_name, key_name)
+        if key:
+            headers.update(key.metadata)
+            return 200, headers, key.value
+        else:
+            return 404, headers, ""
+
+    def _key_response_put(self, request, body, bucket_name, query, key_name, headers):
+        if 'uploadId' in query and 'partNumber' in query:
+            upload_id = query['uploadId'][0]
+            part_number = int(query['partNumber'][0])
+            if 'x-amz-copy-source' in request.headers:
+                src = request.headers.get("x-amz-copy-source")
+                src_bucket, src_key = src.split("/", 1)
+                key = self.backend.copy_part(
+                    bucket_name, upload_id, part_number, src_bucket,
+                    src_key)
+                template = Template(S3_MULTIPART_UPLOAD_RESPONSE)
+                response = template.render(part=key)
+            else:
+                key = self.backend.set_part(
+                    bucket_name, upload_id, part_number, body)
+                response = ""
+            headers.update(key.response_dict)
+            return 200, headers, response
+
+        storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
+
+        if 'x-amz-copy-source' in request.headers:
+            # Copy key
+            src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/", 1)
+            self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
+                                  storage=storage_class)
+            mdirective = request.headers.get('x-amz-metadata-directive')
+            if mdirective is not None and mdirective == 'REPLACE':
+                new_key = self.backend.get_key(bucket_name, key_name)
+                self._key_set_metadata(request, new_key, replace=True)
+            template = Template(S3_OBJECT_COPY_RESPONSE)
+            return template.render(key=src_key)
+        streaming_request = hasattr(request, 'streaming') and request.streaming
+        closing_connection = headers.get('connection') == 'close'
+        if closing_connection and streaming_request:
+            # Closing the connection of a streaming request. No more data
+            new_key = self.backend.get_key(bucket_name, key_name)
+        elif streaming_request:
+            # Streaming request, more data
+            new_key = self.backend.append_to_key(bucket_name, key_name, body)
+        else:
+            # Initial data
+            new_key = self.backend.set_key(bucket_name, key_name, body,
+                                           storage=storage_class)
+            request.streaming = True
+            self._key_set_metadata(request, new_key)
+
+        template = Template(S3_OBJECT_RESPONSE)
+        headers.update(new_key.response_dict)
+        return 200, headers, template.render(key=new_key)
+
+    def _key_response_head(self, bucket_name, key_name, headers):
+        key = self.backend.get_key(bucket_name, key_name)
+        if key:
+            headers.update(key.metadata)
+            headers.update(key.response_dict)
+            return 200, headers, ""
+        else:
+            return 404, headers, ""
+
+    def _key_response_delete(self, bucket_name, query, key_name, headers):
+        if 'uploadId' in query:
+            upload_id = query['uploadId'][0]
+            self.backend.cancel_multipart(bucket_name, upload_id)
+            return 204, headers, ""
+        removed_key = self.backend.delete_key(bucket_name, key_name)
+        template = Template(S3_DELETE_OBJECT_SUCCESS)
+        return 204, headers, template.render(bucket=removed_key)
+
+    def _key_response_post(self, body, parsed_url, bucket_name, query, key_name, headers):
+        if body == '' and parsed_url.query == 'uploads':
+            multipart = self.backend.initiate_multipart(bucket_name, key_name)
+            template = Template(S3_MULTIPART_INITIATE_RESPONSE)
+            response = template.render(
+                bucket_name=bucket_name,
+                key_name=key_name,
+                upload_id=multipart.id,
+            )
+            return 200, headers, response
+
+        if 'uploadId' in query:
+            upload_id = query['uploadId'][0]
+            key = self.backend.complete_multipart(bucket_name, upload_id)
+
+            if key is not None:
+                template = Template(S3_MULTIPART_COMPLETE_RESPONSE)
+                return template.render(
+                    bucket_name=bucket_name,
+                    key_name=key.name,
+                    etag=key.etag,
+                )
+            template = Template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
+            return 400, headers, template.render()
+        elif parsed_url.query == 'restore':
+            es = minidom.parseString(body).getElementsByTagName('Days')
+            days = es[0].childNodes[0].wholeText
+            key = self.backend.get_key(bucket_name, key_name)
+            r = 202
+            if key.expiry_date is not None:
+                r = 200
+            key.restore(int(days))
+            return r, headers, ""
+        else:
+            raise NotImplementedError("Method POST had only been implemented for multipart uploads and restore operations, so far")
 
 S3ResponseInstance = ResponseObject(s3_backend, bucket_name_from_url, parse_key_name)
 
