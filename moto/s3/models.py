@@ -114,7 +114,7 @@ class FakeMultipart(object):
 
         etag = hashlib.md5()
         etag.update(bytes(md5s))
-        return total, "{}-{}".format(etag.hexdigest(), last_part_name)
+        return total, "{0}-{1}".format(etag.hexdigest(), last_part_name)
 
     def set_part(self, part_id, value):
         if part_id < 1:
