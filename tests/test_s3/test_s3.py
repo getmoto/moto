@@ -39,6 +39,20 @@ def test_my_model_save():
 
 
 @mock_s3
+def test_key_etag():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3('the_key', 'the_secret')
+    conn.create_bucket('mybucket')
+    ####################################
+
+    model_instance = MyModel('steve', 'is awesome')
+    model_instance.save()
+
+    conn.get_bucket('mybucket').get_key('steve').etag.should.equal(
+        '"d32bda93738f7e03adb22e66c90fbc04"')
+
+
+@mock_s3
 def test_multipart_upload_too_small():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -93,6 +107,24 @@ def test_multipart_upload_cancel():
     multipart.cancel_upload()
     # TODO we really need some sort of assertion here, but we don't currently
     # have the ability to list mulipart uploads for a bucket.
+
+
+@mock_s3
+def test_multipart_etag():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket('mybucket')
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = '0' * 5242880
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    # last part, can be less than 5 MB
+    part2 = '1'
+    multipart.upload_part_from_file(BytesIO(part2), 2)
+    multipart.complete_upload()
+    # we should get both parts as the key contents
+    bucket.get_key("the-key").etag.should.equal(
+        '"140f92a6df9f9e415f74a1463bcee9bb-2"')
 
 
 @mock_s3

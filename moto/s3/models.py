@@ -14,13 +14,14 @@ UPLOAD_PART_MIN_SIZE = 5242880
 
 
 class FakeKey(object):
-    def __init__(self, name, value, storage="STANDARD"):
+    def __init__(self, name, value, storage="STANDARD", etag=None):
         self.name = name
         self.value = value
         self.last_modified = datetime.datetime.now()
         self._storage_class = storage
         self._metadata = {}
         self._expiry = None
+        self._etag = etag
 
     def copy(self, new_name=None):
         r = copy.deepcopy(self)
@@ -40,15 +41,18 @@ class FakeKey(object):
     def append_to_value(self, value):
         self.value += value
         self.last_modified = datetime.datetime.now()
+        self._etag = None  # must recalculate etag
 
     def restore(self, days):
         self._expiry = datetime.datetime.now() + datetime.timedelta(days)
 
     @property
     def etag(self):
-        value_md5 = hashlib.md5()
-        value_md5.update(bytes(self.value))
-        return '"{0}"'.format(value_md5.hexdigest())
+        if self._etag is None:
+            value_md5 = hashlib.md5()
+            value_md5.update(bytes(self.value))
+            self._etag = value_md5.hexdigest()
+        return '"{0}"'.format(self._etag)
 
     @property
     def last_modified_ISO8601(self):
@@ -99,14 +103,18 @@ class FakeMultipart(object):
 
     def complete(self):
         total = bytearray()
+        md5s = bytearray()
         last_part_name = len(self.list_parts())
 
         for part in self.list_parts():
             if part.name != last_part_name and len(part.value) < UPLOAD_PART_MIN_SIZE:
-                return
+                return None, None
+            md5s.extend(part.etag.replace('"', '').decode('hex'))
             total.extend(part.value)
 
-        return total
+        etag = hashlib.md5()
+        etag.update(bytes(md5s))
+        return total, "{0}-{1}".format(etag.hexdigest(), last_part_name)
 
     def set_part(self, part_id, value):
         if part_id < 1:
@@ -163,12 +171,12 @@ class S3Backend(BaseBackend):
                 return self.buckets.pop(bucket_name)
         return None
 
-    def set_key(self, bucket_name, key_name, value, storage=None):
+    def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)
 
         bucket = self.buckets[bucket_name]
         new_key = FakeKey(name=key_name, value=value,
-                          storage=storage)
+                          storage=storage, etag=etag)
         bucket.keys[key_name] = new_key
 
         return new_key
@@ -196,12 +204,12 @@ class S3Backend(BaseBackend):
     def complete_multipart(self, bucket_name, multipart_id):
         bucket = self.buckets[bucket_name]
         multipart = bucket.multiparts[multipart_id]
-        value = multipart.complete()
+        value, etag = multipart.complete()
         if value is None:
             return
         del bucket.multiparts[multipart_id]
 
-        return self.set_key(bucket_name, multipart.key_name, value)
+        return self.set_key(bucket_name, multipart.key_name, value, etag=etag)
 
     def cancel_multipart(self, bucket_name, multipart_id):
         bucket = self.buckets[bucket_name]
