@@ -219,6 +219,10 @@ class S3Backend(BaseBackend):
         bucket = self.buckets[bucket_name]
         return bucket.multiparts[multipart_id].list_parts()
 
+    def get_all_multiparts(self, bucket_name):
+        bucket = self.buckets[bucket_name]
+        return bucket.multiparts
+
     def set_part(self, bucket_name, multipart_id, part_id, value):
         bucket = self.buckets[bucket_name]
         multipart = bucket.multiparts[multipart_id]

@@ -128,6 +128,27 @@ def test_multipart_etag():
 
 
 @mock_s3
+def test_list_multiparts():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket('mybucket')
+
+    multipart1 = bucket.initiate_multipart_upload("one-key")
+    multipart2 = bucket.initiate_multipart_upload("two-key")
+    uploads = bucket.get_all_multipart_uploads()
+    uploads.should.have.length_of(2)
+    dict([(u.key_name, u.id) for u in uploads]).should.equal(
+        {'one-key': multipart1.id, 'two-key': multipart2.id})
+    multipart2.cancel_upload()
+    uploads = bucket.get_all_multipart_uploads()
+    uploads.should.have.length_of(1)
+    uploads[0].key_name.should.equal("one-key")
+    multipart1.cancel_upload()
+    uploads = bucket.get_all_multipart_uploads()
+    uploads.should.be.empty
+
+
+@mock_s3
 def test_missing_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
