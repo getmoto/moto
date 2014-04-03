@@ -35,7 +35,7 @@ class ResponseObject(object):
 
     def _bucket_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
-        querystring = parse_qs(parsed_url.query)
+        querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
 
         bucket_name = self.bucket_name_from_url(full_url)
@@ -64,6 +64,16 @@ class ResponseObject(object):
             return 404, headers, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
+        if 'uploads' in querystring:
+            for unsup in ('delimiter', 'prefix', 'max-uploads'):
+                if unsup in querystring:
+                    raise NotImplementedError("Listing multipart uploads with {} has not been implemented yet.".format(unsup))
+            multiparts = list(self.backend.get_all_multiparts(bucket_name).itervalues())
+            template = Template(S3_ALL_MULTIPARTS)
+            return 200, headers, template.render(
+                bucket_name=bucket_name,
+                uploads=multiparts)
+
         bucket = self.backend.get_bucket(bucket_name)
         if bucket:
             prefix = querystring.get('prefix', [None])[0]
@@ -460,3 +470,29 @@ S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR = """<?xml version="1.0" encoding="UTF-8"?
   <RequestId>asdfasdfsdafds</RequestId>
   <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
 </Error>"""
+
+S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
+<ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Bucket>{{ bucket_name }}</Bucket>
+  <KeyMarker></KeyMarker>
+  <UploadIdMarker></UploadIdMarker>
+  <MaxUploads>1000</MaxUploads>
+  <IsTruncated>False</IsTruncated>
+  {% for upload in uploads %}
+  <Upload>
+    <Key>{{ upload.key_name }}</Key>
+    <UploadId>{{ upload.id }}</UploadId>
+    <Initiator>
+      <ID>arn:aws:iam::111122223333:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
+      <DisplayName>user1-11111a31-17b5-4fb7-9df5-b111111f13de</DisplayName>
+    </Initiator>
+    <Owner>
+      <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+      <DisplayName>OwnerDisplayName</DisplayName>
+    </Owner>
+    <StorageClass>STANDARD</StorageClass>
+    <Initiated>2010-11-10T20:48:33.000Z</Initiated>
+  </Upload>
+  {% endfor %}
+</ListMultipartUploadsResult>
+"""
