@@ -3,6 +3,11 @@ import random
 import re
 
 from flask import request
+from flask import Response as BaseResponse
+
+
+class Response(BaseResponse):
+    automatically_set_content_length = False
 
 
 def camelcase_to_underscores(argument):
@@ -68,7 +73,7 @@ class convert_flask_to_httpretty_response(object):
         result = self.callback(request, request.url, headers)
         # result is a status, headers, response tuple
         status, headers, response = result
-        return response, status, headers
+        return Response(response=response, status=status, headers=headers)
 
 
 def iso_8601_datetime(datetime):
