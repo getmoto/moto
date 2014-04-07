@@ -73,7 +73,9 @@ class convert_flask_to_httpretty_response(object):
         result = self.callback(request, request.url, headers)
         # result is a status, headers, response tuple
         status, headers, response = result
-        return Response(response=response, status=status, headers=headers)
+        if 'content-length' in [h.lower() for h in headers.keys()]:
+            return Response(response=response, status=status, headers=headers)
+        return response, status, headers
 
 
 def iso_8601_datetime(datetime):
