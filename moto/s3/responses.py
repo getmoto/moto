@@ -346,6 +346,9 @@ class ResponseObject(object):
         if key:
             headers.update(key.metadata)
             headers.update(key.response_dict)
+            headers.update({
+                'content-length': len(key.value)
+                })
             return 200, headers, ""
         else:
             return 404, headers, ""

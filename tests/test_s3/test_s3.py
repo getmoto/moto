@@ -187,7 +187,9 @@ def test_empty_key():
     key.key = "the-key"
     key.set_contents_from_string("")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
+    key = bucket.get_key("the-key")
+    key.size.should.equal(0)
+    key.get_contents_as_string().should.equal(b'')
 
 
 @mock_s3
@@ -198,10 +200,14 @@ def test_empty_key_set_on_existing_key():
     key.key = "the-key"
     key.set_contents_from_string("foobar")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar')
+    key = bucket.get_key("the-key")
+    key.size.should.equal(6)
+    key.get_contents_as_string().should.equal(b'foobar')
 
     key.set_contents_from_string("")
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
+    key = bucket.get_key("the-key")
+    key.size.should.equal(0)
+    key.get_contents_as_string().should.equal(b'')
 
 
 @mock_s3
