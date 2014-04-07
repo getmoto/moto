@@ -267,9 +267,10 @@ class ResponseObject(object):
         if key:
             headers.update(key.metadata)
             headers.update(key.response_dict)
-            headers.update({
-                'content-length': len(key.value)
-                })
+            lenhdr = [k for k in headers.keys()
+                      if k.lower() == 'content-length']
+            lenhdr = lenhdr.pop() if lenhdr else 'Content-Length'
+            headers[lenhdr] = len(key.value)
             return 200, headers, ""
         else:
             return 404, headers, ""
