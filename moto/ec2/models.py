@@ -5,9 +5,14 @@ from collections import defaultdict
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 
 from moto.core import BaseBackend
-from .exceptions import InvalidIdError
+from .exceptions import (
+    InvalidIdError,
+    DependencyViolationError,
+    InvalidDHCPOptionsIdError
+)
 from .utils import (
     random_ami_id,
+    random_dhcp_option_id,
     random_eip_allocation_id,
     random_eip_association_id,
     random_gateway_id,
@@ -645,6 +650,7 @@ class VPC(object):
     def __init__(self, vpc_id, cidr_block):
         self.id = vpc_id
         self.cidr_block = cidr_block
+        self.dhcp_options = None
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -678,7 +684,12 @@ class VPCBackend(object):
         return self.vpcs.values()
 
     def delete_vpc(self, vpc_id):
-        return self.vpcs.pop(vpc_id, None)
+        vpc = self.vpcs.pop(vpc_id, None)
+        if vpc and vpc.dhcp_options:
+            vpc.dhcp_options.vpc = None
+            self.delete_dhcp_options_set(vpc.dhcp_options.id)
+            vpc.dhcp_options = None
+        return vpc
 
 
 class Subnet(object):
@@ -1039,12 +1050,70 @@ class ElasticAddressBackend(object):
             return False
 
 
+class DHCPOptionsSet(object):
+    def __init__(self, domain_name_servers=None, domain_name=None,
+                 ntp_servers=None, netbios_name_servers=None,
+                 netbios_node_type=None):
+        self._options = {
+            "domain-name-servers": domain_name_servers,
+            "domain-name": domain_name,
+            "ntp-servers": ntp_servers,
+            "netbios-name-servers": netbios_name_servers,
+            "netbios-node-type": netbios_node_type,
+            }
+        self.id = random_dhcp_option_id()
+        self.vpc = None
+
+    @property
+    def options(self):
+        return self._options
+
+
+class DHCPOptionsSetBackend(object):
+    def __init__(self):
+        self.dhcp_options_sets = {}
+        super(DHCPOptionsSetBackend, self).__init__()
+
+    def associate_dhcp_options(self, dhcp_options, vpc):
+        dhcp_options.vpc = vpc
+        vpc.dhcp_options = dhcp_options
+
+    def create_dhcp_options(
+            self, domain_name_servers=None, domain_name=None,
+            ntp_servers=None, netbios_name_servers=None,
+            netbios_node_type=None):
+        options = DHCPOptionsSet(
+            domain_name_servers, domain_name, ntp_servers,
+            netbios_name_servers, netbios_node_type
+        )
+        self.dhcp_options_sets[options.id] = options
+        return options
+
+    def describe_dhcp_options(self, options_ids=None):
+        options_sets = []
+        for option_id in options_ids or []:
+            if option_id in self.dhcp_options_sets:
+                options_sets.append(self.dhcp_options_sets[option_id])
+            else:
+                raise InvalidDHCPOptionsIdError(option_id)
+        return options_sets or self.dhcp_options_sets.values()
+
+    def delete_dhcp_options_set(self, options_id):
+        if options_id in self.dhcp_options_sets:
+            if self.dhcp_options_sets[options_id].vpc:
+                raise DependencyViolationError("Cannot delete assigned DHCP options.")
+            dhcp_opt = self.dhcp_options_sets.pop(options_id)
+        else:
+            raise InvalidDHCPOptionsIdError(options_id)
+        return True
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
-                 ElasticAddressBackend, KeyPairBackend):
+                 ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend):
     pass
 
 
