@@ -3,6 +3,7 @@ import json
 
 from urlparse import parse_qs, urlparse
 
+from werkzeug.exceptions import HTTPException
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 
 
@@ -49,7 +50,10 @@ class BaseResponse(object):
         method_names = method_names_from_class(self.__class__)
         if action in method_names:
             method = getattr(self, action)
-            response = method()
+            try:
+                response = method()
+            except HTTPException as http_error:
+                response = http_error.description, dict(status=http_error.code)
             if isinstance(response, basestring):
                 return 200, headers, response
             else:
