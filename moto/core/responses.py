@@ -58,7 +58,7 @@ class BaseResponse(object):
                 return 200, headers, response
             else:
                 body, new_headers = response
-                status = new_headers.pop('status', 200)
+                status = new_headers.get('status', 200)
                 headers.update(new_headers)
                 return status, headers, body
         raise NotImplementedError("The {0} action has not been implemented".format(action))
