@@ -7,3 +7,4 @@ requests
 sure<1.2.4
 xmltodict
 dicttoxml
+werkzeug

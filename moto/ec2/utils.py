@@ -62,6 +62,10 @@ def random_eip_allocation_id():
     return random_id(prefix='eipalloc')
 
 
+def random_dhcp_option_id():
+    return random_id(prefix='dopt')
+
+
 def random_ip():
     return "127.{0}.{1}.{2}".format(
         random.randint(0, 255),
@@ -112,6 +116,44 @@ def resource_ids_from_querystring(querystring_dict):
     return response_values
 
 
+def dhcp_configuration_from_querystring(querystring, option=u'DhcpConfiguration'):
+    """
+    turn:
+        {u'AWSAccessKeyId': [u'the_key'],
+         u'Action': [u'CreateDhcpOptions'],
+         u'DhcpConfiguration.1.Key': [u'domain-name'],
+         u'DhcpConfiguration.1.Value.1': [u'example.com'],
+         u'DhcpConfiguration.2.Key': [u'domain-name-servers'],
+         u'DhcpConfiguration.2.Value.1': [u'10.0.0.6'],
+         u'DhcpConfiguration.2.Value.2': [u'10.0.0.7'],
+         u'Signature': [u'uUMHYOoLM6r+sT4fhYjdNT6MHw22Wj1mafUpe0P0bY4='],
+         u'SignatureMethod': [u'HmacSHA256'],
+         u'SignatureVersion': [u'2'],
+         u'Timestamp': [u'2014-03-18T21:54:01Z'],
+         u'Version': [u'2013-10-15']}
+    into:
+        {u'domain-name': [u'example.com'], u'domain-name-servers': [u'10.0.0.6', u'10.0.0.7']}
+    """
+
+    key_needle = re.compile(u'{0}.[0-9]+.Key'.format(option), re.UNICODE)
+    response_values = {}
+
+    for key, value in querystring.iteritems():
+        if key_needle.match(key):
+            values = []
+            key_index = key.split(".")[1]
+            value_index = 1
+            while True:
+                value_key = u'{0}.{1}.Value.{2}'.format(option, key_index, value_index)
+                if value_key in querystring:
+                    values.extend(querystring[value_key])
+                else:
+                    break
+                value_index += 1
+            response_values[value[0]] = values
+    return response_values
+
+
 def filters_from_querystring(querystring_dict):
     response_values = {}
     for key, value in querystring_dict.iteritems():
@@ -130,6 +172,7 @@ def keypair_names_from_querystring(querystring_dict):
         if 'KeyName' in key:
             keypair_names.append(value[0])
     return keypair_names
+
 
 filter_dict_attribute_mapping = {
     'instance-state-name': 'state'
@@ -161,7 +204,7 @@ def filter_reservations(reservations, filter_dict):
     return result
 
 
-# not really random
+# not really random ( http://xkcd.com/221/ )
 def random_key_pair():
     return {
         'fingerprint': ('1f:51:ae:28:bf:89:e9:d8:1f:25:5d:37:2d:'
