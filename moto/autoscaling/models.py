@@ -41,8 +41,8 @@ class FakeLaunchConfiguration(object):
         self.instance_profile_name = instance_profile_name
         self.spot_price = spot_price
         self.ebs_optimized = ebs_optimized
-<<<<<<< HEAD
         self.associate_public_ip_address = associate_public_ip_address
+        self.block_device_mapping_dict = block_device_mapping_dict
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -62,14 +62,13 @@ class FakeLaunchConfiguration(object):
             spot_price=properties.get("SpotPrice"),
             ebs_optimized=properties.get("EbsOptimized"),
             associate_public_ip_address=properties.get("AssociatePublicIpAddress"),
+            block_device_mappings=properties.get("BlockDeviceMapping.member")
         )
         return config
 
     @property
     def physical_resource_id(self):
         return self.name
-=======
-        self.block_device_mapping_dict = block_device_mapping_dict
 
     @property
     def block_device_mappings(self):
@@ -77,7 +76,6 @@ class FakeLaunchConfiguration(object):
             return None
         else:
             return self._parse_block_device_mappings()
->>>>>>> [Block Device] Add block device mapping to launch config backend
 
     @property
     def instance_monitoring_enabled(self):
@@ -212,11 +210,7 @@ class AutoScalingBackend(BaseBackend):
     def create_launch_configuration(self, name, image_id, key_name,
                                     security_groups, user_data, instance_type,
                                     instance_monitoring, instance_profile_name,
-<<<<<<< HEAD
-                                    spot_price, ebs_optimized, associate_public_ip_address):
-=======
-                                    spot_price, ebs_optimized, block_device_mappings):
->>>>>>> [Block Device] Add block device mapping to launch config backend
+                                    spot_price, ebs_optimized, associate_public_ip_address, block_device_mappings):
         launch_configuration = FakeLaunchConfiguration(
             name=name,
             image_id=image_id,
@@ -228,11 +222,8 @@ class AutoScalingBackend(BaseBackend):
             instance_profile_name=instance_profile_name,
             spot_price=spot_price,
             ebs_optimized=ebs_optimized,
-<<<<<<< HEAD
             associate_public_ip_address=associate_public_ip_address,
-=======
             block_device_mapping_dict=block_device_mappings,
->>>>>>> [Block Device] Add block device mapping to launch config backend
         )
         self.launch_configurations[name] = launch_configuration
         return launch_configuration
