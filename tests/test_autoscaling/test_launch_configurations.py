@@ -36,6 +36,7 @@ def test_create_launch_configuration():
     launch_config.spot_price.should.equal(0.1)
 
 
+@requires_boto_gte("2.27.0")
 @mock_autoscaling
 def test_create_launch_configuration_with_block_device_mappings():
     block_device_mapping = BlockDeviceMapping()
@@ -56,7 +57,7 @@ def test_create_launch_configuration_with_block_device_mappings():
     ebs_drive.delete_on_termination = False
     block_device_mapping['/dev/xvdh'] = ebs_drive
 
-    conn = boto.connect_autoscale()
+    conn = boto.connect_autoscale(use_block_device_types=True)
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
@@ -83,23 +84,19 @@ def test_create_launch_configuration_with_block_device_mappings():
     launch_config.spot_price.should.equal(0.1)
     len(launch_config.block_device_mappings).should.equal(3)
 
-    # Unsure why boto returns results in a different format than it takes them
-    # returned_mapping = BlockDeviceMapping()
-    # for mapping in launch_config.block_device_mappings:
-    #     returned_mapping[mapping.device_name] = mapping
+    returned_mapping = launch_config.block_device_mappings
 
-    # Broken due to Boto bug
-    # set(returned_mapping.keys()).should.equal(set(['/dev/xvdb', '/dev/xvdp', '/dev/xvdh']))
+    set(returned_mapping.keys()).should.equal(set(['/dev/xvdb', '/dev/xvdp', '/dev/xvdh']))
 
-    # returned_mapping['/dev/xvdh'].ebs.iops.should.equal(1000)
-    # returned_mapping['/dev/xvdh'].ebs.volume_size.should.equal(100)
-    # returned_mapping['/dev/xvdh'].ebs.volume_type.shoud.equal("io1")
-    # returned_mapping['/dev/xvdh'].ebs.delete_on_termination.shoud.be.false
+    returned_mapping['/dev/xvdh'].iops.should.equal(1000)
+    returned_mapping['/dev/xvdh'].size.should.equal(100)
+    returned_mapping['/dev/xvdh'].volume_type.should.equal("io1")
+    returned_mapping['/dev/xvdh'].delete_on_termination.should.be.false
 
-    # returned_mapping['/dev/xvdp'].ebs.snapshot_id.should.equal("snap-1234abcd")
-    # returned_mapping['/dev/xvdp'].ebs.volume_type.shoud.equal("standard")
+    returned_mapping['/dev/xvdp'].snapshot_id.should.equal("snap-1234abcd")
+    returned_mapping['/dev/xvdp'].volume_type.should.equal("standard")
 
-    # returned_mapping['/dev/xvdb'].ephemeral_name.should.equal('ephemeral0')
+    returned_mapping['/dev/xvdb'].ephemeral_name.should.equal('ephemeral0')
 
 
 @requires_boto_gte("2.12")
