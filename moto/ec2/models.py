@@ -107,7 +107,10 @@ class InstanceBackend(object):
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
 
-        security_groups = [self.get_security_group_from_name(name) for name in security_group_names]
+        security_groups = [self.get_security_group_from_name(name)
+                           for name in security_group_names]
+        security_groups.extend(self.get_security_group_from_id(sg_id)
+                               for sg_id in kwargs.pop("security_group_ids", []))
         for index in range(count):
             new_instance = Instance(
                 image_id,

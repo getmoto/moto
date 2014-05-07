@@ -9,7 +9,8 @@ from moto.ec2.exceptions import InvalidIdError
 
 class InstanceResponse(BaseResponse):
     def _get_multi_param(self, param_prefix):
-        return [value[0] for key, value in self.querystring.items() if key.startswith(param_prefix)]
+        return [value[0] for key, value in self.querystring.items()
+                if key.startswith(param_prefix + ".")]
 
     def describe_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
@@ -33,13 +34,14 @@ class InstanceResponse(BaseResponse):
         image_id = self.querystring.get('ImageId')[0]
         user_data = self.querystring.get('UserData')
         security_group_names = self._get_multi_param('SecurityGroup')
+        security_group_ids = self._get_multi_param('SecurityGroupId')
         instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
         subnet_id = self.querystring.get("SubnetId", [None])[0]
         key_name = self.querystring.get("KeyName", [None])[0]
         new_reservation = ec2_backend.add_instances(
             image_id, min_count, user_data, security_group_names,
             instance_type=instance_type, subnet_id=subnet_id,
-            key_name=key_name)
+            key_name=key_name, security_group_ids=security_group_ids)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
