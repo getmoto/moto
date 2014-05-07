@@ -191,3 +191,13 @@ def test_run_instance_with_instance_type():
     instance = reservation.instances[0]
 
     instance.instance_type.should.equal("t1.micro")
+
+
+@mock_ec2
+def test_run_instance_with_subnet():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd',
+                                     subnet_id="subnet-abcd1234")
+    instance = reservation.instances[0]
+
+    instance.subnet_id.should.equal("subnet-abcd1234")

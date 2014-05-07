@@ -34,7 +34,10 @@ class InstanceResponse(BaseResponse):
         user_data = self.querystring.get('UserData')
         security_group_names = self._get_multi_param('SecurityGroup')
         instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
-        new_reservation = ec2_backend.add_instances(image_id, min_count, user_data, security_group_names, instance_type=instance_type)
+        subnet_id = self.querystring.get("SubnetId", [None])[0]
+        new_reservation = ec2_backend.add_instances(
+            image_id, min_count, user_data, security_group_names,
+            instance_type=instance_type, subnet_id=subnet_id)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
@@ -122,6 +125,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <monitoring>
             <state>enabled</state>
           </monitoring>
+          <subnetId>{{ instance.subnet_id }}</subnetId>
           <sourceDestCheck>true</sourceDestCheck>
           <groupSet>
              {% for group in instance.security_groups %}
@@ -174,7 +178,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <monitoring>
                       <state>disabled</state>
                     </monitoring>
-                    <subnetId>subnet-1a2b3c4d</subnetId>
+                    <subnetId>{{ instance.subnet_id }}</subnetId>
                     <vpcId>vpc-1a2b3c4d</vpcId>
                     <privateIpAddress>10.0.0.12</privateIpAddress>
                     <ipAddress>46.51.219.63</ipAddress>
