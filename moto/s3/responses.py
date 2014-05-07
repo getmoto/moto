@@ -114,6 +114,9 @@ class ResponseObject(object):
             return 409, headers, template.render(bucket=removed_bucket)
 
     def _bucket_response_post(self, request, bucket_name, headers):
+        if request.path == u'/?delete':
+            return self._bucket_response_delete_keys(request, bucket_name, headers)
+
         #POST to bucket-url should create file from form
         if hasattr(request, 'form'):
             #Not HTTPretty
@@ -143,6 +146,23 @@ class ResponseObject(object):
                 metadata = form[form_id]
                 new_key.set_metadata(meta_key, metadata)
         return 200, headers, ""
+
+    def _bucket_response_delete_keys(self, request, bucket_name, headers):
+        template = Template(S3_DELETE_KEYS_RESPONSE)
+
+        keys = minidom.parseString(request.body).getElementsByTagName('Key')
+        deleted_names = []
+        error_names = []
+
+        for k in keys:
+            try:
+                key_name = k.firstChild.nodeValue
+                self.backend.delete_key(bucket_name, key_name)
+                deleted_names.append(key_name)
+            except KeyError as e:
+                error_names.append(key_name)
+
+        return 200, headers, template.render(deleted=deleted_names,delete_errors=error_names)
 
     def key_response(self, request, full_url, headers):
         response = self._key_response(request, full_url, headers)
@@ -390,6 +410,20 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 <RequestId>asdfasdfsdafds</RequestId>
 <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
 </Error>"""
+
+S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
+{% for k in deleted %}
+<Deleted>
+<Key>{{k}}</Key>
+</Deleted>
+{% endfor %}
+{% for k in delete_errors %}
+<Error>
+<Key>{{k}}</Key>
+</Error>
+{% endfor %}
+</DeleteResult>"""
 
 S3_DELETE_OBJECT_SUCCESS = """<DeleteObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
   <DeleteObjectResponse>
