@@ -182,3 +182,12 @@ def test_run_instance_with_security_group():
 
     instance.groups[0].id.should.equal(group.id)
     instance.groups[0].name.should.equal("group1")
+
+
+@mock_ec2
+def test_run_instance_with_instance_type():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd', instance_type="t1.micro")
+    instance = reservation.instances[0]
+
+    instance.instance_type.should.equal("t1.micro")

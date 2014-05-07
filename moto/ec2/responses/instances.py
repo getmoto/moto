@@ -33,7 +33,8 @@ class InstanceResponse(BaseResponse):
         image_id = self.querystring.get('ImageId')[0]
         user_data = self.querystring.get('UserData')
         security_group_names = self._get_multi_param('SecurityGroup')
-        new_reservation = ec2_backend.add_instances(image_id, min_count, user_data, security_group_names)
+        instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
+        new_reservation = ec2_backend.add_instances(image_id, min_count, user_data, security_group_names, instance_type=instance_type)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
@@ -111,7 +112,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <dnsName/>
           <reason/>
           <amiLaunchIndex>0</amiLaunchIndex>
-          <instanceType>m1.small</instanceType>
+          <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>2007-08-07T11:51:50.000Z</launchTime>
           <placement>
             <availabilityZone>us-east-1b</availabilityZone>
@@ -162,7 +163,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <keyName>gsg-keypair</keyName>
                     <amiLaunchIndex>0</amiLaunchIndex>
                     <productCodes/>
-                    <instanceType>c1.medium</instanceType>
+                    <instanceType>{{ instance.instance_type }}</instanceType>
                     <launchTime>YYYY-MM-DDTHH:MM:SS+0000</launchTime>
                     <placement>
                       <availabilityZone>us-west-2a</availabilityZone>
