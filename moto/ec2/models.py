@@ -46,6 +46,7 @@ class Instance(BotoInstance):
         self.security_groups = security_groups
         self.instance_type = kwargs.get("instance_type", "m1.small")
         self.subnet_id = kwargs.get("subnet_id")
+        self.key_name = kwargs.get("key_name")
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -60,7 +61,8 @@ class Instance(BotoInstance):
             count=1,
             security_group_names=group_names,
             instance_type=properties.get("InstanceType", "m1.small"),
-            subnet_id=properties.get("SubnetId")
+            subnet_id=properties.get("SubnetId"),
+            key_name=properties.get("KeyName"),
         )
         return reservation.instances[0]
 

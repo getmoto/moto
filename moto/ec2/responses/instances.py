@@ -35,9 +35,11 @@ class InstanceResponse(BaseResponse):
         security_group_names = self._get_multi_param('SecurityGroup')
         instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
         subnet_id = self.querystring.get("SubnetId", [None])[0]
+        key_name = self.querystring.get("KeyName", [None])[0]
         new_reservation = ec2_backend.add_instances(
             image_id, min_count, user_data, security_group_names,
-            instance_type=instance_type, subnet_id=subnet_id)
+            instance_type=instance_type, subnet_id=subnet_id,
+            key_name=key_name)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
@@ -114,6 +116,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <privateDnsName/>
           <dnsName/>
           <reason/>
+          <keyName>{{ instance.key_name }}</keyName>
           <amiLaunchIndex>0</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>2007-08-07T11:51:50.000Z</launchTime>
@@ -164,7 +167,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <privateDnsName>ip-10.0.0.12.ec2.internal</privateDnsName>
                     <dnsName>ec2-46.51.219.63.compute-1.amazonaws.com</dnsName>
                     <reason/>
-                    <keyName>gsg-keypair</keyName>
+                    <keyName>{{ instance.key_name }}</keyName>
                     <amiLaunchIndex>0</amiLaunchIndex>
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>

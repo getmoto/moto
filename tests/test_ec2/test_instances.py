@@ -201,3 +201,12 @@ def test_run_instance_with_subnet():
     instance = reservation.instances[0]
 
     instance.subnet_id.should.equal("subnet-abcd1234")
+
+
+@mock_ec2
+def test_run_instance_with_keypair():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd', key_name="keypair_name")
+    instance = reservation.instances[0]
+
+    instance.key_name.should.equal("keypair_name")
