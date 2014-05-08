@@ -8,10 +8,6 @@ from moto.ec2.exceptions import InvalidIdError
 
 
 class InstanceResponse(BaseResponse):
-    def _get_multi_param(self, param_prefix):
-        return [value[0] for key, value in self.querystring.items()
-                if key.startswith(param_prefix + ".")]
-
     def describe_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         if instance_ids:
