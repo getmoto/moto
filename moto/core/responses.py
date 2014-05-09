@@ -66,6 +66,14 @@ class BaseResponse(object):
     def _get_param(self, param_name):
         return self.querystring.get(param_name, [None])[0]
 
+    def _get_multi_param(self, param_prefix):
+        if param_prefix.endswith("."):
+            prefix = param_prefix
+        else:
+            prefix = param_prefix + "."
+        return [value[0] for key, value in self.querystring.items()
+                if key.startswith(prefix)]
+
 
 def metadata_response(request, full_url, headers):
     """

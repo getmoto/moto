@@ -8,9 +8,6 @@ from moto.ec2.exceptions import InvalidIdError
 
 
 class InstanceResponse(BaseResponse):
-    def _get_multi_param(self, param_prefix):
-        return [value[0] for key, value in self.querystring.items() if key.startswith(param_prefix)]
-
     def describe_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         if instance_ids:
@@ -33,7 +30,14 @@ class InstanceResponse(BaseResponse):
         image_id = self.querystring.get('ImageId')[0]
         user_data = self.querystring.get('UserData')
         security_group_names = self._get_multi_param('SecurityGroup')
-        new_reservation = ec2_backend.add_instances(image_id, min_count, user_data, security_group_names)
+        security_group_ids = self._get_multi_param('SecurityGroupId')
+        instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
+        subnet_id = self.querystring.get("SubnetId", [None])[0]
+        key_name = self.querystring.get("KeyName", [None])[0]
+        new_reservation = ec2_backend.add_instances(
+            image_id, min_count, user_data, security_group_names,
+            instance_type=instance_type, subnet_id=subnet_id,
+            key_name=key_name, security_group_ids=security_group_ids)
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
@@ -110,8 +114,9 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <privateDnsName/>
           <dnsName/>
           <reason/>
+          <keyName>{{ instance.key_name }}</keyName>
           <amiLaunchIndex>0</amiLaunchIndex>
-          <instanceType>m1.small</instanceType>
+          <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>2007-08-07T11:51:50.000Z</launchTime>
           <placement>
             <availabilityZone>us-east-1b</availabilityZone>
@@ -121,6 +126,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <monitoring>
             <state>enabled</state>
           </monitoring>
+          <subnetId>{{ instance.subnet_id }}</subnetId>
           <sourceDestCheck>true</sourceDestCheck>
           <groupSet>
              {% for group in instance.security_groups %}
@@ -159,10 +165,10 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <privateDnsName>ip-10.0.0.12.ec2.internal</privateDnsName>
                     <dnsName>ec2-46.51.219.63.compute-1.amazonaws.com</dnsName>
                     <reason/>
-                    <keyName>gsg-keypair</keyName>
+                    <keyName>{{ instance.key_name }}</keyName>
                     <amiLaunchIndex>0</amiLaunchIndex>
                     <productCodes/>
-                    <instanceType>c1.medium</instanceType>
+                    <instanceType>{{ instance.instance_type }}</instanceType>
                     <launchTime>YYYY-MM-DDTHH:MM:SS+0000</launchTime>
                     <placement>
                       <availabilityZone>us-west-2a</availabilityZone>
@@ -173,7 +179,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <monitoring>
                       <state>disabled</state>
                     </monitoring>
-                    <subnetId>subnet-1a2b3c4d</subnetId>
+                    <subnetId>{{ instance.subnet_id }}</subnetId>
                     <vpcId>vpc-1a2b3c4d</vpcId>
                     <privateIpAddress>10.0.0.12</privateIpAddress>
                     <ipAddress>46.51.219.63</ipAddress>

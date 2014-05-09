@@ -6,17 +6,10 @@ from .models import autoscaling_backend
 
 
 class AutoScalingResponse(BaseResponse):
-
-    def _get_param(self, param_name):
-        return self.querystring.get(param_name, [None])[0]
-
     def _get_int_param(self, param_name):
         value = self._get_param(param_name)
         if value is not None:
             return int(value)
-
-    def _get_multi_param(self, param_prefix):
-        return [value[0] for key, value in self.querystring.items() if key.startswith(param_prefix)]
 
     def _get_list_prefix(self, param_prefix):
         results = []
@@ -43,7 +36,7 @@ class AutoScalingResponse(BaseResponse):
             name=self._get_param('LaunchConfigurationName'),
             image_id=self._get_param('ImageId'),
             key_name=self._get_param('KeyName'),
-            security_groups=self._get_multi_param('SecurityGroups.member.'),
+            security_groups=self._get_multi_param('SecurityGroups.member'),
             user_data=self._get_param('UserData'),
             instance_type=self._get_param('InstanceType'),
             instance_monitoring=instance_monitoring,

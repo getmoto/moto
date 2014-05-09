@@ -37,13 +37,16 @@ class InstanceState(object):
 
 
 class Instance(BotoInstance):
-    def __init__(self, image_id, user_data, security_groups):
+    def __init__(self, image_id, user_data, security_groups, **kwargs):
         super(Instance, self).__init__()
         self.id = random_instance_id()
         self.image_id = image_id
         self._state = InstanceState("running", 16)
         self.user_data = user_data
         self.security_groups = security_groups
+        self.instance_type = kwargs.get("instance_type", "m1.small")
+        self.subnet_id = kwargs.get("subnet_id")
+        self.key_name = kwargs.get("key_name")
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -57,6 +60,9 @@ class Instance(BotoInstance):
             user_data=properties.get('UserData'),
             count=1,
             security_group_names=group_names,
+            instance_type=properties.get("InstanceType", "m1.small"),
+            subnet_id=properties.get("SubnetId"),
+            key_name=properties.get("KeyName"),
         )
         return reservation.instances[0]
 
@@ -96,16 +102,21 @@ class InstanceBackend(object):
             if instance.id == instance_id:
                 return instance
 
-    def add_instances(self, image_id, count, user_data, security_group_names):
+    def add_instances(self, image_id, count, user_data, security_group_names,
+                      **kwargs):
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
 
-        security_groups = [self.get_security_group_from_name(name) for name in security_group_names]
+        security_groups = [self.get_security_group_from_name(name)
+                           for name in security_group_names]
+        security_groups.extend(self.get_security_group_from_id(sg_id)
+                               for sg_id in kwargs.pop("security_group_ids", []))
         for index in range(count):
             new_instance = Instance(
                 image_id,
                 user_data,
                 security_groups,
+                **kwargs
             )
             new_reservation.instances.append(new_instance)
         self.reservations[new_reservation.id] = new_reservation

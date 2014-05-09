@@ -13,9 +13,6 @@ class SpotInstances(BaseResponse):
         if value is not None:
             return int(value)
 
-    def _get_multi_param(self, param_prefix):
-        return [value[0] for key, value in self.querystring.items() if key.startswith(param_prefix)]
-
     def cancel_spot_instance_requests(self):
         request_ids = self._get_multi_param('SpotInstanceRequestId')
         requests = ec2_backend.cancel_spot_instance_requests(request_ids)
@@ -49,7 +46,7 @@ class SpotInstances(BaseResponse):
         launch_group = self._get_param('LaunchGroup')
         availability_zone_group = self._get_param('AvailabilityZoneGroup')
         key_name = self._get_param('LaunchSpecification.KeyName')
-        security_groups = self._get_multi_param('LaunchSpecification.SecurityGroup.')
+        security_groups = self._get_multi_param('LaunchSpecification.SecurityGroup')
         user_data = self._get_param('LaunchSpecification.UserData')
         instance_type = self._get_param('LaunchSpecification.InstanceType')
         placement = self._get_param('LaunchSpecification.Placement.AvailabilityZone')

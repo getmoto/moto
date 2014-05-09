@@ -173,12 +173,54 @@ def test_user_data_with_run_instance():
 
 
 @mock_ec2
-def test_run_instance_with_security_group():
+def test_run_instance_with_security_group_name():
     conn = boto.connect_ec2('the_key', 'the_secret')
     group = conn.create_security_group('group1', "some description")
 
-    reservation = conn.run_instances('ami-1234abcd', security_groups=['group1'])
+    reservation = conn.run_instances('ami-1234abcd',
+                                     security_groups=['group1'])
     instance = reservation.instances[0]
 
     instance.groups[0].id.should.equal(group.id)
     instance.groups[0].name.should.equal("group1")
+
+
+@mock_ec2
+def test_run_instance_with_security_group_id():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    group = conn.create_security_group('group1', "some description")
+
+    reservation = conn.run_instances('ami-1234abcd',
+                                     security_group_ids=[group.id])
+    instance = reservation.instances[0]
+
+    instance.groups[0].id.should.equal(group.id)
+    instance.groups[0].name.should.equal("group1")
+
+
+@mock_ec2
+def test_run_instance_with_instance_type():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd', instance_type="t1.micro")
+    instance = reservation.instances[0]
+
+    instance.instance_type.should.equal("t1.micro")
+
+
+@mock_ec2
+def test_run_instance_with_subnet():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd',
+                                     subnet_id="subnet-abcd1234")
+    instance = reservation.instances[0]
+
+    instance.subnet_id.should.equal("subnet-abcd1234")
+
+
+@mock_ec2
+def test_run_instance_with_keypair():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd', key_name="keypair_name")
+    instance = reservation.instances[0]
+
+    instance.key_name.should.equal("keypair_name")
