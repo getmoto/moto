@@ -22,7 +22,6 @@ def process_rules_from_querystring(querystring):
         if 'IpPermissions.1.IpRanges' in key:
             ip_ranges.append(value[0])
 
-
     source_groups = []
     source_group_ids = []
 
@@ -45,7 +44,11 @@ class SecurityGroups(BaseResponse):
 
     def create_security_group(self):
         name = self.querystring.get('GroupName')[0]
-        description = self.querystring.get('GroupDescription')[0]
+        try:
+            description = self.querystring.get('GroupDescription')[0]
+        except TypeError:
+            # No description found, return error
+            return "The request must contain the parameter GroupDescription", dict(status=400)
         vpc_id = self.querystring.get("VpcId", [None])[0]
         group = ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
         if not group:

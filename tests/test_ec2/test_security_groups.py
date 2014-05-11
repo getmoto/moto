@@ -22,6 +22,12 @@ def test_create_and_describe_security_group():
 
 
 @mock_ec2
+def test_create_security_group_without_description_raises_error():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn.create_security_group.when.called_with('test security group', '').should.throw(EC2ResponseError)
+
+
+@mock_ec2
 def test_create_and_describe_vpc_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vpc_id = 'vpc-5300000c'
