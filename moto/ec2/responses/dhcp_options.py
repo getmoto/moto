@@ -6,8 +6,8 @@ from moto.ec2.utils import (
 from moto.ec2.models import ec2_backend
 from moto.ec2.exceptions import(
     InvalidVPCIdError,
-    InvalidParameterValueError
-    )
+    InvalidParameterValueError,
+)
 
 NETBIOS_NODE_TYPES = [1, 2, 4, 8]
 
@@ -52,7 +52,7 @@ class DHCPOptions(BaseResponse):
             ntp_servers=ntp_servers,
             netbios_name_servers=netbios_name_servers,
             netbios_node_type=netbios_node_type
-            )
+        )
 
         template = Template(CREATE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options_set=dhcp_options_set)
@@ -105,7 +105,16 @@ CREATE_DHCP_OPTIONS_RESPONSE = u"""
         {% endif %}
       {% endfor %}
       </dhcpConfigurationSet>
-      <tagSet/>
+      <tagSet>
+        {% for tag in dhcp_options_set.get_tags() %}
+          <item>
+            <resourceId>{{ tag.resource_id }}</resourceId>
+            <resourceType>{{ tag.resource_type }}</resourceType>
+            <key>{{ tag.key }}</key>
+            <value>{{ tag.value }}</value>
+          </item>
+        {% endfor %}
+      </tagSet>
   </dhcpOptions>
 </CreateDhcpOptionsResponse>
 """
@@ -141,7 +150,16 @@ DESCRIBE_DHCP_OPTIONS_RESPONSE = u"""
         {% endif %}
       {% endfor %}
       </dhcpConfigurationSet>
-      <tagSet/>
+      <tagSet>
+        {% for tag in dhcp_options_set.get_tags() %}
+          <item>
+            <resourceId>{{ tag.resource_id }}</resourceId>
+            <resourceType>{{ tag.resource_type }}</resourceType>
+            <key>{{ tag.key }}</key>
+            <value>{{ tag.value }}</value>
+          </item>
+        {% endfor %}
+      </tagSet>
     </dhcpOptions>
     {% endfor %}
   </item>

@@ -21,3 +21,20 @@ def test_vpcs():
 
     conn.delete_vpc.when.called_with(
         "vpc-1234abcd").should.throw(EC2ResponseError)
+
+
+@mock_ec2
+def test_vpc_tagging():
+    conn = boto.connect_vpc()
+    vpc = conn.create_vpc("10.0.0.0/16")
+
+    vpc.add_tag("a key", "some value")
+
+    tag = conn.get_all_tags()[0]
+    tag.name.should.equal("a key")
+    tag.value.should.equal("some value")
+
+    # Refresh the vpc
+    vpc = conn.get_all_vpcs()[0]
+    vpc.tags.should.have.length_of(1)
+    vpc.tags["a key"].should.equal("some value")

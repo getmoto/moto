@@ -114,5 +114,22 @@ def test_delete_dhcp_options():
 def test_delete_dhcp_options_invalid_id():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
-    dhcp_option = conn.create_dhcp_options()
+    conn.create_dhcp_options()
     conn.delete_dhcp_options.when.called_with("1").should.throw(EC2ResponseError)
+
+
+@mock_ec2
+def test_dhcp_tagging():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    dhcp_option = conn.create_dhcp_options()
+
+    dhcp_option.add_tag("a key", "some value")
+
+    tag = conn.get_all_tags()[0]
+    tag.name.should.equal("a key")
+    tag.value.should.equal("some value")
+
+    # Refresh the DHCP options
+    dhcp_option = conn.get_all_dhcp_options()[0]
+    dhcp_option.tags.should.have.length_of(1)
+    dhcp_option.tags["a key"].should.equal("some value")

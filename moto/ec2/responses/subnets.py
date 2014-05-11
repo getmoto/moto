@@ -37,7 +37,16 @@ CREATE_SUBNET_RESPONSE = """
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
     <availableIpAddressCount>251</availableIpAddressCount>
     <availabilityZone>us-east-1a</availabilityZone>
-    <tagSet/>
+    <tagSet>
+      {% for tag in subnet.get_tags() %}
+        <item>
+          <resourceId>{{ tag.resource_id }}</resourceId>
+          <resourceType>{{ tag.resource_type }}</resourceType>
+          <key>{{ tag.key }}</key>
+          <value>{{ tag.value }}</value>
+        </item>
+      {% endfor %}
+    </tagSet>
   </subnet>
 </CreateSubnetResponse>"""
 
@@ -59,7 +68,16 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
         <availableIpAddressCount>251</availableIpAddressCount>
         <availabilityZone>us-east-1a</availabilityZone>
-        <tagSet/>
+        <tagSet>
+          {% for tag in subnet.get_tags() %}
+            <item>
+              <resourceId>{{ tag.resource_id }}</resourceId>
+              <resourceType>{{ tag.resource_type }}</resourceType>
+              <key>{{ tag.key }}</key>
+              <value>{{ tag.value }}</value>
+            </item>
+          {% endfor %}
+        </tagSet>
       </item>
     {% endfor %}
   </subnetSet>

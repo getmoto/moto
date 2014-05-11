@@ -92,7 +92,16 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
             </item>
           </blockDeviceMapping>
           <virtualizationType>{{ image.virtualization_type }}</virtualizationType>
-          <tagSet/>
+          <tagSet>
+            {% for tag in image.get_tags() %}
+              <item>
+                <resourceId>{{ tag.resource_id }}</resourceId>
+                <resourceType>{{ tag.resource_type }}</resourceType>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+              </item>
+            {% endfor %}
+          </tagSet>
           <hypervisor>xen</hypervisor>
         </item>
     {% endfor %}

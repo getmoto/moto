@@ -36,7 +36,13 @@ class InstanceState(object):
         self.code = code
 
 
-class Instance(BotoInstance):
+class TaggedEC2Instance(object):
+    def get_tags(self, *args, **kwargs):
+        tags = ec2_backend.describe_tags(self.id)
+        return tags
+
+
+class Instance(BotoInstance, TaggedEC2Instance):
     def __init__(self, image_id, user_data, security_groups, **kwargs):
         super(Instance, self).__init__()
         self.id = random_instance_id()
@@ -85,10 +91,6 @@ class Instance(BotoInstance):
     def reboot(self, *args, **kwargs):
         self._state.name = "running"
         self._state.code = 16
-
-    def get_tags(self, *args, **kwargs):
-        tags = ec2_backend.describe_tags(self.id)
-        return tags
 
 
 class InstanceBackend(object):
@@ -267,7 +269,7 @@ class TagBackend(object):
         return results
 
 
-class Ami(object):
+class Ami(TaggedEC2Instance):
     def __init__(self, ami_id, instance, name, description):
         self.id = ami_id
         self.instance = instance
@@ -657,7 +659,7 @@ class EBSBackend(object):
         return False
 
 
-class VPC(object):
+class VPC(TaggedEC2Instance):
     def __init__(self, vpc_id, cidr_block):
         self.id = vpc_id
         self.cidr_block = cidr_block
@@ -703,7 +705,7 @@ class VPCBackend(object):
         return vpc
 
 
-class Subnet(object):
+class Subnet(TaggedEC2Instance):
     def __init__(self, subnet_id, vpc_id, cidr_block):
         self.id = subnet_id
         self.vpc_id = vpc_id
@@ -1061,7 +1063,7 @@ class ElasticAddressBackend(object):
             return False
 
 
-class DHCPOptionsSet(object):
+class DHCPOptionsSet(TaggedEC2Instance):
     def __init__(self, domain_name_servers=None, domain_name=None,
                  ntp_servers=None, netbios_name_servers=None,
                  netbios_node_type=None):
@@ -1071,7 +1073,7 @@ class DHCPOptionsSet(object):
             "ntp-servers": ntp_servers,
             "netbios-name-servers": netbios_name_servers,
             "netbios-node-type": netbios_node_type,
-            }
+        }
         self.id = random_dhcp_option_id()
         self.vpc = None
 
@@ -1113,7 +1115,7 @@ class DHCPOptionsSetBackend(object):
         if options_id in self.dhcp_options_sets:
             if self.dhcp_options_sets[options_id].vpc:
                 raise DependencyViolationError("Cannot delete assigned DHCP options.")
-            dhcp_opt = self.dhcp_options_sets.pop(options_id)
+            self.dhcp_options_sets.pop(options_id)
         else:
             raise InvalidDHCPOptionsIdError(options_id)
         return True

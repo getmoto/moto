@@ -23,6 +23,26 @@ def test_ami_create_and_delete():
 
 
 @mock_ec2
+def test_ami_tagging():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+    conn.create_image(instance.id, "test-ami", "this is a test ami")
+    image = conn.get_all_images()[0]
+
+    image.add_tag("a key", "some value")
+
+    tag = conn.get_all_tags()[0]
+    tag.name.should.equal("a key")
+    tag.value.should.equal("some value")
+
+    # Refresh the DHCP options
+    image = conn.get_all_images()[0]
+    image.tags.should.have.length_of(1)
+    image.tags["a key"].should.equal("some value")
+
+
+@mock_ec2
 def test_ami_create_from_missing_instance():
     conn = boto.connect_ec2('the_key', 'the_secret')
     args = ["i-abcdefg", "test-ami", "this is a test ami"]
