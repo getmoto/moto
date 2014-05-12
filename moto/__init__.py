@@ -12,6 +12,7 @@ from .iam import mock_iam
 from .s3 import mock_s3
 from .s3bucket_path import mock_s3bucket_path
 from .ses import mock_ses
+from .sns import mock_sns
 from .sqs import mock_sqs
 from .sts import mock_sts
 from .route53 import mock_route53
