@@ -9,6 +9,7 @@ install_requires = [
     "httpretty>=0.6.1",
     "Jinja2",
     "xmltodict",
+    "requests",
 ]
 
 import sys
