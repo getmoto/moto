@@ -92,6 +92,7 @@ def test_create_job_flow_with_new_params():
     )
 
 
+@requires_boto_gte("2.8")
 @mock_emr
 def test_create_job_flow_visible_to_all_users():
     conn = boto.connect_emr()
@@ -268,6 +269,7 @@ def test_modify_instance_groups():
     int(instance_group2.instancerunningcount).should.equal(3)
 
 
+@requires_boto_gte("2.8")
 @mock_emr
 def test_set_visible_to_all_users():
     conn = boto.connect_emr()

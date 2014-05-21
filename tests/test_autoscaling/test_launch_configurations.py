@@ -143,7 +143,7 @@ def test_create_launch_configuration_using_ip_association_should_default_to_fals
     launch_config.associate_public_ip_address.should.equal(False)
 
 
-
+@requires_boto_gte("2.9.5")
 @mock_autoscaling
 def test_create_launch_configuration_defaults():
     """ Test with the minimum inputs and check that all of the proper defaults
