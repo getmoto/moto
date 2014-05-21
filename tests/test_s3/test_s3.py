@@ -4,6 +4,7 @@ from io import BytesIO
 import boto
 from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.key import Key
+from tests.helpers import requires_boto_gte
 from freezegun import freeze_time
 import requests
 
@@ -508,3 +509,78 @@ def test_restore_key_headers():
     key.ongoing_restore.should_not.be.none
     key.ongoing_restore.should.be.false
     key.expiry_date.should.equal("Mon, 02 Jan 2012 12:00:00 GMT")
+
+
+@mock_s3
+def test_key_size_without_validate_keyword():
+    """
+    Test key.size based on boto behavior without validate keyword
+    Not validating keys will make key.size=None
+    Writing to unvalidated keys will update that objects size
+    """
+    key_name = 'the-key'
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    if bucket.get_key(key_name) is not None:
+        bucket.delete_key(key_name)
+
+    for string in ['', '0', '0'*5, '0'*10]:
+        # test non-existent keys
+        (lambda: bucket.get_key(key_name).size).should.throw(AttributeError)
+
+        key = Key(bucket)
+        key.key = key_name
+        key.size.should.be.none
+
+        # when writing key, key object updates size
+        key.set_contents_from_string(string)
+        key.size.should.equal(len(string))
+
+        # validated keys will have size
+        bucket.get_key(key_name).size.should.equal(len(string))
+
+        # unvalidated keys that do not write do not have size set
+        key2 = Key(bucket)
+        key2.key = key_name
+        key2.size.should.be.none
+
+        bucket.delete_key(key_name)
+
+
+@requires_boto_gte("2.24")
+@mock_s3
+def test_key_size_with_validate_keyword():
+    """
+    Test key.size on boto behavior with validate keyword
+    Not validating keys will make key.size = None
+    Writing to unvalidated keys should update that objects size
+    """
+    key_name = 'the-key'
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    if bucket.get_key(key_name) is not None:
+        bucket.delete_key(key_name)
+
+    for string in ['', '0', '0'*5, '0'*10]:
+        # test non-existent keys
+        bucket.get_key(key_name, validate=False).size.should.be.none
+        (lambda: bucket.get_key(key_name, validate=True).size).should.throw(AttributeError)
+
+        key = Key(bucket)
+        key.key = key_name
+        key.size.should.be.none
+
+        # when writing key, key object updates size
+        key.set_contents_from_string(string)
+        key.size.should.equal(len(string))
+
+        # validated keys will have size
+        bucket.get_key(key_name, validate=True).size.should.equal(len(string))
+
+        # unvalidated keys that do not write do not have size set
+        key2 = Key(bucket)
+        key2.key = key_name
+        key2.size.should.be.none
+        bucket.get_key(key_name, validate=False).size.should.be.none
+
+        bucket.delete_key(key_name)
