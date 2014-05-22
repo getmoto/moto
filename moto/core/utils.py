@@ -3,6 +3,11 @@ import random
 import re
 
 from flask import request
+from flask import Response as BaseResponse
+
+
+class Response(BaseResponse):
+    automatically_set_content_length = False
 
 
 def camelcase_to_underscores(argument):
@@ -67,6 +72,8 @@ class convert_flask_to_httpretty_response(object):
         result = self.callback(request, request.url, {})
         # result is a status, headers, response tuple
         status, headers, response = result
+        if 'content-length' in [h.lower() for h in headers.keys()]:
+            return Response(response=response, status=status, headers=headers)
         return response, status, headers
 
 
