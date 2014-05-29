@@ -51,11 +51,25 @@ class InstanceProfile(object):
         return self.name
 
 
+class Certificate(object):
+    def __init__(self, cert_name, cert_body, private_key, cert_chain=None, path=None):
+        self.cert_name = cert_name
+        self.cert_body = cert_body
+        self.private_key = private_key
+        self.path = path
+        self.cert_chain = cert_chain
+
+    @property
+    def physical_resource_id(self):
+        return self.name
+
+
 class IAMBackend(BaseBackend):
 
     def __init__(self):
         self.instance_profiles = {}
         self.roles = {}
+        self.certificates = {}
         super(IAMBackend, self).__init__()
 
     def create_role(self, role_name, assume_role_policy_document, path, policies):
@@ -95,5 +109,19 @@ class IAMBackend(BaseBackend):
         profile = self.get_instance_profile(profile_name)
         role = self.get_role(role_name)
         profile.roles.append(role)
+
+    def get_all_server_certs(self, marker=None):
+        return self.certificates.values()
+
+    def upload_server_cert(self, cert_name, cert_body, private_key, cert_chain=None, path=None):
+        certificate_id = random_resource_id()
+        cert = Certificate(cert_name, cert_body, private_key, cert_chain, path)
+        self.certificates[certificate_id] = cert
+        return cert
+
+    def get_server_certificate(self, name):
+        for key, cert in self.certificates.items():
+            if name == cert.cert_name:
+                return cert
 
 iam_backend = IAMBackend()

@@ -60,6 +60,29 @@ class IamResponse(BaseResponse):
         template = Template(LIST_INSTANCE_PROFILES_TEMPLATE)
         return template.render(instance_profiles=profiles)
 
+    def upload_server_certificate(self):
+        cert_name = self._get_param('ServerCertificateName')
+        cert_body = self._get_param('CertificateBody')
+        path = self._get_param('Path')
+        private_key = self._get_param('PrivateKey')
+        cert_chain = self._get_param('CertificateName')
+
+        cert = iam_backend.upload_server_cert(cert_name, cert_body, private_key, cert_chain=cert_chain, path=path)
+        template = Template(UPLOAD_CERT_TEMPLATE)
+        return template.render(certificate=cert)
+
+    def list_server_certificates(self, marker=None):
+        certs = iam_backend.get_all_server_certs(marker=marker)
+        template = Template(LIST_SERVER_CERTIFICATES_TEMPLATE)
+        return template.render(server_certificates=certs)
+
+    def get_server_certificate(self):
+        cert_name = self._get_param('ServerCertificateName')
+        cert = iam_backend.get_server_certificate(cert_name)
+        template = Template(GET_SERVER_CERTIFICATE_TEMPLATE)
+        return template.render(certificate=cert)
+
+
 CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <CreateInstanceProfileResult>
     <InstanceProfile>
@@ -182,3 +205,72 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
     <RequestId>fd74fa8d-99f3-11e1-a4c3-27EXAMPLE804</RequestId>
   </ResponseMetadata>
 </ListInstanceProfilesResponse>"""
+
+UPLOAD_CERT_TEMPLATE = """<UploadServerCertificateResponse>
+  <UploadServerCertificateResult>
+    <ServerCertificateMetadata>
+      <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
+      {% if certificate.path %}
+      <Path>{{ certificate.path }}</Path>
+      {% endif %}
+      <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
+      <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
+      <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
+      <Expiration>2012-05-08T01:02:03.004Z</Expiration>
+    </ServerCertificateMetadata>
+  </UploadServerCertificateResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</UploadServerCertificateResponse>"""
+
+LIST_SERVER_CERTIFICATES_TEMPLATE = """<ListServerCertificatesResponse>
+  <ListServerCertificatesResult>
+    <IsTruncated>false</IsTruncated>
+    <ServerCertificateMetadataList>
+      {% for certificate in server_certificates %}
+      <member>
+        <ServerCertificateMetadata>
+          <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
+          {% if certificate.path %}
+          <Path>{{ certificate.path }}</Path>
+          <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
+          {% else %}
+          <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
+          {% endif %}
+          <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
+          <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
+          <Expiration>2012-05-08T01:02:03.004Z</Expiration>
+        </ServerCertificateMetadata>
+      </member>
+      {% endfor %}
+    </ServerCertificateMetadataList>
+  </ListServerCertificatesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListServerCertificatesResponse>"""
+
+GET_SERVER_CERTIFICATE_TEMPLATE = """<GetServerCertificateResponse>
+  <GetServerCertificateResult>
+    <ServerCertificate>
+      <ServerCertificateMetadata>
+        <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
+        {% if certificate.path %}
+        <Path>{{ certificate.path }}</Path>
+        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
+        {% else %}
+        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
+        {% endif %}
+        <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
+        <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
+        <Expiration>2012-05-08T01:02:03.004Z</Expiration>
+      </ServerCertificateMetadata>
+      <CertificateBody>{{ certificate.cert_body }}</CertificateBody>
+    </ServerCertificate>
+  </GetServerCertificateResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetServerCertificateResponse>"""
+
