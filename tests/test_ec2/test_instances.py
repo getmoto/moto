@@ -106,6 +106,23 @@ def test_get_instances_filtering_by_state():
 
     conn.get_all_instances.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
 
+@mock_ec2
+def test_get_instances_filtering_by_instance_id():
+    conn = boto.connect_ec2()
+    reservation = conn.run_instances('ami-1234abcd', min_count=3)
+    instance1, instance2, instance3 = reservation.instances
+
+    reservations = conn.get_all_instances(filters={'instance-id': instance1.id})
+    # get_all_instances should return just instance1
+    reservations[0].instances.should.have.length_of(1)
+    reservations[0].instances[0].id.should.equal(instance1.id)
+
+    reservations = conn.get_all_instances(filters={'instance-id': [instance1.id, instance2.id]})
+    # get_all_instances should return two
+    reservations[0].instances.should.have.length_of(2)
+
+    reservations = conn.get_all_instances(filters={'instance-id': 'non-existing-id'})
+    reservations.should.have.length_of(0)
 
 @mock_ec2
 def test_instance_start_and_stop():

@@ -175,7 +175,8 @@ def keypair_names_from_querystring(querystring_dict):
 
 
 filter_dict_attribute_mapping = {
-    'instance-state-name': 'state'
+    'instance-state-name': 'state',
+    'instance-id': 'id'
 }
 
 
