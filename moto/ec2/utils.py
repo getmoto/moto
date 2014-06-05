@@ -50,7 +50,7 @@ def random_eip_association_id():
     return random_id(prefix='eipassoc')
 
 
-def random_gateway_id():
+def random_internet_gateway_id():
     return random_id(prefix='igw')
 
 
@@ -157,7 +157,7 @@ def dhcp_configuration_from_querystring(querystring, option=u'DhcpConfiguration'
 def filters_from_querystring(querystring_dict):
     response_values = {}
     for key, value in querystring_dict.iteritems():
-        match = re.search("Filter.(\d).Name", key)
+        match = re.search(r"Filter.(\d).Name", key)
         if match:
             filter_index = match.groups()[0]
             value_prefix = "Filter.{0}.Value".format(filter_index)

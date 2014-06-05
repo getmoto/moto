@@ -20,8 +20,6 @@ class DHCPOptions(BaseResponse):
         dhcp_opt = ec2_backend.describe_dhcp_options([dhcp_opt_id])[0]
 
         vpc = ec2_backend.get_vpc(vpc_id)
-        if not vpc:
-            raise InvalidVPCIdError(vpc_id)
 
         ec2_backend.associate_dhcp_options(dhcp_opt, vpc)
 

@@ -8,15 +8,20 @@ from moto.core import BaseBackend
 from .exceptions import (
     InvalidIdError,
     DependencyViolationError,
-    InvalidDHCPOptionsIdError
+    InvalidDHCPOptionsIdError,
+    InvalidInternetGatewayIDError,
+    GatewayNotAttachedError,
+    ResourceAlreadyAssociatedError,
+    InvalidVPCIdError
 )
 from .utils import (
     random_ami_id,
     random_dhcp_option_id,
     random_eip_allocation_id,
     random_eip_association_id,
-    random_gateway_id,
+    random_internet_gateway_id,
     random_instance_id,
+    random_internet_gateway_id,
     random_ip,
     random_key_pair,
     random_reservation_id,
@@ -368,11 +373,11 @@ class SecurityRule(object):
     @property
     def unique_representation(self):
         return "{0}-{1}-{2}-{3}-{4}".format(
-               self.ip_protocol,
-               self.from_port,
-               self.to_port,
-               self.ip_ranges,
-               self.source_groups
+            self.ip_protocol,
+            self.from_port,
+            self.to_port,
+            self.ip_ranges,
+            self.source_groups
         )
 
     def __eq__(self, other):
@@ -691,6 +696,8 @@ class VPCBackend(object):
         return vpc
 
     def get_vpc(self, vpc_id):
+        if vpc_id not in self.vpcs:
+            raise InvalidVPCIdError(vpc_id)
         return self.vpcs.get(vpc_id)
 
     def get_all_vpcs(self):
@@ -838,13 +845,14 @@ class RouteBackend(object):
         return route
 
 
-class InternetGateway(object):
-    def __init__(self, gateway_id):
-        self.id = gateway_id
+class InternetGateway(TaggedEC2Instance):
+    def __init__(self):
+        self.id = random_internet_gateway_id()
+        self.vpc = None
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
-        return ec2_backend.create_gateway()
+        return ec2_backend.create_internet_gateway()
 
     @property
     def physical_resource_id(self):
@@ -853,14 +861,50 @@ class InternetGateway(object):
 
 class InternetGatewayBackend(object):
     def __init__(self):
-        self.gateways = {}
+        self.internet_gateways = {}
         super(InternetGatewayBackend, self).__init__()
 
-    def create_gateway(self):
-        gateway_id = random_gateway_id()
-        gateway = InternetGateway(gateway_id)
-        self.gateways[gateway_id] = gateway
-        return gateway
+    def create_internet_gateway(self):
+        igw = InternetGateway()
+        self.internet_gateways[igw.id] = igw
+        return igw
+
+    def describe_internet_gateways(self, internet_gateway_ids=None):
+        igws = []
+        for igw_id in internet_gateway_ids or []:
+            if igw_id in self.internet_gateways:
+                igws.append(self.internet_gateways[igw_id])
+            else:
+                raise InvalidInternetGatewayIDError(igw_id)
+        return igws or self.internet_gateways.values()
+
+    def delete_internet_gateway(self, internet_gateway_id):
+        igw_ids = [internet_gateway_id]
+        igw = self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
+        if igw.vpc:
+            raise DependencyViolationError(
+                "{0} is being utilized by {1}"
+                .format(internet_gateway_id, igw.vpc)
+            )
+        self.internet_gateways.pop(internet_gateway_id)
+        return True
+
+    def detach_internet_gateway(self, internet_gateway_id, vpc_id):
+        igw_ids = [internet_gateway_id]
+        igw = self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
+        if not igw.vpc or igw.vpc.id != vpc_id:
+            raise GatewayNotAttachedError(internet_gateway_id, vpc_id)
+        igw.vpc = None
+        return True
+
+    def attach_internet_gateway(self, internet_gateway_id, vpc_id):
+        igw_ids = [internet_gateway_id]
+        igw = self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
+        if igw.vpc:
+            raise ResourceAlreadyAssociatedError(igw)
+        vpc = self.get_vpc(vpc_id)
+        igw.vpc = vpc
+        return True
 
 
 class VPCGatewayAttachment(object):

@@ -1,6 +1,7 @@
 from werkzeug.exceptions import BadRequest
 from jinja2 import Template
 
+
 class InvalidIdError(RuntimeError):
     def __init__(self, id_value):
         super(InvalidIdError, self).__init__()
@@ -38,12 +39,34 @@ class InvalidVPCIdError(EC2ClientError):
 
 class InvalidParameterValueError(EC2ClientError):
     def __init__(self, parameter_value):
-            super(InvalidParameterValueError, self).__init__(
-                "InvalidParameterValue",
-                "Value ({0}) for parameter value is invalid. Invalid DHCP option value.".format(
-                    parameter_value))
+        super(InvalidParameterValueError, self).__init__(
+            "InvalidParameterValue",
+            "Value {0} is invalid for parameter."
+            .format(parameter_value))
 
 
+class InvalidInternetGatewayIDError(EC2ClientError):
+    def __init__(self, internet_gateway_id):
+        super(InvalidInternetGatewayIDError, self).__init__(
+            "InvalidInternetGatewayID.NotFound",
+            "InternetGatewayID {0} does not exist."
+            .format(internet_gateway_id))
+
+
+class GatewayNotAttachedError(EC2ClientError):
+    def __init__(self, internet_gateway_id, vpc_id):
+        super(GatewayNotAttachedError, self).__init__(
+            "Gateway.NotAttached",
+            "InternetGatewayID {0} is not attached to a VPC {1}."
+            .format(internet_gateway_id, vpc_id))
+
+
+class ResourceAlreadyAssociatedError(EC2ClientError):
+    def __init__(self, resource):
+        super(ResourceAlreadyAssociatedError, self).__init__(
+            "Resource.AlreadyAssociated",
+            "Resource {0} is already associated."
+            .format(str(resource)))
 
 
 ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
