@@ -25,3 +25,10 @@ BACKENDS = {
     'sts': sts_backend,
     'route53': route53_backend
 }
+
+
+def get_model(name):
+    for backend in BACKENDS.values():
+        models = getattr(backend.__class__, '__models__', {})
+        if name in models:
+            return getattr(backend, models[name])()
