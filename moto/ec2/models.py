@@ -7,6 +7,7 @@ from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
 
 from moto.core import BaseBackend
+from moto.core.models import Model
 from .exceptions import (
     InvalidIdError,
     DependencyViolationError,
@@ -933,6 +934,8 @@ class SpotInstanceRequest(BotoSpotRequest):
 
 
 class SpotRequestBackend(object):
+    __metaclass__ = Model
+
     def __init__(self):
         self.spot_instance_requests = {}
         super(SpotRequestBackend, self).__init__()
@@ -955,6 +958,7 @@ class SpotRequestBackend(object):
             requests.append(request)
         return requests
 
+    @Model.prop('SpotInstanceRequest')
     def describe_spot_instance_requests(self):
         return self.spot_instance_requests.values()
 
