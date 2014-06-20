@@ -1,24 +1,99 @@
+import base64
 import hashlib
 import time
 import re
 
 from moto.core import BaseBackend
 from moto.core.utils import camelcase_to_underscores, get_random_message_id
-from .utils import generate_receipt_handle
+from .utils import generate_receipt_handle, unix_time_millis
+
+
+DEFAULT_ACCOUNT_ID = 123456789012
+
+
+class MessageNotInflight(Exception):
+    description = "The message referred to is not in flight."
+    status_code = 400
+
+
+class ReceiptHandleIsInvalid(Exception):
+    description = "The receipt handle provided is not valid."
+    status_code = 400
 
 
 class Message(object):
-
     def __init__(self, message_id, body):
         self.id = message_id
         self.body = body
-        self.receipt_handle = generate_receipt_handle()
+        self.receipt_handle = None
+        self.sender_id = DEFAULT_ACCOUNT_ID
+        self.sent_timestamp = None
+        self.approximate_first_receive_timestamp = None
+        self.approximate_receive_count = 0
+        self.visible_at = 0
+        self.delayed_until = 0
+
+    @property
+    def body_base64(self):
+        if len(self.body) >= 27:
+            return base64.b64encode(self.body)
+        return self.body
 
     @property
     def md5(self):
         body_md5 = hashlib.md5()
         body_md5.update(self.body)
         return body_md5.hexdigest()
+
+    def mark_sent(self, delay_seconds=None):
+        self.sent_timestamp = unix_time_millis()
+        if delay_seconds:
+            self.delay(delay_seconds=delay_seconds)
+
+    def mark_recieved(self, visibility_timeout=None):
+        """
+        When a message is received we will set the first recieve timestamp,
+        tap the ``approximate_receive_count`` and the ``visible_at`` time.
+        """
+        if visibility_timeout:
+            visibility_timeout = int(visibility_timeout)
+        else:
+            visibility_timeout = 0
+
+        if not self.approximate_first_receive_timestamp:
+            self.approximate_first_receive_timestamp = unix_time_millis()
+
+        self.approximate_receive_count += 1
+
+        # Make message visible again in the future unless its
+        # destroyed.
+        if visibility_timeout:
+            self.change_visibility(visibility_timeout)
+
+        self.receipt_handle = generate_receipt_handle()
+
+    def change_visibility(self, visibility_timeout):
+        # We're dealing with milliseconds internally
+        visibility_timeout_msec = int(visibility_timeout) * 1000
+        self.visible_at = unix_time_millis() + visibility_timeout_msec
+
+    def delay(self, delay_seconds):
+        delay_msec = int(delay_seconds) * 1000
+        self.delayed_until = unix_time_millis() + delay_msec
+
+    @property
+    def visible(self):
+        current_time = unix_time_millis()
+        if current_time > self.visible_at:
+            return True
+        return False
+
+    @property
+    def delayed(self):
+        current_time = unix_time_millis()
+        if current_time < self.delayed_until:
+            return True
+        return False
 
 
 class Queue(object):
@@ -37,12 +112,10 @@ class Queue(object):
     def __init__(self, name, visibility_timeout):
         self.name = name
         self.visibility_timeout = visibility_timeout or 30
-        self.messages = []
+        self._messages = []
 
         now = time.time()
 
-        self.approximate_number_of_messages_delayed = 0
-        self.approximate_number_of_messages_not_visible = 0
         self.created_timestamp = now
         self.delay_seconds = 0
         self.last_modified_timestamp = now
@@ -61,6 +134,18 @@ class Queue(object):
         )
 
     @property
+    def approximate_number_of_messages_delayed(self):
+        return len([m for m in self._messages if m.delayed])
+
+    @property
+    def approximate_number_of_messages_not_visible(self):
+        return len([m for m in self._messages if not m.visible])
+
+    @property
+    def approximate_number_of_messages(self):
+        return len(self.messages)
+
+    @property
     def physical_resource_id(self):
         return self.name
 
@@ -72,12 +157,14 @@ class Queue(object):
         return result
 
     @property
-    def approximate_number_of_messages(self):
-        return len(self.messages)
+    def messages(self):
+        return [message for message in self._messages if message.visible and not message.delayed]
+
+    def add_message(self, message):
+        self._messages.append(message)
 
 
 class SQSBackend(BaseBackend):
-
     def __init__(self):
         self.queues = {}
         super(SQSBackend, self).__init__()
@@ -112,28 +199,66 @@ class SQSBackend(BaseBackend):
         return queue
 
     def send_message(self, queue_name, message_body, delay_seconds=None):
-        # TODO impemented delay_seconds
         queue = self.get_queue(queue_name)
+
+        if delay_seconds:
+            delay_seconds = int(delay_seconds)
+        else:
+            delay_seconds = queue.delay_seconds
+
         message_id = get_random_message_id()
         message = Message(message_id, message_body)
-        queue.messages.append(message)
+
+        message.mark_sent(
+            delay_seconds=delay_seconds
+        )
+
+        queue.add_message(message)
         return message
 
     def receive_messages(self, queue_name, count):
+        """
+        Attempt to retrieve visible messages from a queue.
+
+        If a message was read by client and not deleted it is considered to be
+        "inflight" and cannot be read. We make attempts to obtain ``count``
+        messages but we may return less if messages are in-flight or there
+        are simple not enough messages in the queue.
+
+        :param string queue_name: The name of the queue to read from.
+        :param int count: The maximum amount of messages to retrieve.
+        """
         queue = self.get_queue(queue_name)
         result = []
-        for _ in range(count):
-            if queue.messages:
-                result.append(queue.messages.pop(0))
+        # queue.messages only contains visible messages
+        for message in queue.messages:
+            message.mark_recieved(
+                visibility_timeout=queue.visibility_timeout
+            )
+            result.append(message)
+            if len(result) >= count:
+                break
         return result
 
     def delete_message(self, queue_name, receipt_handle):
         queue = self.get_queue(queue_name)
-        new_messages = [
-            message for message in queue.messages
-            if message.receipt_handle != receipt_handle
-        ]
-        queue.message = new_messages
+        new_messages = []
+        for message in queue._messages:
+            # Only delete message if it is not visible and the reciept_handle
+            # matches.
+            if not message.visible and message.receipt_handle == receipt_handle:
+                continue
+            new_messages.append(message)
+        queue._messages = new_messages
 
+    def change_message_visibility(self, queue_name, receipt_handle, visibility_timeout):
+        queue = self.get_queue(queue_name)
+        for message in queue._messages:
+            if message.receipt_handle == receipt_handle:
+                if message.visible:
+                    raise MessageNotInflight
+                message.change_visibility(visibility_timeout)
+                return
+        raise ReceiptHandleIsInvalid
 
 sqs_backend = SQSBackend()

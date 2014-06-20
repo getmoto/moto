@@ -26,5 +26,6 @@ def test_sqs_list_identities():
 
     res = test_client.get(
         '/123/testqueue?Action=ReceiveMessage&MaxNumberOfMessages=1')
+
     message = re.search("<Body>(.*?)</Body>", res.data).groups()[0]
     message.should.equal('test-message')

@@ -4,6 +4,8 @@ from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sqs_backend
 
+MAXIMUM_VISIBILTY_TIMEOUT = 43200
+
 
 class QueuesResponse(BaseResponse):
 
@@ -34,6 +36,25 @@ class QueuesResponse(BaseResponse):
 
 
 class QueueResponse(BaseResponse):
+    def change_message_visibility(self):
+        queue_name = self.path.split("/")[-1]
+        receipt_handle = self.querystring.get("ReceiptHandle")[0]
+        visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
+
+        if visibility_timeout > MAXIMUM_VISIBILTY_TIMEOUT:
+            return "Invalid request, maximum visibility timeout is {}".format(
+                MAXIMUM_VISIBILTY_TIMEOUT
+            ), dict(status=400)
+
+        sqs_backend.change_message_visibility(
+            queue_name=queue_name,
+            receipt_handle=receipt_handle,
+            visibility_timeout=visibility_timeout
+        )
+
+        template = Template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
+        return template.render()
+
     def get_queue_attributes(self):
         queue_name = self.path.split("/")[-1]
         queue = sqs_backend.get_queue(queue_name)
@@ -57,8 +78,19 @@ class QueueResponse(BaseResponse):
 
     def send_message(self):
         message = self.querystring.get("MessageBody")[0]
+        delay_seconds = self.querystring.get('DelaySeconds')
+
+        if delay_seconds:
+            delay_seconds = int(delay_seconds[0])
+        else:
+            delay_seconds = 0
+
         queue_name = self.path.split("/")[-1]
-        message = sqs_backend.send_message(queue_name, message)
+        message = sqs_backend.send_message(
+            queue_name,
+            message,
+            delay_seconds=delay_seconds
+        )
         template = Template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message)
 
@@ -138,7 +170,8 @@ class QueueResponse(BaseResponse):
         message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
         messages = sqs_backend.receive_messages(queue_name, message_count)
         template = Template(RECEIVE_MESSAGE_RESPONSE)
-        return template.render(messages=messages)
+        output = template.render(messages=messages)
+        return output
 
 
 CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
@@ -226,18 +259,26 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
   <ReceiveMessageResult>
     {% for message in messages %}
         <Message>
-          <MessageId>
-            {{ message.id }}
-          </MessageId>
-          <ReceiptHandle>
-            MbZj6wDWli+JvwwJaBV+3dcjk2YW2vA3+STFFljTM8tJJg6HRG6PYSasuWXPJB+Cw
-            Lj1FjgXUv1uSj1gUPAWV66FU/WeR4mq2OKpEGYWbnLmpRCJVAyeMjeU5ZBdtcQ+QE
-            auMZc8ZRv37sIW2iJKq3M9MFx1YvV11A2x/KSbkJ0=
-          </ReceiptHandle>
-          <MD5OfBody>
-            {{ message.md5 }}
-          </MD5OfBody>
-          <Body>{{ message.body }}</Body>
+          <MessageId>{{ message.id }}</MessageId>
+          <ReceiptHandle>{{ message.receipt_handle }}</ReceiptHandle>
+          <MD5OfBody>{{ message.md5 }}</MD5OfBody>
+          <Body>{{ message.body_base64 }}</Body>
+          <Attribute>
+            <Name>SenderId</Name>
+            <Value>{{ message.sender_id }}</Value>
+          </Attribute>
+          <Attribute>
+            <Name>SentTimestamp</Name>
+            <Value>{{ message.sent_timestamp }}</Value>
+          </Attribute>
+          <Attribute>
+            <Name>ApproximateReceiveCount</Name>
+            <Value>{{ message.approximate_receive_count }}</Value>
+          </Attribute>
+          <Attribute>
+            <Name>ApproximateFirstReceiveTimestamp</Name>
+            <Value>{{ message.approximate_first_receive_timestamp }}</Value>
+          </Attribute>
         </Message>
     {% endfor %}
   </ReceiveMessageResult>
@@ -283,3 +324,11 @@ DELETE_MESSAGE_BATCH_RESPONSE = """<DeleteMessageBatchResponse>
         <RequestId>d6f86b7a-74d1-4439-b43f-196a1e29cd85</RequestId>
     </ResponseMetadata>
 </DeleteMessageBatchResponse>"""
+
+CHANGE_MESSAGE_VISIBILITY_RESPONSE = """<ChangeMessageVisibilityResponse>
+    <ResponseMetadata>
+        <RequestId>
+            6a7a282a-d013-4a59-aba9-335b0fa48bed
+        </RequestId>
+    </ResponseMetadata>
+</ChangeMessageVisibilityResponse>"""
