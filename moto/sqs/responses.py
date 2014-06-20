@@ -3,6 +3,10 @@ from jinja2 import Template
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sqs_backend
+from .exceptions import (
+    MessageNotInflight,
+    ReceiptHandleIsInvalid
+)
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
 
@@ -46,11 +50,14 @@ class QueueResponse(BaseResponse):
                 MAXIMUM_VISIBILTY_TIMEOUT
             ), dict(status=400)
 
-        sqs_backend.change_message_visibility(
-            queue_name=queue_name,
-            receipt_handle=receipt_handle,
-            visibility_timeout=visibility_timeout
-        )
+        try:
+            sqs_backend.change_message_visibility(
+                queue_name=queue_name,
+                receipt_handle=receipt_handle,
+                visibility_timeout=visibility_timeout
+            )
+        except (ReceiptHandleIsInvalid, MessageNotInflight) as e:
+            return "Invalid request: {}".format(e.description), dict(status=e.status_code)
 
         template = Template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()

@@ -6,19 +6,12 @@ import re
 from moto.core import BaseBackend
 from moto.core.utils import camelcase_to_underscores, get_random_message_id
 from .utils import generate_receipt_handle, unix_time_millis
-
+from .exceptions import (
+    ReceiptHandleIsInvalid,
+    MessageNotInflight
+)
 
 DEFAULT_ACCOUNT_ID = 123456789012
-
-
-class MessageNotInflight(Exception):
-    description = "The message referred to is not in flight."
-    status_code = 400
-
-
-class ReceiptHandleIsInvalid(Exception):
-    description = "The receipt handle provided is not valid."
-    status_code = 400
 
 
 class Message(object):

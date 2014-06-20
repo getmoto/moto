@@ -1,6 +1,7 @@
 import boto
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage
+
 import requests
 import sure  # noqa
 import time
@@ -283,3 +284,51 @@ def test_queue_attributes():
     attribute_names.should.contain('VisibilityTimeout')
     attribute_names.should.contain('LastModifiedTimestamp')
     attribute_names.should.contain('QueueArn')
+
+
+@mock_sqs
+def test_change_message_visibility_on_invalid_receipt():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=1)
+
+    conn.send_message(queue, 'this is another test message')
+    queue.count().should.equal(1)
+    messages = conn.receive_message(queue, number_messages=1)
+
+    assert len(messages) == 1
+
+    original_message = messages[0]
+
+    queue.count().should.equal(0)
+
+    time.sleep(2)
+
+    queue.count().should.equal(1)
+
+    messages = conn.receive_message(queue, number_messages=1)
+
+    assert len(messages) == 1
+
+    original_message.change_visibility.when.called_with(100).should.throw(SQSError)
+
+
+@mock_sqs
+def test_change_message_visibility_on_visible_message():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=1)
+
+    conn.send_message(queue, 'this is another test message')
+    queue.count().should.equal(1)
+    messages = conn.receive_message(queue, number_messages=1)
+
+    assert len(messages) == 1
+
+    original_message = messages[0]
+
+    queue.count().should.equal(0)
+
+    time.sleep(2)
+
+    queue.count().should.equal(1)
+
+    original_message.change_visibility.when.called_with(100).should.throw(SQSError)
