@@ -13,7 +13,7 @@ def unix_time(dt=None):
     dt = dt or datetime.datetime.utcnow()
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = dt - epoch
-    return delta.total_seconds()
+    return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
 
 
 def unix_time_millis(dt=None):
