@@ -44,7 +44,7 @@ def test_my_model_save():
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
 ```
 
 With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps the state of the buckets and keys.
@@ -119,11 +119,13 @@ All of the services can be used as a decorator, context manager, or in a raw for
 ```python
 @mock_s3
 def test_my_model_save():
+    conn = boto.connect_s3()
+    conn.create_bucket('mybucket')
+
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn = boto.connect_s3()
-    assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
 ```
 
 ### Context Manager
@@ -131,11 +133,13 @@ def test_my_model_save():
 ```python
 def test_my_model_save():
     with mock_s3():
+        conn = boto.connect_s3()
+        conn.create_bucket('mybucket')
+
         model_instance = MyModel('steve', 'is awesome')
         model_instance.save()
 
-        conn = boto.connect_s3()
-        assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+        assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
 ```
 
 
@@ -146,11 +150,13 @@ def test_my_model_save():
     mock = mock_s3()
     mock.start()
 
+    conn = boto.connect_s3()
+    conn.create_bucket('mybucket')
+
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn = boto.connect_s3()
-    assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
 
     mock.stop()
 ```
