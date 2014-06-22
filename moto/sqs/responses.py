@@ -46,7 +46,7 @@ class QueueResponse(BaseResponse):
         visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
 
         if visibility_timeout > MAXIMUM_VISIBILTY_TIMEOUT:
-            return "Invalid request, maximum visibility timeout is {}".format(
+            return "Invalid request, maximum visibility timeout is {0}".format(
                 MAXIMUM_VISIBILTY_TIMEOUT
             ), dict(status=400)
 
@@ -57,7 +57,7 @@ class QueueResponse(BaseResponse):
                 visibility_timeout=visibility_timeout
             )
         except (ReceiptHandleIsInvalid, MessageNotInflight) as e:
-            return "Invalid request: {}".format(e.description), dict(status=e.status_code)
+            return "Invalid request: {0}".format(e.description), dict(status=e.status_code)
 
         template = Template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()
