@@ -104,7 +104,7 @@ def test_send_message_with_delay():
 
 
 @mock_sqs
-def test_message_becomes_inflight_when_recieved():
+def test_message_becomes_inflight_when_received():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=2)
 

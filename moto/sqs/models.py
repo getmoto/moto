@@ -43,9 +43,9 @@ class Message(object):
         if delay_seconds:
             self.delay(delay_seconds=delay_seconds)
 
-    def mark_recieved(self, visibility_timeout=None):
+    def mark_received(self, visibility_timeout=None):
         """
-        When a message is received we will set the first recieve timestamp,
+        When a message is received we will set the first receive timestamp,
         tap the ``approximate_receive_count`` and the ``visible_at`` time.
         """
         if visibility_timeout:
@@ -225,7 +225,7 @@ class SQSBackend(BaseBackend):
         result = []
         # queue.messages only contains visible messages
         for message in queue.messages:
-            message.mark_recieved(
+            message.mark_received(
                 visibility_timeout=queue.visibility_timeout
             )
             result.append(message)
