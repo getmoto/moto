@@ -27,12 +27,6 @@ class Message(object):
         self.delayed_until = 0
 
     @property
-    def body_base64(self):
-        if len(self.body) >= 27:
-            return base64.b64encode(self.body)
-        return self.body
-
-    @property
     def md5(self):
         body_md5 = hashlib.md5()
         body_md5.update(self.body)

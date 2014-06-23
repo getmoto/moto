@@ -269,7 +269,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
           <MessageId>{{ message.id }}</MessageId>
           <ReceiptHandle>{{ message.receipt_handle }}</ReceiptHandle>
           <MD5OfBody>{{ message.md5 }}</MD5OfBody>
-          <Body>{{ message.body_base64 }}</Body>
+          <Body>{{ message.body }}</Body>
           <Attribute>
             <Name>SenderId</Name>
             <Value>{{ message.sender_id }}</Value>
