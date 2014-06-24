@@ -19,3 +19,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Hugo Lopes Tavares](https://github.com/hltbra)
 * [Chris St. Pierre](https://github.com/stpierre)
 * [Frank Mata](https://github.com/matafc)
+* [Clint Ecker](https://github.com/clintecker)
