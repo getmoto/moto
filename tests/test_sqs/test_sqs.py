@@ -1,8 +1,10 @@
 import boto
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage
+
 import requests
 import sure  # noqa
+import time
 
 from moto import mock_sqs
 
@@ -75,30 +77,140 @@ def test_set_queue_attribute():
 def test_send_message():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue.set_message_class(RawMessage)
 
-    conn.send_message(queue, 'this is a test message')
-    conn.send_message(queue, 'this is another test message')
+    body_one = 'this is a test message'
+    body_two = 'this is another test message'
+
+    queue.write(queue.new_message(body_one))
+    queue.write(queue.new_message(body_two))
+
+    messages = conn.receive_message(queue, number_messages=2)
+
+    messages[0].get_body().should.equal(body_one)
+    messages[1].get_body().should.equal(body_two)
+
+
+@mock_sqs
+def test_send_message_with_delay():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue.set_message_class(RawMessage)
+
+    body_one = 'this is a test message'
+    body_two = 'this is another test message'
+
+    queue.write(queue.new_message(body_one), delay_seconds=60)
+    queue.write(queue.new_message(body_two))
+
+    queue.count().should.equal(1)
+
+    messages = conn.receive_message(queue, number_messages=2)
+    assert len(messages) == 1
+    message = messages[0]
+    assert message.get_body().should.equal(body_two)
+    queue.count().should.equal(0)
+
+
+@mock_sqs
+def test_message_becomes_inflight_when_received():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=2)
+    queue.set_message_class(RawMessage)
+
+    body_one = 'this is a test message'
+    queue.write(queue.new_message(body_one))
+    queue.count().should.equal(1)
 
     messages = conn.receive_message(queue, number_messages=1)
-    messages[0].get_body().should.equal('this is a test message')
+    queue.count().should.equal(0)
+
+    assert len(messages) == 1
+
+    # Wait
+    time.sleep(3)
+
+    queue.count().should.equal(1)
+
+
+@mock_sqs
+def test_change_message_visibility():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=2)
+    queue.set_message_class(RawMessage)
+
+    body_one = 'this is another test message'
+    queue.write(queue.new_message(body_one))
+
+    queue.count().should.equal(1)
+    messages = conn.receive_message(queue, number_messages=1)
+
+    assert len(messages) == 1
+
+    queue.count().should.equal(0)
+
+    messages[0].change_visibility(2)
+
+    # Wait
+    time.sleep(1)
+
+    # Message is not visible
+    queue.count().should.equal(0)
+
+    time.sleep(2)
+
+    # Message now becomes visible
+    queue.count().should.equal(1)
+
+    messages = conn.receive_message(queue, number_messages=1)
+    messages[0].delete()
+    queue.count().should.equal(0)
+
+
+@mock_sqs
+def test_message_attributes():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=2)
+    queue.set_message_class(RawMessage)
+
+    body_one = 'this is another test message'
+    queue.write(queue.new_message(body_one))
+
+    queue.count().should.equal(1)
+
+    messages = conn.receive_message(queue, number_messages=1)
+    queue.count().should.equal(0)
+
+    assert len(messages) == 1
+
+    message_attributes = messages[0].attributes
+
+    assert message_attributes.get('ApproximateFirstReceiveTimestamp')
+    assert int(message_attributes.get('ApproximateReceiveCount')) == 1
+    assert message_attributes.get('SentTimestamp')
+    assert message_attributes.get('SenderId')
 
 
 @mock_sqs
 def test_read_message_from_queue():
     conn = boto.connect_sqs()
     queue = conn.create_queue('testqueue')
-    queue.write(queue.new_message('foo bar baz'))
+    queue.set_message_class(RawMessage)
+
+    body = 'foo bar baz'
+    queue.write(queue.new_message(body))
     message = queue.read(1)
-    message.get_body().should.equal('foo bar baz')
+    message.get_body().should.equal(body)
 
 
 @mock_sqs
 def test_queue_length():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue.set_message_class(RawMessage)
 
-    conn.send_message(queue, 'this is a test message')
-    conn.send_message(queue, 'this is another test message')
+    queue.write(queue.new_message('this is a test message'))
+    queue.write(queue.new_message('this is another test message'))
     queue.count().should.equal(2)
 
 
@@ -106,14 +218,21 @@ def test_queue_length():
 def test_delete_message():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue.set_message_class(RawMessage)
 
-    conn.send_message(queue, 'this is a test message')
-    conn.send_message(queue, 'this is another test message')
+    queue.write(queue.new_message('this is a test message'))
+    queue.write(queue.new_message('this is another test message'))
+    queue.count().should.equal(2)
 
     messages = conn.receive_message(queue, number_messages=1)
+    assert len(messages) == 1
     messages[0].delete()
-
     queue.count().should.equal(1)
+
+    messages = conn.receive_message(queue, number_messages=1)
+    assert len(messages) == 1
+    messages[0].delete()
+    queue.count().should.equal(0)
 
 
 @mock_sqs
@@ -187,3 +306,53 @@ def test_queue_attributes():
     attribute_names.should.contain('VisibilityTimeout')
     attribute_names.should.contain('LastModifiedTimestamp')
     attribute_names.should.contain('QueueArn')
+
+
+@mock_sqs
+def test_change_message_visibility_on_invalid_receipt():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=1)
+    queue.set_message_class(RawMessage)
+
+    queue.write(queue.new_message('this is another test message'))
+    queue.count().should.equal(1)
+    messages = conn.receive_message(queue, number_messages=1)
+
+    assert len(messages) == 1
+
+    original_message = messages[0]
+
+    queue.count().should.equal(0)
+
+    time.sleep(2)
+
+    queue.count().should.equal(1)
+
+    messages = conn.receive_message(queue, number_messages=1)
+
+    assert len(messages) == 1
+
+    original_message.change_visibility.when.called_with(100).should.throw(SQSError)
+
+
+@mock_sqs
+def test_change_message_visibility_on_visible_message():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=1)
+    queue.set_message_class(RawMessage)
+
+    queue.write(queue.new_message('this is another test message'))
+    queue.count().should.equal(1)
+    messages = conn.receive_message(queue, number_messages=1)
+
+    assert len(messages) == 1
+
+    original_message = messages[0]
+
+    queue.count().should.equal(0)
+
+    time.sleep(2)
+
+    queue.count().should.equal(1)
+
+    original_message.change_visibility.when.called_with(100).should.throw(SQSError)
