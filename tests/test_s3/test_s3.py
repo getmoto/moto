@@ -508,3 +508,38 @@ def test_restore_key_headers():
     key.ongoing_restore.should_not.be.none
     key.ongoing_restore.should.be.false
     key.expiry_date.should.equal("Mon, 02 Jan 2012 12:00:00 GMT")
+
+
+@mock_s3
+def test_get_versioning_status():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket('foobar')
+    d = bucket.get_versioning_status()
+    d.should.be.empty
+
+    bucket.configure_versioning(versioning=True)
+    d = bucket.get_versioning_status()
+    d.shouldnt.be.empty
+    d.should.have.key('Versioning').being.equal('Enabled')
+
+    bucket.configure_versioning(versioning=False)
+    d = bucket.get_versioning_status()
+    d.should.have.key('Versioning').being.equal('Suspended')
+
+
+@mock_s3
+def test_key_version():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket('foobar')
+    bucket.configure_versioning(versioning=True)
+
+    key = Key(bucket)
+    key.key = 'the-key'
+    key.version_id.should.be.none
+    key.set_contents_from_string('some string')
+    key.version_id.should.equal('0')
+    key.set_contents_from_string('some string')
+    key.version_id.should.equal('1')
+
+    key = bucket.get_key('the-key')
+    key.version_id.should.equal('1')

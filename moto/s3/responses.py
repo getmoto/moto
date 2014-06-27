@@ -48,7 +48,7 @@ class ResponseObject(object):
         elif method == 'GET':
             return self._bucket_response_get(bucket_name, querystring, headers)
         elif method == 'PUT':
-            return self._bucket_response_put(bucket_name, headers)
+            return self._bucket_response_put(request, bucket_name, querystring, headers)
         elif method == 'DELETE':
             return self._bucket_response_delete(bucket_name, headers)
         elif method == 'POST':
@@ -73,14 +73,17 @@ class ResponseObject(object):
             return 200, headers, template.render(
                 bucket_name=bucket_name,
                 uploads=multiparts)
-
+        elif 'versioning' in querystring:
+            versioning = self.backend.get_bucket_versioning(bucket_name)
+            template = Template(S3_BUCKET_GET_VERSIONING)
+            return 200, headers, template.render(status=versioning)
         bucket = self.backend.get_bucket(bucket_name)
         if bucket:
             prefix = querystring.get('prefix', [None])[0]
             delimiter = querystring.get('delimiter', [None])[0]
             result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
             template = Template(S3_BUCKET_GET_RESPONSE)
-            return template.render(
+            return 200, headers, template.render(
                 bucket=bucket,
                 prefix=prefix,
                 delimiter=delimiter,
@@ -90,13 +93,22 @@ class ResponseObject(object):
         else:
             return 404, headers, ""
 
-    def _bucket_response_put(self, bucket_name, headers):
-        try:
-            new_bucket = self.backend.create_bucket(bucket_name)
-        except BucketAlreadyExists:
-            return 409, headers, ""
-        template = Template(S3_BUCKET_CREATE_RESPONSE)
-        return template.render(bucket=new_bucket)
+    def _bucket_response_put(self, request, bucket_name, querystring, headers):
+        if 'versioning' in querystring:
+            ver = re.search('<Status>([A-Za-z]+)</Status>', request.body)
+            if ver:
+                self.backend.set_bucket_versioning(bucket_name, ver.group(1))
+                template = Template(S3_BUCKET_VERSIONING)
+                return template.render(bucket_versioning_status=ver.group(1))
+            else:
+                return 404, headers, ""
+        else:
+            try:
+                new_bucket = self.backend.create_bucket(bucket_name)
+            except BucketAlreadyExists:
+                return 409, headers, ""
+            template = Template(S3_BUCKET_CREATE_RESPONSE)
+            return 200, headers, template.render(bucket=new_bucket)
 
     def _bucket_response_delete(self, bucket_name, headers):
         removed_bucket = self.backend.delete_bucket(bucket_name)
@@ -411,6 +423,21 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
 </Error>"""
 
+S3_BUCKET_VERSIONING = """
+<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+	<Status>{{ bucket_versioning_status }}</Status>
+</VersioningConfiguration>
+"""
+
+S3_BUCKET_GET_VERSIONING = """
+{% if status is none %}
+	<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
+{% else %}
+	<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+	<Status>{{ status }}</Status>
+	</VersioningConfiguration>
+{% endif %}
+"""
 S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
 {% for k in deleted %}

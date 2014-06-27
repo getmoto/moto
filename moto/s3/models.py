@@ -14,7 +14,8 @@ UPLOAD_PART_MIN_SIZE = 5242880
 
 
 class FakeKey(object):
-    def __init__(self, name, value, storage="STANDARD", etag=None):
+
+    def __init__(self, name, value, storage="STANDARD", etag=None, is_versioned=False, version_id=0):
         self.name = name
         self.value = value
         self.last_modified = datetime.datetime.now()
@@ -22,6 +23,8 @@ class FakeKey(object):
         self._metadata = {}
         self._expiry = None
         self._etag = etag
+        self._version_id = version_id
+        self._is_versioned = is_versioned
 
     def copy(self, new_name=None):
         r = copy.deepcopy(self)
@@ -42,6 +45,10 @@ class FakeKey(object):
         self.value += value
         self.last_modified = datetime.datetime.now()
         self._etag = None  # must recalculate etag
+        if self._is_versioned:
+            self._version_id += 1
+        else:
+            self._is_versioned = 0
 
     def restore(self, days):
         self._expiry = datetime.datetime.now() + datetime.timedelta(days)
@@ -79,6 +86,10 @@ class FakeKey(object):
         if self._expiry is not None:
             rhdr = 'ongoing-request="false", expiry-date="{0}"'
             r['x-amz-restore'] = rhdr.format(self.expiry_date)
+
+        if self._is_versioned:
+            r['x-amz-version-id'] = self._version_id
+
         return r
 
     @property
@@ -137,10 +148,16 @@ class FakeMultipart(object):
 
 
 class FakeBucket(object):
+
     def __init__(self, name):
         self.name = name
         self.keys = {}
         self.multiparts = {}
+        self.versioning_status = None
+
+    @property
+    def is_versioned(self):
+        return self.versioning_status == 'Enabled'
 
 
 class S3Backend(BaseBackend):
@@ -171,12 +188,30 @@ class S3Backend(BaseBackend):
                 return self.buckets.pop(bucket_name)
         return None
 
+    def set_bucket_versioning(self, bucket_name, status):
+        self.buckets[bucket_name].versioning_status = status
+
+    def get_bucket_versioning(self, bucket_name):
+        return self.buckets[bucket_name].versioning_status
+
     def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)
 
         bucket = self.buckets[bucket_name]
-        new_key = FakeKey(name=key_name, value=value,
-                          storage=storage, etag=etag)
+
+        old_key = bucket.keys.get(key_name, None)
+        if old_key is not None and bucket.is_versioned:
+            new_version_id = old_key._version_id + 1
+        else:
+            new_version_id = 0
+
+        new_key = FakeKey(
+            name=key_name,
+            value=value,
+            storage=storage,
+            etag=etag,
+            is_versioned=bucket.is_versioned,
+            version_id=new_version_id)
         bucket.keys[key_name] = new_key
 
         return new_key
