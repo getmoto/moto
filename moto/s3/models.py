@@ -3,6 +3,7 @@ import base64
 import datetime
 import hashlib
 import copy
+import itertools
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
@@ -194,6 +195,18 @@ class S3Backend(BaseBackend):
     def get_bucket_versioning(self, bucket_name):
         return self.buckets[bucket_name].versioning_status
 
+    def get_bucket_versions(self, bucket_name, delimiter=None,
+                            encoding_type=None,
+                            key_marker=None,
+                            max_keys=None,
+                            version_id_marker=None):
+        bucket = self.buckets[bucket_name]
+
+        if any((delimiter, encoding_type, key_marker, version_id_marker)):
+            raise NotImplementedError(
+                "Called get_bucket_versions with some of delimiter, encoding_type, key_marker, version_id_marker")
+
+        return itertools.chain(*(l for _, l in bucket.keys.iterlists()))
     def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)
 
@@ -223,11 +236,16 @@ class S3Backend(BaseBackend):
         key.append_to_value(value)
         return key
 
-    def get_key(self, bucket_name, key_name):
+    def get_key(self, bucket_name, key_name, version_id=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
         if bucket:
-            return bucket.keys.get(key_name)
+            if version_id is None:
+                return bucket.keys.get(key_name)
+            else:
+                for key in bucket.keys.getlist(key_name):
+                    if str(key._version_id) == str(version_id):
+                        return key
 
     def initiate_multipart(self, bucket_name, key_name):
         bucket = self.buckets[bucket_name]

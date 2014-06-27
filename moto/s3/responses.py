@@ -77,6 +77,33 @@ class ResponseObject(object):
             versioning = self.backend.get_bucket_versioning(bucket_name)
             template = Template(S3_BUCKET_GET_VERSIONING)
             return 200, headers, template.render(status=versioning)
+        elif 'versions' in querystring:
+            delimiter = querystring.get('delimiter', [None])[0]
+            encoding_type = querystring.get('encoding-type', [None])[0]
+            key_marker = querystring.get('key-marker', [None])[0]
+            max_keys = querystring.get('max-keys', [None])[0]
+            prefix = querystring.get('prefix', [None])[0]
+            version_id_marker = querystring.get('version-id-marker', [None])[0]
+
+            bucket = self.backend.get_bucket(bucket_name)
+            versions = self.backend.get_bucket_versions(
+                bucket_name,
+                delimiter=delimiter,
+                encoding_type=encoding_type,
+                key_marker=key_marker,
+                max_keys=max_keys,
+                version_id_marker=version_id_marker
+            )
+            template = Template(S3_BUCKET_GET_VERSIONS)
+            return 200, headers, template.render(
+                key_list=versions,
+                bucket=bucket,
+                prefix='',
+                max_keys='',
+                delimiter='',
+                is_truncated='false',
+            )
+
         bucket = self.backend.get_bucket(bucket_name)
         if bucket:
             prefix = querystring.get('prefix', [None])[0]
@@ -236,7 +263,9 @@ class ResponseObject(object):
                 count=len(parts),
                 parts=parts
             )
-        key = self.backend.get_key(bucket_name, key_name)
+        version_id = query.get('versionId', [None])[0]
+        key = self.backend.get_key(
+            bucket_name, key_name, version_id=version_id)
         if key:
             headers.update(key.metadata)
             return 200, headers, key.value
@@ -424,12 +453,14 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 </Error>"""
 
 S3_BUCKET_VERSIONING = """
+<?xml version="1.0" encoding="UTF-8"?>
 <VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
 	<Status>{{ bucket_versioning_status }}</Status>
 </VersioningConfiguration>
 """
 
 S3_BUCKET_GET_VERSIONING = """
+<?xml version="1.0" encoding="UTF-8"?>
 {% if status is none %}
 	<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
 {% else %}
@@ -438,6 +469,32 @@ S3_BUCKET_GET_VERSIONING = """
 	</VersioningConfiguration>
 {% endif %}
 """
+
+S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
+<ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
+	<Name>{{ bucket.name }}</Name>
+	<Prefix>{{ prefix }}</Prefix>
+	<KeyMarker>{{ key_marker }}</KeyMarker>
+	<MaxKeys>{{ max_keys }}</MaxKeys>
+	<IsTruncated>{{ is_truncated }}</IsTruncated>
+	{% for key in key_list %}
+	<Version>
+		<Key>{{ key.name }}</Key>
+		<VersionId>{{ key._version_id }}</VersionId>
+		<IsLatest>false</IsLatest>
+		<LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
+		<ETag>{{ key.etag }}</ETag>
+		<Size>{{ key.size }}</Size>
+		<StorageClass>{{ key.storage_class }}</StorageClass>
+		<Owner>
+			<ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+			<DisplayName>webfile</DisplayName>
+		</Owner>
+	</Version>
+	{% endfor %}
+</ListVersionsResult>
+"""
+
 S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
 {% for k in deleted %}
