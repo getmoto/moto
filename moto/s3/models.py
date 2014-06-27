@@ -7,7 +7,7 @@ import copy
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists
-from .utils import clean_key_name
+from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
@@ -151,7 +151,7 @@ class FakeBucket(object):
 
     def __init__(self, name):
         self.name = name
-        self.keys = {}
+        self.keys = _VersionedKeyStore()
         self.multiparts = {}
         self.versioning_status = None
 
