@@ -48,7 +48,7 @@ class ResponseObject(object):
         elif method == 'GET':
             return self._bucket_response_get(bucket_name, querystring, headers)
         elif method == 'PUT':
-            return self._bucket_response_put(bucket_name, headers)
+            return self._bucket_response_put(request, bucket_name, querystring, headers)
         elif method == 'DELETE':
             return self._bucket_response_delete(bucket_name, headers)
         elif method == 'POST':
@@ -73,6 +73,36 @@ class ResponseObject(object):
             return 200, headers, template.render(
                 bucket_name=bucket_name,
                 uploads=multiparts)
+        elif 'versioning' in querystring:
+            versioning = self.backend.get_bucket_versioning(bucket_name)
+            template = Template(S3_BUCKET_GET_VERSIONING)
+            return 200, headers, template.render(status=versioning)
+        elif 'versions' in querystring:
+            delimiter = querystring.get('delimiter', [None])[0]
+            encoding_type = querystring.get('encoding-type', [None])[0]
+            key_marker = querystring.get('key-marker', [None])[0]
+            max_keys = querystring.get('max-keys', [None])[0]
+            prefix = querystring.get('prefix', [None])[0]
+            version_id_marker = querystring.get('version-id-marker', [None])[0]
+
+            bucket = self.backend.get_bucket(bucket_name)
+            versions = self.backend.get_bucket_versions(
+                bucket_name,
+                delimiter=delimiter,
+                encoding_type=encoding_type,
+                key_marker=key_marker,
+                max_keys=max_keys,
+                version_id_marker=version_id_marker
+            )
+            template = Template(S3_BUCKET_GET_VERSIONS)
+            return 200, headers, template.render(
+                key_list=versions,
+                bucket=bucket,
+                prefix='',
+                max_keys='',
+                delimiter='',
+                is_truncated='false',
+            )
 
         bucket = self.backend.get_bucket(bucket_name)
         if bucket:
@@ -80,7 +110,7 @@ class ResponseObject(object):
             delimiter = querystring.get('delimiter', [None])[0]
             result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
             template = Template(S3_BUCKET_GET_RESPONSE)
-            return template.render(
+            return 200, headers, template.render(
                 bucket=bucket,
                 prefix=prefix,
                 delimiter=delimiter,
@@ -90,13 +120,22 @@ class ResponseObject(object):
         else:
             return 404, headers, ""
 
-    def _bucket_response_put(self, bucket_name, headers):
-        try:
-            new_bucket = self.backend.create_bucket(bucket_name)
-        except BucketAlreadyExists:
-            return 409, headers, ""
-        template = Template(S3_BUCKET_CREATE_RESPONSE)
-        return template.render(bucket=new_bucket)
+    def _bucket_response_put(self, request, bucket_name, querystring, headers):
+        if 'versioning' in querystring:
+            ver = re.search('<Status>([A-Za-z]+)</Status>', request.body)
+            if ver:
+                self.backend.set_bucket_versioning(bucket_name, ver.group(1))
+                template = Template(S3_BUCKET_VERSIONING)
+                return template.render(bucket_versioning_status=ver.group(1))
+            else:
+                return 404, headers, ""
+        else:
+            try:
+                new_bucket = self.backend.create_bucket(bucket_name)
+            except BucketAlreadyExists:
+                return 409, headers, ""
+            template = Template(S3_BUCKET_CREATE_RESPONSE)
+            return 200, headers, template.render(bucket=new_bucket)
 
     def _bucket_response_delete(self, bucket_name, headers):
         removed_bucket = self.backend.delete_bucket(bucket_name)
@@ -224,7 +263,9 @@ class ResponseObject(object):
                 count=len(parts),
                 parts=parts
             )
-        key = self.backend.get_key(bucket_name, key_name)
+        version_id = query.get('versionId', [None])[0]
+        key = self.backend.get_key(
+            bucket_name, key_name, version_id=version_id)
         if key:
             headers.update(key.metadata)
             return 200, headers, key.value
@@ -410,6 +451,49 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 <RequestId>asdfasdfsdafds</RequestId>
 <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
 </Error>"""
+
+S3_BUCKET_VERSIONING = """
+<?xml version="1.0" encoding="UTF-8"?>
+<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+	<Status>{{ bucket_versioning_status }}</Status>
+</VersioningConfiguration>
+"""
+
+S3_BUCKET_GET_VERSIONING = """
+<?xml version="1.0" encoding="UTF-8"?>
+{% if status is none %}
+	<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
+{% else %}
+	<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+	<Status>{{ status }}</Status>
+	</VersioningConfiguration>
+{% endif %}
+"""
+
+S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
+<ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
+	<Name>{{ bucket.name }}</Name>
+	<Prefix>{{ prefix }}</Prefix>
+	<KeyMarker>{{ key_marker }}</KeyMarker>
+	<MaxKeys>{{ max_keys }}</MaxKeys>
+	<IsTruncated>{{ is_truncated }}</IsTruncated>
+	{% for key in key_list %}
+	<Version>
+		<Key>{{ key.name }}</Key>
+		<VersionId>{{ key._version_id }}</VersionId>
+		<IsLatest>false</IsLatest>
+		<LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
+		<ETag>{{ key.etag }}</ETag>
+		<Size>{{ key.size }}</Size>
+		<StorageClass>{{ key.storage_class }}</StorageClass>
+		<Owner>
+			<ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+			<DisplayName>webfile</DisplayName>
+		</Owner>
+	</Version>
+	{% endfor %}
+</ListVersionsResult>
+"""
 
 S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
