@@ -1,6 +1,8 @@
 import datetime
 import requests
 import uuid
+import collections
+import itertools
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime
@@ -8,6 +10,7 @@ from moto.sqs.models import sqs_backend
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
 DEFAULT_ACCOUNT_ID = 123456789012
+DEFAULT_PAGE_SIZE = 3
 
 
 class Topic(object):
@@ -64,16 +67,26 @@ class Subscription(object):
 
 class SNSBackend(BaseBackend):
     def __init__(self):
-        self.topics = {}
-        self.subscriptions = {}
+        self.topics = collections.OrderedDict()
+        self.subscriptions = collections.OrderedDict()
 
     def create_topic(self, name):
         topic = Topic(name)
         self.topics[topic.arn] = topic
         return topic
 
-    def list_topics(self):
-        return self.topics.values()
+    def _get_range(dictionary, begin, end):
+        return dict(itertools.islice(dictionary.iteritems(), begin, end))
+    
+    def list_topics(self, nexttoken=None):
+        if nexttoken is None:
+            nexttoken = 0
+        values = self._get_range(self.topics, nexttoken, nexttoken + DEFAULT_PAGE_SIZE - 1).values()
+        if len(values) == DEFAULT_PAGE_SIZE:
+            nexttoken = nexttoken + DEFAULT_PAGE_SIZE
+        else:
+            nexttoken = None
+        return values, nexttoken
 
     def delete_topic(self, arn):
         self.topics.pop(arn)
