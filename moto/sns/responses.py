@@ -23,12 +23,13 @@ class SNSResponse(BaseResponse):
         })
 
     def list_topics(self):
-        topics = sns_backend.list_topics()
+        topics, nexttoken = sns_backend.list_topics()
 
         return json.dumps({
             'ListTopicsResponse': {
                 'ListTopicsResult': {
-                    'Topics': [{'TopicArn': topic.arn} for topic in topics]
+                    'Topics': [{'TopicArn': topic.arn} for topic in topics],
+                    'NextToken': None,
                 }
             },
             'ResponseMetadata': {
@@ -123,6 +124,7 @@ class SNSResponse(BaseResponse):
         return json.dumps({
             "ListSubscriptionsResponse": {
                 "ListSubscriptionsResult": {
+                    'NextToken': None,
                     "Subscriptions": [{
                         "TopicArn": subscription.topic.arn,
                         "Protocol": subscription.protocol,
@@ -144,6 +146,7 @@ class SNSResponse(BaseResponse):
         return json.dumps({
             "ListSubscriptionsByTopicResponse": {
                 "ListSubscriptionsByTopicResult": {
+                    'NextToken': None,
                     "Subscriptions": [{
                         "TopicArn": subscription.topic.arn,
                         "Protocol": subscription.protocol,
