@@ -28,7 +28,8 @@ class SNSResponse(BaseResponse):
         return json.dumps({
             'ListTopicsResponse': {
                 'ListTopicsResult': {
-                    'Topics': [{'TopicArn': topic.arn} for topic in topics]
+                    'Topics': [{'TopicArn': topic.arn} for topic in topics],
+                    'NextToken': None,
                 }
             },
             'ResponseMetadata': {
@@ -129,7 +130,8 @@ class SNSResponse(BaseResponse):
                         "SubscriptionArn": subscription.arn,
                         "Owner": subscription.topic.account_id,
                         "Endpoint": subscription.endpoint,
-                    } for subscription in subscriptions]
+                    } for subscription in subscriptions],
+                    'NextToken': None,
                 },
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
@@ -150,7 +152,8 @@ class SNSResponse(BaseResponse):
                         "SubscriptionArn": subscription.arn,
                         "Owner": subscription.topic.account_id,
                         "Endpoint": subscription.endpoint,
-                    } for subscription in subscriptions]
+                    } for subscription in subscriptions],
+                    'NextToken': None,
                 },
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
