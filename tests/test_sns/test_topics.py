@@ -3,7 +3,7 @@ import boto
 import sure  # noqa
 
 from moto import mock_sns
-from moto.sns.models import DEFAULT_TOPIC_POLICY, DEFAULT_EFFECTIVE_DELIVERY_POLICY
+from moto.sns.models import DEFAULT_TOPIC_POLICY, DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
 
 
 @mock_sns
@@ -52,3 +52,27 @@ def test_topic_attributes():
     attributes["Policy"].should.equal("{'foo': 'bar'}")
     attributes["DisplayName"].should.equal("My display name")
     attributes["DeliveryPolicy"].should.equal("{'http': {'defaultHealthyRetryPolicy': {'numRetries': 5}}}")
+   
+    
+@mock_sns
+def test_topic_paging():
+    conn = boto.connect_sns()
+    for i in range(DEFAULT_PAGE_SIZE + int(DEFAULT_PAGE_SIZE/3)):
+        conn.create_topic("some-topic_" + str(i))
+        
+    topics_json = conn.get_all_topics()
+    topics_list = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
+    next_token = topics_json["ListTopicsResponse"]["ListTopicsResult"]["NextToken"]
+    
+    len(topics_list).should.equal(DEFAULT_PAGE_SIZE)
+    next_token.should.equal(DEFAULT_PAGE_SIZE)
+    
+    topics_json = conn.get_all_topics(next_token=next_token)
+    topics_list = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
+    next_token = topics_json["ListTopicsResponse"]["ListTopicsResult"]["NextToken"]
+    
+    topics_list.should.have.length_of(int(DEFAULT_PAGE_SIZE/3))
+    next_token.should.equal(None)
+    
+    for i in range(DEFAULT_PAGE_SIZE + int(DEFAULT_PAGE_SIZE/3)):
+        conn.delete_topic("arn:aws:sns:us-east-1:123456789012:some-topic_"  + str(i))

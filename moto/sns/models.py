@@ -10,7 +10,7 @@ from moto.sqs.models import sqs_backend
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
 DEFAULT_ACCOUNT_ID = 123456789012
-DEFAULT_PAGE_SIZE = 3
+DEFAULT_PAGE_SIZE = 100
 
 
 class Topic(object):
