@@ -3,7 +3,7 @@ import re
 
 from jinja2 import Template
 
-from .exceptions import BucketAlreadyExists
+from .exceptions import BucketAlreadyExists, MissingBucket
 from .models import s3_backend
 from .utils import bucket_name_from_url
 from xml.dom import minidom
@@ -26,7 +26,11 @@ class ResponseObject(object):
         return template.render(buckets=all_buckets)
 
     def bucket_response(self, request, full_url, headers):
-        response = self._bucket_response(request, full_url, headers)
+        try:
+            response = self._bucket_response(request, full_url, headers)
+        except MissingBucket:
+            return 404, headers, ""
+
         if isinstance(response, basestring):
             return 200, headers, response
         else:
@@ -57,11 +61,12 @@ class ResponseObject(object):
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
     def _bucket_response_head(self, bucket_name, headers):
-        bucket = self.backend.get_bucket(bucket_name)
-        if bucket:
-            return 200, headers, ""
-        else:
+        try:
+            self.backend.get_bucket(bucket_name)
+        except MissingBucket:
             return 404, headers, ""
+        else:
+            return 200, headers, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
         if 'uploads' in querystring:
@@ -104,21 +109,22 @@ class ResponseObject(object):
                 is_truncated='false',
             )
 
-        bucket = self.backend.get_bucket(bucket_name)
-        if bucket:
-            prefix = querystring.get('prefix', [None])[0]
-            delimiter = querystring.get('delimiter', [None])[0]
-            result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
-            template = Template(S3_BUCKET_GET_RESPONSE)
-            return 200, headers, template.render(
-                bucket=bucket,
-                prefix=prefix,
-                delimiter=delimiter,
-                result_keys=result_keys,
-                result_folders=result_folders
-            )
-        else:
+        try:
+            bucket = self.backend.get_bucket(bucket_name)
+        except MissingBucket:
             return 404, headers, ""
+
+        prefix = querystring.get('prefix', [None])[0]
+        delimiter = querystring.get('delimiter', [None])[0]
+        result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
+        template = Template(S3_BUCKET_GET_RESPONSE)
+        return 200, headers, template.render(
+            bucket=bucket,
+            prefix=prefix,
+            delimiter=delimiter,
+            result_keys=result_keys,
+            result_folders=result_folders
+        )
 
     def _bucket_response_put(self, request, bucket_name, querystring, headers):
         if 'versioning' in querystring:
@@ -138,12 +144,14 @@ class ResponseObject(object):
             return 200, headers, template.render(bucket=new_bucket)
 
     def _bucket_response_delete(self, bucket_name, headers):
-        removed_bucket = self.backend.delete_bucket(bucket_name)
-        if removed_bucket is None:
+        try:
+            removed_bucket = self.backend.delete_bucket(bucket_name)
+        except MissingBucket:
             # Non-existant bucket
             template = Template(S3_DELETE_NON_EXISTING_BUCKET)
             return 404, headers, template.render(bucket_name=bucket_name)
-        elif removed_bucket:
+
+        if removed_bucket:
             # Bucket exists
             template = Template(S3_DELETE_BUCKET_SUCCESS)
             return 204, headers, template.render(bucket=removed_bucket)
@@ -198,13 +206,17 @@ class ResponseObject(object):
                 key_name = k.firstChild.nodeValue
                 self.backend.delete_key(bucket_name, key_name)
                 deleted_names.append(key_name)
-            except KeyError as e:
+            except KeyError:
                 error_names.append(key_name)
 
-        return 200, headers, template.render(deleted=deleted_names,delete_errors=error_names)
+        return 200, headers, template.render(deleted=deleted_names, delete_errors=error_names)
 
     def key_response(self, request, full_url, headers):
-        response = self._key_response(request, full_url, headers)
+        try:
+            response = self._key_response(request, full_url, headers)
+        except MissingBucket:
+            return 404, headers, ""
+
         if isinstance(response, basestring):
             return 200, headers, response
         else:
@@ -455,43 +467,43 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 S3_BUCKET_VERSIONING = """
 <?xml version="1.0" encoding="UTF-8"?>
 <VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-	<Status>{{ bucket_versioning_status }}</Status>
+    <Status>{{ bucket_versioning_status }}</Status>
 </VersioningConfiguration>
 """
 
 S3_BUCKET_GET_VERSIONING = """
 <?xml version="1.0" encoding="UTF-8"?>
 {% if status is none %}
-	<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
+    <VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
 {% else %}
-	<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-	<Status>{{ status }}</Status>
-	</VersioningConfiguration>
+    <VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    <Status>{{ status }}</Status>
+    </VersioningConfiguration>
 {% endif %}
 """
 
 S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
 <ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-	<Name>{{ bucket.name }}</Name>
-	<Prefix>{{ prefix }}</Prefix>
-	<KeyMarker>{{ key_marker }}</KeyMarker>
-	<MaxKeys>{{ max_keys }}</MaxKeys>
-	<IsTruncated>{{ is_truncated }}</IsTruncated>
-	{% for key in key_list %}
-	<Version>
-		<Key>{{ key.name }}</Key>
-		<VersionId>{{ key._version_id }}</VersionId>
-		<IsLatest>false</IsLatest>
-		<LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
-		<ETag>{{ key.etag }}</ETag>
-		<Size>{{ key.size }}</Size>
-		<StorageClass>{{ key.storage_class }}</StorageClass>
-		<Owner>
-			<ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-			<DisplayName>webfile</DisplayName>
-		</Owner>
-	</Version>
-	{% endfor %}
+    <Name>{{ bucket.name }}</Name>
+    <Prefix>{{ prefix }}</Prefix>
+    <KeyMarker>{{ key_marker }}</KeyMarker>
+    <MaxKeys>{{ max_keys }}</MaxKeys>
+    <IsTruncated>{{ is_truncated }}</IsTruncated>
+    {% for key in key_list %}
+    <Version>
+        <Key>{{ key.name }}</Key>
+        <VersionId>{{ key._version_id }}</VersionId>
+        <IsLatest>false</IsLatest>
+        <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
+        <ETag>{{ key.etag }}</ETag>
+        <Size>{{ key.size }}</Size>
+        <StorageClass>{{ key.storage_class }}</StorageClass>
+        <Owner>
+            <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+            <DisplayName>webfile</DisplayName>
+        </Owner>
+    </Version>
+    {% endfor %}
 </ListVersionsResult>
 """
 

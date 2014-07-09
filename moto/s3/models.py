@@ -7,7 +7,7 @@ import itertools
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists
+from .exceptions import BucketAlreadyExists, MissingBucket
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -177,40 +177,42 @@ class S3Backend(BaseBackend):
         return self.buckets.values()
 
     def get_bucket(self, bucket_name):
-        return self.buckets.get(bucket_name)
+        try:
+            return self.buckets[bucket_name]
+        except KeyError:
+            raise MissingBucket()
 
     def delete_bucket(self, bucket_name):
-        bucket = self.buckets.get(bucket_name)
-        if bucket:
-            if bucket.keys:
-                # Can't delete a bucket with keys
-                return False
-            else:
-                return self.buckets.pop(bucket_name)
-        return None
+        bucket = self.get_bucket(bucket_name)
+        if bucket.keys:
+            # Can't delete a bucket with keys
+            return False
+        else:
+            return self.buckets.pop(bucket_name)
 
     def set_bucket_versioning(self, bucket_name, status):
-        self.buckets[bucket_name].versioning_status = status
+        self.get_bucket(bucket_name).versioning_status = status
 
     def get_bucket_versioning(self, bucket_name):
-        return self.buckets[bucket_name].versioning_status
+        return self.get_bucket(bucket_name).versioning_status
 
     def get_bucket_versions(self, bucket_name, delimiter=None,
                             encoding_type=None,
                             key_marker=None,
                             max_keys=None,
                             version_id_marker=None):
-        bucket = self.buckets[bucket_name]
+        bucket = self.get_bucket(bucket_name)
 
         if any((delimiter, encoding_type, key_marker, version_id_marker)):
             raise NotImplementedError(
                 "Called get_bucket_versions with some of delimiter, encoding_type, key_marker, version_id_marker")
 
         return itertools.chain(*(l for _, l in bucket.keys.iterlists()))
+
     def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)
 
-        bucket = self.buckets[bucket_name]
+        bucket = self.get_bucket(bucket_name)
 
         old_key = bucket.keys.get(key_name, None)
         if old_key is not None and bucket.is_versioned:
@@ -248,14 +250,14 @@ class S3Backend(BaseBackend):
                         return key
 
     def initiate_multipart(self, bucket_name, key_name):
-        bucket = self.buckets[bucket_name]
+        bucket = self.get_bucket(bucket_name)
         new_multipart = FakeMultipart(key_name)
         bucket.multiparts[new_multipart.id] = new_multipart
 
         return new_multipart
 
     def complete_multipart(self, bucket_name, multipart_id):
-        bucket = self.buckets[bucket_name]
+        bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
         value, etag = multipart.complete()
         if value is None:
@@ -265,27 +267,27 @@ class S3Backend(BaseBackend):
         return self.set_key(bucket_name, multipart.key_name, value, etag=etag)
 
     def cancel_multipart(self, bucket_name, multipart_id):
-        bucket = self.buckets[bucket_name]
+        bucket = self.get_bucket(bucket_name)
         del bucket.multiparts[multipart_id]
 
     def list_multipart(self, bucket_name, multipart_id):
-        bucket = self.buckets[bucket_name]
+        bucket = self.get_bucket(bucket_name)
         return bucket.multiparts[multipart_id].list_parts()
 
     def get_all_multiparts(self, bucket_name):
-        bucket = self.buckets[bucket_name]
+        bucket = self.get_bucket(bucket_name)
         return bucket.multiparts
 
     def set_part(self, bucket_name, multipart_id, part_id, value):
-        bucket = self.buckets[bucket_name]
+        bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
         return multipart.set_part(part_id, value)
 
     def copy_part(self, dest_bucket_name, multipart_id, part_id,
                   src_bucket_name, src_key_name):
         src_key_name = clean_key_name(src_key_name)
-        src_bucket = self.buckets[src_bucket_name]
-        dest_bucket = self.buckets[dest_bucket_name]
+        src_bucket = self.get_bucket(src_bucket_name)
+        dest_bucket = self.get_bucket(dest_bucket_name)
         multipart = dest_bucket.multiparts[multipart_id]
         return multipart.set_part(part_id, src_bucket.keys[src_key_name].value)
 
@@ -317,14 +319,14 @@ class S3Backend(BaseBackend):
 
     def delete_key(self, bucket_name, key_name):
         key_name = clean_key_name(key_name)
-        bucket = self.buckets[bucket_name]
+        bucket = self.get_bucket(bucket_name)
         return bucket.keys.pop(key_name)
 
     def copy_key(self, src_bucket_name, src_key_name, dest_bucket_name, dest_key_name, storage=None):
         src_key_name = clean_key_name(src_key_name)
         dest_key_name = clean_key_name(dest_key_name)
-        src_bucket = self.buckets[src_bucket_name]
-        dest_bucket = self.buckets[dest_bucket_name]
+        src_bucket = self.get_bucket(src_bucket_name)
+        dest_bucket = self.get_bucket(dest_bucket_name)
         key = src_bucket.keys[src_key_name]
         if dest_key_name != src_key_name:
             key = key.copy(dest_key_name)

@@ -150,6 +150,16 @@ def test_list_multiparts():
 
 
 @mock_s3
+def test_key_save_to_missing_bucket():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.get_bucket('mybucket', validate=False)
+
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string.when.called_with("foobar").should.throw(S3ResponseError)
+
+
+@mock_s3
 def test_missing_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
