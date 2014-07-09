@@ -3,6 +3,7 @@ from io import BytesIO
 
 import boto
 from boto.exception import S3CreateError, S3ResponseError
+from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
 import requests
@@ -278,6 +279,13 @@ def test_create_existing_bucket():
 
 
 @mock_s3
+def test_other_region():
+    conn = S3Connection('key', 'secret', host='s3-website-ap-southeast-2.amazonaws.com')
+    conn.create_bucket("foobar")
+    list(conn.get_bucket("foobar").get_all_keys()).should.equal([])
+
+
+@mock_s3
 def test_bucket_deletion():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -335,6 +343,7 @@ def test_post_with_metadata_to_bucket():
 
     bucket.get_key('the-key').get_metadata('test').should.equal('metadata')
 
+
 @mock_s3
 def test_delete_keys():
     conn = boto.connect_s3('the_key', 'the_secret')
@@ -346,12 +355,12 @@ def test_delete_keys():
     Key(bucket=bucket, name='file4').set_contents_from_string('abc')
 
     result = bucket.delete_keys(['file2', 'file3'])
-    
     result.deleted.should.have.length_of(2)
     result.errors.should.have.length_of(0)
     keys = bucket.get_all_keys()
     keys.should.have.length_of(2)
     keys[0].name.should.equal('file1')
+
 
 @mock_s3
 def test_delete_keys_with_invalid():
@@ -370,6 +379,7 @@ def test_delete_keys_with_invalid():
     keys = bucket.get_all_keys()
     keys.should.have.length_of(3)
     keys[0].name.should.equal('file1')
+
 
 @mock_s3
 def test_bucket_method_not_implemented():
