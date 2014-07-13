@@ -72,3 +72,24 @@ def test_rrset():
 
     rrsets = conn.get_all_rrsets(zoneid)
     rrsets.should.have.length_of(0)
+
+    changes = ResourceRecordSets(conn, zoneid)
+    change = changes.add_change("CREATE", "foo.bar.testdns.aws.com", "A")
+    change.add_value("1.2.3.4")
+    change = changes.add_change("CREATE", "bar.foo.testdns.aws.com", "A")
+    change.add_value("5.6.7.8")
+    changes.commit()
+
+    rrsets = conn.get_all_rrsets(zoneid, type="A")
+    rrsets.should.have.length_of(2)
+
+    rrsets = conn.get_all_rrsets(zoneid, name="foo.bar.testdns.aws.com", type="A")
+    rrsets.should.have.length_of(1)
+    rrsets[0].resource_records[0].should.equal('1.2.3.4')
+
+    rrsets = conn.get_all_rrsets(zoneid, name="bar.foo.testdns.aws.com", type="A")
+    rrsets.should.have.length_of(1)
+    rrsets[0].resource_records[0].should.equal('5.6.7.8')
+
+    rrsets = conn.get_all_rrsets(zoneid, name="foo.foo.testdns.aws.com", type="A")
+    rrsets.should.have.length_of(0)
