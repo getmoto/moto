@@ -258,7 +258,17 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
         <EnabledMetrics/>
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
-        <Instances/>
+        <Instances>
+          {% for instance in group.instances %}
+          <member>
+            <HealthStatus>HEALTHY</HealthStatus>
+            <AvailabilityZone>us-east-1e</AvailabilityZone>
+            <InstanceId>{{ instance.id }}</InstanceId>
+            <LaunchConfigurationName>{{ instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
+            <LifecycleState>InService</LifecycleState>
+          </member>
+          {% endfor %}
+        </Instances>
         <DesiredCapacity>{{ group.desired_capacity }}</DesiredCapacity>
         <AvailabilityZones>
           {% for availability_zone in group.availability_zones %}
