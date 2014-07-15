@@ -12,10 +12,11 @@ class FakeHealthCheck(object):
 
 
 class FakeListener(object):
-    def __init__(self, load_balancer_port, instance_port, protocol):
+    def __init__(self, load_balancer_port, instance_port, protocol, ssl_certificate_id):
         self.load_balancer_port = load_balancer_port
         self.instance_port = instance_port
         self.protocol = protocol.upper()
+        self.ssl_certificate_id = ssl_certificate_id
 
 
 class FakeLoadBalancer(object):
@@ -25,11 +26,13 @@ class FakeLoadBalancer(object):
         self.instance_ids = []
         self.zones = zones
         self.listeners = []
-        for protocol, lb_port, instance_port in ports:
+
+        for protocol, lb_port, instance_port, ssl_certificate_id in ports:
             listener = FakeListener(
                 protocol=protocol,
                 load_balancer_port=lb_port,
                 instance_port=instance_port,
+                ssl_certificate_id=ssl_certificate_id
             )
             self.listeners.append(listener)
 
@@ -63,12 +66,38 @@ class ELBBackend(BaseBackend):
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
 
+    def create_load_balancer_listeners(self, name, ports):
+        balancer = self.load_balancers.get(name, None)
+        if balancer:
+            for protocol, lb_port, instance_port, ssl_certificate_id in ports:
+                for listener in balancer.listeners:
+                    if lb_port == listener.load_balancer_port:
+                        break
+                else:
+                    balancer.listeners.append(FakeListener(lb_port, instance_port, protocol, ssl_certificate_id))
+
+        return balancer
+
     def describe_load_balancers(self, names):
         balancers = self.load_balancers.values()
         if names:
             return [balancer for balancer in balancers if balancer.name in names]
         else:
             return balancers
+
+    def delete_load_balancer_listeners(self, name, ports):
+        balancer = self.load_balancers.get(name, None)
+        listeners = []
+        if balancer:
+            for lb_port in ports:
+                for listener in balancer.listeners:
+                    if lb_port == listener.load_balancer_port:
+                        continue
+                    else:
+                        listeners.append(listener)
+
+        balancer.listeners = listeners
+        return balancer
 
     def delete_load_balancer(self, load_balancer_name):
         self.load_balancers.pop(load_balancer_name, None)
@@ -84,6 +113,15 @@ class ELBBackend(BaseBackend):
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.health_check = check
         return check
+
+    def set_load_balancer_listener_sslcertificate(self, name, lb_port, ssl_certificate_id):
+        balancer = self.load_balancers.get(name, None)
+        if balancer:
+            for idx, listener in enumerate(balancer.listeners):
+                if lb_port == listener.load_balancer_port:
+                    balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
+
+        return balancer
 
     def register_instances(self, load_balancer_name, instance_ids):
         load_balancer = self.get_load_balancer(load_balancer_name)
