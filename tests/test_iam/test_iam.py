@@ -9,7 +9,6 @@ from moto import mock_iam
 def test_get_all_server_certs():
     conn = boto.connect_iam()
 
-    conn = boto.connect_iam()
     conn.upload_server_cert("certname", "certbody", "privatekey")
     certs = conn.get_all_server_certs()['list_server_certificates_response']['list_server_certificates_result']['server_certificate_metadata_list']
     certs.should.have.length_of(1)
