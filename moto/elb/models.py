@@ -91,11 +91,10 @@ class ELBBackend(BaseBackend):
         if balancer:
             for lb_port in ports:
                 for listener in balancer.listeners:
-                    if lb_port == listener.load_balancer_port:
+                    if int(lb_port) == int(listener.load_balancer_port):
                         continue
                     else:
                         listeners.append(listener)
-
         balancer.listeners = listeners
         return balancer
 

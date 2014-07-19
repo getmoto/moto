@@ -6,6 +6,39 @@ from moto import mock_iam
 
 
 @mock_iam()
+def test_get_all_server_certs():
+    conn = boto.connect_iam()
+
+    conn = boto.connect_iam()
+    conn.upload_server_cert("certname", "certbody", "privatekey")
+    certs = conn.get_all_server_certs()['list_server_certificates_response']['list_server_certificates_result']['server_certificate_metadata_list']
+    certs.should.have.length_of(1)
+    cert1 = certs[0]
+    cert1.server_certificate_name.should.equal("certname")
+    cert1.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+
+
+@mock_iam()
+def test_get_server_cert():
+    conn = boto.connect_iam()
+
+    conn.upload_server_cert("certname", "certbody", "privatekey")
+    cert = conn.get_server_certificate("certname")
+    cert.server_certificate_name.should.equal("certname")
+    cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+
+
+@mock_iam()
+def test_upload_server_cert():
+    conn = boto.connect_iam()
+
+    conn.upload_server_cert("certname", "certbody", "privatekey")
+    cert = conn.get_server_certificate("certname")
+    cert.server_certificate_name.should.equal("certname")
+    cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+
+
+@mock_iam()
 def test_create_role_and_instance_profile():
     conn = boto.connect_iam()
     conn.create_instance_profile("my-profile", path="my-path")

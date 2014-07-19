@@ -28,6 +28,60 @@ def test_create_load_balancer():
 
 
 @mock_elb
+def test_add_listener():
+    conn = boto.connect_elb()
+    zones = ['us-east-1a', 'us-east-1b']
+    ports = [(80, 8080, 'http')]
+    conn.create_load_balancer('my-lb', zones, ports)
+    new_listener = (443, 8443, 'tcp')
+    conn.create_load_balancer_listeners('my-lb', [new_listener])
+    balancers = conn.get_all_load_balancers()
+    balancer = balancers[0]
+    listener1 = balancer.listeners[0]
+    listener1.load_balancer_port.should.equal(80)
+    listener1.instance_port.should.equal(8080)
+    listener1.protocol.should.equal("HTTP")
+    listener2 = balancer.listeners[1]
+    listener2.load_balancer_port.should.equal(443)
+    listener2.instance_port.should.equal(8443)
+    listener2.protocol.should.equal("TCP")
+
+
+@mock_elb
+def test_delete_listener():
+    conn = boto.connect_elb()
+
+    zones = ['us-east-1a', 'us-east-1b']
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    conn.create_load_balancer('my-lb', zones, ports)
+    conn.delete_load_balancer_listeners('my-lb', [443])
+    balancers = conn.get_all_load_balancers()
+    balancer = balancers[0]
+    listener1 = balancer.listeners[0]
+    listener1.load_balancer_port.should.equal(80)
+    listener1.instance_port.should.equal(8080)
+    listener1.protocol.should.equal("HTTP")
+    balancer.listeners.should.have.length_of(1)
+
+
+@mock_elb
+def test_set_sslcertificate():
+    conn = boto.connect_elb()
+
+    zones = ['us-east-1a', 'us-east-1b']
+    ports = [(443, 8443, 'tcp')]
+    conn.create_load_balancer('my-lb', zones, ports)
+    conn.set_lb_listener_SSL_certificate('my-lb', '443', 'arn:certificate')
+    balancers = conn.get_all_load_balancers()
+    balancer = balancers[0]
+    listener1 = balancer.listeners[0]
+    listener1.load_balancer_port.should.equal(443)
+    listener1.instance_port.should.equal(8443)
+    listener1.protocol.should.equal("TCP")
+    listener1.ssl_certificate_id.should.equal("arn:certificate")
+
+
+@mock_elb
 def test_get_load_balancers_by_name():
     conn = boto.connect_elb()
 

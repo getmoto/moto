@@ -65,9 +65,13 @@ class ELBResponse(BaseResponse):
         port_index = 1
         while True:
             try:
-                ports.append(self.querystring['Listeners.member.{0}.LoadBalancerPort'.format(port_index)][0])
+                port = self.querystring['LoadBalancerPorts.member.{0}'.format(port_index)][0]
             except KeyError:
                 break
+
+            port_index += 1
+            ports.append(int(port))
+
         elb_backend.delete_load_balancer_listeners(load_balancer_name, ports)
         template = Template(DELETE_LOAD_BALANCER_LISTENERS)
         return template.render()
