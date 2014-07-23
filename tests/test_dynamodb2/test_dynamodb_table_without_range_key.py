@@ -6,12 +6,12 @@ from moto import mock_dynamodb2
 from tests.helpers import requires_boto_gte
 try:
     from boto.dynamodb2.fields import HashKey
-    from boto.dynamodb2.fields import RangeKey
     from boto.dynamodb2.table import Table
     from boto.dynamodb2.table import Item
 except ImportError:
-    print "This boto version is not supported"
-    
+    pass
+
+
 def create_table():
     table = Table.create('messages', schema=[
         HashKey('forum_name')
@@ -22,34 +22,34 @@ def create_table():
     return table
 
 
-
 @requires_boto_gte("2.9")
 @mock_dynamodb2
 @freeze_time("2012-01-14")
 def test_create_table():
-    table = create_table()
+    create_table()
     expected = {
         'Table': {
             'AttributeDefinitions': [
-                {'AttributeName': 'forum_name', 'AttributeType': 'S'}    
-            ], 
+                {'AttributeName': 'forum_name', 'AttributeType': 'S'}
+            ],
             'ProvisionedThroughput': {
                 'NumberOfDecreasesToday': 0, 'WriteCapacityUnits': 10, 'ReadCapacityUnits': 10
-                }, 
-            'TableSizeBytes': 0, 
-            'TableName': 'messages', 
-            'TableStatus': 'ACTIVE', 
+            },
+            'TableSizeBytes': 0,
+            'TableName': 'messages',
+            'TableStatus': 'ACTIVE',
             'KeySchema': [
-                {'KeyType': 'HASH', 'AttributeName': 'forum_name'} 
-            ], 
+                {'KeyType': 'HASH', 'AttributeName': 'forum_name'}
+            ],
             'ItemCount': 0, 'CreationDateTime': 1326499200.0
         }
     }
-    conn =  boto.dynamodb2.connect_to_region(
-            'us-west-2',
+    conn = boto.dynamodb2.connect_to_region(
+        'us-west-2',
         aws_access_key_id="ak",
-        aws_secret_access_key="sk")
-    
+        aws_secret_access_key="sk"
+    )
+
     conn.describe_table('messages').should.equal(expected)
 
 
@@ -71,13 +71,12 @@ def test_delete_table():
 def test_update_table_throughput():
     table = create_table()
     table.throughput["read"].should.equal(10)
-    table.throughput["write"].should.equal(10)    
+    table.throughput["write"].should.equal(10)
 
     table.update(throughput={
         'read': 5,
         'write': 6,
-     })
-
+    })
 
     table.throughput["read"].should.equal(5)
     table.throughput["write"].should.equal(6)
@@ -87,17 +86,17 @@ def test_update_table_throughput():
 @mock_dynamodb2
 def test_item_add_and_describe_and_update():
     table = create_table()
-    
-    data={
+
+    data = {
         'forum_name': 'LOLCat Forum',
         'Body': 'http://url_to_lolcat.gif',
         'SentBy': 'User A',
-     }
-    
-    table.put_item(data = data)
+    }
+
+    table.put_item(data=data)
     returned_item = table.get_item(forum_name="LOLCat Forum")
     returned_item.should_not.be.none
-    
+
     dict(returned_item).should.equal({
         'forum_name': 'LOLCat Forum',
         'Body': 'http://url_to_lolcat.gif',
@@ -108,7 +107,7 @@ def test_item_add_and_describe_and_update():
     returned_item.save(overwrite=True)
 
     returned_item = table.get_item(
-          forum_name='LOLCat Forum'
+        forum_name='LOLCat Forum'
     )
     dict(returned_item).should.equal({
         'forum_name': 'LOLCat Forum',
@@ -125,9 +124,9 @@ def test_item_put_without_table():
     conn.put_item.when.called_with(
         table_name='undeclared-table',
         item={
-        'forum_name': 'LOLCat Forum',
-        'Body': 'http://url_to_lolcat.gif',
-        'SentBy': 'User A',
+            'forum_name': 'LOLCat Forum',
+            'Body': 'http://url_to_lolcat.gif',
+            'SentBy': 'User A',
         }
     ).should.throw(JSONResponseError)
 
@@ -162,17 +161,17 @@ def test_delete_item():
         'SentBy': 'User A',
         'ReceivedTime': '12/9/2011 11:36:03 PM',
     }
-    item =Item(table,item_data)
+    item = Item(table, item_data)
     item.save()
     table.count().should.equal(1)
 
     response = item.delete()
-    
+
     response.should.equal(True)
 
     table.count().should.equal(0)
 
-    item.delete.when.called_with().should.throw(JSONResponseError)
+    item.delete().should.equal(False)
 
 
 @requires_boto_gte("2.9")
@@ -197,11 +196,11 @@ def test_query():
         'SentBy': 'User A',
         'ReceivedTime': '12/9/2011 11:36:03 PM',
     }
-    item =Item(table,item_data)     
-    item.save(overwrite = True)
+    item = Item(table, item_data)
+    item.save(overwrite=True)
     table.count().should.equal(1)
     table = Table("messages")
-    
+
     results = table.query(forum_name__eq='the-key')
     sum(1 for _ in results).should.equal(1)
 
@@ -213,7 +212,7 @@ def test_query_with_undeclared_table():
 
     conn.query.when.called_with(
         table_name='undeclared-table',
-         key_conditions= {"forum_name": {"ComparisonOperator": "EQ", "AttributeValueList": [{"S": "the-key"}]}}
+        key_conditions={"forum_name": {"ComparisonOperator": "EQ", "AttributeValueList": [{"S": "the-key"}]}}
     ).should.throw(JSONResponseError)
 
 
@@ -228,9 +227,9 @@ def test_scan():
         'ReceivedTime': '12/9/2011 11:36:03 PM',
     }
     item_data['forum_name'] = 'the-key'
-    
-    item = Item(table,item_data)     
-    item.save()    
+
+    item = Item(table, item_data)
+    item.save()
 
     item['forum_name'] = 'the-key2'
     item.save(overwrite=True)
@@ -243,8 +242,8 @@ def test_scan():
         'PK': 7,
     }
     item_data['forum_name'] = 'the-key3'
-    item = Item(table,item_data)     
-    item.save() 
+    item = Item(table, item_data)
+    item.save()
 
     results = table.scan()
     sum(1 for _ in results).should.equal(3)
@@ -298,14 +297,14 @@ def test_write_batch():
             'Body': 'http://url_to_lolcat.gif',
             'SentBy': 'User A',
             'ReceivedTime': '12/9/2011 11:36:03 PM',
-        })  
+        })
         batch.put_item(data={
             'forum_name': 'the-key2',
             'subject': '789',
             'Body': 'http://url_to_lolcat.gif',
             'SentBy': 'User B',
             'ReceivedTime': '12/9/2011 11:36:03 PM',
-        }) 
+        })
 
     table.count().should.equal(2)
     with table.batch_write() as batch:
@@ -328,12 +327,12 @@ def test_batch_read():
         'ReceivedTime': '12/9/2011 11:36:03 PM',
     }
     item_data['forum_name'] = 'the-key1'
-    item = Item(table,item_data)     
-    item.save()  
+    item = Item(table, item_data)
+    item.save()
 
-    item = Item(table,item_data)
+    item = Item(table, item_data)
     item_data['forum_name'] = 'the-key2'
-    item.save(overwrite = True)
+    item.save(overwrite=True)
 
     item_data = {
         'Body': 'http://url_to_lolcat.gif',
@@ -342,13 +341,16 @@ def test_batch_read():
         'Ids': set([1, 2, 3]),
         'PK': 7,
     }
-    item = Item(table,item_data) 
+    item = Item(table, item_data)
     item_data['forum_name'] = 'another-key'
-    item.save(overwrite = True)
-    
-    results = table.batch_get(keys=[
-                {'forum_name': 'the-key1'},
-                {'forum_name': 'another-key'}])
+    item.save(overwrite=True)
+
+    results = table.batch_get(
+        keys=[
+            {'forum_name': 'the-key1'},
+            {'forum_name': 'another-key'},
+        ]
+    )
 
     # Iterate through so that batch_item gets called
     count = len([x for x in results])
@@ -372,12 +374,11 @@ def test_get_special_item():
         'read': 10,
         'write': 10,
     })
-    
-    data={
+
+    data = {
         'date-joined': 127549192,
         'SentBy': 'User A',
     }
-    table.put_item(data = data)
+    table.put_item(data=data)
     returned_item = table.get_item(**{'date-joined': 127549192})
     dict(returned_item).should.equal(data)
-    
