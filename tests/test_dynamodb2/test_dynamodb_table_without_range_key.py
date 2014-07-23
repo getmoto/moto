@@ -150,7 +150,7 @@ def test_get_item_with_undeclared_table():
     ).should.throw(JSONResponseError)
 
 
-@requires_boto_gte("2.9")
+@requires_boto_gte("2.30.0")
 @mock_dynamodb2
 def test_delete_item():
     table = create_table()
