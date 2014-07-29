@@ -7,7 +7,7 @@ from six.moves.urllib.parse import parse_qs, urlparse
 
 from moto.core.responses import _TemplateEnvironmentMixin
 
-from urllib import unquote
+from urllib import quote, unquote
 from .exceptions import BucketAlreadyExists, S3ClientError, InvalidPartOrder
 from .models import s3_backend
 from .utils import bucket_name_from_url, metadata_from_headers
@@ -127,14 +127,19 @@ class ResponseObject(_TemplateEnvironmentMixin):
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get('prefix', [None])[0]
         delimiter = querystring.get('delimiter', [None])[0]
+        encoding_type = querystring.get('encoding-type', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
+        if encoding_type == 'url':
+            result_keys = [k.copy(quote(k.name)) for k in result_keys]
+            result_folders = [quote(f) for f in result_folders]
         template = self.response_template(S3_BUCKET_GET_RESPONSE)
         return 200, headers, template.render(
             bucket=bucket,
             prefix=prefix,
             delimiter=delimiter,
             result_keys=result_keys,
-            result_folders=result_folders
+            result_folders=result_folders,
+            encoding_type=encoding_type
         )
 
     def _bucket_response_put(self, request, region_name, bucket_name, querystring, headers):
@@ -465,6 +470,9 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
         <Prefix>{{ folder }}</Prefix>
       </CommonPrefixes>
     {% endfor %}
+  {% endif %}
+  {% if encoding_type %}
+    <Encoding-Type>{{ encoding_type }}</Encoding-Type>
   {% endif %}
   </ListBucketResult>"""
 

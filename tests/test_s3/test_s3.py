@@ -6,6 +6,7 @@ from six.moves.urllib.error import HTTPError
 from io import BytesIO
 
 import boto
+from urllib import quote
 from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
@@ -537,6 +538,32 @@ def test_bucket_list_no_quote():
     k.set_contents_from_string('somedata')
     keys = [x.name for x in bucket.list()]
     keys.should.equal([key_name])
+
+
+@mock_s3
+def test_bucket_list_quote():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+
+    # test with unicode which should be quoted
+    key_name = 'validunicode\x01invalidxml'
+    k = Key(bucket, key_name)
+    k.set_contents_from_string('somedata')
+    keys = [x.name for x in bucket.list(encoding_type='url')]
+    keys.should.equal([quote(key_name)])
+
+
+@mock_s3
+def test_bucket_list_quote_folders():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+
+    # test with unicode in common prefixes
+    folder_name = 'validunicode\x01invalidxmlfolder'
+    k = Key(bucket, folder_name+"/lala")
+    k.set_contents_from_string('somedata')
+    keys = [x.name for x in bucket.list(encoding_type='url', delimiter='/')]
+    keys.should.equal([quote(folder_name)])
 
 
 @mock_s3
