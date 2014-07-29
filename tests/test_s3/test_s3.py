@@ -541,11 +541,28 @@ def test_bucket_list_no_quote():
 
 
 @mock_s3
-def test_bucket_list_quote():
+def test_bucket_list_unicode():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('test_bucket')
 
-    # test with unicode which should be quoted
+    # test with unicode
+    key_name = u'έγκυροι χαρακτήρες'
+    k = Key(bucket, key_name.encode('utf-8'))
+    k.set_contents_from_string('somedata')
+    keys = [x.name for x in bucket.list()]
+    keys.should.equal([key_name])
+
+    # test with unicode when url encoding
+    keys = [x.name for x in bucket.list(encoding_type='url')]
+    keys.should.equal([quote(key_name.encode('utf-8'))])
+
+
+@mock_s3
+def test_bucket_list_quote_invalid():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+
+    # test with characters which are invalid xml
     key_name = 'validunicode\x01invalidxml'
     k = Key(bucket, key_name)
     k.set_contents_from_string('somedata')

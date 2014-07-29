@@ -18,7 +18,7 @@ DEFAULT_REGION_NAME = 'us-east-1'
 
 
 def parse_key_name(pth):
-    return unquote(pth.lstrip("/"))
+    return unquote(pth.lstrip("/")).decode('utf-8')
 
 
 class ResponseObject(_TemplateEnvironmentMixin):
@@ -130,8 +130,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         encoding_type = querystring.get('encoding-type', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
         if encoding_type == 'url':
-            result_keys = [k.copy(quote(k.name)) for k in result_keys]
-            result_folders = [quote(f) for f in result_folders]
+            result_keys = [k.copy(quote(k.name.encode('utf-8'))) for k in result_keys]
+            result_folders = [quote(f.encode('utf-8')) for f in result_folders]
         template = self.response_template(S3_BUCKET_GET_RESPONSE)
         return 200, headers, template.render(
             bucket=bucket,
@@ -140,7 +140,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             result_keys=result_keys,
             result_folders=result_folders,
             encoding_type=encoding_type
-        )
+        ).encode('utf-8')
 
     def _bucket_response_put(self, request, region_name, bucket_name, querystring, headers):
         if 'versioning' in querystring:
@@ -260,7 +260,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         return status_code, headers, response_content
 
     def _key_response(self, request, full_url, headers):
-        parsed_url = urlparse(full_url)
+        parsed_url = urlparse(full_url.encode('ascii'))
         query = parse_qs(parsed_url.query)
         method = request.method
 
