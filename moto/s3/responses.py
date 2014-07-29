@@ -260,7 +260,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         return status_code, headers, response_content
 
     def _key_response(self, request, full_url, headers):
-        parsed_url = urlparse(full_url.encode('ascii'))
+        parsed_url = urlparse(full_url.encode('utf-8'))
         query = parse_qs(parsed_url.query)
         method = request.method
 
