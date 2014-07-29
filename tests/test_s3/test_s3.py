@@ -527,6 +527,19 @@ def test_key_with_special_characters():
 
 
 @mock_s3
+def test_bucket_list_no_quote():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+
+    # test characters which should not be url encoded
+    key_name = 'validchars\n'
+    k = Key(bucket, key_name)
+    k.set_contents_from_string('somedata')
+    keys = [x.name for x in bucket.list()]
+    keys.should.equal([key_name])
+
+
+@mock_s3
 def test_bucket_key_listing_order():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('test_bucket')

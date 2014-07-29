@@ -7,6 +7,7 @@ from six.moves.urllib.parse import parse_qs, urlparse
 
 from moto.core.responses import _TemplateEnvironmentMixin
 
+from urllib import unquote
 from .exceptions import BucketAlreadyExists, S3ClientError, InvalidPartOrder
 from .models import s3_backend
 from .utils import bucket_name_from_url, metadata_from_headers
@@ -17,7 +18,7 @@ DEFAULT_REGION_NAME = 'us-east-1'
 
 
 def parse_key_name(pth):
-    return pth.lstrip("/")
+    return unquote(pth.lstrip("/"))
 
 
 class ResponseObject(_TemplateEnvironmentMixin):
