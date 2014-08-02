@@ -65,8 +65,28 @@ class MockAWS(object):
         return wrapper
 
 
-class BaseBackend(object):
+class Model(type):
+    def __new__(self, clsname, bases, namespace):
+        cls = super(Model, self).__new__(self, clsname, bases, namespace)
+        cls.__models__ = {}
+        for name, value in namespace.iteritems():
+            model = getattr(value, "__returns_model__", False)
+            if model is not False:
+                cls.__models__[model] = name
+        for base in bases:
+            cls.__models__.update(getattr(base, "__models__", {}))
+        return cls
 
+    @staticmethod
+    def prop(model_name):
+        """ decorator to mark a class method as returning model values """
+        def dec(f):
+            f.__returns_model__ = model_name
+            return f
+        return dec
+
+
+class BaseBackend(object):
     def reset(self):
         self.__dict__ = {}
         self.__init__()

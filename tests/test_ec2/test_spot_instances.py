@@ -4,6 +4,7 @@ import boto
 import sure  # noqa
 
 from moto import mock_ec2
+from moto.backends import get_model
 from moto.core.utils import iso_8601_datetime
 
 
@@ -97,3 +98,29 @@ def test_cancel_spot_instance_request():
 
     requests = conn.get_all_spot_instance_requests()
     requests.should.have.length_of(0)
+
+
+@mock_ec2
+def test_request_spot_instances_fulfilled():
+    """
+    Test that moto correctly fullfills a spot instance request
+    """
+    conn = boto.connect_ec2()
+
+    request = conn.request_spot_instances(
+        price=0.5, image_id='ami-abcd1234',
+    )
+
+    requests = conn.get_all_spot_instance_requests()
+    requests.should.have.length_of(1)
+    request = requests[0]
+
+    request.state.should.equal("open")
+
+    get_model('SpotInstanceRequest')[0].state = 'active'
+
+    requests = conn.get_all_spot_instance_requests()
+    requests.should.have.length_of(1)
+    request = requests[0]
+
+    request.state.should.equal("active")

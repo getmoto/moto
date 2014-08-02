@@ -3,8 +3,11 @@ import itertools
 from collections import defaultdict
 
 from boto.ec2.instance import Instance as BotoInstance, Reservation
+from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
+from boto.ec2.launchspecification import LaunchSpecification
 
 from moto.core import BaseBackend
+from moto.core.models import Model
 from .exceptions import (
     InvalidIdError,
     DependencyViolationError,
@@ -937,42 +940,46 @@ class VPCGatewayAttachmentBackend(object):
         return attachment
 
 
-class SpotInstanceRequest(object):
+class SpotInstanceRequest(BotoSpotRequest):
     def __init__(self, spot_request_id, price, image_id, type, valid_from,
                  valid_until, launch_group, availability_zone_group, key_name,
                  security_groups, user_data, instance_type, placement, kernel_id,
-                 ramdisk_id, monitoring_enabled, subnet_id):
+                 ramdisk_id, monitoring_enabled, subnet_id, **kwargs):
+        super(SpotInstanceRequest, self).__init__(**kwargs)
+        ls = LaunchSpecification()
+        self.launch_specification = ls
         self.id = spot_request_id
         self.state = "open"
         self.price = price
-        self.image_id = image_id
         self.type = type
         self.valid_from = valid_from
         self.valid_until = valid_until
         self.launch_group = launch_group
         self.availability_zone_group = availability_zone_group
-        self.key_name = key_name
-        self.user_data = user_data
-        self.instance_type = instance_type
-        self.placement = placement
-        self.kernel_id = kernel_id
-        self.ramdisk_id = ramdisk_id
-        self.monitoring_enabled = monitoring_enabled
-        self.subnet_id = subnet_id
+        self.user_data = user_data  # NOT
+        ls.kernel = kernel_id
+        ls.ramdisk = ramdisk_id
+        ls.image_id = image_id
+        ls.key_name = key_name
+        ls.instance_type = instance_type
+        ls.placement = placement
+        ls.monitored = monitoring_enabled
+        ls.subnet_id = subnet_id
 
-        self.security_groups = []
         if security_groups:
             for group_name in security_groups:
                 group = ec2_backend.get_security_group_from_name(group_name)
                 if group:
-                    self.security_groups.append(group)
+                    ls.groups.append(group)
         else:
             # If not security groups, add the default
             default_group = ec2_backend.get_security_group_from_name("default")
-            self.security_groups.append(default_group)
+            ls.groups.append(default_group)
 
 
 class SpotRequestBackend(object):
+    __metaclass__ = Model
+
     def __init__(self):
         self.spot_instance_requests = {}
         super(SpotRequestBackend, self).__init__()
@@ -995,6 +1002,7 @@ class SpotRequestBackend(object):
             requests.append(request)
         return requests
 
+    @Model.prop('SpotInstanceRequest')
     def describe_spot_instance_requests(self):
         return self.spot_instance_requests.values()
 
