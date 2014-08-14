@@ -253,7 +253,7 @@ class ResponseObject(object):
         if method == 'GET':
             return self._key_response_get(bucket_name, query, key_name, headers)
         elif method == 'PUT':
-            return self._key_response_put(request, body, bucket_name, query, key_name, headers)
+            return self._key_response_put(request, parsed_url, body, bucket_name, query, key_name, headers)
         elif method == 'HEAD':
             return self._key_response_head(bucket_name, key_name, headers)
         elif method == 'DELETE':
@@ -284,7 +284,7 @@ class ResponseObject(object):
         else:
             return 404, headers, ""
 
-    def _key_response_put(self, request, body, bucket_name, query, key_name, headers):
+    def _key_response_put(self, request, parsed_url, body, bucket_name, query, key_name, headers):
         if 'uploadId' in query and 'partNumber' in query:
             upload_id = query['uploadId'][0]
             part_number = int(query['partNumber'][0])
@@ -304,6 +304,10 @@ class ResponseObject(object):
             return 200, headers, response
 
         storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
+
+        if parsed_url.query == 'acl':
+            # We don't implement ACL yet, so just return
+            return 200, headers, ""
 
         if 'x-amz-copy-source' in request.headers:
             # Copy key

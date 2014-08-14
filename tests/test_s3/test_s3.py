@@ -589,3 +589,20 @@ def test_list_versions():
     versions[1].name.should.equal('the-key')
     versions[1].version_id.should.equal('1')
     versions[1].get_contents_as_string().should.equal("Version 2")
+
+
+@mock_s3
+def test_acl_is_ignored_for_now():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('foobar')
+    content = 'imafile'
+    keyname = 'test.txt'
+
+    key = Key(bucket, name=keyname)
+    key.content_type = 'text/plain'
+    key.set_contents_from_string(content)
+    key.make_public()
+
+    key = bucket.get_key(keyname)
+
+    assert key.get_contents_as_string() == content
