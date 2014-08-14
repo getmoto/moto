@@ -171,14 +171,14 @@ To run a service:
 
 ```console
 $ moto_server ec2
- * Running on http://127.0.0.1:5000/
+ * Running on http://0.0.0.0:5000/
 ```
 
 You can also pass the port as the second argument:
 
 ```console
-$ moto_server ec2 3000
- * Running on http://127.0.0.1:3000/
+$ moto_server ec2 -p3000
+ * Running on http://0.0.0.0:3000/
 ```
 
 
