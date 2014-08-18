@@ -3,8 +3,10 @@ from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2
+from tests.helpers import requires_boto_gte
 
 
+@requires_boto_gte("2.32.0")
 @mock_ec2
 def test_vpc_peering_connections():
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -17,6 +19,7 @@ def test_vpc_peering_connections():
     return vpc_pcx
 
 
+@requires_boto_gte("2.32.0")
 @mock_ec2
 def test_vpc_peering_connections_get_all():
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -28,6 +31,7 @@ def test_vpc_peering_connections_get_all():
     all_vpc_pcxs[0]._status.code.should.equal('pending-acceptance')
 
 
+@requires_boto_gte("2.32.0")
 @mock_ec2
 def test_vpc_peering_connections_accept():
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -44,6 +48,7 @@ def test_vpc_peering_connections_accept():
     all_vpc_pcxs[0]._status.code.should.equal('active')
 
 
+@requires_boto_gte("2.32.0")
 @mock_ec2
 def test_vpc_peering_connections_reject():
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -60,6 +65,7 @@ def test_vpc_peering_connections_reject():
     all_vpc_pcxs[0]._status.code.should.equal('rejected')
 
 
+@requires_boto_gte("2.32.1")
 @mock_ec2
 def test_vpc_peering_connections_delete():
     conn = boto.connect_vpc('the_key', 'the_secret')

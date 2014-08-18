@@ -4,6 +4,7 @@ python:
   - 2.7
 env:
     matrix:
+      - BOTO_VERSION=2.32.1
       - BOTO_VERSION=2.31.1
       - BOTO_VERSION=2.25.0
       - BOTO_VERSION=2.19.0
