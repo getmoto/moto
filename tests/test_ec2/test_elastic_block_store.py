@@ -76,3 +76,19 @@ def test_create_snapshot():
 
     # Deleting something that was already deleted should throw an error
     snapshot.delete.when.called_with().should.throw(EC2ResponseError)
+
+
+@mock_ec2
+def test_modify_attribute_blockDeviceMapping():
+    """
+    Reproduces the missing feature explained at [0], where we want to mock a
+    call to modify an instance attribute of type: blockDeviceMapping.
+
+    [0] https://github.com/spulec/moto/issues/160
+    """
+    conn = boto.connect_ec2('the_key', 'the_secret')
+
+    reservation = conn.run_instances('ami-1234abcd')
+
+    instance = reservation.instances[0]
+    instance.modify_attribute('blockDeviceMapping', {'/dev/sda1': True})
