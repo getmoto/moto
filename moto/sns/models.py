@@ -1,6 +1,8 @@
 import datetime
 import requests
 import uuid
+from collections import OrderedDict
+from itertools import islice
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime
@@ -8,6 +10,7 @@ from moto.sqs.models import sqs_backend
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
 DEFAULT_ACCOUNT_ID = 123456789012
+DEFAULT_PAGE_SIZE = 100
 
 
 class Topic(object):
@@ -64,16 +67,27 @@ class Subscription(object):
 
 class SNSBackend(BaseBackend):
     def __init__(self):
-        self.topics = {}
-        self.subscriptions = {}
+        self.topics = OrderedDict()
+        self.subscriptions = OrderedDict()
 
     def create_topic(self, name):
         topic = Topic(name)
         self.topics[topic.arn] = topic
         return topic
-
-    def list_topics(self):
-        return self.topics.values()
+       
+    def _get_values_nexttoken(self, thedict, next_token=None):
+        if next_token is None:
+            next_token = 0
+        next_token = int(next_token)
+        values = dict(islice(thedict.iteritems(), next_token, next_token + DEFAULT_PAGE_SIZE)).values()
+        if len(values) == DEFAULT_PAGE_SIZE:
+            next_token = next_token + DEFAULT_PAGE_SIZE
+        else:
+            next_token = None
+        return values, next_token
+    
+    def list_topics(self, next_token=None):
+        return self._get_values_nexttoken(self.topics, next_token)
 
     def delete_topic(self, arn):
         self.topics.pop(arn)
@@ -94,12 +108,13 @@ class SNSBackend(BaseBackend):
     def unsubscribe(self, subscription_arn):
         self.subscriptions.pop(subscription_arn)
 
-    def list_subscriptions(self, topic_arn=None):
+    def list_subscriptions(self, topic_arn=None, next_token=None):
         if topic_arn:
             topic = self.get_topic(topic_arn)
-            return [sub for sub in self.subscriptions.values() if sub.topic == topic]
+            filtered = OrderedDict([(k, sub) for k, sub in self.subscriptions.iteritems() if sub.topic == topic])
+            return self._get_values_nexttoken(filtered, next_token)
         else:
-            return self.subscriptions.values()
+            return self._get_values_nexttoken(self.subscriptions, next_token)
 
     def publish(self, topic_arn, message):
         topic = self.get_topic(topic_arn)
