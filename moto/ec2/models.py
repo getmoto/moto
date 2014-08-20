@@ -3,6 +3,7 @@ import itertools
 from collections import defaultdict
 
 from boto.ec2.instance import Instance as BotoInstance, Reservation
+from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
 
@@ -64,6 +65,9 @@ class Instance(BotoInstance, TaggedEC2Instance):
         self.instance_type = kwargs.get("instance_type", "m1.small")
         self.subnet_id = kwargs.get("subnet_id")
         self.key_name = kwargs.get("key_name")
+
+        self.block_device_mapping = BlockDeviceMapping()
+        self.block_device_mapping['/dev/sda1'] = BlockDeviceType()
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
