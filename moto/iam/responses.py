@@ -106,6 +106,12 @@ class IamResponse(BaseResponse):
         template = Template(USER_TEMPLATE)
         return template.render(action='Create', user=user)
 
+    def get_user(self):
+        user_name = self._get_param('UserName')
+        user = iam_backend.get_user(user_name)
+        template = Template(USER_TEMPLATE)
+        return template.render(action='Get', user=user)
+
     def add_user_to_group(self):
         group_name = self._get_param('GroupName')
         user_name = self._get_param('UserName')
@@ -164,6 +170,14 @@ class IamResponse(BaseResponse):
         keys = iam_backend.get_all_access_keys(user_name)
         template = Template(LIST_ACCESS_KEYS_TEMPLATE)
         return template.render(user_name=user_name, keys=keys)
+
+    def delete_access_key(self):
+        user_name = self._get_param('UserName')
+        access_key_id = self._get_param('AccessKeyId')
+
+        iam_backend.delete_access_key(access_key_id, user_name)
+        template = Template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeleteAccessKey')
 
     def delete_user(self):
         user_name = self._get_param('UserName')

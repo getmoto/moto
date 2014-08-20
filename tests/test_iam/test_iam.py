@@ -85,6 +85,14 @@ def test_create_user():
 
 
 @mock_iam()
+def test_get_user():
+    conn = boto.connect_iam()
+    assert_raises(BotoServerError, conn.get_user, 'my-user')
+    conn.create_user('my-user')
+    conn.get_user('my-user')
+
+
+@mock_iam()
 def test_add_user_to_group():
     conn = boto.connect_iam()
     assert_raises(BotoServerError, conn.add_user_to_group, 'my-group', 'my-user')
@@ -129,6 +137,13 @@ def test_get_all_access_keys():
         []
     )
 
+
+@mock_iam()
+def test_delete_access_key():
+    conn = boto.connect_iam()
+    conn.create_user('my-user')
+    access_key_id = conn.create_access_key('my-user')['create_access_key_response']['create_access_key_result']['access_key']['access_key_id']
+    conn.delete_access_key(access_key_id, 'my-user')
 
 
 @mock_iam()

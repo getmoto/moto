@@ -135,6 +135,14 @@ class User(object):
     def get_all_access_keys(self):
         return self.access_keys
 
+    def delete_access_key(self, access_key_id):
+        for key in self.access_keys:
+            if key.access_key_id == access_key_id:
+                self.access_keys.remove(key)
+                break
+        else:
+            raise BotoServerError(404, 'Not Found')
+
 
 class IAMBackend(BaseBackend):
 
@@ -207,7 +215,6 @@ class IAMBackend(BaseBackend):
         return group
 
     def get_group(self, group_name, marker=None, max_items=None):
-
         group = None
         try:
             group = self.groups[group_name]
@@ -222,6 +229,15 @@ class IAMBackend(BaseBackend):
 
         user = User(user_name, path)
         self.users[user_name] = user
+        return user
+
+    def get_user(self, user_name):
+        user = None
+        try:
+            user = self.users[user_name]
+        except KeyError:
+            raise BotoServerError(404, 'Not Found')
+
         return user
 
     def add_user_to_group(self, group_name, user_name):
@@ -291,6 +307,13 @@ class IAMBackend(BaseBackend):
             raise BotoServerError(404, 'Not Found')
 
         return keys
+
+    def delete_access_key(self, access_key_id, user_name):
+        try:
+            user = self.users[user_name]
+            user.delete_access_key(access_key_id)
+        except KeyError:
+            raise BotoServerError(404, 'Not Found')
 
     def delete_user(self, user_name):
         try:
