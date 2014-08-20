@@ -65,6 +65,17 @@ class InstanceResponse(BaseResponse):
         template = Template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
+    def describe_instance_status(self):
+        instance_ids = instance_ids_from_querystring(self.querystring)
+
+        if instance_ids:
+            instances = ec2_backend.get_multi_instances_by_id(instance_ids)
+        else:
+            instances = ec2_backend.all_instances()
+
+        template = Template(EC2_INSTANCE_STATUS)
+        return template.render(instances=instances)
+
     def describe_instance_attribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if
         # instance not in stopped state
@@ -359,3 +370,39 @@ EC2_INVALID_INSTANCE_ID = """<?xml version="1.0" encoding="UTF-8"?>
 <Message>The instance ID '{{ instance_id }}' does not exist</Message></Error>
 </Errors>
 <RequestID>39070fe4-6f6d-4565-aecd-7850607e4555</RequestID></Response>"""
+
+
+EC2_INSTANCE_STATUS = """<?xml version="1.0" encoding="UTF-8"?>
+<DescribeInstanceStatusResponse xmlns="http://ec2.amazonaws.com/doc/2014-05-01/">
+    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+    <instanceStatusSet>
+      {% for instance in instances %}
+        <item>
+            <instanceId>{{ instance.id }}</instanceId>
+            <availabilityZone>us-east-1d</availabilityZone>
+            <instanceState>
+                <code>16</code>
+                <name>running</name>
+            </instanceState>
+            <systemStatus>
+                <status>ok</status>
+                <details>
+                    <item>
+                        <name>reachability</name>
+                        <status>passed</status>
+                    </item>
+                </details>
+            </systemStatus>
+            <instanceStatus>
+                <status>ok</status>
+                <details>
+                    <item>
+                        <name>reachability</name>
+                        <status>passed</status>
+                    </item>
+                </details>
+            </instanceStatus>
+        </item>
+      {% endfor %}
+    </instanceStatusSet>
+</DescribeInstanceStatusResponse>"""
