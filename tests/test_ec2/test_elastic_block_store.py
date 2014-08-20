@@ -3,6 +3,7 @@ from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2
+from moto.ec2.models import ec2_backend
 
 
 @mock_ec2
@@ -91,4 +92,9 @@ def test_modify_attribute_blockDeviceMapping():
     reservation = conn.run_instances('ami-1234abcd')
 
     instance = reservation.instances[0]
+
     instance.modify_attribute('blockDeviceMapping', {'/dev/sda1': True})
+
+    instance = ec2_backend.get_instance(instance.id)
+    instance.block_device_mapping.should.have.key('/dev/sda1')
+    instance.block_device_mapping['/dev/sda1'].delete_on_termination.should.be(True)
