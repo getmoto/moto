@@ -46,6 +46,10 @@ def random_vpc_id():
     return random_id(prefix='vpc')
 
 
+def random_vpc_peering_connection_id():
+    return random_id(prefix='pcx')
+
+
 def random_eip_association_id():
     return random_id(prefix='eipassoc')
 

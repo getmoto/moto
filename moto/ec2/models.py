@@ -15,7 +15,9 @@ from .exceptions import (
     InvalidInternetGatewayIDError,
     GatewayNotAttachedError,
     ResourceAlreadyAssociatedError,
-    InvalidVPCIdError
+    InvalidVPCIdError,
+    InvalidVPCPeeringConnectionIdError,
+    InvalidVPCPeeringConnectionStateTransitionError
 )
 from .utils import (
     random_ami_id,
@@ -35,6 +37,7 @@ from .utils import (
     random_subnet_id,
     random_volume_id,
     random_vpc_id,
+    random_vpc_peering_connection_id,
 )
 
 
@@ -715,6 +718,89 @@ class VPCBackend(object):
         return vpc
 
 
+class VPCPeeringConnectionStatus(object):
+    def __init__(self, code='initiating-request', message=''):
+        self.code = code
+        self.message = message
+
+    def initiating(self):
+        self.code = 'initiating-request'
+        self.message = 'Initiating Request to {accepter ID}'
+
+    def pending(self):
+        self.code = 'pending-acceptance'
+        self.message = 'Pending Acceptance by {accepter ID}'
+
+    def accept(self):
+        self.code = 'active'
+        self.message = 'Active'
+
+    def reject(self):
+        self.code = 'rejected'
+        self.message = 'Inactive'
+
+
+class VPCPeeringConnection(TaggedEC2Instance):
+    def __init__(self, vpc_pcx_id, vpc, peer_vpc):
+        self.id = vpc_pcx_id
+        self.vpc = vpc
+        self.peer_vpc = peer_vpc
+        self._status = VPCPeeringConnectionStatus()
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+        properties = cloudformation_json['Properties']
+
+        vpc = self.get_vpc(properties['VpcId'])
+        peer_vpc = self.get_vpc(properties['PeerVpcId'])
+
+        vpc_pcx = ec2_backend.create_vpc_peering_connection(vpc, peer_vpc)
+
+        return vpc_pcx
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+
+class VPCPeeringConnectionBackend(object):
+    def __init__(self):
+        self.vpc_pcxs = {}
+        super(VPCPeeringConnectionBackend, self).__init__()
+
+    def create_vpc_peering_connection(self, vpc, peer_vpc):
+        vpc_pcx_id = random_vpc_peering_connection_id()
+        vpc_pcx = VPCPeeringConnection(vpc_pcx_id, vpc, peer_vpc)
+        vpc_pcx._status.pending()
+        self.vpc_pcxs[vpc_pcx_id] = vpc_pcx
+        return vpc_pcx
+
+    def get_all_vpc_peering_connections(self):
+        return self.vpc_pcxs.values()
+
+    def get_vpc_peering_connection(self, vpc_pcx_id):
+        if vpc_pcx_id not in self.vpc_pcxs:
+            raise InvalidVPCPeeringConnectionIdError(vpc_pcx_id)
+        return self.vpc_pcxs.get(vpc_pcx_id)
+
+    def delete_vpc_peering_connection(self, vpc_pcx_id):
+        return self.vpc_pcxs.pop(vpc_pcx_id, None)
+
+    def accept_vpc_peering_connection(self, vpc_pcx_id):
+        vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
+        if vpc_pcx._status.code != 'pending-acceptance':
+            raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
+        vpc_pcx._status.accept()
+        return vpc_pcx
+
+    def reject_vpc_peering_connection(self, vpc_pcx_id):
+        vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
+        if vpc_pcx._status.code != 'pending-acceptance':
+            raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
+        vpc_pcx._status.reject()
+        return vpc_pcx
+
+
 class Subnet(TaggedEC2Instance):
     def __init__(self, subnet_id, vpc_id, cidr_block):
         self.id = subnet_id
@@ -1176,6 +1262,7 @@ class DHCPOptionsSetBackend(object):
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
+                 VPCPeeringConnectionBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
                  ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend):

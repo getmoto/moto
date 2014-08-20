@@ -37,6 +37,22 @@ class InvalidVPCIdError(EC2ClientError):
             .format(vpc_id))
 
 
+class InvalidVPCPeeringConnectionIdError(EC2ClientError):
+    def __init__(self, vpc_peering_connection_id):
+        super(InvalidVPCPeeringConnectionIdError, self).__init__(
+            "InvalidVpcPeeringConnectionId.NotFound",
+            "VpcPeeringConnectionID {0} does not exist."
+            .format(vpc_peering_connection_id))
+
+
+class InvalidVPCPeeringConnectionStateTransitionError(EC2ClientError):
+    def __init__(self, vpc_peering_connection_id):
+        super(InvalidVPCPeeringConnectionStateTransitionError, self).__init__(
+            "InvalidStateTransition",
+            "VpcPeeringConnectionID {0} is not in the correct state for the request."
+            .format(vpc_peering_connection_id))
+
+
 class InvalidParameterValueError(EC2ClientError):
     def __init__(self, parameter_value):
         super(InvalidParameterValueError, self).__init__(
