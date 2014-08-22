@@ -3,6 +3,7 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
+from moto.ec2.utils import filters_from_querystring
 
 
 def process_rules_from_querystring(querystring):
@@ -35,6 +36,22 @@ def process_rules_from_querystring(querystring):
     return (name, group_id, ip_protocol, from_port, to_port, ip_ranges, source_groups, source_group_ids)
 
 
+def process_group_ids_from_querystring(querystring):
+    group_ids = []
+    for key, value in querystring.iteritems():
+        if 'GroupId' in key:
+            group_ids.append(value[0])
+    return group_ids
+
+
+def process_groupnames_from_querystring(querystring):
+    groupnames = []
+    for key, value in querystring.iteritems():
+        if 'GroupName' in key:
+            groupnames.append(value[0])
+    return groupnames
+
+
 class SecurityGroups(BaseResponse):
     def authorize_security_group_egress(self):
         raise NotImplementedError('SecurityGroups.authorize_security_group_egress is not yet implemented')
@@ -65,7 +82,16 @@ class SecurityGroups(BaseResponse):
         return DELETE_GROUP_RESPONSE
 
     def describe_security_groups(self):
-        groups = ec2_backend.describe_security_groups()
+        groupnames = process_groupnames_from_querystring(self.querystring)
+        group_ids = process_group_ids_from_querystring(self.querystring)
+        filters = filters_from_querystring(self.querystring)
+
+        groups = ec2_backend.describe_security_groups(
+            group_ids=group_ids,
+            groupnames=groupnames,
+            filters=filters
+        )
+
         template = Template(DESCRIBE_SECURITY_GROUPS_RESPONSE)
         return template.render(groups=groups)
 
