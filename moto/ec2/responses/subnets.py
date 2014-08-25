@@ -15,11 +15,8 @@ class Subnets(BaseResponse):
     def delete_subnet(self):
         subnet_id = self.querystring.get('SubnetId')[0]
         subnet = ec2_backend.delete_subnet(subnet_id)
-        if subnet:
-            template = Template(DELETE_SUBNET_RESPONSE)
-            return template.render(subnet=subnet)
-        else:
-            return "", dict(status=404)
+        template = Template(DELETE_SUBNET_RESPONSE)
+        return template.render(subnet=subnet)
 
     def describe_subnets(self):
         subnets = ec2_backend.get_all_subnets()

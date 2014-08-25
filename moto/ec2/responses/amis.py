@@ -2,7 +2,6 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
-from moto.ec2.exceptions import InvalidIdError
 from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring
 
 
@@ -16,8 +15,6 @@ class AmisResponse(BaseResponse):
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
         image = ec2_backend.create_image(instance_id, name, description)
-        if not image:
-            return "There is not instance with id {0}".format(instance_id), dict(status=404)
         template = Template(CREATE_IMAGE_RESPONSE)
         return template.render(image=image)
 
@@ -25,25 +22,16 @@ class AmisResponse(BaseResponse):
         ami_id = self.querystring.get('ImageId')[0]
         success = ec2_backend.deregister_image(ami_id)
         template = Template(DEREGISTER_IMAGE_RESPONSE)
-        rendered = template.render(success=str(success).lower())
-        if success:
-            return rendered
-        else:
-            return rendered, dict(status=404)
+        return template.render(success=str(success).lower())
 
     def describe_image_attribute(self):
         raise NotImplementedError('AMIs.describe_image_attribute is not yet implemented')
 
     def describe_images(self):
         ami_ids = image_ids_from_querystring(self.querystring)
-        try:
-            images = ec2_backend.describe_images(ami_ids=ami_ids)
-        except InvalidIdError as exc:
-            template = Template(DESCRIBE_IMAGES_INVALID_IMAGE_ID_RESPONSE)
-            return template.render(image_id=exc.id), dict(status=400)
-        else:
-            template = Template(DESCRIBE_IMAGES_RESPONSE)
-            return template.render(images=images)
+        images = ec2_backend.describe_images(ami_ids=ami_ids)
+        template = Template(DESCRIBE_IMAGES_RESPONSE)
+        return template.render(images=images)
 
     def modify_image_attribute(self):
         raise NotImplementedError('AMIs.modify_image_attribute is not yet implemented')
@@ -115,11 +103,6 @@ DESCRIBE_IMAGE_RESPONSE = """<DescribeImageAttributeResponse xmlns="http://ec2.a
      <value>{{ value }}</value>
    </{{key }}>
 </DescribeImageAttributeResponse>"""
-
-
-DESCRIBE_IMAGES_INVALID_IMAGE_ID_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<Response><Errors><Error><Code>InvalidAMIID.NotFound</Code><Message>The image id '[{{ image_id }}]' does not exist</Message></Error></Errors><RequestID>59dbff89-35bd-4eac-99ed-be587EXAMPLE</RequestID></Response>
-"""
 
 DEREGISTER_IMAGE_RESPONSE = """<DeregisterImageResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

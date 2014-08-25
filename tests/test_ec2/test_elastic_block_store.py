@@ -1,6 +1,7 @@
 import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
+from nose.tools import assert_raises
 
 from moto import mock_ec2
 from moto.ec2.models import ec2_backend
@@ -22,7 +23,11 @@ def test_create_and_delete_volume():
     conn.get_all_volumes().should.have.length_of(0)
 
     # Deleting something that was already deleted should throw an error
-    volume.delete.when.called_with().should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError) as cm:
+        volume.delete()
+    cm.exception.code.should.equal('InvalidVolume.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -47,14 +52,23 @@ def test_volume_attach_and_detach():
     volume.update()
     volume.volume_state().should.equal('available')
 
-    volume.attach.when.called_with(
-        'i-1234abcd', "/dev/sdh").should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError) as cm1:
+        volume.attach('i-1234abcd', "/dev/sdh")
+    cm1.exception.code.should.equal('InvalidInstanceID.NotFound')
+    cm1.exception.status.should.equal(400)
+    cm1.exception.request_id.should_not.be.none
 
-    conn.detach_volume.when.called_with(
-        volume.id, instance.id, "/dev/sdh").should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError) as cm2:
+        conn.detach_volume(volume.id, instance.id, "/dev/sdh")
+    cm2.exception.code.should.equal('InvalidAttachment.NotFound')
+    cm2.exception.status.should.equal(400)
+    cm2.exception.request_id.should_not.be.none
 
-    conn.detach_volume.when.called_with(
-        volume.id, 'i-1234abcd', "/dev/sdh").should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError) as cm3:
+        conn.detach_volume(volume.id, 'i-1234abcd', "/dev/sdh")
+    cm3.exception.code.should.equal('InvalidInstanceID.NotFound')
+    cm3.exception.status.should.equal(400)
+    cm3.exception.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -76,7 +90,11 @@ def test_create_snapshot():
     conn.get_all_snapshots().should.have.length_of(1)
 
     # Deleting something that was already deleted should throw an error
-    snapshot.delete.when.called_with().should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError) as cm:
+        snapshot.delete()
+    cm.exception.code.should.equal('InvalidSnapshot.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
 
 
 @mock_ec2

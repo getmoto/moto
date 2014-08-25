@@ -11,8 +11,6 @@ class ElasticBlockStore(BaseResponse):
         device_path = self.querystring.get('Device')[0]
 
         attachment = ec2_backend.attach_volume(volume_id, instance_id, device_path)
-        if not attachment:
-            return "", dict(status=404)
         template = Template(ATTACHED_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
 
@@ -38,17 +36,11 @@ class ElasticBlockStore(BaseResponse):
     def delete_snapshot(self):
         snapshot_id = self.querystring.get('SnapshotId')[0]
         success = ec2_backend.delete_snapshot(snapshot_id)
-        if not success:
-            # Snapshot doesn't exist
-            return "Snapshot with id {0} does not exist".format(snapshot_id), dict(status=404)
         return DELETE_SNAPSHOT_RESPONSE
 
     def delete_volume(self):
         volume_id = self.querystring.get('VolumeId')[0]
         success = ec2_backend.delete_volume(volume_id)
-        if not success:
-            # Volume doesn't exist
-            return "Volume with id {0} does not exist".format(volume_id), dict(status=404)
         return DELETE_VOLUME_RESPONSE
 
     def describe_snapshot_attribute(self):
@@ -76,9 +68,6 @@ class ElasticBlockStore(BaseResponse):
         device_path = self.querystring.get('Device')[0]
 
         attachment = ec2_backend.detach_volume(volume_id, instance_id, device_path)
-        if not attachment:
-            # Volume wasn't attached
-            return "Volume {0} can not be detached from {1} because it is not attached".format(volume_id, instance_id), dict(status=404)
         template = Template(DETATCH_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
 

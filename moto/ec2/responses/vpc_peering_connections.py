@@ -15,11 +15,8 @@ class VPCPeeringConnections(BaseResponse):
     def delete_vpc_peering_connection(self):
         vpc_pcx_id = self.querystring.get('VpcPeeringConnectionId')[0]
         vpc_pcx = ec2_backend.delete_vpc_peering_connection(vpc_pcx_id)
-        if vpc_pcx:
-            template = Template(DELETE_VPC_PEERING_CONNECTION_RESPONSE)
-            return template.render(vpc_pcx=vpc_pcx)
-        else:
-            return "", dict(status=404)
+        template = Template(DELETE_VPC_PEERING_CONNECTION_RESPONSE)
+        return template.render(vpc_pcx=vpc_pcx)
 
     def describe_vpc_peering_connections(self):
         vpc_pcxs = ec2_backend.get_all_vpc_peering_connections()
@@ -29,20 +26,14 @@ class VPCPeeringConnections(BaseResponse):
     def accept_vpc_peering_connection(self):
         vpc_pcx_id = self.querystring.get('VpcPeeringConnectionId')[0]
         vpc_pcx = ec2_backend.accept_vpc_peering_connection(vpc_pcx_id)
-        if vpc_pcx:
-            template = Template(ACCEPT_VPC_PEERING_CONNECTION_RESPONSE)
-            return template.render(vpc_pcx=vpc_pcx)
-        else:
-            return "", dict(status=404)
+        template = Template(ACCEPT_VPC_PEERING_CONNECTION_RESPONSE)
+        return template.render(vpc_pcx=vpc_pcx)
 
     def reject_vpc_peering_connection(self):
         vpc_pcx_id = self.querystring.get('VpcPeeringConnectionId')[0]
         vpc_pcx = ec2_backend.reject_vpc_peering_connection(vpc_pcx_id)
-        if vpc_pcx:
-            template = Template(REJECT_VPC_PEERING_CONNECTION_RESPONSE)
-            return template.render()
-        else:
-            return "", dict(status=404)
+        template = Template(REJECT_VPC_PEERING_CONNECTION_RESPONSE)
+        return template.render()
 
 
 CREATE_VPC_PEERING_CONNECTION_RESPONSE = """
