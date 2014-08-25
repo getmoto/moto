@@ -89,7 +89,7 @@ def test_vpc_peering_connections_delete():
 
     with assert_raises(EC2ResponseError) as cm:
         conn.delete_vpc_peering_connection("pcx-1234abcd")
-    cm.exception.code.should.equal('InvalidVPCPeeringConnectionId.NotFound')
+    cm.exception.code.should.equal('InvalidVpcPeeringConnectionId.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
