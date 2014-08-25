@@ -277,3 +277,10 @@ def test_describe_instance_status_with_instance_filter():
     all_status = conn.get_all_instance_status(instance_ids=[instance.id])
     len(all_status).should.equal(1)
     all_status[0].id.should.equal(instance.id)
+
+    # Call get_all_instance_status with a bad id should raise an error
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_all_instance_status(instance_ids=[instance.id, "i-1234abcd"])
+    cm.exception.code.should.equal('InvalidInstanceID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none

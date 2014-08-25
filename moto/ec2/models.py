@@ -219,6 +219,10 @@ class InstanceBackend(object):
                 if instance.id in instance_ids:
                     result.append(instance)
 
+        # TODO: Trim error message down to specific invalid id.
+        if instance_ids and len(instance_ids) > len(result):
+            raise InvalidInstanceIdError(instance_ids)
+
         return result
 
     def get_instance_by_id(self, instance_id):
