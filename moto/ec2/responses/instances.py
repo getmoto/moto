@@ -359,14 +359,6 @@ EC2_MODIFY_INSTANCE_ATTRIBUTE = """<ModifyInstanceAttributeResponse xmlns="http:
   <return>true</return>
 </ModifyInstanceAttributeResponse>"""
 
-
-EC2_INVALID_INSTANCE_ID = """<?xml version="1.0" encoding="UTF-8"?>
-<Response><Errors><Error><Code>InvalidInstanceID.NotFound</Code>
-<Message>The instance ID '{{ instance_id }}' does not exist</Message></Error>
-</Errors>
-<RequestID>39070fe4-6f6d-4565-aecd-7850607e4555</RequestID></Response>"""
-
-
 EC2_INSTANCE_STATUS = """<?xml version="1.0" encoding="UTF-8"?>
 <DescribeInstanceStatusResponse xmlns="http://ec2.amazonaws.com/doc/2014-05-01/">
     <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
