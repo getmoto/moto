@@ -160,37 +160,33 @@ class InstanceBackend(object):
 
     def start_instances(self, instance_ids):
         started_instances = []
-        for instance in self.all_instances():
-            if instance.id in instance_ids:
-                instance.start()
-                started_instances.append(instance)
+        for instance in self.get_multi_instances_by_id(instance_ids):
+            instance.start()
+            started_instances.append(instance)
 
         return started_instances
 
     def stop_instances(self, instance_ids):
         stopped_instances = []
-        for instance in self.all_instances():
-            if instance.id in instance_ids:
-                instance.stop()
-                stopped_instances.append(instance)
+        for instance in self.get_multi_instances_by_id(instance_ids):
+            instance.stop()
+            stopped_instances.append(instance)
 
         return stopped_instances
 
     def terminate_instances(self, instance_ids):
         terminated_instances = []
-        for instance in self.all_instances():
-            if instance.id in instance_ids:
-                instance.terminate()
-                terminated_instances.append(instance)
+        for instance in self.get_multi_instances_by_id(instance_ids):
+            instance.terminate()
+            terminated_instances.append(instance)
 
         return terminated_instances
 
     def reboot_instances(self, instance_ids):
         rebooted_instances = []
-        for instance in self.all_instances():
-            if instance.id in instance_ids:
-                instance.reboot()
-                rebooted_instances.append(instance)
+        for instance in self.get_multi_instances_by_id(instance_ids):
+            instance.reboot()
+            rebooted_instances.append(instance)
 
         return rebooted_instances
 
@@ -210,6 +206,20 @@ class InstanceBackend(object):
             for instance in reservation.instances:
                 instances.append(instance)
         return instances
+
+    def get_multi_instances_by_id(self, instance_ids):
+        """
+        :param instance_ids: A string list with instance ids
+        :return: A list with instance objects
+        """
+        result = []
+
+        for reservation in self.all_reservations():
+            for instance in reservation.instances:
+                if instance.id in instance_ids:
+                    result.append(instance)
+
+        return result
 
     def get_instance_by_id(self, instance_id):
         for reservation in self.all_reservations():

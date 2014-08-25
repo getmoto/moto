@@ -243,3 +243,37 @@ def test_run_instance_with_keypair():
     instance = reservation.instances[0]
 
     instance.key_name.should.equal("keypair_name")
+
+
+@mock_ec2
+def test_describe_instance_status_no_instances():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    all_status = conn.get_all_instance_status()
+    len(all_status).should.equal(0)
+
+
+@mock_ec2
+def test_describe_instance_status_with_instances():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn.run_instances('ami-1234abcd', key_name="keypair_name")
+
+    all_status = conn.get_all_instance_status()
+    len(all_status).should.equal(1)
+    all_status[0].instance_status.status.should.equal('ok')
+    all_status[0].system_status.status.should.equal('ok')
+
+
+@mock_ec2
+def test_describe_instance_status_with_instance_filter():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+
+    # We want to filter based on this one
+    reservation = conn.run_instances('ami-1234abcd', key_name="keypair_name")
+    instance = reservation.instances[0]
+
+    # This is just to setup the test
+    conn.run_instances('ami-1234abcd', key_name="keypair_name")
+
+    all_status = conn.get_all_instance_status(instance_ids=[instance.id])
+    len(all_status).should.equal(1)
+    all_status[0].id.should.equal(instance.id)
