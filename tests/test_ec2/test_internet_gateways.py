@@ -1,10 +1,13 @@
+# Ensure 'assert_raises' context manager support for Python 2.6
+import tests.backport_assert_raises
+from nose.tools import assert_raises
+
 import re
 
 import boto
 from boto.exception import EC2ResponseError
 
 import sure  # noqa
-from nose.tools import assert_raises
 
 from moto import mock_ec2
 
