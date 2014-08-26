@@ -1,6 +1,7 @@
 import boto.ec2
+import boto.ec2.autoscale
 import sure
-from moto import mock_ec2
+from moto import mock_ec2, mock_autoscaling
 
 
 def add_servers_to_region(ami_id, count, region):
@@ -42,3 +43,90 @@ def test_add_servers_to_multiple_regions():
     us_instances[0].image_id.should.equal('ami-1234abcd')
     ap_instances[0].image_id.should.equal('ami-5678efgh')
 
+
+@mock_autoscaling
+def test_create_autoscaling_group():
+    us_conn = boto.ec2.autoscale.connect_to_region('us-east-1')
+    config = boto.ec2.autoscale.LaunchConfiguration(
+        name='us_tester',
+        image_id='ami-abcd1234',
+        instance_type='m1.small',
+    )
+    us_conn.create_launch_configuration(config)
+
+    group = boto.ec2.autoscale.AutoScalingGroup(
+        name='us_tester_group',
+        availability_zones=['us-east-1c'],
+        default_cooldown=60,
+        desired_capacity=2,
+        health_check_period=100,
+        health_check_type="EC2",
+        max_size=2,
+        min_size=2,
+        launch_config=config,
+        load_balancers=["us_test_lb"],
+        placement_group="us_test_placement",
+        vpc_zone_identifier='subnet-1234abcd',
+        termination_policies=["OldestInstance", "NewestInstance"],
+    )
+    us_conn.create_auto_scaling_group(group)
+
+
+    ap_conn = boto.ec2.autoscale.connect_to_region('ap-northeast-1')
+    config = boto.ec2.autoscale.LaunchConfiguration(
+        name='ap_tester',
+        image_id='ami-efgh5678',
+        instance_type='m1.small',
+    )
+    ap_conn.create_launch_configuration(config)
+
+    group = boto.ec2.autoscale.AutoScalingGroup(
+        name='ap_tester_group',
+        availability_zones=['ap-northeast-1a'],
+        default_cooldown=60,
+        desired_capacity=2,
+        health_check_period=100,
+        health_check_type="EC2",
+        max_size=2,
+        min_size=2,
+        launch_config=config,
+        load_balancers=["ap_test_lb"],
+        placement_group="ap_test_placement",
+        vpc_zone_identifier='subnet-5678efgh',
+        termination_policies=["OldestInstance", "NewestInstance"],
+    )
+    ap_conn.create_auto_scaling_group(group)
+
+
+    len(us_conn.get_all_groups()).should.equal(1)
+    len(ap_conn.get_all_groups()).should.equal(1)
+
+    us_group = us_conn.get_all_groups()[0]
+    us_group.name.should.equal('us_tester_group')
+    list(us_group.availability_zones).should.equal(['us-east-1c'])
+    us_group.desired_capacity.should.equal(2)
+    us_group.max_size.should.equal(2)
+    us_group.min_size.should.equal(2)
+    us_group.vpc_zone_identifier.should.equal('subnet-1234abcd')
+    us_group.launch_config_name.should.equal('us_tester')
+    us_group.default_cooldown.should.equal(60)
+    us_group.health_check_period.should.equal(100)
+    us_group.health_check_type.should.equal("EC2")
+    list(us_group.load_balancers).should.equal(["us_test_lb"])
+    us_group.placement_group.should.equal("us_test_placement")
+    list(us_group.termination_policies).should.equal(["OldestInstance", "NewestInstance"])
+
+    ap_group = ap_conn.get_all_groups()[0]
+    ap_group.name.should.equal('ap_tester_group')
+    list(ap_group.availability_zones).should.equal(['ap-northeast-1a'])
+    ap_group.desired_capacity.should.equal(2)
+    ap_group.max_size.should.equal(2)
+    ap_group.min_size.should.equal(2)
+    ap_group.vpc_zone_identifier.should.equal('subnet-5678efgh')
+    ap_group.launch_config_name.should.equal('ap_tester')
+    ap_group.default_cooldown.should.equal(60)
+    ap_group.health_check_period.should.equal(100)
+    ap_group.health_check_type.should.equal("EC2")
+    list(ap_group.load_balancers).should.equal(["ap_test_lb"])
+    ap_group.placement_group.should.equal("ap_test_placement")
+    list(ap_group.termination_policies).should.equal(["OldestInstance", "NewestInstance"])
