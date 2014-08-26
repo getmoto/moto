@@ -1,3 +1,7 @@
+# Ensure 'assert_raises' context manager support for Python 2.6
+import tests.backport_assert_raises
+from nose.tools import assert_raises
+
 import base64
 
 import boto
@@ -72,10 +76,11 @@ def test_get_instances_by_id():
     instance_ids.should.equal([instance1.id, instance2.id])
 
     # Call get_all_instances with a bad id should raise an error
-    conn.get_all_instances.when.called_with(instance_ids=[instance1.id, "i-1234abcd"]).should.throw(
-        EC2ResponseError,
-        "The instance ID 'i-1234abcd' does not exist"
-    )
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_all_instances(instance_ids=[instance1.id, "i-1234abcd"])
+    cm.exception.code.should.equal('InvalidInstanceID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -275,3 +280,10 @@ def test_describe_instance_status_with_instance_filter():
     all_status = conn.get_all_instance_status(instance_ids=[instance.id])
     len(all_status).should.equal(1)
     all_status[0].id.should.equal(instance.id)
+
+    # Call get_all_instance_status with a bad id should raise an error
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_all_instance_status(instance_ids=[instance.id, "i-1234abcd"])
+    cm.exception.code.should.equal('InvalidInstanceID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none

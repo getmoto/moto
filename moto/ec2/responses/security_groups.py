@@ -44,16 +44,9 @@ class SecurityGroups(BaseResponse):
 
     def create_security_group(self):
         name = self.querystring.get('GroupName')[0]
-        try:
-            description = self.querystring.get('GroupDescription')[0]
-        except TypeError:
-            # No description found, return error
-            return "The request must contain the parameter GroupDescription", dict(status=400)
+        description = self.querystring.get('GroupDescription', [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
         group = ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
-        if not group:
-            # There was an exisitng group
-            return "There was an existing security group with name {0}".format(name), dict(status=409)
         template = Template(CREATE_SECURITY_GROUP_RESPONSE)
         return template.render(group=group)
 
@@ -68,10 +61,6 @@ class SecurityGroups(BaseResponse):
         elif sg_id:
             group = ec2_backend.delete_security_group(group_id=sg_id[0])
 
-        # needs name or group now
-        if not group:
-            # There was no such group
-            return "There was no security group with name {0}".format(name), dict(status=404)
         return DELETE_GROUP_RESPONSE
 
     def describe_security_groups(self):
@@ -83,9 +72,7 @@ class SecurityGroups(BaseResponse):
         raise NotImplementedError('SecurityGroups.revoke_security_group_egress is not yet implemented')
 
     def revoke_security_group_ingress(self):
-        success = ec2_backend.revoke_security_group_ingress(*process_rules_from_querystring(self.querystring))
-        if not success:
-            return "Could not find a matching ingress rule", dict(status=404)
+        ec2_backend.revoke_security_group_ingress(*process_rules_from_querystring(self.querystring))
         return REVOKE_SECURITY_GROUP_INGRESS_REPONSE
 
 

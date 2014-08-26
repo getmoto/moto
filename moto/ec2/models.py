@@ -10,13 +10,31 @@ from boto.ec2.launchspecification import LaunchSpecification
 from moto.core import BaseBackend
 from moto.core.models import Model
 from .exceptions import (
-    InvalidIdError,
+    EC2ClientError,
     DependencyViolationError,
+    MissingParameterError,
+    InvalidParameterValueError,
     InvalidDHCPOptionsIdError,
-    InvalidInternetGatewayIDError,
+    MalformedDHCPOptionsIdError,
+    InvalidKeyPairNameError,
+    InvalidKeyPairDuplicateError,
+    InvalidInternetGatewayIdError,
     GatewayNotAttachedError,
     ResourceAlreadyAssociatedError,
     InvalidVPCIdError,
+    InvalidSubnetIdError,
+    InvalidSecurityGroupDuplicateError,
+    InvalidSecurityGroupNotFoundError,
+    InvalidPermissionNotFoundError,
+    InvalidInstanceIdError,
+    InvalidAMIIdError,
+    InvalidSnapshotIdError,
+    InvalidVolumeIdError,
+    InvalidVolumeAttachmentError,
+    InvalidDomainError,
+    InvalidAddressError,
+    InvalidAllocationIdError,
+    InvalidAssociationIdError,
     InvalidVPCPeeringConnectionIdError,
     InvalidVPCPeeringConnectionStateTransitionError
 )
@@ -118,6 +136,7 @@ class InstanceBackend(object):
         for instance in self.all_instances():
             if instance.id == instance_id:
                 return instance
+        raise InvalidInstanceIdError(instance_id)
 
     def add_instances(self, image_id, count, user_data, security_group_names,
                       **kwargs):
@@ -200,6 +219,10 @@ class InstanceBackend(object):
                 if instance.id in instance_ids:
                     result.append(instance)
 
+        # TODO: Trim error message down to specific invalid id.
+        if instance_ids and len(instance_ids) > len(result):
+            raise InvalidInstanceIdError(instance_ids)
+
         return result
 
     def get_instance_by_id(self, instance_id):
@@ -224,7 +247,7 @@ class InstanceBackend(object):
         found_instance_ids = [instance.id for reservation in reservations for instance in reservation.instances]
         if len(found_instance_ids) != len(instance_ids):
             invalid_id = list(set(instance_ids).difference(set(found_instance_ids)))[0]
-            raise InvalidIdError(invalid_id)
+            raise InvalidInstanceIdError(invalid_id)
         return reservations
 
     def all_reservations(self, make_copy=False):
@@ -244,7 +267,7 @@ class KeyPairBackend(object):
 
     def create_key_pair(self, name):
         if name in self.keypairs:
-            raise InvalidIdError(name)
+            raise InvalidKeyPairDuplicateError(name)
         self.keypairs[name] = keypair = random_key_pair()
         keypair['name'] = name
         return keypair
@@ -260,6 +283,11 @@ class KeyPairBackend(object):
             if not filter_names or name in filter_names:
                 keypair['name'] = name
                 results.append(keypair)
+
+        # TODO: Trim error message down to specific invalid name.
+        if filter_names and len(filter_names) > len(results):
+            raise InvalidKeyPairNameError(filter_names)
+
         return results
 
 
@@ -315,8 +343,6 @@ class AmiBackend(object):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
-        if not instance:
-            return None
         ami = Ami(ami_id, instance, name, description)
         self.amis[ami_id] = ami
         return ami
@@ -327,14 +353,14 @@ class AmiBackend(object):
             if ami_id in self.amis:
                 images.append(self.amis[ami_id])
             else:
-                raise InvalidIdError(ami_id)
+                raise InvalidAMIIdError(ami_id)
         return images or self.amis.values()
 
     def deregister_image(self, ami_id):
         if ami_id in self.amis:
             self.amis.pop(ami_id)
             return True
-        return False
+        raise InvalidAMIIdError(ami_id)
 
 
 class Region(object):
@@ -453,11 +479,14 @@ class SecurityGroupBackend(object):
         super(SecurityGroupBackend, self).__init__()
 
     def create_security_group(self, name, description, vpc_id=None, force=False):
+        if not description:
+            raise MissingParameterError('GroupDescription')
+
         group_id = random_security_group_id()
         if not force:
             existing_group = self.get_security_group_from_name(name, vpc_id)
             if existing_group:
-                return None
+                raise InvalidSecurityGroupDuplicateError(name)
         group = SecurityGroup(group_id, name, description, vpc_id=vpc_id)
 
         self.groups[vpc_id][group_id] = group
@@ -472,11 +501,13 @@ class SecurityGroupBackend(object):
             for vpc in self.groups.values():
                 if group_id in vpc:
                     return vpc.pop(group_id)
+            raise InvalidSecurityGroupNotFoundError(group_id)
         elif name:
             # Group Name.  Has to be in standard EC2, VPC needs to be identified by group_id
             group = self.get_security_group_from_name(name)
             if group:
                 return self.groups[None].pop(group.id)
+            raise InvalidSecurityGroupNotFoundError(name)
 
     def get_security_group_from_id(self, group_id):
         # 2 levels of chaining necessary since it's a complex structure
@@ -565,7 +596,8 @@ class SecurityGroupBackend(object):
         if security_rule in group.ingress_rules:
             group.ingress_rules.remove(security_rule)
             return security_rule
-        return False
+
+        raise InvalidPermissionNotFoundError()
 
 
 class VolumeAttachment(object):
@@ -642,13 +674,19 @@ class EBSBackend(object):
     def describe_volumes(self):
         return self.volumes.values()
 
+    def get_volume(self, volume_id):
+        volume = self.volumes.get(volume_id, None)
+        if not volume:
+            raise InvalidVolumeIdError(volume_id)
+        return volume
+
     def delete_volume(self, volume_id):
         if volume_id in self.volumes:
             return self.volumes.pop(volume_id)
-        return False
+        raise InvalidVolumeIdError(volume_id)
 
     def attach_volume(self, volume_id, instance_id, device_path):
-        volume = self.volumes.get(volume_id)
+        volume = self.get_volume(volume_id)
         instance = self.get_instance(instance_id)
 
         if not volume or not instance:
@@ -658,19 +696,19 @@ class EBSBackend(object):
         return volume.attachment
 
     def detach_volume(self, volume_id, instance_id, device_path):
-        volume = self.volumes.get(volume_id)
+        volume = self.get_volume(volume_id)
         instance = self.get_instance(instance_id)
 
-        if not volume or not instance:
-            return False
-
         old_attachment = volume.attachment
+        if not old_attachment:
+            raise InvalidVolumeAttachmentError(volume_id, instance_id)
+
         volume.attachment = None
         return old_attachment
 
     def create_snapshot(self, volume_id, description):
         snapshot_id = random_snapshot_id()
-        volume = self.volumes.get(volume_id)
+        volume = self.get_volume(volume_id)
         snapshot = Snapshot(snapshot_id, volume, description)
         self.snapshots[snapshot_id] = snapshot
         return snapshot
@@ -681,7 +719,7 @@ class EBSBackend(object):
     def delete_snapshot(self, snapshot_id):
         if snapshot_id in self.snapshots:
             return self.snapshots.pop(snapshot_id)
-        return False
+        raise InvalidSnapshotIdError(snapshot_id)
 
 
 class VPC(TaggedEC2Instance):
@@ -725,7 +763,9 @@ class VPCBackend(object):
 
     def delete_vpc(self, vpc_id):
         vpc = self.vpcs.pop(vpc_id, None)
-        if vpc and vpc.dhcp_options:
+        if not vpc:
+            raise InvalidVPCIdError(vpc_id)
+        if vpc.dhcp_options:
             vpc.dhcp_options.vpc = None
             self.delete_dhcp_options_set(vpc.dhcp_options.id)
             vpc.dhcp_options = None
@@ -798,7 +838,10 @@ class VPCPeeringConnectionBackend(object):
         return self.vpc_pcxs.get(vpc_pcx_id)
 
     def delete_vpc_peering_connection(self, vpc_pcx_id):
-        return self.vpc_pcxs.pop(vpc_pcx_id, None)
+        deleted = self.vpc_pcxs.pop(vpc_pcx_id, None)
+        if not deleted:
+            raise InvalidVPCPeeringConnectionIdError(vpc_pcx_id)
+        return deleted
 
     def accept_vpc_peering_connection(self, vpc_pcx_id):
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
@@ -852,7 +895,10 @@ class SubnetBackend(object):
         return self.subnets.values()
 
     def delete_subnet(self, subnet_id):
-        return self.subnets.pop(subnet_id, None)
+        deleted = self.subnets.pop(subnet_id, None)
+        if not deleted:
+            raise InvalidSubnetIdError(subnet_id)
+        return deleted
 
 
 class SubnetRouteTableAssociation(object):
@@ -978,7 +1024,7 @@ class InternetGatewayBackend(object):
             if igw_id in self.internet_gateways:
                 igws.append(self.internet_gateways[igw_id])
             else:
-                raise InvalidInternetGatewayIDError(igw_id)
+                raise InvalidInternetGatewayIdError(igw_id)
         return igws or self.internet_gateways.values()
 
     def delete_internet_gateway(self, internet_gateway_id):
@@ -987,7 +1033,7 @@ class InternetGatewayBackend(object):
         if igw.vpc:
             raise DependencyViolationError(
                 "{0} is being utilized by {1}"
-                .format(internet_gateway_id, igw.vpc)
+                .format(internet_gateway_id, igw.vpc.id)
             )
         self.internet_gateways.pop(internet_gateway_id)
         return True
@@ -1004,7 +1050,7 @@ class InternetGatewayBackend(object):
         igw_ids = [internet_gateway_id]
         igw = self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
         if igw.vpc:
-            raise ResourceAlreadyAssociatedError(igw)
+            raise ResourceAlreadyAssociatedError(internet_gateway_id)
         vpc = self.get_vpc(vpc_id)
         igw.vpc = vpc
         return True
@@ -1148,21 +1194,42 @@ class ElasticAddressBackend(object):
         super(ElasticAddressBackend, self).__init__()
 
     def allocate_address(self, domain):
+        if domain not in ['standard', 'vpc']:
+            raise InvalidDomainError(domain)
+
         address = ElasticAddress(domain)
         self.addresses.append(address)
         return address
 
     def address_by_ip(self, ips):
-        return [address for address in self.addresses
+        eips = [address for address in self.addresses
                 if address.public_ip in ips]
 
+        # TODO: Trim error message down to specific invalid address.
+        if not eips or len(ips) > len(eips):
+            raise InvalidAddressError(ips)
+
+        return eips
+
     def address_by_allocation(self, allocation_ids):
-        return [address for address in self.addresses
+        eips = [address for address in self.addresses
                 if address.allocation_id in allocation_ids]
 
+        # TODO: Trim error message down to specific invalid id.
+        if not eips or len(allocation_ids) > len(eips):
+            raise InvalidAllocationIdError(allocation_ids)
+
+        return eips
+
     def address_by_association(self, association_ids):
-        return [address for address in self.addresses
+        eips = [address for address in self.addresses
                 if address.association_id in association_ids]
+
+        # TODO: Trim error message down to specific invalid id.
+        if not eips or len(association_ids) > len(eips):
+            raise InvalidAssociationIdError(association_ids)
+
+        return eips
 
     def associate_address(self, instance, address=None, allocation_id=None, reassociate=False):
         eips = []
@@ -1170,15 +1237,15 @@ class ElasticAddressBackend(object):
             eips = self.address_by_ip([address])
         elif allocation_id:
             eips = self.address_by_allocation([allocation_id])
-        eip = eips[0] if len(eips) > 0 else None
+        eip = eips[0]
 
-        if eip and eip.instance is None or reassociate:
-            eip.instance = instance
-            if eip.domain == "vpc":
-                eip.association_id = random_eip_association_id()
-            return eip
-        else:
-            return None
+        if eip.instance and not reassociate:
+            raise ResourceAlreadyAssociatedError(eip.public_ip)
+
+        eip.instance = instance
+        if eip.domain == "vpc":
+            eip.association_id = random_eip_association_id()
+        return eip
 
     def describe_addresses(self):
         return self.addresses
@@ -1189,14 +1256,11 @@ class ElasticAddressBackend(object):
             eips = self.address_by_ip([address])
         elif association_id:
             eips = self.address_by_association([association_id])
+        eip = eips[0]
 
-        if eips:
-            eip = eips[0]
-            eip.instance = None
-            eip.association_id = None
-            return True
-        else:
-            return False
+        eip.instance = None
+        eip.association_id = None
+        return True
 
     def release_address(self, address=None, allocation_id=None):
         eips = []
@@ -1204,15 +1268,12 @@ class ElasticAddressBackend(object):
             eips = self.address_by_ip([address])
         elif allocation_id:
             eips = self.address_by_allocation([allocation_id])
+        eip = eips[0]
 
-        if eips:
-            eip = eips[0]
-            self.disassociate_address(address=eip.public_ip)
-            eip.allocation_id = None
-            self.addresses.remove(eip)
-            return True
-        else:
-            return False
+        self.disassociate_address(address=eip.public_ip)
+        eip.allocation_id = None
+        self.addresses.remove(eip)
+        return True
 
 
 class DHCPOptionsSet(TaggedEC2Instance):
@@ -1247,6 +1308,16 @@ class DHCPOptionsSetBackend(object):
             self, domain_name_servers=None, domain_name=None,
             ntp_servers=None, netbios_name_servers=None,
             netbios_node_type=None):
+
+        NETBIOS_NODE_TYPES = [1, 2, 4, 8]
+
+        for field_value in domain_name_servers, ntp_servers, netbios_name_servers:
+            if field_value and len(field_value) > 4:
+                raise InvalidParameterValueError(",".join(field_value))
+
+        if netbios_node_type and netbios_node_type[0] not in NETBIOS_NODE_TYPES:
+            raise InvalidParameterValueError(netbios_node_type)
+
         options = DHCPOptionsSet(
             domain_name_servers, domain_name, ntp_servers,
             netbios_name_servers, netbios_node_type
@@ -1264,6 +1335,9 @@ class DHCPOptionsSetBackend(object):
         return options_sets or self.dhcp_options_sets.values()
 
     def delete_dhcp_options_set(self, options_id):
+        if not (options_id and options_id.startswith('dopt-')):
+            raise MalformedDHCPOptionsIdError(options_id)
+
         if options_id in self.dhcp_options_sets:
             if self.dhcp_options_sets[options_id].vpc:
                 raise DependencyViolationError("Cannot delete assigned DHCP options.")
@@ -1280,7 +1354,10 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
                  ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend):
-    pass
+
+    # Use this to generate a proper error template response when in a response handler.
+    def raise_error(self, code, message):
+        raise EC2ClientError(code, message)
 
 
 ec2_backend = EC2Backend()

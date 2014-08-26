@@ -1,3 +1,7 @@
+# Ensure 'assert_raises' context manager support for Python 2.6
+import tests.backport_assert_raises
+from nose.tools import assert_raises
+
 import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
@@ -40,8 +44,11 @@ def test_vpc_peering_connections_accept():
     vpc_pcx = conn.accept_vpc_peering_connection(vpc_pcx.id)
     vpc_pcx._status.code.should.equal('active')
 
-    conn.reject_vpc_peering_connection.when.called_with(
-        vpc_pcx.id).should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError) as cm:
+        conn.reject_vpc_peering_connection(vpc_pcx.id)
+    cm.exception.code.should.equal('InvalidStateTransition')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
 
     all_vpc_pcxs = conn.get_all_vpc_peering_connections()
     all_vpc_pcxs.should.have.length_of(1)
@@ -57,8 +64,11 @@ def test_vpc_peering_connections_reject():
     verdict = conn.reject_vpc_peering_connection(vpc_pcx.id)
     verdict.should.equal(True)
 
-    conn.accept_vpc_peering_connection.when.called_with(
-        vpc_pcx.id).should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError) as cm:
+        conn.accept_vpc_peering_connection(vpc_pcx.id)
+    cm.exception.code.should.equal('InvalidStateTransition')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
 
     all_vpc_pcxs = conn.get_all_vpc_peering_connections()
     all_vpc_pcxs.should.have.length_of(1)
@@ -77,6 +87,9 @@ def test_vpc_peering_connections_delete():
     all_vpc_pcxs = conn.get_all_vpc_peering_connections()
     all_vpc_pcxs.should.have.length_of(0)
 
-    conn.delete_vpc_peering_connection.when.called_with(
-        "pcx-1234abcd").should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError) as cm:
+        conn.delete_vpc_peering_connection("pcx-1234abcd")
+    cm.exception.code.should.equal('InvalidVpcPeeringConnectionId.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
 

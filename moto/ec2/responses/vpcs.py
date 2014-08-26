@@ -14,11 +14,8 @@ class VPCs(BaseResponse):
     def delete_vpc(self):
         vpc_id = self.querystring.get('VpcId')[0]
         vpc = ec2_backend.delete_vpc(vpc_id)
-        if vpc:
-            template = Template(DELETE_VPC_RESPONSE)
-            return template.render(vpc=vpc)
-        else:
-            return "", dict(status=404)
+        template = Template(DELETE_VPC_RESPONSE)
+        return template.render(vpc=vpc)
 
     def describe_vpcs(self):
         vpcs = ec2_backend.get_all_vpcs()

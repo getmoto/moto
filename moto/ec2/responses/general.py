@@ -10,11 +10,8 @@ class General(BaseResponse):
         self.instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = self.instance_ids[0]
         instance = ec2_backend.get_instance(instance_id)
-        if instance:
-            template = Template(GET_CONSOLE_OUTPUT_RESULT)
-            return template.render(instance=instance)
-        else:
-            return "", dict(status=404)
+        template = Template(GET_CONSOLE_OUTPUT_RESULT)
+        return template.render(instance=instance)
 
 
 GET_CONSOLE_OUTPUT_RESULT = '''

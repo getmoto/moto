@@ -1,3 +1,7 @@
+# Ensure 'assert_raises' context manager support for Python 2.6
+import tests.backport_assert_raises
+from nose.tools import assert_raises
+
 import boto
 from boto.exception import EC2ResponseError
 
@@ -19,7 +23,11 @@ def test_ami_create_and_delete():
     success = conn.deregister_image(image)
     success.should.be.true
 
-    success = conn.deregister_image.when.called_with(image).should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError) as cm:
+        conn.deregister_image(image)
+    cm.exception.code.should.equal('InvalidAMIID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -46,7 +54,12 @@ def test_ami_tagging():
 def test_ami_create_from_missing_instance():
     conn = boto.connect_ec2('the_key', 'the_secret')
     args = ["i-abcdefg", "test-ami", "this is a test ami"]
-    conn.create_image.when.called_with(*args).should.throw(EC2ResponseError)
+
+    with assert_raises(EC2ResponseError) as cm:
+        conn.create_image(*args)
+    cm.exception.code.should.equal('InvalidInstanceID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -64,4 +77,10 @@ def test_ami_pulls_attributes_from_instance():
 @mock_ec2
 def test_getting_missing_ami():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    conn.get_image.when.called_with('ami-missing').should.throw(EC2ResponseError)
+
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_image('ami-missing')
+    cm.exception.code.should.equal('InvalidAMIID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
