@@ -901,6 +901,7 @@ class SubnetBackend(object):
     def create_subnet(self, vpc_id, cidr_block):
         subnet_id = random_subnet_id()
         subnet = Subnet(subnet_id, vpc_id, cidr_block)
+        vpc = self.get_vpc(vpc_id) # Validate VPC exists
         self.subnets[subnet_id] = subnet
         return subnet
 
