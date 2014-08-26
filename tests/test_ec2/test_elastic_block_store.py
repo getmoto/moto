@@ -101,6 +101,87 @@ def test_create_snapshot():
 
 
 @mock_ec2
+def test_snapshot_attribute():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    volume = conn.create_volume(80, "us-east-1a")
+    snapshot = volume.create_snapshot()
+
+    # Baseline
+    attributes = conn.get_snapshot_attribute(snapshot.id, attribute='createVolumePermission')
+    attributes.name.should.equal('create_volume_permission')
+    attributes.attrs.should.have.length_of(0)
+
+    ADD_GROUP_ARGS = {'snapshot_id': snapshot.id,
+                      'attribute': 'createVolumePermission',
+                      'operation': 'add',
+                      'groups': 'all'}
+
+    REMOVE_GROUP_ARGS = {'snapshot_id': snapshot.id,
+                         'attribute': 'createVolumePermission',
+                         'operation': 'remove',
+                         'groups': 'all'}
+
+    # Add 'all' group and confirm
+    conn.modify_snapshot_attribute(**ADD_GROUP_ARGS)
+
+    attributes = conn.get_snapshot_attribute(snapshot.id, attribute='createVolumePermission')
+    attributes.attrs['groups'].should.have.length_of(1)
+    attributes.attrs['groups'].should.equal(['all'])
+
+    # Add is idempotent
+    conn.modify_snapshot_attribute.when.called_with(**ADD_GROUP_ARGS).should_not.throw(EC2ResponseError)
+
+    # Remove 'all' group and confirm
+    conn.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
+
+    attributes = conn.get_snapshot_attribute(snapshot.id, attribute='createVolumePermission')
+    attributes.attrs.should.have.length_of(0)
+
+    # Remove is idempotent
+    conn.modify_snapshot_attribute.when.called_with(**REMOVE_GROUP_ARGS).should_not.throw(EC2ResponseError)
+
+    # Error: Add with group != 'all'
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_snapshot_attribute(snapshot.id,
+                                       attribute='createVolumePermission',
+                                       operation='add',
+                                       groups='everyone')
+    cm.exception.code.should.equal('InvalidAMIAttributeItemValue')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Error: Add with invalid snapshot ID
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_snapshot_attribute("snapshot-abcd1234",
+                                       attribute='createVolumePermission',
+                                       operation='add',
+                                       groups='all')
+    cm.exception.code.should.equal('InvalidSnapshot.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Error: Remove with invalid snapshot ID
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_snapshot_attribute("snapshot-abcd1234",
+                                       attribute='createVolumePermission',
+                                       operation='remove',
+                                       groups='all')
+    cm.exception.code.should.equal('InvalidSnapshot.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Error: Add or remove with user ID instead of group
+    conn.modify_snapshot_attribute.when.called_with(snapshot.id,
+                                                    attribute='createVolumePermission',
+                                                    operation='add',
+                                                    user_ids=['user']).should.throw(NotImplementedError)
+    conn.modify_snapshot_attribute.when.called_with(snapshot.id,
+                                                    attribute='createVolumePermission',
+                                                    operation='remove',
+                                                    user_ids=['user']).should.throw(NotImplementedError)
+
+
+@mock_ec2
 def test_modify_attribute_blockDeviceMapping():
     """
     Reproduces the missing feature explained at [0], where we want to mock a

@@ -28,6 +28,7 @@ from .exceptions import (
     InvalidPermissionNotFoundError,
     InvalidInstanceIdError,
     InvalidAMIIdError,
+    InvalidAMIAttributeItemValueError,
     InvalidSnapshotIdError,
     InvalidVolumeIdError,
     InvalidVolumeAttachmentError,
@@ -655,6 +656,7 @@ class Snapshot(object):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
+        self.create_volume_permission_groups = set()
 
 
 class EBSBackend(object):
@@ -716,10 +718,40 @@ class EBSBackend(object):
     def describe_snapshots(self):
         return self.snapshots.values()
 
+    def get_snapshot(self, snapshot_id):
+        snapshot = self.snapshots.get(snapshot_id, None)
+        if not snapshot:
+            raise InvalidSnapshotIdError(snapshot_id)
+        return snapshot
+
     def delete_snapshot(self, snapshot_id):
         if snapshot_id in self.snapshots:
             return self.snapshots.pop(snapshot_id)
         raise InvalidSnapshotIdError(snapshot_id)
+
+    def get_create_volume_permission_groups(self, snapshot_id):
+        snapshot = self.get_snapshot(snapshot_id)
+        return snapshot.create_volume_permission_groups
+
+    def add_create_volume_permission(self, snapshot_id, user_id=None, group=None):
+        if user_id:
+            ec2_backend.raise_not_implemented_error("The UserId parameter for ModifySnapshotAttribute")
+
+        if group != 'all':
+            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+        snapshot = self.get_snapshot(snapshot_id)
+        snapshot.create_volume_permission_groups.add(group)
+        return True
+
+    def remove_create_volume_permission(self, snapshot_id, user_id=None, group=None):
+        if user_id:
+            ec2_backend.raise_not_implemented_error("The UserId parameter for ModifySnapshotAttribute")
+
+        if group != 'all':
+            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+        snapshot = self.get_snapshot(snapshot_id)
+        snapshot.create_volume_permission_groups.discard(group)
+        return True
 
 
 class VPC(TaggedEC2Instance):
@@ -1358,6 +1390,12 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
     # Use this to generate a proper error template response when in a response handler.
     def raise_error(self, code, message):
         raise EC2ClientError(code, message)
+
+    def raise_not_implemented_error(self, blurb):
+        msg = "{0} has not been implemented in Moto yet." \
+              " Feel free to open an issue at" \
+              " https://github.com/spulec/moto/issues".format(blurb)
+        raise NotImplementedError(msg)
 
 
 ec2_backend = EC2Backend()

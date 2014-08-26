@@ -43,9 +43,6 @@ class ElasticBlockStore(BaseResponse):
         success = ec2_backend.delete_volume(volume_id)
         return DELETE_VOLUME_RESPONSE
 
-    def describe_snapshot_attribute(self):
-        raise NotImplementedError('ElasticBlockStore.describe_snapshot_attribute is not yet implemented')
-
     def describe_snapshots(self):
         snapshots = ec2_backend.describe_snapshots()
         template = Template(DESCRIBE_SNAPSHOTS_RESPONSE)
@@ -77,8 +74,22 @@ class ElasticBlockStore(BaseResponse):
     def import_volume(self):
         raise NotImplementedError('ElasticBlockStore.import_volume is not yet implemented')
 
+    def describe_snapshot_attribute(self):
+        snapshot_id = self.querystring.get('SnapshotId')[0]
+        groups = ec2_backend.get_create_volume_permission_groups(snapshot_id)
+        template = Template(DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE)
+        return template.render(snapshot_id=snapshot_id, groups=groups)
+
     def modify_snapshot_attribute(self):
-        raise NotImplementedError('ElasticBlockStore.modify_snapshot_attribute is not yet implemented')
+        snapshot_id = self.querystring.get('SnapshotId')[0]
+        operation_type = self.querystring.get('OperationType')[0]
+        group = self.querystring.get('UserGroup.1', [None])[0]
+        user_id = self.querystring.get('UserId.1', [None])[0]
+        if (operation_type == 'add'):
+            ec2_backend.add_create_volume_permission(snapshot_id, user_id=user_id, group=group)
+        elif (operation_type == 'remove'):
+            ec2_backend.remove_create_volume_permission(snapshot_id, user_id=user_id, group=group)
+        return MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE
 
     def modify_volume_attribute(self):
         raise NotImplementedError('ElasticBlockStore.modify_volume_attribute is not yet implemented')
@@ -186,3 +197,29 @@ DELETE_SNAPSHOT_RESPONSE = """<DeleteSnapshotResponse xmlns="http://ec2.amazonaw
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </DeleteSnapshotResponse>"""
+
+DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE = """
+<DescribeSnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+    <requestId>a9540c9f-161a-45d8-9cc1-1182b89ad69f</requestId>
+    <snapshotId>snap-a0332ee0</snapshotId>
+   {% if not groups %}
+      <createVolumePermission/>
+   {% endif %}
+   {% if groups %}
+      <createVolumePermission>
+         {% for group in groups %}
+            <item>
+               <group>{{ group }}</group>
+            </item>
+         {% endfor %}
+      </createVolumePermission>
+   {% endif %}
+</DescribeSnapshotAttributeResponse>
+"""
+
+MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE = """
+<ModifySnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+    <requestId>666d2944-9276-4d6a-be12-1f4ada972fd8</requestId>
+    <return>true</return>
+</ModifySnapshotAttributeResponse>
+"""
