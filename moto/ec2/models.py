@@ -889,7 +889,7 @@ class Subnet(TaggedEC2Instance):
         else:
             msg = "The filter '{0}' for DescribeSubnets has not been" \
                   " implemented in Moto yet. Feel free to open an issue at" \
-                  " https://github.com/spulec/moto/issues"
+                  " https://github.com/spulec/moto/issues".format(filter_name)
             raise NotImplementedError(msg)
 
 
