@@ -4,7 +4,7 @@ import string
 
 
 def random_hex(length):
-    return ''.join(random.choice(string.lowercase) for x in range(length))
+    return ''.join(random.choice(string.ascii_lowercase) for x in range(length))
 
 
 def get_random_message_id():

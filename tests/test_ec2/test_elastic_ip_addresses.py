@@ -5,13 +5,13 @@ from nose.tools import assert_raises
 
 import boto
 from boto.exception import EC2ResponseError
+import six
 
 import sure  # noqa
 
 from moto import mock_ec2
 
 import logging
-import types
 
 
 @mock_ec2
@@ -21,7 +21,7 @@ def test_eip_allocate_classic():
 
     standard = conn.allocate_address()
     standard.should.be.a(boto.ec2.address.Address)
-    standard.public_ip.should.be.a(types.UnicodeType)
+    standard.public_ip.should.be.a(six.text_type)
     standard.instance_id.should.be.none
     standard.domain.should.be.equal("standard")
     standard.release()

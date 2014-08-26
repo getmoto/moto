@@ -14,5 +14,5 @@ def test_describe_jobflows():
 
     res = test_client.get('/?Action=DescribeJobFlows')
 
-    res.data.should.contain('<DescribeJobFlowsResult>')
-    res.data.should.contain('<JobFlows>')
+    res.data.should.contain(b'<DescribeJobFlowsResult>')
+    res.data.should.contain(b'<JobFlows>')

@@ -243,7 +243,7 @@ class AutoScalingBackend(BaseBackend):
         if names:
             return [configuration for configuration in configurations if configuration.name in names]
         else:
-            return configurations
+            return list(configurations)
 
     def delete_launch_configuration(self, launch_configuration_name):
         self.launch_configurations.pop(launch_configuration_name, None)
@@ -300,7 +300,7 @@ class AutoScalingBackend(BaseBackend):
         if names:
             return [group for group in groups if group.name in names]
         else:
-            return groups
+            return list(groups)
 
     def delete_autoscaling_group(self, group_name):
         self.autoscaling_groups.pop(group_name, None)
@@ -345,7 +345,7 @@ class AutoScalingBackend(BaseBackend):
         return policy
 
     def describe_policies(self):
-        return self.policies.values()
+        return list(self.policies.values())
 
     def delete_policy(self, group_name):
         self.policies.pop(group_name, None)

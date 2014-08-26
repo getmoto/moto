@@ -14,7 +14,7 @@ def test_s3_server_get():
 
     res = test_client.get('/')
 
-    res.data.should.contain('ListAllMyBucketsResult')
+    res.data.should.contain(b'ListAllMyBucketsResult')
 
 
 def test_s3_server_bucket_create():
@@ -25,18 +25,18 @@ def test_s3_server_bucket_create():
     res.status_code.should.equal(200)
 
     res = test_client.get('/')
-    res.data.should.contain('<Name>foobaz</Name>')
+    res.data.should.contain(b'<Name>foobaz</Name>')
 
     res = test_client.get('/', 'http://foobaz.localhost:5000/')
     res.status_code.should.equal(200)
-    res.data.should.contain("ListBucketResult")
+    res.data.should.contain(b"ListBucketResult")
 
     res = test_client.put('/bar', 'http://foobaz.localhost:5000/', data='test value')
     res.status_code.should.equal(200)
 
     res = test_client.get('/bar', 'http://foobaz.localhost:5000/')
     res.status_code.should.equal(200)
-    res.data.should.equal("test value")
+    res.data.should.equal(b"test value")
 
 
 def test_s3_server_post_to_bucket():
@@ -53,4 +53,4 @@ def test_s3_server_post_to_bucket():
 
     res = test_client.get('/the-key', 'http://tester.localhost:5000/')
     res.status_code.should.equal(200)
-    res.data.should.equal("nothing")
+    res.data.should.equal(b"nothing")

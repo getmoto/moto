@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import boto
+import six
 
 import sure  # noqa
 
@@ -45,10 +46,20 @@ def test_topic_attributes():
     attributes["DeliveryPolicy"].should.equal("")
     attributes["EffectiveDeliveryPolicy"].should.equal(DEFAULT_EFFECTIVE_DELIVERY_POLICY)
 
-    # boto can't handle unicode here :(
-    conn.set_topic_attributes(topic_arn, "Policy", {b"foo": b"bar"})
-    conn.set_topic_attributes(topic_arn, "DisplayName", "My display name")
-    conn.set_topic_attributes(topic_arn, "DeliveryPolicy", {b"http": {b"defaultHealthyRetryPolicy": {b"numRetries": 5}}})
+    # boto can't handle prefix-mandatory strings:
+    # i.e. unicode on Python 2 -- u"foobar"
+    # and bytes on Python 3 -- b"foobar"
+    if six.PY2:
+        policy = {b"foo": b"bar"}
+        displayname = b"My display name"
+        delivery = {b"http": {b"defaultHealthyRetryPolicy": {b"numRetries": 5}}}
+    else:
+        policy = {u"foo": u"bar"}
+        displayname = u"My display name"
+        delivery = {u"http": {u"defaultHealthyRetryPolicy": {u"numRetries": 5}}}
+    conn.set_topic_attributes(topic_arn, "Policy", policy)
+    conn.set_topic_attributes(topic_arn, "DisplayName", displayname)
+    conn.set_topic_attributes(topic_arn, "DeliveryPolicy", delivery)
 
     attributes = conn.get_topic_attributes(topic_arn)['GetTopicAttributesResponse']['GetTopicAttributesResult']['Attributes']
     attributes["Policy"].should.equal("{'foo': 'bar'}")

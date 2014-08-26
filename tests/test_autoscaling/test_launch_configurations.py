@@ -18,7 +18,7 @@ def test_create_launch_configuration():
         instance_type='m1.small',
         key_name='the_keys',
         security_groups=["default", "default2"],
-        user_data="This is some user_data",
+        user_data=b"This is some user_data",
         instance_monitoring=True,
         instance_profile_name='arn:aws:iam::123456789012:instance-profile/testing',
         spot_price=0.1,
@@ -31,7 +31,7 @@ def test_create_launch_configuration():
     launch_config.instance_type.should.equal('m1.small')
     launch_config.key_name.should.equal('the_keys')
     set(launch_config.security_groups).should.equal(set(['default', 'default2']))
-    launch_config.user_data.should.equal("This is some user_data")
+    launch_config.user_data.should.equal(b"This is some user_data")
     launch_config.instance_monitoring.enabled.should.equal('true')
     launch_config.instance_profile_name.should.equal('arn:aws:iam::123456789012:instance-profile/testing')
     launch_config.spot_price.should.equal(0.1)
@@ -65,7 +65,7 @@ def test_create_launch_configuration_with_block_device_mappings():
         instance_type='m1.small',
         key_name='the_keys',
         security_groups=["default", "default2"],
-        user_data="This is some user_data",
+        user_data=b"This is some user_data",
         instance_monitoring=True,
         instance_profile_name='arn:aws:iam::123456789012:instance-profile/testing',
         spot_price=0.1,
@@ -79,7 +79,7 @@ def test_create_launch_configuration_with_block_device_mappings():
     launch_config.instance_type.should.equal('m1.small')
     launch_config.key_name.should.equal('the_keys')
     set(launch_config.security_groups).should.equal(set(['default', 'default2']))
-    launch_config.user_data.should.equal("This is some user_data")
+    launch_config.user_data.should.equal(b"This is some user_data")
     launch_config.instance_monitoring.enabled.should.equal('true')
     launch_config.instance_profile_name.should.equal('arn:aws:iam::123456789012:instance-profile/testing')
     launch_config.spot_price.should.equal(0.1)
@@ -164,7 +164,7 @@ def test_create_launch_configuration_defaults():
     # Defaults
     launch_config.key_name.should.equal('')
     list(launch_config.security_groups).should.equal([])
-    launch_config.user_data.should.equal("")
+    launch_config.user_data.should.equal(b"")
     launch_config.instance_monitoring.enabled.should.equal('false')
     launch_config.instance_profile_name.should.equal(None)
     launch_config.spot_price.should.equal(None)

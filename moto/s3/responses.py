@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
-from urlparse import parse_qs, urlparse
+import six
+from six.moves.urllib.parse import parse_qs, urlparse
 import re
 
 from jinja2 import Template
@@ -32,7 +33,7 @@ class ResponseObject(object):
         except MissingBucket:
             return 404, headers, ""
 
-        if isinstance(response, basestring):
+        if isinstance(response, six.string_types):
             return 200, headers, response
         else:
             status_code, headers, response_content = response
@@ -74,7 +75,7 @@ class ResponseObject(object):
             for unsup in ('delimiter', 'prefix', 'max-uploads'):
                 if unsup in querystring:
                     raise NotImplementedError("Listing multipart uploads with {} has not been implemented yet.".format(unsup))
-            multiparts = list(self.backend.get_all_multiparts(bucket_name).itervalues())
+            multiparts = list(self.backend.get_all_multiparts(bucket_name).values())
             template = Template(S3_ALL_MULTIPARTS)
             return 200, headers, template.render(
                 bucket_name=bucket_name,
@@ -129,7 +130,7 @@ class ResponseObject(object):
 
     def _bucket_response_put(self, request, bucket_name, querystring, headers):
         if 'versioning' in querystring:
-            ver = re.search('<Status>([A-Za-z]+)</Status>', request.body)
+            ver = re.search('<Status>([A-Za-z]+)</Status>', request.body.decode('utf-8'))
             if ver:
                 self.backend.set_bucket_versioning(bucket_name, ver.group(1))
                 template = Template(S3_BUCKET_VERSIONING)
@@ -172,7 +173,7 @@ class ResponseObject(object):
         else:
             #HTTPretty, build new form object
             form = {}
-            for kv in request.body.split('&'):
+            for kv in request.body.decode('utf-8').split('&'):
                 k, v = kv.split('=')
                 form[k] = v
 
@@ -198,7 +199,7 @@ class ResponseObject(object):
     def _bucket_response_delete_keys(self, request, bucket_name, headers):
         template = Template(S3_DELETE_KEYS_RESPONSE)
 
-        keys = minidom.parseString(request.body).getElementsByTagName('Key')
+        keys = minidom.parseString(request.body.decode('utf-8')).getElementsByTagName('Key')
         deleted_names = []
         error_names = []
 
@@ -218,7 +219,7 @@ class ResponseObject(object):
         except MissingBucket:
             return 404, headers, ""
 
-        if isinstance(response, basestring):
+        if isinstance(response, six.string_types):
             return 200, headers, response
         else:
             status_code, headers, response_content = response
@@ -229,7 +230,7 @@ class ResponseObject(object):
         if replace is True:
             key.clear_metadata()
         for header in request.headers:
-            if isinstance(header, basestring):
+            if isinstance(header, six.string_types):
                 result = meta_regex.match(header)
                 if result:
                     meta_key = result.group(0).lower()
@@ -359,7 +360,7 @@ class ResponseObject(object):
         return 204, headers, template.render(bucket=removed_key)
 
     def _key_response_post(self, body, parsed_url, bucket_name, query, key_name, headers):
-        if body == '' and parsed_url.query == 'uploads':
+        if body == b'' and parsed_url.query == 'uploads':
             multipart = self.backend.initiate_multipart(bucket_name, key_name)
             template = Template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(

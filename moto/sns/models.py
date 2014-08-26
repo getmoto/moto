@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import datetime
 import requests
 import uuid
+import six
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime
@@ -26,7 +27,7 @@ class Topic(object):
         self.subscriptions_deleted = 0
 
     def publish(self, message):
-        message_id = unicode(uuid.uuid4())
+        message_id = six.text_type(uuid.uuid4())
         subscriptions = sns_backend.list_subscriptions(self.arn)
         for subscription in subscriptions:
             subscription.publish(message, message_id)

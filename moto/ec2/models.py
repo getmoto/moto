@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import six
 import copy
 import itertools
 from collections import defaultdict
@@ -98,6 +99,14 @@ class Instance(BotoInstance, TaggedEC2Instance):
         self.virtualization_type = ami.virtualization_type if ami else 'paravirtual'
         self.architecture = ami.architecture if ami else 'x86_64'
 
+        # handle weird bug around user_data -- something grabs the repr(), so it must be clean
+        if isinstance(self.user_data, list) and len(self.user_data) > 0:
+            if six.PY3 and isinstance(self.user_data[0], six.binary_type):
+                # string will have a "b" prefix -- need to get rid of it
+                self.user_data[0] = self.user_data[0].decode('utf-8')
+            elif six.PY2 and isinstance(self.user_data[0], six.text_type):
+                # string will have a "u" prefix -- need to get rid of it
+                self.user_data[0] = self.user_data[0].encode('utf-8')
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -291,7 +300,7 @@ class KeyPairBackend(object):
 
     def describe_key_pairs(self, filter_names=None):
         results = []
-        for name, keypair in self.keypairs.iteritems():
+        for name, keypair in self.keypairs.items():
             if not filter_names or name in filter_names:
                 keypair['name'] = name
                 results.append(keypair)
@@ -318,9 +327,9 @@ class TagBackend(object):
 
     def describe_tags(self, filter_resource_ids=None):
         results = []
-        for resource_id, tags in self.tags.iteritems():
+        for resource_id, tags in self.tags.items():
             ami = 'ami' in resource_id
-            for key, value in tags.iteritems():
+            for key, value in tags.items():
                 if not filter_resource_ids or resource_id in filter_resource_ids:
                     # If we're not filtering, or we are filtering and this
                     # resource id is in the filter list, add this tag
@@ -383,7 +392,7 @@ class AmiBackend(object):
     def describe_images(self, ami_ids=(), filters=None):
         if filters:
             images = self.amis.values()
-            for (_filter, _filter_value) in filters.iteritems():
+            for (_filter, _filter_value) in filters.items():
                 images = [ ami for ami in images if ami.get_filter_value(_filter) in _filter_value ]
             return images
         else:
@@ -583,7 +592,7 @@ class SecurityGroupBackend(object):
                 return group
 
     def get_security_group_from_name(self, name, vpc_id=None):
-        for group_id, group in self.groups[vpc_id].iteritems():
+        for group_id, group in self.groups[vpc_id].items():
             if group.name == name:
                 return group
 
@@ -1005,7 +1014,7 @@ class SubnetBackend(object):
         subnets = self.subnets.values()
 
         if filters:
-            for (_filter, _filter_value) in filters.iteritems():
+            for (_filter, _filter_value) in filters.items():
                 subnets = [ subnet for subnet in subnets if subnet.get_filter_value(_filter) in _filter_value ]
 
         return subnets
@@ -1239,9 +1248,8 @@ class SpotInstanceRequest(BotoSpotRequest):
             ls.groups.append(default_group)
 
 
+@six.add_metaclass(Model)
 class SpotRequestBackend(object):
-    __metaclass__ = Model
-
     def __init__(self):
         self.spot_instance_requests = {}
         super(SpotRequestBackend, self).__init__()

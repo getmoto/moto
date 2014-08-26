@@ -23,7 +23,7 @@ def test_request_spot_instances():
         price=0.5, image_id='ami-abcd1234', count=1, type='one-time',
         valid_from=start, valid_until=end, launch_group="the-group",
         availability_zone_group='my-group', key_name="test",
-        security_groups=['group1', 'group2'], user_data="some test data",
+        security_groups=['group1', 'group2'], user_data=b"some test data",
         instance_type='m1.small', placement='us-east-1c',
         kernel_id="test-kernel", ramdisk_id="test-ramdisk",
         monitoring_enabled=True, subnet_id="subnet123",

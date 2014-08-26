@@ -32,4 +32,4 @@ def get_model(name):
     for backend in BACKENDS.values():
         models = getattr(backend.__class__, '__models__', {})
         if name in models:
-            return getattr(backend, models[name])()
+            return list(getattr(backend, models[name])())

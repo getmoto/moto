@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from urlparse import parse_qs
+from six.moves.urllib.parse import parse_qs
 
 import boto
 from freezegun import freeze_time
@@ -49,7 +49,7 @@ def test_publish_to_http():
 
     last_request = httpretty.last_request()
     last_request.method.should.equal("POST")
-    parse_qs(last_request.body).should.equal({
+    parse_qs(last_request.body.decode('utf-8')).should.equal({
         "Type": ["Notification"],
         "MessageId": [message_id],
         "TopicArn": ["arn:aws:sns:us-east-1:123456789012:some-topic"],

@@ -66,7 +66,7 @@ CREATE_DHCP_OPTIONS_RESPONSE = u"""
   <dhcpOptions>
       <dhcpOptionsId>{{ dhcp_options_set.id }}</dhcpOptionsId>
       <dhcpConfigurationSet>
-      {% for key, values in dhcp_options_set.options.iteritems() %}
+      {% for key, values in dhcp_options_set.options.items() %}
         {{ values }}
         {% if values %}
         <item>
@@ -111,7 +111,7 @@ DESCRIBE_DHCP_OPTIONS_RESPONSE = u"""
     <dhcpOptions>
       <dhcpOptionsId>{{ dhcp_options_set.id }}</dhcpOptionsId>
       <dhcpConfigurationSet>
-      {% for key, values in dhcp_options_set.options.iteritems() %}
+      {% for key, values in dhcp_options_set.options.items() %}
         {{ values }}
         {% if values %}
         <item>

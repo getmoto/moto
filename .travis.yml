@@ -10,6 +10,10 @@ env:
       - BOTO_VERSION=2.19.0
       - BOTO_VERSION=2.12.0
       - BOTO_VERSION=2.7
+matrix:
+    include:
+      - python: "3.3"
+        env: BOTO_VERSION=2.32.1
 install:
   - pip install boto==$BOTO_VERSION
   - pip install .

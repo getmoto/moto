@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-import responses
+from . import responses
 
 url_bases = [
     "https://route53.amazonaws.com/201.-..-../hostedzone",

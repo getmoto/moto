@@ -3,10 +3,42 @@ import datetime
 import json
 import re
 
-from urlparse import parse_qs, urlparse
+import six
+from six.moves.urllib.parse import parse_qs, urlparse
 
 from werkzeug.exceptions import HTTPException
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
+
+
+def _decode_dict(d):
+    decoded = {}
+    for key, value in d.items():
+        if isinstance(key, six.binary_type):
+            newkey = key.decode("utf-8")
+        elif isinstance(key, (list, tuple)):
+            newkey = []
+            for k in key:
+                if isinstance(k, six.binary_type):
+                    newkey.append(k.decode('utf-8'))
+                else:
+                    newkey.append(k)
+        else:
+            newkey = key
+
+        if isinstance(value, six.binary_type):
+            newvalue = value.decode("utf-8")
+        elif isinstance(value, (list, tuple)):
+            newvalue = []
+            for v in value:
+                if isinstance(v, six.binary_type):
+                    newvalue.append(v.decode('utf-8'))
+                else:
+                    newvalue.append(v)
+        else:
+            newvalue = value
+
+        decoded[newkey] = newvalue
+    return decoded
 
 
 class BaseResponse(object):
@@ -28,7 +60,7 @@ class BaseResponse(object):
             self.body = request.data
 
             querystring = {}
-            for key, value in request.form.iteritems():
+            for key, value in request.form.items():
                 querystring[key] = [value, ]
 
         if not querystring:
@@ -37,6 +69,8 @@ class BaseResponse(object):
             querystring.update(parse_qs(self.body))
         if not querystring:
             querystring.update(headers)
+
+        querystring = _decode_dict(querystring)
 
         self.uri = full_url
         self.path = urlparse(full_url).path
@@ -61,7 +95,7 @@ class BaseResponse(object):
                 response = method()
             except HTTPException as http_error:
                 response = http_error.description, dict(status=http_error.code)
-            if isinstance(response, basestring):
+            if isinstance(response, six.string_types):
                 return 200, headers, response
             else:
                 body, new_headers = response

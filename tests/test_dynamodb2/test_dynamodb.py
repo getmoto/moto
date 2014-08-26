@@ -1,4 +1,6 @@
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
+
+import six
 import boto
 import sure  # noqa
 import requests
@@ -6,10 +8,12 @@ from moto import mock_dynamodb2
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
+import tests.backport_assert_raises
+from nose.tools import assert_raises
 try:
     import boto.dynamodb2
 except ImportError:
-    print "This boto version is not supported"
+    print("This boto version is not supported")
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
@@ -57,7 +61,8 @@ def test_describe_missing_table():
         'us-west-2',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
-    conn.describe_table.when.called_with('messages').should.throw(JSONResponseError)
+    with assert_raises(JSONResponseError):
+        conn.describe_table('messages')
 
 
 @requires_boto_gte("2.9")

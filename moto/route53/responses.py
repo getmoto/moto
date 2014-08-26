@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from jinja2 import Template
-from urlparse import parse_qs, urlparse
+from six.moves.urllib.parse import parse_qs, urlparse
 from .models import route53_backend
 import xmltodict
 import dicttoxml
@@ -120,7 +120,7 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
    </DelegationSet>
 </CreateHostedZoneResponse>"""
 
-LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/"> 
+LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <HostedZones>
       {% for zone in zones %}
       <HostedZone>

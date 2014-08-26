@@ -7,7 +7,7 @@ from moto import mock_ec2
 @mock_ec2
 def test_latest_meta_data():
     res = requests.get("http://169.254.169.254/latest/meta-data/")
-    res.content.should.equal("iam")
+    res.content.should.equal(b"iam")
 
 
 @mock_ec2
@@ -24,7 +24,7 @@ def test_meta_data_iam():
 @mock_ec2
 def test_meta_data_security_credentials():
     res = requests.get("http://169.254.169.254/latest/meta-data/iam/security-credentials/")
-    res.content.should.equal("default-role")
+    res.content.should.equal(b"default-role")
 
 
 @mock_ec2

@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import inspect
 import random
 import re
+import six
 
 from flask import request
 
@@ -23,12 +24,20 @@ def camelcase_to_underscores(argument):
 
 
 def method_names_from_class(clazz):
-    return [x[0] for x in inspect.getmembers(clazz, predicate=inspect.ismethod)]
+    # On Python 2, methods are different from functions, and the `inspect`
+    # predicates distinguish between them. On Python 3, methods are just
+    # regular functions, and `inspect.ismethod` doesn't work, so we have to
+    # use `inspect.isfunction` instead
+    if six.PY2:
+        predicate = inspect.ismethod
+    else:
+        predicate = inspect.isfunction
+    return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
 
 
 def get_random_hex(length=8):
-    chars = range(10) + ['a', 'b', 'c', 'd', 'e', 'f']
-    return ''.join(unicode(random.choice(chars)) for x in range(length))
+    chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
+    return ''.join(six.text_type(random.choice(chars)) for x in range(length))
 
 
 def get_random_message_id():
@@ -59,7 +68,7 @@ class convert_flask_to_httpretty_response(object):
         # For instance methods, use class and method names. Otherwise
         # use module and method name
         if inspect.ismethod(self.callback):
-            outer = self.callback.im_class.__name__
+            outer = self.callback.__self__.__class__.__name__
         else:
             outer = self.callback.__module__
         return "{0}.{1}".format(outer, self.callback.__name__)

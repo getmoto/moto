@@ -19,14 +19,14 @@ def process_rules_from_querystring(querystring):
     from_port = querystring.get('IpPermissions.1.FromPort')[0]
     to_port = querystring.get('IpPermissions.1.ToPort')[0]
     ip_ranges = []
-    for key, value in querystring.iteritems():
+    for key, value in querystring.items():
         if 'IpPermissions.1.IpRanges' in key:
             ip_ranges.append(value[0])
 
     source_groups = []
     source_group_ids = []
 
-    for key, value in querystring.iteritems():
+    for key, value in querystring.items():
         if 'IpPermissions.1.Groups.1.GroupId' in key:
             source_group_ids.append(value[0])
         elif 'IpPermissions.1.Groups' in key:

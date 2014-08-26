@@ -14,8 +14,8 @@ def test_sts_get_session_token():
 
     res = test_client.get('/?Action=GetSessionToken')
     res.status_code.should.equal(200)
-    res.data.should.contain("SessionToken")
-    res.data.should.contain("AccessKeyId")
+    res.data.should.contain(b"SessionToken")
+    res.data.should.contain(b"AccessKeyId")
 
 
 def test_sts_get_federation_token():
@@ -24,5 +24,5 @@ def test_sts_get_federation_token():
 
     res = test_client.get('/?Action=GetFederationToken&Name=Bob')
     res.status_code.should.equal(200)
-    res.data.should.contain("SessionToken")
-    res.data.should.contain("AccessKeyId")
+    res.data.should.contain(b"SessionToken")
+    res.data.should.contain(b"AccessKeyId")
