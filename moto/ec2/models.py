@@ -1362,7 +1362,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
 
 
 ec2_backends = {}
-for region_name in boto.regioninfo.load_regions()['ec2'].keys():
-    ec2_backends[region_name] = EC2Backend()
+for region in boto.ec2.regions():
+    ec2_backends[region.name] = EC2Backend()
 
 ec2_backend = ec2_backends['us-east-1']
