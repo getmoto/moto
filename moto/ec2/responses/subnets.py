@@ -2,6 +2,7 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
+from moto.ec2.utils import filters_from_querystring
 
 
 class Subnets(BaseResponse):
@@ -19,7 +20,8 @@ class Subnets(BaseResponse):
         return template.render(subnet=subnet)
 
     def describe_subnets(self):
-        subnets = ec2_backend.get_all_subnets()
+        filters = filters_from_querystring(self.querystring)
+        subnets = ec2_backend.get_all_subnets(filters)
         template = Template(DESCRIBE_SUBNETS_RESPONSE)
         return template.render(subnets=subnets)
 
