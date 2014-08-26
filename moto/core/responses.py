@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 
 from urlparse import parse_qs, urlparse
 
@@ -8,6 +9,8 @@ from moto.core.utils import camelcase_to_underscores, method_names_from_class
 
 
 class BaseResponse(object):
+
+    region = 'us-east-1'
 
     def dispatch(self, request, full_url, headers):
         querystring = {}
@@ -38,6 +41,9 @@ class BaseResponse(object):
         self.path = urlparse(full_url).path
         self.querystring = querystring
         self.method = request.method
+        region = re.search(r'\.(.+?)\.amazonaws\.com', full_url)
+        if region:
+            self.region = region.group(1)
 
         self.headers = dict(request.headers)
         self.response_headers = headers

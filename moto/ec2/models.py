@@ -2,6 +2,7 @@ import copy
 import itertools
 from collections import defaultdict
 
+import boto
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
@@ -1360,4 +1361,8 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
         raise EC2ClientError(code, message)
 
 
-ec2_backend = EC2Backend()
+ec2_backends = {}
+for region_name in boto.regioninfo.load_regions()['ec2'].keys():
+    ec2_backends[region_name] = EC2Backend()
+
+ec2_backend = ec2_backends['us-east-1']
