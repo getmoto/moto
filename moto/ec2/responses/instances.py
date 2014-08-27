@@ -2,7 +2,6 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations
 
 
@@ -10,9 +9,9 @@ class InstanceResponse(BaseResponse):
     def describe_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         if instance_ids:
-            reservations = ec2_backend.get_reservations_by_instance_ids(instance_ids)
+            reservations = self.ec2_backend.get_reservations_by_instance_ids(instance_ids)
         else:
-            reservations = ec2_backend.all_reservations(make_copy=True)
+            reservations = self.ec2_backend.all_reservations(make_copy=True)
 
         filter_dict = filters_from_querystring(self.querystring)
         reservations = filter_reservations(reservations, filter_dict)
@@ -29,7 +28,7 @@ class InstanceResponse(BaseResponse):
         instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
         subnet_id = self.querystring.get("SubnetId", [None])[0]
         key_name = self.querystring.get("KeyName", [None])[0]
-        new_reservation = ec2_backend.add_instances(
+        new_reservation = self.ec2_backend.add_instances(
             image_id, min_count, user_data, security_group_names,
             instance_type=instance_type, subnet_id=subnet_id,
             key_name=key_name, security_group_ids=security_group_ids)
@@ -38,25 +37,25 @@ class InstanceResponse(BaseResponse):
 
     def terminate_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
-        instances = ec2_backend.terminate_instances(instance_ids)
+        instances = self.ec2_backend.terminate_instances(instance_ids)
         template = Template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
 
     def reboot_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
-        instances = ec2_backend.reboot_instances(instance_ids)
+        instances = self.ec2_backend.reboot_instances(instance_ids)
         template = Template(EC2_REBOOT_INSTANCES)
         return template.render(instances=instances)
 
     def stop_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
-        instances = ec2_backend.stop_instances(instance_ids)
+        instances = self.ec2_backend.stop_instances(instance_ids)
         template = Template(EC2_STOP_INSTANCES)
         return template.render(instances=instances)
 
     def start_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
-        instances = ec2_backend.start_instances(instance_ids)
+        instances = self.ec2_backend.start_instances(instance_ids)
         template = Template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
@@ -64,9 +63,9 @@ class InstanceResponse(BaseResponse):
         instance_ids = instance_ids_from_querystring(self.querystring)
 
         if instance_ids:
-            instances = ec2_backend.get_multi_instances_by_id(instance_ids)
+            instances = self.ec2_backend.get_multi_instances_by_id(instance_ids)
         else:
-            instances = ec2_backend.all_instances()
+            instances = self.ec2_backend.all_instances()
 
         template = Template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
@@ -78,7 +77,7 @@ class InstanceResponse(BaseResponse):
         key = camelcase_to_underscores(attribute)
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
-        instance, value = ec2_backend.describe_instance_attribute(instance_id, key)
+        instance, value = self.ec2_backend.describe_instance_attribute(instance_id, key)
         template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
         return template.render(instance=instance, attribute=attribute, value=value)
 
@@ -126,7 +125,7 @@ class InstanceResponse(BaseResponse):
 
             instance_ids = instance_ids_from_querystring(self.querystring)
             instance_id = instance_ids[0]
-            instance = ec2_backend.get_instance(instance_id)
+            instance = self.ec2_backend.get_instance(instance_id)
 
             block_device_type = instance.block_device_mapping[device_name_value]
             block_device_type.delete_on_termination = del_on_term_value
@@ -151,7 +150,7 @@ class InstanceResponse(BaseResponse):
         normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
-        ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
+        self.ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
 

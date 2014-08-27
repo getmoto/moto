@@ -2,10 +2,15 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from .models import autoscaling_backend
+from .models import autoscaling_backends
 
 
 class AutoScalingResponse(BaseResponse):
+
+    @property
+    def autoscaling_backend(self):
+      return autoscaling_backends[self.region]
+
     def _get_int_param(self, param_name):
         value = self._get_param(param_name)
         if value is not None:
@@ -32,7 +37,7 @@ class AutoScalingResponse(BaseResponse):
             instance_monitoring = True
         else:
             instance_monitoring = False
-        autoscaling_backend.create_launch_configuration(
+        self.autoscaling_backend.create_launch_configuration(
             name=self._get_param('LaunchConfigurationName'),
             image_id=self._get_param('ImageId'),
             key_name=self._get_param('KeyName'),
@@ -51,18 +56,18 @@ class AutoScalingResponse(BaseResponse):
 
     def describe_launch_configurations(self):
         names = self._get_multi_param('LaunchConfigurationNames')
-        launch_configurations = autoscaling_backend.describe_launch_configurations(names)
+        launch_configurations = self.autoscaling_backend.describe_launch_configurations(names)
         template = Template(DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE)
         return template.render(launch_configurations=launch_configurations)
 
     def delete_launch_configuration(self):
         launch_configurations_name = self.querystring.get('LaunchConfigurationName')[0]
-        autoscaling_backend.delete_launch_configuration(launch_configurations_name)
+        self.autoscaling_backend.delete_launch_configuration(launch_configurations_name)
         template = Template(DELETE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
 
     def create_auto_scaling_group(self):
-        autoscaling_backend.create_autoscaling_group(
+        self.autoscaling_backend.create_autoscaling_group(
             name=self._get_param('AutoScalingGroupName'),
             availability_zones=self._get_multi_param('AvailabilityZones.member'),
             desired_capacity=self._get_int_param('DesiredCapacity'),
@@ -82,12 +87,12 @@ class AutoScalingResponse(BaseResponse):
 
     def describe_auto_scaling_groups(self):
         names = self._get_multi_param("AutoScalingGroupNames")
-        groups = autoscaling_backend.describe_autoscaling_groups(names)
+        groups = self.autoscaling_backend.describe_autoscaling_groups(names)
         template = Template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
         return template.render(groups=groups)
 
     def update_auto_scaling_group(self):
-        autoscaling_backend.update_autoscaling_group(
+        self.autoscaling_backend.update_autoscaling_group(
             name=self._get_param('AutoScalingGroupName'),
             availability_zones=self._get_multi_param('AvailabilityZones.member'),
             desired_capacity=self._get_int_param('DesiredCapacity'),
@@ -107,24 +112,24 @@ class AutoScalingResponse(BaseResponse):
 
     def delete_auto_scaling_group(self):
         group_name = self._get_param('AutoScalingGroupName')
-        autoscaling_backend.delete_autoscaling_group(group_name)
+        self.autoscaling_backend.delete_autoscaling_group(group_name)
         template = Template(DELETE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
     def set_desired_capacity(self):
         group_name = self._get_param('AutoScalingGroupName')
         desired_capacity = self._get_int_param('DesiredCapacity')
-        autoscaling_backend.set_desired_capacity(group_name, desired_capacity)
+        self.autoscaling_backend.set_desired_capacity(group_name, desired_capacity)
         template = Template(SET_DESIRED_CAPACITY_TEMPLATE)
         return template.render()
 
     def describe_auto_scaling_instances(self):
-        instances = autoscaling_backend.describe_autoscaling_instances()
+        instances = self.autoscaling_backend.describe_autoscaling_instances()
         template = Template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
         return template.render(instances=instances)
 
     def put_scaling_policy(self):
-        policy = autoscaling_backend.create_autoscaling_policy(
+        policy = self.autoscaling_backend.create_autoscaling_policy(
             name=self._get_param('PolicyName'),
             adjustment_type=self._get_param('AdjustmentType'),
             as_name=self._get_param('AutoScalingGroupName'),
@@ -135,19 +140,19 @@ class AutoScalingResponse(BaseResponse):
         return template.render(policy=policy)
 
     def describe_policies(self):
-        policies = autoscaling_backend.describe_policies()
+        policies = self.autoscaling_backend.describe_policies()
         template = Template(DESCRIBE_SCALING_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
     def delete_policy(self):
         group_name = self._get_param('PolicyName')
-        autoscaling_backend.delete_policy(group_name)
+        self.autoscaling_backend.delete_policy(group_name)
         template = Template(DELETE_POLICY_TEMPLATE)
         return template.render()
 
     def execute_policy(self):
         group_name = self._get_param('PolicyName')
-        autoscaling_backend.execute_policy(group_name)
+        self.autoscaling_backend.execute_policy(group_name)
         template = Template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 

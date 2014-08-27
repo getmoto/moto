@@ -9,8 +9,8 @@ from .utils import convert_regex_to_flask_path
 class MockAWS(object):
     nested_count = 0
 
-    def __init__(self, backend):
-        self.backend = backend
+    def __init__(self, backends):
+        self.backends = backends
 
         if self.__class__.nested_count == 0:
             HTTPretty.reset()
@@ -26,13 +26,15 @@ class MockAWS(object):
 
     def start(self):
         self.__class__.nested_count += 1
-        self.backend.reset()
+        for backend in self.backends.values():
+            backend.reset()
 
         if not HTTPretty.is_enabled():
             HTTPretty.enable()
 
         for method in HTTPretty.METHODS:
-            for key, value in self.backend.urls.iteritems():
+            backend = self.backends.values()[0]
+            for key, value in backend.urls.iteritems():
                 HTTPretty.register_uri(
                     method=method,
                     uri=re.compile(key),
@@ -151,6 +153,6 @@ class BaseBackend(object):
 
     def decorator(self, func=None):
         if func:
-            return MockAWS(self)(func)
+            return MockAWS({'global': self})(func)
         else:
-            return MockAWS(self)
+            return MockAWS({'global': self})
