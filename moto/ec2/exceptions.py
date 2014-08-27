@@ -118,6 +118,14 @@ class InvalidAMIAttributeItemValueError(EC2ClientError):
             .format(value, attribute))
 
 
+class MalformedAMIIdError(EC2ClientError):
+    def __init__(self, ami_id):
+        super(MalformedAMIIdError, self).__init__(
+            "InvalidAMIID.Malformed",
+            "Invalid id: \"{0}\" (expecting \"ami-...\")"
+            .format(ami_id))
+
+
 class InvalidSnapshotIdError(EC2ClientError):
     def __init__(self, snapshot_id):
         super(InvalidSnapshotIdError, self).__init__(

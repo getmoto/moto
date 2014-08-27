@@ -198,7 +198,12 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
              </item>
              {% endfor %}
           </groupSet>
-          <virtualizationType>paravirtual</virtualizationType>
+          {% if instance.platform %}
+          <platform>{{ instance.platform }}</platform>
+          {% endif %}
+          <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
+          <architecture>{{ instance.architecture }}</architecture>
+          <kernelId>{{ instance.kernel }}</kernelId>
           <clientToken/>
           <hypervisor>xen</hypervisor>
           <ebsOptimized>false</ebsOptimized>
@@ -237,7 +242,9 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       <groupName/>
                       <tenancy>default</tenancy>
                     </placement>
-                    <platform>windows</platform>
+                    {% if instance.platform %}
+                    <platform>{{ instance.platform }}</platform>
+                    {% endif %}
                     <monitoring>
                       <state>disabled</state>
                     </monitoring>
@@ -254,11 +261,12 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       </item>
                       {% endfor %}
                     </groupSet>
-                    <architecture>x86_64</architecture>
+                    <architecture>{{ instance.architecture }}</architecture>
+                    <kernelId>{{ instance.kernel }}</kernelId>
                     <rootDeviceType>ebs</rootDeviceType>
                     <rootDeviceName>/dev/sda1</rootDeviceName>
                     <blockDeviceMapping />
-                    <virtualizationType>hvm</virtualizationType>
+                    <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
                     <tagSet>
                       {% for tag in instance.get_tags() %}

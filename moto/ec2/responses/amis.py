@@ -2,7 +2,7 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
-from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring
+from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring, filters_from_querystring
 
 
 class AmisResponse(BaseResponse):
@@ -24,17 +24,29 @@ class AmisResponse(BaseResponse):
         template = Template(DEREGISTER_IMAGE_RESPONSE)
         return template.render(success=str(success).lower())
 
-    def describe_image_attribute(self):
-        raise NotImplementedError('AMIs.describe_image_attribute is not yet implemented')
-
     def describe_images(self):
         ami_ids = image_ids_from_querystring(self.querystring)
-        images = ec2_backend.describe_images(ami_ids=ami_ids)
+        filters = filters_from_querystring(self.querystring)
+        images = ec2_backend.describe_images(ami_ids=ami_ids, filters=filters)
         template = Template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 
+    def describe_image_attribute(self):
+        ami_id = self.querystring.get('ImageId')[0]
+        groups = ec2_backend.get_launch_permission_groups(ami_id)
+        template = Template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
+        return template.render(ami_id=ami_id, groups=groups)
+
     def modify_image_attribute(self):
-        raise NotImplementedError('AMIs.modify_image_attribute is not yet implemented')
+        ami_id = self.querystring.get('ImageId')[0]
+        operation_type = self.querystring.get('OperationType')[0]
+        group = self.querystring.get('UserGroup.1', [None])[0]
+        user_id = self.querystring.get('UserId.1', [None])[0]
+        if (operation_type == 'add'):
+            ec2_backend.add_launch_permission(ami_id, user_id=user_id, group=group)
+        elif (operation_type == 'remove'):
+            ec2_backend.remove_launch_permission(ami_id, user_id=user_id, group=group)
+        return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
 
     def register_image(self):
         raise NotImplementedError('AMIs.register_image is not yet implemented')
@@ -56,15 +68,18 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
         <item>
           <imageId>{{ image.id }}</imageId>
           <imageLocation>amazon/getting-started</imageLocation>
-          <imageState>available</imageState>
+          <imageState>{{ image.state }}</imageState>
           <imageOwnerId>111122223333</imageOwnerId>
           <isPublic>true</isPublic>
-          <architecture>i386</architecture>
+          <architecture>{{ image.architecture }}</architecture>
           <imageType>machine</imageType>
           <kernelId>{{ image.kernel_id }}</kernelId>
           <ramdiskId>ari-1a2b3c4d</ramdiskId>
           <imageOwnerAlias>amazon</imageOwnerAlias>
           <name>{{ image.name }}</name>
+          {% if image.platform %}
+             <platform>{{ image.platform }}</platform>
+          {% endif %}
           <description>{{ image.description }}</description>
           <rootDeviceType>ebs</rootDeviceType>
           <rootDeviceName>/dev/sda</rootDeviceName>
@@ -72,7 +87,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
             <item>
               <deviceName>/dev/sda1</deviceName>
               <ebs>
-                <snapshotId>snap-1a2b3c4d</snapshotId>
+                <snapshotId>{{ image.ebs_snapshot.id }}</snapshotId>
                 <volumeSize>15</volumeSize>
                 <deleteOnTermination>false</deleteOnTermination>
                 <volumeType>standard</volumeType>
@@ -108,3 +123,27 @@ DEREGISTER_IMAGE_RESPONSE = """<DeregisterImageResponse xmlns="http://ec2.amazon
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>{{ success }}</return>
 </DeregisterImageResponse>"""
+
+DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE = """
+<DescribeImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-08-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <imageId>{{ ami_id }}</imageId>
+   {% if not groups %}
+      <launchPermission/>
+   {% endif %}
+   {% if groups %}
+      <launchPermission>
+         {% for group in groups %}
+            <item>
+               <group>{{ group }}</group>
+            </item>
+         {% endfor %}
+      </launchPermission>
+   {% endif %}
+</DescribeImageAttributeResponse>"""
+
+MODIFY_IMAGE_ATTRIBUTE_RESPONSE = """
+<ModifyImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-08-15/">
+   <return>true</return>
+</ModifyImageAttributeResponse>
+"""
