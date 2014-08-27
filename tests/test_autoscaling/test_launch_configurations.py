@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping

@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 template = {
     "Description": "AWS CloudFormation Sample Template vpc_single_instance_in_subnet.template: Sample template showing how to create a VPC and add an EC2 instance with an Elastic IP address and a security group. **WARNING** This template creates an Amazon EC2 instance. You will be billed for the AWS resources used if you create a stack from this template.",
     "Parameters": {

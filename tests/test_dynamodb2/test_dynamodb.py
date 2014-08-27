@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto
 import sure  # noqa
 import requests
@@ -13,10 +14,10 @@ except ImportError:
 @requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_list_tables():
-    name = 'TestTable'    
-    #{'schema': }    
+    name = 'TestTable'
+    #{'schema': }
     dynamodb_backend2.create_table(name,schema=[
-        {u'KeyType': u'HASH', u'AttributeName': u'forum_name'}, 
+        {u'KeyType': u'HASH', u'AttributeName': u'forum_name'},
         {u'KeyType': u'RANGE', u'AttributeName': u'subject'}
     ])
     conn =  boto.dynamodb2.connect_to_region(
@@ -39,7 +40,7 @@ def test_list_tables_layer_1():
         'us-west-2',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
-    
+
     res = conn.list_tables(limit=1)
     expected = {"TableNames": ["test_1"], "LastEvaluatedTableName": "test_1"}
     res.should.equal(expected)

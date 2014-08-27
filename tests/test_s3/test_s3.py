@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import urllib2
 from io import BytesIO
 

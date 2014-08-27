@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
 from moto.ec2.utils import sequence_from_querystring

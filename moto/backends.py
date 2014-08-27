@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from moto.autoscaling import autoscaling_backend
 from moto.dynamodb import dynamodb_backend
 from moto.dynamodb2 import dynamodb_backend2

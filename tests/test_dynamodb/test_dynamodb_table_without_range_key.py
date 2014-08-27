@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto
 import sure  # noqa
 from freezegun import freeze_time

@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from werkzeug.exceptions import BadRequest
 from jinja2 import Template
 

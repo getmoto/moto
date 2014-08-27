@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage

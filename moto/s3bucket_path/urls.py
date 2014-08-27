@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from .responses import S3BucketPathResponseInstance as ro
 
 url_bases = [

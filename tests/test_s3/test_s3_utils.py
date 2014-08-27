@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from sure import expect
 from moto.s3.utils import bucket_name_from_url, _VersionedKeyStore
 

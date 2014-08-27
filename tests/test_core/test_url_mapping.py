@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import sure  # noqa
 
 from moto.core.utils import convert_regex_to_flask_path

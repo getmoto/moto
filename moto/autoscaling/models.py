@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
