@@ -31,6 +31,17 @@ def test_subnets():
 
 
 @mock_ec2
+def test_subnet_create_vpc_validation():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+
+    with assert_raises(EC2ResponseError) as cm:
+        conn.create_subnet("vpc-abcd1234", "10.0.0.0/18")
+    cm.exception.code.should.equal('InvalidVpcID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
 def test_subnet_tagging():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
