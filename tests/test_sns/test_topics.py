@@ -45,9 +45,10 @@ def test_topic_attributes():
     attributes["DeliveryPolicy"].should.equal("")
     attributes["EffectiveDeliveryPolicy"].should.equal(DEFAULT_EFFECTIVE_DELIVERY_POLICY)
 
-    conn.set_topic_attributes(topic_arn, "Policy", {"foo": "bar"})
+    # boto can't handle unicode here :(
+    conn.set_topic_attributes(topic_arn, "Policy", {b"foo": b"bar"})
     conn.set_topic_attributes(topic_arn, "DisplayName", "My display name")
-    conn.set_topic_attributes(topic_arn, "DeliveryPolicy", {"http": {"defaultHealthyRetryPolicy": {"numRetries": 5}}})
+    conn.set_topic_attributes(topic_arn, "DeliveryPolicy", {b"http": {b"defaultHealthyRetryPolicy": {b"numRetries": 5}}})
 
     attributes = conn.get_topic_attributes(topic_arn)['GetTopicAttributesResponse']['GetTopicAttributesResult']['Attributes']
     attributes["Policy"].should.equal("{'foo': 'bar'}")
