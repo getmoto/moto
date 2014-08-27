@@ -880,6 +880,19 @@ class Subnet(TaggedEC2Instance):
     def physical_resource_id(self):
         return self.id
 
+    def get_filter_value(self, filter_name):
+        if filter_name in ['cidr', 'cidrBlock', 'cidr-block']:
+            return self.cidr_block
+        elif filter_name == 'vpc-id':
+            return self.vpc_id
+        elif filter_name == 'subnet-id':
+            return self.id
+        else:
+            msg = "The filter '{0}' for DescribeSubnets has not been" \
+                  " implemented in Moto yet. Feel free to open an issue at" \
+                  " https://github.com/spulec/moto/issues".format(filter_name)
+            raise NotImplementedError(msg)
+
 
 class SubnetBackend(object):
     def __init__(self):
@@ -892,8 +905,14 @@ class SubnetBackend(object):
         self.subnets[subnet_id] = subnet
         return subnet
 
-    def get_all_subnets(self):
-        return self.subnets.values()
+    def get_all_subnets(self, filters=None):
+        subnets = self.subnets.values()
+
+        if filters:
+            for (_filter, _filter_value) in filters.iteritems():
+                subnets = [ subnet for subnet in subnets if subnet.get_filter_value(_filter) in _filter_value ]
+
+        return subnets
 
     def delete_subnet(self, subnet_id):
         deleted = self.subnets.pop(subnet_id, None)
