@@ -29,6 +29,7 @@ from .exceptions import (
     InvalidSecurityGroupNotFoundError,
     InvalidPermissionNotFoundError,
     InvalidInstanceIdError,
+    MalformedAMIIdError,
     InvalidAMIIdError,
     InvalidAMIAttributeItemValueError,
     InvalidSnapshotIdError,
@@ -89,6 +90,14 @@ class Instance(BotoInstance, TaggedEC2Instance):
 
         self.block_device_mapping = BlockDeviceMapping()
         self.block_device_mapping['/dev/sda1'] = BlockDeviceType()
+
+        amis = ec2_backend.describe_images(filters={'image-id': image_id})
+        ami = amis[0] if amis else None
+
+        self.platform = ami.platform if ami else None
+        self.virtualization_type = ami.virtualization_type if ami else 'paravirtual'
+        self.architecture = ami.architecture if ami else 'x86_64'
+
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -328,13 +337,34 @@ class TagBackend(object):
 class Ami(TaggedEC2Instance):
     def __init__(self, ami_id, instance, name, description):
         self.id = ami_id
+        self.state = "available"
+
         self.instance = instance
         self.instance_id = instance.id
+        self.virtualization_type = instance.virtualization_type
+        self.architecture = instance.architecture
+        self.kernel_id = instance.kernel
+        self.platform = instance.platform
+
         self.name = name
         self.description = description
+        self.launch_permission_groups = set()
 
-        self.virtualization_type = instance.virtualization_type
-        self.kernel_id = instance.kernel
+        # AWS auto-creates these, we should reflect the same.
+        volume = ec2_backend.create_volume(15, "us-east-1a")
+        self.ebs_snapshot = ec2_backend.create_snapshot(volume.id, "Auto-created snapshot for AMI %s" % self.id)
+
+    def get_filter_value(self, filter_name):
+        if filter_name == 'virtualization-type':
+            return self.virtualization_type
+        elif filter_name == 'kernel-id':
+            return self.kernel_id
+        elif filter_name in ['architecture', 'platform']:
+            return getattr(self,filter_name)
+        elif filter_name == 'image-id':
+            return self.id
+        else:
+            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeImages".format(filter_name))
 
 
 class AmiBackend(object):
@@ -350,20 +380,52 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(self, ami_ids=()):
-        images = []
-        for ami_id in ami_ids:
-            if ami_id in self.amis:
-                images.append(self.amis[ami_id])
-            else:
-                raise InvalidAMIIdError(ami_id)
-        return images or self.amis.values()
+    def describe_images(self, ami_ids=(), filters=None):
+        if filters:
+            images = self.amis.values()
+            for (_filter, _filter_value) in filters.iteritems():
+                images = [ ami for ami in images if ami.get_filter_value(_filter) in _filter_value ]
+            return images
+        else:
+            images = []
+            for ami_id in ami_ids:
+                if ami_id in self.amis:
+                    images.append(self.amis[ami_id])
+                elif not ami_id.startswith("ami-"):
+                    raise MalformedAMIIdError(ami_id)
+                else:
+                    raise InvalidAMIIdError(ami_id)
+            return images or self.amis.values()
 
     def deregister_image(self, ami_id):
         if ami_id in self.amis:
             self.amis.pop(ami_id)
             return True
         raise InvalidAMIIdError(ami_id)
+
+    def get_launch_permission_groups(self, ami_id):
+        ami = self.describe_images(ami_ids=[ami_id])[0]
+        return ami.launch_permission_groups
+
+    def add_launch_permission(self, ami_id, user_id=None, group=None):
+        if user_id:
+            ec2_backend.raise_not_implemented_error("The UserId parameter for ModifyImageAttribute")
+
+        if group != 'all':
+            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+        ami = self.describe_images(ami_ids=[ami_id])[0]
+        ami.launch_permission_groups.add(group)
+        return True
+
+    def remove_launch_permission(self, ami_id, user_id=None, group=None):
+        if user_id:
+            ec2_backend.raise_not_implemented_error("The UserId parameter for ModifyImageAttribute")
+
+        if group != 'all':
+            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+        ami = self.describe_images(ami_ids=[ami_id])[0]
+        ami.launch_permission_groups.discard(group)
+        return True
 
 
 class Region(object):
