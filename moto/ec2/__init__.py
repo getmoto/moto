@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from .models import ec2_backends, ec2_backend
 from ..core.models import MockAWS
 

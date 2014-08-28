@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto
 from boto.emr.instance_group import InstanceGroup
 from boto.emr.step import StreamingStep

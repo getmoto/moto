@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa

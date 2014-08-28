@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import urllib2
 from io import BytesIO
 
@@ -59,8 +60,8 @@ def test_multipart_upload_too_small():
     bucket = conn.create_bucket("foobar")
 
     multipart = bucket.initiate_multipart_upload("the-key")
-    multipart.upload_part_from_file(BytesIO('hello'), 1)
-    multipart.upload_part_from_file(BytesIO('world'), 2)
+    multipart.upload_part_from_file(BytesIO(b'hello'), 1)
+    multipart.upload_part_from_file(BytesIO(b'world'), 2)
     # Multipart with total size under 5MB is refused
     multipart.complete_upload.should.throw(S3ResponseError)
 
@@ -71,10 +72,10 @@ def test_multipart_upload():
     bucket = conn.create_bucket("foobar")
 
     multipart = bucket.initiate_multipart_upload("the-key")
-    part1 = '0' * 5242880
+    part1 = b'0' * 5242880
     multipart.upload_part_from_file(BytesIO(part1), 1)
     # last part, can be less than 5 MB
-    part2 = '1'
+    part2 = b'1'
     multipart.upload_part_from_file(BytesIO(part2), 2)
     multipart.complete_upload()
     # we should get both parts as the key contents
@@ -90,7 +91,7 @@ def test_multipart_upload_with_copy_key():
     key.set_contents_from_string("key_value")
 
     multipart = bucket.initiate_multipart_upload("the-key")
-    part1 = '0' * 5242880
+    part1 = b'0' * 5242880
     multipart.upload_part_from_file(BytesIO(part1), 1)
     multipart.copy_part_from_key("foobar", "original-key", 2)
     multipart.complete_upload()
@@ -103,7 +104,7 @@ def test_multipart_upload_cancel():
     bucket = conn.create_bucket("foobar")
 
     multipart = bucket.initiate_multipart_upload("the-key")
-    part1 = '0' * 5242880
+    part1 = b'0' * 5242880
     multipart.upload_part_from_file(BytesIO(part1), 1)
     multipart.cancel_upload()
     # TODO we really need some sort of assertion here, but we don't currently
@@ -117,10 +118,10 @@ def test_multipart_etag():
     bucket = conn.create_bucket('mybucket')
 
     multipart = bucket.initiate_multipart_upload("the-key")
-    part1 = '0' * 5242880
+    part1 = b'0' * 5242880
     multipart.upload_part_from_file(BytesIO(part1), 1)
     # last part, can be less than 5 MB
-    part2 = '1'
+    part2 = b'1'
     multipart.upload_part_from_file(BytesIO(part2), 2)
     multipart.complete_upload()
     # we should get both parts as the key contents

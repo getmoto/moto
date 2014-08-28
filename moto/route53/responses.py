@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 from urlparse import parse_qs, urlparse
 from .models import route53_backend

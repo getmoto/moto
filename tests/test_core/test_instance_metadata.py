@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import requests
 
 from moto import mock_ec2

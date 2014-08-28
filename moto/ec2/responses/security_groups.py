@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse

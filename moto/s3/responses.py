@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from urlparse import parse_qs, urlparse
 import re
 

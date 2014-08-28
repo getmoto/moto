@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
@@ -32,7 +33,7 @@ class KeyPairs(BaseResponse):
 
 
 DESCRIBE_KEY_PAIRS_RESPONSE = """<DescribeKeyPairsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId> 
+    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
     <keySet>
     {% for keypair in keypairs %}
       <item>
@@ -55,6 +56,6 @@ CREATE_KEY_PAIR_RESPONSE = """<CreateKeyPairResponse xmlns="http://ec2.amazonaws
 
 
 DELETE_KEY_PAIR_RESPONSE = """<DeleteKeyPairResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId> 
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>{{ success }}</return>
 </DeleteKeyPairResponse>"""

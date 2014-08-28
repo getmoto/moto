@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from moto.core import BaseBackend
 
 from .utils import random_job_id, random_instance_group_id

@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto
 from boto.ec2.elb import HealthCheck
 import sure  # noqa

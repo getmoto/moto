@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import json
 
 from jinja2 import Template

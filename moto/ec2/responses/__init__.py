@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from .amazon_dev_pay import AmazonDevPay
 from .amis import AmisResponse
 from .availability_zones_and_regions import AvailabilityZonesAndRegions

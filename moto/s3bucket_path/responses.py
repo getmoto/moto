@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from .models import s3bucket_path_backend
 
 from .utils import bucket_name_from_url

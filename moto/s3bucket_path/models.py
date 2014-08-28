@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from moto.s3.models import S3Backend
 
 

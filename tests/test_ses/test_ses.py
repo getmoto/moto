@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import email
 
 import boto
@@ -54,7 +55,7 @@ def test_send_email():
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota['GetSendQuotaResponse']['GetSendQuotaResult']['SentLast24Hours'])
     sent_count.should.equal(1)
-    
+
 @mock_ses
 def test_send_html_email():
     conn = boto.connect_ses('the_key', 'the_secret')

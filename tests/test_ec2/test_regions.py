@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto.ec2
 import boto.ec2.autoscale
 import sure
@@ -20,7 +21,7 @@ def test_add_servers_to_a_single_region():
     reservations = conn.get_all_instances()
     len(reservations).should.equal(2)
     reservations.sort(key=lambda x: x.instances[0].image_id)
-    
+
     reservations[0].instances[0].image_id.should.equal('ami-1234abcd')
     reservations[1].instances[0].image_id.should.equal('ami-5678efgh')
 
@@ -39,7 +40,7 @@ def test_add_servers_to_multiple_regions():
 
     len(us_reservations).should.equal(1)
     len(ap_reservations).should.equal(1)
-    
+
     us_reservations[0].instances[0].image_id.should.equal('ami-1234abcd')
     ap_reservations[0].instances[0].image_id.should.equal('ami-5678efgh')
 
