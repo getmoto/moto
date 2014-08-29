@@ -34,8 +34,8 @@ class MockAWS(object):
             HTTPretty.enable()
 
         for method in HTTPretty.METHODS:
-            backend = self.backends.values()[0]
-            for key, value in backend.urls.iteritems():
+            backend = list(self.backends.values())[0]
+            for key, value in backend.urls.items():
                 HTTPretty.register_uri(
                     method=method,
                     uri=re.compile(key),
@@ -72,7 +72,7 @@ class Model(type):
     def __new__(self, clsname, bases, namespace):
         cls = super(Model, self).__new__(self, clsname, bases, namespace)
         cls.__models__ = {}
-        for name, value in namespace.iteritems():
+        for name, value in namespace.items():
             model = getattr(value, "__returns_model__", False)
             if model is not False:
                 cls.__models__[model] = name
@@ -112,7 +112,7 @@ class BaseBackend(object):
 
         urls = {}
         for url_base in url_bases:
-            for url_path, handler in unformatted_paths.iteritems():
+            for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)
                 urls[url] = handler
 
@@ -127,7 +127,7 @@ class BaseBackend(object):
         unformatted_paths = self._url_module.url_paths
 
         paths = {}
-        for unformatted_path, handler in unformatted_paths.iteritems():
+        for unformatted_path, handler in unformatted_paths.items():
             path = unformatted_path.format("")
             paths[path] = handler
 
@@ -146,7 +146,7 @@ class BaseBackend(object):
         The url paths that will be used for the flask server
         """
         paths = {}
-        for url_path, handler in self.url_paths.iteritems():
+        for url_path, handler in self.url_paths.items():
             url_path = convert_regex_to_flask_path(url_path)
             paths[url_path] = handler
 

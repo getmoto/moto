@@ -1,14 +1,13 @@
 from __future__ import unicode_literals
 import re
 import sys
-import urllib2
-import urlparse
+from six.moves.urllib.parse import urlparse, unquote
 
 bucket_name_regex = re.compile("(.+).s3.amazonaws.com")
 
 
 def bucket_name_from_url(url):
-    domain = urlparse.urlparse(url).netloc
+    domain = urlparse(url).netloc
 
     if domain.startswith('www.'):
         domain = domain[4:]
@@ -26,7 +25,7 @@ def bucket_name_from_url(url):
 
 
 def clean_key_name(key_name):
-    return urllib2.unquote(key_name)
+    return unquote(key_name)
 
 
 class _VersionedKeyStore(dict):

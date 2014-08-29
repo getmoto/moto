@@ -33,7 +33,8 @@ def test_port_argument(run_simple):
 def test_domain_dispatched():
     dispatcher = DomainDispatcherApplication(create_backend_app)
     backend_app = dispatcher.get_application("email.us-east1.amazonaws.com")
-    backend_app.view_functions.keys()[0].should.equal('EmailResponse.dispatch')
+    keys = list(backend_app.view_functions.keys())
+    keys[0].should.equal('EmailResponse.dispatch')
 
 
 def test_domain_without_matches():
@@ -45,4 +46,5 @@ def test_domain_dispatched_with_service():
     # If we pass a particular service, always return that.
     dispatcher = DomainDispatcherApplication(create_backend_app, service="s3")
     backend_app = dispatcher.get_application("s3.us-east1.amazonaws.com")
-    backend_app.view_functions.keys()[0].should.equal('ResponseObject.key_response')
+    keys = set(backend_app.view_functions.keys())
+    keys.should.contain('ResponseObject.key_response')

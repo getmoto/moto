@@ -139,7 +139,7 @@ class InstanceResponse(BaseResponse):
 
     def _dot_value_instance_attribute_handler(self):
         attribute_key = None
-        for key, value in self.querystring.iteritems():
+        for key, value in self.querystring.items():
             if '.Value' in key:
                 attribute_key = key
                 break

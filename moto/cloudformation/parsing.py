@@ -55,7 +55,7 @@ def clean_json(resource_json, resources_map):
                 return resource
 
         cleaned_json = {}
-        for key, value in resource_json.iteritems():
+        for key, value in resource_json.items():
             cleaned_json[key] = clean_json(value, resources_map)
         return cleaned_json
     elif isinstance(resource_json, list):

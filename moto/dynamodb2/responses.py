@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import json
+import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -50,15 +51,16 @@ class DynamoHandler(BaseResponse):
         return status, self.response_headers, dynamo_json_dump({'__type': type_})
 
     def call_action(self):
-        if 'GetSessionToken' in self.body:
+        body = self.body.decode('utf-8')
+        if 'GetSessionToken' in body:
             return 200, self.response_headers, sts_handler()
 
-        self.body = json.loads(self.body or '{}')
+        self.body = json.loads(body or '{}')
         endpoint = self.get_endpoint_name(self.headers)
         if endpoint:
             endpoint = camelcase_to_underscores(endpoint)
             response = getattr(self, endpoint)()
-            if isinstance(response, basestring):
+            if isinstance(response, six.string_types):
                 return 200, self.response_headers, response
 
             else:
@@ -73,10 +75,10 @@ class DynamoHandler(BaseResponse):
         limit = body.get('Limit')
         if body.get("ExclusiveStartTableName"):
             last = body.get("ExclusiveStartTableName")
-            start = dynamodb_backend2.tables.keys().index(last) + 1
+            start = list(dynamodb_backend2.tables.keys()).index(last) + 1
         else:
             start = 0
-        all_tables = dynamodb_backend2.tables.keys()
+        all_tables = list(dynamodb_backend2.tables.keys())
         if limit:
             tables = all_tables[start:start + limit]
         else:
@@ -91,17 +93,17 @@ class DynamoHandler(BaseResponse):
         #get the table name
         table_name = body['TableName']
         #get the throughput
-        throughput = body["ProvisionedThroughput"]        
+        throughput = body["ProvisionedThroughput"]
         #getting the schema
         key_schema = body['KeySchema']
         #getting attribute definition
         attr = body["AttributeDefinitions"]
         #getting the indexes
-        table = dynamodb_backend2.create_table(table_name, 
-                   schema = key_schema,           
-                   throughput = throughput, 
+        table = dynamodb_backend2.create_table(table_name,
+                   schema = key_schema,
+                   throughput = throughput,
                    attr = attr)
-        return dynamo_json_dump(table.describe)        
+        return dynamo_json_dump(table.describe)
 
     def delete_table(self):
         name = self.body['TableName']
@@ -131,7 +133,7 @@ class DynamoHandler(BaseResponse):
         name = self.body['TableName']
         item = self.body['Item']
         result = dynamodb_backend2.put_item(name, item)
-        
+
         if result:
             item_dict = result.to_json()
             item_dict['ConsumedCapacityUnits'] = 1
@@ -143,10 +145,10 @@ class DynamoHandler(BaseResponse):
     def batch_write_item(self):
         table_batches = self.body['RequestItems']
 
-        for table_name, table_requests in table_batches.iteritems():
+        for table_name, table_requests in table_batches.items():
             for table_request in table_requests:
-                request_type = table_request.keys()[0]
-                request = table_request.values()[0]
+                request_type = list(table_request.keys())[0]
+                request = list(table_request.values())[0]
                 if request_type == 'PutRequest':
                     item = request['Item']
                     dynamodb_backend2.put_item(table_name, item)
@@ -187,15 +189,15 @@ class DynamoHandler(BaseResponse):
     def batch_get_item(self):
         table_batches = self.body['RequestItems']
 
-        results = { 
+        results = {
             "ConsumedCapacity":[],
-            "Responses": {                
+            "Responses": {
             },
             "UnprocessedKeys": {
             }
         }
 
-        for table_name, table_request in table_batches.iteritems():
+        for table_name, table_request in table_batches.items():
             items = []
             keys = table_request['Keys']
             attributes_to_get = table_request.get('AttributesToGet')
@@ -217,7 +219,7 @@ class DynamoHandler(BaseResponse):
         keys = self.body['KeyConditions']
         hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name)
         if hash_key_name is None:
-            er = "'com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"  
+            er = "'com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
             return self.error(er)
         hash_key = keys[hash_key_name]['AttributeValueList'][0]
         if len(keys) == 1:
@@ -225,7 +227,7 @@ class DynamoHandler(BaseResponse):
             range_values = []
         else:
             if range_key_name == None:
-                er = "com.amazon.coral.validate#ValidationException"  
+                er = "com.amazon.coral.validate#ValidationException"
                 return self.error(er)
             else:
                 range_condition = keys[range_key_name]
@@ -238,7 +240,7 @@ class DynamoHandler(BaseResponse):
         items, last_page = dynamodb_backend2.query(name, hash_key, range_comparison, range_values)
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
-            return self.error(er) 
+            return self.error(er)
 
         limit = self.body.get("Limit")
         if limit:
@@ -267,7 +269,7 @@ class DynamoHandler(BaseResponse):
 
         filters = {}
         scan_filters = self.body.get('ScanFilter', {})
-        for attribute_name, scan_filter in scan_filters.iteritems():
+        for attribute_name, scan_filter in scan_filters.items():
             # Keys are attribute names. Values are tuples of (comparison, comparison_value)
             comparison_operator = scan_filter["ComparisonOperator"]
             comparison_values = scan_filter.get("AttributeValueList", [])

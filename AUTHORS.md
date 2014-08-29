@@ -23,3 +23,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Richard Eames](https://github.com/Naddiseo)
 * [Kevin Glisson](https://github.com/kevgliss)
 * [Shawn Falkner-Horine](https://github.com/DreadPirateShawn)
+* [David Baumgold](https://github.com/singingwolfboy)

@@ -2,9 +2,9 @@ coverage
 freezegun
 mock
 nose
-https://github.com/spulec/python-coveralls/tarball/796d9dba34b759664e42ba39e6414209a0f319ad
 requests
 sure<1.2.4
 xmltodict
 dicttoxml
 werkzeug
+six

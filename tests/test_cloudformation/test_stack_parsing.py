@@ -36,8 +36,8 @@ def test_parse_stack_resources():
     )
 
     stack.resource_map.should.have.length_of(1)
-    stack.resource_map.keys()[0].should.equal('WebServerGroup')
-    queue = stack.resource_map.values()[0]
+    list(stack.resource_map.keys())[0].should.equal('WebServerGroup')
+    queue = list(stack.resource_map.values())[0]
     queue.should.be.a(Queue)
     queue.name.should.equal("my-queue")
 

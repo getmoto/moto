@@ -52,7 +52,7 @@ def test_create_role_and_instance_profile():
 
     profile = conn.get_instance_profile("my-profile")
     profile.path.should.equal("my-path")
-    role_from_profile = profile.roles.values()[0]
+    role_from_profile = list(profile.roles.values())[0]
     role_from_profile['role_id'].should.equal(role.role_id)
     role_from_profile['role_name'].should.equal("my-role")
 

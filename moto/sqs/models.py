@@ -30,7 +30,7 @@ class Message(object):
     @property
     def md5(self):
         body_md5 = hashlib.md5()
-        body_md5.update(self.body)
+        body_md5.update(self.body.encode('utf-8'))
         return body_md5.hexdigest()
 
     def mark_sent(self, delay_seconds=None):

@@ -184,15 +184,16 @@ def test_instance_attribute_user_data():
 
 @mock_ec2
 def test_user_data_with_run_instance():
-    user_data = "some user data"
+    user_data = b"some user data"
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd', user_data=user_data)
     instance = reservation.instances[0]
 
     instance_attribute = instance.get_attribute("userData")
     instance_attribute.should.be.a(InstanceAttribute)
-    decoded_user_data = base64.decodestring(instance_attribute.get("userData"))
-    decoded_user_data.should.equal("some user data")
+    retrieved_user_data = instance_attribute.get("userData").encode('utf-8')
+    decoded_user_data = base64.decodestring(retrieved_user_data)
+    decoded_user_data.should.equal(b"some user data")
 
 
 @mock_ec2

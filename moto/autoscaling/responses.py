@@ -191,7 +191,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
           9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/my-test-lc</LaunchConfigurationARN>
           {% if launch_configuration.block_device_mappings %}
             <BlockDeviceMappings>
-            {% for mount_point, mapping in launch_configuration.block_device_mappings.iteritems() %}
+            {% for mount_point, mapping in launch_configuration.block_device_mappings.items() %}
               <member>
                 <DeviceName>{{ mount_point }}</DeviceName>
                 {% if mapping.ephemeral_name %}

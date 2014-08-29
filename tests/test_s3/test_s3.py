@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
-import urllib2
+import six
+from six.moves.urllib.request import urlopen
+from six.moves.urllib.error import HTTPError
 from io import BytesIO
 
 import boto
@@ -8,6 +10,8 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
 import requests
+import tests.backport_assert_raises
+from nose.tools import assert_raises
 
 import sure  # noqa
 
@@ -37,7 +41,7 @@ def test_my_model_save():
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal('is awesome')
+    conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal(b'is awesome')
 
 
 @mock_s3
@@ -95,7 +99,7 @@ def test_multipart_upload_with_copy_key():
     multipart.upload_part_from_file(BytesIO(part1), 1)
     multipart.copy_part_from_key("foobar", "original-key", 2)
     multipart.complete_upload()
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + "key_value")
+    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + b"key_value")
 
 
 @mock_s3
@@ -172,7 +176,7 @@ def test_missing_key_urllib2():
     conn = boto.connect_s3('the_key', 'the_secret')
     conn.create_bucket("foobar")
 
-    urllib2.urlopen.when.called_with("http://foobar.s3.amazonaws.com/the-key").should.throw(urllib2.HTTPError)
+    urlopen.when.called_with("http://foobar.s3.amazonaws.com/the-key").should.throw(HTTPError)
 
 
 @mock_s3
@@ -183,7 +187,7 @@ def test_empty_key():
     key.key = "the-key"
     key.set_contents_from_string("")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal('')
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
 
 
 @mock_s3
@@ -194,10 +198,10 @@ def test_empty_key_set_on_existing_key():
     key.key = "the-key"
     key.set_contents_from_string("foobar")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal('foobar')
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar')
 
     key.set_contents_from_string("")
-    bucket.get_key("the-key").get_contents_as_string().should.equal('')
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
 
 
 @mock_s3
@@ -208,7 +212,7 @@ def test_large_key_save():
     key.key = "the-key"
     key.set_contents_from_string("foobar" * 100000)
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal('foobar' * 100000)
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar' * 100000)
 
 
 @mock_s3
@@ -221,8 +225,8 @@ def test_copy_key():
 
     bucket.copy_key('new-key', 'foobar', 'the-key')
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal("some value")
-    bucket.get_key("new-key").get_contents_as_string().should.equal("some value")
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
 
 
 @mock_s3
@@ -286,7 +290,8 @@ def test_create_existing_bucket():
     "Trying to create a bucket that already exists should raise an Error"
     conn = boto.connect_s3('the_key', 'the_secret')
     conn.create_bucket("foobar")
-    conn.create_bucket.when.called_with('foobar').should.throw(S3CreateError)
+    with assert_raises(S3CreateError):
+        conn.create_bucket('foobar')
 
 
 @mock_s3
@@ -338,7 +343,7 @@ def test_post_to_bucket():
         'file': 'nothing'
     })
 
-    bucket.get_key('the-key').get_contents_as_string().should.equal('nothing')
+    bucket.get_key('the-key').get_contents_as_string().should.equal(b'nothing')
 
 
 @mock_s3
@@ -585,18 +590,18 @@ def test_list_versions():
 
     versions[0].name.should.equal('the-key')
     versions[0].version_id.should.equal('0')
-    versions[0].get_contents_as_string().should.equal("Version 1")
+    versions[0].get_contents_as_string().should.equal(b"Version 1")
 
     versions[1].name.should.equal('the-key')
     versions[1].version_id.should.equal('1')
-    versions[1].get_contents_as_string().should.equal("Version 2")
+    versions[1].get_contents_as_string().should.equal(b"Version 2")
 
 
 @mock_s3
 def test_acl_is_ignored_for_now():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('foobar')
-    content = 'imafile'
+    content = b'imafile'
     keyname = 'test.txt'
 
     key = Key(bucket, name=keyname)

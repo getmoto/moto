@@ -18,8 +18,8 @@ def test_ec2_server_get():
         headers={"Host": "ec2.us-east-1.amazonaws.com"}
     )
 
-    groups = re.search("<instanceId>(.*)</instanceId>", res.data)
+    groups = re.search("<instanceId>(.*)</instanceId>", res.data.decode('utf-8'))
     instance_id = groups.groups()[0]
 
     res = test_client.get('/?Action=DescribeInstances')
-    res.data.should.contain(instance_id)
+    res.data.decode('utf-8').should.contain(instance_id)

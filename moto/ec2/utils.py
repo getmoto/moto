@@ -1,13 +1,14 @@
 from __future__ import unicode_literals
 import random
 import re
+import six
 
 
 def random_id(prefix=''):
     size = 8
-    chars = range(10) + ['a', 'b', 'c', 'd', 'e', 'f']
+    chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
 
-    instance_tag = ''.join(unicode(random.choice(chars)) for x in range(size))
+    instance_tag = ''.join(six.text_type(random.choice(chars)) for x in range(size))
     return '{0}-{1}'.format(prefix, instance_tag)
 
 
@@ -81,7 +82,7 @@ def random_ip():
 
 def instance_ids_from_querystring(querystring_dict):
     instance_ids = []
-    for key, value in querystring_dict.iteritems():
+    for key, value in querystring_dict.items():
         if 'InstanceId' in key:
             instance_ids.append(value[0])
     return instance_ids
@@ -89,7 +90,7 @@ def instance_ids_from_querystring(querystring_dict):
 
 def image_ids_from_querystring(querystring_dict):
     image_ids = []
-    for key, value in querystring_dict.iteritems():
+    for key, value in querystring_dict.items():
         if 'ImageId' in key:
             image_ids.append(value[0])
     return image_ids
@@ -97,7 +98,7 @@ def image_ids_from_querystring(querystring_dict):
 
 def sequence_from_querystring(parameter, querystring_dict):
     parameter_values = []
-    for key, value in querystring_dict.iteritems():
+    for key, value in querystring_dict.items():
         if parameter in key:
             parameter_values.append(value[0])
     return parameter_values
@@ -106,7 +107,7 @@ def sequence_from_querystring(parameter, querystring_dict):
 def resource_ids_from_querystring(querystring_dict):
     prefix = 'ResourceId'
     response_values = {}
-    for key, value in querystring_dict.iteritems():
+    for key, value in querystring_dict.items():
         if key.startswith(prefix):
             resource_index = key.replace(prefix + ".", "")
             tag_key = querystring_dict.get("Tag.{0}.Key".format(resource_index))[0]
@@ -143,7 +144,7 @@ def dhcp_configuration_from_querystring(querystring, option=u'DhcpConfiguration'
     key_needle = re.compile(u'{0}.[0-9]+.Key'.format(option), re.UNICODE)
     response_values = {}
 
-    for key, value in querystring.iteritems():
+    for key, value in querystring.items():
         if key_needle.match(key):
             values = []
             key_index = key.split(".")[1]
@@ -161,19 +162,19 @@ def dhcp_configuration_from_querystring(querystring, option=u'DhcpConfiguration'
 
 def filters_from_querystring(querystring_dict):
     response_values = {}
-    for key, value in querystring_dict.iteritems():
+    for key, value in querystring_dict.items():
         match = re.search(r"Filter.(\d).Name", key)
         if match:
             filter_index = match.groups()[0]
             value_prefix = "Filter.{0}.Value".format(filter_index)
-            filter_values = [filter_value[0] for filter_key, filter_value in querystring_dict.iteritems() if filter_key.startswith(value_prefix)]
+            filter_values = [filter_value[0] for filter_key, filter_value in querystring_dict.items() if filter_key.startswith(value_prefix)]
             response_values[value[0]] = filter_values
     return response_values
 
 
 def keypair_names_from_querystring(querystring_dict):
     keypair_names = []
-    for key, value in querystring_dict.iteritems():
+    for key, value in querystring_dict.items():
         if 'KeyName' in key:
             keypair_names.append(value[0])
     return keypair_names
@@ -186,7 +187,7 @@ filter_dict_attribute_mapping = {
 
 
 def passes_filter_dict(instance, filter_dict):
-    for filter_name, filter_values in filter_dict.iteritems():
+    for filter_name, filter_values in filter_dict.items():
         if filter_name in filter_dict_attribute_mapping:
             instance_attr = filter_dict_attribute_mapping[filter_name]
         else:

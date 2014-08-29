@@ -5,6 +5,8 @@ import datetime
 import hashlib
 import copy
 import itertools
+import codecs
+import six
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
@@ -59,7 +61,11 @@ class FakeKey(object):
     def etag(self):
         if self._etag is None:
             value_md5 = hashlib.md5()
-            value_md5.update(bytes(self.value))
+            if isinstance(self.value, six.text_type):
+                value = self.value.encode("utf-8")
+            else:
+                value = self.value
+            value_md5.update(value)
             self._etag = value_md5.hexdigest()
         return '"{0}"'.format(self._etag)
 
@@ -112,9 +118,11 @@ class FakeMultipart(object):
     def __init__(self, key_name):
         self.key_name = key_name
         self.parts = {}
-        self.id = base64.b64encode(os.urandom(UPLOAD_ID_BYTES)).replace('=', '').replace('+', '')
+        rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
+        self.id = rand_b64.decode('utf-8').replace('=', '').replace('+', '')
 
     def complete(self):
+        decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
         last_part_name = len(self.list_parts())
@@ -122,7 +130,8 @@ class FakeMultipart(object):
         for part in self.list_parts():
             if part.name != last_part_name and len(part.value) < UPLOAD_PART_MIN_SIZE:
                 return None, None
-            md5s.extend(part.etag.replace('"', '').decode('hex'))
+            part_etag = part.etag.replace('"', '')
+            md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
 
         etag = hashlib.md5()
@@ -296,7 +305,7 @@ class S3Backend(BaseBackend):
         key_results = set()
         folder_results = set()
         if prefix:
-            for key_name, key in bucket.keys.iteritems():
+            for key_name, key in bucket.keys.items():
                 if key_name.startswith(prefix):
                     key_without_prefix = key_name.replace(prefix, "", 1)
                     if delimiter and delimiter in key_without_prefix:
@@ -306,7 +315,7 @@ class S3Backend(BaseBackend):
                     else:
                         key_results.add(key)
         else:
-            for key_name, key in bucket.keys.iteritems():
+            for key_name, key in bucket.keys.items():
                 if delimiter and delimiter in key_name:
                     # If delimiter, we need to split out folder_results
                     folder_results.add(key_name.split(delimiter)[0])

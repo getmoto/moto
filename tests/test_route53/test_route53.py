@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import urllib2
 
 import boto
 from boto.exception import S3ResponseError

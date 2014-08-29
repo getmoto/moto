@@ -77,7 +77,7 @@ class Item(object):
         self.range_key_type = range_key_type
 
         self.attrs = {}
-        for key, value in attrs.iteritems():
+        for key, value in attrs.items():
             self.attrs[key] = DynamoType(value)
 
     def __repr__(self):
@@ -85,7 +85,7 @@ class Item(object):
 
     def to_json(self):
         attributes = {}
-        for attribute_key, attribute in self.attrs.iteritems():
+        for attribute_key, attribute in self.attrs.items():
             attributes[attribute_key] = attribute.value
 
         return {
@@ -95,7 +95,7 @@ class Item(object):
     def describe_attrs(self, attributes):
         if attributes:
             included = {}
-            for key, value in self.attrs.iteritems():
+            for key, value in self.attrs.items():
                 if key in attributes:
                     included[key] = value
         else:
@@ -129,32 +129,32 @@ class Table(object):
         self.indexes = indexes
         self.created_at = datetime.datetime.now()
         self.items = defaultdict(dict)
-        
+
     @property
     def describe(self):
         results = {
         'Table': {
             'AttributeDefinitions': self.attr,
-            'ProvisionedThroughput': self.throughput, 
-            'TableSizeBytes': 0, 
-            'TableName': self.name, 
-            'TableStatus': 'ACTIVE', 
-            'KeySchema': self.schema, 
-            'ItemCount': len(self), 
+            'ProvisionedThroughput': self.throughput,
+            'TableSizeBytes': 0,
+            'TableName': self.name,
+            'TableStatus': 'ACTIVE',
+            'KeySchema': self.schema,
+            'ItemCount': len(self),
             'CreationDateTime': unix_time(self.created_at)
             }
         }
         return results
-    
+
     def __len__(self):
         count = 0
-        for key, value in self.items.iteritems():
+        for key, value in self.items.items():
             if self.has_range_key:
                 count += len(value)
             else:
                 count += 1
         return count
-    
+
     def put_item(self, item_attrs):
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))
         if self.has_range_key:
@@ -169,14 +169,14 @@ class Table(object):
         else:
             self.items[hash_value] = item
         return item
-    
+
     def __nonzero__(self):
         return True
-    
+
     @property
     def has_range_key(self):
         return self.range_key_attr is not None
-    
+
     def get_item(self, hash_key, range_key):
         if self.has_range_key and not range_key:
             raise ValueError("Table has a range key, but no range key was passed into get_item")
@@ -187,7 +187,7 @@ class Table(object):
                 return self.items[hash_key]
         except KeyError:
             return None
-        
+
     def delete_item(self, hash_key, range_key):
         try:
             if range_key:
@@ -196,12 +196,12 @@ class Table(object):
                 return self.items.pop(hash_key)
         except KeyError:
             return None
-        
+
     def query(self, hash_key, range_comparison, range_objs):
         results = []
         last_page = True  # Once pagination is implemented, change this
 
-        possible_results =  [ item for item in list(self.all_items()) if item.hash_key == hash_key] 
+        possible_results =  [ item for item in list(self.all_items()) if item.hash_key == hash_key]
         if range_comparison:
             for result in possible_results:
                 if result.range_key.compare(range_comparison, range_objs):
@@ -220,7 +220,7 @@ class Table(object):
                     yield item
             else:
                 yield hash_set
-                
+
     def scan(self, filters):
         results = []
         scanned_count = 0
@@ -229,7 +229,7 @@ class Table(object):
         for result in self.all_items():
             scanned_count += 1
             passes_all_conditions = True
-            for attribute_name, (comparison_operator, comparison_objs) in filters.iteritems():
+            for attribute_name, (comparison_operator, comparison_objs) in filters.items():
                 attribute = result.attrs.get(attribute_name)
 
                 if attribute:
@@ -248,7 +248,7 @@ class Table(object):
             if passes_all_conditions:
                 results.append(result)
         return results, scanned_count, last_page
-    
+
 
 class DynamoDBBackend(BaseBackend):
 
@@ -273,18 +273,18 @@ class DynamoDBBackend(BaseBackend):
         if not table:
             return None
         return table.put_item(item_attrs)
-    
+
     def get_table_keys_name(self, table_name):
         table = self.tables.get(table_name)
         if not table:
             return None, None
         else:
             return table.hash_key_attr, table.range_key_attr
-         
+
     def get_keys_value(self, table, keys):
         if not table.hash_key_attr in keys or (table.has_range_key and not table.range_key_attr in keys):
-            raise ValueError("Table has a range key, but no range key was passed into get_item")        
-        hash_key = DynamoType(keys[table.hash_key_attr])    
+            raise ValueError("Table has a range key, but no range key was passed into get_item")
+        hash_key = DynamoType(keys[table.hash_key_attr])
         range_key = DynamoType(keys[table.range_key_attr]) if table.has_range_key else None
         return hash_key,range_key
 
@@ -304,19 +304,19 @@ class DynamoDBBackend(BaseBackend):
         range_values = [DynamoType(range_value) for range_value in range_value_dicts]
 
         return table.query(hash_key, range_comparison, range_values)
-    
+
     def scan(self, table_name, filters):
         table = self.tables.get(table_name)
         if not table:
             return None, None, None
 
         scan_filters = {}
-        for key, (comparison_operator, comparison_values) in filters.iteritems():
+        for key, (comparison_operator, comparison_values) in filters.items():
             dynamo_types = [DynamoType(value) for value in comparison_values]
             scan_filters[key] = (comparison_operator, dynamo_types)
 
         return table.scan(scan_filters)
-    
+
     def delete_item(self, table_name, keys):
         table = self.tables.get(table_name)
         if not table:

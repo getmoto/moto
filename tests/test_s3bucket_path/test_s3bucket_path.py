@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
-import urllib2
+from six.moves.urllib.request import urlopen
+from six.moves.urllib.error import HTTPError
 
 import boto
 from boto.exception import S3ResponseError
@@ -41,7 +42,7 @@ def test_my_model_save():
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal('is awesome')
+    conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal(b'is awesome')
 
 
 @mock_s3bucket_path
@@ -56,7 +57,7 @@ def test_missing_key_urllib2():
     conn = create_connection('the_key', 'the_secret')
     conn.create_bucket("foobar")
 
-    urllib2.urlopen.when.called_with("http://s3.amazonaws.com/foobar/the-key").should.throw(urllib2.HTTPError)
+    urlopen.when.called_with("http://s3.amazonaws.com/foobar/the-key").should.throw(HTTPError)
 
 
 @mock_s3bucket_path
@@ -67,7 +68,7 @@ def test_empty_key():
     key.key = "the-key"
     key.set_contents_from_string("")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal('')
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
 
 
 @mock_s3bucket_path
@@ -78,10 +79,10 @@ def test_empty_key_set_on_existing_key():
     key.key = "the-key"
     key.set_contents_from_string("foobar")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal('foobar')
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar')
 
     key.set_contents_from_string("")
-    bucket.get_key("the-key").get_contents_as_string().should.equal('')
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
 
 
 @mock_s3bucket_path
@@ -92,7 +93,7 @@ def test_large_key_save():
     key.key = "the-key"
     key.set_contents_from_string("foobar" * 100000)
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal('foobar' * 100000)
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar' * 100000)
 
 
 @mock_s3bucket_path
@@ -105,8 +106,8 @@ def test_copy_key():
 
     bucket.copy_key('new-key', 'foobar', 'the-key')
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal("some value")
-    bucket.get_key("new-key").get_contents_as_string().should.equal("some value")
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
 
 
 @mock_s3bucket_path
@@ -191,7 +192,7 @@ def test_post_to_bucket():
         'file': 'nothing'
     })
 
-    bucket.get_key('the-key').get_contents_as_string().should.equal('nothing')
+    bucket.get_key('the-key').get_contents_as_string().should.equal(b'nothing')
 
 
 @mock_s3bucket_path
@@ -275,8 +276,8 @@ def test_bucket_key_listing_order():
 
     delimiter = None
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
-    keys.should.equal([u'toplevel/x/key', u'toplevel/x/y/key', u'toplevel/x/y/z/key'])
+    keys.should.equal(['toplevel/x/key', 'toplevel/x/y/key', 'toplevel/x/y/z/key'])
 
     delimiter = '/'
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
-    keys.should.equal([u'toplevel/x/'])
+    keys.should.equal(['toplevel/x/'])
