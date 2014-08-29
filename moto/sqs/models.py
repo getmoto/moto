@@ -158,8 +158,10 @@ class SQSBackend(BaseBackend):
         super(SQSBackend, self).__init__()
 
     def create_queue(self, name, visibility_timeout):
-        queue = Queue(name, visibility_timeout)
-        self.queues[name] = queue
+        queue = self.queues.get(name)
+        if queue is None:
+            queue = Queue(name, visibility_timeout)
+            self.queues[name] = queue
         return queue
 
     def list_queues(self, queue_name_prefix):
