@@ -10,7 +10,7 @@ class AutoScalingResponse(BaseResponse):
 
     @property
     def autoscaling_backend(self):
-      return autoscaling_backends[self.region]
+        return autoscaling_backends[self.region]
 
     def _get_int_param(self, param_name):
         value = self._get_param(param_name)
@@ -56,7 +56,7 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def describe_launch_configurations(self):
-        names = self._get_multi_param('LaunchConfigurationNames')
+        names = self._get_multi_param('LaunchConfigurationNames.member')
         launch_configurations = self.autoscaling_backend.describe_launch_configurations(names)
         template = Template(DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE)
         return template.render(launch_configurations=launch_configurations)
@@ -87,7 +87,7 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def describe_auto_scaling_groups(self):
-        names = self._get_multi_param("AutoScalingGroupNames")
+        names = self._get_multi_param("AutoScalingGroupNames.member")
         groups = self.autoscaling_backend.describe_autoscaling_groups(names)
         template = Template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
         return template.render(groups=groups)

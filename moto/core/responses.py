@@ -112,8 +112,16 @@ class BaseResponse(object):
             prefix = param_prefix
         else:
             prefix = param_prefix + "."
-        return [value[0] for key, value in self.querystring.items()
-                if key.startswith(prefix)]
+        values = []
+        index = 1
+        while True:
+            try:
+                values.append(self.querystring[prefix + str(index)][0])
+            except KeyError:
+                break
+            else:
+                index += 1
+        return values
 
 
 def metadata_response(request, full_url, headers):
