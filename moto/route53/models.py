@@ -5,9 +5,9 @@ from moto.core.utils import get_random_hex
 
 class FakeZone(object):
 
-    def __init__(self, name, id):
+    def __init__(self, name, id_):
         self.name = name
-        self.id = id
+        self.id = id_
         self.rrsets = {}
 
     def add_rrset(self, name, rrset):
@@ -31,13 +31,13 @@ class Route53Backend(BaseBackend):
     def get_all_hosted_zones(self):
         return self.zones.values()
 
-    def get_hosted_zone(self, id):
-        return self.zones.get(id)
+    def get_hosted_zone(self, id_):
+        return self.zones.get(id_)
 
-    def delete_hosted_zone(self, id):
-        zone = self.zones.get(id)
+    def delete_hosted_zone(self, id_):
+        zone = self.zones.get(id_)
         if zone:
-            del self.zones[id]
+            del self.zones[id_]
             return zone
         return None
 
