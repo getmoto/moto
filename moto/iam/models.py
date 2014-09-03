@@ -295,7 +295,6 @@ class IAMBackend(BaseBackend):
         except KeyError:
             raise BotoServerError(404, 'Not Found')
 
-        print('username={}'.format(key.user_name))
         return key
 
     def get_all_access_keys(self, user_name, marker=None, max_items=None):
