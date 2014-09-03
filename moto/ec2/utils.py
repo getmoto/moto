@@ -190,11 +190,17 @@ def passes_filter_dict(instance, filter_dict):
     for filter_name, filter_values in filter_dict.items():
         if filter_name in filter_dict_attribute_mapping:
             instance_attr = filter_dict_attribute_mapping[filter_name]
+            instance_value = getattr(instance, instance_attr)
+            if instance_value not in filter_values:
+                return False
+        elif filter_name.startswith('tag:'):
+            tags = dict((tag['key'], tag['value']) for tag in instance.get_tags())
+            tag_name = filter_name.replace('tag:', '', 1)
+            tag_value = tags.get(tag_name)
+            if tag_value not in filter_values:
+                return False
         else:
             raise NotImplementedError("Filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/spulec/moto/issues", filter_name)
-        instance_value = getattr(instance, instance_attr)
-        if instance_value not in filter_values:
-            return False
     return True
 
 
