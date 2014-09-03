@@ -38,7 +38,7 @@ def process_rules_from_querystring(querystring):
 
 def process_group_ids_from_querystring(querystring):
     group_ids = []
-    for key, value in querystring.iteritems():
+    for key, value in querystring.items():
         if 'GroupId' in key:
             group_ids.append(value[0])
     return group_ids
@@ -46,7 +46,7 @@ def process_group_ids_from_querystring(querystring):
 
 def process_groupnames_from_querystring(querystring):
     groupnames = []
-    for key, value in querystring.iteritems():
+    for key, value in querystring.items():
         if 'GroupName' in key:
             groupnames.append(value[0])
     return groupnames

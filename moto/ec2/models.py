@@ -559,7 +559,7 @@ class SecurityGroup(object):
 
             return attr
 
-        for key, value in filters.iteritems():
+        for key, value in filters.items():
             ret = False
 
             if key.startswith('ip-permission'):

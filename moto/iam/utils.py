@@ -5,7 +5,7 @@ import six
 
 
 def random_alhpnumeric(length):
-    return ''.join(unicode(
+    return ''.join(six.text_type(
         random.choice(
             string.ascii_letters + string.digits
         )) for _ in range(length)
@@ -20,7 +20,7 @@ def random_resource_id():
 
 
 def random_access_key():
-    return ''.join(unicode(
+    return ''.join(six.text_type(
         random.choice(
             string.ascii_uppercase + string.digits
         )) for _ in range(16)
