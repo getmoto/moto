@@ -3,6 +3,7 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
+from moto.ec2.utils import filters_from_querystring
 
 
 class SpotInstances(BaseResponse):
@@ -30,7 +31,8 @@ class SpotInstances(BaseResponse):
         raise NotImplementedError('SpotInstances.describe_spot_datafeed_subscription is not yet implemented')
 
     def describe_spot_instance_requests(self):
-        requests = ec2_backend.describe_spot_instance_requests()
+        filters = filters_from_querystring(self.querystring)
+        requests = ec2_backend.describe_spot_instance_requests(filters=filters)
         template = Template(DESCRIBE_SPOT_INSTANCES_TEMPLATE)
         return template.render(requests=requests)
 
