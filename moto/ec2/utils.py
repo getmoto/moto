@@ -80,6 +80,15 @@ def random_ip():
     )
 
 
+def generate_route_id(route_table_id, cidr_block):
+    return "%s~%s" % (route_table_id, cidr_block)
+
+
+def split_route_id(route_id):
+    values = string.split(route_id,'~')
+    return values[0], values[1]
+
+
 def instance_ids_from_querystring(querystring_dict):
     instance_ids = []
     for key, value in querystring_dict.items():
@@ -94,6 +103,14 @@ def image_ids_from_querystring(querystring_dict):
         if 'ImageId' in key:
             image_ids.append(value[0])
     return image_ids
+
+
+def route_table_ids_from_querystring(querystring_dict):
+    route_table_ids = []
+    for key, value in querystring_dict.iteritems():
+        if 'RouteTableId' in key:
+            route_table_ids.append(value[0])
+    return route_table_ids
 
 
 def sequence_from_querystring(parameter, querystring_dict):
@@ -158,6 +175,11 @@ def dhcp_configuration_from_querystring(querystring, option=u'DhcpConfiguration'
                 value_index += 1
             response_values[value[0]] = values
     return response_values
+
+
+def optional_from_querystring(parameter, querystring):
+    parameter_array = querystring.get(parameter)
+    return parameter_array[0] if parameter_array else None
 
 
 def filters_from_querystring(querystring_dict):

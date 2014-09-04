@@ -29,6 +29,8 @@ from .exceptions import (
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     InvalidPermissionNotFoundError,
+    InvalidRouteTableIdError,
+    InvalidRouteError,
     InvalidInstanceIdError,
     MalformedAMIIdError,
     InvalidAMIIdError,
@@ -55,6 +57,8 @@ from .utils import (
     random_key_pair,
     random_reservation_id,
     random_route_table_id,
+    generate_route_id,
+    split_route_id,
     random_security_group_id,
     random_snapshot_id,
     random_spot_request_id,
@@ -856,6 +860,10 @@ class VPCBackend(object):
         vpc_id = random_vpc_id()
         vpc = VPC(vpc_id, cidr_block)
         self.vpcs[vpc_id] = vpc
+
+        # AWS creates a default main route table.
+        main_route_table = self.create_route_table(vpc_id, main=True)
+
         return vpc
 
     def get_vpc(self, vpc_id):
@@ -870,6 +878,7 @@ class VPCBackend(object):
         vpc = self.vpcs.pop(vpc_id, None)
         if not vpc:
             raise InvalidVPCIdError(vpc_id)
+        self.delete_route_table_for_vpc(vpc.id)
         if vpc.dhcp_options:
             vpc.dhcp_options.vpc = None
             self.delete_dhcp_options_set(vpc.dhcp_options.id)
@@ -1057,9 +1066,13 @@ class SubnetRouteTableAssociationBackend(object):
 
 
 class RouteTable(object):
-    def __init__(self, route_table_id, vpc_id):
+    def __init__(self, route_table_id, vpc_id, main=False):
         self.id = route_table_id
         self.vpc_id = vpc_id
+        self.main = main
+        self.association_id = None
+        self.subnet_id = None
+        self.routes = {}
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -1075,48 +1088,155 @@ class RouteTable(object):
     def physical_resource_id(self):
         return self.id
 
+    def get_filter_value(self, filter_name):
+        if filter_name == "association.main":
+            # Note: Boto only supports 'true'.
+            # https://github.com/boto/boto/issues/1742
+            if self.main:
+                return 'true'
+            else:
+                return 'false'
+        elif filter_name == "vpc-id":
+            return self.vpc_id
+        else:
+            msg = "The filter '{0}' for DescribeRouteTables has not been" \
+                  " implemented in Moto yet. Feel free to open an issue at" \
+                  " https://github.com/spulec/moto/issues".format(filter_name)
+            raise NotImplementedError(msg)
+
 
 class RouteTableBackend(object):
     def __init__(self):
         self.route_tables = {}
         super(RouteTableBackend, self).__init__()
 
-    def create_route_table(self, vpc_id):
+    def create_route_table(self, vpc_id, main=False):
         route_table_id = random_route_table_id()
-        route_table = RouteTable(route_table_id, vpc_id)
+        vpc = self.get_vpc(vpc_id) # Validate VPC exists
+        route_table = RouteTable(route_table_id, vpc_id, main=main)
         self.route_tables[route_table_id] = route_table
+
+        # AWS creates a default local route.
+        self.create_route(route_table_id, vpc.cidr_block, local=True)
+
         return route_table
+
+    def get_route_table(self, route_table_id):
+        route_table = self.route_tables.get(route_table_id, None)
+        if not route_table:
+            raise InvalidRouteTableIdError(route_table_id)
+        return route_table
+
+    def get_all_route_tables(self, route_table_ids=None, filters=None):
+        route_tables = self.route_tables.values()
+
+        if route_table_ids:
+            route_tables = [ route_table for route_table in route_tables if route_table.id in route_table_ids ]
+            if len(route_tables) != len(route_table_ids):
+                invalid_id = list(set(route_table_ids).difference(set([route_table.id for route_table in route_tables])))[0]
+                raise InvalidRouteTableIdError(invalid_id)
+
+        if filters:
+            for (_filter, _filter_value) in filters.items():
+                route_tables = [ route_table for route_table in route_tables if route_table.get_filter_value(_filter) in _filter_value ]
+
+        return route_tables
+
+    def delete_route_table(self, route_table_id):
+        deleted = self.route_tables.pop(route_table_id, None)
+        if not deleted:
+            raise InvalidRouteTableIdError(route_table_id)
+        return deleted
+
+    def delete_route_table_for_vpc(self, vpc_id):
+        for route_table in self.route_tables.values():
+            if route_table.vpc_id == vpc_id:
+                self.delete_route_table(route_table.id)
 
 
 class Route(object):
-    def __init__(self, route_table_id, destination_cidr_block, gateway_id):
-        self.route_table_id = route_table_id
+    def __init__(self, route_table, destination_cidr_block, local=False,
+                 internet_gateway=None, instance=None, interface=None, vpc_pcx=None):
+        self.id = generate_route_id(route_table.id, destination_cidr_block)
+        self.route_table = route_table
         self.destination_cidr_block = destination_cidr_block
-        self.gateway_id = gateway_id
+        self.local = local
+        self.internet_gateway = internet_gateway
+        self.instance = instance
+        self.interface = interface
+        self.vpc_pcx = vpc_pcx
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
         gateway_id = properties.get('GatewayId')
+        instance_id = properties.get('InstanceId')
+        interface_id = properties.get('NetworkInterfaceId')
+        pcx_id = properties.get('VpcPeeringConnectionId')
+
         route_table_id = properties['RouteTableId']
         route_table = ec2_backend.create_route(
             route_table_id=route_table_id,
             destination_cidr_block=properties['DestinationCidrBlock'],
             gateway_id=gateway_id,
+            instance_id=instance_id,
+            interface_id=interface_id,
+            vpc_peering_connection_id=pcx_id,
         )
         return route_table
 
 
 class RouteBackend(object):
     def __init__(self):
-        self.routes = {}
         super(RouteBackend, self).__init__()
 
-    def create_route(self, route_table_id, destination_cidr_block, gateway_id):
-        route = Route(route_table_id, destination_cidr_block, gateway_id)
-        self.routes[destination_cidr_block] = route
+    def create_route(self, route_table_id, destination_cidr_block, local=False,
+                     gateway_id=None, instance_id=None, interface_id=None,
+                     vpc_peering_connection_id=None):
+        route_table = self.get_route_table(route_table_id)
+
+        if interface_id:
+            ec2_backend.raise_not_implemented_error("CreateRoute to NetworkInterfaceId")
+
+        route = Route(route_table, destination_cidr_block, local=local,
+                      internet_gateway=self.get_internet_gateway(gateway_id) if gateway_id else None,
+                      instance=self.get_instance(instance_id) if instance_id else None,
+                      interface=None,
+                      vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id) if vpc_peering_connection_id else None)
+        route_table.routes[route.id] = route
         return route
+
+    def replace_route(self, route_table_id, destination_cidr_block,
+                     gateway_id=None, instance_id=None, interface_id=None,
+                     vpc_peering_connection_id=None):
+        route_table = self.get_route_table(route_table_id)
+        route_id = generate_route_id(route_table.id, destination_cidr_block)
+        route = route_table.routes[route_id]
+
+        if interface_id:
+            ec2_backend.raise_not_implemented_error("ReplaceRoute to NetworkInterfaceId")
+
+        route.internet_gateway = self.get_internet_gateway(gateway_id) if gateway_id else None
+        route.instance = self.get_instance(instance_id) if instance_id else None
+        route.interface = None
+        route.vpc_pcx = self.get_vpc_peering_connection(vpc_peering_connection_id) if vpc_peering_connection_id else None
+
+        route_table.routes[route.id] = route
+        return route
+
+    def get_route(self, route_id):
+        route_table_id, destination_cidr_block = split_route_id(route_id)
+        route_table = self.get_route_table(route_table_id)
+        return route_table.get(route_id)
+
+    def delete_route(self, route_table_id, destination_cidr_block):
+        route_table = self.get_route_table(route_table_id)
+        route_id = generate_route_id(route_table_id, destination_cidr_block)
+        deleted = route_table.routes.pop(route_id, None)
+        if not deleted:
+            raise InvalidRouteError(route_table_id, destination_cidr_block)
+        return deleted
 
 
 class InternetGateway(TaggedEC2Instance):
@@ -1153,8 +1273,7 @@ class InternetGatewayBackend(object):
         return igws or self.internet_gateways.values()
 
     def delete_internet_gateway(self, internet_gateway_id):
-        igw_ids = [internet_gateway_id]
-        igw = self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
+        igw = self.get_internet_gateway(internet_gateway_id)
         if igw.vpc:
             raise DependencyViolationError(
                 "{0} is being utilized by {1}"
@@ -1164,21 +1283,23 @@ class InternetGatewayBackend(object):
         return True
 
     def detach_internet_gateway(self, internet_gateway_id, vpc_id):
-        igw_ids = [internet_gateway_id]
-        igw = self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
+        igw = self.get_internet_gateway(internet_gateway_id)
         if not igw.vpc or igw.vpc.id != vpc_id:
             raise GatewayNotAttachedError(internet_gateway_id, vpc_id)
         igw.vpc = None
         return True
 
     def attach_internet_gateway(self, internet_gateway_id, vpc_id):
-        igw_ids = [internet_gateway_id]
-        igw = self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
+        igw = self.get_internet_gateway(internet_gateway_id)
         if igw.vpc:
             raise ResourceAlreadyAssociatedError(internet_gateway_id)
         vpc = self.get_vpc(vpc_id)
         igw.vpc = vpc
         return True
+
+    def get_internet_gateway(self, internet_gateway_id):
+        igw_ids = [internet_gateway_id]
+        return self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
 
 
 class VPCGatewayAttachment(object):
