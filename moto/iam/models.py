@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from boto.exception import BotoServerError
 from moto.core import BaseBackend
-from .utils import random_access_key, random_alhpnumeric, random_resource_id
+from .utils import random_access_key, random_alphanumeric, random_resource_id
 from datetime import datetime
 
 
@@ -71,7 +71,7 @@ class AccessKey(object):
     def __init__(self, user_name):
         self.user_name = user_name
         self.access_key_id = random_access_key()
-        self.secret_access_key = random_alhpnumeric(32)
+        self.secret_access_key = random_alphanumeric(32)
         self.status = 'Active'
         self.create_date = datetime.strftime(
             datetime.utcnow(),

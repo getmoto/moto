@@ -4,7 +4,7 @@ import string
 import six
 
 
-def random_alhpnumeric(length):
+def random_alphanumeric(length):
     return ''.join(six.text_type(
         random.choice(
             string.ascii_letters + string.digits
