@@ -186,6 +186,16 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
           </PlacementRequestType>
         {% endif %}
       </launchSpecification>
+      <tagSet>
+        {% for tag in request.get_tags() %}
+          <item>
+            <resourceId>{{ tag.resource_id }}</resourceId>
+            <resourceType>{{ tag.resource_type }}</resourceType>
+            <key>{{ tag.key }}</key>
+            <value>{{ tag.value }}</value>
+          </item>
+        {% endfor %}
+      </tagSet>
       {% if request.launch_group %}
         <launchGroup>{{ request.launch_group }}</launchGroup>
       {% endif %}

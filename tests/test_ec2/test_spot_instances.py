@@ -125,3 +125,24 @@ def test_request_spot_instances_fulfilled():
     request = requests[0]
 
     request.state.should.equal("active")
+
+
+@mock_ec2
+def test_tag_spot_instance_request():
+    """
+    Test that moto correctly tags a spot instance request
+    """
+    conn = boto.connect_ec2()
+
+    request = conn.request_spot_instances(
+        price=0.5, image_id='ami-abcd1234',
+    )
+    request[0].add_tag('tag1', 'value1')
+    request[0].add_tag('tag2', 'value2')
+
+    requests = conn.get_all_spot_instance_requests()
+    requests.should.have.length_of(1)
+    request = requests[0]
+
+    tag_dict = dict(request.tags)
+    tag_dict.should.equal({'tag1' : 'value1', 'tag2' : 'value2'})

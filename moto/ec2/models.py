@@ -1211,7 +1211,7 @@ class VPCGatewayAttachmentBackend(object):
         return attachment
 
 
-class SpotInstanceRequest(BotoSpotRequest):
+class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Instance):
     def __init__(self, spot_request_id, price, image_id, type, valid_from,
                  valid_until, launch_group, availability_zone_group, key_name,
                  security_groups, user_data, instance_type, placement, kernel_id,
