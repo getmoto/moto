@@ -58,6 +58,12 @@ def test_route_tables_additional():
     local_route.state.should.equal('active')
     local_route.destination_cidr_block.should.equal(vpc.cidr_block)
 
+    with assert_raises(EC2ResponseError) as cm:
+        conn.delete_vpc(vpc.id)
+    cm.exception.code.should.equal('DependencyViolation')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
     conn.delete_route_table(route_table.id)
 
     all_route_tables = conn.get_all_route_tables()

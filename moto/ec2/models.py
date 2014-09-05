@@ -875,10 +875,21 @@ class VPCBackend(object):
         return self.vpcs.values()
 
     def delete_vpc(self, vpc_id):
+        # Delete route table if only main route table remains.
+        route_tables = ec2_backend.get_all_route_tables(filters={'vpc-id':vpc_id})
+        if len(route_tables) > 1:
+            raise DependencyViolationError(
+                "The vpc {0} has dependencies and cannot be deleted."
+                .format(vpc_id)
+            )
+        for route_table in route_tables:
+            ec2_backend.delete_route_table(route_table.id)
+
+        # Now delete VPC.
         vpc = self.vpcs.pop(vpc_id, None)
         if not vpc:
             raise InvalidVPCIdError(vpc_id)
-        self.delete_route_table_for_vpc(vpc.id)
+
         if vpc.dhcp_options:
             vpc.dhcp_options.vpc = None
             self.delete_dhcp_options_set(vpc.dhcp_options.id)
@@ -1147,16 +1158,6 @@ class RouteTableBackend(object):
         if not deleted:
             raise InvalidRouteTableIdError(route_table_id)
         return deleted
-
-    def get_route_table_for_vpc(self, vpc_id):
-        for route_table in self.route_tables.values():
-            if route_table.vpc_id == vpc_id:
-                return route_table
-
-    def delete_route_table_for_vpc(self, vpc_id):
-        route_table = self.get_route_table_for_vpc(vpc_id)
-        if route_table:
-            self.delete_route_table(route_table.id)
 
 
 class Route(object):
