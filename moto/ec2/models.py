@@ -1148,10 +1148,15 @@ class RouteTableBackend(object):
             raise InvalidRouteTableIdError(route_table_id)
         return deleted
 
-    def delete_route_table_for_vpc(self, vpc_id):
+    def get_route_table_for_vpc(self, vpc_id):
         for route_table in self.route_tables.values():
             if route_table.vpc_id == vpc_id:
-                self.delete_route_table(route_table.id)
+                return route_table
+
+    def delete_route_table_for_vpc(self, vpc_id):
+        route_table = self.get_route_table_for_vpc(vpc_id)
+        if route_table:
+            self.delete_route_table(route_table.id)
 
 
 class Route(object):
