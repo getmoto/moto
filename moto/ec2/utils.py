@@ -107,7 +107,7 @@ def image_ids_from_querystring(querystring_dict):
 
 def route_table_ids_from_querystring(querystring_dict):
     route_table_ids = []
-    for key, value in querystring_dict.iteritems():
+    for key, value in querystring_dict.items():
         if 'RouteTableId' in key:
             route_table_ids.append(value[0])
     return route_table_ids
