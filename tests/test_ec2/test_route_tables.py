@@ -145,8 +145,6 @@ def test_routes_additional():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-    conn.create_route.when.called_with(main_route_table.id, ROUTE_CIDR, interface_id='eni-1234abcd').should.throw(NotImplementedError)
-
 
 @mock_ec2
 def test_routes_replace():
@@ -194,6 +192,23 @@ def test_routes_replace():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
+@requires_boto_gte("2.19.0")
+@mock_ec2
+def test_routes_not_supported():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    main_route_table = conn.get_all_route_tables()[0]
+    local_route = main_route_table.routes[0]
+    igw = conn.create_internet_gateway()
+    ROUTE_CIDR = "10.0.0.4/24"
+
+    # Create
+    conn.create_route.when.called_with(main_route_table.id, ROUTE_CIDR, interface_id='eni-1234abcd').should.throw(NotImplementedError)
+
+    # Replace
+    igw = conn.create_internet_gateway()
+    conn.create_route(main_route_table.id, ROUTE_CIDR, gateway_id=igw.id)
     conn.replace_route.when.called_with(main_route_table.id, ROUTE_CIDR, interface_id='eni-1234abcd').should.throw(NotImplementedError)
 
 
