@@ -72,6 +72,14 @@ class InvalidSubnetIdError(EC2ClientError):
             .format(subnet_id))
 
 
+class InvalidNetworkInterfaceIdError(EC2ClientError):
+    def __init__(self, eni_id):
+        super(InvalidNetworkInterfaceIdError, self).__init__(
+            "InvalidNetworkInterfaceID.NotFound",
+            "The network interface ID '{0}' does not exist"
+            .format(eni_id))
+
+
 class InvalidSecurityGroupDuplicateError(EC2ClientError):
     def __init__(self, name):
         super(InvalidSecurityGroupDuplicateError, self).__init__(

@@ -233,12 +233,86 @@ def test_run_instance_with_instance_type():
 
 @mock_ec2
 def test_run_instance_with_subnet():
-    conn = boto.connect_ec2('the_key', 'the_secret')
-    reservation = conn.run_instances('ami-1234abcd',
-                                     subnet_id="subnet-abcd1234")
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    reservation = conn.run_instances('ami-1234abcd', subnet_id=subnet.id)
     instance = reservation.instances[0]
 
-    instance.subnet_id.should.equal("subnet-abcd1234")
+    instance.subnet_id.should.equal(subnet.id)
+
+    all_enis = conn.get_all_network_interfaces()
+    all_enis.should.have.length_of(1)
+
+
+@mock_ec2
+def test_run_instance_with_nic_autocreated():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    security_group1 = conn.create_security_group('test security group #1', 'this is a test security group')
+    security_group2 = conn.create_security_group('test security group #2', 'this is a test security group')
+    private_ip = "54.0.0.1"
+
+    reservation = conn.run_instances('ami-1234abcd', subnet_id=subnet.id,
+                                                     security_groups=[security_group1.name],
+                                                     security_group_ids=[security_group2.id],
+                                                     private_ip_address=private_ip)
+    instance = reservation.instances[0]
+
+    all_enis = conn.get_all_network_interfaces()
+    all_enis.should.have.length_of(1)
+    eni = all_enis[0]
+
+    instance.interfaces.should.have.length_of(1)
+    instance.interfaces[0].id.should.equal(eni.id)
+
+    instance.subnet_id.should.equal(subnet.id)
+    instance.groups.should.have.length_of(2)
+    set([group.id for group in instance.groups]).should.equal(set([security_group1.id,security_group2.id]))
+
+    eni.subnet_id.should.equal(subnet.id)
+    eni.groups.should.have.length_of(2)
+    set([group.id for group in eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
+    eni.private_ip_addresses.should.have.length_of(1)
+    eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
+
+
+@mock_ec2
+def test_run_instance_with_nic_preexisting():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    security_group1 = conn.create_security_group('test security group #1', 'this is a test security group')
+    security_group2 = conn.create_security_group('test security group #2', 'this is a test security group')
+    private_ip = "54.0.0.1"
+    eni = conn.create_network_interface(subnet.id, private_ip, groups=[security_group1.id])
+
+    # Boto requires NetworkInterfaceCollection of NetworkInterfaceSpecifications...
+    #   annoying, but generates the desired querystring.
+    from boto.ec2.networkinterface import NetworkInterfaceSpecification, NetworkInterfaceCollection
+    interface = NetworkInterfaceSpecification(network_interface_id=eni.id, device_index=0)
+    interfaces = NetworkInterfaceCollection(interface)
+    # end Boto objects
+
+    reservation = conn.run_instances('ami-1234abcd', network_interfaces=interfaces,
+                                                     security_group_ids=[security_group2.id])
+    instance = reservation.instances[0]
+
+    instance.subnet_id.should.equal(subnet.id)
+
+    all_enis = conn.get_all_network_interfaces()
+    all_enis.should.have.length_of(1)
+
+    instance.interfaces.should.have.length_of(1)
+    instance_eni = instance.interfaces[0]
+    instance_eni.id.should.equal(eni.id)
+
+    instance_eni.subnet_id.should.equal(subnet.id)
+    instance_eni.groups.should.have.length_of(2)
+    set([group.id for group in instance_eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
+    instance_eni.private_ip_addresses.should.have.length_of(1)
+    instance_eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
 
 
 @mock_ec2

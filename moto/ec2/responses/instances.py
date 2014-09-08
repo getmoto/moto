@@ -3,7 +3,7 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations
+from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations, dict_from_querystring
 
 
 class InstanceResponse(BaseResponse):
@@ -26,13 +26,19 @@ class InstanceResponse(BaseResponse):
         user_data = self.querystring.get('UserData')
         security_group_names = self._get_multi_param('SecurityGroup')
         security_group_ids = self._get_multi_param('SecurityGroupId')
+        nics = dict_from_querystring("NetworkInterface", self.querystring)
         instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
         subnet_id = self.querystring.get("SubnetId", [None])[0]
+        private_ip = self.querystring.get("PrivateIpAddress", [None])[0]
+        associate_public_ip = self.querystring.get("AssociatePublicIpAddress", [None])[0]
         key_name = self.querystring.get("KeyName", [None])[0]
+
         new_reservation = self.ec2_backend.add_instances(
             image_id, min_count, user_data, security_group_names,
             instance_type=instance_type, subnet_id=subnet_id,
-            key_name=key_name, security_group_ids=security_group_ids)
+            key_name=key_name, security_group_ids=security_group_ids,
+            nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip)
+
         template = Template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
@@ -189,10 +195,19 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <monitoring>
             <state>enabled</state>
           </monitoring>
-          <subnetId>{{ instance.subnet_id }}</subnetId>
+          {% if instance.nics %}
+            <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
+            <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
+            <privateIpAddress>{{ instance.nics[0].private_ip_address }}</privateIpAddress>
+            {% if instance.nics[0].public_ip %}
+            <ipAddress>46.51.219.63</ipAddress>
+            {% endif %}
+          {% else %}
+            <subnetId>{{ instance.subnet_id }}</subnetId>
+          {% endif %}
           <sourceDestCheck>true</sourceDestCheck>
           <groupSet>
-             {% for group in instance.security_groups %}
+             {% for group in instance.dynamic_group_list %}
              <item>
                 <groupId>{{ group.id }}</groupId>
                 <groupName>{{ group.name }}</groupName>
@@ -208,6 +223,54 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <clientToken/>
           <hypervisor>xen</hypervisor>
           <ebsOptimized>false</ebsOptimized>
+          <networkInterfaceSet>
+            {% for nic in instance.nics.values() %}
+              <item>
+                <networkInterfaceId>{{ nic.id }}</networkInterfaceId>
+                <subnetId>{{ nic.subnet.id }}</subnetId>
+                <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
+                <description>Primary network interface</description>
+                <ownerId>111122223333</ownerId>
+                <status>in-use</status>
+                <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
+                <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
+                <sourceDestCheck>true</sourceDestCheck>
+                <groupSet>
+                  {% for group in nic.group_set %}
+                  <item>
+                    <groupId>{{ group.id }}</groupId>
+                    <groupName>{{ group.name }}</groupName>
+                  </item>
+                  {% endfor %}
+                </groupSet>
+                <attachment>
+                  <attachmentId>eni-attach-1a2b3c4d</attachmentId>
+                  <deviceIndex>{{ nic.device_index }}</deviceIndex>
+                  <status>attached</status>
+                  <attachTime>YYYY-MM-DDTHH:MM:SS+0000</attachTime>
+                  <deleteOnTermination>true</deleteOnTermination>
+                </attachment>
+                {% if nic.public_ip %}
+                  <association>
+                    <publicIp>{{ nic.public_ip }}</publicIp>
+                    <ipOwnerId>111122223333</ipOwnerId>
+                  </association>
+                {% endif %}
+                <privateIpAddressesSet>
+                  <item>
+                    <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
+                    <primary>true</primary>
+                    {% if nic.public_ip %}
+                      <association>
+                        <publicIp>{{ nic.public_ip }}</publicIp>
+                        <ipOwnerId>111122223333</ipOwnerId>
+                      </association>
+                    {% endif %}
+                  </item>
+                </privateIpAddressesSet>
+              </item>
+            {% endfor %}
+          </networkInterfaceSet>
         </item>
     {% endfor %}
   </instancesSet>
@@ -220,7 +283,14 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
           <item>
             <reservationId>{{ reservation.id }}</reservationId>
             <ownerId>111122223333</ownerId>
-            <groupSet></groupSet>
+            <groupSet>
+              {% for group in reservation.dynamic_group_list %}
+              <item>
+                <groupId>{{ group.id }}</groupId>
+                <groupName>{{ group.name }}</groupName>
+              </item>
+              {% endfor %}
+            </groupSet>
             <instancesSet>
                 {% for instance in reservation.instances %}
                   <item>
@@ -249,13 +319,17 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <monitoring>
                       <state>disabled</state>
                     </monitoring>
-                    <subnetId>{{ instance.subnet_id }}</subnetId>
-                    <vpcId>vpc-1a2b3c4d</vpcId>
-                    <privateIpAddress>10.0.0.12</privateIpAddress>
-                    <ipAddress>46.51.219.63</ipAddress>
+                    {% if instance.nics %}
+                      <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
+                      <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
+                      <privateIpAddress>{{ instance.nics[0].private_ip_address }}</privateIpAddress>
+                      {% if instance.nics[0].public_ip %}
+                      <ipAddress>46.51.219.63</ipAddress>
+                      {% endif %}
+                    {% endif %}
                     <sourceDestCheck>true</sourceDestCheck>
                     <groupSet>
-                      {% for group in instance.security_groups %}
+                      {% for group in instance.dynamic_group_list %}
                       <item>
                         <groupId>{{ group.id }}</groupId>
                         <groupName>{{ group.name }}</groupName>
@@ -280,7 +354,54 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       {% endfor %}
                     </tagSet>
                     <hypervisor>xen</hypervisor>
-                    <networkInterfaceSet />
+                    <networkInterfaceSet>
+                      {% for nic in instance.nics.values() %}
+                        <item>
+                          <networkInterfaceId>{{ nic.id }}</networkInterfaceId>
+                          <subnetId>{{ nic.subnet.id }}</subnetId>
+                          <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
+                          <description>Primary network interface</description>
+                          <ownerId>111122223333</ownerId>
+                          <status>in-use</status>
+                          <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
+                          <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
+                          <sourceDestCheck>true</sourceDestCheck>
+                          <groupSet>
+                            {% for group in nic.group_set %}
+                            <item>
+                              <groupId>{{ group.id }}</groupId>
+                              <groupName>{{ group.name }}</groupName>
+                            </item>
+                            {% endfor %}
+                          </groupSet>
+                          <attachment>
+                            <attachmentId>eni-attach-1a2b3c4d</attachmentId>
+                            <deviceIndex>{{ nic.device_index }}</deviceIndex>
+                            <status>attached</status>
+                            <attachTime>YYYY-MM-DDTHH:MM:SS+0000</attachTime>
+                            <deleteOnTermination>true</deleteOnTermination>
+                          </attachment>
+                          {% if nic.public_ip %}
+                            <association>
+                              <publicIp>{{ nic.public_ip }}</publicIp>
+                              <ipOwnerId>111122223333</ipOwnerId>
+                            </association>
+                          {% endif %}
+                          <privateIpAddressesSet>
+                            <item>
+                              <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
+                              <primary>true</primary>
+                              {% if nic.public_ip %}
+                                <association>
+                                  <publicIp>{{ nic.public_ip }}</publicIp>
+                                  <ipOwnerId>111122223333</ipOwnerId>
+                                </association>
+                              {% endif %}
+                            </item>
+                          </privateIpAddressesSet>
+                        </item>
+                      {% endfor %}
+                    </networkInterfaceSet>
                   </item>
                 {% endfor %}
             </instancesSet>
