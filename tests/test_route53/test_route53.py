@@ -1,11 +1,7 @@
 from __future__ import unicode_literals
 
 import boto
-from boto.exception import S3ResponseError
-from boto.s3.key import Key
 from boto.route53.record import ResourceRecordSets
-from freezegun import freeze_time
-import requests
 
 import sure  # noqa
 
@@ -19,11 +15,11 @@ def test_hosted_zone():
     zones = conn.get_all_hosted_zones()
     len(zones["ListHostedZonesResponse"]["HostedZones"]).should.equal(1)
 
-    secondzone = conn.create_hosted_zone("testdns1.aws.com")
+    conn.create_hosted_zone("testdns1.aws.com")
     zones = conn.get_all_hosted_zones()
     len(zones["ListHostedZonesResponse"]["HostedZones"]).should.equal(2)
 
-    id1 = firstzone["CreateHostedZoneResponse"]["HostedZone"]["Id"]
+    id1 = firstzone["CreateHostedZoneResponse"]["HostedZone"]["Id"].split("/")[-1]
     zone = conn.get_hosted_zone(id1)
     zone["GetHostedZoneResponse"]["HostedZone"]["Name"].should.equal("testdns.aws.com")
 
@@ -38,11 +34,11 @@ def test_hosted_zone():
 def test_rrset():
     conn = boto.connect_route53('the_key', 'the_secret')
 
-    conn.get_all_rrsets.when.called_with("abcd", type="A").\
-                should.throw(boto.route53.exception.DNSServerError, "404 Not Found")
+    conn.get_all_rrsets.when.called_with("abcd", type="A").should.throw(
+        boto.route53.exception.DNSServerError, "404 Not Found")
 
     zone = conn.create_hosted_zone("testdns.aws.com")
-    zoneid = zone["CreateHostedZoneResponse"]["HostedZone"]["Id"]
+    zoneid = zone["CreateHostedZoneResponse"]["HostedZone"]["Id"].split("/")[-1]
 
     changes = ResourceRecordSets(conn, zoneid)
     change = changes.add_change("CREATE", "foo.bar.testdns.aws.com", "A")
