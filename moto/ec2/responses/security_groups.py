@@ -36,22 +36,6 @@ def process_rules_from_querystring(querystring):
     return (name, group_id, ip_protocol, from_port, to_port, ip_ranges, source_groups, source_group_ids)
 
 
-def process_group_ids_from_querystring(querystring):
-    group_ids = []
-    for key, value in querystring.items():
-        if 'GroupId' in key:
-            group_ids.append(value[0])
-    return group_ids
-
-
-def process_groupnames_from_querystring(querystring):
-    groupnames = []
-    for key, value in querystring.items():
-        if 'GroupName' in key:
-            groupnames.append(value[0])
-    return groupnames
-
-
 class SecurityGroups(BaseResponse):
     def authorize_security_group_egress(self):
         raise NotImplementedError('SecurityGroups.authorize_security_group_egress is not yet implemented')
@@ -75,15 +59,15 @@ class SecurityGroups(BaseResponse):
         sg_id = self.querystring.get('GroupId')
 
         if name:
-            group = ec2_backend.delete_security_group(name[0])
+            ec2_backend.delete_security_group(name[0])
         elif sg_id:
-            group = ec2_backend.delete_security_group(group_id=sg_id[0])
+            ec2_backend.delete_security_group(group_id=sg_id[0])
 
         return DELETE_GROUP_RESPONSE
 
     def describe_security_groups(self):
-        groupnames = process_groupnames_from_querystring(self.querystring)
-        group_ids = process_group_ids_from_querystring(self.querystring)
+        groupnames = self._get_multi_param("GroupName")
+        group_ids = self._get_multi_param("GroupId")
         filters = filters_from_querystring(self.querystring)
 
         groups = ec2_backend.describe_security_groups(
