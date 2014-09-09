@@ -33,4 +33,15 @@ setup(
     },
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
+    license="Apache",
+    test_suite="tests",
+    classifiers=[
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.3",
+        "License :: OSI Approved :: Apache Software License",
+        "Topic :: Software Development :: Testing",
+    ],
 )
