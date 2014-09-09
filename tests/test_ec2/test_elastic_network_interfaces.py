@@ -8,6 +8,7 @@ from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2
+from tests.helpers import requires_boto_gte
 
 
 @mock_ec2
@@ -80,7 +81,16 @@ def test_elastic_network_interfaces_with_groups():
     eni.groups.should.have.length_of(2)
     set([group.id for group in eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
 
-    conn.modify_network_interface_attribute(eni.id, 'groupset', [security_group1.id])
+
+@requires_boto_gte("2.12.0")
+@mock_ec2
+def test_elastic_network_interfaces_modify_attribute():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    security_group1 = conn.create_security_group('test security group #1', 'this is a test security group')
+    security_group2 = conn.create_security_group('test security group #2', 'this is a test security group')
+    conn.create_network_interface(subnet.id, groups=[security_group1.id])
 
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(1)
@@ -88,6 +98,15 @@ def test_elastic_network_interfaces_with_groups():
     eni = all_enis[0]
     eni.groups.should.have.length_of(1)
     eni.groups[0].id.should.equal(security_group1.id)
+
+    conn.modify_network_interface_attribute(eni.id, 'groupset', [security_group2.id])
+
+    all_enis = conn.get_all_network_interfaces()
+    all_enis.should.have.length_of(1)
+
+    eni = all_enis[0]
+    eni.groups.should.have.length_of(1)
+    eni.groups[0].id.should.equal(security_group2.id)
 
 
 @mock_ec2
