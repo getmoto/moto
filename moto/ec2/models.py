@@ -1515,7 +1515,7 @@ class ElasticAddress(object):
         instance_id = properties.get('InstanceId')
         if instance_id:
             instance = ec2_backend.get_instance_by_id(instance_id)
-            ec2_backend.associate_address(instance, eip.public_ip)
+            ec2_backend.associate_address(instance, address=eip.public_ip)
 
         return eip
 
