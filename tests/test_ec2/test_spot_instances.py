@@ -125,3 +125,58 @@ def test_request_spot_instances_fulfilled():
     request = requests[0]
 
     request.state.should.equal("active")
+
+
+@mock_ec2
+def test_tag_spot_instance_request():
+    """
+    Test that moto correctly tags a spot instance request
+    """
+    conn = boto.connect_ec2()
+
+    request = conn.request_spot_instances(
+        price=0.5, image_id='ami-abcd1234',
+    )
+    request[0].add_tag('tag1', 'value1')
+    request[0].add_tag('tag2', 'value2')
+
+    requests = conn.get_all_spot_instance_requests()
+    requests.should.have.length_of(1)
+    request = requests[0]
+
+    tag_dict = dict(request.tags)
+    tag_dict.should.equal({'tag1' : 'value1', 'tag2' : 'value2'})
+
+
+@mock_ec2
+def test_get_all_spot_instance_requests_filtering():
+    """
+    Test that moto correctly filters spot instance requests
+    """
+    conn = boto.connect_ec2()
+
+    request1 = conn.request_spot_instances(
+        price=0.5, image_id='ami-abcd1234',
+    )
+    request2 = conn.request_spot_instances(
+        price=0.5, image_id='ami-abcd1234',
+    )
+    request3 = conn.request_spot_instances(
+        price=0.5, image_id='ami-abcd1234',
+    )
+    request1[0].add_tag('tag1', 'value1')
+    request1[0].add_tag('tag2', 'value2')
+    request2[0].add_tag('tag1', 'value1')
+    request2[0].add_tag('tag2', 'wrong')
+
+    requests = conn.get_all_spot_instance_requests(filters={'state' : 'active'})
+    requests.should.have.length_of(0)
+
+    requests = conn.get_all_spot_instance_requests(filters={'state' : 'open'})
+    requests.should.have.length_of(3)
+
+    requests = conn.get_all_spot_instance_requests(filters={'tag:tag1' : 'value1'})
+    requests.should.have.length_of(2)
+
+    requests = conn.get_all_spot_instance_requests(filters={'tag:tag1' : 'value1', 'tag:tag2' : 'value2'})
+    requests.should.have.length_of(1)

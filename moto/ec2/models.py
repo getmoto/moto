@@ -1260,7 +1260,7 @@ class VPCGatewayAttachmentBackend(object):
         return attachment
 
 
-class SpotInstanceRequest(BotoSpotRequest):
+class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Instance):
     def __init__(self, spot_request_id, price, image_id, type, valid_from,
                  valid_until, launch_group, availability_zone_group, key_name,
                  security_groups, user_data, instance_type, placement, kernel_id,
@@ -1296,6 +1296,16 @@ class SpotInstanceRequest(BotoSpotRequest):
             default_group = ec2_backend.get_security_group_from_name("default")
             ls.groups.append(default_group)
 
+    def get_filter_value(self, filter_name):
+        if filter_name == 'state':
+            return self.state
+        elif filter_name.startswith('tag:'):
+            tag_name = filter_name.replace('tag:', '', 1)
+            tags = dict((tag['key'], tag['value']) for tag in self.get_tags())
+            return tags.get(tag_name)
+        else:
+            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSpotInstanceRequests".format(filter_name))
+
 
 @six.add_metaclass(Model)
 class SpotRequestBackend(object):
@@ -1322,8 +1332,14 @@ class SpotRequestBackend(object):
         return requests
 
     @Model.prop('SpotInstanceRequest')
-    def describe_spot_instance_requests(self):
-        return self.spot_instance_requests.values()
+    def describe_spot_instance_requests(self, filters=None):
+        requests = self.spot_instance_requests.values()
+
+        if filters:
+            for (_filter, _filter_value) in filters.items():
+                requests = [ request for request in requests if request.get_filter_value(_filter) in _filter_value ]
+
+        return requests
 
     def cancel_spot_instance_requests(self, request_ids):
         requests = []
