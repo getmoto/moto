@@ -544,6 +544,43 @@ class SecurityGroup(object):
     def physical_resource_id(self):
         return self.id
 
+    def matches_filters(self, filters):
+        result = True
+
+        def to_attr(filter_name):
+            attr = None
+
+            if attr == 'group-name':
+                attr = 'name'
+            elif attr == 'group-id':
+                attr = 'id'
+            else:
+                attr = filter_name.replace('-', '_')
+
+            return attr
+
+        for key, value in filters.items():
+            ret = False
+
+            if key.startswith('ip-permission'):
+                match = re.search(r"ip-permission.(*)", key)
+                ingress_attr = to_attr(match.groups()[0])
+
+                for ingress in self.ingress_rules:
+                    if getattr(ingress, ingress_attr) in filters[key]:
+                        ret = True
+                        break
+            else:
+                attr_name = to_attr(key)
+                ret = getattr(self, attr_name) in filters[key]
+
+            if not ret:
+                break
+        else:
+            result = False
+
+        return result
+
 
 class SecurityGroupBackend(object):
 
@@ -566,8 +603,20 @@ class SecurityGroupBackend(object):
         self.groups[vpc_id][group_id] = group
         return group
 
-    def describe_security_groups(self):
-        return itertools.chain(*[x.values() for x in self.groups.values()])
+    def describe_security_groups(self, group_ids=None, groupnames=None, filters=None):
+        all_groups = itertools.chain(*[x.values() for x in self.groups.values()])
+        groups = []
+
+        if group_ids or groupnames or filters:
+            for group in all_groups:
+                if ((group_ids and group.id in group_ids) or
+                        (groupnames and group.name in groupnames) or
+                        (filters and group.matches_filters(filters))):
+                    groups.append(group)
+        else:
+            groups = all_groups
+
+        return groups
 
     def delete_security_group(self, name=None, group_id=None):
         if group_id:

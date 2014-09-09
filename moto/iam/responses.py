@@ -83,6 +83,114 @@ class IamResponse(BaseResponse):
         template = Template(GET_SERVER_CERTIFICATE_TEMPLATE)
         return template.render(certificate=cert)
 
+    def create_group(self):
+        group_name = self._get_param('GroupName')
+        path = self._get_param('Path')
+
+        group = iam_backend.create_group(group_name, path)
+        template = Template(CREATE_GROUP_TEMPLATE)
+        return template.render(group=group)
+
+    def get_group(self):
+        group_name = self._get_param('GroupName')
+
+        group = iam_backend.get_group(group_name)
+        template = Template(GET_GROUP_TEMPLATE)
+        return template.render(group=group)
+
+    def create_user(self):
+        user_name = self._get_param('UserName')
+        path = self._get_param('Path')
+
+        user = iam_backend.create_user(user_name, path)
+        template = Template(USER_TEMPLATE)
+        return template.render(action='Create', user=user)
+
+    def get_user(self):
+        user_name = self._get_param('UserName')
+        user = iam_backend.get_user(user_name)
+        template = Template(USER_TEMPLATE)
+        return template.render(action='Get', user=user)
+
+    def add_user_to_group(self):
+        group_name = self._get_param('GroupName')
+        user_name = self._get_param('UserName')
+
+        iam_backend.add_user_to_group(group_name, user_name)
+        template = Template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='AddUserToGroup')
+
+    def remove_user_from_group(self):
+        group_name = self._get_param('GroupName')
+        user_name = self._get_param('UserName')
+
+        iam_backend.remove_user_from_group(group_name, user_name)
+        template = Template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='RemoveUserFromGroup')
+
+    def get_user_policy(self):
+        user_name = self._get_param('UserName')
+        policy_name = self._get_param('PolicyName')
+
+        policy_document = iam_backend.get_user_policy(user_name, policy_name)
+        template = Template(GET_USER_POLICY_TEMPLATE)
+        return template.render(
+            user_name=user_name,
+            policy_name=policy_name,
+            policy_document=policy_document
+        )
+
+    def put_user_policy(self):
+        user_name = self._get_param('UserName')
+        policy_name = self._get_param('PolicyName')
+        policy_document = self._get_param('PolicyDocument')
+
+        iam_backend.put_user_policy(user_name, policy_name, policy_document)
+        template = Template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='PutUserPolicy')
+
+    def delete_user_policy(self):
+        user_name = self._get_param('UserName')
+        policy_name = self._get_param('PolicyName')
+
+        iam_backend.delete_user_policy(user_name, policy_name)
+        template = Template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeleteUserPolicy')
+
+    def create_access_key(self):
+        user_name = self._get_param('UserName')
+
+        key = iam_backend.create_access_key(user_name)
+        template = Template(CREATE_ACCESS_KEY_TEMPLATE)
+        return template.render(key=key)
+
+    def list_access_keys(self):
+        user_name = self._get_param('UserName')
+
+        keys = iam_backend.get_all_access_keys(user_name)
+        template = Template(LIST_ACCESS_KEYS_TEMPLATE)
+        return template.render(user_name=user_name, keys=keys)
+
+    def delete_access_key(self):
+        user_name = self._get_param('UserName')
+        access_key_id = self._get_param('AccessKeyId')
+
+        iam_backend.delete_access_key(access_key_id, user_name)
+        template = Template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeleteAccessKey')
+
+    def delete_user(self):
+        user_name = self._get_param('UserName')
+        iam_backend.delete_user(user_name)
+        template = Template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeleteUser')
+
+
+GENERIC_EMPTY_TEMPLATE = """<{{ name }}Response>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</{{ name }}Response>"""
 
 CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <CreateInstanceProfileResult>
@@ -275,3 +383,106 @@ GET_SERVER_CERTIFICATE_TEMPLATE = """<GetServerCertificateResponse>
   </ResponseMetadata>
 </GetServerCertificateResponse>"""
 
+CREATE_GROUP_TEMPLATE = """<CreateGroupResponse>
+   <CreateGroupResult>
+      <Group>
+         <Path>{{ group.path }}</Path>
+         <GroupName>{{ group.name }}</GroupName>
+         <GroupId>{{ group.id }}</GroupId>
+         <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+      </Group>
+   </CreateGroupResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</CreateGroupResponse>"""
+
+GET_GROUP_TEMPLATE = """<GetGroupResponse>
+   <GetGroupResult>
+      <Group>
+         <Path>{{ group.path }}</Path>
+         <GroupName>{{ group.name }}</GroupName>
+         <GroupId>{{ group.id }}</GroupId>
+         <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+      </Group>
+      <Users>
+        {% for user in group.users %}
+          <member>
+            <Path>{{ user.path }}</Path>
+            <UserName>{{ user.name }}</UserName>
+            <UserId>{{ user.id }}</UserId>
+            <Arn>
+            arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name}}
+            </Arn>
+          </member>
+        {% endfor %}
+      </Users>
+      <IsTruncated>false</IsTruncated>
+   </GetGroupResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetGroupResponse>"""
+
+USER_TEMPLATE = """<{{ action }}UserResponse>
+   <{{ action }}UserResult>
+      <User>
+         <Path>{{ user.path }}</Path>
+         <UserName>{{ user.name }}</UserName>
+         <UserId>{{ user.id }}</UserId>
+         <Arn>arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name }}
+         </Arn>
+     </User>
+   </{{ action }}UserResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</{{ action }}UserResponse>"""
+
+GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>
+   <GetUserPolicyResult>
+      <UserName>{{ user_name }}</UserName>
+      <PolicyName>{{ policy_name }}</PolicyName>
+      <PolicyDocument>
+      {{ policy_document }}
+      </PolicyDocument>
+   </GetUserPolicyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetUserPolicyResponse>"""
+
+CREATE_ACCESS_KEY_TEMPLATE = """<CreateAccessKeyResponse>
+   <CreateAccessKeyResult>
+     <AccessKey>
+         <UserName>{{ key.user_name }}</UserName>
+         <AccessKeyId>{{ key.access_key_id }}</AccessKeyId>
+         <Status>{{ key.status }}</Status>
+         <SecretAccessKey>
+         {{ key.secret_access_key }}
+         </SecretAccessKey>
+      </AccessKey>
+   </CreateAccessKeyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</CreateAccessKeyResponse>"""
+
+LIST_ACCESS_KEYS_TEMPLATE = """<ListAccessKeysResponse>
+   <ListAccessKeysResult>
+      <UserName>{{ user_name }}</UserName>
+      <AccessKeyMetadata>
+        {% for key in keys %}
+         <member>
+            <UserName>{{ user_name }}</UserName>
+            <AccessKeyId>{{ key.access_key_id }}</AccessKeyId>
+            <Status>{{ key.status }}</Status>
+         </member>
+        {% endfor %}
+      </AccessKeyMetadata>
+      <IsTruncated>false</IsTruncated>
+   </ListAccessKeysResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListAccessKeysResponse>"""
