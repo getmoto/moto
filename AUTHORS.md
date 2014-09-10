@@ -25,3 +25,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Shawn Falkner-Horine](https://github.com/DreadPirateShawn)
 * [David Baumgold](https://github.com/singingwolfboy)
 * [Rory-Finnegan](https://github.com/Rory-Finnegan)
+* [Bobby Impollonia](https://github.com/bobbyi)
