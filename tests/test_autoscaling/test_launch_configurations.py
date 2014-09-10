@@ -168,7 +168,6 @@ def test_create_launch_configuration_defaults():
     launch_config.instance_monitoring.enabled.should.equal('false')
     launch_config.instance_profile_name.should.equal(None)
     launch_config.spot_price.should.equal(None)
-    launch_config.ebs_optimized.should.equal(False)
 
 
 @requires_boto_gte("2.12")
