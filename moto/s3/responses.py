@@ -18,7 +18,9 @@ DEFAULT_REGION_NAME = 'us-east-1'
 
 
 def parse_key_name(pth):
-    return unquote(pth.lstrip("/")).decode('utf-8')
+    if pth[0] == '/':
+        pth = pth[1:]
+    return unquote(pth).decode('utf-8')
 
 
 class ResponseObject(_TemplateEnvironmentMixin):
