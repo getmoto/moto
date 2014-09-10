@@ -200,17 +200,24 @@ def test_authorize_group_in_vpc():
 @mock_ec2
 def test_get_all_security_groups():
     conn = boto.connect_ec2()
-    conn.create_security_group(name='test1', description='test1', vpc_id='vpc-mjm05d27')
-    conn.create_security_group(name='test2', description='test2')
+    sg1 = conn.create_security_group(name='test1', description='test1', vpc_id='vpc-mjm05d27')
+    sg2 = conn.create_security_group(name='test2', description='test2')
 
     resp = conn.get_all_security_groups(groupnames=['test1'])
     resp.should.have.length_of(1)
+    resp[0].id.should.equal(sg1.id)
+
+    resp = conn.get_all_security_groups(filters={'vpc-id': ['vpc-mjm05d27']})
+    resp.should.have.length_of(1)
+    resp[0].id.should.equal(sg1.id)
 
     resp = conn.get_all_security_groups(filters={'vpc_id': ['vpc-mjm05d27']})
     resp.should.have.length_of(1)
+    resp[0].id.should.equal(sg1.id)
 
     resp = conn.get_all_security_groups(filters={'description': ['test1']})
     resp.should.have.length_of(1)
+    resp[0].id.should.equal(sg1.id)
 
     resp = conn.get_all_security_groups()
     resp.should.have.length_of(2)
