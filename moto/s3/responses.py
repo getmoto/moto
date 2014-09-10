@@ -229,7 +229,7 @@ class ResponseObject(object):
         meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
         if replace is True:
             key.clear_metadata()
-        for header in request.headers:
+        for header, value in request.headers.items():
             if isinstance(header, six.string_types):
                 result = meta_regex.match(header)
                 if result:
@@ -346,6 +346,9 @@ class ResponseObject(object):
         if key:
             headers.update(key.metadata)
             headers.update(key.response_dict)
+            headers.update({
+                'content-length': len(key.value)
+                })
             return 200, headers, ""
         else:
             return 404, headers, ""

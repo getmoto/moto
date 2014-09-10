@@ -5,6 +5,20 @@ import re
 import six
 
 from flask import request
+from flask import Response as BaseResponse
+
+
+class Response(BaseResponse):
+    automatically_set_content_length = False
+
+    def __init__(self, response=None, headers={}, *args, **kwargs):
+        for k in headers.iterkeys():
+            if k.lower() == 'content-length':
+                break
+        else:
+            headers['Content-Length'] = len(response)
+        super(Response, self).__init__(
+            response=response, headers=headers, *args, **kwargs)
 
 
 def camelcase_to_underscores(argument):
@@ -77,7 +91,7 @@ class convert_flask_to_httpretty_response(object):
         result = self.callback(request, request.url, {})
         # result is a status, headers, response tuple
         status, headers, response = result
-        return response, status, headers
+        return Response(response=response, status=status, headers=headers)
 
 
 def iso_8601_datetime(datetime):

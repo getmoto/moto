@@ -8,6 +8,7 @@ import boto
 from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
+from tests.helpers import requires_boto_gte
 from freezegun import freeze_time
 import requests
 import tests.backport_assert_raises
@@ -187,7 +188,9 @@ def test_empty_key():
     key.key = "the-key"
     key.set_contents_from_string("")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
+    key = bucket.get_key("the-key")
+    key.size.should.equal(0)
+    key.get_contents_as_string().should.equal(b'')
 
 
 @mock_s3
@@ -198,10 +201,14 @@ def test_empty_key_set_on_existing_key():
     key.key = "the-key"
     key.set_contents_from_string("foobar")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar')
+    key = bucket.get_key("the-key")
+    key.size.should.equal(6)
+    key.get_contents_as_string().should.equal(b'foobar')
 
     key.set_contents_from_string("")
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
+    key = bucket.get_key("the-key")
+    key.size.should.equal(0)
+    key.get_contents_as_string().should.equal(b'')
 
 
 @mock_s3
@@ -612,3 +619,77 @@ def test_acl_is_ignored_for_now():
     key = bucket.get_key(keyname)
 
     assert key.get_contents_as_string() == content
+
+
+def test_key_size_without_validate_keyword():
+    """
+    Test key.size based on boto behavior without validate keyword
+    Not validating keys will make key.size=None
+    Writing to unvalidated keys will update that objects size
+    """
+    key_name = 'the-key'
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    if bucket.get_key(key_name) is not None:
+        bucket.delete_key(key_name)
+
+    for string in ['', '0', '0'*5, '0'*10]:
+        # test non-existent keys
+        (lambda: bucket.get_key(key_name).size).should.throw(AttributeError)
+
+        key = Key(bucket)
+        key.key = key_name
+        key.size.should.be.none
+
+        # when writing key, key object updates size
+        key.set_contents_from_string(string)
+        key.size.should.equal(len(string))
+
+        # validated keys will have size
+        bucket.get_key(key_name).size.should.equal(len(string))
+
+        # unvalidated keys that do not write do not have size set
+        key2 = Key(bucket)
+        key2.key = key_name
+        key2.size.should.be.none
+
+        bucket.delete_key(key_name)
+
+
+@requires_boto_gte("2.24")
+@mock_s3
+def test_key_size_with_validate_keyword():
+    """
+    Test key.size on boto behavior with validate keyword
+    Not validating keys will make key.size = None
+    Writing to unvalidated keys should update that objects size
+    """
+    key_name = 'the-key'
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    if bucket.get_key(key_name) is not None:
+        bucket.delete_key(key_name)
+
+    for string in ['', '0', '0'*5, '0'*10]:
+        # test non-existent keys
+        bucket.get_key(key_name, validate=False).size.should.be.none
+        (lambda: bucket.get_key(key_name, validate=True).size).should.throw(AttributeError)
+
+        key = Key(bucket)
+        key.key = key_name
+        key.size.should.be.none
+
+        # when writing key, key object updates size
+        key.set_contents_from_string(string)
+        key.size.should.equal(len(string))
+
+        # validated keys will have size
+        bucket.get_key(key_name, validate=True).size.should.equal(len(string))
+
+        # unvalidated keys that do not write do not have size set
+        key2 = Key(bucket)
+        key2.key = key_name
+        key2.size.should.be.none
+        bucket.get_key(key_name, validate=False).size.should.be.none
+
+        bucket.delete_key(key_name)
