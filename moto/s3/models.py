@@ -9,7 +9,6 @@ import codecs
 import six
 
 from bisect import insort
-from urllib import quote
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall
