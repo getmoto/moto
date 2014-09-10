@@ -8,6 +8,11 @@ def version_tuple(v):
     return tuple(map(int, (v.split("."))))
 
 
+# Note: See https://github.com/spulec/moto/issues/201 for why this is a separate method.
+def skip_test():
+    raise SkipTest
+
+
 class requires_boto_gte(object):
     """Decorator for requiring boto version greater than or equal to 'version'"""
     def __init__(self, version):
@@ -18,7 +23,7 @@ class requires_boto_gte(object):
         required = version_tuple(self.version)
         if boto_version >= required:
             return test
-        raise SkipTest
+        return skip_test
 
 
 class py3_requires_boto_gte(object):
@@ -34,4 +39,4 @@ class py3_requires_boto_gte(object):
         required = version_tuple(self.version)
         if boto_version >= required:
             return test
-        raise SkipTest
+        return skip_test
