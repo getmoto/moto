@@ -240,6 +240,7 @@ def test_routes_not_supported():
 #    new_route = new_routes[0]
 #    new_route.gateway_id.should.be.none
 #    new_route.instance_id.should.be.none
+#    new_route.vpc_peering_connection_id.should.equal(vpc_pcx.id)
 #    new_route.state.should.equal('blackhole')
 #    new_route.destination_cidr_block.should.equal(ROUTE_CIDR)
 
