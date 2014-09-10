@@ -3,11 +3,10 @@ from __future__ import unicode_literals
 import re
 
 import six
-from six.moves.urllib.parse import parse_qs, urlparse
+from six.moves.urllib.parse import parse_qs, urlparse, quote, unquote
 
 from moto.core.responses import _TemplateEnvironmentMixin
 
-from urllib import quote, unquote
 from .exceptions import BucketAlreadyExists, S3ClientError, InvalidPartOrder
 from .models import s3_backend
 from .utils import bucket_name_from_url, metadata_from_headers
