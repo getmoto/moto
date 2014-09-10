@@ -18,6 +18,7 @@ from nose.tools import assert_raises
 import sure  # noqa
 
 from moto import mock_s3
+from tests.helpers import requires_boto_gte
 
 
 REDUCED_PART_SIZE = 256
@@ -540,6 +541,7 @@ def test_bucket_list_no_quote():
     keys.should.equal([key_name])
 
 
+@requires_boto_gte('2.21.0')
 @mock_s3
 def test_bucket_list_unicode():
     conn = boto.connect_s3()
@@ -557,6 +559,7 @@ def test_bucket_list_unicode():
     keys.should.equal([quote(key_name.encode('utf-8'))])
 
 
+@requires_boto_gte('2.21.0')
 @mock_s3
 def test_bucket_list_quote_invalid():
     conn = boto.connect_s3()
@@ -570,6 +573,7 @@ def test_bucket_list_quote_invalid():
     keys.should.equal([quote(key_name)])
 
 
+@requires_boto_gte('2.21.0')
 @mock_s3
 def test_bucket_list_quote_folders():
     conn = boto.connect_s3()
