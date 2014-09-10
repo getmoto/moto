@@ -95,6 +95,22 @@ class InvalidPermissionNotFoundError(EC2ClientError):
             "Could not find a matching ingress rule")
 
 
+class InvalidRouteTableIdError(EC2ClientError):
+    def __init__(self, route_table_id):
+        super(InvalidRouteTableIdError, self).__init__(
+            "InvalidRouteTableID.NotFound",
+            "The routeTable ID '{0}' does not exist"
+            .format(route_table_id))
+
+
+class InvalidRouteError(EC2ClientError):
+    def __init__(self, route_table_id, cidr):
+        super(InvalidRouteError, self).__init__(
+            "InvalidRoute.NotFound",
+            "no route with destination-cidr-block {0} in route table {1}"
+            .format(cidr, route_table_id))
+
+
 class InvalidInstanceIdError(EC2ClientError):
     def __init__(self, instance_id):
         super(InvalidInstanceIdError, self).__init__(
