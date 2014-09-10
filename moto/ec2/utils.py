@@ -72,6 +72,18 @@ def random_dhcp_option_id():
     return random_id(prefix='dopt')
 
 
+def random_eni_id():
+    return random_id(prefix='eni')
+
+
+def random_eni_attach_id():
+    return random_id(prefix='eni-attach')
+
+
+def random_public_ip():
+    return '54.214.{0}.{1}'.format(random.choice(range(255)),
+                                   random.choice(range(255)))
+
 def random_ip():
     return "127.{0}.{1}.{2}".format(
         random.randint(0, 255),
@@ -192,6 +204,21 @@ def filters_from_querystring(querystring_dict):
             filter_values = [filter_value[0] for filter_key, filter_value in querystring_dict.items() if filter_key.startswith(value_prefix)]
             response_values[value[0]] = filter_values
     return response_values
+
+
+def dict_from_querystring(parameter, querystring_dict):
+    use_dict={}
+    for key, value in querystring_dict.items():
+        match = re.search(r"{0}.(\d).(\w+)".format(parameter), key)
+        if match:
+            use_dict_index = match.groups()[0]
+            use_dict_element_property = match.groups()[1]
+
+            if not use_dict.get(use_dict_index):
+                use_dict[use_dict_index] = {}
+            use_dict[use_dict_index][use_dict_element_property]=value[0]
+
+    return use_dict
 
 
 def keypair_names_from_querystring(querystring_dict):

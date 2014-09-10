@@ -26,6 +26,7 @@ from .exceptions import (
     ResourceAlreadyAssociatedError,
     InvalidVPCIdError,
     InvalidSubnetIdError,
+    InvalidNetworkInterfaceIdError,
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     InvalidPermissionNotFoundError,
@@ -50,11 +51,14 @@ from .utils import (
     random_dhcp_option_id,
     random_eip_allocation_id,
     random_eip_association_id,
+    random_eni_attach_id,
+    random_eni_id,
     random_internet_gateway_id,
     random_instance_id,
     random_internet_gateway_id,
     random_ip,
     random_key_pair,
+    random_public_ip,
     random_reservation_id,
     random_route_table_id,
     generate_route_id,
@@ -79,6 +83,172 @@ class TaggedEC2Instance(object):
     def get_tags(self, *args, **kwargs):
         tags = ec2_backend.describe_tags(self.id)
         return tags
+
+
+class NetworkInterface(object):
+    def __init__(self, subnet, private_ip_address, device_index=0, public_ip_auto_assign=True, group_ids=None):
+        self.id = random_eni_id()
+        self.device_index = device_index
+        self.private_ip_address = private_ip_address
+        self.subnet = subnet
+        self.instance = None
+
+        self.public_ip = None
+        self.public_ip_auto_assign = public_ip_auto_assign
+        self.start()
+
+        self.attachments = []
+        self.group_set = []
+
+        group = None
+        if group_ids:
+            for group_id in group_ids:
+                group = ec2_backend.get_security_group_from_id(group_id)
+                if not group:
+                    # Create with specific group ID.
+                    group = SecurityGroup(group_id, group_id, group_id, vpc_id=subnet.vpc_id)
+                    ec2_backend.groups[subnet.vpc_id][group_id] = group
+                if group:
+                    self.group_set.append(group)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+        properties = cloudformation_json['Properties']
+
+        security_group_ids = properties.get('SecurityGroups', [])
+
+        subnet_id = properties['SubnetId']
+        subnet = ec2_backend.get_subnet(subnet_id)
+
+        private_ip_address = properties.get('PrivateIpAddress', None)
+
+        network_interface = ec2_backend.create_network_interface(
+            subnet,
+            private_ip_address,
+            group_ids=security_group_ids
+        )
+        return network_interface
+
+    def stop(self):
+        if self.public_ip_auto_assign:
+            self.public_ip = None
+
+    def start(self):
+        self.check_auto_public_ip()
+
+    def check_auto_public_ip(self):
+        if self.public_ip_auto_assign:
+            self.public_ip = random_public_ip()
+
+    def attach(self, instance_id, device_index):
+        attachment = {'attachmentId': random_eni_attach_id(),
+                      'instanceId': instance_id,
+                      'deviceIndex': device_index}
+        self.attachments.append(attachment)
+
+
+class NetworkInterfaceBackend(object):
+    def __init__(self):
+        self.enis = {}
+        super(NetworkInterfaceBackend, self).__init__()
+
+    def create_network_interface(self, subnet, private_ip_address, group_ids=None, **kwargs):
+        eni = NetworkInterface(subnet, private_ip_address, group_ids=group_ids)
+        self.enis[eni.id] = eni
+        return eni
+
+    def get_network_interface(self, eni_id):
+        for eni in self.enis.values():
+            if eni_id == eni.id:
+                return eni
+        raise InvalidNetworkInterfaceIdError(eni_id)
+
+    def delete_network_interface(self, eni_id):
+        deleted = self.enis.pop(eni_id, None)
+        if not deleted:
+            raise InvalidNetworkInterfaceIdError(eni_id)
+        return deleted
+
+    def describe_network_interfaces(self, filters=None):
+        enis = self.enis.values()
+
+        if filters:
+            for (_filter, _filter_value) in filters.items():
+                if _filter == 'network-interface-id':
+                    _filter = 'id'
+                    enis = [ eni for eni in enis if getattr(eni, _filter) in _filter_value ]
+                elif _filter == 'group-id':
+                    original_enis = enis
+                    enis = []
+                    for eni in original_enis:
+                        group_ids = []
+                        for group in eni.group_set:
+                            if group.id in _filter_value:
+                                enis.append(eni)
+                                break
+                else:
+                    ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeNetworkInterfaces".format(_filter))
+        return enis
+
+    def modify_network_interface_attribute(self, eni_id, group_id):
+        eni = self.get_network_interface(eni_id)
+        group = self.get_security_group_from_id(group_id)
+        eni.group_set = [group]
+
+    def prep_nics_for_instance(self, instance, nic_spec, subnet_id=None, private_ip=None, associate_public_ip=None):
+        nics = {}
+
+        # Primary NIC defaults
+        primary_nic = {'SubnetId': subnet_id,
+                       'PrivateIpAddress': private_ip,
+                       'AssociatePublicIpAddress': associate_public_ip}
+        primary_nic = dict((k,v) for k, v in primary_nic.items() if v)
+
+        # If empty NIC spec but primary NIC values provided, create NIC from them.
+        if primary_nic and not nic_spec:
+            nic_spec[0] = primary_nic
+            nic_spec[0]['DeviceIndex'] = 0
+
+        # Flesh out data structures and associations
+        for nic in nic_spec.values():
+            use_eni = None
+            security_group_ids = []
+
+            device_index = int(nic.get('DeviceIndex'))
+
+            nic_id = nic.get('NetworkInterfaceId', None)
+            if nic_id:
+                # If existing NIC found, use it.
+                use_nic = ec2_backend.get_network_interface(nic_id)
+                use_nic.device_index = device_index
+                use_nic.public_ip_auto_assign = False
+
+            else:
+                # If primary NIC values provided, use them for the primary NIC.
+                if device_index == 0 and primary_nic:
+                    nic.update(primary_nic)
+
+                subnet = ec2_backend.get_subnet(nic['SubnetId'])
+
+                group_id = nic.get('SecurityGroupId',None)
+                group_ids = [group_id] if group_id else []
+
+                use_nic = ec2_backend.create_network_interface(subnet,
+                                                               nic.get('PrivateIpAddress',None),
+                                                               device_index=device_index,
+                                                               public_ip_auto_assign=nic.get('AssociatePublicIpAddress',False),
+                                                               group_ids=group_ids)
+
+            use_nic.instance = instance # This is used upon associate/disassociate public IP.
+
+            if use_nic.instance.security_groups:
+                use_nic.group_set.extend(use_nic.instance.security_groups)
+
+            use_nic.attach(instance.id, device_index)
+
+            nics[device_index] = use_nic
+
+        return nics
 
 
 class Instance(BotoInstance, TaggedEC2Instance):
@@ -112,6 +282,12 @@ class Instance(BotoInstance, TaggedEC2Instance):
                 # string will have a "u" prefix -- need to get rid of it
                 self.user_data[0] = self.user_data[0].encode('utf-8')
 
+        self.nics = ec2_backend.prep_nics_for_instance(self,
+                                                       kwargs.get("nics", {}),
+                                                       subnet_id=kwargs.get("subnet_id",None),
+                                                       private_ip=kwargs.get("private_ip",None),
+                                                       associate_public_ip=kwargs.get("associate_public_ip",None))
+
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
@@ -135,20 +311,44 @@ class Instance(BotoInstance, TaggedEC2Instance):
         return self.id
 
     def start(self, *args, **kwargs):
+        for nic in self.nics.values():
+            nic.start()
+
         self._state.name = "running"
         self._state.code = 16
 
     def stop(self, *args, **kwargs):
+        for nic in self.nics.values():
+            nic.stop()
+
         self._state.name = "stopped"
         self._state.code = 80
 
     def terminate(self, *args, **kwargs):
+        for nic in self.nics.values():
+            nic.stop()
+
         self._state.name = "terminated"
         self._state.code = 48
 
     def reboot(self, *args, **kwargs):
         self._state.name = "running"
         self._state.code = 16
+
+    def get_tags(self):
+        tags = ec2_backend.describe_tags(self.id)
+        return tags
+
+    @property
+    def dynamic_group_list(self):
+        if self.nics:
+            groups = []
+            for nic in self.nics.values():
+                for group in nic.group_set:
+                    groups.append(group)
+            return groups
+        else:
+            return self.security_groups
 
 
 class InstanceBackend(object):
@@ -515,6 +715,7 @@ class SecurityGroup(object):
         self.description = description
         self.ingress_rules = []
         self.egress_rules = []
+        self.enis = {}
         self.vpc_id = vpc_id
 
     @classmethod
@@ -622,18 +823,23 @@ class SecurityGroupBackend(object):
 
         return groups
 
+    def _delete_security_group(self, vpc_id, group_id):
+        if self.groups[vpc_id][group_id].enis:
+            raise DependencyViolationError("{0} is being utilized by {1}".format(group_id, 'ENIs'))
+        return self.groups[vpc_id].pop(group_id)
+
     def delete_security_group(self, name=None, group_id=None):
         if group_id:
             # loop over all the SGs, find the right one
-            for vpc in self.groups.values():
-                if group_id in vpc:
-                    return vpc.pop(group_id)
+            for vpc_id, groups in self.groups.items():
+                if group_id in groups:
+                    return self._delete_security_group(vpc_id, group_id)
             raise InvalidSecurityGroupNotFoundError(group_id)
         elif name:
             # Group Name.  Has to be in standard EC2, VPC needs to be identified by group_id
             group = self.get_security_group_from_name(name)
             if group:
-                return self.groups[None].pop(group.id)
+                return self._delete_security_group(None, group.id)
             raise InvalidSecurityGroupNotFoundError(name)
 
     def get_security_group_from_id(self, group_id):
@@ -1072,6 +1278,12 @@ class SubnetBackend(object):
         self.subnets = {}
         super(SubnetBackend, self).__init__()
 
+    def get_subnet(self, subnet_id):
+        subnet = self.subnets.get(subnet_id, None)
+        if not subnet:
+            raise InvalidSubnetIdError(subnet_id)
+        return subnet
+
     def create_subnet(self, vpc_id, cidr_block):
         subnet_id = random_subnet_id()
         subnet = Subnet(subnet_id, vpc_id, cidr_block)
@@ -1481,6 +1693,7 @@ class ElasticAddress(object):
         self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
         self.domain = domain
         self.instance = None
+        self.eni = None
         self.association_id = None
 
     @classmethod
@@ -1494,7 +1707,7 @@ class ElasticAddress(object):
         instance_id = properties.get('InstanceId')
         if instance_id:
             instance = ec2_backend.get_instance_by_id(instance_id)
-            ec2_backend.associate_address(instance, eip.public_ip)
+            ec2_backend.associate_address(instance, address=eip.public_ip)
 
         return eip
 
@@ -1547,7 +1760,7 @@ class ElasticAddressBackend(object):
 
         return eips
 
-    def associate_address(self, instance, address=None, allocation_id=None, reassociate=False):
+    def associate_address(self, instance=None, eni=None, address=None, allocation_id=None, reassociate=False):
         eips = []
         if address:
             eips = self.address_by_ip([address])
@@ -1555,13 +1768,20 @@ class ElasticAddressBackend(object):
             eips = self.address_by_allocation([allocation_id])
         eip = eips[0]
 
-        if eip.instance and not reassociate:
-            raise ResourceAlreadyAssociatedError(eip.public_ip)
+        new_instance_association = bool(instance and (not eip.instance or eip.instance.id == instance.id))
+        new_eni_association = bool(eni and (not eip.eni or eni.id == eip.eni.id))
 
-        eip.instance = instance
-        if eip.domain == "vpc":
-            eip.association_id = random_eip_association_id()
-        return eip
+        if new_instance_association or new_eni_association or reassociate:
+            eip.instance = instance
+            eip.eni = eni
+            if eip.eni:
+                eip.eni.public_ip = eip.public_ip
+            if eip.domain == "vpc":
+                eip.association_id = random_eip_association_id()
+
+            return eip
+
+        raise ResourceAlreadyAssociatedError(eip.public_ip)
 
     def describe_addresses(self):
         return self.addresses
@@ -1573,6 +1793,13 @@ class ElasticAddressBackend(object):
         elif association_id:
             eips = self.address_by_association([association_id])
         eip = eips[0]
+
+        if eip.eni:
+            if eip.eni.instance and eip.eni.instance._state.name == "running":
+                eip.eni.check_auto_public_ip()
+            else:
+                eip.eni.public_ip = None
+            eip.eni = None
 
         eip.instance = None
         eip.association_id = None
@@ -1666,6 +1893,7 @@ class DHCPOptionsSetBackend(object):
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
+                 NetworkInterfaceBackend,
                  VPCPeeringConnectionBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,

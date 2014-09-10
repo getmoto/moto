@@ -17,10 +17,12 @@ class ElasticIPAddresses(BaseResponse):
         return template.render(address=address)
 
     def associate_address(self):
+        instance = eni = None
+
         if "InstanceId" in self.querystring:
             instance = ec2_backend.get_instance(self.querystring['InstanceId'][0])
         elif "NetworkInterfaceId" in self.querystring:
-            raise NotImplementedError("Lookup by allocation id not implemented")
+            eni = ec2_backend.get_network_interface(self.querystring['NetworkInterfaceId'][0])
         else:
             ec2_backend.raise_error("MissingParameter", "Invalid request, expect InstanceId/NetworkId parameter.")
 
@@ -28,12 +30,15 @@ class ElasticIPAddresses(BaseResponse):
         if "AllowReassociation" in self.querystring:
             reassociate = self.querystring['AllowReassociation'][0] == "true"
 
-        if "PublicIp" in self.querystring:
-            eip = ec2_backend.associate_address(instance, address=self.querystring['PublicIp'][0], reassociate=reassociate)
-        elif "AllocationId" in self.querystring:
-            eip = ec2_backend.associate_address(instance, allocation_id=self.querystring['AllocationId'][0], reassociate=reassociate)
+        if instance or eni:
+            if "PublicIp" in self.querystring:
+                eip = ec2_backend.associate_address(instance=instance, eni=eni, address=self.querystring['PublicIp'][0], reassociate=reassociate)
+            elif "AllocationId" in self.querystring:
+                eip = ec2_backend.associate_address(instance=instance, eni=eni, allocation_id=self.querystring['AllocationId'][0], reassociate=reassociate)
+            else:
+                ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")
         else:
-            ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")
+            ec2_backend.raise_error("MissingParameter", "Invalid request, expect either instance or ENI.")
 
         template = Template(ASSOCIATE_ADDRESS_RESPONSE)
         return template.render(address=eip)
@@ -102,6 +107,11 @@ DESCRIBE_ADDRESS_RESPONSE = """<DescribeAddressesResponse xmlns="http://ec2.amaz
             <instanceId>{{ address.instance.id }}</instanceId>
           {% else %}
             <instanceId/>
+          {% endif %}
+          {% if address.eni %}
+            <networkInterfaceId>{{ address.eni.id }}</networkInterfaceId>
+          {% else %}
+            <networkInterfaceId/>
           {% endif %}
           {% if address.allocation_id %}
             <allocationId>{{ address.allocation_id }}</allocationId>

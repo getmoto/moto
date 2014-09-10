@@ -111,28 +111,88 @@ def test_eip_associate_vpc():
     instance.terminate()
 
 @mock_ec2
+def test_eip_associate_network_interface():
+    """Associate/Disassociate EIP to NIC"""
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    eni = conn.create_network_interface(subnet.id)
+
+    eip = conn.allocate_address(domain='vpc')
+    eip.network_interface_id.should.be.none
+
+    with assert_raises(EC2ResponseError) as cm:
+        conn.associate_address(network_interface_id=eni.id)
+    cm.exception.code.should.equal('MissingParameter')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    conn.associate_address(network_interface_id=eni.id, allocation_id=eip.allocation_id)
+    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
+    eip.network_interface_id.should.be.equal(eni.id)
+    conn.disassociate_address(association_id=eip.association_id)
+    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
+    eip.network_interface_id.should.be.equal(u'')
+    eip.association_id.should.be.none
+    eip.release()
+    eip = None
+
+@mock_ec2
 def test_eip_reassociate():
     """reassociate EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    reservation = conn.run_instances('ami-1234abcd')
-    instance = reservation.instances[0]
+    reservation = conn.run_instances('ami-1234abcd', min_count=2)
+    instance1, instance2 = reservation.instances
 
     eip = conn.allocate_address()
-    conn.associate_address(instance_id=instance.id, public_ip=eip.public_ip)
+    conn.associate_address(instance_id=instance1.id, public_ip=eip.public_ip)
 
+    # Same ID is idempotent
+    conn.associate_address(instance_id=instance1.id, public_ip=eip.public_ip)
+
+    # Different ID detects resource association
     with assert_raises(EC2ResponseError) as cm:
-        conn.associate_address(instance_id=instance.id, public_ip=eip.public_ip, allow_reassociation=False)
+        conn.associate_address(instance_id=instance2.id, public_ip=eip.public_ip, allow_reassociation=False)
     cm.exception.code.should.equal('Resource.AlreadyAssociated')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-    conn.associate_address.when.called_with(instance_id=instance.id, public_ip=eip.public_ip, allow_reassociation=True).should_not.throw(EC2ResponseError)
+    conn.associate_address.when.called_with(instance_id=instance2.id, public_ip=eip.public_ip, allow_reassociation=True).should_not.throw(EC2ResponseError)
 
     eip.release()
     eip = None
 
-    instance.terminate()
+    instance1.terminate()
+    instance2.terminate()
+
+@mock_ec2
+def test_eip_reassociate_nic():
+    """reassociate EIP"""
+    conn = boto.connect_vpc('the_key', 'the_secret')
+
+    vpc = conn.create_vpc("10.0.0.0/16")
+    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    eni1 = conn.create_network_interface(subnet.id)
+    eni2 = conn.create_network_interface(subnet.id)
+
+    eip = conn.allocate_address()
+    conn.associate_address(network_interface_id=eni1.id, public_ip=eip.public_ip)
+
+    # Same ID is idempotent
+    conn.associate_address(network_interface_id=eni1.id, public_ip=eip.public_ip)
+
+    # Different ID detects resource association
+    with assert_raises(EC2ResponseError) as cm:
+        conn.associate_address(network_interface_id=eni2.id, public_ip=eip.public_ip)
+    cm.exception.code.should.equal('Resource.AlreadyAssociated')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    conn.associate_address.when.called_with(network_interface_id=eni2.id, public_ip=eip.public_ip, allow_reassociation=True).should_not.throw(EC2ResponseError)
+
+    eip.release()
+    eip = None
 
 @mock_ec2
 def test_eip_associate_invalid_args():
