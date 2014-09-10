@@ -53,7 +53,6 @@ from .utils import (
     random_eip_association_id,
     random_eni_attach_id,
     random_eni_id,
-    random_internet_gateway_id,
     random_instance_id,
     random_internet_gateway_id,
     random_ip,
