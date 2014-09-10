@@ -99,7 +99,6 @@ def test_create_job_flow_visible_to_all_users():
     job_id = conn.run_jobflow(
         name='My jobflow',
         log_uri='s3://some_bucket/jobflow_logs',
-        job_flow_role='some-role-arn',
         steps=[],
         visible_to_all_users=True,
     )
@@ -275,7 +274,6 @@ def test_set_visible_to_all_users():
     job_id = conn.run_jobflow(
         name='My jobflow',
         log_uri='s3://some_bucket/jobflow_logs',
-        job_flow_role='some-role-arn',
         steps=[],
         visible_to_all_users=False,
     )
