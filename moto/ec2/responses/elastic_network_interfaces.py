@@ -3,7 +3,7 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
-from moto.ec2.utils import sequence_from_querystring, resource_ids_from_querystring, filters_from_querystring
+from moto.ec2.utils import sequence_from_querystring, filters_from_querystring
 
 
 class ElasticNetworkInterfaces(BaseResponse):
@@ -21,7 +21,7 @@ class ElasticNetworkInterfaces(BaseResponse):
 
     def delete_network_interface(self):
         eni_id = self.querystring.get('NetworkInterfaceId')[0]
-        eni = ec2_backend.delete_network_interface(eni_id)
+        ec2_backend.delete_network_interface(eni_id)
         template = Template(DELETE_NETWORK_INTERFACE_RESPONSE)
         return template.render()
 
@@ -95,7 +95,7 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
         <item>
            <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
            <subnetId>{{ eni.subnet.id }}</subnetId>
-           <vpcId>vpc-9367a6f8</vpcId>
+           <vpcId>{{ eni.subnet.vpc_id }}</vpcId>
            <availabilityZone>us-west-2a</availabilityZone>
            <description>Primary network interface</description>
            <ownerId>190610284047</ownerId>
