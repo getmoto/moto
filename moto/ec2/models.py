@@ -856,7 +856,7 @@ class SecurityGroupBackend(object):
 
         if name == 'default':
             # If the request is for the default group and it does not exist, create it
-            default_group = ec2_backend.create_security_group("default", "The default security group", force=True)
+            default_group = ec2_backend.create_security_group("default", "The default security group", vpc_id=vpc_id, force=True)
             return default_group
 
     def authorize_security_group_ingress(self,
@@ -1115,8 +1115,12 @@ class VPCBackend(object):
         vpc = VPC(vpc_id, cidr_block)
         self.vpcs[vpc_id] = vpc
 
-        # AWS creates a default main route table.
+        # AWS creates a default main route table and security group.
         main_route_table = self.create_route_table(vpc_id, main=True)
+
+        default = ec2_backend.get_security_group_from_name('default', vpc_id=vpc_id)
+        if not default:
+            ec2_backend.create_security_group('default', 'default VPC security group', vpc_id=vpc_id)
 
         return vpc
 
@@ -1138,6 +1142,11 @@ class VPCBackend(object):
             )
         for route_table in route_tables:
             ec2_backend.delete_route_table(route_table.id)
+
+        # Delete default security group if exists.
+        default = ec2_backend.get_security_group_from_name('default', vpc_id=vpc_id)
+        if default:
+            ec2_backend.delete_security_group(group_id=default.id)
 
         # Now delete VPC.
         vpc = self.vpcs.pop(vpc_id, None)

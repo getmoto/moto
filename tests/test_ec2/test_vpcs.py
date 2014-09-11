@@ -32,6 +32,22 @@ def test_vpcs():
 
 
 @mock_ec2
+def test_vpc_defaults():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+
+    conn.get_all_vpcs().should.have.length_of(1)
+    conn.get_all_route_tables().should.have.length_of(1)
+    conn.get_all_security_groups().should.have.length_of(1)
+
+    vpc.delete()
+
+    conn.get_all_vpcs().should.have.length_of(0)
+    conn.get_all_route_tables().should.have.length_of(0)
+    conn.get_all_security_groups().should.have.length_of(0)
+
+
+@mock_ec2
 def test_vpc_tagging():
     conn = boto.connect_vpc()
     vpc = conn.create_vpc("10.0.0.0/16")
