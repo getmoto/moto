@@ -29,7 +29,7 @@ class ElasticNetworkInterfaces(BaseResponse):
         raise NotImplementedError('ElasticNetworkInterfaces(AmazonVPC).describe_network_interface_attribute is not yet implemented')
 
     def describe_network_interfaces(self):
-        #Partially implemented. Supports only network-interface-id and group-id filters
+        # Partially implemented. Supports only network-interface-id and group-id filters
         filters = filters_from_querystring(self.querystring)
         enis = ec2_backend.describe_network_interfaces(filters)
         template = Template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
@@ -39,7 +39,7 @@ class ElasticNetworkInterfaces(BaseResponse):
         raise NotImplementedError('ElasticNetworkInterfaces(AmazonVPC).detach_network_interface is not yet implemented')
 
     def modify_network_interface_attribute(self):
-        #Currently supports modifying one and only one security group
+        # Currently supports modifying one and only one security group
         eni_id = self.querystring.get('NetworkInterfaceId')[0]
         group_id = self.querystring.get('SecurityGroupId.1')[0]
         ec2_backend.modify_network_interface_attribute(eni_id, group_id)

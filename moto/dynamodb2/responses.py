@@ -90,15 +90,15 @@ class DynamoHandler(BaseResponse):
 
     def create_table(self):
         body = self.body
-        #get the table name
+        # get the table name
         table_name = body['TableName']
-        #get the throughput
+        # get the throughput
         throughput = body["ProvisionedThroughput"]
-        #getting the schema
+        # getting the schema
         key_schema = body['KeySchema']
-        #getting attribute definition
+        # getting attribute definition
         attr = body["AttributeDefinitions"]
-        #getting the indexes
+        # getting the indexes
         table = dynamodb_backend2.create_table(table_name,
                    schema=key_schema,
                    throughput=throughput,

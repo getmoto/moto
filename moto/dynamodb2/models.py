@@ -284,7 +284,7 @@ class DynamoDBBackend(BaseBackend):
             return table.hash_key_attr, table.range_key_attr
 
     def get_keys_value(self, table, keys):
-        if not table.hash_key_attr in keys or (table.has_range_key and not table.range_key_attr in keys):
+        if table.hash_key_attr not in keys or (table.has_range_key and table.range_key_attr not in keys):
             raise ValueError("Table has a range key, but no range key was passed into get_item")
         hash_key = DynamoType(keys[table.hash_key_attr])
         range_key = DynamoType(keys[table.range_key_attr]) if table.has_range_key else None
