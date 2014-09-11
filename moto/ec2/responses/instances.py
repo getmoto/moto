@@ -340,7 +340,17 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <kernelId>{{ instance.kernel }}</kernelId>
                     <rootDeviceType>ebs</rootDeviceType>
                     <rootDeviceName>/dev/sda1</rootDeviceName>
-                    <blockDeviceMapping />
+                    <blockDeviceMapping>
+                      <item>
+                        <deviceName>/dev/sda1</deviceName>
+                          <ebs>
+                            <volumeId>{{ instance.block_device_mapping['/dev/sda1'].volume_id }}</volumeId>
+                            <status>attached</status>
+                            <attachTime>YYYY-MM-DDTHH:MM:SS.SSSZ</attachTime>
+                            <deleteOnTermination>true</deleteOnTermination>
+                        </ebs>
+                      </item>
+                    </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
                     <tagSet>
