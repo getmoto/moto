@@ -748,42 +748,42 @@ class SecurityGroup(object):
     def physical_resource_id(self):
         return self.id
 
-    def matches_filters(self, filters):
+
+    def matches_filter(self, key, filter_value):
         result = True
 
         def to_attr(filter_name):
             attr = None
 
-            if attr == 'group-name':
+            if filter_name == 'group-name':
                 attr = 'name'
-            elif attr == 'group-id':
+            elif filter_name == 'group-id':
                 attr = 'id'
+            elif filter_name == 'vpc-id':
+                attr = 'vpc_id'
             else:
                 attr = filter_name.replace('-', '_')
 
             return attr
 
-        for key, value in filters.items():
-            ret = False
+        if key.startswith('ip-permission'):
+            match = re.search(r"ip-permission.(*)", key)
+            ingress_attr = to_attr(match.groups()[0])
 
-            if key.startswith('ip-permission'):
-                match = re.search(r"ip-permission.(*)", key)
-                ingress_attr = to_attr(match.groups()[0])
-
-                for ingress in self.ingress_rules:
-                    if getattr(ingress, ingress_attr) in filters[key]:
-                        ret = True
-                        break
-            else:
-                attr_name = to_attr(key)
-                ret = getattr(self, attr_name) in filters[key]
-
-            if not ret:
-                break
+            for ingress in self.ingress_rules:
+                if getattr(ingress, ingress_attr) in filters[key]:
+                    return True
         else:
-            result = False
+            attr_name = to_attr(key)
+            return getattr(self, attr_name) in filter_value
 
-        return result
+        return False
+
+    def matches_filters(self, filters):
+        for key, value in filters.items():
+            if not self.matches_filter(key, value):
+                return False
+        return True
 
 
 class SecurityGroupBackend(object):
