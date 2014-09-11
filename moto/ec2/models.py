@@ -1,14 +1,16 @@
 from __future__ import unicode_literals
-import six
+
+from collections import defaultdict
 import copy
 import itertools
-from collections import defaultdict
+import re
 
 import boto
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
+import six
 
 from moto.core import BaseBackend
 from moto.core.models import Model
@@ -175,12 +177,11 @@ class NetworkInterfaceBackend(object):
             for (_filter, _filter_value) in filters.items():
                 if _filter == 'network-interface-id':
                     _filter = 'id'
-                    enis = [ eni for eni in enis if getattr(eni, _filter) in _filter_value ]
+                    enis = [eni for eni in enis if getattr(eni, _filter) in _filter_value]
                 elif _filter == 'group-id':
                     original_enis = enis
                     enis = []
                     for eni in original_enis:
-                        group_ids = []
                         for group in eni.group_set:
                             if group.id in _filter_value:
                                 enis.append(eni)
@@ -201,7 +202,7 @@ class NetworkInterfaceBackend(object):
         primary_nic = {'SubnetId': subnet_id,
                        'PrivateIpAddress': private_ip,
                        'AssociatePublicIpAddress': associate_public_ip}
-        primary_nic = dict((k,v) for k, v in primary_nic.items() if v)
+        primary_nic = dict((k, v) for k, v in primary_nic.items() if v)
 
         # If empty NIC spec but primary NIC values provided, create NIC from them.
         if primary_nic and not nic_spec:
@@ -210,9 +211,6 @@ class NetworkInterfaceBackend(object):
 
         # Flesh out data structures and associations
         for nic in nic_spec.values():
-            use_eni = None
-            security_group_ids = []
-
             device_index = int(nic.get('DeviceIndex'))
 
             nic_id = nic.get('NetworkInterfaceId', None)
@@ -229,16 +227,16 @@ class NetworkInterfaceBackend(object):
 
                 subnet = ec2_backend.get_subnet(nic['SubnetId'])
 
-                group_id = nic.get('SecurityGroupId',None)
+                group_id = nic.get('SecurityGroupId', None)
                 group_ids = [group_id] if group_id else []
 
                 use_nic = ec2_backend.create_network_interface(subnet,
-                                                               nic.get('PrivateIpAddress',None),
+                                                               nic.get('PrivateIpAddress', None),
                                                                device_index=device_index,
-                                                               public_ip_auto_assign=nic.get('AssociatePublicIpAddress',False),
+                                                               public_ip_auto_assign=nic.get('AssociatePublicIpAddress', False),
                                                                group_ids=group_ids)
 
-            use_nic.instance = instance # This is used upon associate/disassociate public IP.
+            use_nic.instance = instance  # This is used upon associate/disassociate public IP.
 
             if use_nic.instance.security_groups:
                 use_nic.group_set.extend(use_nic.instance.security_groups)
@@ -283,9 +281,9 @@ class Instance(BotoInstance, TaggedEC2Instance):
 
         self.nics = ec2_backend.prep_nics_for_instance(self,
                                                        kwargs.get("nics", {}),
-                                                       subnet_id=kwargs.get("subnet_id",None),
-                                                       private_ip=kwargs.get("private_ip",None),
-                                                       associate_public_ip=kwargs.get("associate_public_ip",None))
+                                                       subnet_id=kwargs.get("subnet_id", None),
+                                                       private_ip=kwargs.get("private_ip", None),
+                                                       associate_public_ip=kwargs.get("associate_public_ip", None))
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -572,7 +570,7 @@ class Ami(TaggedEC2Instance):
         elif filter_name == 'kernel-id':
             return self.kernel_id
         elif filter_name in ['architecture', 'platform']:
-            return getattr(self,filter_name)
+            return getattr(self, filter_name)
         elif filter_name == 'image-id':
             return self.id
         else:
@@ -596,7 +594,7 @@ class AmiBackend(object):
         if filters:
             images = self.amis.values()
             for (_filter, _filter_value) in filters.items():
-                images = [ ami for ami in images if ami.get_filter_value(_filter) in _filter_value ]
+                images = [ami for ami in images if ami.get_filter_value(_filter) in _filter_value]
             return images
         else:
             images = []
@@ -748,10 +746,7 @@ class SecurityGroup(object):
     def physical_resource_id(self):
         return self.id
 
-
     def matches_filter(self, key, filter_value):
-        result = True
-
         def to_attr(filter_name):
             attr = None
 
@@ -771,7 +766,7 @@ class SecurityGroup(object):
             ingress_attr = to_attr(match.groups()[0])
 
             for ingress in self.ingress_rules:
-                if getattr(ingress, ingress_attr) in filters[key]:
+                if getattr(ingress, ingress_attr) in filter_value:
                     return True
         else:
             attr_name = to_attr(key)
@@ -1030,7 +1025,7 @@ class EBSBackend(object):
 
     def detach_volume(self, volume_id, instance_id, device_path):
         volume = self.get_volume(volume_id)
-        instance = self.get_instance(instance_id)
+        self.get_instance(instance_id)
 
         old_attachment = volume.attachment
         if not old_attachment:
@@ -1116,7 +1111,7 @@ class VPCBackend(object):
         self.vpcs[vpc_id] = vpc
 
         # AWS creates a default main route table and security group.
-        main_route_table = self.create_route_table(vpc_id, main=True)
+        self.create_route_table(vpc_id, main=True)
 
         default = ec2_backend.get_security_group_from_name('default', vpc_id=vpc_id)
         if not default:
@@ -1134,7 +1129,7 @@ class VPCBackend(object):
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
-        route_tables = ec2_backend.get_all_route_tables(filters={'vpc-id':vpc_id})
+        route_tables = ec2_backend.get_all_route_tables(filters={'vpc-id': vpc_id})
         if len(route_tables) > 1:
             raise DependencyViolationError(
                 "The vpc {0} has dependencies and cannot be deleted."
@@ -1193,8 +1188,8 @@ class VPCPeeringConnection(TaggedEC2Instance):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        vpc = self.get_vpc(properties['VpcId'])
-        peer_vpc = self.get_vpc(properties['PeerVpcId'])
+        vpc = ec2_backend.get_vpc(properties['VpcId'])
+        peer_vpc = ec2_backend.get_vpc(properties['PeerVpcId'])
 
         vpc_pcx = ec2_backend.create_vpc_peering_connection(vpc, peer_vpc)
 
@@ -1295,7 +1290,7 @@ class SubnetBackend(object):
     def create_subnet(self, vpc_id, cidr_block):
         subnet_id = random_subnet_id()
         subnet = Subnet(subnet_id, vpc_id, cidr_block)
-        vpc = self.get_vpc(vpc_id) # Validate VPC exists
+        self.get_vpc(vpc_id)  # Validate VPC exists
         self.subnets[subnet_id] = subnet
         return subnet
 
@@ -1304,7 +1299,7 @@ class SubnetBackend(object):
 
         if filters:
             for (_filter, _filter_value) in filters.items():
-                subnets = [ subnet for subnet in subnets if subnet.get_filter_value(_filter) in _filter_value ]
+                subnets = [subnet for subnet in subnets if subnet.get_filter_value(_filter) in _filter_value]
 
         return subnets
 
@@ -1392,7 +1387,7 @@ class RouteTableBackend(object):
 
     def create_route_table(self, vpc_id, main=False):
         route_table_id = random_route_table_id()
-        vpc = self.get_vpc(vpc_id) # Validate VPC exists
+        vpc = self.get_vpc(vpc_id)  # Validate VPC exists
         route_table = RouteTable(route_table_id, vpc_id, main=main)
         self.route_tables[route_table_id] = route_table
 
@@ -1411,14 +1406,14 @@ class RouteTableBackend(object):
         route_tables = self.route_tables.values()
 
         if route_table_ids:
-            route_tables = [ route_table for route_table in route_tables if route_table.id in route_table_ids ]
+            route_tables = [route_table for route_table in route_tables if route_table.id in route_table_ids]
             if len(route_tables) != len(route_table_ids):
                 invalid_id = list(set(route_table_ids).difference(set([route_table.id for route_table in route_tables])))[0]
                 raise InvalidRouteTableIdError(invalid_id)
 
         if filters:
             for (_filter, _filter_value) in filters.items():
-                route_tables = [ route_table for route_table in route_tables if route_table.get_filter_value(_filter) in _filter_value ]
+                route_tables = [route_table for route_table in route_tables if route_table.get_filter_value(_filter) in _filter_value]
 
         return route_tables
 
@@ -1684,7 +1679,7 @@ class SpotRequestBackend(object):
 
         if filters:
             for (_filter, _filter_value) in filters.items():
-                requests = [ request for request in requests if request.get_filter_value(_filter) in _filter_value ]
+                requests = [request for request in requests if request.get_filter_value(_filter) in _filter_value]
 
         return requests
 

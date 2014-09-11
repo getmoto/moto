@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-import base64
+
 import hashlib
 import time
 import re

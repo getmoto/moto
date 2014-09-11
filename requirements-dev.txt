@@ -1,4 +1,5 @@
 -r requirements.txt
 flask
 boto
+flake8
 httpretty

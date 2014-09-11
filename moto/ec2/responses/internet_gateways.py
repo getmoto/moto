@@ -4,6 +4,7 @@ from moto.ec2.models import ec2_backend
 from moto.ec2.utils import sequence_from_querystring
 from jinja2 import Template
 
+
 class InternetGateways(BaseResponse):
     def attach_internet_gateway(self):
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
@@ -110,4 +111,3 @@ DETACH_INTERNET_GATEWAY_RESPONSE = u"""<DetachInternetGatewayResponse xmlns="htt
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </DetachInternetGatewayResponse>"""
-

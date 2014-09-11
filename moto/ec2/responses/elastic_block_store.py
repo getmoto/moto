@@ -36,12 +36,12 @@ class ElasticBlockStore(BaseResponse):
 
     def delete_snapshot(self):
         snapshot_id = self.querystring.get('SnapshotId')[0]
-        success = ec2_backend.delete_snapshot(snapshot_id)
+        ec2_backend.delete_snapshot(snapshot_id)
         return DELETE_SNAPSHOT_RESPONSE
 
     def delete_volume(self):
         volume_id = self.querystring.get('VolumeId')[0]
-        success = ec2_backend.delete_volume(volume_id)
+        ec2_backend.delete_volume(volume_id)
         return DELETE_VOLUME_RESPONSE
 
     def describe_snapshots(self):

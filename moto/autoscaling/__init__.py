@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from .models import autoscaling_backend, autoscaling_backends
+from .models import autoscaling_backend, autoscaling_backends  # flake8: noqa
 from ..core.models import MockAWS
 
 

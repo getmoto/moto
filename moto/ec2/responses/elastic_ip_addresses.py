@@ -60,9 +60,9 @@ class ElasticIPAddresses(BaseResponse):
 
     def disassociate_address(self):
         if "PublicIp" in self.querystring:
-            disassociated = ec2_backend.disassociate_address(address=self.querystring['PublicIp'][0])
+            ec2_backend.disassociate_address(address=self.querystring['PublicIp'][0])
         elif "AssociationId" in self.querystring:
-            disassociated = ec2_backend.disassociate_address(association_id=self.querystring['AssociationId'][0])
+            ec2_backend.disassociate_address(association_id=self.querystring['AssociationId'][0])
         else:
             ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AssociationId parameter.")
 
@@ -70,9 +70,9 @@ class ElasticIPAddresses(BaseResponse):
 
     def release_address(self):
         if "PublicIp" in self.querystring:
-            released = ec2_backend.release_address(address=self.querystring['PublicIp'][0])
+            ec2_backend.release_address(address=self.querystring['PublicIp'][0])
         elif "AllocationId" in self.querystring:
-            released = ec2_backend.release_address(allocation_id=self.querystring['AllocationId'][0])
+            ec2_backend.release_address(allocation_id=self.querystring['AllocationId'][0])
         else:
             ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")
 

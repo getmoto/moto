@@ -7,4 +7,5 @@ init:
 test:
 	rm -f .coverage
 	@nosetests -sv --with-coverage ./tests/
+	flake8 moto
 

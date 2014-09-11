@@ -4,10 +4,10 @@ import datetime
 import json
 
 try:
-        from collections import OrderedDict
+    from collections import OrderedDict
 except ImportError:
-        # python 2.6 or earlier, use backport
-        from ordereddict import OrderedDict
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 
 
 from moto.core import BaseBackend
@@ -69,6 +69,7 @@ class DynamoType(object):
         comparison_func = get_comparison_func(range_comparison)
         return comparison_func(self.value, *range_values)
 
+
 class Item(object):
     def __init__(self, hash_key, hash_key_type, range_key, range_key_type, attrs):
         self.hash_key = hash_key
@@ -104,9 +105,10 @@ class Item(object):
             "Item": included
         }
 
+
 class Table(object):
 
-    def __init__(self, table_name, schema=None, attr = None, throughput=None, indexes=None):
+    def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None):
         self.name = table_name
         self.attr = attr
         self.schema = schema
@@ -122,7 +124,7 @@ class Table(object):
                 self.range_key_attr = elem["AttributeName"]
                 self.range_key_type = elem["KeyType"]
         if throughput is None:
-             self.throughput = {u'WriteCapacityUnits': 10, u'ReadCapacityUnits': 10}
+            self.throughput = {'WriteCapacityUnits': 10, 'ReadCapacityUnits': 10}
         else:
             self.throughput = throughput
         self.throughput["NumberOfDecreasesToday"] = 0
@@ -133,15 +135,15 @@ class Table(object):
     @property
     def describe(self):
         results = {
-        'Table': {
-            'AttributeDefinitions': self.attr,
-            'ProvisionedThroughput': self.throughput,
-            'TableSizeBytes': 0,
-            'TableName': self.name,
-            'TableStatus': 'ACTIVE',
-            'KeySchema': self.schema,
-            'ItemCount': len(self),
-            'CreationDateTime': unix_time(self.created_at)
+            'Table': {
+                'AttributeDefinitions': self.attr,
+                'ProvisionedThroughput': self.throughput,
+                'TableSizeBytes': 0,
+                'TableName': self.name,
+                'TableStatus': 'ACTIVE',
+                'KeySchema': self.schema,
+                'ItemCount': len(self),
+                'CreationDateTime': unix_time(self.created_at),
             }
         }
         return results
@@ -201,7 +203,7 @@ class Table(object):
         results = []
         last_page = True  # Once pagination is implemented, change this
 
-        possible_results =  [ item for item in list(self.all_items()) if item.hash_key == hash_key]
+        possible_results = [item for item in list(self.all_items()) if item.hash_key == hash_key]
         if range_comparison:
             for result in possible_results:
                 if result.range_key.compare(range_comparison, range_objs):
@@ -286,13 +288,13 @@ class DynamoDBBackend(BaseBackend):
             raise ValueError("Table has a range key, but no range key was passed into get_item")
         hash_key = DynamoType(keys[table.hash_key_attr])
         range_key = DynamoType(keys[table.range_key_attr]) if table.has_range_key else None
-        return hash_key,range_key
+        return hash_key, range_key
 
     def get_item(self, table_name, keys):
         table = self.tables.get(table_name)
         if not table:
             return None
-        hash_key,range_key = self.get_keys_value(table,keys)
+        hash_key, range_key = self.get_keys_value(table, keys)
         return table.get_item(hash_key, range_key)
 
     def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts):

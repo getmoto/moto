@@ -84,6 +84,7 @@ def random_public_ip():
     return '54.214.{0}.{1}'.format(random.choice(range(255)),
                                    random.choice(range(255)))
 
+
 def random_ip():
     return "127.{0}.{1}.{2}".format(
         random.randint(0, 255),
@@ -97,7 +98,7 @@ def generate_route_id(route_table_id, cidr_block):
 
 
 def split_route_id(route_id):
-    values = string.split(route_id,'~')
+    values = route_id.split('~')
     return values[0], values[1]
 
 
@@ -207,7 +208,7 @@ def filters_from_querystring(querystring_dict):
 
 
 def dict_from_querystring(parameter, querystring_dict):
-    use_dict={}
+    use_dict = {}
     for key, value in querystring_dict.items():
         match = re.search(r"{0}.(\d).(\w+)".format(parameter), key)
         if match:
@@ -216,7 +217,7 @@ def dict_from_querystring(parameter, querystring_dict):
 
             if not use_dict.get(use_dict_index):
                 use_dict[use_dict_index] = {}
-            use_dict[use_dict_index][use_dict_element_property]=value[0]
+            use_dict[use_dict_index][use_dict_element_property] = value[0]
 
     return use_dict
 
