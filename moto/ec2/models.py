@@ -27,6 +27,7 @@ from .exceptions import (
     InvalidVPCIdError,
     InvalidSubnetIdError,
     InvalidNetworkInterfaceIdError,
+    InvalidNetworkAttachmentIdError,
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     InvalidPermissionNotFoundError,
@@ -91,13 +92,17 @@ class NetworkInterface(object):
         self.private_ip_address = private_ip_address
         self.subnet = subnet
         self.instance = None
+        self.attachment_id = None
 
         self.public_ip = None
         self.public_ip_auto_assign = public_ip_auto_assign
         self.start()
 
         self.attachments = []
-        self.group_set = []
+
+        # Local set to the ENI. When attached to an instance, @property group_set
+        #   returns groups for both self and the attached instance.
+        self._group_set = []
 
         group = None
         if group_ids:
@@ -108,7 +113,7 @@ class NetworkInterface(object):
                     group = SecurityGroup(group_id, group_id, group_id, vpc_id=subnet.vpc_id)
                     ec2_backend.groups[subnet.vpc_id][group_id] = group
                 if group:
-                    self.group_set.append(group)
+                    self._group_set.append(group)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -139,11 +144,12 @@ class NetworkInterface(object):
         if self.public_ip_auto_assign:
             self.public_ip = random_public_ip()
 
-    def attach(self, instance_id, device_index):
-        attachment = {'attachmentId': random_eni_attach_id(),
-                      'instanceId': instance_id,
-                      'deviceIndex': device_index}
-        self.attachments.append(attachment)
+    @property
+    def group_set(self):
+        if self.instance and self.instance.security_groups:
+            return set(self._group_set) | set(self.instance.security_groups)
+        else:
+            return self._group_set
 
 
 class NetworkInterfaceBackend(object):
@@ -189,65 +195,27 @@ class NetworkInterfaceBackend(object):
                     ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeNetworkInterfaces".format(_filter))
         return enis
 
+    def attach_network_interface(self, eni_id, instance_id, device_index):
+        eni = self.get_network_interface(eni_id)
+        instance = self.get_instance(instance_id)
+        return instance.attach_eni(eni, device_index)
+
+    def detach_network_interface(self, attachment_id):
+        found_eni = None
+
+        for eni in self.enis.values():
+            if eni.attachment_id == attachment_id:
+                found_eni = eni
+                break
+        else:
+            raise InvalidNetworkAttachmentIdError(attachment_id)
+
+        found_eni.instance.detach_eni(found_eni)
+
     def modify_network_interface_attribute(self, eni_id, group_id):
         eni = self.get_network_interface(eni_id)
         group = self.get_security_group_from_id(group_id)
-        eni.group_set = [group]
-
-    def prep_nics_for_instance(self, instance, nic_spec, subnet_id=None, private_ip=None, associate_public_ip=None):
-        nics = {}
-
-        # Primary NIC defaults
-        primary_nic = {'SubnetId': subnet_id,
-                       'PrivateIpAddress': private_ip,
-                       'AssociatePublicIpAddress': associate_public_ip}
-        primary_nic = dict((k,v) for k, v in primary_nic.items() if v)
-
-        # If empty NIC spec but primary NIC values provided, create NIC from them.
-        if primary_nic and not nic_spec:
-            nic_spec[0] = primary_nic
-            nic_spec[0]['DeviceIndex'] = 0
-
-        # Flesh out data structures and associations
-        for nic in nic_spec.values():
-            use_eni = None
-            security_group_ids = []
-
-            device_index = int(nic.get('DeviceIndex'))
-
-            nic_id = nic.get('NetworkInterfaceId', None)
-            if nic_id:
-                # If existing NIC found, use it.
-                use_nic = ec2_backend.get_network_interface(nic_id)
-                use_nic.device_index = device_index
-                use_nic.public_ip_auto_assign = False
-
-            else:
-                # If primary NIC values provided, use them for the primary NIC.
-                if device_index == 0 and primary_nic:
-                    nic.update(primary_nic)
-
-                subnet = ec2_backend.get_subnet(nic['SubnetId'])
-
-                group_id = nic.get('SecurityGroupId',None)
-                group_ids = [group_id] if group_id else []
-
-                use_nic = ec2_backend.create_network_interface(subnet,
-                                                               nic.get('PrivateIpAddress',None),
-                                                               device_index=device_index,
-                                                               public_ip_auto_assign=nic.get('AssociatePublicIpAddress',False),
-                                                               group_ids=group_ids)
-
-            use_nic.instance = instance # This is used upon associate/disassociate public IP.
-
-            if use_nic.instance.security_groups:
-                use_nic.group_set.extend(use_nic.instance.security_groups)
-
-            use_nic.attach(instance.id, device_index)
-
-            nics[device_index] = use_nic
-
-        return nics
+        eni._group_set = [group]
 
 
 class Instance(BotoInstance, TaggedEC2Instance):
@@ -281,11 +249,10 @@ class Instance(BotoInstance, TaggedEC2Instance):
                 # string will have a "u" prefix -- need to get rid of it
                 self.user_data[0] = self.user_data[0].encode('utf-8')
 
-        self.nics = ec2_backend.prep_nics_for_instance(self,
-                                                       kwargs.get("nics", {}),
-                                                       subnet_id=kwargs.get("subnet_id",None),
-                                                       private_ip=kwargs.get("private_ip",None),
-                                                       associate_public_ip=kwargs.get("associate_public_ip",None))
+        self.prep_nics(kwargs.get("nics", {}),
+                       subnet_id=kwargs.get("subnet_id",None),
+                       private_ip=kwargs.get("private_ip",None),
+                       associate_public_ip=kwargs.get("associate_public_ip",None))
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -348,6 +315,68 @@ class Instance(BotoInstance, TaggedEC2Instance):
             return groups
         else:
             return self.security_groups
+
+    def prep_nics(self, nic_spec, subnet_id=None, private_ip=None, associate_public_ip=None):
+        self.nics = {}
+
+        # Primary NIC defaults
+        primary_nic = {'SubnetId': subnet_id,
+                       'PrivateIpAddress': private_ip,
+                       'AssociatePublicIpAddress': associate_public_ip}
+        primary_nic = dict((k,v) for k, v in primary_nic.items() if v)
+
+        # If empty NIC spec but primary NIC values provided, create NIC from them.
+        if primary_nic and not nic_spec:
+            nic_spec[0] = primary_nic
+            nic_spec[0]['DeviceIndex'] = 0
+
+        # Flesh out data structures and associations
+        for nic in nic_spec.values():
+            use_eni = None
+            security_group_ids = []
+
+            device_index = int(nic.get('DeviceIndex'))
+
+            nic_id = nic.get('NetworkInterfaceId', None)
+            if nic_id:
+                # If existing NIC found, use it.
+                use_nic = ec2_backend.get_network_interface(nic_id)
+                use_nic.device_index = device_index
+                use_nic.public_ip_auto_assign = False
+
+            else:
+                # If primary NIC values provided, use them for the primary NIC.
+                if device_index == 0 and primary_nic:
+                    nic.update(primary_nic)
+
+                subnet = ec2_backend.get_subnet(nic['SubnetId'])
+
+                group_id = nic.get('SecurityGroupId',None)
+                group_ids = [group_id] if group_id else []
+
+                use_nic = ec2_backend.create_network_interface(subnet,
+                                                               nic.get('PrivateIpAddress',None),
+                                                               device_index=device_index,
+                                                               public_ip_auto_assign=nic.get('AssociatePublicIpAddress',False),
+                                                               group_ids=group_ids)
+
+            self.attach_eni(use_nic, device_index)
+
+    def attach_eni(self, eni, device_index):
+        device_index = int(device_index)
+        self.nics[device_index] = eni
+
+        eni.instance = self # This is used upon associate/disassociate public IP.
+        eni.attachment_id = random_eni_attach_id()
+        eni.device_index = device_index
+
+        return eni.attachment_id
+
+    def detach_eni(self, eni):
+        self.nics.pop(eni.device_index,None)
+        eni.instance = None
+        eni.attachment_id = None
+        eni.device_index = None
 
 
 class InstanceBackend(object):
