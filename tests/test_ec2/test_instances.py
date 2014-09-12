@@ -11,6 +11,7 @@ from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2
+from tests.helpers import requires_boto_gte
 
 
 ################ Test Readme ###############
@@ -360,6 +361,7 @@ def test_run_instance_with_nic_preexisting():
     instance_eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
 
 
+@requires_boto_gte("2.32.0")
 @mock_ec2
 def test_instance_with_nic_attach_detach():
     conn = boto.connect_vpc('the_key', 'the_secret')
