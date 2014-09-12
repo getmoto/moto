@@ -14,7 +14,7 @@ matrix:
 install:
   - pip install boto==$BOTO_VERSION
   - pip install .
-  - pip install -r requirements.txt
+  - pip install -r requirements-dev.txt
   - pip install coveralls
 script:
   - make test
