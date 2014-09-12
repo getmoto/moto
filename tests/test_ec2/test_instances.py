@@ -50,6 +50,10 @@ def test_instance_launch_and_terminate():
     instances[0].id.should.equal(instance.id)
     instances[0].state.should.equal('running')
 
+    root_device_name = instances[0].root_device_name
+    instances[0].block_device_mapping[root_device_name].status.should.equal('attached')
+    instances[0].block_device_mapping[root_device_name].volume_id.should.match(r'vol-\w+')
+
     conn.terminate_instances([instances[0].id])
 
     reservations = conn.get_all_instances()

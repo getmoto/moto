@@ -263,7 +263,7 @@ class Instance(BotoInstance, TaggedEC2Instance):
         self.key_name = kwargs.get("key_name")
 
         self.block_device_mapping = BlockDeviceMapping()
-        self.block_device_mapping['/dev/sda1'] = BlockDeviceType()
+        self.block_device_mapping['/dev/sda1'] = BlockDeviceType(volume_id=random_volume_id())
 
         amis = ec2_backend.describe_images(filters={'image-id': image_id})
         ami = amis[0] if amis else None
