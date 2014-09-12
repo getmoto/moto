@@ -1,10 +1,2 @@
-coverage
-freezegun
-mock
-nose
-requests
-sure<1.2.4
-xmltodict
-dicttoxml
-werkzeug
-six
+#  Please add requirements to setup.py
+-e .
