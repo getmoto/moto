@@ -22,7 +22,7 @@ class FakeKey(object):
     def __init__(self, name, value, storage="STANDARD", etag=None, is_versioned=False, version_id=0):
         self.name = name
         self.value = value
-        self.last_modified = datetime.datetime.now()
+        self.last_modified = datetime.datetime.utcnow()
         self._storage_class = storage
         self._metadata = {}
         self._expiry = None
@@ -47,7 +47,7 @@ class FakeKey(object):
 
     def append_to_value(self, value):
         self.value += value
-        self.last_modified = datetime.datetime.now()
+        self.last_modified = datetime.datetime.utcnow()
         self._etag = None  # must recalculate etag
         if self._is_versioned:
             self._version_id += 1
@@ -55,7 +55,7 @@ class FakeKey(object):
             self._is_versioned = 0
 
     def restore(self, days):
-        self._expiry = datetime.datetime.now() + datetime.timedelta(days)
+        self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
 
     @property
     def etag(self):
