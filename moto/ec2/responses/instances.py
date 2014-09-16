@@ -244,7 +244,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
                   {% endfor %}
                 </groupSet>
                 <attachment>
-                  <attachmentId>eni-attach-1a2b3c4d</attachmentId>
+                  <attachmentId>{{ nic.attachment_id }}</attachmentId>
                   <deviceIndex>{{ nic.device_index }}</deviceIndex>
                   <status>attached</status>
                   <attachTime>YYYY-MM-DDTHH:MM:SS+0000</attachTime>
@@ -385,7 +385,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                             {% endfor %}
                           </groupSet>
                           <attachment>
-                            <attachmentId>eni-attach-1a2b3c4d</attachmentId>
+                            <attachmentId>{{ nic.attachment_id }}</attachmentId>
                             <deviceIndex>{{ nic.device_index }}</deviceIndex>
                             <status>attached</status>
                             <attachTime>YYYY-MM-DDTHH:MM:SS+0000</attachTime>

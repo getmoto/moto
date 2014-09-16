@@ -80,6 +80,14 @@ class InvalidNetworkInterfaceIdError(EC2ClientError):
             .format(eni_id))
 
 
+class InvalidNetworkAttachmentIdError(EC2ClientError):
+    def __init__(self, attachment_id):
+        super(InvalidNetworkAttachmentIdError, self).__init__(
+            "InvalidAttachmentID.NotFound",
+            "The network interface attachment ID '{0}' does not exist"
+            .format(attachment_id))
+
+
 class InvalidSecurityGroupDuplicateError(EC2ClientError):
     def __init__(self, name):
         super(InvalidSecurityGroupDuplicateError, self).__init__(

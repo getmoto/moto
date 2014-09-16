@@ -7,9 +7,6 @@ from moto.ec2.utils import sequence_from_querystring, filters_from_querystring
 
 
 class ElasticNetworkInterfaces(BaseResponse):
-    def attach_network_interface(self):
-        raise NotImplementedError('ElasticNetworkInterfaces(AmazonVPC).attach_network_interface is not yet implemented')
-
     def create_network_interface(self):
         subnet_id = self.querystring.get('SubnetId')[0]
         private_ip_address = self.querystring.get('PrivateIpAddress', [None])[0]
@@ -35,8 +32,19 @@ class ElasticNetworkInterfaces(BaseResponse):
         template = Template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
         return template.render(enis=enis)
 
+    def attach_network_interface(self):
+        eni_id = self.querystring.get('NetworkInterfaceId')[0]
+        instance_id = self.querystring.get('InstanceId')[0]
+        device_index = self.querystring.get('DeviceIndex')[0]
+        attachment_id = ec2_backend.attach_network_interface(eni_id, instance_id, device_index)
+        template = Template(ATTACH_NETWORK_INTERFACE_RESPONSE)
+        return template.render(attachment_id=attachment_id)
+
     def detach_network_interface(self):
-        raise NotImplementedError('ElasticNetworkInterfaces(AmazonVPC).detach_network_interface is not yet implemented')
+        attachment_id = self.querystring.get('AttachmentId')[0]
+        ec2_backend.detach_network_interface(attachment_id)
+        template = Template(DETACH_NETWORK_INTERFACE_RESPONSE)
+        return template.render()
 
     def modify_network_interface_attribute(self):
         #Currently supports modifying one and only one security group
@@ -115,17 +123,17 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
                 </item>
             {% endfor %}
             </groupSet>
-            {% for attachment in eni.attachments %}
-            <attachment>
-                <attachmentId>{{ attachment['attachmentId'] }}</attachmentId>
-                <instanceId>{{ attachment['instanceId'] }}</instanceId>
-                <instanceOwnerId>190610284047</instanceOwnerId>
-                <deviceIndex>{{ attachment['deviceIndex'] }}</deviceIndex>
-                <status>attached</status>
-                <attachTime>2013-10-04T17:38:53.000Z</attachTime>
-                <deleteOnTermination>true</deleteOnTermination>
-            </attachment>
-            {% endfor %}
+            {% if eni.instance %}
+               <attachment>
+                  <attachmentId>{{ eni.attachment_id }}</attachmentId>
+                  <instanceId>{{ eni.instance.id }}</instanceId>
+                  <instanceOwnerId>190610284047</instanceOwnerId>
+                  <deviceIndex>{{ eni.device_index }}</deviceIndex>
+                  <status>attached</status>
+                  <attachTime>2013-10-04T17:38:53.000Z</attachTime>
+                  <deleteOnTermination>true</deleteOnTermination>
+               </attachment>
+            {% endif %}
             <association>
                 <publicIp>{{ eni.public_ip }}</publicIp>
                 <publicDnsName>ec2-54-200-86-47.us-west-2.compute.amazonaws.com</publicDnsName>
@@ -154,6 +162,16 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
     {% endfor %}
     </networkInterfaceSet>
 </DescribeNetworkInterfacesResponse>"""
+
+ATTACH_NETWORK_INTERFACE_RESPONSE = """<AttachNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <attachmentId>{{ attachment_id }}</attachmentId>
+</AttachNetworkInterfaceResponse>"""
+
+DETACH_NETWORK_INTERFACE_RESPONSE = """<DetachNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</DetachNetworkInterfaceResponse>"""
 
 MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE = """<ModifyNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
