@@ -19,6 +19,7 @@ class Message(object):
     def __init__(self, message_id, body):
         self.id = message_id
         self.body = body
+        self.message_attributes = {}
         self.receipt_handle = None
         self.sender_id = DEFAULT_ACCOUNT_ID
         self.sent_timestamp = None
@@ -188,7 +189,8 @@ class SQSBackend(BaseBackend):
         setattr(queue, key, value)
         return queue
 
-    def send_message(self, queue_name, message_body, delay_seconds=None):
+    def send_message(self, queue_name, message_body, message_attributes=None, delay_seconds=None):
+
         queue = self.get_queue(queue_name)
 
         if delay_seconds:
@@ -199,11 +201,15 @@ class SQSBackend(BaseBackend):
         message_id = get_random_message_id()
         message = Message(message_id, message_body)
 
+        if message_attributes:
+            message.message_attributes = message_attributes
+
         message.mark_sent(
             delay_seconds=delay_seconds
         )
 
         queue.add_message(message)
+
         return message
 
     def receive_messages(self, queue_name, count):
@@ -228,6 +234,7 @@ class SQSBackend(BaseBackend):
             result.append(message)
             if len(result) >= count:
                 break
+
         return result
 
     def delete_message(self, queue_name, receipt_handle):
