@@ -13,6 +13,8 @@ matrix:
         env: BOTO_VERSION=2.32.1
       - python: "3.4"
         env: BOTO_VERSION=2.32.1
+      - python: "pypy"
+        env: BOTO_VERSION=2.32.1
 install:
   - travis_retry pip install boto==$BOTO_VERSION
   - travis_retry pip install .
