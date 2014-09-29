@@ -9,6 +9,7 @@ from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2
+from tests.helpers import requires_boto_gte
 
 
 @mock_ec2
@@ -51,6 +52,7 @@ def test_ami_create_and_delete():
     cm.exception.request_id.should_not.be.none
 
 
+@requires_boto_gte("2.14.0")
 @mock_ec2
 def test_ami_copy():
     conn = boto.connect_ec2('the_key', 'the_secret')
