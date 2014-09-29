@@ -587,7 +587,6 @@ class Ami(TaggedEC2Instance):
             self.architecture = instance.architecture
             self.kernel_id = instance.kernel
             self.platform = instance.platform
-            self.launch_permission_groups = set()
             self.name = name
             self.description = description
 
@@ -604,6 +603,7 @@ class Ami(TaggedEC2Instance):
             self.name = name if name else source_ami.name
             self.description = description if description else source_ami.description
 
+        self.launch_permission_groups = set()
         self.autocreate_volume_and_snapshot()
 
     def autocreate_volume_and_snapshot(self):
