@@ -1895,7 +1895,7 @@ class DHCPOptionsSetBackend(object):
             if field_value and len(field_value) > 4:
                 raise InvalidParameterValueError(",".join(field_value))
 
-        if netbios_node_type and netbios_node_type[0] not in NETBIOS_NODE_TYPES:
+        if netbios_node_type and int(netbios_node_type[0]) not in NETBIOS_NODE_TYPES:
             raise InvalidParameterValueError(netbios_node_type)
 
         options = DHCPOptionsSet(
