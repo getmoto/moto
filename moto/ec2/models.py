@@ -606,6 +606,10 @@ class Ami(TaggedEC2Instance):
             return self.id
         elif filter_name == 'state':
             return self.state
+        elif filter_name.startswith('tag:'):
+            tag_name = filter_name.replace('tag:', '', 1)
+            tags = dict((tag['key'], tag['value']) for tag in self.get_tags())
+            return tags.get(tag_name)
         else:
             ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeImages".format(filter_name))
 

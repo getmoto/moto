@@ -133,7 +133,30 @@ def test_ami_filters():
     set([ami.id for ami in amis_by_id]).should.equal(set([imageA.id]))
 
     amis_by_id = conn.get_all_images(filters={'state': 'available'})
-    set([ami.id for ami in amis_by_id]).should.equal(set([imageA.id]))
+    set([ami.id for ami in amis_by_id]).should.equal(set([imageA.id, imageB.id]))
+
+
+@mock_ec2
+def test_ami_filtering_via_tag():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+
+    reservationA = conn.run_instances('ami-1234abcd')
+    instanceA = reservationA.instances[0]
+    imageA_id = conn.create_image(instanceA.id, "test-ami-A", "this is a test ami")
+    imageA = conn.get_image(imageA_id)
+    imageA.add_tag("a key", "some value")
+
+    reservationB = conn.run_instances('ami-abcd1234')
+    instanceB = reservationB.instances[0]
+    imageB_id = conn.create_image(instanceB.id, "test-ami-B", "this is a test ami")
+    imageB = conn.get_image(imageB_id)
+    imageB.add_tag("another key", "some other value")
+
+    amis_by_tagA = conn.get_all_images(filters={'tag:a key': 'some value'})
+    set([ami.id for ami in amis_by_tagA]).should.equal(set([imageA.id]))
+
+    amis_by_tagB = conn.get_all_images(filters={'tag:another key': 'some other value'})
+    set([ami.id for ami in amis_by_tagB]).should.equal(set([imageB.id]))
 
 
 @mock_ec2
