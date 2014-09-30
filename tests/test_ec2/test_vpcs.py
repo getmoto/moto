@@ -111,3 +111,21 @@ def test_vpc_get_by_dhcp_options_id():
     vpc_ids = map(lambda v: v.id, vpcs)
     vpc1.id.should.be.within(vpc_ids)
     vpc2.id.should.be.within(vpc_ids)
+
+
+@mock_ec2
+def test_vpc_get_by_tag():
+    conn = boto.connect_vpc()
+    vpc1 = conn.create_vpc("10.0.0.0/16")
+    vpc2 = conn.create_vpc("10.0.0.0/16")
+    vpc3 = conn.create_vpc("10.0.0.0/24")
+
+    vpc1.add_tag('Name', 'TestVPC')
+    vpc2.add_tag('Name', 'TestVPC')
+    vpc3.add_tag('Name', 'TestVPC2')
+
+    vpcs = conn.get_all_vpcs(filters={'tag:Name': 'TestVPC'})
+    vpcs.should.have.length_of(2)
+    vpc_ids = map(lambda v: v.id, vpcs)
+    vpc1.id.should.be.within(vpc_ids)
+    vpc2.id.should.be.within(vpc_ids)

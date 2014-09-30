@@ -84,6 +84,15 @@ class TaggedEC2Instance(object):
         tags = ec2_backend.describe_tags(self.id)
         return tags
 
+    def get_filter_value(self, filter_name):
+        tags = self.get_tags()
+
+        if filter_name.startswith('tag:'):
+            tagname = filter_name.split('tag:')[1]
+            for tag in tags:
+                if tag['key'] == tagname:
+                    return tag['value']
+
 
 class NetworkInterface(object):
     def __init__(self, subnet, private_ip_address, device_index=0, public_ip_auto_assign=True, group_ids=None):
@@ -1142,10 +1151,15 @@ class VPC(TaggedEC2Instance):
 
             return self.dhcp_options.id
 
-        msg = "The filter '{0}' for DescribeVPCs has not been" \
-              " implemented in Moto yet. Feel free to open an issue at" \
-              " https://github.com/spulec/moto/issues".format(filter_name)
-        raise NotImplementedError(msg)
+        filter_value = super(VPC, self).get_filter_value(filter_name)
+
+        if not filter_value:
+            msg = "The filter '{0}' for DescribeVPCs has not been" \
+                  " implemented in Moto yet. Feel free to open an issue at" \
+                  " https://github.com/spulec/moto/issues".format(filter_name)
+            raise NotImplementedError(msg)
+
+        return filter_value
 
 
 class VPCBackend(object):
