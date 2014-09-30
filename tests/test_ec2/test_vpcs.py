@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
+#import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import boto
@@ -62,3 +62,15 @@ def test_vpc_tagging():
     vpc = conn.get_all_vpcs()[0]
     vpc.tags.should.have.length_of(1)
     vpc.tags["a key"].should.equal("some value")
+
+@mock_ec2
+def test_vpc_get_by_id():
+    conn = boto.connect_vpc()
+    vpc1 = conn.create_vpc("10.0.0.0/16")
+    vpc2 = conn.create_vpc("10.0.0.0/16")
+    vpc3 = conn.create_vpc("10.0.0.0/16")
+
+    vpcs = conn.get_all_vpcs(vpc_ids=[vpc1.id, vpc2.id])
+    vpcs.should.have.length_of(2)
+    vpcs[0].id.should.be.equal(vpc1.id)
+    vpcs[1].id.should.be.equal(vpc2.id)

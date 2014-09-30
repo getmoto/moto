@@ -84,6 +84,7 @@ def random_public_ip():
     return '54.214.{0}.{1}'.format(random.choice(range(255)),
                                    random.choice(range(255)))
 
+
 def random_ip():
     return "127.{0}.{1}.{2}".format(
         random.randint(0, 255),
@@ -97,7 +98,7 @@ def generate_route_id(route_table_id, cidr_block):
 
 
 def split_route_id(route_id):
-    values = string.split(route_id,'~')
+    values = string.split(route_id, '~')
     return values[0], values[1]
 
 
@@ -123,6 +124,14 @@ def route_table_ids_from_querystring(querystring_dict):
         if 'RouteTableId' in key:
             route_table_ids.append(value[0])
     return route_table_ids
+
+
+def vpc_ids_from_querystring(querystring_dict):
+    vpc_ids = []
+    for key, value in querystring_dict.items():
+        if 'VpcId' in key:
+            vpc_ids.append(value[0])
+    return vpc_ids
 
 
 def sequence_from_querystring(parameter, querystring_dict):
@@ -201,13 +210,14 @@ def filters_from_querystring(querystring_dict):
         if match:
             filter_index = match.groups()[0]
             value_prefix = "Filter.{0}.Value".format(filter_index)
-            filter_values = [filter_value[0] for filter_key, filter_value in querystring_dict.items() if filter_key.startswith(value_prefix)]
+            filter_values = [filter_value[0] for filter_key, filter_value in querystring_dict.items() if
+                             filter_key.startswith(value_prefix)]
             response_values[value[0]] = filter_values
     return response_values
 
 
 def dict_from_querystring(parameter, querystring_dict):
-    use_dict={}
+    use_dict = {}
     for key, value in querystring_dict.items():
         match = re.search(r"{0}.(\d).(\w+)".format(parameter), key)
         if match:
@@ -216,7 +226,7 @@ def dict_from_querystring(parameter, querystring_dict):
 
             if not use_dict.get(use_dict_index):
                 use_dict[use_dict_index] = {}
-            use_dict[use_dict_index][use_dict_element_property]=value[0]
+            use_dict[use_dict_index][use_dict_element_property] = value[0]
 
     return use_dict
 
@@ -249,7 +259,9 @@ def passes_filter_dict(instance, filter_dict):
             if tag_value not in filter_values:
                 return False
         else:
-            raise NotImplementedError("Filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/spulec/moto/issues", filter_name)
+            raise NotImplementedError(
+                "Filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/spulec/moto/issues",
+                filter_name)
     return True
 
 

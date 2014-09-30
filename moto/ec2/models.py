@@ -1133,6 +1133,12 @@ class VPC(TaggedEC2Instance):
     def physical_resource_id(self):
         return self.id
 
+    def get_filter_value(self, filter_name):
+        msg = "The filter '{0}' for DescribeVPCs has not been" \
+              " implemented in Moto yet. Feel free to open an issue at" \
+              " https://github.com/spulec/moto/issues".format(filter_name)
+        raise NotImplementedError(msg)
+
 
 class VPCBackend(object):
     def __init__(self):
@@ -1158,8 +1164,17 @@ class VPCBackend(object):
             raise InvalidVPCIdError(vpc_id)
         return self.vpcs.get(vpc_id)
 
-    def get_all_vpcs(self):
-        return self.vpcs.values()
+    def get_all_vpcs(self, vpc_ids=None, filters=None):
+        if vpc_ids:
+            vpcs = [vpc for vpc in self.vpcs.values() if vpc.id in vpc_ids]
+        else:
+            vpcs = self.vpcs.values()
+
+        if filters:
+            for (_filter, _filter_value) in filters.items():
+                vpcs = [ vpc for vpc in vpcs if vpc.get_filter_value(_filter) in _filter_value ]
+
+        return vpcs
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
