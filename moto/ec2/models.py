@@ -604,6 +604,8 @@ class Ami(TaggedEC2Instance):
             return getattr(self,filter_name)
         elif filter_name == 'image-id':
             return self.id
+        elif filter_name == 'state':
+            return self.state
         else:
             ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeImages".format(filter_name))
 
