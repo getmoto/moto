@@ -1134,6 +1134,14 @@ class VPC(TaggedEC2Instance):
         return self.id
 
     def get_filter_value(self, filter_name):
+        if filter_name == 'cidr':
+            return self.cidr_block
+        elif filter_name == 'dhcp-options-id':
+            if not self.dhcp_options:
+                return None
+
+            return self.dhcp_options.id
+
         msg = "The filter '{0}' for DescribeVPCs has not been" \
               " implemented in Moto yet. Feel free to open an issue at" \
               " https://github.com/spulec/moto/issues".format(filter_name)

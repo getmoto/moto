@@ -9,6 +9,9 @@ import sure  # noqa
 
 from moto import mock_ec2
 
+SAMPLE_DOMAIN_NAME = u'example.com'
+SAMPLE_NAME_SERVERS = [u'10.0.0.6', u'10.0.0.7']
+
 
 @mock_ec2
 def test_vpcs():
@@ -63,6 +66,7 @@ def test_vpc_tagging():
     vpc.tags.should.have.length_of(1)
     vpc.tags["a key"].should.equal("some value")
 
+
 @mock_ec2
 def test_vpc_get_by_id():
     conn = boto.connect_vpc()
@@ -72,5 +76,38 @@ def test_vpc_get_by_id():
 
     vpcs = conn.get_all_vpcs(vpc_ids=[vpc1.id, vpc2.id])
     vpcs.should.have.length_of(2)
-    vpcs[0].id.should.be.equal(vpc1.id)
-    vpcs[1].id.should.be.equal(vpc2.id)
+    vpc_ids = map(lambda v: v.id, vpcs)
+    vpc1.id.should.be.within(vpc_ids)
+    vpc2.id.should.be.within(vpc_ids)
+
+
+@mock_ec2
+def test_vpc_get_by_cidr_block():
+    conn = boto.connect_vpc()
+    vpc1 = conn.create_vpc("10.0.0.0/16")
+    vpc2 = conn.create_vpc("10.0.0.0/16")
+    vpc3 = conn.create_vpc("10.0.0.0/24")
+
+    vpcs = conn.get_all_vpcs(filters={'cidr': '10.0.0.0/16'})
+    vpcs.should.have.length_of(2)
+    vpc_ids = map(lambda v: v.id, vpcs)
+    vpc1.id.should.be.within(vpc_ids)
+    vpc2.id.should.be.within(vpc_ids)
+
+
+@mock_ec2
+def test_vpc_get_by_dhcp_options_id():
+    conn = boto.connect_vpc()
+    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
+    vpc1 = conn.create_vpc("10.0.0.0/16")
+    vpc2 = conn.create_vpc("10.0.0.0/16")
+    vpc3 = conn.create_vpc("10.0.0.0/24")
+
+    conn.associate_dhcp_options(dhcp_options.id, vpc1.id)
+    conn.associate_dhcp_options(dhcp_options.id, vpc2.id)
+
+    vpcs = conn.get_all_vpcs(filters={'dhcp-options-id': dhcp_options.id})
+    vpcs.should.have.length_of(2)
+    vpc_ids = map(lambda v: v.id, vpcs)
+    vpc1.id.should.be.within(vpc_ids)
+    vpc2.id.should.be.within(vpc_ids)
