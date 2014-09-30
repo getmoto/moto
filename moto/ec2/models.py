@@ -17,6 +17,7 @@ from .exceptions import (
     DependencyViolationError,
     MissingParameterError,
     InvalidParameterValueError,
+    InvalidParameterValueErrorTagNull,
     InvalidDHCPOptionsIdError,
     MalformedDHCPOptionsIdError,
     InvalidKeyPairNameError,
@@ -45,9 +46,13 @@ from .exceptions import (
     InvalidAllocationIdError,
     InvalidAssociationIdError,
     InvalidVPCPeeringConnectionIdError,
-    InvalidVPCPeeringConnectionStateTransitionError
+    InvalidVPCPeeringConnectionStateTransitionError,
+    TagLimitExceeded,
+    InvalidID
 )
 from .utils import (
+    EC2_RESOURCE_TO_PREFIX,
+    EC2_PREFIX_TO_RESOURCE,
     random_ami_id,
     random_dhcp_option_id,
     random_eip_allocation_id,
@@ -70,7 +75,17 @@ from .utils import (
     random_volume_id,
     random_vpc_id,
     random_vpc_peering_connection_id,
-    generic_filter)
+    generic_filter,
+    is_valid_resource_id,
+    get_prefix,
+    simple_aws_filter_to_re)
+
+
+def validate_resource_ids(resource_ids):
+    for resource_id in resource_ids:
+        if not is_valid_resource_id(resource_id):
+            raise InvalidID(resource_id=resource_id)
+    return True
 
 
 class InstanceState(object):
@@ -79,9 +94,9 @@ class InstanceState(object):
         self.code = code
 
 
-class TaggedEC2Instance(object):
+class TaggedEC2Resource(object):
     def get_tags(self, *args, **kwargs):
-        tags = ec2_backend.describe_tags(self.id)
+        tags = ec2_backend.describe_tags(filters={'resource-id': [self.id]})
         return tags
 
     def get_filter_value(self, filter_name):
@@ -235,7 +250,7 @@ class NetworkInterfaceBackend(object):
         eni._group_set = [group]
 
 
-class Instance(BotoInstance, TaggedEC2Instance):
+class Instance(BotoInstance, TaggedEC2Resource):
     def __init__(self, image_id, user_data, security_groups, **kwargs):
         super(Instance, self).__init__()
         self.id = random_instance_id()
@@ -319,7 +334,7 @@ class Instance(BotoInstance, TaggedEC2Instance):
         self._state.code = 16
 
     def get_tags(self):
-        tags = ec2_backend.describe_tags(self.id)
+        tags = ec2_backend.describe_tags(filters={'resource-id': [self.id]})
         return tags
 
     @property
@@ -563,36 +578,130 @@ class KeyPairBackend(object):
 
 class TagBackend(object):
 
+    VALID_TAG_FILTERS = ['key',
+                         'resource-id',
+                         'resource-type',
+                         'value']
+
+    VALID_TAG_RESOURCE_FILTER_TYPES = ['customer-gateway',
+                                       'dhcp-options',
+                                       'image',
+                                       'instance',
+                                       'internet-gateway',
+                                       'network-acl',
+                                       'network-interface',
+                                       'reserved-instances',
+                                       'route-table',
+                                       'security-group',
+                                       'snapshot',
+                                       'spot-instances-request',
+                                       'subnet',
+                                       'volume',
+                                       'vpc',
+                                       'vpc-peering-connection'
+                                       'vpn-connection',
+                                       'vpn-gateway']
+
     def __init__(self):
         self.tags = defaultdict(dict)
         super(TagBackend, self).__init__()
 
-    def create_tag(self, resource_id, key, value):
-        self.tags[resource_id][key] = value
-        return value
+    def create_tags(self, resource_ids, tags):
+        if None in set([tags[tag] for tag in tags]):
+            raise InvalidParameterValueErrorTagNull()
+        for resource_id in resource_ids:
+            if resource_id in self.tags:
+                if len(self.tags[resource_id]) + len(tags) > 10:
+                    raise TagLimitExceeded()
+            elif len(tags) > 10:
+                raise TagLimitExceeded()
+        for resource_id in resource_ids:
+            for tag in tags:
+                self.tags[resource_id][tag] = tags[tag]
+        return True
 
-    def delete_tag(self, resource_id, key):
-        return self.tags[resource_id].pop(key)
+    def delete_tags(self, resource_ids, tags):
+        for resource_id in resource_ids:
+            for tag in tags:
+                if tag in self.tags[resource_id]:
+                    if tags[tag] is None:
+                        self.tags[resource_id].pop(tag)
+                    elif tags[tag] == self.tags[resource_id][tag]:
+                        self.tags[resource_id].pop(tag)
+        return True
 
-    def describe_tags(self, filter_resource_ids=None):
+    def describe_tags(self, filters=None):
+        import re
         results = []
+        key_filters = []
+        resource_id_filters = []
+        resource_type_filters = []
+        value_filters = []
+        if not filters is None:
+            for tag_filter in filters:
+                if tag_filter in self.VALID_TAG_FILTERS:
+                    if tag_filter == 'key':
+                        for value in filters[tag_filter]:
+                            key_filters.append(re.compile(simple_aws_filter_to_re(value)))
+                    if tag_filter == 'resource-id':
+                        for value in filters[tag_filter]:
+                            resource_id_filters.append(re.compile(simple_aws_filter_to_re(value)))
+                    if tag_filter == 'resource-type':
+                        for value in filters[tag_filter]:
+                            if value in self.VALID_TAG_RESOURCE_FILTER_TYPES:
+                                resource_type_filters.append(value)
+                    if tag_filter == 'value':
+                        for value in filters[tag_filter]:
+                            value_filters.append(re.compile(simple_aws_filter_to_re(value)))
         for resource_id, tags in self.tags.items():
-            ami = 'ami' in resource_id
             for key, value in tags.items():
-                if not filter_resource_ids or resource_id in filter_resource_ids:
-                    # If we're not filtering, or we are filtering and this
-                    # resource id is in the filter list, add this tag
+                add_result = False
+                if filters is None:
+                    add_result = True
+                else:
+                    key_pass = False
+                    id_pass = False
+                    type_pass = False
+                    value_pass = False
+                    if key_filters:
+                        for pattern in key_filters:
+                            if pattern.match(key) is not None:
+                                key_pass = True
+                    else:
+                        key_pass = True
+                    if resource_id_filters:
+                        for pattern in resource_id_filters:
+                            if pattern.match(resource_id) is not None:
+                                id_pass = True
+                    else:
+                        id_pass = True
+                    if resource_type_filters:
+                        for resource_type in resource_type_filters:
+                            if EC2_PREFIX_TO_RESOURCE[get_prefix(resource_id)] == resource_type:
+                                type_pass = True
+                    else:
+                        type_pass = True
+                    if value_filters:
+                        for pattern in value_filters:
+                            if pattern.match(value) is not None:
+                                value_pass = True
+                    else:
+                        value_pass = True
+                    if key_pass and id_pass and type_pass and value_pass:
+                        add_result = True
+                        # If we're not filtering, or we are filtering and this
+                if add_result:
                     result = {
                         'resource_id': resource_id,
                         'key': key,
                         'value': value,
-                        'resource_type': 'image' if ami else 'instance',
-                    }
+                        'resource_type': EC2_PREFIX_TO_RESOURCE[get_prefix(resource_id)],
+                        }
                     results.append(result)
         return results
 
 
-class Ami(TaggedEC2Instance):
+class Ami(TaggedEC2Resource):
     def __init__(self, ami_id, instance, name, description):
         self.id = ami_id
         self.state = "available"
@@ -1137,7 +1246,7 @@ class EBSBackend(object):
         return True
 
 
-class VPC(TaggedEC2Instance):
+class VPC(TaggedEC2Resource):
     def __init__(self, vpc_id, cidr_block):
         self.id = vpc_id
         self.cidr_block = cidr_block
@@ -1255,7 +1364,7 @@ class VPCPeeringConnectionStatus(object):
         self.message = 'Inactive'
 
 
-class VPCPeeringConnection(TaggedEC2Instance):
+class VPCPeeringConnection(TaggedEC2Resource):
     def __init__(self, vpc_pcx_id, vpc, peer_vpc):
         self.id = vpc_pcx_id
         self.vpc = vpc
@@ -1319,7 +1428,7 @@ class VPCPeeringConnectionBackend(object):
         return vpc_pcx
 
 
-class Subnet(TaggedEC2Instance):
+class Subnet(TaggedEC2Resource):
     def __init__(self, subnet_id, vpc_id, cidr_block):
         self.id = subnet_id
         self.vpc_id = vpc_id
@@ -1416,7 +1525,7 @@ class SubnetRouteTableAssociationBackend(object):
         return subnet_association
 
 
-class RouteTable(TaggedEC2Instance):
+class RouteTable(TaggedEC2Resource):
     def __init__(self, route_table_id, vpc_id, main=False):
         self.id = route_table_id
         self.vpc_id = vpc_id
@@ -1583,7 +1692,7 @@ class RouteBackend(object):
         return deleted
 
 
-class InternetGateway(TaggedEC2Instance):
+class InternetGateway(TaggedEC2Resource):
     def __init__(self):
         self.id = random_internet_gateway_id()
         self.vpc = None
@@ -1676,7 +1785,7 @@ class VPCGatewayAttachmentBackend(object):
         return attachment
 
 
-class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Instance):
+class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
     def __init__(self, spot_request_id, price, image_id, type, valid_from,
                  valid_until, launch_group, availability_zone_group, key_name,
                  security_groups, user_data, instance_type, placement, kernel_id,
@@ -1715,7 +1824,8 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Instance):
     def get_filter_value(self, filter_name):
         if filter_name == 'state':
             return self.state
-
+        if filter_name == 'spot-instance-request-id':
+            return self.id
         filter_value = super(SpotInstanceRequest, self).get_filter_value(filter_name)
 
         if filter_value is None:
@@ -1893,7 +2003,7 @@ class ElasticAddressBackend(object):
         return True
 
 
-class DHCPOptionsSet(TaggedEC2Instance):
+class DHCPOptionsSet(TaggedEC2Resource):
     def __init__(self, domain_name_servers=None, domain_name=None,
                  ntp_servers=None, netbios_name_servers=None,
                  netbios_node_type=None):
@@ -1983,6 +2093,46 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
               " https://github.com/spulec/moto/issues".format(blurb)
         raise NotImplementedError(msg)
 
+    def do_resources_exist(self, resource_ids):
+        for resource_id in resource_ids:
+            resource_prefix = get_prefix(resource_id)
+            if resource_prefix == EC2_RESOURCE_TO_PREFIX['customer-gateway']:
+                self.raise_not_implemented_error('DescribeCustomerGateways')
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['dhcp-options']:
+                self.describe_dhcp_options(options_ids=[resource_id])
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['image']:
+                self.describe_images(ami_ids=[resource_id])
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['instance']:
+                self.get_instance_by_id(instance_id=resource_id)
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['internet-gateway']:
+                self.describe_internet_gateways(internet_gateway_ids=[resource_id])
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-acl']:
+                self.raise_not_implemented_error('DescribeNetworkAcls')
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-interface']:
+                self.describe_network_interfaces(filters={'network-interface-id': resource_id})
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['reserved-instance']:
+                self.raise_not_implemented_error('DescribeReservedInstances')
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['route-table']:
+                self.raise_not_implemented_error('DescribeRouteTables')
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['security-group']:
+                self.describe_security_groups(group_ids=[resource_id])
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['snapshot']:
+                self.get_snapshot(snapshot_id=resource_id)
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['spot-instance-request']:
+                self.describe_spot_instance_requests(filters={'spot-instance-request-id': resource_id})
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['subnet']:
+                self.get_subnet(subnet_id=resource_id)
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['volume']:
+                self.get_volume(volume_id=resource_id)
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['vpc']:
+                self.get_vpc(vpc_id=resource_id)
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['vpc-peering-connection']:
+                self.get_vpc_peering_connection(vpc_pcx_id=resource_id)
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['vpn-connection']:
+                self.raise_not_implemented_error('DescribeVpnConnections')
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['vpn-gateway']:
+                self.raise_not_implemented_error('DescribeVpnGateways')
+        return True
 
 ec2_backends = {}
 for region in boto.ec2.regions():

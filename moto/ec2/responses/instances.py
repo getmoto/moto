@@ -3,7 +3,8 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations, dict_from_querystring
+from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations, \
+    dict_from_querystring
 
 
 class InstanceResponse(BaseResponse):
