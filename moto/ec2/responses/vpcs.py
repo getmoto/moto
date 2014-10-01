@@ -3,6 +3,7 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backend
+from moto.ec2.utils import filters_from_querystring, vpc_ids_from_querystring
 
 
 class VPCs(BaseResponse):
@@ -19,7 +20,9 @@ class VPCs(BaseResponse):
         return template.render(vpc=vpc)
 
     def describe_vpcs(self):
-        vpcs = ec2_backend.get_all_vpcs()
+        vpc_ids = vpc_ids_from_querystring(self.querystring)
+        filters = filters_from_querystring(self.querystring)
+        vpcs = ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
         template = Template(DESCRIBE_VPCS_RESPONSE)
         return template.render(vpcs=vpcs)
 
