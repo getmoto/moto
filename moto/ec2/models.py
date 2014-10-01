@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
-import six
 import copy
 import itertools
 from collections import defaultdict
 
+import six
 import boto
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
@@ -70,7 +70,7 @@ from .utils import (
     random_volume_id,
     random_vpc_id,
     random_vpc_peering_connection_id,
-)
+    generic_filter)
 
 
 class InstanceState(object):
@@ -88,10 +88,18 @@ class TaggedEC2Instance(object):
         tags = self.get_tags()
 
         if filter_name.startswith('tag:'):
-            tagname = filter_name.split('tag:')[1]
+            tagname = filter_name.replace('tag:', '', 1)
             for tag in tags:
                 if tag['key'] == tagname:
                     return tag['value']
+
+            return ''
+
+        if filter_name == 'tag-key':
+            return [tag['key'] for tag in tags]
+
+        if filter_name == 'tag-value':
+            return [tag['value'] for tag in tags]
 
 
 class NetworkInterface(object):
@@ -615,12 +623,13 @@ class Ami(TaggedEC2Instance):
             return self.id
         elif filter_name == 'state':
             return self.state
-        elif filter_name.startswith('tag:'):
-            tag_name = filter_name.replace('tag:', '', 1)
-            tags = dict((tag['key'], tag['value']) for tag in self.get_tags())
-            return tags.get(tag_name)
-        else:
+
+        filter_value = super(Ami, self).get_filter_value(filter_name)
+
+        if filter_value is None:
             ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeImages".format(filter_name))
+
+        return filter_value
 
 
 class AmiBackend(object):
@@ -639,9 +648,8 @@ class AmiBackend(object):
     def describe_images(self, ami_ids=(), filters=None):
         if filters:
             images = self.amis.values()
-            for (_filter, _filter_value) in filters.items():
-                images = [ ami for ami in images if ami.get_filter_value(_filter) in _filter_value ]
-            return images
+
+            return generic_filter(filters, images)
         else:
             images = []
             for ami_id in ami_ids:
@@ -1159,11 +1167,8 @@ class VPC(TaggedEC2Instance):
 
         filter_value = super(VPC, self).get_filter_value(filter_name)
 
-        if not filter_value:
-            msg = "The filter '{0}' for DescribeVPCs has not been" \
-                  " implemented in Moto yet. Feel free to open an issue at" \
-                  " https://github.com/spulec/moto/issues".format(filter_name)
-            raise NotImplementedError(msg)
+        if filter_value is None:
+            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeVPCs".format(filter_name))
 
         return filter_value
 
@@ -1198,11 +1203,7 @@ class VPCBackend(object):
         else:
             vpcs = self.vpcs.values()
 
-        if filters:
-            for (_filter, _filter_value) in filters.items():
-                vpcs = [ vpc for vpc in vpcs if vpc.get_filter_value(_filter) in _filter_value ]
-
-        return vpcs
+        return generic_filter(filters, vpcs)
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
@@ -1346,11 +1347,13 @@ class Subnet(TaggedEC2Instance):
             return self.vpc_id
         elif filter_name == 'subnet-id':
             return self.id
-        else:
-            msg = "The filter '{0}' for DescribeSubnets has not been" \
-                  " implemented in Moto yet. Feel free to open an issue at" \
-                  " https://github.com/spulec/moto/issues".format(filter_name)
-            raise NotImplementedError(msg)
+
+        filter_value = super(Subnet, self).get_filter_value(filter_name)
+
+        if filter_value is None:
+            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSubnets".format(filter_name))
+
+        return filter_value
 
 
 class SubnetBackend(object):
@@ -1374,11 +1377,7 @@ class SubnetBackend(object):
     def get_all_subnets(self, filters=None):
         subnets = self.subnets.values()
 
-        if filters:
-            for (_filter, _filter_value) in filters.items():
-                subnets = [ subnet for subnet in subnets if subnet.get_filter_value(_filter) in _filter_value ]
-
-        return subnets
+        return generic_filter(filters, subnets)
 
     def delete_subnet(self, subnet_id):
         deleted = self.subnets.pop(subnet_id, None)
@@ -1417,7 +1416,7 @@ class SubnetRouteTableAssociationBackend(object):
         return subnet_association
 
 
-class RouteTable(object):
+class RouteTable(TaggedEC2Instance):
     def __init__(self, route_table_id, vpc_id, main=False):
         self.id = route_table_id
         self.vpc_id = vpc_id
@@ -1450,11 +1449,13 @@ class RouteTable(object):
                 return 'false'
         elif filter_name == "vpc-id":
             return self.vpc_id
-        else:
-            msg = "The filter '{0}' for DescribeRouteTables has not been" \
-                  " implemented in Moto yet. Feel free to open an issue at" \
-                  " https://github.com/spulec/moto/issues".format(filter_name)
-            raise NotImplementedError(msg)
+
+        filter_value = super(RouteTable, self).get_filter_value(filter_name)
+
+        if filter_value is None:
+            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeRouteTables".format(filter_name))
+
+        return filter_value
 
 
 class RouteTableBackend(object):
@@ -1488,11 +1489,7 @@ class RouteTableBackend(object):
                 invalid_id = list(set(route_table_ids).difference(set([route_table.id for route_table in route_tables])))[0]
                 raise InvalidRouteTableIdError(invalid_id)
 
-        if filters:
-            for (_filter, _filter_value) in filters.items():
-                route_tables = [ route_table for route_table in route_tables if route_table.get_filter_value(_filter) in _filter_value ]
-
-        return route_tables
+        return generic_filter(filters, route_tables)
 
     def delete_route_table(self, route_table_id):
         deleted = self.route_tables.pop(route_table_id, None)
@@ -1718,12 +1715,13 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Instance):
     def get_filter_value(self, filter_name):
         if filter_name == 'state':
             return self.state
-        elif filter_name.startswith('tag:'):
-            tag_name = filter_name.replace('tag:', '', 1)
-            tags = dict((tag['key'], tag['value']) for tag in self.get_tags())
-            return tags.get(tag_name)
-        else:
+
+        filter_value = super(SpotInstanceRequest, self).get_filter_value(filter_name)
+
+        if filter_value is None:
             ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSpotInstanceRequests".format(filter_name))
+
+        return filter_value
 
 
 @six.add_metaclass(Model)
@@ -1754,11 +1752,7 @@ class SpotRequestBackend(object):
     def describe_spot_instance_requests(self, filters=None):
         requests = self.spot_instance_requests.values()
 
-        if filters:
-            for (_filter, _filter_value) in filters.items():
-                requests = [ request for request in requests if request.get_filter_value(_filter) in _filter_value ]
-
-        return requests
+        return generic_filter(filters, requests)
 
     def cancel_spot_instance_requests(self, request_ids):
         requests = []
