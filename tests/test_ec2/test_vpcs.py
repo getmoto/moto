@@ -76,7 +76,7 @@ def test_vpc_get_by_id():
 
     vpcs = conn.get_all_vpcs(vpc_ids=[vpc1.id, vpc2.id])
     vpcs.should.have.length_of(2)
-    vpc_ids = map(lambda v: v.id, vpcs)
+    vpc_ids = tuple(map(lambda v: v.id, vpcs))
     vpc1.id.should.be.within(vpc_ids)
     vpc2.id.should.be.within(vpc_ids)
 
@@ -90,7 +90,7 @@ def test_vpc_get_by_cidr_block():
 
     vpcs = conn.get_all_vpcs(filters={'cidr': '10.0.0.0/16'})
     vpcs.should.have.length_of(2)
-    vpc_ids = map(lambda v: v.id, vpcs)
+    vpc_ids = tuple(map(lambda v: v.id, vpcs))
     vpc1.id.should.be.within(vpc_ids)
     vpc2.id.should.be.within(vpc_ids)
 
@@ -108,7 +108,7 @@ def test_vpc_get_by_dhcp_options_id():
 
     vpcs = conn.get_all_vpcs(filters={'dhcp-options-id': dhcp_options.id})
     vpcs.should.have.length_of(2)
-    vpc_ids = map(lambda v: v.id, vpcs)
+    vpc_ids = tuple(map(lambda v: v.id, vpcs))
     vpc1.id.should.be.within(vpc_ids)
     vpc2.id.should.be.within(vpc_ids)
 
@@ -126,6 +126,6 @@ def test_vpc_get_by_tag():
 
     vpcs = conn.get_all_vpcs(filters={'tag:Name': 'TestVPC'})
     vpcs.should.have.length_of(2)
-    vpc_ids = map(lambda v: v.id, vpcs)
+    vpc_ids = tuple(map(lambda v: v.id, vpcs))
     vpc1.id.should.be.within(vpc_ids)
     vpc2.id.should.be.within(vpc_ids)
