@@ -604,9 +604,7 @@ class Ami(TaggedEC2Instance):
             self.description = description if description else source_ami.description
 
         self.launch_permission_groups = set()
-        self.autocreate_volume_and_snapshot()
 
-    def autocreate_volume_and_snapshot(self):
         # AWS auto-creates these, we should reflect the same.
         volume = ec2_backend.create_volume(15, "us-east-1a")
         self.ebs_snapshot = ec2_backend.create_snapshot(volume.id, "Auto-created snapshot for AMI %s" % self.id)
