@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
-import six
 import copy
 import itertools
 from collections import defaultdict
 
+import six
 import boto
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
@@ -70,7 +70,7 @@ from .utils import (
     random_volume_id,
     random_vpc_id,
     random_vpc_peering_connection_id,
-)
+    generic_filter)
 
 
 class InstanceState(object):
@@ -92,6 +92,12 @@ class TaggedEC2Instance(object):
             for tag in tags:
                 if tag['key'] == tagname:
                     return tag['value']
+
+        if filter_name == 'tag-key':
+            return [tag['key'] for tag in tags]
+
+        if filter_name == 'tag-value':
+            return [tag['value'] for tag in tags]
 
 
 class NetworkInterface(object):
@@ -1159,7 +1165,7 @@ class VPC(TaggedEC2Instance):
 
         filter_value = super(VPC, self).get_filter_value(filter_name)
 
-        if not filter_value:
+        if filter_value is None:
             msg = "The filter '{0}' for DescribeVPCs has not been" \
                   " implemented in Moto yet. Feel free to open an issue at" \
                   " https://github.com/spulec/moto/issues".format(filter_name)
@@ -1198,11 +1204,7 @@ class VPCBackend(object):
         else:
             vpcs = self.vpcs.values()
 
-        if filters:
-            for (_filter, _filter_value) in filters.items():
-                vpcs = [ vpc for vpc in vpcs if vpc.get_filter_value(_filter) in _filter_value ]
-
-        return vpcs
+        return generic_filter(filters, vpcs)
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
