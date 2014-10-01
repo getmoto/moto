@@ -286,9 +286,17 @@ def is_filter_matching(obj, filter, filter_value):
 
     try:
         value = set(value)
-        return value.issubset(filter_value) or value.issuperset(filter_value)
+        return (value and value.issubset(filter_value)) or value.issuperset(filter_value)
     except TypeError:
         return value in filter_value
+
+
+def generic_filter(filters, objects):
+    if filters:
+        for (_filter, _filter_value) in filters.items():
+            objects = [obj for obj in objects if is_filter_matching(obj, _filter, _filter_value)]
+
+    return objects
 
 
 # not really random ( http://xkcd.com/221/ )

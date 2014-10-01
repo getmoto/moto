@@ -150,6 +150,7 @@ def test_vpc_get_by_tag_key_superset():
     vpc1.id.should.be.within(vpc_ids)
     vpc2.id.should.be.within(vpc_ids)
 
+
 @mock_ec2
 def test_vpc_get_by_tag_key_subset():
     conn = boto.connect_vpc()
@@ -164,6 +165,45 @@ def test_vpc_get_by_tag_key_subset():
     vpc3.add_tag('Test', 'TestVPC2')
 
     vpcs = conn.get_all_vpcs(filters={'tag-key': ['Name', 'Key']})
+    vpcs.should.have.length_of(2)
+    vpc_ids = tuple(map(lambda v: v.id, vpcs))
+    vpc1.id.should.be.within(vpc_ids)
+    vpc2.id.should.be.within(vpc_ids)
+
+
+@mock_ec2
+def test_vpc_get_by_tag_value_superset():
+    conn = boto.connect_vpc()
+    vpc1 = conn.create_vpc("10.0.0.0/16")
+    vpc2 = conn.create_vpc("10.0.0.0/16")
+    vpc3 = conn.create_vpc("10.0.0.0/24")
+
+    vpc1.add_tag('Name', 'TestVPC')
+    vpc1.add_tag('Key', 'TestVPC2')
+    vpc2.add_tag('Name', 'TestVPC')
+    vpc2.add_tag('Key', 'TestVPC2')
+    vpc3.add_tag('Key', 'TestVPC2')
+
+    vpcs = conn.get_all_vpcs(filters={'tag-value': 'TestVPC'})
+    vpcs.should.have.length_of(2)
+    vpc_ids = tuple(map(lambda v: v.id, vpcs))
+    vpc1.id.should.be.within(vpc_ids)
+    vpc2.id.should.be.within(vpc_ids)
+
+
+@mock_ec2
+def test_vpc_get_by_tag_value_subset():
+    conn = boto.connect_vpc()
+    vpc1 = conn.create_vpc("10.0.0.0/16")
+    vpc2 = conn.create_vpc("10.0.0.0/16")
+    vpc3 = conn.create_vpc("10.0.0.0/24")
+
+    vpc1.add_tag('Name', 'TestVPC')
+    vpc1.add_tag('Key', 'TestVPC2')
+    vpc2.add_tag('Name', 'TestVPC')
+    vpc2.add_tag('Key', 'TestVPC2')
+
+    vpcs = conn.get_all_vpcs(filters={'tag-value': ['TestVPC', 'TestVPC2']})
     vpcs.should.have.length_of(2)
     vpc_ids = tuple(map(lambda v: v.id, vpcs))
     vpc1.id.should.be.within(vpc_ids)
