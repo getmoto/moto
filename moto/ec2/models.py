@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
-import six
 import copy
 import itertools
 from collections import defaultdict
 
+import six
 import boto
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
@@ -70,7 +70,7 @@ from .utils import (
     random_volume_id,
     random_vpc_id,
     random_vpc_peering_connection_id,
-)
+    is_filter_matching)
 
 
 class InstanceState(object):
@@ -92,6 +92,9 @@ class TaggedEC2Instance(object):
             for tag in tags:
                 if tag['key'] == tagname:
                     return tag['value']
+
+        if filter_name == 'tag-key':
+            return [tag['key'] for tag in tags]
 
 
 class NetworkInterface(object):
@@ -1194,7 +1197,7 @@ class VPCBackend(object):
 
         if filters:
             for (_filter, _filter_value) in filters.items():
-                vpcs = [ vpc for vpc in vpcs if vpc.get_filter_value(_filter) in _filter_value ]
+                vpcs = [ vpc for vpc in vpcs if is_filter_matching(vpc, _filter, _filter_value) ]
 
         return vpcs
 

@@ -278,6 +278,19 @@ def filter_reservations(reservations, filter_dict):
     return result
 
 
+def is_filter_matching(obj, filter, filter_value):
+    value = obj.get_filter_value(filter)
+
+    if isinstance(value, six.string_types):
+        return value in filter_value
+
+    try:
+        value = set(value)
+        return value.issubset(filter_value) or value.issuperset(filter_value)
+    except TypeError:
+        return value in filter_value
+
+
 # not really random ( http://xkcd.com/221/ )
 def random_key_pair():
     return {

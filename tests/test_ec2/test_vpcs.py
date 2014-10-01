@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 # Ensure 'assert_raises' context manager support for Python 2.6
-#import tests.backport_assert_raises
+# import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import boto
@@ -125,6 +125,45 @@ def test_vpc_get_by_tag():
     vpc3.add_tag('Name', 'TestVPC2')
 
     vpcs = conn.get_all_vpcs(filters={'tag:Name': 'TestVPC'})
+    vpcs.should.have.length_of(2)
+    vpc_ids = tuple(map(lambda v: v.id, vpcs))
+    vpc1.id.should.be.within(vpc_ids)
+    vpc2.id.should.be.within(vpc_ids)
+
+
+@mock_ec2
+def test_vpc_get_by_tag_key_superset():
+    conn = boto.connect_vpc()
+    vpc1 = conn.create_vpc("10.0.0.0/16")
+    vpc2 = conn.create_vpc("10.0.0.0/16")
+    vpc3 = conn.create_vpc("10.0.0.0/24")
+
+    vpc1.add_tag('Name', 'TestVPC')
+    vpc1.add_tag('Key', 'TestVPC2')
+    vpc2.add_tag('Name', 'TestVPC')
+    vpc2.add_tag('Key', 'TestVPC2')
+    vpc3.add_tag('Key', 'TestVPC2')
+
+    vpcs = conn.get_all_vpcs(filters={'tag-key': 'Name'})
+    vpcs.should.have.length_of(2)
+    vpc_ids = tuple(map(lambda v: v.id, vpcs))
+    vpc1.id.should.be.within(vpc_ids)
+    vpc2.id.should.be.within(vpc_ids)
+
+@mock_ec2
+def test_vpc_get_by_tag_key_subset():
+    conn = boto.connect_vpc()
+    vpc1 = conn.create_vpc("10.0.0.0/16")
+    vpc2 = conn.create_vpc("10.0.0.0/16")
+    vpc3 = conn.create_vpc("10.0.0.0/24")
+
+    vpc1.add_tag('Name', 'TestVPC')
+    vpc1.add_tag('Key', 'TestVPC2')
+    vpc2.add_tag('Name', 'TestVPC')
+    vpc2.add_tag('Key', 'TestVPC2')
+    vpc3.add_tag('Test', 'TestVPC2')
+
+    vpcs = conn.get_all_vpcs(filters={'tag-key': ['Name', 'Key']})
     vpcs.should.have.length_of(2)
     vpc_ids = tuple(map(lambda v: v.id, vpcs))
     vpc1.id.should.be.within(vpc_ids)
