@@ -163,7 +163,7 @@ class ResponseObject(object):
             return 409, headers, template.render(bucket=removed_bucket)
 
     def _bucket_response_post(self, request, bucket_name, headers):
-        if request.path == u'/?delete':
+        if request.path.endswith(u'/?delete'):
             return self._bucket_response_delete_keys(request, bucket_name, headers)
 
         #POST to bucket-url should create file from form
@@ -242,7 +242,16 @@ class ResponseObject(object):
         query = parse_qs(parsed_url.query)
         method = request.method
 
-        key_name = self.parse_key_name(parsed_url.path)
+        # Check for "ordinary calling convention"
+        if parsed_url.netloc.endswith('.amazonaws.com') and len(parsed_url.netloc.split('.')) == 3:
+            try: key_path = self.parse_key_name(parsed_url.path.split('/', 2)[2])
+            except IndexError: key_path = ''
+            if key_path == '':
+                return self.bucket_response(request, full_url, headers)
+        else:
+            key_path = parsed_url.path
+
+        key_name = self.parse_key_name(key_path)
         bucket_name = self.bucket_name_from_url(full_url)
 
         if hasattr(request, 'body'):

@@ -6,6 +6,10 @@ from moto.s3.utils import bucket_name_from_url, _VersionedKeyStore
 def test_base_url():
     expect(bucket_name_from_url('https://s3.amazonaws.com/')).should.equal(None)
 
+def test_base_url_ordinary_calling():
+    expect(bucket_name_from_url('https://s3.amazonaws.com/bucket/')).should.equal('bucket')
+    expect(bucket_name_from_url('https://s3.amazonaws.com/bucket/key')).should.equal('bucket')
+
 
 def test_localhost_bucket():
     expect(bucket_name_from_url('https://wfoobar.localhost:5000/abc')).should.equal("wfoobar")
