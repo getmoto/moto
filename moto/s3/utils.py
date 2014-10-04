@@ -10,7 +10,7 @@ def bucket_name_from_url(url):
     parsed_url = urlparse(url)
     domain = parsed_url.netloc
 
-    if domain == 's3.amazonaws.com':
+    if domain.endswith('.amazonaws.com') and len(domain.split('.')) == 3:
         bucket = parsed_url.path.split('/', 2)[1] or None
         print 'bucket name from URL', url, bucket
         return bucket

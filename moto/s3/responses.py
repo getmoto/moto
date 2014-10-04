@@ -243,7 +243,7 @@ class ResponseObject(object):
         method = request.method
 
         # Check for "ordinary calling convention"
-        if parsed_url.netloc == 's3.amazonaws.com':
+        if parsed_url.netloc.endswith('.amazonaws.com') and len(parsed_url.netloc.split('.')) == 3:
             try: key_path = self.parse_key_name(parsed_url.path.split('/', 2)[2])
             except IndexError: key_path = ''
             if key_path == '':
