@@ -7,7 +7,13 @@ bucket_name_regex = re.compile("(.+).s3.amazonaws.com")
 
 
 def bucket_name_from_url(url):
-    domain = urlparse(url).netloc
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc
+
+    if domain == 's3.amazonaws.com':
+        bucket = parsed_url.path.split('/', 2)[1] or None
+        print 'bucket name from URL', url, bucket
+        return bucket
 
     if domain.startswith('www.'):
         domain = domain[4:]
