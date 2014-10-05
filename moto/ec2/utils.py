@@ -28,7 +28,7 @@ EC2_RESOURCE_TO_PREFIX = {
     'vpn-gateway': 'vgw'}
 
 
-EC2_PREFIX_TO_RESOURCE = {v: k for k, v in EC2_RESOURCE_TO_PREFIX.items()}
+EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
 
 
 def random_id(prefix=''):
