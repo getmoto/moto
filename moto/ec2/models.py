@@ -593,19 +593,33 @@ class TagBackend(object):
 
 
 class Ami(TaggedEC2Instance):
-    def __init__(self, ami_id, instance, name, description):
+    def __init__(self, ami_id, instance=None, source_ami=None, name=None, description=None):
         self.id = ami_id
         self.state = "available"
 
-        self.instance = instance
-        self.instance_id = instance.id
-        self.virtualization_type = instance.virtualization_type
-        self.architecture = instance.architecture
-        self.kernel_id = instance.kernel
-        self.platform = instance.platform
+        if instance:
+            self.instance = instance
+            self.instance_id = instance.id
+            self.virtualization_type = instance.virtualization_type
+            self.architecture = instance.architecture
+            self.kernel_id = instance.kernel
+            self.platform = instance.platform
+            self.name = name
+            self.description = description
 
-        self.name = name
-        self.description = description
+        elif source_ami:
+            """
+              http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/CopyingAMIs.html
+              "We don't copy launch permissions, user-defined tags, or Amazon S3 bucket permissions from the source AMI to the new AMI."
+              ~ 2014.09.29
+            """
+            self.virtualization_type = source_ami.virtualization_type
+            self.architecture = source_ami.architecture
+            self.kernel_id = source_ami.kernel_id
+            self.platform = source_ami.platform
+            self.name = name if name else source_ami.name
+            self.description = description if description else source_ami.description
+
         self.launch_permission_groups = set()
 
         # AWS auto-creates these, we should reflect the same.
@@ -637,11 +651,18 @@ class AmiBackend(object):
         self.amis = {}
         super(AmiBackend, self).__init__()
 
-    def create_image(self, instance_id, name, description):
+    def create_image(self, instance_id, name=None, description=None):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
-        ami = Ami(ami_id, instance, name, description)
+        ami = Ami(ami_id, instance=instance, source_ami=None, name=name, description=description)
+        self.amis[ami_id] = ami
+        return ami
+
+    def copy_image(self, source_image_id, source_region, name=None, description=None):
+        source_ami = ec2_backends[source_region].describe_images(ami_ids=[source_image_id])[0]
+        ami_id = random_ami_id()
+        ami = Ami(ami_id, instance=None, source_ami=source_ami, name=name, description=description)
         self.amis[ami_id] = ami
         return ami
 
