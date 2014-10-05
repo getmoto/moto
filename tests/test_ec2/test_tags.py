@@ -39,6 +39,9 @@ def test_remove_tag():
     instance.remove_tag("a key")
     conn.get_all_tags().should.have.length_of(0)
 
+    instance.add_tag("a key", "some value")
+    conn.get_all_tags().should.have.length_of(1)
+    instance.remove_tag("a key", "some value")
 
 @mock_ec2
 def test_get_all_tags():
@@ -115,6 +118,22 @@ def test_invalid_parameter_tag_null():
     with assert_raises(EC2ResponseError) as cm:
         instance.add_tag("a key", None)
     cm.exception.code.should.equal('InvalidParameterValue')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_invalid_id():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    with assert_raises(EC2ResponseError) as cm:
+        conn.create_tags('ami-blah', {'key': 'tag'})
+    cm.exception.code.should.equal('InvalidID')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    with assert_raises(EC2ResponseError) as cm:
+        conn.create_tags('blah-blah', {'key': 'tag'})
+    cm.exception.code.should.equal('InvalidID')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
