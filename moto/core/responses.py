@@ -64,9 +64,9 @@ class BaseResponse(object):
                 querystring[key] = [value, ]
 
         if not querystring:
-            querystring.update(parse_qs(urlparse(full_url).query))
+            querystring.update(parse_qs(urlparse(full_url).query, keep_blank_values=True))
         if not querystring:
-            querystring.update(parse_qs(self.body))
+            querystring.update(parse_qs(self.body, keep_blank_values=True))
         if not querystring:
             querystring.update(headers)
 
