@@ -221,3 +221,14 @@ def test_get_all_security_groups():
 
     resp = conn.get_all_security_groups()
     resp.should.have.length_of(2)
+
+
+@mock_ec2
+def test_authorize_bad_cidr_throws_invalid_parameter_value():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    security_group = conn.create_security_group('test', 'test')
+    with assert_raises(EC2ResponseError) as cm:
+        security_group.authorize(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123")
+    cm.exception.code.should.equal('InvalidParameterValue')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none

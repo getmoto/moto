@@ -380,3 +380,10 @@ def is_valid_resource_id(resource_id):
     resource_id_pattern = resource_id_prefix + '-[0-9a-f]{8}'
     resource_pattern_re = re.compile(resource_id_pattern)
     return resource_pattern_re.match(resource_id) is not None
+
+
+def is_valid_cidr(cird):
+    import re
+    cidr_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$'
+    cidr_pattern_re = re.compile(cidr_pattern)
+    return cidr_pattern_re.match(cird) is not None

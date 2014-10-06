@@ -48,7 +48,8 @@ from .exceptions import (
     InvalidVPCPeeringConnectionIdError,
     InvalidVPCPeeringConnectionStateTransitionError,
     TagLimitExceeded,
-    InvalidID
+    InvalidID,
+    InvalidCIDRSubnetError
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -78,7 +79,8 @@ from .utils import (
     generic_filter,
     is_valid_resource_id,
     get_prefix,
-    simple_aws_filter_to_re)
+    simple_aws_filter_to_re,
+    is_valid_cidr)
 
 
 def validate_resource_ids(resource_ids):
@@ -1060,6 +1062,10 @@ class SecurityGroupBackend(object):
 
         if ip_ranges and not isinstance(ip_ranges, list):
             ip_ranges = [ip_ranges]
+        if ip_ranges:
+            for cidr in ip_ranges:
+                if not is_valid_cidr(cidr):
+                    raise InvalidCIDRSubnetError(cidr=cidr)
 
         source_group_names = source_group_names if source_group_names else []
         source_group_ids = source_group_ids if source_group_ids else []
