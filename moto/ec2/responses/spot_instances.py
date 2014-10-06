@@ -96,6 +96,7 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
         <updateTime>YYYY-MM-DDTHH:MM:SS.000Z</updateTime>
         <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
       </status>
+      <instanceId>{{ request.instance_id }}</instanceId>
       <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
       <launchSpecification>
         <imageId>{{ request.launch_specification.image_id }}</imageId>
@@ -150,6 +151,7 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
         <updateTime>YYYY-MM-DDTHH:MM:SS.000Z</updateTime>
         <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
       </status>
+      <instanceId>{{ request.instance_id }}</instanceId>
       {% if request.availability_zone_group %}
         <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
       {% endif %}
