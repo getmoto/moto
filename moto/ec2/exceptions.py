@@ -238,6 +238,13 @@ class InvalidParameterValueError(EC2ClientError):
             .format(parameter_value))
 
 
+class InvalidParameterValueErrorTagNull(EC2ClientError):
+    def __init__(self):
+        super(InvalidParameterValueErrorTagNull, self).__init__(
+            "InvalidParameterValue",
+            "Tag value cannot be null. Use empty string instead.")
+
+
 class InvalidInternetGatewayIdError(EC2ClientError):
     def __init__(self, internet_gateway_id):
         super(InvalidInternetGatewayIdError, self).__init__(
@@ -259,6 +266,21 @@ class ResourceAlreadyAssociatedError(EC2ClientError):
         super(ResourceAlreadyAssociatedError, self).__init__(
             "Resource.AlreadyAssociated",
             "Resource {0} is already associated."
+            .format(resource_id))
+
+
+class TagLimitExceeded(EC2ClientError):
+    def __init__(self):
+        super(TagLimitExceeded, self).__init__(
+            "TagLimitExceeded",
+            "The maximum number of Tags for a resource has been reached.")
+
+
+class InvalidID(EC2ClientError):
+    def __init__(self, resource_id):
+        super(InvalidID, self).__init__(
+            "InvalidID",
+            "The ID '{0}' is not valid"
             .format(resource_id))
 
 

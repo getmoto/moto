@@ -3,81 +3,108 @@ import random
 import re
 import six
 
+EC2_RESOURCE_TO_PREFIX = {
+    'customer-gateway': 'cgw',
+    'dhcp-options': 'dopt',
+    'image': 'ami',
+    'instance': 'i',
+    'internet-gateway': 'igw',
+    'network-acl': 'acl',
+    'network-interface': 'eni',
+    'network-interface-attachment': 'eni-attach',
+    'reserved-instance': 'uuid4',
+    'route-table': 'rtb',
+    'security-group': 'sg',
+    'snapshot': 'snap',
+    'spot-instance-request': 'sir',
+    'subnet': 'subnet',
+    'reservation': 'r',
+    'volume': 'vol',
+    'vpc': 'vpc',
+    'vpc-elastic-ip': 'eipalloc',
+    'vpc-elastic-ip-association': 'eipassoc',
+    'vpc-peering-connection': 'pcx',
+    'vpn-connection': 'vpn',
+    'vpn-gateway': 'vgw'}
+
+
+EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
+
 
 def random_id(prefix=''):
     size = 8
     chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
 
-    instance_tag = ''.join(six.text_type(random.choice(chars)) for x in range(size))
-    return '{0}-{1}'.format(prefix, instance_tag)
+    resource_id = ''.join(six.text_type(random.choice(chars)) for x in range(size))
+    return '{0}-{1}'.format(prefix, resource_id)
 
 
 def random_ami_id():
-    return random_id(prefix='ami')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['image'])
 
 
 def random_instance_id():
-    return random_id(prefix='i')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['instance'])
 
 
 def random_reservation_id():
-    return random_id(prefix='r')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['reservation'])
 
 
 def random_security_group_id():
-    return random_id(prefix='sg')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['security-group'])
 
 
 def random_snapshot_id():
-    return random_id(prefix='snap')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['snapshot'])
 
 
 def random_spot_request_id():
-    return random_id(prefix='sir')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['spot-instance-request'])
 
 
 def random_subnet_id():
-    return random_id(prefix='subnet')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['subnet'])
 
 
 def random_volume_id():
-    return random_id(prefix='vol')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['volume'])
 
 
 def random_vpc_id():
-    return random_id(prefix='vpc')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc'])
 
 
 def random_vpc_peering_connection_id():
-    return random_id(prefix='pcx')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc-peering-connection'])
 
 
 def random_eip_association_id():
-    return random_id(prefix='eipassoc')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc-elastic-ip-association'])
 
 
 def random_internet_gateway_id():
-    return random_id(prefix='igw')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['internet-gateway'])
 
 
 def random_route_table_id():
-    return random_id(prefix='rtb')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['route-table'])
 
 
 def random_eip_allocation_id():
-    return random_id(prefix='eipalloc')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc-elastic-ip'])
 
 
 def random_dhcp_option_id():
-    return random_id(prefix='dopt')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['dhcp-options'])
 
 
 def random_eni_id():
-    return random_id(prefix='eni')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['network-interface'])
 
 
 def random_eni_attach_id():
-    return random_id(prefix='eni-attach')
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['network-interface-attachment'])
 
 
 def random_public_ip():
@@ -142,21 +169,19 @@ def sequence_from_querystring(parameter, querystring_dict):
     return parameter_values
 
 
-def resource_ids_from_querystring(querystring_dict):
-    prefix = 'ResourceId'
+def tags_from_query_string(querystring_dict):
+    prefix = 'Tag'
+    suffix = 'Key'
     response_values = {}
     for key, value in querystring_dict.items():
-        if key.startswith(prefix):
-            resource_index = key.replace(prefix + ".", "")
-            tag_key = querystring_dict.get("Tag.{0}.Key".format(resource_index))[0]
-
-            tag_value_key = "Tag.{0}.Value".format(resource_index)
+        if key.startswith(prefix) and key.endswith(suffix):
+            tag_index = key.replace(prefix + ".", "").replace("." + suffix, "")
+            tag_key = querystring_dict.get("Tag.{0}.Key".format(tag_index))[0]
+            tag_value_key = "Tag.{0}.Value".format(tag_index)
             if tag_value_key in querystring_dict:
-                tag_value = querystring_dict.get(tag_value_key)[0]
+                response_values[tag_key] = querystring_dict.get(tag_value_key)[0]
             else:
-                tag_value = None
-            response_values[value[0]] = (tag_key, tag_value)
-
+                response_values[tag_key] = None
     return response_values
 
 
@@ -299,6 +324,14 @@ def generic_filter(filters, objects):
     return objects
 
 
+def simple_aws_filter_to_re(filter_string):
+    import fnmatch
+    tmp_filter = filter_string.replace('\?','[?]')
+    tmp_filter = tmp_filter.replace('\*','[*]')
+    tmp_filter = fnmatch.translate(tmp_filter)
+    return tmp_filter
+
+
 # not really random ( http://xkcd.com/221/ )
 def random_key_pair():
     return {
@@ -321,3 +354,29 @@ FFBjvSfpJIlJ00zbhNYS5f6GuoEDmFJl0ZxBHjJnyp378OD8uTs7fLvjx79LjSTb
 NYiytVbZPQUQ5Yaxu2jXnimvw3rrszlaEXAMPLE
 -----END RSA PRIVATE KEY-----"""
     }
+
+
+def get_prefix(resource_id):
+    resource_id_prefix, separator, after = resource_id.partition('-')
+    if resource_id_prefix == EC2_RESOURCE_TO_PREFIX['network-interface']:
+        if after.startswith('attach'):
+            resource_id_prefix = EC2_RESOURCE_TO_PREFIX['network-interface-attachment']
+    if not resource_id_prefix in EC2_RESOURCE_TO_PREFIX.values():
+        import re
+        uuid4hex = re.compile('[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}\Z', re.I)
+        if uuid4hex.match(resource_id) is not None:
+            resource_id_prefix = EC2_RESOURCE_TO_PREFIX['reserved-instance']
+        else:
+            return None
+    return resource_id_prefix
+
+
+def is_valid_resource_id(resource_id):
+    import re
+    valid_prefixes = EC2_RESOURCE_TO_PREFIX.values()
+    resource_id_prefix = get_prefix(resource_id)
+    if not resource_id_prefix in valid_prefixes:
+        return False
+    resource_id_pattern = resource_id_prefix + '-[0-9a-f]{8}'
+    resource_pattern_re = re.compile(resource_id_pattern)
+    return resource_pattern_re.match(resource_id) is not None
