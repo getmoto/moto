@@ -180,3 +180,18 @@ def test_get_all_spot_instance_requests_filtering():
 
     requests = conn.get_all_spot_instance_requests(filters={'tag:tag1' : 'value1', 'tag:tag2' : 'value2'})
     requests.should.have.length_of(1)
+
+
+@mock_ec2
+def test_request_spot_instances_setting_instance_id():
+    conn = boto.connect_ec2()
+    request = conn.request_spot_instances(
+        price=0.5, image_id='ami-abcd1234')
+
+    req = get_model('SpotInstanceRequest')[0]
+    req.state = 'active'
+    req.instance_id = 'i-12345678'
+
+    request = conn.get_all_spot_instance_requests()[0]
+    assert request.state == 'active'
+    assert request.instance_id == 'i-12345678'

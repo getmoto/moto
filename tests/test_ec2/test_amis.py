@@ -9,6 +9,7 @@ from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2
+from tests.helpers import requires_boto_gte
 
 
 @mock_ec2
@@ -46,6 +47,50 @@ def test_ami_create_and_delete():
 
     with assert_raises(EC2ResponseError) as cm:
         conn.deregister_image(image_id)
+    cm.exception.code.should.equal('InvalidAMIID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+
+@requires_boto_gte("2.14.0")
+@mock_ec2
+def test_ami_copy():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+
+    source_image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
+    source_image = conn.get_all_images(image_ids=[source_image_id])[0]
+
+    # Boto returns a 'CopyImage' object with an image_id attribute here. Use the image_id to fetch the full info.
+    copy_image_ref = conn.copy_image(source_image.region.name, source_image.id, "test-copy-ami", "this is a test copy ami")
+    copy_image_id = copy_image_ref.image_id
+    copy_image = conn.get_all_images(image_ids=[copy_image_id])[0]
+
+    copy_image.id.should.equal(copy_image_id)
+    copy_image.virtualization_type.should.equal(source_image.virtualization_type)
+    copy_image.architecture.should.equal(source_image.architecture)
+    copy_image.kernel_id.should.equal(source_image.kernel_id)
+    copy_image.platform.should.equal(source_image.platform)
+
+    # Validate auto-created volume and snapshot
+    conn.get_all_volumes().should.have.length_of(2)
+    conn.get_all_snapshots().should.have.length_of(2)
+
+    copy_image.block_device_mapping.current_value.snapshot_id.should_not.equal(
+        source_image.block_device_mapping.current_value.snapshot_id)
+
+    # Copy from non-existent source ID.
+    with assert_raises(EC2ResponseError) as cm:
+        conn.copy_image(source_image.region.name, 'ami-abcd1234', "test-copy-ami", "this is a test copy ami")
+    cm.exception.code.should.equal('InvalidAMIID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Copy from non-existent source region.
+    with assert_raises(EC2ResponseError) as cm:
+        invalid_region = 'us-east-1' if (source_image.region.name != 'us-east-1') else 'us-west-1'
+        conn.copy_image(invalid_region, source_image.id, "test-copy-ami", "this is a test copy ami")
     cm.exception.code.should.equal('InvalidAMIID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none

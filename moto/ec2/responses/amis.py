@@ -19,6 +19,15 @@ class AmisResponse(BaseResponse):
         template = Template(CREATE_IMAGE_RESPONSE)
         return template.render(image=image)
 
+    def copy_image(self):
+        source_image_id = self.querystring.get('SourceImageId')[0]
+        source_region = self.querystring.get('SourceRegion')[0]
+        name = self.querystring.get('Name')[0] if self.querystring.get('Name') else None
+        description = self.querystring.get('Description')[0] if self.querystring.get('Description') else None
+        image = ec2_backend.copy_image(source_image_id, source_region, name, description)
+        template = Template(COPY_IMAGE_RESPONSE)
+        return template.render(image=image)
+
     def deregister_image(self):
         ami_id = self.querystring.get('ImageId')[0]
         success = ec2_backend.deregister_image(ami_id)
@@ -60,6 +69,11 @@ CREATE_IMAGE_RESPONSE = """<CreateImageResponse xmlns="http://ec2.amazonaws.com/
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <imageId>{{ image.id }}</imageId>
 </CreateImageResponse>"""
+
+COPY_IMAGE_RESPONSE = """<CopyImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+   <requestId>60bc441d-fa2c-494d-b155-5d6a3EXAMPLE</requestId>
+   <imageId>{{ image.id }}</imageId>
+</CopyImageResponse>"""
 
 # TODO almost all of these params should actually be templated based on the ec2 image
 DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">

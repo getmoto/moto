@@ -3,8 +3,10 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
+from .utils import parse_message_attributes
 from .models import sqs_backend
 from .exceptions import (
+    MessageAttributesInvalid,
     MessageNotInflight,
     ReceiptHandleIsInvalid
 )
@@ -93,14 +95,20 @@ class QueueResponse(BaseResponse):
         else:
             delay_seconds = 0
 
+        try:
+            message_attributes = parse_message_attributes(self.querystring)
+        except MessageAttributesInvalid as e:
+            return e.description, dict(status=e.status_code)
+
         queue_name = self.path.split("/")[-1]
         message = sqs_backend.send_message(
             queue_name,
             message,
+            message_attributes=message_attributes,
             delay_seconds=delay_seconds
         )
         template = Template(SEND_MESSAGE_RESPONSE)
-        return template.render(message=message)
+        return template.render(message=message, message_attributes=message_attributes)
 
     def send_message_batch(self):
         """
@@ -131,6 +139,12 @@ class QueueResponse(BaseResponse):
             delay_seconds = self.querystring.get(delay_key, [None])[0]
             message = sqs_backend.send_message(queue_name, message_body[0], delay_seconds=delay_seconds)
             message.user_id = message_user_id
+
+            message_attributes = parse_message_attributes(self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index), value_namespace='')
+            if type(message_attributes) == tuple:
+                return message_attributes[0], message_attributes[1]
+            message.message_attributes = message_attributes
+
             messages.append(message)
 
         template = Template(SEND_MESSAGE_BATCH_RESPONSE)
@@ -252,6 +266,9 @@ SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
         <MD5OfMessageBody>
             {{ message.md5 }}
         </MD5OfMessageBody>
+        {% if message.message_attributes.items()|count > 0 %}
+          <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+        {% endif %}
         <MessageId>
             {{ message.id }}
         </MessageId>
@@ -287,6 +304,22 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
             <Name>ApproximateFirstReceiveTimestamp</Name>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
+          {% if message.message_attributes.items()|count > 0 %}
+            <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+          {% endif %}
+          {% for name, value in message.message_attributes.items() %}
+            <MessageAttribute>
+              <Name>{{ name }}</Name>
+              <Value>
+                <DataType>{{ value.data_type }}</DataType>
+                {% if 'Binary' in value.data_type %}
+                <BinaryValue>{{ value.binary_value }}</BinaryValue>
+                {% else %}
+                <StringValue>{{ value.string_value }}</StringValue>
+                {% endif %}
+              </Value>
+            </MessageAttribute>
+          {% endfor %}
         </Message>
     {% endfor %}
   </ReceiveMessageResult>
@@ -304,6 +337,9 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
             <Id>{{ message.user_id }}</Id>
             <MessageId>{{ message.id }}</MessageId>
             <MD5OfMessageBody>{{ message.md5 }}</MD5OfMessageBody>
+            {% if message.message_attributes.items()|count > 0 %}
+              <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+            {% endif %}
         </SendMessageBatchResultEntry>
     {% endfor %}
 </SendMessageBatchResult>
