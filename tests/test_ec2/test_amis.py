@@ -177,9 +177,11 @@ def test_ami_filters():
     amis_by_id = conn.get_all_images(filters={'image-id': imageA.id})
     set([ami.id for ami in amis_by_id]).should.equal(set([imageA.id]))
 
-    amis_by_id = conn.get_all_images(filters={'state': 'available'})
-    set([ami.id for ami in amis_by_id]).should.equal(set([imageA.id, imageB.id]))
+    amis_by_state = conn.get_all_images(filters={'state': 'available'})
+    set([ami.id for ami in amis_by_state]).should.equal(set([imageA.id, imageB.id]))
 
+    amis_by_name = conn.get_all_images(filters={'name': imageA.name})
+    set([ami.id for ami in amis_by_name]).should.equal(set([imageA.id]))
 
 @mock_ec2
 def test_ami_filtering_via_tag():

@@ -748,6 +748,8 @@ class Ami(TaggedEC2Resource):
             return self.id
         elif filter_name == 'state':
             return self.state
+        elif filter_name == 'name':
+            return self.name
 
         filter_value = super(Ami, self).get_filter_value(filter_name)
 
