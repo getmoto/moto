@@ -284,6 +284,14 @@ class InvalidID(EC2ClientError):
             .format(resource_id))
 
 
+class InvalidCIDRSubnetError(EC2ClientError):
+    def __init__(self, cidr):
+        super(InvalidCIDRSubnetError, self).__init__(
+            "InvalidParameterValue",
+            "invalid CIDR subnet specification: {0}"
+            .format(cidr))
+
+
 ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
   <Response>
     <Errors>
