@@ -56,7 +56,7 @@ DESCRIBE_VPCS_RESPONSE = """
     {% for vpc in vpcs %}
       <item>
         <vpcId>{{ vpc.id }}</vpcId>
-        <state>available</state>
+        <state>{{ vpc.state }}</state>
         <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
         <dhcpOptionsId>dopt-7a8b9c2d</dhcpOptionsId>
         <instanceTenancy>default</instanceTenancy>

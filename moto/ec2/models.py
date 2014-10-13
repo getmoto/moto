@@ -1280,6 +1280,7 @@ class VPC(TaggedEC2Resource):
         self.id = vpc_id
         self.cidr_block = cidr_block
         self.dhcp_options = None
+        self.state = 'available'
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
