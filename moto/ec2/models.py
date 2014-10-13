@@ -73,6 +73,7 @@ from .utils import (
     random_snapshot_id,
     random_spot_request_id,
     random_subnet_id,
+    random_subnet_association_id,
     random_volume_id,
     random_vpc_id,
     random_vpc_peering_connection_id,
@@ -1560,8 +1561,7 @@ class RouteTable(TaggedEC2Resource):
         self.id = route_table_id
         self.vpc_id = vpc_id
         self.main = main
-        self.association_id = None
-        self.subnet_id = None
+        self.associations = {}
         self.routes = {}
 
     @classmethod
@@ -1588,6 +1588,12 @@ class RouteTable(TaggedEC2Resource):
                 return 'false'
         elif filter_name == "vpc-id":
             return self.vpc_id
+        elif filter_name == "association.route-table-id":
+            return self.id
+        elif filter_name == "association.route-table-association-id":
+            return self.associations.keys()
+        elif filter_name == "association.subnet-id":
+            return self.associations.values()
 
         filter_value = super(RouteTable, self).get_filter_value(filter_name)
 
@@ -1631,10 +1637,27 @@ class RouteTableBackend(object):
         return generic_filter(filters, route_tables)
 
     def delete_route_table(self, route_table_id):
-        deleted = self.route_tables.pop(route_table_id, None)
-        if not deleted:
-            raise InvalidRouteTableIdError(route_table_id)
-        return deleted
+        route_table = self.get_route_table(route_table_id)
+        if route_table.associations:
+            raise DependencyViolationError(
+                "The routeTable '{0}' has dependencies and cannot be deleted."
+                .format(route_table_id)
+            )
+        self.route_tables.pop(route_table_id)
+        return True
+
+    def associate_route_table(self, route_table_id, subnet_id):
+        route_table = self.get_route_table(route_table_id)
+        subnet = self.get_subnet(subnet_id) # Validate subnet exists
+        association_id = random_subnet_association_id()
+        route_table.associations[association_id] = subnet_id
+        return association_id
+
+    def disassociate_route_table(self, association_id):
+        for route_table in self.route_tables.values():
+            if association_id in route_table.associations:
+                return route_table.associations.pop(association_id, None)
+        raise InvalidAssociationIdError(association_id)
 
 
 class Route(object):
