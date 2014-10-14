@@ -163,7 +163,6 @@ def test_route_table_associations():
 
     # Refresh
     route_table = conn.get_all_route_tables(route_table.id)[0]
-    print route_table.__dict__
     route_table.associations.should.have.length_of(0)
 
     # Associate
