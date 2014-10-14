@@ -213,6 +213,7 @@ def test_route_table_associations():
     cm.exception.request_id.should_not.be.none
 
 
+@requires_boto_gte("2.16.0")
 @mock_ec2
 def test_route_table_replace_route_table_association():
     """
