@@ -83,7 +83,11 @@ class RouteTables(BaseResponse):
         return template.render()
 
     def replace_route_table_association(self):
-        raise NotImplementedError('RouteTables(AmazonVPC).replace_route_table_association is not yet implemented')
+        route_table_id = self.querystring.get('RouteTableId')[0]
+        association_id = self.querystring.get('AssociationId')[0]
+        new_association_id = ec2_backend.replace_route_table_association(association_id, route_table_id)
+        template = Template(REPLACE_ROUTE_TABLE_ASSOCIATION_RESPONSE)
+        return template.render(association_id=new_association_id)
 
 
 CREATE_ROUTE_RESPONSE = """
@@ -200,4 +204,11 @@ DISASSOCIATE_ROUTE_TABLE_RESPONSE = """
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </DisassociateRouteTableResponse>
+"""
+
+REPLACE_ROUTE_TABLE_ASSOCIATION_RESPONSE = """
+<ReplaceRouteTableAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <newAssociationId>{{ association_id }}</newAssociationId>
+</ReplaceRouteTableAssociationResponse>
 """

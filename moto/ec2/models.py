@@ -1659,6 +1659,14 @@ class RouteTableBackend(object):
                 return route_table.associations.pop(association_id, None)
         raise InvalidAssociationIdError(association_id)
 
+    def replace_route_table_association(self, association_id, route_table_id):
+        route_tables_by_association_id = ec2_backend.get_all_route_tables(filters={'association.route-table-association-id':[association_id]})
+        if not route_tables_by_association_id:
+            raise InvalidAssociationIdError(association_id)
+        previous_route_table = route_tables_by_association_id[0]
+        subnet_id = previous_route_table.associations.pop(association_id,None)
+        return self.associate_route_table(route_table_id, subnet_id)
+
 
 class Route(object):
     def __init__(self, route_table, destination_cidr_block, local=False,

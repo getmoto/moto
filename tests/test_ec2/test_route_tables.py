@@ -214,6 +214,72 @@ def test_route_table_associations():
 
 
 @mock_ec2
+def test_route_table_replace_route_table_association():
+    """
+      Note: Boto has deprecated replace_route_table_assocation (which returns status)
+        and now uses replace_route_table_assocation_with_assoc (which returns association ID).
+    """
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    route_table1 = conn.create_route_table(vpc.id)
+    route_table2 = conn.create_route_table(vpc.id)
+
+    all_route_tables = conn.get_all_route_tables()
+    all_route_tables.should.have.length_of(3)
+
+    # Refresh
+    route_table1 = conn.get_all_route_tables(route_table1.id)[0]
+    route_table1.associations.should.have.length_of(0)
+
+    # Associate
+    association_id1 = conn.associate_route_table(route_table1.id, subnet.id)
+
+    # Refresh
+    route_table1 = conn.get_all_route_tables(route_table1.id)[0]
+    route_table2 = conn.get_all_route_tables(route_table2.id)[0]
+
+    # Validate
+    route_table1.associations.should.have.length_of(1)
+    route_table2.associations.should.have.length_of(0)
+
+    route_table1.associations[0].id.should.equal(association_id1)
+    route_table1.associations[0].main.should.equal(False)
+    route_table1.associations[0].route_table_id.should.equal(route_table1.id)
+    route_table1.associations[0].subnet_id.should.equal(subnet.id)
+
+    # Replace Association
+    association_id2 = conn.replace_route_table_association_with_assoc(association_id1, route_table2.id)
+
+    # Refresh
+    route_table1 = conn.get_all_route_tables(route_table1.id)[0]
+    route_table2 = conn.get_all_route_tables(route_table2.id)[0]
+
+    # Validate
+    route_table1.associations.should.have.length_of(0)
+    route_table2.associations.should.have.length_of(1)
+
+    route_table2.associations[0].id.should.equal(association_id2)
+    route_table2.associations[0].main.should.equal(False)
+    route_table2.associations[0].route_table_id.should.equal(route_table2.id)
+    route_table2.associations[0].subnet_id.should.equal(subnet.id)
+
+    # Error: Replace association with invalid association ID
+    with assert_raises(EC2ResponseError) as cm:
+        conn.replace_route_table_association_with_assoc("rtbassoc-1234abcd", route_table1.id)
+    cm.exception.code.should.equal('InvalidAssociationID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Error: Replace association with invalid route table ID
+    with assert_raises(EC2ResponseError) as cm:
+        conn.replace_route_table_association_with_assoc(association_id2, "rtb-1234abcd")
+    cm.exception.code.should.equal('InvalidRouteTableID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
 def test_routes_additional():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
