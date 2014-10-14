@@ -177,6 +177,10 @@ def test_route_table_associations():
     route_table.associations[0].route_table_id.should.equal(route_table.id)
     route_table.associations[0].subnet_id.should.equal(subnet.id)
 
+    # Associate is idempotent
+    association_id_idempotent = conn.associate_route_table(route_table.id, subnet.id)
+    association_id_idempotent.should.equal(association_id)
+
     # Error: Attempt delete associated route table.
     with assert_raises(EC2ResponseError) as cm:
         conn.delete_route_table(route_table.id)
@@ -264,6 +268,10 @@ def test_route_table_replace_route_table_association():
     route_table2.associations[0].main.should.equal(False)
     route_table2.associations[0].route_table_id.should.equal(route_table2.id)
     route_table2.associations[0].subnet_id.should.equal(subnet.id)
+
+    # Replace Association is idempotent
+    association_id_idempotent = conn.replace_route_table_association_with_assoc(association_id2, route_table2.id)
+    association_id_idempotent.should.equal(association_id2)
 
     # Error: Replace association with invalid association ID
     with assert_raises(EC2ResponseError) as cm:
