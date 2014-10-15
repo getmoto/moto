@@ -158,4 +158,6 @@ def metadata_response(request, full_url, headers):
         result = 'default-role'
     elif path == 'iam/security-credentials/default-role':
         result = json.dumps(credentials)
+    else:
+        raise NotImplementedError("The {0} metadata path has not been implemented".format(path))
     return 200, headers, result
