@@ -268,7 +268,6 @@ filter_dict_attribute_mapping = {
     'instance-state-name': 'state',
     'instance-id': 'id',
     'state-reason-code': '_state_reason.code',
-    'state-reason-message': '_state_reason.message'
 }
 
 def get_instance_value(instance, instance_attr):
