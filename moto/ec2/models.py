@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import copy
 import itertools
 from collections import defaultdict
+from datetime import datetime
 
 import six
 import boto
@@ -93,6 +94,11 @@ def validate_resource_ids(resource_ids):
 class InstanceState(object):
     def __init__(self, name='pending', code=0):
         self.name = name
+        self.code = code
+
+class StateReason(object):
+    def __init__(self, message="", code=""):
+        self.message = message
         self.code = code
 
 
@@ -258,6 +264,8 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self.id = random_instance_id()
         self.image_id = image_id
         self._state = InstanceState("running", 16)
+        self._reason = ""
+        self._state_reason = StateReason()
         self.user_data = user_data
         self.security_groups = security_groups
         self.instance_type = kwargs.get("instance_type", "m1.small")
@@ -317,12 +325,19 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self._state.name = "running"
         self._state.code = 16
 
+        self._reason = ""
+        self._state_reason = StateReason()
+
     def stop(self, *args, **kwargs):
         for nic in self.nics.values():
             nic.stop()
 
         self._state.name = "stopped"
         self._state.code = 80
+
+        self._reason = "User initiated ({0})".format(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC'))
+        self._state_reason = StateReason("Client.UserInitiatedShutdown: User initiated shutdown",
+                                         "Client.UserInitiatedShutdown")
 
     def terminate(self, *args, **kwargs):
         for nic in self.nics.values():
@@ -331,9 +346,16 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self._state.name = "terminated"
         self._state.code = 48
 
+        self._reason = "User initiated ({0})".format(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC'))
+        self._state_reason = StateReason("Client.UserInitiatedShutdown: User initiated shutdown",
+                                         "Client.UserInitiatedShutdown")
+
     def reboot(self, *args, **kwargs):
         self._state.name = "running"
         self._state.code = 16
+
+        self._reason = ""
+        self._state_reason = StateReason()
 
     def get_tags(self):
         tags = ec2_backend.describe_tags(filters={'resource-id': [self.id]})

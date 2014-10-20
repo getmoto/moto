@@ -266,15 +266,28 @@ def keypair_names_from_querystring(querystring_dict):
 
 filter_dict_attribute_mapping = {
     'instance-state-name': 'state',
-    'instance-id': 'id'
+    'instance-id': 'id',
+    'state-reason-code': '_state_reason.code',
+    'state-reason-message': '_state_reason.message'
 }
 
+def get_instance_value(instance, instance_attr):
+    keys = instance_attr.split('.')
+    val = instance
+    for key in keys:
+        if hasattr(val, key):
+            val = getattr(val, key)
+        elif isinstance(val, dict):
+            val = val[key]
+        else:
+            return None
+    return val
 
 def passes_filter_dict(instance, filter_dict):
     for filter_name, filter_values in filter_dict.items():
         if filter_name in filter_dict_attribute_mapping:
             instance_attr = filter_dict_attribute_mapping[filter_name]
-            instance_value = getattr(instance, instance_attr)
+            instance_value = get_instance_value(instance, instance_attr)
             if instance_value not in filter_values:
                 return False
         elif filter_name.startswith('tag:'):

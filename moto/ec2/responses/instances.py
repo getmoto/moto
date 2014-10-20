@@ -303,7 +303,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     </instanceState>
                     <privateDnsName>ip-10.0.0.12.ec2.internal</privateDnsName>
                     <dnsName>ec2-46.51.219.63.compute-1.amazonaws.com</dnsName>
-                    <reason/>
+                    <reason>{{ instance._reason }}</reason>
                     <keyName>{{ instance.key_name }}</keyName>
                     <amiLaunchIndex>0</amiLaunchIndex>
                     <productCodes/>
@@ -337,6 +337,10 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       </item>
                       {% endfor %}
                     </groupSet>
+                    <stateReason>
+                      <code>{{ instance._state_reason.code }}</code>
+                      <message>{{ instance._state_reason.message }}</message>
+                    </stateReason>
                     <architecture>{{ instance.architecture }}</architecture>
                     <kernelId>{{ instance.kernel }}</kernelId>
                     <rootDeviceType>ebs</rootDeviceType>
