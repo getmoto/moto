@@ -75,7 +75,7 @@ def test_stack_ec2_integration():
     stack = conn.describe_stacks()[0]
     instance = stack.describe_resources()[0]
     instance.resource_type.should.equal('AWS::EC2::Instance')
-    instance.logical_resource_id.should.equal("WebServerGroup")
+    instance.logical_resource_id.should.contain("WebServerGroup")
     instance.physical_resource_id.should.equal(ec2_instance.id)
 
 
@@ -186,7 +186,7 @@ def test_stack_security_groups():
     ec2_conn = boto.connect_ec2()
     security_groups = ec2_conn.get_all_security_groups()
     for group in security_groups:
-        if group.name == "InstanceSecurityGroup":
+        if "InstanceSecurityGroup" in group.name:
             instance_group = group
         else:
             other_group = group
@@ -245,6 +245,7 @@ def test_autoscaling_group_with_elb():
                         "InstancePort": "80",
                         "Protocol": "HTTP"
                     }],
+                    "LoadBalancerName": "my-elb",
                     "HealthCheck": {
                         "Target": "80",
                         "HealthyThreshold": "3",
@@ -267,7 +268,7 @@ def test_autoscaling_group_with_elb():
 
     autoscale_conn = boto.connect_autoscale()
     autoscale_group = autoscale_conn.get_all_groups()[0]
-    autoscale_group.launch_config_name.should.equal("my-launch-config")
+    autoscale_group.launch_config_name.should.contain("my-launch-config")
     autoscale_group.load_balancers[0].should.equal('my-elb')
 
     # Confirm the Launch config was actually created
@@ -280,13 +281,13 @@ def test_autoscaling_group_with_elb():
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
     as_group_resource = [resource for resource in resources if resource.resource_type == 'AWS::AutoScaling::AutoScalingGroup'][0]
-    as_group_resource.physical_resource_id.should.equal("my-as-group")
+    as_group_resource.physical_resource_id.should.contain("my-as-group")
 
     launch_config_resource = [resource for resource in resources if resource.resource_type == 'AWS::AutoScaling::LaunchConfiguration'][0]
-    launch_config_resource.physical_resource_id.should.equal("my-launch-config")
+    launch_config_resource.physical_resource_id.should.contain("my-launch-config")
 
     elb_resource = [resource for resource in resources if resource.resource_type == 'AWS::ElasticLoadBalancing::LoadBalancer'][0]
-    elb_resource.physical_resource_id.should.equal("my-elb")
+    elb_resource.physical_resource_id.should.contain("my-elb")
 
 
 @mock_ec2()
@@ -427,18 +428,21 @@ def test_iam_roles():
 
     iam_conn = boto.connect_iam()
 
-    role = iam_conn.get_role("my-role")
-    role.role_name.should.equal("my-role")
+    role_result = iam_conn.list_roles()['list_roles_response']['list_roles_result']['roles'][0]
+    role = iam_conn.get_role(role_result.role_name)
+    role.role_name.should.contain("my-role")
     role.path.should.equal("my-path")
 
-    instance_profile = iam_conn.get_instance_profile("my-instance-profile")
-    instance_profile.instance_profile_name.should.equal("my-instance-profile")
+    instance_profile_response = iam_conn.list_instance_profiles()['list_instance_profiles_response']
+    cfn_instance_profile = instance_profile_response['list_instance_profiles_result']['instance_profiles'][0]
+    instance_profile = iam_conn.get_instance_profile(cfn_instance_profile.instance_profile_name)
+    instance_profile.instance_profile_name.should.contain("my-instance-profile")
     instance_profile.path.should.equal("my-path")
     instance_profile.role_id.should.equal(role.role_id)
 
     autoscale_conn = boto.connect_autoscale()
     launch_config = autoscale_conn.get_all_launch_configurations()[0]
-    launch_config.instance_profile_name.should.equal("my-instance-profile")
+    launch_config.instance_profile_name.should.contain("my-instance-profile")
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
