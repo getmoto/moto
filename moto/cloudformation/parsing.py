@@ -8,6 +8,8 @@ from moto.elb import models as elb_models
 from moto.iam import models as iam_models
 from moto.sqs import models as sqs_models
 from .utils import random_suffix
+from boto.cloudformation.stack import Output
+from boto.exception import BotoServerError
 
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
@@ -69,6 +71,19 @@ def clean_json(resource_json, resources_map):
             else:
                 return resource
 
+        if 'Fn::GetAtt' in resource_json:
+            resource = resources_map[resource_json['Fn::GetAtt'][0]]
+            try:
+                return resource.get_cfn_attribute(resource_json['Fn::GetAtt'][1])
+            except NotImplementedError as n:
+                raise NotImplementedError(n.message.format(resource_json['Fn::GetAtt'][0]))
+            except AttributeError:
+                raise BotoServerError(
+                    400,
+                    'Bad Request',
+                    'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt'.format(
+                    resource_json['Fn::GetAtt'][0], resource_json['Fn::GetAtt'][1]))
+
         cleaned_json = {}
         for key, value in resource_json.items():
             cleaned_json[key] = clean_json(value, resources_map)
@@ -120,6 +135,15 @@ def parse_resource(logical_id, resource_json, resources_map):
     resource.type = resource_type
     resource.logical_resource_id = logical_id
     return resource
+
+
+def parse_output(output_logical_id, output_json, resources_map):
+    output_json = clean_json(output_json, resources_map)
+    output = Output()
+    output.key = output_logical_id
+    output.value = output_json['Value']
+    output.description = output_json.get('Description')
+    return output
 
 
 class ResourceMap(collections.Mapping):
@@ -180,3 +204,38 @@ class ResourceMap(collections.Mapping):
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 tags['aws:cloudformation:logical-id'] = resource
                 ec2_models.ec2_backend.create_tags([self[resource].physical_resource_id],tags)
+
+
+class OutputMap(collections.Mapping):
+    def __init__(self, resources, template):
+        self._template = template
+        self._output_json_map = template.get('Outputs')
+
+        # Create the default resources
+        self._resource_map = resources
+        self._parsed_outputs = dict()
+
+    def __getitem__(self, key):
+        output_logical_id = key
+
+        if output_logical_id in self._parsed_outputs:
+            return self._parsed_outputs[output_logical_id]
+        else:
+            output_json = self._output_json_map.get(output_logical_id)
+            new_output = parse_output(output_logical_id, output_json, self._resource_map)
+            self._parsed_outputs[output_logical_id] = new_output
+            return new_output
+
+    def __iter__(self):
+        return iter(self.outputs)
+
+    def __len__(self):
+        return len(self._output_json_map)
+
+    @property
+    def outputs(self):
+        return self._output_json_map.keys() if self._output_json_map else []
+
+    def create(self):
+        for output in self.outputs:
+            self[output]

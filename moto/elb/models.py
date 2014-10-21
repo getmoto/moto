@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from moto.core import BaseBackend
+from boto.exception import BotoServerError
 
 
 class FakeHealthCheck(object):
@@ -55,6 +56,21 @@ class FakeLoadBalancer(object):
     @property
     def physical_resource_id(self):
         return self.name
+
+    def get_cfn_attribute(self, attribute_name):
+        if attribute_name == 'CanonicalHostedZoneName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneName" ]"')
+        elif attribute_name == 'CanonicalHostedZoneNameID':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneNameID" ]"')
+        elif attribute_name == 'DNSName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DNSName" ]"')
+        elif attribute_name == 'SourceSecurityGroup.GroupName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.GroupName" ]"')
+        elif attribute_name == 'SourceSecurityGroup.OwnerAlias':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.OwnerAlias" ]"')
+        raise BotoServerError(400,
+                              'Bad Request',
+                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
 
 
 class ELBBackend(BaseBackend):
