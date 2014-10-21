@@ -73,6 +73,7 @@ from .utils import (
     random_snapshot_id,
     random_spot_request_id,
     random_subnet_id,
+    random_subnet_association_id,
     random_volume_id,
     random_vpc_id,
     random_vpc_peering_connection_id,
@@ -1560,8 +1561,7 @@ class RouteTable(TaggedEC2Resource):
         self.id = route_table_id
         self.vpc_id = vpc_id
         self.main = main
-        self.association_id = None
-        self.subnet_id = None
+        self.associations = {}
         self.routes = {}
 
     @classmethod
@@ -1588,6 +1588,12 @@ class RouteTable(TaggedEC2Resource):
                 return 'false'
         elif filter_name == "vpc-id":
             return self.vpc_id
+        elif filter_name == "association.route-table-id":
+            return self.id
+        elif filter_name == "association.route-table-association-id":
+            return self.associations.keys()
+        elif filter_name == "association.subnet-id":
+            return self.associations.values()
 
         filter_value = super(RouteTable, self).get_filter_value(filter_name)
 
@@ -1631,10 +1637,51 @@ class RouteTableBackend(object):
         return generic_filter(filters, route_tables)
 
     def delete_route_table(self, route_table_id):
-        deleted = self.route_tables.pop(route_table_id, None)
-        if not deleted:
-            raise InvalidRouteTableIdError(route_table_id)
-        return deleted
+        route_table = self.get_route_table(route_table_id)
+        if route_table.associations:
+            raise DependencyViolationError(
+                "The routeTable '{0}' has dependencies and cannot be deleted."
+                .format(route_table_id)
+            )
+        self.route_tables.pop(route_table_id)
+        return True
+
+    def associate_route_table(self, route_table_id, subnet_id):
+        # Idempotent if association already exists.
+        route_tables_by_subnet = ec2_backend.get_all_route_tables(filters={'association.subnet-id':[subnet_id]})
+        if route_tables_by_subnet:
+            for association_id,check_subnet_id in route_tables_by_subnet[0].associations.items():
+                if subnet_id == check_subnet_id:
+                    return association_id
+
+        # Association does not yet exist, so create it.
+        route_table = self.get_route_table(route_table_id)
+        subnet = self.get_subnet(subnet_id) # Validate subnet exists
+        association_id = random_subnet_association_id()
+        route_table.associations[association_id] = subnet_id
+        return association_id
+
+    def disassociate_route_table(self, association_id):
+        for route_table in self.route_tables.values():
+            if association_id in route_table.associations:
+                return route_table.associations.pop(association_id, None)
+        raise InvalidAssociationIdError(association_id)
+
+    def replace_route_table_association(self, association_id, route_table_id):
+        # Idempotent if association already exists.
+        new_route_table = ec2_backend.get_route_table(route_table_id)
+        if association_id in new_route_table.associations:
+            return association_id
+
+        # Find route table which currently has the association, error if none.
+        route_tables_by_association_id = ec2_backend.get_all_route_tables(filters={'association.route-table-association-id':[association_id]})
+        if not route_tables_by_association_id:
+            raise InvalidAssociationIdError(association_id)
+
+        # Remove existing association, create new one.
+        previous_route_table = route_tables_by_association_id[0]
+        subnet_id = previous_route_table.associations.pop(association_id,None)
+        return self.associate_route_table(route_table_id, subnet_id)
 
 
 class Route(object):

@@ -8,7 +8,11 @@ from moto.ec2.utils import route_table_ids_from_querystring, filters_from_querys
 
 class RouteTables(BaseResponse):
     def associate_route_table(self):
-        raise NotImplementedError('RouteTables(AmazonVPC).associate_route_table is not yet implemented')
+        route_table_id = self.querystring.get('RouteTableId')[0]
+        subnet_id = self.querystring.get('SubnetId')[0]
+        association_id = ec2_backend.associate_route_table(route_table_id, subnet_id)
+        template = Template(ASSOCIATE_ROUTE_TABLE_RESPONSE)
+        return template.render(association_id=association_id)
 
     def create_route(self):
         route_table_id = self.querystring.get('RouteTableId')[0]
@@ -55,7 +59,10 @@ class RouteTables(BaseResponse):
         return template.render(route_tables=route_tables)
 
     def disassociate_route_table(self):
-        raise NotImplementedError('RouteTables(AmazonVPC).disassociate_route_table is not yet implemented')
+        association_id = self.querystring.get('AssociationId')[0]
+        ec2_backend.disassociate_route_table(association_id)
+        template = Template(DISASSOCIATE_ROUTE_TABLE_RESPONSE)
+        return template.render()
 
     def replace_route(self):
         route_table_id = self.querystring.get('RouteTableId')[0]
@@ -76,7 +83,11 @@ class RouteTables(BaseResponse):
         return template.render()
 
     def replace_route_table_association(self):
-        raise NotImplementedError('RouteTables(AmazonVPC).replace_route_table_association is not yet implemented')
+        route_table_id = self.querystring.get('RouteTableId')[0]
+        association_id = self.querystring.get('AssociationId')[0]
+        new_association_id = ec2_backend.replace_route_table_association(association_id, route_table_id)
+        template = Template(REPLACE_ROUTE_TABLE_ASSOCIATION_RESPONSE)
+        return template.render(association_id=new_association_id)
 
 
 CREATE_ROUTE_RESPONSE = """
@@ -151,18 +162,14 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
             {% endfor %}
           </routeSet>
           <associationSet>
-            {% if route_table.association_id %}
+            {% for association_id,subnet_id in route_table.associations.items() %}
               <item>
-                  <routeTableAssociationId>{{ route_table.association_id }}</routeTableAssociationId>
-                  <routeTableId>{{ route_table.id }}</routeTableId>
-                {% if not route_table.subnet_id %}
-                  <main>true</main>
-                {% endif %}
-                {% if route_table.subnet_id %}
-                  <subnetId>{{ route_table.subnet_id }}</subnetId>
-                {% endif %}
+                <routeTableAssociationId>{{ association_id }}</routeTableAssociationId>
+                <routeTableId>{{ route_table.id }}</routeTableId>
+                <main>false</main>
+                <subnetId>{{ subnet_id }}</subnetId>
               </item>
-            {% endif %}
+            {% endfor %}
           </associationSet>
          <tagSet/>
        </item>
@@ -183,4 +190,25 @@ DELETE_ROUTE_TABLE_RESPONSE = """
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </DeleteRouteTableResponse>
+"""
+
+ASSOCIATE_ROUTE_TABLE_RESPONSE = """
+<AssociateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <associationId>{{ association_id }}</associationId>
+</AssociateRouteTableResponse>
+"""
+
+DISASSOCIATE_ROUTE_TABLE_RESPONSE = """
+<DisassociateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <return>true</return>
+</DisassociateRouteTableResponse>
+"""
+
+REPLACE_ROUTE_TABLE_ASSOCIATION_RESPONSE = """
+<ReplaceRouteTableAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <newAssociationId>{{ association_id }}</newAssociationId>
+</ReplaceRouteTableAssociationResponse>
 """

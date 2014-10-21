@@ -14,6 +14,7 @@ EC2_RESOURCE_TO_PREFIX = {
     'network-interface-attachment': 'eni-attach',
     'reserved-instance': 'uuid4',
     'route-table': 'rtb',
+    'route-table-association': 'rtbassoc',
     'security-group': 'sg',
     'snapshot': 'snap',
     'spot-instance-request': 'sir',
@@ -65,6 +66,10 @@ def random_spot_request_id():
 
 def random_subnet_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['subnet'])
+
+
+def random_subnet_association_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['route-table-association'])
 
 
 def random_volume_id():
