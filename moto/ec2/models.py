@@ -1949,11 +1949,12 @@ class ElasticAddress(object):
         properties = cloudformation_json.get('Properties')
         instance_id = None
         if properties:
+            domain=properties.get('Domain')
             eip = ec2_backend.allocate_address(
-                domain=properties.get('Domain'))
+                domain=domain if domain else 'standard')
             instance_id = properties.get('InstanceId')
         else:
-            eip = ec2_backend.allocate_address()
+            eip = ec2_backend.allocate_address(domain='standard')
 
         if instance_id:
             instance = ec2_backend.get_instance_by_id(instance_id)
