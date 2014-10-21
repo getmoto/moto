@@ -73,7 +73,6 @@ def clean_json(resource_json, resources_map):
                 return resource
 
         if 'Fn::GetAtt' in resource_json:
-
             resource = resources_map[resource_json['Fn::GetAtt'][0]]
             if resource is None:
                 return resource_json
@@ -89,6 +88,13 @@ def clean_json(resource_json, resources_map):
                         resource_json['Fn::GetAtt'][0], resource_json['Fn::GetAtt'][1]))
             except Exception as e:
                 pass
+
+        if 'Fn::Join' in resource_json:
+            join_list = []
+            for val in resource_json['Fn::Join'][1]:
+                cleaned_val = clean_json(val, resources_map)
+                join_list.append(cleaned_val if cleaned_val else '{0}'.format(val))
+            return resource_json['Fn::Join'][0].join(join_list)
 
         cleaned_json = {}
         for key, value in resource_json.items():
