@@ -8,6 +8,7 @@ from moto.elb import models as elb_models
 from moto.iam import models as iam_models
 from moto.sqs import models as sqs_models
 from .utils import random_suffix
+from .exceptions import UnformattedGetAttTemplateException
 from boto.cloudformation.stack import Output
 from boto.exception import BotoServerError
 
@@ -72,17 +73,22 @@ def clean_json(resource_json, resources_map):
                 return resource
 
         if 'Fn::GetAtt' in resource_json:
+
             resource = resources_map[resource_json['Fn::GetAtt'][0]]
+            if resource is None:
+                return resource_json
             try:
                 return resource.get_cfn_attribute(resource_json['Fn::GetAtt'][1])
             except NotImplementedError as n:
-                raise NotImplementedError(n.message.format(resource_json['Fn::GetAtt'][0]))
-            except AttributeError:
+                logger.warning(n.message.format(resource_json['Fn::GetAtt'][0]))
+            except UnformattedGetAttTemplateException:
                 raise BotoServerError(
-                    400,
+                    UnformattedGetAttTemplateException.status_code,
                     'Bad Request',
-                    'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt'.format(
-                    resource_json['Fn::GetAtt'][0], resource_json['Fn::GetAtt'][1]))
+                    UnformattedGetAttTemplateException.description.format(
+                        resource_json['Fn::GetAtt'][0], resource_json['Fn::GetAtt'][1]))
+            except Exception as e:
+                pass
 
         cleaned_json = {}
         for key, value in resource_json.items():

@@ -12,7 +12,6 @@ from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket
 from .utils import clean_key_name, _VersionedKeyStore
-from boto.exception import BotoServerError
 
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
@@ -172,13 +171,12 @@ class FakeBucket(object):
         return self.versioning_status == 'Enabled'
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'DomainName':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DomainName" ]"')
         elif attribute_name == 'WebsiteURL':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "WebsiteURL" ]"')
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class S3Backend(BaseBackend):

@@ -31,11 +31,10 @@ class Role(object):
         return self.id
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class InstanceProfile(object):
@@ -61,11 +60,10 @@ class InstanceProfile(object):
         return self.name
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class Certificate(object):
@@ -93,11 +91,10 @@ class AccessKey(object):
         )
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'SecretAccessKey':
             return self.secret_access_key
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class Group(object):
@@ -113,11 +110,10 @@ class Group(object):
         self.users = []
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class User(object):
@@ -172,11 +168,10 @@ class User(object):
             raise BotoServerError(404, 'Not Found')
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class IAMBackend(BaseBackend):

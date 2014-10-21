@@ -8,7 +8,6 @@ from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime
 from moto.sqs.models import sqs_backend
 from .utils import make_arn_for_topic, make_arn_for_subscription
-from boto.exception import BotoServerError
 
 DEFAULT_ACCOUNT_ID = 123456789012
 
@@ -35,11 +34,10 @@ class Topic(object):
         return message_id
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'TopicName':
             return self.name
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class Subscription(object):

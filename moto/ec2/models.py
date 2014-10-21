@@ -9,7 +9,6 @@ from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
-from boto.exception import BotoServerError
 
 from moto.core import BaseBackend
 from moto.core.models import Model
@@ -187,13 +186,12 @@ class NetworkInterface(object):
             return self._group_set
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'PrimaryPrivateIpAddress':
             return self.private_ip_address
         elif attribute_name == 'SecondaryPrivateIpAddresses':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SecondaryPrivateIpAddresses" ]"')
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class NetworkInterfaceBackend(object):
@@ -423,6 +421,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         eni.device_index = None
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'AvailabilityZone':
             return self.placement
         elif attribute_name == 'PrivateDnsName':
@@ -433,9 +432,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
             return self.private_ip_address
         elif attribute_name == 'PublicIp':
             return self.ip_address
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class InstanceBackend(object):
@@ -997,11 +994,10 @@ class SecurityGroup(object):
         return True
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'GroupId':
             return self.id
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class SecurityGroupBackend(object):
@@ -1527,11 +1523,10 @@ class Subnet(TaggedEC2Resource):
         return filter_value
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'AvailabilityZone':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "AvailabilityZone" ]"')
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class SubnetBackend(object):
@@ -1969,11 +1964,10 @@ class ElasticAddress(object):
         return self.allocation_id
 
     def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'AllocationId':
             return self.allocation_id
-        raise BotoServerError(400,
-                              'Bad Request',
-                              'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt')
+        raise UnformattedGetAttTemplateException()
 
 
 class ElasticAddressBackend(object):
