@@ -1946,13 +1946,15 @@ class ElasticAddress(object):
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
-        properties = cloudformation_json['Properties']
+        properties = cloudformation_json.get('Properties')
+        instance_id = None
+        if properties:
+            eip = ec2_backend.allocate_address(
+                domain=properties.get('Domain'))
+            instance_id = properties.get('InstanceId')
+        else:
+            eip = ec2_backend.allocate_address()
 
-        eip = ec2_backend.allocate_address(
-            domain=properties['Domain']
-        )
-
-        instance_id = properties.get('InstanceId')
         if instance_id:
             instance = ec2_backend.get_instance_by_id(instance_id)
             ec2_backend.associate_address(instance, address=eip.public_ip)
