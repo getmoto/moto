@@ -66,8 +66,8 @@ get_attribute_output = {
     }
 }
 
-outputs_template = dict(dummy_template.items() + output_dict.items())
-bad_outputs_template = dict(dummy_template.items() + bad_output.items())
+outputs_template = dict(list(dummy_template.items()) + list(output_dict.items()))
+bad_outputs_template = dict(list(dummy_template.items()) + list(bad_output.items()))
 get_attribute_outputs_template = dict(dummy_template.items() + get_attribute_output.items())
 
 dummy_template_json = json.dumps(dummy_template)
