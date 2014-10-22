@@ -86,8 +86,6 @@ def clean_json(resource_json, resources_map):
                     'Bad Request',
                     UnformattedGetAttTemplateException.description.format(
                         resource_json['Fn::GetAtt'][0], resource_json['Fn::GetAtt'][1]))
-            except Exception as e:
-                pass
 
         if 'Fn::Join' in resource_json:
             join_list = []
