@@ -16,7 +16,8 @@ from .fixtures import (
     single_instance_with_ebs_volume,
     vpc_single_instance_in_subnet,
     ec2_classic_eip,
-    vpc_eip
+    vpc_eip,
+    fn_join
 )
 
 
@@ -519,3 +520,21 @@ def test_vpc_eip():
     resources = stack.describe_resources()
     cfn_eip = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
     cfn_eip.physical_resource_id.should.equal(eip.allocation_id)
+
+
+@mock_ec2()
+@mock_cloudformation()
+def test_fn_join():
+
+    template_json = json.dumps(fn_join.template)
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+        )
+    ec2_conn = boto.connect_ec2()
+    eip = ec2_conn.get_all_addresses()[0]
+
+    stack = conn.describe_stacks()[0]
+    fn_join_output = stack.outputs[0]
+    fn_join_output.value.should.equal('test eip:{0}'.format(eip.public_ip))
