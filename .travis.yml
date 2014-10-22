@@ -11,11 +11,15 @@ matrix:
     include:
       - python: "3.3"
         env: BOTO_VERSION=2.32.1
+      - python: "3.4"
+        env: BOTO_VERSION=2.32.1
+      - python: "pypy"
+        env: BOTO_VERSION=2.32.1
 install:
-  - pip install boto==$BOTO_VERSION
-  - pip install .
-  - pip install -r requirements-dev.txt
-  - pip install coveralls
+  - travis_retry pip install boto==$BOTO_VERSION
+  - travis_retry pip install .
+  - travis_retry pip install -r requirements-dev.txt
+  - travis_retry pip install coveralls
 script:
   - make test
 after_success:
