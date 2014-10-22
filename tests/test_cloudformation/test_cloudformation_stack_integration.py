@@ -12,7 +12,12 @@ from moto import (
     mock_iam,
 )
 
-from .fixtures import single_instance_with_ebs_volume, vpc_single_instance_in_subnet
+from .fixtures import (
+    single_instance_with_ebs_volume,
+    vpc_single_instance_in_subnet,
+    ec2_classic_eip,
+    vpc_eip
+)
 
 
 @mock_cloudformation()
@@ -476,3 +481,41 @@ def test_single_instance_with_ebs_volume():
     resources = stack.describe_resources()
     ebs_volume = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Volume'][0]
     ebs_volume.physical_resource_id.should.equal(volume.id)
+
+
+@mock_ec2()
+@mock_cloudformation()
+def test_classic_eip():
+
+    template_json = json.dumps(ec2_classic_eip.template)
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+        )
+    ec2_conn = boto.connect_ec2()
+    eip = ec2_conn.get_all_addresses()[0]
+
+    stack = conn.describe_stacks()[0]
+    resources = stack.describe_resources()
+    cfn_eip = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
+    cfn_eip.physical_resource_id.should.equal(eip.public_ip)
+
+
+@mock_ec2()
+@mock_cloudformation()
+def test_vpc_eip():
+
+    template_json = json.dumps(vpc_eip.template)
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+        )
+    ec2_conn = boto.connect_ec2()
+    eip = ec2_conn.get_all_addresses()[0]
+
+    stack = conn.describe_stacks()[0]
+    resources = stack.describe_resources()
+    cfn_eip = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
+    cfn_eip.physical_resource_id.should.equal(eip.allocation_id)
