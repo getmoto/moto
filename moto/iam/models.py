@@ -30,6 +30,12 @@ class Role(object):
     def physical_resource_id(self):
         return self.id
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+        raise UnformattedGetAttTemplateException()
+
 
 class InstanceProfile(object):
     def __init__(self, instance_profile_id, name, path, roles):
@@ -52,6 +58,12 @@ class InstanceProfile(object):
     @property
     def physical_resource_id(self):
         return self.name
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+        raise UnformattedGetAttTemplateException()
 
 
 class Certificate(object):
@@ -78,6 +90,12 @@ class AccessKey(object):
             "%Y-%m-%d-%H-%M-%S"
         )
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'SecretAccessKey':
+            return self.secret_access_key
+        raise UnformattedGetAttTemplateException()
+
 
 class Group(object):
     def __init__(self, name, path='/'):
@@ -90,6 +108,12 @@ class Group(object):
         )
 
         self.users = []
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+        raise UnformattedGetAttTemplateException()
 
 
 class User(object):
@@ -142,6 +166,12 @@ class User(object):
                 break
         else:
             raise BotoServerError(404, 'Not Found')
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+        raise UnformattedGetAttTemplateException()
 
 
 class IAMBackend(BaseBackend):

@@ -88,7 +88,14 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResult>
       <CreationTime>2010-07-27T22:28:28Z</CreationTime>
       <StackStatus>CREATE_COMPLETE</StackStatus>
       <DisableRollback>false</DisableRollback>
-      <Outputs></Outputs>
+      <Outputs>
+      {% for output in stack.stack_outputs %}
+        <member>
+          <OutputKey>{{ output.key }}</OutputKey>
+          <OutputValue>{{ output.value }}</OutputValue>
+        </member>
+      {% endfor %}
+      </Outputs>
     </member>
     {% endfor %}
   </Stacks>

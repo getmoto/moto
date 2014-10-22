@@ -3,7 +3,7 @@ import json
 
 from moto.core import BaseBackend
 
-from .parsing import ResourceMap
+from .parsing import ResourceMap, OutputMap
 from .utils import generate_stack_id
 
 
@@ -19,9 +19,16 @@ class FakeStack(object):
         self.resource_map = ResourceMap(stack_id, name, template_dict)
         self.resource_map.create()
 
+        self.output_map = OutputMap(self.resource_map, template_dict)
+        self.output_map.create()
+
     @property
     def stack_resources(self):
         return self.resource_map.values()
+
+    @property
+    def stack_outputs(self):
+        return self.output_map.values()
 
 
 class CloudFormationBackend(BaseBackend):

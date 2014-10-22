@@ -56,6 +56,20 @@ class FakeLoadBalancer(object):
     def physical_resource_id(self):
         return self.name
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'CanonicalHostedZoneName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneName" ]"')
+        elif attribute_name == 'CanonicalHostedZoneNameID':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneNameID" ]"')
+        elif attribute_name == 'DNSName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DNSName" ]"')
+        elif attribute_name == 'SourceSecurityGroup.GroupName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.GroupName" ]"')
+        elif attribute_name == 'SourceSecurityGroup.OwnerAlias':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.OwnerAlias" ]"')
+        raise UnformattedGetAttTemplateException()
+
 
 class ELBBackend(BaseBackend):
 

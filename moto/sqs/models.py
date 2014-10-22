@@ -4,6 +4,7 @@ import hashlib
 import time
 import re
 
+
 from moto.core import BaseBackend
 from moto.core.utils import camelcase_to_underscores, get_random_message_id
 from .utils import generate_receipt_handle, unix_time_millis
@@ -151,6 +152,14 @@ class Queue(object):
 
     def add_message(self, message):
         self._messages.append(message)
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            return self.queue_arn
+        elif attribute_name == 'QueueName':
+            return self.name
+        raise UnformattedGetAttTemplateException()
 
 
 class SQSBackend(BaseBackend):

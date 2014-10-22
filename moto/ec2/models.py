@@ -192,6 +192,14 @@ class NetworkInterface(object):
         else:
             return self._group_set
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'PrimaryPrivateIpAddress':
+            return self.private_ip_address
+        elif attribute_name == 'SecondaryPrivateIpAddresses':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SecondaryPrivateIpAddresses" ]"')
+        raise UnformattedGetAttTemplateException()
+
 
 class NetworkInterfaceBackend(object):
     def __init__(self):
@@ -434,6 +442,20 @@ class Instance(BotoInstance, TaggedEC2Resource):
         eni.instance = None
         eni.attachment_id = None
         eni.device_index = None
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'AvailabilityZone':
+            return self.placement
+        elif attribute_name == 'PrivateDnsName':
+            return self.private_dns_name
+        elif attribute_name == 'PublicDnsName':
+            return self.public_dns_name
+        elif attribute_name == 'PrivateIp':
+            return self.private_ip_address
+        elif attribute_name == 'PublicIp':
+            return self.ip_address
+        raise UnformattedGetAttTemplateException()
 
 
 class InstanceBackend(object):
@@ -994,6 +1016,12 @@ class SecurityGroup(object):
                 return False
         return True
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'GroupId':
+            return self.id
+        raise UnformattedGetAttTemplateException()
+
 
 class SecurityGroupBackend(object):
 
@@ -1517,6 +1545,12 @@ class Subnet(TaggedEC2Resource):
 
         return filter_value
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'AvailabilityZone':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "AvailabilityZone" ]"')
+        raise UnformattedGetAttTemplateException()
+
 
 class SubnetBackend(object):
     def __init__(self):
@@ -1981,13 +2015,16 @@ class ElasticAddress(object):
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
-        properties = cloudformation_json['Properties']
+        properties = cloudformation_json.get('Properties')
+        instance_id = None
+        if properties:
+            domain=properties.get('Domain')
+            eip = ec2_backend.allocate_address(
+                domain=domain if domain else 'standard')
+            instance_id = properties.get('InstanceId')
+        else:
+            eip = ec2_backend.allocate_address(domain='standard')
 
-        eip = ec2_backend.allocate_address(
-            domain=properties['Domain']
-        )
-
-        instance_id = properties.get('InstanceId')
         if instance_id:
             instance = ec2_backend.get_instance_by_id(instance_id)
             ec2_backend.associate_address(instance, address=eip.public_ip)
@@ -1996,7 +2033,13 @@ class ElasticAddress(object):
 
     @property
     def physical_resource_id(self):
-        return self.allocation_id
+        return self.allocation_id if self.allocation_id else self.public_ip
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'AllocationId':
+            return self.allocation_id
+        raise UnformattedGetAttTemplateException()
 
 
 class ElasticAddressBackend(object):

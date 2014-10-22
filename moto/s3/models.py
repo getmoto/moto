@@ -170,6 +170,14 @@ class FakeBucket(object):
     def is_versioned(self):
         return self.versioning_status == 'Enabled'
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'DomainName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DomainName" ]"')
+        elif attribute_name == 'WebsiteURL':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "WebsiteURL" ]"')
+        raise UnformattedGetAttTemplateException()
+
 
 class S3Backend(BaseBackend):
 

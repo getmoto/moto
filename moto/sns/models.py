@@ -33,6 +33,12 @@ class Topic(object):
             subscription.publish(message, message_id)
         return message_id
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'TopicName':
+            return self.name
+        raise UnformattedGetAttTemplateException()
+
 
 class Subscription(object):
     def __init__(self, topic, endpoint, protocol):

@@ -7,6 +7,10 @@ from moto.ec2 import models as ec2_models
 from moto.elb import models as elb_models
 from moto.iam import models as iam_models
 from moto.sqs import models as sqs_models
+from .utils import random_suffix
+from .exceptions import UnformattedGetAttTemplateException
+from boto.cloudformation.stack import Output
+from boto.exception import BotoServerError
 
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
@@ -27,6 +31,20 @@ MODEL_MAP = {
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,
     "AWS::SQS::Queue": sqs_models.Queue,
+}
+
+# http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
+NAME_TYPE_MAP = {
+    "AWS::CloudWatch::Alarm": "Alarm",
+    "AWS::DynamoDB::Table": "TableName",
+    "AWS::ElastiCache::CacheCluster": "ClusterName",
+    "AWS::ElasticBeanstalk::Application": "ApplicationName",
+    "AWS::ElasticBeanstalk::Environment": "EnvironmentName",
+    "AWS::ElasticLoadBalancing::LoadBalancer": "LoadBalancerName",
+    "AWS::RDS::DBInstance": "DBInstanceIdentifier",
+    "AWS::S3::Bucket": "BucketName",
+    "AWS::SNS::Topic": "TopicName",
+    "AWS::SQS::Queue": "QueueName"
 }
 
 # Just ignore these models types for now
@@ -54,6 +72,28 @@ def clean_json(resource_json, resources_map):
             else:
                 return resource
 
+        if 'Fn::GetAtt' in resource_json:
+            resource = resources_map[resource_json['Fn::GetAtt'][0]]
+            if resource is None:
+                return resource_json
+            try:
+                return resource.get_cfn_attribute(resource_json['Fn::GetAtt'][1])
+            except NotImplementedError as n:
+                logger.warning(n.message.format(resource_json['Fn::GetAtt'][0]))
+            except UnformattedGetAttTemplateException:
+                raise BotoServerError(
+                    UnformattedGetAttTemplateException.status_code,
+                    'Bad Request',
+                    UnformattedGetAttTemplateException.description.format(
+                        resource_json['Fn::GetAtt'][0], resource_json['Fn::GetAtt'][1]))
+
+        if 'Fn::Join' in resource_json:
+            join_list = []
+            for val in resource_json['Fn::Join'][1]:
+                cleaned_val = clean_json(val, resources_map)
+                join_list.append(cleaned_val if cleaned_val else '{0}'.format(val))
+            return resource_json['Fn::Join'][0].join(join_list)
+
         cleaned_json = {}
         for key, value in resource_json.items():
             cleaned_json[key] = clean_json(value, resources_map)
@@ -73,17 +113,47 @@ def resource_class_from_type(resource_type):
     return MODEL_MAP.get(resource_type)
 
 
-def parse_resource(resource_name, resource_json, resources_map):
+def resource_name_property_from_type(resource_type):
+    if resource_type not in NAME_TYPE_MAP:
+        return None
+    return NAME_TYPE_MAP.get(resource_type)
+
+
+def parse_resource(logical_id, resource_json, resources_map):
     resource_type = resource_json['Type']
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
         return None
 
     resource_json = clean_json(resource_json, resources_map)
+    resource_name_property = resource_name_property_from_type(resource_type)
+    if resource_name_property:
+        if not 'Properties' in resource_json:
+            resource_json['Properties'] = dict()
+        if not resource_name_property in resource_json['Properties']:
+            resource_json['Properties'][resource_name_property] = '{0}-{1}-{2}'.format(
+                resources_map.get('AWS::StackName'),
+                logical_id,
+                random_suffix())
+        resource_name = resource_json['Properties'][resource_name_property]
+    else:
+        resource_name = '{0}-{1}-{2}'.format(resources_map.get('AWS::StackName'),
+                                             logical_id,
+                                             random_suffix())
+
     resource = resource_class.create_from_cloudformation_json(resource_name, resource_json)
     resource.type = resource_type
-    resource.logical_resource_id = resource_name
+    resource.logical_resource_id = logical_id
     return resource
+
+
+def parse_output(output_logical_id, output_json, resources_map):
+    output_json = clean_json(output_json, resources_map)
+    output = Output()
+    output.key = output_logical_id
+    output.value = output_json['Value']
+    output.description = output_json.get('Description')
+    return output
 
 
 class ResourceMap(collections.Mapping):
@@ -106,24 +176,24 @@ class ResourceMap(collections.Mapping):
         }
 
     def __getitem__(self, key):
-        resource_name = key
+        resource_logical_id = key
 
-        if resource_name in self._parsed_resources:
-            return self._parsed_resources[resource_name]
+        if resource_logical_id in self._parsed_resources:
+            return self._parsed_resources[resource_logical_id]
         else:
-            resource_json = self._resource_json_map.get(resource_name)
-            new_resource = parse_resource(resource_name, resource_json, self)
-            self._parsed_resources[resource_name] = new_resource
+            resource_json = self._resource_json_map.get(resource_logical_id)
+            new_resource = parse_resource(resource_logical_id, resource_json, self)
+            self._parsed_resources[resource_logical_id] = new_resource
             return new_resource
 
     def __iter__(self):
-        return iter(self.resource_names)
+        return iter(self.resources)
 
     def __len__(self):
         return len(self._resource_json_map)
 
     @property
-    def resource_names(self):
+    def resources(self):
         return self._resource_json_map.keys()
 
     def load_parameters(self):
@@ -137,5 +207,45 @@ class ResourceMap(collections.Mapping):
 
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.
-        for resource_name in self.resource_names:
-            self[resource_name]
+        tags = {'aws:cloudformation:stack-name': self.get('AWS::StackName'),
+                'aws:cloudformation:stack-id': self.get('AWS::StackId')}
+        for resource in self.resources:
+            self[resource]
+            if isinstance(self[resource], ec2_models.TaggedEC2Resource):
+                tags['aws:cloudformation:logical-id'] = resource
+                ec2_models.ec2_backend.create_tags([self[resource].physical_resource_id],tags)
+
+
+class OutputMap(collections.Mapping):
+    def __init__(self, resources, template):
+        self._template = template
+        self._output_json_map = template.get('Outputs')
+
+        # Create the default resources
+        self._resource_map = resources
+        self._parsed_outputs = dict()
+
+    def __getitem__(self, key):
+        output_logical_id = key
+
+        if output_logical_id in self._parsed_outputs:
+            return self._parsed_outputs[output_logical_id]
+        else:
+            output_json = self._output_json_map.get(output_logical_id)
+            new_output = parse_output(output_logical_id, output_json, self._resource_map)
+            self._parsed_outputs[output_logical_id] = new_output
+            return new_output
+
+    def __iter__(self):
+        return iter(self.outputs)
+
+    def __len__(self):
+        return len(self._output_json_map)
+
+    @property
+    def outputs(self):
+        return self._output_json_map.keys() if self._output_json_map else []
+
+    def create(self):
+        for output in self.outputs:
+            self[output]
