@@ -3,6 +3,7 @@ import base64
 import hashlib
 import time
 import re
+from xml.sax.saxutils import escape
 
 
 from moto.core import BaseBackend
@@ -19,7 +20,7 @@ DEFAULT_ACCOUNT_ID = 123456789012
 class Message(object):
     def __init__(self, message_id, body):
         self.id = message_id
-        self.body = body
+        self._body = body
         self.message_attributes = {}
         self.receipt_handle = None
         self.sender_id = DEFAULT_ACCOUNT_ID
@@ -34,6 +35,10 @@ class Message(object):
         body_md5 = hashlib.md5()
         body_md5.update(self.body.encode('utf-8'))
         return body_md5.hexdigest()
+
+    @property
+    def body(self):
+        return escape(self._body)
 
     def mark_sent(self, delay_seconds=None):
         self.sent_timestamp = unix_time_millis()
