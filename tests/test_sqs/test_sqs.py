@@ -92,6 +92,21 @@ def test_send_message():
     messages[1].get_body().should.equal(body_two)
 
 
+@mock_sqs
+def test_send_message_with_xml_characters():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue.set_message_class(RawMessage)
+
+    body_one = '< & >'
+
+    queue.write(queue.new_message(body_one))
+
+    messages = conn.receive_message(queue, number_messages=1)
+
+    messages[0].get_body().should.equal(body_one)
+
+
 @requires_boto_gte("2.28")
 @mock_sqs
 def test_send_message_with_attributes():
