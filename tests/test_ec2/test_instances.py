@@ -247,6 +247,40 @@ def test_instance_attribute_user_data():
 
 
 @mock_ec2
+def test_instance_attribute_source_dest_check():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+
+    # Default value is true
+    instance.sourceDestCheck.should.equal('true')
+
+    instance_attribute = instance.get_attribute("sourceDestCheck")
+    instance_attribute.should.be.a(InstanceAttribute)
+    instance_attribute.get("sourceDestCheck").should.equal(True)
+
+    # Set to false (note: Boto converts bool to string, eg 'false')
+    instance.modify_attribute("sourceDestCheck", False)
+
+    instance.update()
+    instance.sourceDestCheck.should.equal('false')
+
+    instance_attribute = instance.get_attribute("sourceDestCheck")
+    instance_attribute.should.be.a(InstanceAttribute)
+    instance_attribute.get("sourceDestCheck").should.equal(False)
+
+    # Set back to true
+    instance.modify_attribute("sourceDestCheck", True)
+
+    instance.update()
+    instance.sourceDestCheck.should.equal('true')
+
+    instance_attribute = instance.get_attribute("sourceDestCheck")
+    instance_attribute.should.be.a(InstanceAttribute)
+    instance_attribute.get("sourceDestCheck").should.equal(True)
+
+
+@mock_ec2
 def test_user_data_with_run_instance():
     user_data = b"some user data"
     conn = boto.connect_ec2('the_key', 'the_secret')

@@ -280,6 +280,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self.instance_type = kwargs.get("instance_type", "m1.small")
         self.subnet_id = kwargs.get("subnet_id")
         self.key_name = kwargs.get("key_name")
+        self.source_dest_check = "true"
 
         self.block_device_mapping = BlockDeviceMapping()
         self.block_device_mapping['/dev/sda1'] = BlockDeviceType(volume_id=random_volume_id())
