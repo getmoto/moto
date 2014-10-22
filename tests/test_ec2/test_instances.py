@@ -136,6 +136,24 @@ def test_get_instances_filtering_by_instance_id():
     reservations.should.have.length_of(0)
 
 @mock_ec2
+def test_get_instances_filtering_by_reason_code():
+    conn = boto.connect_ec2()
+    reservation = conn.run_instances('ami-1234abcd', min_count=3)
+    instance1, instance2, instance3 = reservation.instances
+    instance1.stop()
+    instance2.terminate()
+
+    reservations = conn.get_all_instances(filters={'state-reason-code': 'Client.UserInitiatedShutdown'})
+    # get_all_instances should return instance1 and instance2
+    reservations[0].instances.should.have.length_of(2)
+    set([instance1.id, instance2.id]).should.equal(set([i.id for i in reservations[0].instances]))
+
+    reservations = conn.get_all_instances(filters={'state-reason-code': ''})
+    # get_all_instances should return instance 3
+    reservations[0].instances.should.have.length_of(1)
+    reservations[0].instances[0].id.should.equal(instance3.id)
+
+@mock_ec2
 def test_get_instances_filtering_by_tag():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
