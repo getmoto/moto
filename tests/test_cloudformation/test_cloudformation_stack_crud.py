@@ -133,6 +133,13 @@ def test_delete_stack_by_id():
     conn.list_stacks().should.have.length_of(1)
     conn.delete_stack(stack_id)
     conn.list_stacks().should.have.length_of(0)
+    with assert_raises(ValidationError) as ve:
+        conn.describe_stacks("test_stack")
+
+    ve.exception.code.should.equal('ValidationError')
+    ve.exception.status.should.equal(400)
+    ve.exception.message.should.contain('test_stack')
+    conn.describe_stacks(stack_id).should.have.length_of(1)
 
 
 @mock_cloudformation
