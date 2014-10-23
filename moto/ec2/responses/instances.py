@@ -206,7 +206,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           {% else %}
             <subnetId>{{ instance.subnet_id }}</subnetId>
           {% endif %}
-          <sourceDestCheck>true</sourceDestCheck>
+          <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
           <groupSet>
              {% for group in instance.dynamic_group_list %}
              <item>
@@ -235,7 +235,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
                 <status>in-use</status>
                 <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                 <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
-                <sourceDestCheck>true</sourceDestCheck>
+                <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
                 <groupSet>
                   {% for group in nic.group_set %}
                   <item>
@@ -328,7 +328,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       <ipAddress>46.51.219.63</ipAddress>
                       {% endif %}
                     {% endif %}
-                    <sourceDestCheck>true</sourceDestCheck>
+                    <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
                     <groupSet>
                       {% for group in instance.dynamic_group_list %}
                       <item>
@@ -380,7 +380,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                           <status>in-use</status>
                           <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                           <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
-                          <sourceDestCheck>true</sourceDestCheck>
+                          <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
                           <groupSet>
                             {% for group in nic.group_set %}
                             <item>
