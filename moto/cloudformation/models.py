@@ -12,6 +12,7 @@ class FakeStack(object):
         self.stack_id = stack_id
         self.name = name
         self.template = template
+        self.status = 'CREATE_COMPLETE'
 
         template_dict = json.loads(self.template)
         self.description = template_dict.get('Description')
@@ -35,6 +36,7 @@ class CloudFormationBackend(BaseBackend):
 
     def __init__(self):
         self.stacks = {}
+        self.deleted_stacks = {}
 
     def create_stack(self, name, template):
         stack_id = generate_stack_id(name)
@@ -42,10 +44,16 @@ class CloudFormationBackend(BaseBackend):
         self.stacks[stack_id] = new_stack
         return new_stack
 
-    def describe_stacks(self, names):
+    def describe_stacks(self, name_or_stack_id):
         stacks = self.stacks.values()
-        if names:
-            return [stack for stack in stacks if stack.name in names]
+        if name_or_stack_id:
+            for stack in stacks:
+                if stack.name == name_or_stack_id or stack.stack_id == name_or_stack_id:
+                    return [stack]
+            deleted_stacks = self.deleted_stacks.values()
+            for stack in deleted_stacks:
+                if stack.stack_id == name_or_stack_id:
+                    return [stack]
         else:
             return stacks
 
@@ -68,6 +76,9 @@ class CloudFormationBackend(BaseBackend):
     def delete_stack(self, name_or_stack_id):
         if name_or_stack_id in self.stacks:
             # Delete by stack id
+            stack = self.stacks.pop(name_or_stack_id, None)
+            stack.status = 'DELETE_COMPLETE'
+            self.deleted_stacks[stack.stack_id] = stack
             return self.stacks.pop(name_or_stack_id, None)
         else:
             # Delete by stack name

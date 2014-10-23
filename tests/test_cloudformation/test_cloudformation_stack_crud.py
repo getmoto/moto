@@ -48,6 +48,37 @@ def test_describe_stack_by_name():
 
 
 @mock_cloudformation
+def test_describe_stack_by_stack_id():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+    )
+
+    stack = conn.describe_stacks("test_stack")[0]
+    stack_by_id = conn.describe_stacks(stack.stack_id)[0]
+    stack_by_id.stack_id.should.equal(stack.stack_id)
+    stack_by_id.stack_name.should.equal("test_stack")
+
+
+@mock_cloudformation
+def test_describe_deleted_stack():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+    )
+
+    stack = conn.describe_stacks("test_stack")[0]
+    stack_id = stack.stack_id
+    conn.delete_stack(stack.stack_id)
+    stack_by_id = conn.describe_stacks(stack_id)[0]
+    stack_by_id.stack_id.should.equal(stack.stack_id)
+    stack_by_id.stack_name.should.equal("test_stack")
+    stack_by_id.stack_status.should.equal("DELETE_COMPLETE")
+
+
+@mock_cloudformation
 def test_get_template_by_name():
     conn = boto.connect_cloudformation()
     conn.create_stack(
