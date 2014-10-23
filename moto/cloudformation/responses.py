@@ -27,8 +27,10 @@ class CloudFormationResponse(BaseResponse):
         return json.dumps(stack_body)
 
     def describe_stacks(self):
-        names = [value[0] for key, value in self.querystring.items() if "StackName" in key]
-        stacks = cloudformation_backend.describe_stacks(names)
+        stack_name_or_id = None
+        if self._get_param('StackName'):
+            stack_name_or_id = self.querystring.get('StackName')[0]
+        stacks = cloudformation_backend.describe_stacks(stack_name_or_id)
 
         template = Template(DESCRIBE_STACKS_TEMPLATE)
         return template.render(stacks=stacks)
@@ -86,7 +88,7 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResult>
       <StackName>{{ stack.name }}</StackName>
       <StackId>{{ stack.stack_id }}</StackId>
       <CreationTime>2010-07-27T22:28:28Z</CreationTime>
-      <StackStatus>CREATE_COMPLETE</StackStatus>
+      <StackStatus>{{ stack.status }}</StackStatus>
       <DisableRollback>false</DisableRollback>
       <Outputs>
       {% for output in stack.stack_outputs %}
@@ -108,7 +110,7 @@ LIST_STACKS_RESPONSE = """<ListStacksResponse>
     {% for stack in stacks %}
     <member>
         <StackId>{{ stack.id }}</StackId>
-        <StackStatus>CREATE_IN_PROGRESS</StackStatus>
+        <StackStatus>{{ stack.status }}</StackStatus>
         <StackName>{{ stack.name }}</StackName>
         <CreationTime>2011-05-23T15:47:44Z</CreationTime>
         <TemplateDescription>{{ stack.description }}</TemplateDescription>
@@ -129,7 +131,7 @@ LIST_STACKS_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
       <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
       <ResourceType>{{ resource.type }}</ResourceType>
       <Timestamp>2010-07-27T22:27:28Z</Timestamp>
-      <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+      <ResourceStatus>{{ stack.status }}</ResourceStatus>
     </member>
     {% endfor %}
   </StackResources>
