@@ -268,8 +268,9 @@ class NetworkInterfaceBackend(object):
 
 
 class Instance(BotoInstance, TaggedEC2Resource):
-    def __init__(self, image_id, user_data, security_groups, **kwargs):
+    def __init__(self, ec2_backend, image_id, user_data, security_groups, **kwargs):
         super(Instance, self).__init__()
+        self.ec2_backend = ec2_backend
         self.id = random_instance_id()
         self.image_id = image_id
         self._state = InstanceState("running", 16)
@@ -285,7 +286,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self.block_device_mapping = BlockDeviceMapping()
         self.block_device_mapping['/dev/sda1'] = BlockDeviceType(volume_id=random_volume_id())
 
-        amis = ec2_backend.describe_images(filters={'image-id': image_id})
+        amis = self.ec2_backend.describe_images(filters={'image-id': image_id})
         ami = amis[0] if amis else None
 
         self.platform = ami.platform if ami else None
@@ -368,7 +369,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self._state_reason = StateReason()
 
     def get_tags(self):
-        tags = ec2_backend.describe_tags(filters={'resource-id': [self.id]})
+        tags = self.ec2_backend.describe_tags(filters={'resource-id': [self.id]})
         return tags
 
     @property
@@ -406,7 +407,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
             nic_id = nic.get('NetworkInterfaceId', None)
             if nic_id:
                 # If existing NIC found, use it.
-                use_nic = ec2_backend.get_network_interface(nic_id)
+                use_nic = self.ec2_backend.get_network_interface(nic_id)
                 use_nic.device_index = device_index
                 use_nic.public_ip_auto_assign = False
 
@@ -415,12 +416,12 @@ class Instance(BotoInstance, TaggedEC2Resource):
                 if device_index == 0 and primary_nic:
                     nic.update(primary_nic)
 
-                subnet = ec2_backend.get_subnet(nic['SubnetId'])
+                subnet = self.ec2_backend.get_subnet(nic['SubnetId'])
 
                 group_id = nic.get('SecurityGroupId',None)
                 group_ids = [group_id] if group_id else []
 
-                use_nic = ec2_backend.create_network_interface(subnet,
+                use_nic = self.ec2_backend.create_network_interface(subnet,
                                                                nic.get('PrivateIpAddress',None),
                                                                device_index=device_index,
                                                                public_ip_auto_assign=nic.get('AssociatePublicIpAddress',False),
@@ -482,6 +483,7 @@ class InstanceBackend(object):
                                for sg_id in kwargs.pop("security_group_ids", []))
         for index in range(count):
             new_instance = Instance(
+                self,
                 image_id,
                 user_data,
                 security_groups,
