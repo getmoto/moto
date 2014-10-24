@@ -5,6 +5,7 @@ from moto.core import BaseBackend
 
 from .parsing import ResourceMap, OutputMap
 from .utils import generate_stack_id
+from .exceptions import ValidationError
 
 
 class FakeStack(object):
@@ -50,10 +51,12 @@ class CloudFormationBackend(BaseBackend):
             for stack in stacks:
                 if stack.name == name_or_stack_id or stack.stack_id == name_or_stack_id:
                     return [stack]
-            deleted_stacks = self.deleted_stacks.values()
-            for stack in deleted_stacks:
-                if stack.stack_id == name_or_stack_id:
-                    return [stack]
+            if self.deleted_stacks:
+                deleted_stacks = self.deleted_stacks.values()
+                for stack in deleted_stacks:
+                    if stack.stack_id == name_or_stack_id:
+                        return [stack]
+            raise ValidationError(name_or_stack_id)
         else:
             return stacks
 

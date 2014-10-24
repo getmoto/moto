@@ -20,7 +20,7 @@ class CloudFormationResponse(BaseResponse):
         stack_body = {
             'CreateStackResponse': {
                 'CreateStackResult': {
-                    'StackId': stack.name,
+                    'StackId': stack.stack_id,
                 }
             }
         }
