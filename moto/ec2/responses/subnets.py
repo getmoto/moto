@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import filters_from_querystring
 
 
@@ -10,19 +9,19 @@ class Subnets(BaseResponse):
     def create_subnet(self):
         vpc_id = self.querystring.get('VpcId')[0]
         cidr_block = self.querystring.get('CidrBlock')[0]
-        subnet = ec2_backend.create_subnet(vpc_id, cidr_block)
+        subnet = self.ec2_backend.create_subnet(vpc_id, cidr_block)
         template = Template(CREATE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
 
     def delete_subnet(self):
         subnet_id = self.querystring.get('SubnetId')[0]
-        subnet = ec2_backend.delete_subnet(subnet_id)
+        subnet = self.ec2_backend.delete_subnet(subnet_id)
         template = Template(DELETE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
 
     def describe_subnets(self):
         filters = filters_from_querystring(self.querystring)
-        subnets = ec2_backend.get_all_subnets(filters)
+        subnets = self.ec2_backend.get_all_subnets(filters)
         template = Template(DESCRIBE_SUBNETS_RESPONSE)
         return template.render(subnets=subnets)
 

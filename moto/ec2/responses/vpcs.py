@@ -2,27 +2,26 @@ from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import filters_from_querystring, vpc_ids_from_querystring
 
 
 class VPCs(BaseResponse):
     def create_vpc(self):
         cidr_block = self.querystring.get('CidrBlock')[0]
-        vpc = ec2_backend.create_vpc(cidr_block)
+        vpc = self.ec2_backend.create_vpc(cidr_block)
         template = Template(CREATE_VPC_RESPONSE)
         return template.render(vpc=vpc)
 
     def delete_vpc(self):
         vpc_id = self.querystring.get('VpcId')[0]
-        vpc = ec2_backend.delete_vpc(vpc_id)
+        vpc = self.ec2_backend.delete_vpc(vpc_id)
         template = Template(DELETE_VPC_RESPONSE)
         return template.render(vpc=vpc)
 
     def describe_vpcs(self):
         vpc_ids = vpc_ids_from_querystring(self.querystring)
         filters = filters_from_querystring(self.querystring)
-        vpcs = ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
         template = Template(DESCRIBE_VPCS_RESPONSE)
         return template.render(vpcs=vpcs)
 
