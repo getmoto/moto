@@ -159,8 +159,8 @@ class DynamoHandler(BaseResponse):
 
         for table_name, table_requests in table_batches.items():
             for table_request in table_requests:
-                request_type = table_request.keys()[0]
-                request = table_request.values()[0]
+                request_type = list(table_request)[0]
+                request = list(table_request.values())[0]
 
                 if request_type == 'PutRequest':
                     item = request['Item']
