@@ -153,6 +153,9 @@ class Table(object):
     def __nonzero__(self):
         return True
 
+    def __bool__(self):
+        return self.__nonzero__()
+
     def put_item(self, item_attrs):
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))
         if self.has_range_key:
