@@ -517,6 +517,7 @@ def test_describe_instance_status_with_instance_filter():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+@requires_boto_gte("2.32.0")
 @mock_ec2
 def test_describe_instance_status_with_non_running_instances():
     conn = boto.connect_ec2('the_key', 'the_secret')
