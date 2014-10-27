@@ -542,6 +542,14 @@ class InstanceBackend(object):
                 instances.append(instance)
         return instances
 
+    def all_running_instances(self):
+        instances = []
+        for reservation in self.all_reservations():
+            for instance in reservation.instances:
+                if instance.state_code == 16:
+                    instances.append(instance)
+        return instances
+
     def get_multi_instances_by_id(self, instance_ids):
         """
         :param instance_ids: A string list with instance ids

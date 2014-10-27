@@ -4,7 +4,7 @@ from jinja2 import Template
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations, \
-    dict_from_querystring
+    dict_from_querystring, optional_from_querystring
 
 
 class InstanceResponse(BaseResponse):
@@ -69,11 +69,15 @@ class InstanceResponse(BaseResponse):
 
     def describe_instance_status(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
+        include_all_instances = optional_from_querystring('IncludeAllInstances',
+                                                        self.querystring) == 'true'
 
         if instance_ids:
             instances = self.ec2_backend.get_multi_instances_by_id(instance_ids)
-        else:
+        elif include_all_instances:
             instances = self.ec2_backend.all_instances()
+        else:
+            instances = self.ec2_backend.all_running_instances()
 
         template = Template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
@@ -512,27 +516,36 @@ EC2_INSTANCE_STATUS = """<?xml version="1.0" encoding="UTF-8"?>
             <instanceId>{{ instance.id }}</instanceId>
             <availabilityZone>us-east-1d</availabilityZone>
             <instanceState>
-                <code>16</code>
-                <name>running</name>
+                <code>{{ instance.state_code }}</code>
+                <name>{{ instance.state }}</name>
             </instanceState>
-            <systemStatus>
-                <status>ok</status>
-                <details>
-                    <item>
-                        <name>reachability</name>
-                        <status>passed</status>
-                    </item>
-                </details>
-            </systemStatus>
-            <instanceStatus>
-                <status>ok</status>
-                <details>
-                    <item>
-                        <name>reachability</name>
-                        <status>passed</status>
-                    </item>
-                </details>
-            </instanceStatus>
+            {% if instance.state_code == 16 %}
+              <systemStatus>
+                  <status>ok</status>
+                  <details>
+                      <item>
+                          <name>reachability</name>
+                          <status>passed</status>
+                      </item>
+                  </details>
+              </systemStatus>
+              <instanceStatus>
+                  <status>ok</status>
+                  <details>
+                      <item>
+                          <name>reachability</name>
+                          <status>passed</status>
+                      </item>
+                  </details>
+              </instanceStatus>
+            {% else %}
+              <systemStatus>
+                  <status>not-applicable</status>
+              </systemStatus>
+              <instanceStatus>
+                  <status>not-applicable</status>
+              </instanceStatus>
+            {% endif %}
         </item>
       {% endfor %}
     </instanceStatusSet>

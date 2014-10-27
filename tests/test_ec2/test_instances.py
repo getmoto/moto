@@ -516,3 +516,29 @@ def test_describe_instance_status_with_instance_filter():
     cm.exception.code.should.equal('InvalidInstanceID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+@requires_boto_gte("2.32.0")
+@mock_ec2
+def test_describe_instance_status_with_non_running_instances():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd', min_count=3)
+    instance1, instance2, instance3 = reservation.instances
+    instance1.stop()
+    instance2.terminate()
+
+    all_running_status = conn.get_all_instance_status()
+    all_running_status.should.have.length_of(1)
+    all_running_status[0].id.should.equal(instance3.id)
+    all_running_status[0].state_name.should.equal('running')
+
+    all_status = conn.get_all_instance_status(include_all_instances=True)
+    all_status.should.have.length_of(3)
+
+    status1 = next((s for s in all_status if s.id == instance1.id), None)
+    status1.state_name.should.equal('stopped')
+
+    status2 = next((s for s in all_status if s.id == instance2.id), None)
+    status2.state_name.should.equal('terminated')
+
+    status3 = next((s for s in all_status if s.id == instance3.id), None)
+    status3.state_name.should.equal('running')
