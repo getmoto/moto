@@ -31,8 +31,8 @@ class DynamoType(object):
     """
 
     def __init__(self, type_as_dict):
-        self.type = type_as_dict.keys()[0]
-        self.value = type_as_dict.values()[0]
+        self.type = list(type_as_dict)[0]
+        self.value = list(type_as_dict.values())[0]
 
     def __hash__(self):
         return hash((self.type, self.value))
@@ -172,6 +172,9 @@ class Table(object):
 
     def __nonzero__(self):
         return True
+
+    def __bool__(self):
+        return self.__nonzero__()
 
     @property
     def has_range_key(self):
