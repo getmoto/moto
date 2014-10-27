@@ -155,6 +155,7 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                   <state>active</state>
                 {% endif %}
                 {% if route.vpc_pcx %}
+                  <vpcPeeringConnectionId>{{ route.vpc_pcx.id }}</vpcPeeringConnectionId>
                   <origin>CreateRoute</origin>
                   <state>blackhole</state>
                 {% endif %}
