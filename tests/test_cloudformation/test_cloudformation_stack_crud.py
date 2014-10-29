@@ -39,6 +39,19 @@ def test_create_stack():
 
 
 @mock_cloudformation
+def test_create_stack_with_notification_arn():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack_with_notifications",
+        template_body=dummy_template_json,
+        notification_arns='arn:aws:sns:us-east-1:123456789012:fake-queue'
+    )
+
+    stack = conn.describe_stacks()[0]
+    [n.value for n in stack.notification_arns].should.contain('arn:aws:sns:us-east-1:123456789012:fake-queue')
+
+
+@mock_cloudformation
 def test_describe_stack_by_name():
     conn = boto.connect_cloudformation()
     conn.create_stack(

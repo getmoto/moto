@@ -12,10 +12,12 @@ class CloudFormationResponse(BaseResponse):
     def create_stack(self):
         stack_name = self._get_param('StackName')
         stack_body = self._get_param('TemplateBody')
+        stack_notification_arns = self._get_multi_param('NotificationARNs.member')
 
         stack = cloudformation_backend.create_stack(
             name=stack_name,
             template=stack_body,
+            notification_arns=stack_notification_arns
         )
         stack_body = {
             'CreateStackResponse': {
@@ -89,6 +91,15 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResult>
       <StackId>{{ stack.stack_id }}</StackId>
       <CreationTime>2010-07-27T22:28:28Z</CreationTime>
       <StackStatus>{{ stack.status }}</StackStatus>
+      {% if stack.notification_arns %}
+      <NotificationARNs>
+        {% for notification_arn in stack.notification_arns %}
+        <member>{{ notification_arn }}</member>
+        {% endfor %}
+      </NotificationARNs>
+      {% else %}
+      <NotificationARNs/>
+      {% endif %}
       <DisableRollback>false</DisableRollback>
       <Outputs>
       {% for output in stack.stack_outputs %}
