@@ -97,6 +97,17 @@ def test_get_user():
 
 
 @mock_iam()
+def test_create_login_profile():
+    conn = boto.connect_iam()
+    with assert_raises(BotoServerError):
+        conn.create_login_profile('my-user', 'my-pass')
+    conn.create_user('my-user')
+    conn.create_login_profile('my-user', 'my-pass')
+    with assert_raises(BotoServerError):
+        conn.create_login_profile('my-user', 'my-pass')
+
+
+@mock_iam()
 def test_add_user_to_group():
     conn = boto.connect_iam()
     with assert_raises(BotoServerError):

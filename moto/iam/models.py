@@ -128,6 +128,7 @@ class User(object):
 
         self.policies = {}
         self.access_keys = []
+        self.password = None
 
     def get_policy(self, policy_name):
         policy_json = None
@@ -269,6 +270,16 @@ class IAMBackend(BaseBackend):
             raise BotoServerError(404, 'Not Found')
 
         return user
+
+    def create_login_profile(self, user_name, password):
+        if not user_name in self.users:
+            raise BotoServerError(404, 'Not Found')
+
+        # This does not currently deal with PasswordPolicyViolation.
+        user = self.users[user_name]
+        if user.password:
+            raise BotoServerError(409, 'Conflict')
+        user.password = password
 
     def add_user_to_group(self, group_name, user_name):
         group = None

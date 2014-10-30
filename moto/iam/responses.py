@@ -112,6 +112,14 @@ class IamResponse(BaseResponse):
         template = Template(USER_TEMPLATE)
         return template.render(action='Get', user=user)
 
+    def create_login_profile(self):
+        user_name = self._get_param('UserName')
+        password = self._get_param('Password')
+        iam_backend.create_login_profile(user_name, password)
+
+        template = Template(CREATE_LOGIN_PROFILE_TEMPLATE)
+        return template.render(user_name=user_name)
+
     def add_user_to_group(self):
         group_name = self._get_param('GroupName')
         user_name = self._get_param('UserName')
@@ -438,6 +446,20 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </{{ action }}UserResponse>"""
+
+CREATE_LOGIN_PROFILE_TEMPLATE = """
+<CreateLoginProfileResponse>
+   <CreateUserResult>
+      <LoginProfile>
+         <UserName>{{ user_name }}</UserName>
+         <CreateDate>2011-09-19T23:00:56Z</CreateDate>
+      </LoginProfile>
+   </CreateUserResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</CreateLoginProfileResponse>
+"""
 
 GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>
    <GetUserPolicyResult>
