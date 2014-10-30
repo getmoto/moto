@@ -9,9 +9,10 @@ from .exceptions import ValidationError
 
 
 class FakeStack(object):
-    def __init__(self, stack_id, name, template):
+    def __init__(self, stack_id, name, template, notification_arns=None):
         self.stack_id = stack_id
         self.name = name
+        self.notification_arns = notification_arns if notification_arns else []
         self.template = template
         self.status = 'CREATE_COMPLETE'
 
@@ -39,9 +40,9 @@ class CloudFormationBackend(BaseBackend):
         self.stacks = {}
         self.deleted_stacks = {}
 
-    def create_stack(self, name, template):
+    def create_stack(self, name, template, notification_arns=None):
         stack_id = generate_stack_id(name)
-        new_stack = FakeStack(stack_id=stack_id, name=name, template=template)
+        new_stack = FakeStack(stack_id=stack_id, name=name, template=template, notification_arns=notification_arns)
         self.stacks[stack_id] = new_stack
         return new_stack
 
