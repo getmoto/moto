@@ -17,12 +17,11 @@ class CloudWatchResponse(BaseResponse):
         results = []
         param_index = 1
         while True:
-            index_prefix = "{}.{}.".format(param_prefix, param_index)
-            new_items = {
-                camelcase_to_underscores(key.replace(index_prefix, "")): value[0]
-                for key, value in self.querystring.items()
-                if key.startswith(index_prefix)
-            }
+            index_prefix = "{0}.{1}.".format(param_prefix, param_index)
+            new_items = {}
+            for key, value in self.querystring.items():
+                if key.startswith(index_prefix):
+                    new_items[camelcase_to_underscores(key.replace(index_prefix, ""))] = value[0]
             if not new_items:
                 break
             results.append(new_items)
