@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import sequence_from_querystring
 from jinja2 import Template
 
@@ -8,18 +7,18 @@ class InternetGateways(BaseResponse):
     def attach_internet_gateway(self):
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
-        ec2_backend.attach_internet_gateway(igw_id, vpc_id)
+        self.ec2_backend.attach_internet_gateway(igw_id, vpc_id)
         template = Template(ATTACH_INTERNET_GATEWAY_RESPONSE)
         return template.render()
 
     def create_internet_gateway(self):
-        igw = ec2_backend.create_internet_gateway()
+        igw = self.ec2_backend.create_internet_gateway()
         template = Template(CREATE_INTERNET_GATEWAY_RESPONSE)
         return template.render(internet_gateway=igw)
 
     def delete_internet_gateway(self):
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
-        ec2_backend.delete_internet_gateway(igw_id)
+        self.ec2_backend.delete_internet_gateway(igw_id)
         template = Template(DELETE_INTERNET_GATEWAY_RESPONSE)
         return template.render()
 
@@ -30,9 +29,9 @@ class InternetGateways(BaseResponse):
         elif "InternetGatewayId.1" in self.querystring:
             igw_ids = sequence_from_querystring(
                 "InternetGatewayId", self.querystring)
-            igws = ec2_backend.describe_internet_gateways(igw_ids)
+            igws = self.ec2_backend.describe_internet_gateways(igw_ids)
         else:
-            igws = ec2_backend.describe_internet_gateways()
+            igws = self.ec2_backend.describe_internet_gateways()
         template = Template(DESCRIBE_INTERNET_GATEWAYS_RESPONSE)
         return template.render(internet_gateways=igws)
 
@@ -41,7 +40,7 @@ class InternetGateways(BaseResponse):
         # raise else DependencyViolationError()
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
-        ec2_backend.detach_internet_gateway(igw_id, vpc_id)
+        self.ec2_backend.detach_internet_gateway(igw_id, vpc_id)
         template = Template(DETACH_INTERNET_GATEWAY_RESPONSE)
         return template.render()
 

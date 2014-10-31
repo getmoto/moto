@@ -4,7 +4,6 @@ from moto.core.responses import BaseResponse
 from moto.ec2.utils import (
     dhcp_configuration_from_querystring,
     sequence_from_querystring)
-from moto.ec2.models import ec2_backend
 
 
 class DHCPOptions(BaseResponse):
@@ -12,10 +11,10 @@ class DHCPOptions(BaseResponse):
         dhcp_opt_id = self.querystring.get("DhcpOptionsId", [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
 
-        dhcp_opt = ec2_backend.describe_dhcp_options([dhcp_opt_id])[0]
-        vpc = ec2_backend.get_vpc(vpc_id)
+        dhcp_opt = self.ec2_backend.describe_dhcp_options([dhcp_opt_id])[0]
+        vpc = self.ec2_backend.get_vpc(vpc_id)
 
-        ec2_backend.associate_dhcp_options(dhcp_opt, vpc)
+        self.ec2_backend.associate_dhcp_options(dhcp_opt, vpc)
 
         template = Template(ASSOCIATE_DHCP_OPTIONS_RESPONSE)
         return template.render()
@@ -31,7 +30,7 @@ class DHCPOptions(BaseResponse):
         netbios_name_servers = dhcp_config.get("netbios-name-servers", None)
         netbios_node_type = dhcp_config.get("netbios-node-type", None)
 
-        dhcp_options_set = ec2_backend.create_dhcp_options(
+        dhcp_options_set = self.ec2_backend.create_dhcp_options(
             domain_name_servers=domain_name_servers,
             domain_name=domain_name,
             ntp_servers=ntp_servers,
@@ -44,7 +43,7 @@ class DHCPOptions(BaseResponse):
 
     def delete_dhcp_options(self):
         dhcp_opt_id = self.querystring.get("DhcpOptionsId", [None])[0]
-        delete_status = ec2_backend.delete_dhcp_options_set(dhcp_opt_id)
+        delete_status = self.ec2_backend.delete_dhcp_options_set(dhcp_opt_id)
         template = Template(DELETE_DHCP_OPTIONS_RESPONSE)
         return template.render(delete_status=delete_status)
 
@@ -53,9 +52,9 @@ class DHCPOptions(BaseResponse):
             raise NotImplementedError("Filtering not supported in describe_dhcp_options.")
         elif "DhcpOptionsId.1" in self.querystring:
             dhcp_opt_ids = sequence_from_querystring("DhcpOptionsId", self.querystring)
-            dhcp_opt = ec2_backend.describe_dhcp_options(dhcp_opt_ids)
+            dhcp_opt = self.ec2_backend.describe_dhcp_options(dhcp_opt_ids)
         else:
-            dhcp_opt = ec2_backend.describe_dhcp_options()
+            dhcp_opt = self.ec2_backend.describe_dhcp_options()
         template = Template(DESCRIBE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options=dhcp_opt)
 

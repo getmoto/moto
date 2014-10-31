@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import filters_from_querystring
 
 
@@ -17,7 +16,7 @@ class SpotInstances(BaseResponse):
 
     def cancel_spot_instance_requests(self):
         request_ids = self._get_multi_param('SpotInstanceRequestId')
-        requests = ec2_backend.cancel_spot_instance_requests(request_ids)
+        requests = self.ec2_backend.cancel_spot_instance_requests(request_ids)
         template = Template(CANCEL_SPOT_INSTANCES_TEMPLATE)
         return template.render(requests=requests)
 
@@ -32,7 +31,7 @@ class SpotInstances(BaseResponse):
 
     def describe_spot_instance_requests(self):
         filters = filters_from_querystring(self.querystring)
-        requests = ec2_backend.describe_spot_instance_requests(filters=filters)
+        requests = self.ec2_backend.describe_spot_instance_requests(filters=filters)
         template = Template(DESCRIBE_SPOT_INSTANCES_TEMPLATE)
         return template.render(requests=requests)
 
@@ -58,7 +57,7 @@ class SpotInstances(BaseResponse):
         monitoring_enabled = self._get_param('LaunchSpecification.Monitoring.Enabled')
         subnet_id = self._get_param('LaunchSpecification.SubnetId')
 
-        requests = ec2_backend.request_spot_instances(
+        requests = self.ec2_backend.request_spot_instances(
             price=price,
             image_id=image_id,
             count=count,

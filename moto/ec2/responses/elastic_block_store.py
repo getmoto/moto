@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
-from moto.ec2.models import ec2_backend
 
 
 class ElasticBlockStore(BaseResponse):
@@ -11,7 +10,7 @@ class ElasticBlockStore(BaseResponse):
         instance_id = self.querystring.get('InstanceId')[0]
         device_path = self.querystring.get('Device')[0]
 
-        attachment = ec2_backend.attach_volume(volume_id, instance_id, device_path)
+        attachment = self.ec2_backend.attach_volume(volume_id, instance_id, device_path)
         template = Template(ATTACHED_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
 
@@ -23,34 +22,34 @@ class ElasticBlockStore(BaseResponse):
         if 'Description' in self.querystring:
             description = self.querystring.get('Description')[0]
         volume_id = self.querystring.get('VolumeId')[0]
-        snapshot = ec2_backend.create_snapshot(volume_id, description)
+        snapshot = self.ec2_backend.create_snapshot(volume_id, description)
         template = Template(CREATE_SNAPSHOT_RESPONSE)
         return template.render(snapshot=snapshot)
 
     def create_volume(self):
         size = self.querystring.get('Size')[0]
         zone = self.querystring.get('AvailabilityZone')[0]
-        volume = ec2_backend.create_volume(size, zone)
+        volume = self.ec2_backend.create_volume(size, zone)
         template = Template(CREATE_VOLUME_RESPONSE)
         return template.render(volume=volume)
 
     def delete_snapshot(self):
         snapshot_id = self.querystring.get('SnapshotId')[0]
-        success = ec2_backend.delete_snapshot(snapshot_id)
+        success = self.ec2_backend.delete_snapshot(snapshot_id)
         return DELETE_SNAPSHOT_RESPONSE
 
     def delete_volume(self):
         volume_id = self.querystring.get('VolumeId')[0]
-        success = ec2_backend.delete_volume(volume_id)
+        success = self.ec2_backend.delete_volume(volume_id)
         return DELETE_VOLUME_RESPONSE
 
     def describe_snapshots(self):
-        snapshots = ec2_backend.describe_snapshots()
+        snapshots = self.ec2_backend.describe_snapshots()
         template = Template(DESCRIBE_SNAPSHOTS_RESPONSE)
         return template.render(snapshots=snapshots)
 
     def describe_volumes(self):
-        volumes = ec2_backend.describe_volumes()
+        volumes = self.ec2_backend.describe_volumes()
         template = Template(DESCRIBE_VOLUMES_RESPONSE)
         return template.render(volumes=volumes)
 
@@ -65,7 +64,7 @@ class ElasticBlockStore(BaseResponse):
         instance_id = self.querystring.get('InstanceId')[0]
         device_path = self.querystring.get('Device')[0]
 
-        attachment = ec2_backend.detach_volume(volume_id, instance_id, device_path)
+        attachment = self.ec2_backend.detach_volume(volume_id, instance_id, device_path)
         template = Template(DETATCH_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
 
@@ -77,7 +76,7 @@ class ElasticBlockStore(BaseResponse):
 
     def describe_snapshot_attribute(self):
         snapshot_id = self.querystring.get('SnapshotId')[0]
-        groups = ec2_backend.get_create_volume_permission_groups(snapshot_id)
+        groups = self.ec2_backend.get_create_volume_permission_groups(snapshot_id)
         template = Template(DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE)
         return template.render(snapshot_id=snapshot_id, groups=groups)
 
@@ -87,9 +86,9 @@ class ElasticBlockStore(BaseResponse):
         group = self.querystring.get('UserGroup.1', [None])[0]
         user_id = self.querystring.get('UserId.1', [None])[0]
         if (operation_type == 'add'):
-            ec2_backend.add_create_volume_permission(snapshot_id, user_id=user_id, group=group)
+            self.ec2_backend.add_create_volume_permission(snapshot_id, user_id=user_id, group=group)
         elif (operation_type == 'remove'):
-            ec2_backend.remove_create_volume_permission(snapshot_id, user_id=user_id, group=group)
+            self.ec2_backend.remove_create_volume_permission(snapshot_id, user_id=user_id, group=group)
         return MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE
 
     def modify_volume_attribute(self):

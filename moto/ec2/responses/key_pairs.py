@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 import six
 from jinja2 import Template
 from moto.core.responses import BaseResponse
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import keypair_names_from_querystring, filters_from_querystring
 
 
@@ -10,13 +9,13 @@ class KeyPairs(BaseResponse):
 
     def create_key_pair(self):
         name = self.querystring.get('KeyName')[0]
-        keypair = ec2_backend.create_key_pair(name)
+        keypair = self.ec2_backend.create_key_pair(name)
         template = Template(CREATE_KEY_PAIR_RESPONSE)
         return template.render(**keypair)
 
     def delete_key_pair(self):
         name = self.querystring.get('KeyName')[0]
-        success = six.text_type(ec2_backend.delete_key_pair(name)).lower()
+        success = six.text_type(self.ec2_backend.delete_key_pair(name)).lower()
         return Template(DELETE_KEY_PAIR_RESPONSE).render(success=success)
 
     def describe_key_pairs(self):
@@ -25,7 +24,7 @@ class KeyPairs(BaseResponse):
         if len(filters) > 0:
             raise NotImplementedError('Using filters in KeyPairs.describe_key_pairs is not yet implemented')
 
-        keypairs = ec2_backend.describe_key_pairs(names)
+        keypairs = self.ec2_backend.describe_key_pairs(names)
         template = Template(DESCRIBE_KEY_PAIRS_RESPONSE)
         return template.render(keypairs=keypairs)
 

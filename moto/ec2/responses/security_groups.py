@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import filters_from_querystring
 
 
@@ -41,14 +40,14 @@ class SecurityGroups(BaseResponse):
         raise NotImplementedError('SecurityGroups.authorize_security_group_egress is not yet implemented')
 
     def authorize_security_group_ingress(self):
-        ec2_backend.authorize_security_group_ingress(*process_rules_from_querystring(self.querystring))
+        self.ec2_backend.authorize_security_group_ingress(*process_rules_from_querystring(self.querystring))
         return AUTHORIZE_SECURITY_GROUP_INGRESS_REPONSE
 
     def create_security_group(self):
         name = self.querystring.get('GroupName')[0]
         description = self.querystring.get('GroupDescription', [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
-        group = ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
+        group = self.ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
         template = Template(CREATE_SECURITY_GROUP_RESPONSE)
         return template.render(group=group)
 
@@ -59,9 +58,9 @@ class SecurityGroups(BaseResponse):
         sg_id = self.querystring.get('GroupId')
 
         if name:
-            ec2_backend.delete_security_group(name[0])
+            self.ec2_backend.delete_security_group(name[0])
         elif sg_id:
-            ec2_backend.delete_security_group(group_id=sg_id[0])
+            self.ec2_backend.delete_security_group(group_id=sg_id[0])
 
         return DELETE_GROUP_RESPONSE
 
@@ -70,7 +69,7 @@ class SecurityGroups(BaseResponse):
         group_ids = self._get_multi_param("GroupId")
         filters = filters_from_querystring(self.querystring)
 
-        groups = ec2_backend.describe_security_groups(
+        groups = self.ec2_backend.describe_security_groups(
             group_ids=group_ids,
             groupnames=groupnames,
             filters=filters
@@ -83,7 +82,7 @@ class SecurityGroups(BaseResponse):
         raise NotImplementedError('SecurityGroups.revoke_security_group_egress is not yet implemented')
 
     def revoke_security_group_ingress(self):
-        ec2_backend.revoke_security_group_ingress(*process_rules_from_querystring(self.querystring))
+        self.ec2_backend.revoke_security_group_ingress(*process_rules_from_querystring(self.querystring))
         return REVOKE_SECURITY_GROUP_INGRESS_REPONSE
 
 

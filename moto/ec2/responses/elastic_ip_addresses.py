@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import sequence_from_querystring
 
 
@@ -12,7 +11,7 @@ class ElasticIPAddresses(BaseResponse):
             domain = self.querystring.get('Domain')[0]
         else:
             domain = "standard"
-        address = ec2_backend.allocate_address(domain)
+        address = self.ec2_backend.allocate_address(domain)
         template = Template(ALLOCATE_ADDRESS_RESPONSE)
         return template.render(address=address)
 
@@ -20,11 +19,11 @@ class ElasticIPAddresses(BaseResponse):
         instance = eni = None
 
         if "InstanceId" in self.querystring:
-            instance = ec2_backend.get_instance(self.querystring['InstanceId'][0])
+            instance = self.ec2_backend.get_instance(self.querystring['InstanceId'][0])
         elif "NetworkInterfaceId" in self.querystring:
-            eni = ec2_backend.get_network_interface(self.querystring['NetworkInterfaceId'][0])
+            eni = self.ec2_backend.get_network_interface(self.querystring['NetworkInterfaceId'][0])
         else:
-            ec2_backend.raise_error("MissingParameter", "Invalid request, expect InstanceId/NetworkId parameter.")
+            self.ec2_backend.raise_error("MissingParameter", "Invalid request, expect InstanceId/NetworkId parameter.")
 
         reassociate = False
         if "AllowReassociation" in self.querystring:
@@ -32,13 +31,13 @@ class ElasticIPAddresses(BaseResponse):
 
         if instance or eni:
             if "PublicIp" in self.querystring:
-                eip = ec2_backend.associate_address(instance=instance, eni=eni, address=self.querystring['PublicIp'][0], reassociate=reassociate)
+                eip = self.ec2_backend.associate_address(instance=instance, eni=eni, address=self.querystring['PublicIp'][0], reassociate=reassociate)
             elif "AllocationId" in self.querystring:
-                eip = ec2_backend.associate_address(instance=instance, eni=eni, allocation_id=self.querystring['AllocationId'][0], reassociate=reassociate)
+                eip = self.ec2_backend.associate_address(instance=instance, eni=eni, allocation_id=self.querystring['AllocationId'][0], reassociate=reassociate)
             else:
-                ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")
+                self.ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")
         else:
-            ec2_backend.raise_error("MissingParameter", "Invalid request, expect either instance or ENI.")
+            self.ec2_backend.raise_error("MissingParameter", "Invalid request, expect either instance or ENI.")
 
         template = Template(ASSOCIATE_ADDRESS_RESPONSE)
         return template.render(address=eip)
@@ -50,31 +49,31 @@ class ElasticIPAddresses(BaseResponse):
             raise NotImplementedError("Filtering not supported in describe_address.")
         elif "PublicIp.1" in self.querystring:
             public_ips = sequence_from_querystring("PublicIp", self.querystring)
-            addresses = ec2_backend.address_by_ip(public_ips)
+            addresses = self.ec2_backend.address_by_ip(public_ips)
         elif "AllocationId.1" in self.querystring:
             allocation_ids = sequence_from_querystring("AllocationId", self.querystring)
-            addresses = ec2_backend.address_by_allocation(allocation_ids)
+            addresses = self.ec2_backend.address_by_allocation(allocation_ids)
         else:
-            addresses = ec2_backend.describe_addresses()
+            addresses = self.ec2_backend.describe_addresses()
         return template.render(addresses=addresses)
 
     def disassociate_address(self):
         if "PublicIp" in self.querystring:
-            disassociated = ec2_backend.disassociate_address(address=self.querystring['PublicIp'][0])
+            disassociated = self.ec2_backend.disassociate_address(address=self.querystring['PublicIp'][0])
         elif "AssociationId" in self.querystring:
-            disassociated = ec2_backend.disassociate_address(association_id=self.querystring['AssociationId'][0])
+            disassociated = self.ec2_backend.disassociate_address(association_id=self.querystring['AssociationId'][0])
         else:
-            ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AssociationId parameter.")
+            self.ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AssociationId parameter.")
 
         return Template(DISASSOCIATE_ADDRESS_RESPONSE).render()
 
     def release_address(self):
         if "PublicIp" in self.querystring:
-            released = ec2_backend.release_address(address=self.querystring['PublicIp'][0])
+            released = self.ec2_backend.release_address(address=self.querystring['PublicIp'][0])
         elif "AllocationId" in self.querystring:
-            released = ec2_backend.release_address(allocation_id=self.querystring['AllocationId'][0])
+            released = self.ec2_backend.release_address(allocation_id=self.querystring['AllocationId'][0])
         else:
-            ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")
+            self.ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")
 
         return Template(RELEASE_ADDRESS_RESPONSE).render()
 

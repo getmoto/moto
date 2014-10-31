@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
-from moto.ec2.models import ec2_backend
 from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring, filters_from_querystring
 
 
@@ -15,7 +14,7 @@ class AmisResponse(BaseResponse):
             description = ""
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
-        image = ec2_backend.create_image(instance_id, name, description)
+        image = self.ec2_backend.create_image(instance_id, name, description)
         template = Template(CREATE_IMAGE_RESPONSE)
         return template.render(image=image)
 
@@ -24,26 +23,26 @@ class AmisResponse(BaseResponse):
         source_region = self.querystring.get('SourceRegion')[0]
         name = self.querystring.get('Name')[0] if self.querystring.get('Name') else None
         description = self.querystring.get('Description')[0] if self.querystring.get('Description') else None
-        image = ec2_backend.copy_image(source_image_id, source_region, name, description)
+        image = self.ec2_backend.copy_image(source_image_id, source_region, name, description)
         template = Template(COPY_IMAGE_RESPONSE)
         return template.render(image=image)
 
     def deregister_image(self):
         ami_id = self.querystring.get('ImageId')[0]
-        success = ec2_backend.deregister_image(ami_id)
+        success = self.ec2_backend.deregister_image(ami_id)
         template = Template(DEREGISTER_IMAGE_RESPONSE)
         return template.render(success=str(success).lower())
 
     def describe_images(self):
         ami_ids = image_ids_from_querystring(self.querystring)
         filters = filters_from_querystring(self.querystring)
-        images = ec2_backend.describe_images(ami_ids=ami_ids, filters=filters)
+        images = self.ec2_backend.describe_images(ami_ids=ami_ids, filters=filters)
         template = Template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 
     def describe_image_attribute(self):
         ami_id = self.querystring.get('ImageId')[0]
-        groups = ec2_backend.get_launch_permission_groups(ami_id)
+        groups = self.ec2_backend.get_launch_permission_groups(ami_id)
         template = Template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
         return template.render(ami_id=ami_id, groups=groups)
 
@@ -53,9 +52,9 @@ class AmisResponse(BaseResponse):
         group = self.querystring.get('UserGroup.1', [None])[0]
         user_id = self.querystring.get('UserId.1', [None])[0]
         if (operation_type == 'add'):
-            ec2_backend.add_launch_permission(ami_id, user_id=user_id, group=group)
+            self.ec2_backend.add_launch_permission(ami_id, user_id=user_id, group=group)
         elif (operation_type == 'remove'):
-            ec2_backend.remove_launch_permission(ami_id, user_id=user_id, group=group)
+            self.ec2_backend.remove_launch_permission(ami_id, user_id=user_id, group=group)
         return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
 
     def register_image(self):

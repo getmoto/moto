@@ -3,6 +3,7 @@ import copy
 import itertools
 from collections import defaultdict
 from datetime import datetime
+import re
 
 import six
 import boto
@@ -105,7 +106,7 @@ class StateReason(object):
 
 class TaggedEC2Resource(object):
     def get_tags(self, *args, **kwargs):
-        tags = ec2_backend.describe_tags(filters={'resource-id': [self.id]})
+        tags = self.ec2_backend.describe_tags(filters={'resource-id': [self.id]})
         return tags
 
     def get_filter_value(self, filter_name):
@@ -127,7 +128,9 @@ class TaggedEC2Resource(object):
 
 
 class NetworkInterface(object):
-    def __init__(self, subnet, private_ip_address, device_index=0, public_ip_auto_assign=True, group_ids=None):
+    def __init__(self, ec2_backend, subnet, private_ip_address, device_index=0,
+        public_ip_auto_assign=True, group_ids=None):
+        self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
         self.private_ip_address = private_ip_address
@@ -148,11 +151,11 @@ class NetworkInterface(object):
         group = None
         if group_ids:
             for group_id in group_ids:
-                group = ec2_backend.get_security_group_from_id(group_id)
+                group = self.ec2_backend.get_security_group_from_id(group_id)
                 if not group:
                     # Create with specific group ID.
                     group = SecurityGroup(group_id, group_id, group_id, vpc_id=subnet.vpc_id)
-                    ec2_backend.groups[subnet.vpc_id][group_id] = group
+                    self.ec2_backend.groups[subnet.vpc_id][group_id] = group
                 if group:
                     self._group_set.append(group)
 
@@ -207,7 +210,7 @@ class NetworkInterfaceBackend(object):
         super(NetworkInterfaceBackend, self).__init__()
 
     def create_network_interface(self, subnet, private_ip_address, group_ids=None, **kwargs):
-        eni = NetworkInterface(subnet, private_ip_address, group_ids=group_ids)
+        eni = NetworkInterface(self, subnet, private_ip_address, group_ids=group_ids)
         self.enis[eni.id] = eni
         return eni
 
@@ -241,7 +244,7 @@ class NetworkInterfaceBackend(object):
                                 enis.append(eni)
                                 break
                 else:
-                    ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeNetworkInterfaces".format(_filter))
+                    self.raise_not_implemented_error("The filter '{0}' for DescribeNetworkInterfaces".format(_filter))
         return enis
 
     def attach_network_interface(self, eni_id, instance_id, device_index):
@@ -760,7 +763,9 @@ class TagBackend(object):
 
 
 class Ami(TaggedEC2Resource):
-    def __init__(self, ami_id, instance=None, source_ami=None, name=None, description=None):
+    def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
+            name=None, description=None):
+        self.ec2_backend = ec2_backend
         self.id = ami_id
         self.state = "available"
 
@@ -790,8 +795,8 @@ class Ami(TaggedEC2Resource):
         self.launch_permission_groups = set()
 
         # AWS auto-creates these, we should reflect the same.
-        volume = ec2_backend.create_volume(15, "us-east-1a")
-        self.ebs_snapshot = ec2_backend.create_snapshot(volume.id, "Auto-created snapshot for AMI %s" % self.id)
+        volume = self.ec2_backend.create_volume(15, "us-east-1a")
+        self.ebs_snapshot = self.ec2_backend.create_snapshot(volume.id, "Auto-created snapshot for AMI %s" % self.id)
 
     def get_filter_value(self, filter_name):
         if filter_name == 'virtualization-type':
@@ -810,7 +815,7 @@ class Ami(TaggedEC2Resource):
         filter_value = super(Ami, self).get_filter_value(filter_name)
 
         if filter_value is None:
-            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeImages".format(filter_name))
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeImages".format(filter_name))
 
         return filter_value
 
@@ -824,14 +829,14 @@ class AmiBackend(object):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
-        ami = Ami(ami_id, instance=instance, source_ami=None, name=name, description=description)
+        ami = Ami(self, ami_id, instance=instance, source_ami=None, name=name, description=description)
         self.amis[ami_id] = ami
         return ami
 
     def copy_image(self, source_image_id, source_region, name=None, description=None):
         source_ami = ec2_backends[source_region].describe_images(ami_ids=[source_image_id])[0]
         ami_id = random_ami_id()
-        ami = Ami(ami_id, instance=None, source_ami=source_ami, name=name, description=description)
+        ami = Ami(self, ami_id, instance=None, source_ami=source_ami, name=name, description=description)
         self.amis[ami_id] = ami
         return ami
 
@@ -863,7 +868,7 @@ class AmiBackend(object):
 
     def add_launch_permission(self, ami_id, user_id=None, group=None):
         if user_id:
-            ec2_backend.raise_not_implemented_error("The UserId parameter for ModifyImageAttribute")
+            self.raise_not_implemented_error("The UserId parameter for ModifyImageAttribute")
 
         if group != 'all':
             raise InvalidAMIAttributeItemValueError("UserGroup", group)
@@ -873,7 +878,7 @@ class AmiBackend(object):
 
     def remove_launch_permission(self, ami_id, user_id=None, group=None):
         if user_id:
-            ec2_backend.raise_not_implemented_error("The UserId parameter for ModifyImageAttribute")
+            self.raise_not_implemented_error("The UserId parameter for ModifyImageAttribute")
 
         if group != 'all':
             raise InvalidAMIAttributeItemValueError("UserGroup", group)
@@ -1104,7 +1109,7 @@ class SecurityGroupBackend(object):
 
         if name == 'default':
             # If the request is for the default group and it does not exist, create it
-            default_group = ec2_backend.create_security_group("default", "The default security group", vpc_id=vpc_id, force=True)
+            default_group = self.create_security_group("default", "The default security group", vpc_id=vpc_id, force=True)
             return default_group
 
     def authorize_security_group_ingress(self,
@@ -1318,7 +1323,7 @@ class EBSBackend(object):
 
     def add_create_volume_permission(self, snapshot_id, user_id=None, group=None):
         if user_id:
-            ec2_backend.raise_not_implemented_error("The UserId parameter for ModifySnapshotAttribute")
+            self.raise_not_implemented_error("The UserId parameter for ModifySnapshotAttribute")
 
         if group != 'all':
             raise InvalidAMIAttributeItemValueError("UserGroup", group)
@@ -1328,7 +1333,7 @@ class EBSBackend(object):
 
     def remove_create_volume_permission(self, snapshot_id, user_id=None, group=None):
         if user_id:
-            ec2_backend.raise_not_implemented_error("The UserId parameter for ModifySnapshotAttribute")
+            self.raise_not_implemented_error("The UserId parameter for ModifySnapshotAttribute")
 
         if group != 'all':
             raise InvalidAMIAttributeItemValueError("UserGroup", group)
@@ -1338,7 +1343,8 @@ class EBSBackend(object):
 
 
 class VPC(TaggedEC2Resource):
-    def __init__(self, vpc_id, cidr_block):
+    def __init__(self, ec2_backend, vpc_id, cidr_block):
+        self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
         self.dhcp_options = None
@@ -1369,7 +1375,7 @@ class VPC(TaggedEC2Resource):
         filter_value = super(VPC, self).get_filter_value(filter_name)
 
         if filter_value is None:
-            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeVPCs".format(filter_name))
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeVPCs".format(filter_name))
 
         return filter_value
 
@@ -1381,15 +1387,15 @@ class VPCBackend(object):
 
     def create_vpc(self, cidr_block):
         vpc_id = random_vpc_id()
-        vpc = VPC(vpc_id, cidr_block)
+        vpc = VPC(self, vpc_id, cidr_block)
         self.vpcs[vpc_id] = vpc
 
         # AWS creates a default main route table and security group.
         main_route_table = self.create_route_table(vpc_id, main=True)
 
-        default = ec2_backend.get_security_group_from_name('default', vpc_id=vpc_id)
+        default = self.get_security_group_from_name('default', vpc_id=vpc_id)
         if not default:
-            ec2_backend.create_security_group('default', 'default VPC security group', vpc_id=vpc_id)
+            self.create_security_group('default', 'default VPC security group', vpc_id=vpc_id)
 
         return vpc
 
@@ -1408,19 +1414,19 @@ class VPCBackend(object):
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
-        route_tables = ec2_backend.get_all_route_tables(filters={'vpc-id':vpc_id})
+        route_tables = self.get_all_route_tables(filters={'vpc-id':vpc_id})
         if len(route_tables) > 1:
             raise DependencyViolationError(
                 "The vpc {0} has dependencies and cannot be deleted."
                 .format(vpc_id)
             )
         for route_table in route_tables:
-            ec2_backend.delete_route_table(route_table.id)
+            self.delete_route_table(route_table.id)
 
         # Delete default security group if exists.
-        default = ec2_backend.get_security_group_from_name('default', vpc_id=vpc_id)
+        default = self.get_security_group_from_name('default', vpc_id=vpc_id)
         if default:
-            ec2_backend.delete_security_group(group_id=default.id)
+            self.delete_security_group(group_id=default.id)
 
         # Now delete VPC.
         vpc = self.vpcs.pop(vpc_id, None)
@@ -1467,8 +1473,8 @@ class VPCPeeringConnection(TaggedEC2Resource):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        vpc = self.get_vpc(properties['VpcId'])
-        peer_vpc = self.get_vpc(properties['PeerVpcId'])
+        vpc = get_vpc(properties['VpcId'])
+        peer_vpc = get_vpc(properties['PeerVpcId'])
 
         vpc_pcx = ec2_backend.create_vpc_peering_connection(vpc, peer_vpc)
 
@@ -1521,7 +1527,8 @@ class VPCPeeringConnectionBackend(object):
 
 
 class Subnet(TaggedEC2Resource):
-    def __init__(self, subnet_id, vpc_id, cidr_block):
+    def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block):
+        self.ec2_backend = ec2_backend
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
@@ -1552,7 +1559,7 @@ class Subnet(TaggedEC2Resource):
         filter_value = super(Subnet, self).get_filter_value(filter_name)
 
         if filter_value is None:
-            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSubnets".format(filter_name))
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSubnets".format(filter_name))
 
         return filter_value
 
@@ -1576,7 +1583,7 @@ class SubnetBackend(object):
 
     def create_subnet(self, vpc_id, cidr_block):
         subnet_id = random_subnet_id()
-        subnet = Subnet(subnet_id, vpc_id, cidr_block)
+        subnet = Subnet(self, subnet_id, vpc_id, cidr_block)
         vpc = self.get_vpc(vpc_id) # Validate VPC exists
         self.subnets[subnet_id] = subnet
         return subnet
@@ -1624,7 +1631,8 @@ class SubnetRouteTableAssociationBackend(object):
 
 
 class RouteTable(TaggedEC2Resource):
-    def __init__(self, route_table_id, vpc_id, main=False):
+    def __init__(self, ec2_backend, route_table_id, vpc_id, main=False):
+        self.ec2_backend = ec2_backend
         self.id = route_table_id
         self.vpc_id = vpc_id
         self.main = main
@@ -1665,7 +1673,7 @@ class RouteTable(TaggedEC2Resource):
         filter_value = super(RouteTable, self).get_filter_value(filter_name)
 
         if filter_value is None:
-            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeRouteTables".format(filter_name))
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeRouteTables".format(filter_name))
 
         return filter_value
 
@@ -1678,7 +1686,7 @@ class RouteTableBackend(object):
     def create_route_table(self, vpc_id, main=False):
         route_table_id = random_route_table_id()
         vpc = self.get_vpc(vpc_id) # Validate VPC exists
-        route_table = RouteTable(route_table_id, vpc_id, main=main)
+        route_table = RouteTable(self, route_table_id, vpc_id, main=main)
         self.route_tables[route_table_id] = route_table
 
         # AWS creates a default local route.
@@ -1715,7 +1723,7 @@ class RouteTableBackend(object):
 
     def associate_route_table(self, route_table_id, subnet_id):
         # Idempotent if association already exists.
-        route_tables_by_subnet = ec2_backend.get_all_route_tables(filters={'association.subnet-id':[subnet_id]})
+        route_tables_by_subnet = self.get_all_route_tables(filters={'association.subnet-id':[subnet_id]})
         if route_tables_by_subnet:
             for association_id,check_subnet_id in route_tables_by_subnet[0].associations.items():
                 if subnet_id == check_subnet_id:
@@ -1736,12 +1744,12 @@ class RouteTableBackend(object):
 
     def replace_route_table_association(self, association_id, route_table_id):
         # Idempotent if association already exists.
-        new_route_table = ec2_backend.get_route_table(route_table_id)
+        new_route_table = self.get_route_table(route_table_id)
         if association_id in new_route_table.associations:
             return association_id
 
         # Find route table which currently has the association, error if none.
-        route_tables_by_association_id = ec2_backend.get_all_route_tables(filters={'association.route-table-association-id':[association_id]})
+        route_tables_by_association_id = self.get_all_route_tables(filters={'association.route-table-association-id':[association_id]})
         if not route_tables_by_association_id:
             raise InvalidAssociationIdError(association_id)
 
@@ -1794,7 +1802,7 @@ class RouteBackend(object):
         route_table = self.get_route_table(route_table_id)
 
         if interface_id:
-            ec2_backend.raise_not_implemented_error("CreateRoute to NetworkInterfaceId")
+            self.raise_not_implemented_error("CreateRoute to NetworkInterfaceId")
 
         route = Route(route_table, destination_cidr_block, local=local,
                       internet_gateway=self.get_internet_gateway(gateway_id) if gateway_id else None,
@@ -1812,7 +1820,7 @@ class RouteBackend(object):
         route = route_table.routes[route_id]
 
         if interface_id:
-            ec2_backend.raise_not_implemented_error("ReplaceRoute to NetworkInterfaceId")
+            self.raise_not_implemented_error("ReplaceRoute to NetworkInterfaceId")
 
         route.internet_gateway = self.get_internet_gateway(gateway_id) if gateway_id else None
         route.instance = self.get_instance(instance_id) if instance_id else None
@@ -1837,7 +1845,8 @@ class RouteBackend(object):
 
 
 class InternetGateway(TaggedEC2Resource):
-    def __init__(self):
+    def __init__(self, ec2_backend):
+        self.ec2_backend = ec2_backend
         self.id = random_internet_gateway_id()
         self.vpc = None
 
@@ -1856,7 +1865,7 @@ class InternetGatewayBackend(object):
         super(InternetGatewayBackend, self).__init__()
 
     def create_internet_gateway(self):
-        igw = InternetGateway()
+        igw = InternetGateway(self)
         self.internet_gateways[igw.id] = igw
         return igw
 
@@ -1930,12 +1939,14 @@ class VPCGatewayAttachmentBackend(object):
 
 
 class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
-    def __init__(self, spot_request_id, price, image_id, type, valid_from,
-                 valid_until, launch_group, availability_zone_group, key_name,
-                 security_groups, user_data, instance_type, placement, kernel_id,
-                 ramdisk_id, monitoring_enabled, subnet_id, **kwargs):
+    def __init__(self, ec2_backend, spot_request_id, price, image_id, type,
+                 valid_from, valid_until, launch_group, availability_zone_group,
+                 key_name, security_groups, user_data, instance_type, placement,
+                 kernel_id, ramdisk_id, monitoring_enabled, subnet_id,
+                 **kwargs):
         super(SpotInstanceRequest, self).__init__(**kwargs)
         ls = LaunchSpecification()
+        self.ec2_backend = ec2_backend
         self.launch_specification = ls
         self.id = spot_request_id
         self.state = "open"
@@ -1957,12 +1968,12 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
 
         if security_groups:
             for group_name in security_groups:
-                group = ec2_backend.get_security_group_from_name(group_name)
+                group = self.ec2_backend.get_security_group_from_name(group_name)
                 if group:
                     ls.groups.append(group)
         else:
             # If not security groups, add the default
-            default_group = ec2_backend.get_security_group_from_name("default")
+            default_group = self.ec2_backend.get_security_group_from_name("default")
             ls.groups.append(default_group)
 
     def get_filter_value(self, filter_name):
@@ -1973,7 +1984,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         filter_value = super(SpotInstanceRequest, self).get_filter_value(filter_name)
 
         if filter_value is None:
-            ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSpotInstanceRequests".format(filter_name))
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSpotInstanceRequests".format(filter_name))
 
         return filter_value
 
@@ -1992,7 +2003,7 @@ class SpotRequestBackend(object):
         requests = []
         for _ in range(count):
             spot_request_id = random_spot_request_id()
-            request = SpotInstanceRequest(
+            request = SpotInstanceRequest(self,
                 spot_request_id, price, image_id, type, valid_from, valid_until,
                 launch_group, availability_zone_group, key_name, security_groups,
                 user_data, instance_type, placement, kernel_id, ramdisk_id,
@@ -2157,9 +2168,10 @@ class ElasticAddressBackend(object):
 
 
 class DHCPOptionsSet(TaggedEC2Resource):
-    def __init__(self, domain_name_servers=None, domain_name=None,
+    def __init__(self, ec2_backend, domain_name_servers=None, domain_name=None,
                  ntp_servers=None, netbios_name_servers=None,
                  netbios_node_type=None):
+        self.ec2_backend = ec2_backend
         self._options = {
             "domain-name-servers": domain_name_servers,
             "domain-name": domain_name,
@@ -2199,7 +2211,7 @@ class DHCPOptionsSetBackend(object):
             raise InvalidParameterValueError(netbios_node_type)
 
         options = DHCPOptionsSet(
-            domain_name_servers, domain_name, ntp_servers,
+            self, domain_name_servers, domain_name, ntp_servers,
             netbios_name_servers, netbios_node_type
         )
         self.dhcp_options_sets[options.id] = options
