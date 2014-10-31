@@ -1,9 +1,16 @@
+from __future__ import unicode_literals
 import boto
+import six
 from nose.plugins.skip import SkipTest
 
 
 def version_tuple(v):
     return tuple(map(int, (v.split("."))))
+
+
+# Note: See https://github.com/spulec/moto/issues/201 for why this is a separate method.
+def skip_test():
+    raise SkipTest
 
 
 class requires_boto_gte(object):
@@ -15,5 +22,21 @@ class requires_boto_gte(object):
         boto_version = version_tuple(boto.__version__)
         required = version_tuple(self.version)
         if boto_version >= required:
-            return test()
-        raise SkipTest
+            return test
+        return skip_test
+
+
+class py3_requires_boto_gte(object):
+    """Decorator for requiring boto version greater than or equal to 'version'
+    when running on Python 3. (Not all of boto is Python 3 compatible.)"""
+    def __init__(self, version):
+        self.version = version
+
+    def __call__(self, test):
+        if not six.PY3:
+            return test
+        boto_version = version_tuple(boto.__version__)
+        required = version_tuple(self.version)
+        if boto_version >= required:
+            return test
+        return skip_test

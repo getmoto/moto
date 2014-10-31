@@ -1,26 +1,31 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from moto.core.responses import BaseResponse
+from moto.ec2.models import validate_resource_ids
+from moto.ec2.utils import sequence_from_querystring, tags_from_query_string, filters_from_querystring
 
 
-class TagResponse(object):
+class TagResponse(BaseResponse):
 
     def create_tags(self):
-        resource_ids = resource_ids_from_querystring(self.querystring)
-        for resource_id, tag in resource_ids.iteritems():
-            ec2_backend.create_tag(resource_id, tag[0], tag[1])
+        resource_ids = sequence_from_querystring('ResourceId', self.querystring)
+        validate_resource_ids(resource_ids)
+        self.ec2_backend.do_resources_exist(resource_ids)
+        tags = tags_from_query_string(self.querystring)
+        self.ec2_backend.create_tags(resource_ids, tags)
         return CREATE_RESPONSE
 
     def delete_tags(self):
-        resource_ids = resource_ids_from_querystring(self.querystring)
-        for resource_id, tag in resource_ids.iteritems():
-            ec2_backend.delete_tag(resource_id, tag[0])
-        template = Template(DELETE_RESPONSE)
-        return template.render(reservations=ec2_backend.all_reservations())
+        resource_ids = sequence_from_querystring('ResourceId', self.querystring)
+        validate_resource_ids(resource_ids)
+        tags = tags_from_query_string(self.querystring)
+        self.ec2_backend.delete_tags(resource_ids, tags)
+        return DELETE_RESPONSE
 
     def describe_tags(self):
-        tags = ec2_backend.describe_tags()
+        filters = filters_from_querystring(querystring_dict=self.querystring)
+        tags = self.ec2_backend.describe_tags(filters=filters)
         template = Template(DESCRIBE_RESPONSE)
         return template.render(tags=tags)
 

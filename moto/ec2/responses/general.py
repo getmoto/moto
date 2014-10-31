@@ -1,19 +1,17 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 
-from moto.ec2.models import ec2_backend
+from moto.core.responses import BaseResponse
 from moto.ec2.utils import instance_ids_from_querystring
 
 
-class General(object):
+class General(BaseResponse):
     def get_console_output(self):
         self.instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = self.instance_ids[0]
-        instance = ec2_backend.get_instance(instance_id)
-        if instance:
-            template = Template(GET_CONSOLE_OUTPUT_RESULT)
-            return template.render(instance=instance)
-        else:
-            return "", dict(status=404)
+        instance = self.ec2_backend.get_instance(instance_id)
+        template = Template(GET_CONSOLE_OUTPUT_RESULT)
+        return template.render(instance=instance)
 
 
 GET_CONSOLE_OUTPUT_RESULT = '''

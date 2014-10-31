@@ -1,9 +1,7 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from __future__ import unicode_literals
+from moto.core.responses import BaseResponse
 
 
-class AmazonDevPay(object):
+class AmazonDevPay(BaseResponse):
     def confirm_product_instance(self):
         raise NotImplementedError('AmazonDevPay.confirm_product_instance is not yet implemented')

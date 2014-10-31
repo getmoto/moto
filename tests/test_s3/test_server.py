@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import sure  # noqa
 
 import moto.server as server
@@ -5,46 +6,51 @@ import moto.server as server
 '''
 Test the different server responses
 '''
-server.configure_urls("s3")
 
 
 def test_s3_server_get():
-    test_client = server.app.test_client()
+    backend = server.create_backend_app("s3")
+    test_client = backend.test_client()
+
     res = test_client.get('/')
 
-    res.data.should.contain('ListAllMyBucketsResult')
+    res.data.should.contain(b'ListAllMyBucketsResult')
 
 
 def test_s3_server_bucket_create():
-    test_client = server.app.test_client()
-    res = test_client.put('/', 'http://foobar.localhost:5000/')
+    backend = server.create_backend_app("s3")
+    test_client = backend.test_client()
+
+    res = test_client.put('/', 'http://foobaz.localhost:5000/')
     res.status_code.should.equal(200)
 
     res = test_client.get('/')
-    res.data.should.contain('<Name>foobar</Name>')
+    res.data.should.contain(b'<Name>foobaz</Name>')
 
-    res = test_client.get('/', 'http://foobar.localhost:5000/')
+    res = test_client.get('/', 'http://foobaz.localhost:5000/')
     res.status_code.should.equal(200)
-    res.data.should.contain("ListBucketResult")
+    res.data.should.contain(b"ListBucketResult")
 
-    res = test_client.put('/bar', 'http://foobar.localhost:5000/', data='test value')
+    res = test_client.put('/bar', 'http://foobaz.localhost:5000/', data='test value')
     res.status_code.should.equal(200)
 
-    res = test_client.get('/bar', 'http://foobar.localhost:5000/')
+    res = test_client.get('/bar', 'http://foobaz.localhost:5000/')
     res.status_code.should.equal(200)
-    res.data.should.equal("test value")
+    res.data.should.equal(b"test value")
 
 
 def test_s3_server_post_to_bucket():
-    test_client = server.app.test_client()
-    res = test_client.put('/', 'http://foobar.localhost:5000/')
+    backend = server.create_backend_app("s3")
+    test_client = backend.test_client()
+
+    res = test_client.put('/', 'http://tester.localhost:5000/')
     res.status_code.should.equal(200)
 
-    test_client.post('/', "https://foobar.localhost:5000/", data={
+    test_client.post('/', "https://tester.localhost:5000/", data={
         'key': 'the-key',
         'file': 'nothing'
     })
 
-    res = test_client.get('/the-key', 'http://foobar.localhost:5000/')
+    res = test_client.get('/the-key', 'http://tester.localhost:5000/')
     res.status_code.should.equal(200)
-    res.data.should.equal("nothing")
+    res.data.should.equal(b"nothing")

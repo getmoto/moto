@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import functools
 import re
 
@@ -7,8 +8,13 @@ from .utils import convert_regex_to_flask_path
 
 
 class MockAWS(object):
-    def __init__(self, backend):
-        self.backend = backend
+    nested_count = 0
+
+    def __init__(self, backends):
+        self.backends = backends
+
+        if self.__class__.nested_count == 0:
+            HTTPretty.reset()
 
     def __call__(self, func):
         return self.decorate_callable(func)
@@ -20,11 +26,16 @@ class MockAWS(object):
         self.stop()
 
     def start(self):
-        self.backend.reset()
-        HTTPretty.enable()
+        self.__class__.nested_count += 1
+        for backend in self.backends.values():
+            backend.reset()
+
+        if not HTTPretty.is_enabled():
+            HTTPretty.enable()
 
         for method in HTTPretty.METHODS:
-            for key, value in self.backend.urls.iteritems():
+            backend = list(self.backends.values())[0]
+            for key, value in backend.urls.items():
                 HTTPretty.register_uri(
                     method=method,
                     uri=re.compile(key),
@@ -39,7 +50,13 @@ class MockAWS(object):
             )
 
     def stop(self):
-        HTTPretty.disable()
+        self.__class__.nested_count -= 1
+
+        if self.__class__.nested_count < 0:
+            raise RuntimeError('Called stop() before start().')
+
+        if self.__class__.nested_count == 0:
+            HTTPretty.disable()
 
     def decorate_callable(self, func):
         def wrapper(*args, **kwargs):
@@ -47,11 +64,32 @@ class MockAWS(object):
                 result = func(*args, **kwargs)
             return result
         functools.update_wrapper(wrapper, func)
+        wrapper.__wrapped__ = func
         return wrapper
 
 
-class BaseBackend(object):
+class Model(type):
+    def __new__(self, clsname, bases, namespace):
+        cls = super(Model, self).__new__(self, clsname, bases, namespace)
+        cls.__models__ = {}
+        for name, value in namespace.items():
+            model = getattr(value, "__returns_model__", False)
+            if model is not False:
+                cls.__models__[model] = name
+        for base in bases:
+            cls.__models__.update(getattr(base, "__models__", {}))
+        return cls
 
+    @staticmethod
+    def prop(model_name):
+        """ decorator to mark a class method as returning model values """
+        def dec(f):
+            f.__returns_model__ = model_name
+            return f
+        return dec
+
+
+class BaseBackend(object):
     def reset(self):
         self.__dict__ = {}
         self.__init__()
@@ -74,7 +112,7 @@ class BaseBackend(object):
 
         urls = {}
         for url_base in url_bases:
-            for url_path, handler in unformatted_paths.iteritems():
+            for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)
                 urls[url] = handler
 
@@ -89,11 +127,18 @@ class BaseBackend(object):
         unformatted_paths = self._url_module.url_paths
 
         paths = {}
-        for unformatted_path, handler in unformatted_paths.iteritems():
+        for unformatted_path, handler in unformatted_paths.items():
             path = unformatted_path.format("")
             paths[path] = handler
 
         return paths
+
+    @property
+    def url_bases(self):
+        """
+        A list containing the url_bases extracted from urls.py
+        """
+        return self._url_module.url_bases
 
     @property
     def flask_paths(self):
@@ -101,7 +146,7 @@ class BaseBackend(object):
         The url paths that will be used for the flask server
         """
         paths = {}
-        for url_path, handler in self.url_paths.iteritems():
+        for url_path, handler in self.url_paths.items():
             url_path = convert_regex_to_flask_path(url_path)
             paths[url_path] = handler
 
@@ -109,6 +154,6 @@ class BaseBackend(object):
 
     def decorator(self, func=None):
         if func:
-            return MockAWS(self)(func)
+            return MockAWS({'global': self})(func)
         else:
-            return MockAWS(self)
+            return MockAWS({'global': self})

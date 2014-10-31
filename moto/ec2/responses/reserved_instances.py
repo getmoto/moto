@@ -1,10 +1,8 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from __future__ import unicode_literals
+from moto.core.responses import BaseResponse
 
 
-class ReservedInstances(object):
+class ReservedInstances(BaseResponse):
     def cancel_reserved_instances_listing(self):
         raise NotImplementedError('ReservedInstances.cancel_reserved_instances_listing is not yet implemented')
 

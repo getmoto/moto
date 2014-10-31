@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from moto.core import BaseBackend
 
 
@@ -12,10 +13,11 @@ class FakeHealthCheck(object):
 
 
 class FakeListener(object):
-    def __init__(self, load_balancer_port, instance_port, protocol):
+    def __init__(self, load_balancer_port, instance_port, protocol, ssl_certificate_id):
         self.load_balancer_port = load_balancer_port
         self.instance_port = instance_port
         self.protocol = protocol.upper()
+        self.ssl_certificate_id = ssl_certificate_id
 
 
 class FakeLoadBalancer(object):
@@ -25,13 +27,48 @@ class FakeLoadBalancer(object):
         self.instance_ids = []
         self.zones = zones
         self.listeners = []
-        for protocol, lb_port, instance_port in ports:
+
+        for protocol, lb_port, instance_port, ssl_certificate_id in ports:
             listener = FakeListener(
                 protocol=protocol,
                 load_balancer_port=lb_port,
                 instance_port=instance_port,
+                ssl_certificate_id=ssl_certificate_id
             )
             self.listeners.append(listener)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+        properties = cloudformation_json['Properties']
+
+        new_elb = elb_backend.create_load_balancer(
+            name=properties.get('LoadBalancerName', resource_name),
+            zones=properties.get('AvailabilityZones'),
+            ports=[],
+        )
+
+        instance_ids = cloudformation_json.get('Instances', [])
+        for instance_id in instance_ids:
+            elb_backend.register_instances(new_elb.name, [instance_id])
+        return new_elb
+
+    @property
+    def physical_resource_id(self):
+        return self.name
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'CanonicalHostedZoneName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneName" ]"')
+        elif attribute_name == 'CanonicalHostedZoneNameID':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneNameID" ]"')
+        elif attribute_name == 'DNSName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DNSName" ]"')
+        elif attribute_name == 'SourceSecurityGroup.GroupName':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.GroupName" ]"')
+        elif attribute_name == 'SourceSecurityGroup.OwnerAlias':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.OwnerAlias" ]"')
+        raise UnformattedGetAttTemplateException()
 
 
 class ELBBackend(BaseBackend):
@@ -44,12 +81,37 @@ class ELBBackend(BaseBackend):
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
 
+    def create_load_balancer_listeners(self, name, ports):
+        balancer = self.load_balancers.get(name, None)
+        if balancer:
+            for protocol, lb_port, instance_port, ssl_certificate_id in ports:
+                for listener in balancer.listeners:
+                    if lb_port == listener.load_balancer_port:
+                        break
+                else:
+                    balancer.listeners.append(FakeListener(lb_port, instance_port, protocol, ssl_certificate_id))
+
+        return balancer
+
     def describe_load_balancers(self, names):
         balancers = self.load_balancers.values()
         if names:
             return [balancer for balancer in balancers if balancer.name in names]
         else:
             return balancers
+
+    def delete_load_balancer_listeners(self, name, ports):
+        balancer = self.load_balancers.get(name, None)
+        listeners = []
+        if balancer:
+            for lb_port in ports:
+                for listener in balancer.listeners:
+                    if int(lb_port) == int(listener.load_balancer_port):
+                        continue
+                    else:
+                        listeners.append(listener)
+        balancer.listeners = listeners
+        return balancer
 
     def delete_load_balancer(self, load_balancer_name):
         self.load_balancers.pop(load_balancer_name, None)
@@ -65,6 +127,15 @@ class ELBBackend(BaseBackend):
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.health_check = check
         return check
+
+    def set_load_balancer_listener_sslcertificate(self, name, lb_port, ssl_certificate_id):
+        balancer = self.load_balancers.get(name, None)
+        if balancer:
+            for idx, listener in enumerate(balancer.listeners):
+                if lb_port == listener.load_balancer_port:
+                    balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
+
+        return balancer
 
     def register_instances(self, load_balancer_name, instance_ids):
         load_balancer = self.get_load_balancer(load_balancer_name)

@@ -1,16 +1,17 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 
-from moto.ec2.models import ec2_backend
+from moto.core.responses import BaseResponse
 
 
-class AvailabilityZonesAndRegions(object):
+class AvailabilityZonesAndRegions(BaseResponse):
     def describe_availability_zones(self):
-        zones = ec2_backend.describe_availability_zones()
+        zones = self.ec2_backend.describe_availability_zones()
         template = Template(DESCRIBE_ZONES_RESPONSE)
         return template.render(zones=zones)
 
     def describe_regions(self):
-        regions = ec2_backend.describe_regions()
+        regions = self.ec2_backend.describe_regions()
         template = Template(DESCRIBE_REGIONS_RESPONSE)
         return template.render(regions=regions)
 

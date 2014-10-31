@@ -1,8 +1,17 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
+from .utils import parse_message_attributes
 from .models import sqs_backend
+from .exceptions import (
+    MessageAttributesInvalid,
+    MessageNotInflight,
+    ReceiptHandleIsInvalid
+)
+
+MAXIMUM_VISIBILTY_TIMEOUT = 43200
 
 
 class QueuesResponse(BaseResponse):
@@ -26,14 +35,36 @@ class QueuesResponse(BaseResponse):
         else:
             return "", dict(status=404)
 
-
     def list_queues(self):
-        queues = sqs_backend.list_queues()
+        queue_name_prefix = self.querystring.get("QueueNamePrefix", [None])[0]
+        queues = sqs_backend.list_queues(queue_name_prefix)
         template = Template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues)
 
 
 class QueueResponse(BaseResponse):
+    def change_message_visibility(self):
+        queue_name = self.path.split("/")[-1]
+        receipt_handle = self.querystring.get("ReceiptHandle")[0]
+        visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
+
+        if visibility_timeout > MAXIMUM_VISIBILTY_TIMEOUT:
+            return "Invalid request, maximum visibility timeout is {0}".format(
+                MAXIMUM_VISIBILTY_TIMEOUT
+            ), dict(status=400)
+
+        try:
+            sqs_backend.change_message_visibility(
+                queue_name=queue_name,
+                receipt_handle=receipt_handle,
+                visibility_timeout=visibility_timeout
+            )
+        except (ReceiptHandleIsInvalid, MessageNotInflight) as e:
+            return "Invalid request: {0}".format(e.description), dict(status=e.status_code)
+
+        template = Template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
+        return template.render()
+
     def get_queue_attributes(self):
         queue_name = self.path.split("/")[-1]
         queue = sqs_backend.get_queue(queue_name)
@@ -51,16 +82,33 @@ class QueueResponse(BaseResponse):
         queue_name = self.path.split("/")[-1]
         queue = sqs_backend.delete_queue(queue_name)
         if not queue:
-            return "A queue with name {} does not exist".format(queue_name), dict(status=404)
+            return "A queue with name {0} does not exist".format(queue_name), dict(status=404)
         template = Template(DELETE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 
     def send_message(self):
         message = self.querystring.get("MessageBody")[0]
+        delay_seconds = self.querystring.get('DelaySeconds')
+
+        if delay_seconds:
+            delay_seconds = int(delay_seconds[0])
+        else:
+            delay_seconds = 0
+
+        try:
+            message_attributes = parse_message_attributes(self.querystring)
+        except MessageAttributesInvalid as e:
+            return e.description, dict(status=e.status_code)
+
         queue_name = self.path.split("/")[-1]
-        message = sqs_backend.send_message(queue_name, message)
+        message = sqs_backend.send_message(
+            queue_name,
+            message,
+            message_attributes=message_attributes,
+            delay_seconds=delay_seconds
+        )
         template = Template(SEND_MESSAGE_RESPONSE)
-        return template.render(message=message)
+        return template.render(message=message, message_attributes=message_attributes)
 
     def send_message_batch(self):
         """
@@ -79,18 +127,24 @@ class QueueResponse(BaseResponse):
         messages = []
         for index in range(1, 11):
             # Loop through looking for messages
-            message_key = 'SendMessageBatchRequestEntry.{}.MessageBody'.format(index)
+            message_key = 'SendMessageBatchRequestEntry.{0}.MessageBody'.format(index)
             message_body = self.querystring.get(message_key)
             if not message_body:
                 # Found all messages
                 break
 
-            message_user_id_key = 'SendMessageBatchRequestEntry.{}.Id'.format(index)
+            message_user_id_key = 'SendMessageBatchRequestEntry.{0}.Id'.format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
-            delay_key = 'SendMessageBatchRequestEntry.{}.DelaySeconds'.format(index)
+            delay_key = 'SendMessageBatchRequestEntry.{0}.DelaySeconds'.format(index)
             delay_seconds = self.querystring.get(delay_key, [None])[0]
             message = sqs_backend.send_message(queue_name, message_body[0], delay_seconds=delay_seconds)
             message.user_id = message_user_id
+
+            message_attributes = parse_message_attributes(self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index), value_namespace='')
+            if type(message_attributes) == tuple:
+                return message_attributes[0], message_attributes[1]
+            message.message_attributes = message_attributes
+
             messages.append(message)
 
         template = Template(SEND_MESSAGE_BATCH_RESPONSE)
@@ -118,7 +172,7 @@ class QueueResponse(BaseResponse):
         message_ids = []
         for index in range(1, 11):
             # Loop through looking for messages
-            receipt_key = 'DeleteMessageBatchRequestEntry.{}.ReceiptHandle'.format(index)
+            receipt_key = 'DeleteMessageBatchRequestEntry.{0}.ReceiptHandle'.format(index)
             receipt_handle = self.querystring.get(receipt_key)
             if not receipt_handle:
                 # Found all messages
@@ -126,7 +180,7 @@ class QueueResponse(BaseResponse):
 
             sqs_backend.delete_message(queue_name, receipt_handle[0])
 
-            message_user_id_key = 'DeleteMessageBatchRequestEntry.{}.Id'.format(index)
+            message_user_id_key = 'DeleteMessageBatchRequestEntry.{0}.Id'.format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
             message_ids.append(message_user_id)
 
@@ -138,7 +192,8 @@ class QueueResponse(BaseResponse):
         message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
         messages = sqs_backend.receive_messages(queue_name, message_count)
         template = Template(RECEIVE_MESSAGE_RESPONSE)
-        return template.render(messages=messages)
+        output = template.render(messages=messages)
+        return output
 
 
 CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
@@ -211,6 +266,9 @@ SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
         <MD5OfMessageBody>
             {{ message.md5 }}
         </MD5OfMessageBody>
+        {% if message.message_attributes.items()|count > 0 %}
+          <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+        {% endif %}
         <MessageId>
             {{ message.id }}
         </MessageId>
@@ -226,18 +284,42 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
   <ReceiveMessageResult>
     {% for message in messages %}
         <Message>
-          <MessageId>
-            {{ message.id }}
-          </MessageId>
-          <ReceiptHandle>
-            MbZj6wDWli+JvwwJaBV+3dcjk2YW2vA3+STFFljTM8tJJg6HRG6PYSasuWXPJB+Cw
-            Lj1FjgXUv1uSj1gUPAWV66FU/WeR4mq2OKpEGYWbnLmpRCJVAyeMjeU5ZBdtcQ+QE
-            auMZc8ZRv37sIW2iJKq3M9MFx1YvV11A2x/KSbkJ0=
-          </ReceiptHandle>
-          <MD5OfBody>
-            {{ message.md5 }}
-          </MD5OfBody>
+          <MessageId>{{ message.id }}</MessageId>
+          <ReceiptHandle>{{ message.receipt_handle }}</ReceiptHandle>
+          <MD5OfBody>{{ message.md5 }}</MD5OfBody>
           <Body>{{ message.body }}</Body>
+          <Attribute>
+            <Name>SenderId</Name>
+            <Value>{{ message.sender_id }}</Value>
+          </Attribute>
+          <Attribute>
+            <Name>SentTimestamp</Name>
+            <Value>{{ message.sent_timestamp }}</Value>
+          </Attribute>
+          <Attribute>
+            <Name>ApproximateReceiveCount</Name>
+            <Value>{{ message.approximate_receive_count }}</Value>
+          </Attribute>
+          <Attribute>
+            <Name>ApproximateFirstReceiveTimestamp</Name>
+            <Value>{{ message.approximate_first_receive_timestamp }}</Value>
+          </Attribute>
+          {% if message.message_attributes.items()|count > 0 %}
+            <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+          {% endif %}
+          {% for name, value in message.message_attributes.items() %}
+            <MessageAttribute>
+              <Name>{{ name }}</Name>
+              <Value>
+                <DataType>{{ value.data_type }}</DataType>
+                {% if 'Binary' in value.data_type %}
+                <BinaryValue>{{ value.binary_value }}</BinaryValue>
+                {% else %}
+                <StringValue>{{ value.string_value }}</StringValue>
+                {% endif %}
+              </Value>
+            </MessageAttribute>
+          {% endfor %}
         </Message>
     {% endfor %}
   </ReceiveMessageResult>
@@ -255,6 +337,9 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
             <Id>{{ message.user_id }}</Id>
             <MessageId>{{ message.id }}</MessageId>
             <MD5OfMessageBody>{{ message.md5 }}</MD5OfMessageBody>
+            {% if message.message_attributes.items()|count > 0 %}
+              <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+            {% endif %}
         </SendMessageBatchResultEntry>
     {% endfor %}
 </SendMessageBatchResult>
@@ -283,3 +368,11 @@ DELETE_MESSAGE_BATCH_RESPONSE = """<DeleteMessageBatchResponse>
         <RequestId>d6f86b7a-74d1-4439-b43f-196a1e29cd85</RequestId>
     </ResponseMetadata>
 </DeleteMessageBatchResponse>"""
+
+CHANGE_MESSAGE_VISIBILITY_RESPONSE = """<ChangeMessageVisibilityResponse>
+    <ResponseMetadata>
+        <RequestId>
+            6a7a282a-d013-4a59-aba9-335b0fa48bed
+        </RequestId>
+    </ResponseMetadata>
+</ChangeMessageVisibilityResponse>"""

@@ -1,7 +1,8 @@
+from __future__ import unicode_literals
 from .responses import QueueResponse, QueuesResponse
 
 url_bases = [
-    "https?://(.*).amazonaws.com"
+    "https?://(.*?)(queue|sqs)(.*?).amazonaws.com"
 ]
 
 url_paths = {

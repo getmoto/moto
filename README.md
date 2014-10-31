@@ -37,11 +37,14 @@ from mymodule import MyModel
 
 @mock_s3
 def test_my_model_save():
+    conn = boto.connect_s3()
+    # We need to create the bucket since this is all in Moto's 'virtual' AWS account
+    conn.create_bucket('mybucket')
+
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn = boto.connect_s3()
-    assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
 ```
 
 With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps the state of the buckets and keys.
@@ -55,6 +58,7 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 | Autoscaling           | @mock_autoscaling| core endpoints done               |
 |------------------------------------------------------------------------------|
 | DynamoDB              | @mock_dynamodb   | core endpoints done               |
+| DynamoDB2             | @mock_dynamodb2  | core endpoints done - no indexes  |
 |------------------------------------------------------------------------------|
 | EC2                   | @mock_ec2        | core endpoints done               |
 |     - AMI             |                  | core endpoints done               |
@@ -64,6 +68,10 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |     - Tags            |                  | all  endpoints done               |
 |------------------------------------------------------------------------------|
 | ELB                   | @mock_elb        | core endpoints done               |
+|------------------------------------------------------------------------------|
+| IAM                   | @mock_iam        | core endpoints done               |
+|------------------------------------------------------------------------------|
+| Route53               | @mock_route53    | core endpoints done               |
 |------------------------------------------------------------------------------|
 | S3                    | @mock_s3         | core endpoints done               |
 |------------------------------------------------------------------------------|
@@ -113,11 +121,13 @@ All of the services can be used as a decorator, context manager, or in a raw for
 ```python
 @mock_s3
 def test_my_model_save():
+    conn = boto.connect_s3()
+    conn.create_bucket('mybucket')
+
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn = boto.connect_s3()
-    assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
 ```
 
 ### Context Manager
@@ -125,11 +135,13 @@ def test_my_model_save():
 ```python
 def test_my_model_save():
     with mock_s3():
+        conn = boto.connect_s3()
+        conn.create_bucket('mybucket')
+
         model_instance = MyModel('steve', 'is awesome')
         model_instance.save()
 
-        conn = boto.connect_s3()
-        assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+        assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
 ```
 
 
@@ -140,11 +152,13 @@ def test_my_model_save():
     mock = mock_s3()
     mock.start()
 
+    conn = boto.connect_s3()
+    conn.create_bucket('mybucket')
+
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn = boto.connect_s3()
-    assert conn.get_bucket('mybucket').get_key('steve') == 'is awesome'
+    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
 
     mock.stop()
 ```
@@ -157,14 +171,14 @@ To run a service:
 
 ```console
 $ moto_server ec2
- * Running on http://127.0.0.1:5000/
+ * Running on http://0.0.0.0:5000/
 ```
 
 You can also pass the port as the second argument:
 
 ```console
-$ moto_server ec2 3000
- * Running on http://127.0.0.1:3000/
+$ moto_server ec2 -p3000
+ * Running on http://0.0.0.0:3000/
 ```
 
 

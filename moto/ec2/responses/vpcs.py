@@ -1,26 +1,27 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 
-from moto.ec2.models import ec2_backend
+from moto.core.responses import BaseResponse
+from moto.ec2.utils import filters_from_querystring, vpc_ids_from_querystring
 
 
-class VPCs(object):
+class VPCs(BaseResponse):
     def create_vpc(self):
         cidr_block = self.querystring.get('CidrBlock')[0]
-        vpc = ec2_backend.create_vpc(cidr_block)
+        vpc = self.ec2_backend.create_vpc(cidr_block)
         template = Template(CREATE_VPC_RESPONSE)
         return template.render(vpc=vpc)
 
     def delete_vpc(self):
         vpc_id = self.querystring.get('VpcId')[0]
-        vpc = ec2_backend.delete_vpc(vpc_id)
-        if vpc:
-            template = Template(DELETE_VPC_RESPONSE)
-            return template.render(vpc=vpc)
-        else:
-            return "", dict(status=404)
+        vpc = self.ec2_backend.delete_vpc(vpc_id)
+        template = Template(DELETE_VPC_RESPONSE)
+        return template.render(vpc=vpc)
 
     def describe_vpcs(self):
-        vpcs = ec2_backend.get_all_vpcs()
+        vpc_ids = vpc_ids_from_querystring(self.querystring)
+        filters = filters_from_querystring(self.querystring)
+        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
         template = Template(DESCRIBE_VPCS_RESPONSE)
         return template.render(vpcs=vpcs)
 
@@ -34,7 +35,16 @@ CREATE_VPC_RESPONSE = """
       <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
       <dhcpOptionsId>dopt-1a2b3c4d2</dhcpOptionsId>
       <instanceTenancy>default</instanceTenancy>
-      <tagSet/>
+      <tagSet>
+        {% for tag in vpc.get_tags() %}
+          <item>
+            <resourceId>{{ tag.resource_id }}</resourceId>
+            <resourceType>{{ tag.resource_type }}</resourceType>
+            <key>{{ tag.key }}</key>
+            <value>{{ tag.value }}</value>
+          </item>
+        {% endfor %}
+      </tagSet>
    </vpc>
 </CreateVpcResponse>"""
 
@@ -45,11 +55,20 @@ DESCRIBE_VPCS_RESPONSE = """
     {% for vpc in vpcs %}
       <item>
         <vpcId>{{ vpc.id }}</vpcId>
-        <state>available</state>
+        <state>{{ vpc.state }}</state>
         <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
         <dhcpOptionsId>dopt-7a8b9c2d</dhcpOptionsId>
         <instanceTenancy>default</instanceTenancy>
-        <tagSet/>
+        <tagSet>
+          {% for tag in vpc.get_tags() %}
+            <item>
+              <resourceId>{{ tag.resource_id }}</resourceId>
+              <resourceType>{{ tag.resource_type }}</resourceType>
+              <key>{{ tag.key }}</key>
+              <value>{{ tag.value }}</value>
+            </item>
+          {% endfor %}
+        </tagSet>
       </item>
     {% endfor %}
   </vpcSet>

@@ -1,10 +1,8 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from __future__ import unicode_literals
+from moto.core.responses import BaseResponse
 
 
-class CustomerGateways(object):
+class CustomerGateways(BaseResponse):
     def create_customer_gateway(self):
         raise NotImplementedError('CustomerGateways(AmazonVPC).create_customer_gateway is not yet implemented')
 

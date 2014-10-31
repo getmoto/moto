@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
@@ -36,13 +37,16 @@ class EmailResponse(BaseResponse):
         return template.render()
 
     def send_email(self):
-        body = self.querystring.get('Message.Body.Text.Data')[0]
+        bodydatakey = 'Message.Body.Text.Data'
+        if 'Message.Body.Html.Data' in self.querystring:
+            bodydatakey = 'Message.Body.Html.Data'
+        body = self.querystring.get(bodydatakey)[0]
         source = self.querystring.get('Source')[0]
         subject = self.querystring.get('Message.Subject.Data')[0]
         destination = self.querystring.get('Destination.ToAddresses.member.1')[0]
         message = ses_backend.send_email(source, subject, body, destination)
         if not message:
-            return "Did not have authority to send from email {}".format(source), dict(status=400)
+            return "Did not have authority to send from email {0}".format(source), dict(status=400)
         template = Template(SEND_EMAIL_RESPONSE)
         return template.render(message=message)
 
@@ -53,7 +57,7 @@ class EmailResponse(BaseResponse):
 
         message = ses_backend.send_raw_email(source, destination, raw_data)
         if not message:
-            return "Did not have authority to send from email {}".format(source), dict(status=400)
+            return "Did not have authority to send from email {0}".format(source), dict(status=400)
         template = Template(SEND_RAW_EMAIL_RESPONSE)
         return template.render(message=message)
 

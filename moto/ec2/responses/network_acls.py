@@ -1,10 +1,8 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from __future__ import unicode_literals
+from moto.core.responses import BaseResponse
 
 
-class NetworkACLs(object):
+class NetworkACLs(BaseResponse):
     def create_network_acl(self):
         raise NotImplementedError('NetworkACLs(AmazonVPC).create_network_acl is not yet implemented')
 

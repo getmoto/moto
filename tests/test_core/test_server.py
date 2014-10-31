@@ -1,7 +1,8 @@
+from __future__ import unicode_literals
 from mock import patch
 import sure  # noqa
 
-from moto.server import main
+from moto.server import main, create_backend_app, DomainDispatcherApplication
 
 
 def test_wrong_arguments():
@@ -13,13 +14,37 @@ def test_wrong_arguments():
         pass
 
 
-@patch('moto.server.app.run')
-def test_right_arguments(app_run):
+@patch('moto.server.run_simple')
+def test_right_arguments(run_simple):
     main(["s3"])
-    app_run.assert_called_once_with(host='0.0.0.0', port=5000)
+    func_call = run_simple.call_args[0]
+    func_call[0].should.equal("0.0.0.0")
+    func_call[1].should.equal(5000)
 
 
-@patch('moto.server.app.run')
-def test_port_argument(app_run):
+@patch('moto.server.run_simple')
+def test_port_argument(run_simple):
     main(["s3", "--port", "8080"])
-    app_run.assert_called_once_with(host='0.0.0.0', port=8080)
+    func_call = run_simple.call_args[0]
+    func_call[0].should.equal("0.0.0.0")
+    func_call[1].should.equal(8080)
+
+
+def test_domain_dispatched():
+    dispatcher = DomainDispatcherApplication(create_backend_app)
+    backend_app = dispatcher.get_application("email.us-east1.amazonaws.com")
+    keys = list(backend_app.view_functions.keys())
+    keys[0].should.equal('EmailResponse.dispatch')
+
+
+def test_domain_without_matches():
+    dispatcher = DomainDispatcherApplication(create_backend_app)
+    dispatcher.get_application.when.called_with("not-matching-anything.com").should.throw(RuntimeError)
+
+
+def test_domain_dispatched_with_service():
+    # If we pass a particular service, always return that.
+    dispatcher = DomainDispatcherApplication(create_backend_app, service="s3")
+    backend_app = dispatcher.get_application("s3.us-east1.amazonaws.com")
+    keys = set(backend_app.view_functions.keys())
+    keys.should.contain('ResponseObject.key_response')

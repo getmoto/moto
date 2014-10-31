@@ -1,21 +1,36 @@
+from __future__ import unicode_literals
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
-from .models import autoscaling_backend
+from moto.core.utils import camelcase_to_underscores
+from .models import autoscaling_backends
 
 
 class AutoScalingResponse(BaseResponse):
 
-    def _get_param(self, param_name):
-        return self.querystring.get(param_name, [None])[0]
+    @property
+    def autoscaling_backend(self):
+        return autoscaling_backends[self.region]
 
     def _get_int_param(self, param_name):
         value = self._get_param(param_name)
         if value is not None:
             return int(value)
 
-    def _get_multi_param(self, param_prefix):
-        return [value[0] for key, value in self.querystring.items() if key.startswith(param_prefix)]
+    def _get_list_prefix(self, param_prefix):
+        results = []
+        param_index = 1
+        while True:
+            index_prefix = "{0}.{1}.".format(param_prefix, param_index)
+            new_items = {}
+            for key, value in self.querystring.items():
+                if key.startswith(index_prefix):
+                    new_items[camelcase_to_underscores(key.replace(index_prefix, ""))] = value[0]
+            if not new_items:
+                break
+            results.append(new_items)
+            param_index += 1
+        return results
 
     def create_launch_configuration(self):
         instance_monitoring_string = self._get_param('InstanceMonitoring.Enabled')
@@ -23,34 +38,37 @@ class AutoScalingResponse(BaseResponse):
             instance_monitoring = True
         else:
             instance_monitoring = False
-        autoscaling_backend.create_launch_configuration(
+        self.autoscaling_backend.create_launch_configuration(
             name=self._get_param('LaunchConfigurationName'),
             image_id=self._get_param('ImageId'),
             key_name=self._get_param('KeyName'),
-            security_groups=self._get_multi_param('SecurityGroups.member.'),
+            security_groups=self._get_multi_param('SecurityGroups.member'),
             user_data=self._get_param('UserData'),
             instance_type=self._get_param('InstanceType'),
             instance_monitoring=instance_monitoring,
             instance_profile_name=self._get_param('IamInstanceProfile'),
             spot_price=self._get_param('SpotPrice'),
+            ebs_optimized=self._get_param('EbsOptimized'),
+            associate_public_ip_address=self._get_param("AssociatePublicIpAddress"),
+            block_device_mappings=self._get_list_prefix('BlockDeviceMappings.member')
         )
         template = Template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
 
     def describe_launch_configurations(self):
-        names = self._get_multi_param('LaunchConfigurationNames')
-        launch_configurations = autoscaling_backend.describe_launch_configurations(names)
+        names = self._get_multi_param('LaunchConfigurationNames.member')
+        launch_configurations = self.autoscaling_backend.describe_launch_configurations(names)
         template = Template(DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE)
         return template.render(launch_configurations=launch_configurations)
 
     def delete_launch_configuration(self):
         launch_configurations_name = self.querystring.get('LaunchConfigurationName')[0]
-        autoscaling_backend.delete_launch_configuration(launch_configurations_name)
+        self.autoscaling_backend.delete_launch_configuration(launch_configurations_name)
         template = Template(DELETE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
 
     def create_auto_scaling_group(self):
-        autoscaling_backend.create_autoscaling_group(
+        self.autoscaling_backend.create_autoscaling_group(
             name=self._get_param('AutoScalingGroupName'),
             availability_zones=self._get_multi_param('AvailabilityZones.member'),
             desired_capacity=self._get_int_param('DesiredCapacity'),
@@ -69,13 +87,13 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def describe_auto_scaling_groups(self):
-        names = self._get_multi_param("AutoScalingGroupNames")
-        groups = autoscaling_backend.describe_autoscaling_groups(names)
+        names = self._get_multi_param("AutoScalingGroupNames.member")
+        groups = self.autoscaling_backend.describe_autoscaling_groups(names)
         template = Template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
         return template.render(groups=groups)
 
     def update_auto_scaling_group(self):
-        autoscaling_backend.update_autoscaling_group(
+        self.autoscaling_backend.update_autoscaling_group(
             name=self._get_param('AutoScalingGroupName'),
             availability_zones=self._get_multi_param('AvailabilityZones.member'),
             desired_capacity=self._get_int_param('DesiredCapacity'),
@@ -95,24 +113,24 @@ class AutoScalingResponse(BaseResponse):
 
     def delete_auto_scaling_group(self):
         group_name = self._get_param('AutoScalingGroupName')
-        autoscaling_backend.delete_autoscaling_group(group_name)
+        self.autoscaling_backend.delete_autoscaling_group(group_name)
         template = Template(DELETE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
     def set_desired_capacity(self):
         group_name = self._get_param('AutoScalingGroupName')
         desired_capacity = self._get_int_param('DesiredCapacity')
-        autoscaling_backend.set_desired_capacity(group_name, desired_capacity)
+        self.autoscaling_backend.set_desired_capacity(group_name, desired_capacity)
         template = Template(SET_DESIRED_CAPACITY_TEMPLATE)
         return template.render()
 
     def describe_auto_scaling_instances(self):
-        instances = autoscaling_backend.describe_autoscaling_instances()
+        instances = self.autoscaling_backend.describe_autoscaling_instances()
         template = Template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
         return template.render(instances=instances)
 
     def put_scaling_policy(self):
-        policy = autoscaling_backend.create_autoscaling_policy(
+        policy = self.autoscaling_backend.create_autoscaling_policy(
             name=self._get_param('PolicyName'),
             adjustment_type=self._get_param('AdjustmentType'),
             as_name=self._get_param('AutoScalingGroupName'),
@@ -123,19 +141,19 @@ class AutoScalingResponse(BaseResponse):
         return template.render(policy=policy)
 
     def describe_policies(self):
-        policies = autoscaling_backend.describe_policies()
+        policies = self.autoscaling_backend.describe_policies()
         template = Template(DESCRIBE_SCALING_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
     def delete_policy(self):
         group_name = self._get_param('PolicyName')
-        autoscaling_backend.delete_policy(group_name)
+        self.autoscaling_backend.delete_policy(group_name)
         template = Template(DELETE_POLICY_TEMPLATE)
         return template.render()
 
     def execute_policy(self):
         group_name = self._get_param('PolicyName')
-        autoscaling_backend.execute_policy(group_name)
+        self.autoscaling_backend.execute_policy(group_name)
         template = Template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
@@ -151,6 +169,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
     <LaunchConfigurations>
       {% for launch_configuration in launch_configurations %}
         <member>
+          <AssociatePublicIpAddress>{{ launch_configuration.associate_public_ip_address }}</AssociatePublicIpAddress>
           <SecurityGroups>
             {% for security_group in launch_configuration.security_groups %}
               <member>{{ security_group }}</member>
@@ -170,7 +189,34 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
           <InstanceType>m1.small</InstanceType>
           <LaunchConfigurationARN>arn:aws:autoscaling:us-east-1:803981987763:launchConfiguration:
           9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/my-test-lc</LaunchConfigurationARN>
-          <BlockDeviceMappings/>
+          {% if launch_configuration.block_device_mappings %}
+            <BlockDeviceMappings>
+            {% for mount_point, mapping in launch_configuration.block_device_mappings.items() %}
+              <member>
+                <DeviceName>{{ mount_point }}</DeviceName>
+                {% if mapping.ephemeral_name %}
+                <VirtualName>{{ mapping.ephemeral_name }}</VirtualName>
+                {% else %}
+                <Ebs>
+                {% if mapping.snapshot_id %}
+                  <SnapshotId>{{ mapping.snapshot_id }}</SnapshotId>
+                {% endif %}
+                {% if mapping.size %}
+                  <VolumeSize>{{ mapping.size }}</VolumeSize>
+                {% endif %}
+                {% if mapping.iops %}
+                  <Iops>{{ mapping.iops }}</Iops>
+                {% endif %}
+                  <DeleteOnTermination>{{ mapping.delete_on_termination }}</DeleteOnTermination>
+                  <VolumeType>{{ mapping.volume_type }}</VolumeType>
+                </Ebs>
+                {% endif %}
+              </member>
+            {% endfor %}
+            </BlockDeviceMappings>
+          {% else %}
+            <BlockDeviceMappings/>
+          {% endif %}
           <ImageId>{{ launch_configuration.image_id }}</ImageId>
           {% if launch_configuration.key_name %}
             <KeyName>{{ launch_configuration.key_name }}</KeyName>
@@ -178,6 +224,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
             <KeyName/>
           {% endif %}
           <RamdiskId/>
+          <EbsOptimized>{{ launch_configuration.ebs_optimized }}</EbsOptimized>
           <InstanceMonitoring>
             <Enabled>{{ launch_configuration.instance_monitoring_enabled }}</Enabled>
           </InstanceMonitoring>
@@ -217,7 +264,17 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
         <EnabledMetrics/>
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
-        <Instances/>
+        <Instances>
+          {% for instance in group.instances %}
+          <member>
+            <HealthStatus>HEALTHY</HealthStatus>
+            <AvailabilityZone>us-east-1e</AvailabilityZone>
+            <InstanceId>{{ instance.id }}</InstanceId>
+            <LaunchConfigurationName>{{ instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
+            <LifecycleState>InService</LifecycleState>
+          </member>
+          {% endfor %}
+        </Instances>
         <DesiredCapacity>{{ group.desired_capacity }}</DesiredCapacity>
         <AvailabilityZones>
           {% for availability_zone in group.availability_zones %}

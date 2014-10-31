@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import email
 
 import boto
@@ -55,6 +56,20 @@ def test_send_email():
     sent_count = int(send_quota['GetSendQuotaResponse']['GetSendQuotaResult']['SentLast24Hours'])
     sent_count.should.equal(1)
 
+@mock_ses
+def test_send_html_email():
+    conn = boto.connect_ses('the_key', 'the_secret')
+
+    conn.send_email.when.called_with(
+        "test@example.com", "test subject",
+        "<span>test body</span>", "test_to@example.com", format="html").should.throw(BotoServerError)
+
+    conn.verify_email_identity("test@example.com")
+    conn.send_email("test@example.com", "test subject", "<span>test body</span>", "test_to@example.com", format="html")
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota['GetSendQuotaResponse']['GetSendQuotaResult']['SentLast24Hours'])
+    sent_count.should.equal(1)
 
 @mock_ses
 def test_send_raw_email():

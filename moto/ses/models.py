@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from moto.core import BaseBackend
 from .utils import get_random_message_id
 

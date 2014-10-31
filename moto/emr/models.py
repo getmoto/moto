@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from moto.core import BaseBackend
 
 from .utils import random_job_id, random_instance_group_id
@@ -41,7 +42,7 @@ class FakeStep(object):
 
         arg_index = 1
         while True:
-            arg = kwargs.get('hadoop_jar_step._args.member.{}'.format(arg_index))
+            arg = kwargs.get('hadoop_jar_step._args.member.{0}'.format(arg_index))
             if arg:
                 self.args.append(arg)
                 arg_index += 1
@@ -100,7 +101,7 @@ class FakeJobFlow(object):
     def master_instance_type(self):
         groups = self.instance_groups
         if groups:
-            groups[0].type
+            return groups[0].type
         else:
             return self.initial_master_instance_type
 
@@ -108,7 +109,7 @@ class FakeJobFlow(object):
     def slave_instance_type(self):
         groups = self.instance_groups
         if groups:
-            groups[0].type
+            return groups[0].type
         else:
             return self.initial_slave_instance_type
 

@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto
 from boto.emr.instance_group import InstanceGroup
 from boto.emr.step import StreamingStep
@@ -91,6 +92,7 @@ def test_create_job_flow_with_new_params():
     )
 
 
+@requires_boto_gte("2.8")
 @mock_emr
 def test_create_job_flow_visible_to_all_users():
     conn = boto.connect_emr()
@@ -98,7 +100,6 @@ def test_create_job_flow_visible_to_all_users():
     job_id = conn.run_jobflow(
         name='My jobflow',
         log_uri='s3://some_bucket/jobflow_logs',
-        job_flow_role='some-role-arn',
         steps=[],
         visible_to_all_users=True,
     )
@@ -267,6 +268,7 @@ def test_modify_instance_groups():
     int(instance_group2.instancerunningcount).should.equal(3)
 
 
+@requires_boto_gte("2.8")
 @mock_emr
 def test_set_visible_to_all_users():
     conn = boto.connect_emr()
@@ -274,7 +276,6 @@ def test_set_visible_to_all_users():
     job_id = conn.run_jobflow(
         name='My jobflow',
         log_uri='s3://some_bucket/jobflow_logs',
-        job_flow_role='some-role-arn',
         steps=[],
         visible_to_all_users=False,
     )

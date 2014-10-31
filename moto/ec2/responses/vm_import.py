@@ -1,10 +1,8 @@
-from jinja2 import Template
-
-from moto.ec2.models import ec2_backend
-from moto.ec2.utils import resource_ids_from_querystring
+from __future__ import unicode_literals
+from moto.core.responses import BaseResponse
 
 
-class VMImport(object):
+class VMImport(BaseResponse):
     def cancel_conversion_task(self):
         raise NotImplementedError('VMImport.cancel_conversion_task is not yet implemented')
 

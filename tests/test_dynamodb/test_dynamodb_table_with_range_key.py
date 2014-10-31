@@ -1,8 +1,11 @@
+from __future__ import unicode_literals
+import six
 import boto
 import sure  # noqa
 from freezegun import freeze_time
 
 from moto import mock_dynamodb
+from tests.helpers import py3_requires_boto_gte
 
 from boto.dynamodb import condition
 from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError, DynamoDBValidationError
@@ -26,6 +29,7 @@ def create_table(conn):
     return table
 
 
+@py3_requires_boto_gte("2.33.0")
 @freeze_time("2012-01-14")
 @mock_dynamodb
 def test_create_table():
@@ -58,6 +62,7 @@ def test_create_table():
     conn.describe_table('messages').should.equal(expected)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_delete_table():
     conn = boto.connect_dynamodb()
@@ -70,6 +75,7 @@ def test_delete_table():
     conn.layer1.delete_table.when.called_with('messages').should.throw(DynamoDBResponseError)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_update_table_throughput():
     conn = boto.connect_dynamodb()
@@ -84,6 +90,7 @@ def test_update_table_throughput():
     table.write_units.should.equal(6)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_item_add_and_describe_and_update():
     conn = boto.connect_dynamodb()
@@ -131,6 +138,7 @@ def test_item_add_and_describe_and_update():
     })
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_item_put_without_table():
     conn = boto.connect_dynamodb()
@@ -144,6 +152,7 @@ def test_item_put_without_table():
     ).should.throw(DynamoDBResponseError)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_get_missing_item():
     conn = boto.connect_dynamodb()
@@ -156,6 +165,7 @@ def test_get_missing_item():
     table.has_item("foobar", "more").should.equal(False)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_get_item_with_undeclared_table():
     conn = boto.connect_dynamodb()
@@ -169,6 +179,7 @@ def test_get_item_with_undeclared_table():
     ).should.throw(DynamoDBKeyNotFoundError)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_get_item_without_range_key():
     conn = boto.connect_dynamodb()
@@ -193,6 +204,7 @@ def test_get_item_without_range_key():
     table.get_item.when.called_with(hash_key=hash_key).should.throw(DynamoDBValidationError)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_delete_item():
     conn = boto.connect_dynamodb()
@@ -221,6 +233,7 @@ def test_delete_item():
     item.delete.when.called_with().should.throw(DynamoDBResponseError)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_delete_item_with_attribute_response():
     conn = boto.connect_dynamodb()
@@ -243,14 +256,14 @@ def test_delete_item_with_attribute_response():
 
     response = item.delete(return_values='ALL_OLD')
     response.should.equal({
-        u'Attributes': {
-            u'Body': u'http://url_to_lolcat.gif',
-            u'forum_name': u'LOLCat Forum',
-            u'ReceivedTime': u'12/9/2011 11:36:03 PM',
-            u'SentBy': u'User A',
-            u'subject': u'Check this out!'
+        'Attributes': {
+            'Body': 'http://url_to_lolcat.gif',
+            'forum_name': 'LOLCat Forum',
+            'ReceivedTime': '12/9/2011 11:36:03 PM',
+            'SentBy': 'User A',
+            'subject': 'Check this out!'
         },
-        u'ConsumedCapacityUnits': 0.5
+        'ConsumedCapacityUnits': 0.5
     })
     table.refresh()
     table.item_count.should.equal(0)
@@ -258,6 +271,7 @@ def test_delete_item_with_attribute_response():
     item.delete.when.called_with().should.throw(DynamoDBResponseError)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_delete_item_with_undeclared_table():
     conn = boto.connect_dynamodb()
@@ -271,6 +285,7 @@ def test_delete_item_with_undeclared_table():
     ).should.throw(DynamoDBResponseError)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_query():
     conn = boto.connect_dynamodb()
@@ -321,6 +336,7 @@ def test_query():
     results.response['Items'].should.have.length_of(1)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_query_with_undeclared_table():
     conn = boto.connect_dynamodb()
@@ -337,6 +353,7 @@ def test_query_with_undeclared_table():
     ).should.throw(DynamoDBResponseError)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_scan():
     conn = boto.connect_dynamodb()
@@ -365,7 +382,7 @@ def test_scan():
         'Body': 'http://url_to_lolcat.gif',
         'SentBy': 'User B',
         'ReceivedTime': '12/9/2011 11:36:03 PM',
-        'Ids': {1, 2, 3},
+        'Ids': set([1, 2, 3]),
         'PK': 7,
     }
     item = table.new_item(
@@ -400,6 +417,7 @@ def test_scan():
     results.response['Items'].should.have.length_of(1)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_scan_with_undeclared_table():
     conn = boto.connect_dynamodb()
@@ -417,6 +435,7 @@ def test_scan_with_undeclared_table():
     ).should.throw(DynamoDBResponseError)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_write_batch():
     conn = boto.connect_dynamodb()
@@ -442,7 +461,7 @@ def test_write_batch():
             'Body': 'http://url_to_lolcat.gif',
             'SentBy': 'User B',
             'ReceivedTime': '12/9/2011 11:36:03 PM',
-            'Ids': {1, 2, 3},
+            'Ids': set([1, 2, 3]),
             'PK': 7,
         },
     ))
@@ -461,6 +480,7 @@ def test_write_batch():
     table.item_count.should.equal(1)
 
 
+@py3_requires_boto_gte("2.33.0")
 @mock_dynamodb
 def test_batch_read():
     conn = boto.connect_dynamodb()
@@ -489,7 +509,7 @@ def test_batch_read():
         'Body': 'http://url_to_lolcat.gif',
         'SentBy': 'User B',
         'ReceivedTime': '12/9/2011 11:36:03 PM',
-        'Ids': {1, 2, 3},
+        'Ids': set([1, 2, 3]),
         'PK': 7,
     }
     item = table.new_item(

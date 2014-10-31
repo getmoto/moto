@@ -1,6 +1,11 @@
+from __future__ import unicode_literals
+import six
 import boto
+import boto.dynamodb
 import sure  # noqa
 import requests
+import tests.backport_assert_raises
+from nose.tools import assert_raises
 
 from moto import mock_dynamodb
 from moto.dynamodb import dynamodb_backend
@@ -33,7 +38,8 @@ def test_list_tables_layer_1():
 @mock_dynamodb
 def test_describe_missing_table():
     conn = boto.connect_dynamodb('the_key', 'the_secret')
-    conn.describe_table.when.called_with('messages').should.throw(DynamoDBResponseError)
+    with assert_raises(DynamoDBResponseError):
+        conn.describe_table('messages')
 
 
 @mock_dynamodb

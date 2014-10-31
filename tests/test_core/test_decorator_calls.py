@@ -1,6 +1,9 @@
+from __future__ import unicode_literals
 import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
+import tests.backport_assert_raises
+from nose.tools import assert_raises
 
 from moto import mock_ec2
 
@@ -22,18 +25,21 @@ def test_basic_decorator():
 
 def test_context_manager():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    conn.get_all_instances.when.called_with().should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError):
+        conn.get_all_instances()
 
     with mock_ec2():
         conn = boto.connect_ec2('the_key', 'the_secret')
         list(conn.get_all_instances()).should.equal([])
 
-    conn.get_all_instances.when.called_with().should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError):
+        conn.get_all_instances()
 
 
 def test_decorator_start_and_stop():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    conn.get_all_instances.when.called_with().should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError):
+        conn.get_all_instances()
 
     mock = mock_ec2()
     mock.start()
@@ -41,4 +47,13 @@ def test_decorator_start_and_stop():
     list(conn.get_all_instances()).should.equal([])
     mock.stop()
 
-    conn.get_all_instances.when.called_with().should.throw(EC2ResponseError)
+    with assert_raises(EC2ResponseError):
+        conn.get_all_instances()
+
+
+@mock_ec2
+def test_decorater_wrapped_gets_set():
+    """
+    Moto decorator's __wrapped__ should get set to the tests function
+    """
+    test_decorater_wrapped_gets_set.__wrapped__.__name__.should.equal('test_decorater_wrapped_gets_set')

@@ -1,0 +1,6 @@
+-r requirements.txt
+mock
+nose
+sure<1.2.4
+coverage
+freezegun

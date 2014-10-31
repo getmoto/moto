@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from .responses import AutoScalingResponse
 
 url_bases = [

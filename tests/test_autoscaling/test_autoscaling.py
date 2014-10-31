@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import boto
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.autoscale.group import AutoScalingGroup
@@ -40,6 +41,7 @@ def test_create_autoscaling_group():
     group.desired_capacity.should.equal(2)
     group.max_size.should.equal(2)
     group.min_size.should.equal(2)
+    group.instances.should.have.length_of(2)
     group.vpc_zone_identifier.should.equal('subnet-1234abcd')
     group.launch_config_name.should.equal('tester')
     group.default_cooldown.should.equal(60)
