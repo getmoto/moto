@@ -18,6 +18,7 @@ MODEL_MAP = {
     "AWS::EC2::EIP": ec2_models.ElasticAddress,
     "AWS::EC2::Instance": ec2_models.Instance,
     "AWS::EC2::InternetGateway": ec2_models.InternetGateway,
+    "AWS::EC2::NetworkInterface": ec2_models.NetworkInterface,
     "AWS::EC2::Route": ec2_models.Route,
     "AWS::EC2::RouteTable": ec2_models.RouteTable,
     "AWS::EC2::SecurityGroup": ec2_models.SecurityGroup,

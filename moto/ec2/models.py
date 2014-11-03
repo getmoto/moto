@@ -203,6 +203,10 @@ class NetworkInterface(object):
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SecondaryPrivateIpAddresses" ]"')
         raise UnformattedGetAttTemplateException()
 
+    @property
+    def physical_resource_id(self):
+        return self.id
+
 
 class NetworkInterfaceBackend(object):
     def __init__(self):
