@@ -153,6 +153,24 @@ def test_get_instances_filtering_by_reason_code():
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance3.id)
 
+
+@mock_ec2
+def test_get_instances_filtering_by_source_dest_check():
+    conn = boto.connect_ec2()
+    reservation = conn.run_instances('ami-1234abcd', min_count=2)
+    instance1, instance2 = reservation.instances
+    conn.modify_instance_attribute(instance1.id, attribute='sourceDestCheck', value=False)
+
+    source_dest_check_false = conn.get_all_instances(filters={'source-dest-check': 'false'})
+    source_dest_check_true = conn.get_all_instances(filters={'source-dest-check': 'true'})
+
+    source_dest_check_false[0].instances.should.have.length_of(1)
+    source_dest_check_false[0].instances[0].id.should.equal(instance1.id)
+
+    source_dest_check_true[0].instances.should.have.length_of(1)
+    source_dest_check_true[0].instances[0].id.should.equal(instance2.id)
+
+
 @mock_ec2
 def test_get_instances_filtering_by_tag():
     conn = boto.connect_ec2()
