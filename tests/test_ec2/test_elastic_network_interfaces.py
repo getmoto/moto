@@ -7,8 +7,10 @@ import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2, mock_cloudformation
 from tests.helpers import requires_boto_gte
+from tests.test_cloudformation.fixtures import vpc_eni
+import json
 
 
 @mock_ec2
@@ -143,3 +145,21 @@ def test_elastic_network_interfaces_filtering():
     # Unsupported filter
     conn.get_all_network_interfaces.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
 
+
+@mock_ec2
+@mock_cloudformation
+def test_elastic_network_interfaces_cloudformation():
+    template = vpc_eni.template
+    template_json = json.dumps(template)
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+        )
+    ec2_conn = boto.connect_ec2()
+    eni = ec2_conn.get_all_network_interfaces()[0]
+
+    stack = conn.describe_stacks()[0]
+    resources = stack.describe_resources()
+    cfn_eni = [resource for resource in resources if resource.resource_type == 'AWS::EC2::NetworkInterface'][0]
+    cfn_eni.physical_resource_id.should.equal(eni.id)
