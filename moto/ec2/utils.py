@@ -273,6 +273,7 @@ filter_dict_attribute_mapping = {
     'instance-state-name': 'state',
     'instance-id': 'id',
     'state-reason-code': '_state_reason.code',
+    'source-dest-check': 'source_dest_check',
 }
 
 def get_instance_value(instance, instance_attr):
