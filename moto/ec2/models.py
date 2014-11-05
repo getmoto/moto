@@ -83,7 +83,9 @@ from .utils import (
     is_valid_resource_id,
     get_prefix,
     simple_aws_filter_to_re,
-    is_valid_cidr)
+    is_valid_cidr,
+    filter_internet_gateways,
+)
 
 
 def validate_resource_ids(resource_ids):
@@ -1885,14 +1887,19 @@ class InternetGatewayBackend(object):
         self.internet_gateways[igw.id] = igw
         return igw
 
-    def describe_internet_gateways(self, internet_gateway_ids=None):
+    def describe_internet_gateways(self, internet_gateway_ids=None, filters=None):
         igws = []
-        for igw_id in internet_gateway_ids or []:
-            if igw_id in self.internet_gateways:
-                igws.append(self.internet_gateways[igw_id])
-            else:
-                raise InvalidInternetGatewayIdError(igw_id)
-        return igws or self.internet_gateways.values()
+        if internet_gateway_ids is None:
+            igws = self.internet_gateways.values()
+        else:
+            for igw_id in internet_gateway_ids:
+                if igw_id in self.internet_gateways:
+                    igws.append(self.internet_gateways[igw_id])
+                else:
+                    raise InvalidInternetGatewayIdError(igw_id)
+        if filters is not None:
+            igws = filter_internet_gateways(igws, filters)
+        return igws
 
     def delete_internet_gateway(self, internet_gateway_id):
         igw = self.get_internet_gateway(internet_gateway_id)
