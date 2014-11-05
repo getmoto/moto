@@ -286,6 +286,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self.user_data = user_data
         self.security_groups = security_groups
         self.instance_type = kwargs.get("instance_type", "m1.small")
+        self.vpc_id = None
         self.subnet_id = kwargs.get("subnet_id")
         self.key_name = kwargs.get("key_name")
         self.source_dest_check = "true"
@@ -308,6 +309,10 @@ class Instance(BotoInstance, TaggedEC2Resource):
             elif six.PY2 and isinstance(self.user_data[0], six.text_type):
                 # string will have a "u" prefix -- need to get rid of it
                 self.user_data[0] = self.user_data[0].encode('utf-8')
+
+        if self.subnet_id:
+            subnet = ec2_backend.get_subnet(self.subnet_id)
+            self.vpc_id = subnet.vpc_id
 
         self.prep_nics(kwargs.get("nics", {}),
                        subnet_id=kwargs.get("subnet_id",None),

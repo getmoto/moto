@@ -274,6 +274,7 @@ filter_dict_attribute_mapping = {
     'instance-id': 'id',
     'state-reason-code': '_state_reason.code',
     'source-dest-check': 'source_dest_check',
+    'vpc-id': 'vpc_id',
 }
 
 def get_instance_value(instance, instance_attr):
