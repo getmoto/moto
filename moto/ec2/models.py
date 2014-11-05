@@ -85,6 +85,7 @@ from .utils import (
     simple_aws_filter_to_re,
     is_valid_cidr,
     filter_internet_gateways,
+    filter_reservations,
 )
 
 
@@ -588,7 +589,7 @@ class InstanceBackend(object):
                 if instance.id == instance_id:
                     return instance
 
-    def get_reservations_by_instance_ids(self, instance_ids):
+    def get_reservations_by_instance_ids(self, instance_ids, filters=None):
         """ Go through all of the reservations and filter to only return those
         associated with the given instance_ids.
         """
@@ -605,15 +606,20 @@ class InstanceBackend(object):
         if len(found_instance_ids) != len(instance_ids):
             invalid_id = list(set(instance_ids).difference(set(found_instance_ids)))[0]
             raise InvalidInstanceIdError(invalid_id)
+        if filters is not None:
+            reservations = filter_reservations(reservations, filters)
         return reservations
 
-    def all_reservations(self, make_copy=False):
+    def all_reservations(self, make_copy=False, filters=None):
         if make_copy:
             # Return copies so that other functions can modify them with changing
             # the originals
-            return [copy.deepcopy(reservation) for reservation in self.reservations.values()]
+            reservations = [copy.deepcopy(reservation) for reservation in self.reservations.values()]
         else:
-            return [reservation for reservation in self.reservations.values()]
+            reservations = [reservation for reservation in self.reservations.values()]
+        if filters is not None:
+            reservations = filter_reservations(reservations, filters)
+        return reservations
 
 
 class KeyPairBackend(object):

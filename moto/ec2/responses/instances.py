@@ -3,20 +3,18 @@ from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, filter_reservations, \
+from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, \
     dict_from_querystring, optional_from_querystring
 
 
 class InstanceResponse(BaseResponse):
     def describe_instances(self):
+        filter_dict = filters_from_querystring(self.querystring)
         instance_ids = instance_ids_from_querystring(self.querystring)
         if instance_ids:
-            reservations = self.ec2_backend.get_reservations_by_instance_ids(instance_ids)
+            reservations = self.ec2_backend.get_reservations_by_instance_ids(instance_ids, filters=filter_dict)
         else:
-            reservations = self.ec2_backend.all_reservations(make_copy=True)
-
-        filter_dict = filters_from_querystring(self.querystring)
-        reservations = filter_reservations(reservations, filter_dict)
+            reservations = self.ec2_backend.all_reservations(make_copy=True, filters=filter_dict)
 
         template = Template(EC2_DESCRIBE_INSTANCES)
         return template.render(reservations=reservations)
