@@ -1,7 +1,12 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import sequence_from_querystring
+from moto.ec2.utils import (
+    sequence_from_querystring,
+    filters_from_querystring,
+    filter_internet_gateways,
+)
 from jinja2 import Template
+
 
 class InternetGateways(BaseResponse):
     def attach_internet_gateway(self):
@@ -23,15 +28,16 @@ class InternetGateways(BaseResponse):
         return template.render()
 
     def describe_internet_gateways(self):
-        if "Filter.1.Name" in self.querystring:
-            raise NotImplementedError(
-                "Filtering not supported in describe_internet_gateways.")
-        elif "InternetGatewayId.1" in self.querystring:
+        if "InternetGatewayId.1" in self.querystring:
             igw_ids = sequence_from_querystring(
                 "InternetGatewayId", self.querystring)
             igws = self.ec2_backend.describe_internet_gateways(igw_ids)
         else:
             igws = self.ec2_backend.describe_internet_gateways()
+
+        filter_dict = filters_from_querystring(self.querystring)
+        igws = filter_internet_gateways(igws, filter_dict)
+
         template = Template(DESCRIBE_INTERNET_GATEWAYS_RESPONSE)
         return template.render(internet_gateways=igws)
 

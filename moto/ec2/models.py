@@ -1867,6 +1867,13 @@ class InternetGateway(TaggedEC2Resource):
     def physical_resource_id(self):
         return self.id
 
+    @property
+    def attachment_state(self):
+        if self.vpc:
+            return "available"
+        else:
+            return "detached"
+
 
 class InternetGatewayBackend(object):
     def __init__(self):
