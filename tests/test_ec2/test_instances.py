@@ -172,6 +172,30 @@ def test_get_instances_filtering_by_source_dest_check():
 
 
 @mock_ec2
+def test_get_instances_filtering_by_vpc_id():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc1 = conn.create_vpc("10.0.0.0/16")
+    subnet1 = conn.create_subnet(vpc1.id, "10.0.0.0/27")
+    reservation1 = conn.run_instances('ami-1234abcd', min_count=1, subnet_id=subnet1.id)
+    instance1 = reservation1.instances[0]
+
+    vpc2 = conn.create_vpc("10.1.0.0/16")
+    subnet2 = conn.create_subnet(vpc2.id, "10.1.0.0/27")
+    reservation2 = conn.run_instances('ami-1234abcd', min_count=1, subnet_id=subnet2.id)
+    instance2 = reservation2.instances[0]
+
+    reservations1 = conn.get_all_instances(filters={'vpc-id': vpc1.id})
+    reservations1.should.have.length_of(1)
+    reservations1[0].instances.should.have.length_of(1)
+    reservations1[0].instances[0].id.should.equal(instance1.id)
+
+    reservations2 = conn.get_all_instances(filters={'vpc-id': vpc2.id})
+    reservations2.should.have.length_of(1)
+    reservations2[0].instances.should.have.length_of(1)
+    reservations2[0].instances[0].id.should.equal(instance2.id)
+
+
+@mock_ec2
 def test_get_instances_filtering_by_tag():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
