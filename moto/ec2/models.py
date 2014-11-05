@@ -83,7 +83,10 @@ from .utils import (
     is_valid_resource_id,
     get_prefix,
     simple_aws_filter_to_re,
-    is_valid_cidr)
+    is_valid_cidr,
+    filter_internet_gateways,
+    filter_reservations,
+)
 
 
 def validate_resource_ids(resource_ids):
@@ -586,7 +589,7 @@ class InstanceBackend(object):
                 if instance.id == instance_id:
                     return instance
 
-    def get_reservations_by_instance_ids(self, instance_ids):
+    def get_reservations_by_instance_ids(self, instance_ids, filters=None):
         """ Go through all of the reservations and filter to only return those
         associated with the given instance_ids.
         """
@@ -603,15 +606,20 @@ class InstanceBackend(object):
         if len(found_instance_ids) != len(instance_ids):
             invalid_id = list(set(instance_ids).difference(set(found_instance_ids)))[0]
             raise InvalidInstanceIdError(invalid_id)
+        if filters is not None:
+            reservations = filter_reservations(reservations, filters)
         return reservations
 
-    def all_reservations(self, make_copy=False):
+    def all_reservations(self, make_copy=False, filters=None):
         if make_copy:
             # Return copies so that other functions can modify them with changing
             # the originals
-            return [copy.deepcopy(reservation) for reservation in self.reservations.values()]
+            reservations = [copy.deepcopy(reservation) for reservation in self.reservations.values()]
         else:
-            return [reservation for reservation in self.reservations.values()]
+            reservations = [reservation for reservation in self.reservations.values()]
+        if filters is not None:
+            reservations = filter_reservations(reservations, filters)
+        return reservations
 
 
 class KeyPairBackend(object):
@@ -1867,6 +1875,13 @@ class InternetGateway(TaggedEC2Resource):
     def physical_resource_id(self):
         return self.id
 
+    @property
+    def attachment_state(self):
+        if self.vpc:
+            return "available"
+        else:
+            return "detached"
+
 
 class InternetGatewayBackend(object):
     def __init__(self):
@@ -1878,14 +1893,19 @@ class InternetGatewayBackend(object):
         self.internet_gateways[igw.id] = igw
         return igw
 
-    def describe_internet_gateways(self, internet_gateway_ids=None):
+    def describe_internet_gateways(self, internet_gateway_ids=None, filters=None):
         igws = []
-        for igw_id in internet_gateway_ids or []:
-            if igw_id in self.internet_gateways:
-                igws.append(self.internet_gateways[igw_id])
-            else:
-                raise InvalidInternetGatewayIdError(igw_id)
-        return igws or self.internet_gateways.values()
+        if internet_gateway_ids is None:
+            igws = self.internet_gateways.values()
+        else:
+            for igw_id in internet_gateway_ids:
+                if igw_id in self.internet_gateways:
+                    igws.append(self.internet_gateways[igw_id])
+                else:
+                    raise InvalidInternetGatewayIdError(igw_id)
+        if filters is not None:
+            igws = filter_internet_gateways(igws, filters)
+        return igws
 
     def delete_internet_gateway(self, internet_gateway_id):
         igw = self.get_internet_gateway(internet_gateway_id)

@@ -163,3 +163,60 @@ def test_igw_desribe_bad_id():
     cm.exception.code.should.equal('InvalidInternetGatewayID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_igw_filter_by_vpc_id():
+    """ internet gateway filter by vpc id """
+    conn = boto.connect_vpc('the_key', 'the_secret')
+
+    igw1 = conn.create_internet_gateway()
+    igw2 = conn.create_internet_gateway()
+    vpc = conn.create_vpc(VPC_CIDR)
+    conn.attach_internet_gateway(igw1.id, vpc.id)
+
+    result = conn.get_all_internet_gateways(filters={"attachment.vpc-id": vpc.id})
+    result.should.have.length_of(1)
+    result[0].id.should.equal(igw1.id)
+
+
+@mock_ec2
+def test_igw_filter_by_tags():
+    """ internet gateway filter by vpc id """
+    conn = boto.connect_vpc('the_key', 'the_secret')
+
+    igw1 = conn.create_internet_gateway()
+    igw2 = conn.create_internet_gateway()
+    igw1.add_tag("tests", "yes")
+
+    result = conn.get_all_internet_gateways(filters={"tag:tests": "yes"})
+    result.should.have.length_of(1)
+    result[0].id.should.equal(igw1.id)
+
+
+@mock_ec2
+def test_igw_filter_by_internet_gateway_id():
+    """ internet gateway filter by internet gateway id """
+    conn = boto.connect_vpc('the_key', 'the_secret')
+
+    igw1 = conn.create_internet_gateway()
+    igw2 = conn.create_internet_gateway()
+
+    result = conn.get_all_internet_gateways(filters={"internet-gateway-id": igw1.id})
+    result.should.have.length_of(1)
+    result[0].id.should.equal(igw1.id)
+
+
+@mock_ec2
+def test_igw_filter_by_attachment_state():
+    """ internet gateway filter by attachment state """
+    conn = boto.connect_vpc('the_key', 'the_secret')
+
+    igw1 = conn.create_internet_gateway()
+    igw2 = conn.create_internet_gateway()
+    vpc = conn.create_vpc(VPC_CIDR)
+    conn.attach_internet_gateway(igw1.id, vpc.id)
+
+    result = conn.get_all_internet_gateways(filters={"attachment.state": "available"})
+    result.should.have.length_of(1)
+    result[0].id.should.equal(igw1.id)

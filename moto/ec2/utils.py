@@ -269,17 +269,9 @@ def keypair_names_from_querystring(querystring_dict):
     return keypair_names
 
 
-filter_dict_attribute_mapping = {
-    'instance-state-name': 'state',
-    'instance-id': 'id',
-    'state-reason-code': '_state_reason.code',
-    'source-dest-check': 'source_dest_check',
-    'vpc-id': 'vpc_id',
-}
-
-def get_instance_value(instance, instance_attr):
-    keys = instance_attr.split('.')
-    val = instance
+def get_object_value(obj, attr):
+    keys = attr.split('.')
+    val = obj
     for key in keys:
         if hasattr(val, key):
             val = getattr(val, key)
@@ -289,18 +281,40 @@ def get_instance_value(instance, instance_attr):
             return None
     return val
 
+
+def is_tag_filter(filter_name):
+    return filter_name.startswith('tag:')
+
+
+def get_obj_tag(obj, filter_name):
+    tag_name = filter_name.replace('tag:', '', 1)
+    tags = dict((tag['key'], tag['value']) for tag in obj.get_tags())
+    return tags.get(tag_name)
+
+
+def tag_filter_matches(obj, filter_name, filter_values):
+    tag_value = get_obj_tag(obj, filter_name)
+    return tag_value in filter_values
+
+
+filter_dict_attribute_mapping = {
+    'instance-state-name': 'state',
+    'instance-id': 'id',
+    'state-reason-code': '_state_reason.code',
+    'source-dest-check': 'source_dest_check',
+    'vpc-id': 'vpc_id',
+}
+
+
 def passes_filter_dict(instance, filter_dict):
     for filter_name, filter_values in filter_dict.items():
         if filter_name in filter_dict_attribute_mapping:
             instance_attr = filter_dict_attribute_mapping[filter_name]
-            instance_value = get_instance_value(instance, instance_attr)
+            instance_value = get_object_value(instance, instance_attr)
             if instance_value not in filter_values:
                 return False
-        elif filter_name.startswith('tag:'):
-            tags = dict((tag['key'], tag['value']) for tag in instance.get_tags())
-            tag_name = filter_name.replace('tag:', '', 1)
-            tag_value = tags.get(tag_name)
-            if tag_value not in filter_values:
+        elif is_tag_filter(filter_name):
+            if not tag_filter_matches(instance, filter_name, filter_values):
                 return False
         else:
             raise NotImplementedError(
@@ -319,6 +333,37 @@ def filter_reservations(reservations, filter_dict):
         if new_instances:
             reservation.instances = new_instances
             result.append(reservation)
+    return result
+
+
+filter_dict_igw_mapping = {
+    "attachment.vpc-id": "vpc.id",
+    "attachment.state": "attachment_state",
+    "internet-gateway-id": "id",
+}
+
+
+def passes_igw_filter_dict(igw, filter_dict):
+    for filter_name, filter_values in filter_dict.items():
+        if filter_name in filter_dict_igw_mapping:
+            igw_attr = filter_dict_igw_mapping[filter_name]
+            if get_object_value(igw, igw_attr) not in filter_values:
+                return False
+        elif is_tag_filter(filter_name):
+            if not tag_filter_matches(igw, filter_name, filter_values):
+                return False
+        else:
+            raise NotImplementedError(
+                "Internet Gateway filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/spulec/moto/issues",
+                filter_name)
+    return True
+
+
+def filter_internet_gateways(igws, filter_dict):
+    result = []
+    for igw in igws:
+        if passes_igw_filter_dict(igw, filter_dict):
+            result.append(igw)
     return result
 
 
