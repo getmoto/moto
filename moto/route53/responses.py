@@ -88,6 +88,7 @@ CHANGE_RRSET_RESPONSE = """<ChangeResourceRecordSetsResponse xmlns="https://rout
    <ChangeInfo>
       <Status>PENDING</Status>
       <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>/change/C2682N5HXP0BZ4</Id>
    </ChangeInfo>
 </ChangeResourceRecordSetsResponse>"""
 
