@@ -1255,6 +1255,10 @@ class Volume(object):
         else:
             return 'available'
 
+    def get_tags(self):
+        tags = ec2_backend.describe_tags(filters={'resource-id': [self.id]})
+        return tags
+
 
 class Snapshot(object):
     def __init__(self, snapshot_id, volume, description):
