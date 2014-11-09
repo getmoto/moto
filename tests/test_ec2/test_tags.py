@@ -257,7 +257,7 @@ def test_get_all_tags_value_filter():
 
 
 @mock_ec2
-def test_create_tags_must_set_tags_on_retrieved_instances():
+def test_retrieved_instances_must_contain_their_tags():
     tag_key = 'Tag name'
     tag_value = 'Tag value'
     tags_to_be_set = {tag_key: tag_value}
@@ -288,7 +288,7 @@ def test_create_tags_must_set_tags_on_retrieved_instances():
 
 
 @mock_ec2
-def test_create_tags_must_set_tags_on_retrieved_volumes():
+def test_retrieved_volumes_must_contain_their_tags():
     tag_key = 'Tag name'
     tag_value = 'Tag value'
     tags_to_be_set = {tag_key: tag_value}
@@ -304,6 +304,28 @@ def test_create_tags_must_set_tags_on_retrieved_volumes():
     volume = all_volumes[0]
     retrieved_tags = volume.tags
 
+    volume.delete()
+
+    #Check whether tag is present with correct value
+    retrieved_tags[tag_key].should.equal(tag_value)
+
+
+@mock_ec2
+def test_retrieved_snapshots_must_contain_their_tags():
+    tag_key = 'Tag name'
+    tag_value = 'Tag value'
+    tags_to_be_set = {tag_key: tag_value}
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    volume = conn.create_volume(80, "us-east-1a")
+    snapshot = conn.create_snapshot(volume.id)
+    conn.create_tags([snapshot.id], tags_to_be_set)
+
+    #Fetch the snapshot again
+    all_snapshots = conn.get_all_snapshots()
+    snapshot = all_snapshots[0]
+    retrieved_tags = snapshot.tags
+
+    conn.delete_snapshot(snapshot.id)
     volume.delete()
 
     #Check whether tag is present with correct value

@@ -109,7 +109,7 @@ class StateReason(object):
 
 class TaggedEC2Resource(object):
     def get_tags(self, *args, **kwargs):
-        tags = self.ec2_backend.describe_tags(filters={'resource-id': [self.id]})
+        tags = ec2_backend.describe_tags(filters={'resource-id': [self.id]})
         return tags
 
     def get_filter_value(self, filter_name):
@@ -382,10 +382,6 @@ class Instance(BotoInstance, TaggedEC2Resource):
 
         self._reason = ""
         self._state_reason = StateReason()
-
-    def get_tags(self):
-        tags = self.ec2_backend.describe_tags(filters={'resource-id': [self.id]})
-        return tags
 
     @property
     def dynamic_group_list(self):
@@ -1227,7 +1223,7 @@ class VolumeAttachment(object):
         return attachment
 
 
-class Volume(object):
+class Volume(TaggedEC2Resource):
     def __init__(self, volume_id, size, zone):
         self.id = volume_id
         self.size = size
@@ -1255,12 +1251,8 @@ class Volume(object):
         else:
             return 'available'
 
-    def get_tags(self):
-        tags = ec2_backend.describe_tags(filters={'resource-id': [self.id]})
-        return tags
 
-
-class Snapshot(object):
+class Snapshot(TaggedEC2Resource):
     def __init__(self, snapshot_id, volume, description):
         self.id = snapshot_id
         self.volume = volume
