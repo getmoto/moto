@@ -109,15 +109,7 @@ class StateReason(object):
 
 class TaggedEC2Resource(object):
     def get_tags(self, *args, **kwargs):
-        if hasattr(self,"ec2_backend"):
-            backend = self.ec2_backend
-        elif hasattr(self,"ebs_backend"):
-            backend = self.ebs_backend
-        else:
-            raise NotImplementedError("Tagging of an object with backend that differs from ec2_backend or ebs_backend.")
-
-
-        tags = backend.describe_tags(filters={'resource-id': [self.id]})
+        tags = self.ec2_backend.describe_tags(filters={'resource-id': [self.id]})
         return tags
 
     def get_filter_value(self, filter_name):
@@ -1232,12 +1224,12 @@ class VolumeAttachment(object):
 
 
 class Volume(TaggedEC2Resource):
-    def __init__(self, ebs_backend, volume_id, size, zone):
+    def __init__(self, volume_id, size, zone):
         self.id = volume_id
         self.size = size
         self.zone = zone
         self.attachment = None
-        self.ebs_backend = ebs_backend
+        self.ec2_backend = ec2_backend
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -1262,12 +1254,12 @@ class Volume(TaggedEC2Resource):
 
 
 class Snapshot(TaggedEC2Resource):
-    def __init__(self, ebs_backend, snapshot_id, volume, description):
+    def __init__(self, snapshot_id, volume, description):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
         self.create_volume_permission_groups = set()
-        self.ebs_backend = ebs_backend
+        self.ec2_backend = ec2_backend
 
 
 class EBSBackend(object):
@@ -1280,7 +1272,7 @@ class EBSBackend(object):
     def create_volume(self, size, zone_name):
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)
-        volume = Volume(self, volume_id, size, zone)
+        volume = Volume(volume_id, size, zone)
         self.volumes[volume_id] = volume
         return volume
 
@@ -1322,7 +1314,7 @@ class EBSBackend(object):
     def create_snapshot(self, volume_id, description):
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
-        snapshot = Snapshot(self, snapshot_id, volume, description)
+        snapshot = Snapshot(snapshot_id, volume, description)
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
