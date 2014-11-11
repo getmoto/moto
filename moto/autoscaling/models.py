@@ -52,7 +52,7 @@ class FakeLaunchConfiguration(object):
 
         instance_profile_name = properties.get("IamInstanceProfile")
 
-        config = autoscaling_backend.create_launch_configuration(
+        config = default_autoscaling_backend.create_launch_configuration(
             name=resource_name,
             image_id=properties.get("ImageId"),
             key_name=properties.get("KeyName"),
@@ -107,12 +107,13 @@ class FakeAutoScalingGroup(object):
                  min_size, launch_config_name, vpc_zone_identifier,
                  default_cooldown, health_check_period, health_check_type,
                  load_balancers, placement_group, termination_policies, autoscaling_backend):
+        self.autoscaling_backend = autoscaling_backend
         self.name = name
         self.availability_zones = availability_zones
         self.max_size = max_size
         self.min_size = min_size
 
-        self.launch_config = autoscaling_backend.launch_configurations[launch_config_name]
+        self.launch_config = self.autoscaling_backend.launch_configurations[launch_config_name]
         self.launch_config_name = launch_config_name
         self.vpc_zone_identifier = vpc_zone_identifier
 
@@ -126,8 +127,6 @@ class FakeAutoScalingGroup(object):
         self.instances = []
         self.set_desired_capacity(desired_capacity)
 
-        self.autoscaling_backend = autoscaling_backend
-
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
@@ -135,7 +134,7 @@ class FakeAutoScalingGroup(object):
         launch_config_name = properties.get("LaunchConfigurationName")
         load_balancer_names = properties.get("LoadBalancerNames", [])
 
-        group = autoscaling_backend.create_autoscaling_group(
+        group = default_autoscaling_backend.create_autoscaling_group(
             name=resource_name,
             availability_zones=properties.get("AvailabilityZones", []),
             desired_capacity=properties.get("DesiredCapacity"),
@@ -164,7 +163,7 @@ class FakeAutoScalingGroup(object):
         self.max_size = max_size
         self.min_size = min_size
 
-        self.launch_config = autoscaling_backend.launch_configurations[launch_config_name]
+        self.launch_config = self.autoscaling_backend.launch_configurations[launch_config_name]
         self.launch_config_name = launch_config_name
         self.vpc_zone_identifier = vpc_zone_identifier
         self.health_check_period = health_check_period
@@ -186,7 +185,7 @@ class FakeAutoScalingGroup(object):
         if self.desired_capacity > curr_instance_count:
             # Need more instances
             count_needed = self.desired_capacity - curr_instance_count
-            reservation = autoscaling_backend.ec2_backend.add_instances(
+            reservation = self.autoscaling_backend.ec2_backend.add_instances(
                 self.launch_config.image_id,
                 count_needed,
                 self.launch_config.user_data,
@@ -200,7 +199,7 @@ class FakeAutoScalingGroup(object):
             count_to_remove = curr_instance_count - self.desired_capacity
             instances_to_remove = self.instances[:count_to_remove]
             instance_ids_to_remove = [instance.id for instance in instances_to_remove]
-            autoscaling_backend.ec2_backend.terminate_instances(instance_ids_to_remove)
+            self.autoscaling_backend.ec2_backend.terminate_instances(instance_ids_to_remove)
             self.instances = self.instances[count_to_remove:]
 
 
@@ -360,3 +359,5 @@ for region, ec2_backend in ec2_backends.items():
     autoscaling_backends[region] = AutoScalingBackend(ec2_backend)
 
 autoscaling_backend = autoscaling_backends['us-east-1']
+default_autoscaling_backend = autoscaling_backend
+

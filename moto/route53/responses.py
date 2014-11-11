@@ -86,8 +86,9 @@ LIST_RRSET_REPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.a
 
 CHANGE_RRSET_RESPONSE = """<ChangeResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ChangeInfo>
-      <Status>PENDING</Status>
+      <Status>INSYNC</Status>
       <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>/change/C2682N5HXP0BZ4</Id>
    </ChangeInfo>
 </ChangeResourceRecordSetsResponse>"""
 
