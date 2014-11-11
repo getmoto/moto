@@ -315,8 +315,8 @@ def test_retrieved_snapshots_must_contain_their_tags():
     tag_key = 'Tag name'
     tag_value = 'Tag value'
     tags_to_be_set = {tag_key: tag_value}
-    conn = boto.connect_ec2('the_key', 'the_secret')
-    volume = conn.create_volume(80, "us-east-1a")
+    conn = boto.connect_ec2(aws_access_key_id='the_key', aws_secret_access_key='the_secret')
+    volume = conn.create_volume(80, "eu-west-1a")
     snapshot = conn.create_snapshot(volume.id)
     conn.create_tags([snapshot.id], tags_to_be_set)
 
