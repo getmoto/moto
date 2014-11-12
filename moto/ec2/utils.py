@@ -72,6 +72,10 @@ def random_subnet_association_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['route-table-association'])
 
 
+def random_network_acl_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['network-acl'])
+
+
 def random_volume_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['volume'])
 

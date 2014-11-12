@@ -51,7 +51,8 @@ from .exceptions import (
     InvalidVPCPeeringConnectionStateTransitionError,
     TagLimitExceeded,
     InvalidID,
-    InvalidCIDRSubnetError
+    InvalidCIDRSubnetError,
+    InvalidNetworkAclIdError
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -86,6 +87,7 @@ from .utils import (
     is_valid_cidr,
     filter_internet_gateways,
     filter_reservations,
+    random_network_acl_id,
 )
 
 
@@ -2268,6 +2270,75 @@ class DHCPOptionsSetBackend(object):
         return True
 
 
+class NetworkAclBackend(object):
+    def __init__(self):
+        self.network_acls = {}
+        super(NetworkAclBackend, self).__init__()
+
+    def get_network_acl(self, network_acl_id):
+        network_acl = self.network_acls.get(network_acl_id, None)
+        if not network_acl:
+            raise InvalidNetworkAclIdError(network_acl_id)
+        return network_acl
+
+    def create_network_acl(self, vpc_id):
+        network_acl_id = random_network_acl_id()
+        network_acl = NetworkAcl(self, network_acl_id, vpc_id)
+        vpc = self.get_vpc(vpc_id)
+        self.network_acls[network_acl_id] = network_acl
+        return network_acl
+
+    def get_all_network_acls(self, filters=None):
+        network_acls = self.network_acls.values()
+        return generic_filter(filters, network_acls)
+
+    def delete_network_acl(self, network_acl_id):
+        deleted = self.network_acls.pop(network_acl_id, None)
+        if not deleted:
+            raise InvalidNetworkAclIdError(network_acl_id)
+        return deleted
+
+    def create_network_acl_entry(self, network_acl_id, rule_number,
+                                 protocol, rule_action, egress, cidr_block,
+                                 icmp_code, icmp_type, port_range_from,
+                                 port_range_to):
+
+        network_acl_entry = NetworkAclEntry(self, network_acl_id, rule_number,
+                                            protocol, rule_action, egress,
+                                            cidr_block, icmp_code, icmp_type,
+                                            port_range_from, port_range_to)
+
+        network_acl = self.get_network_acl(network_acl_id)
+        network_acl.network_acl_entries.append(network_acl_entry)
+        return network_acl_entry
+
+
+class NetworkAcl(TaggedEC2Resource):
+    def __init__(self, ec2_backend, network_acl_id, vpc_id):
+        self.ec2_backend = ec2_backend
+        self.id = network_acl_id
+        self.vpc_id = vpc_id
+        self.network_acl_entries = []
+
+
+class NetworkAclEntry(TaggedEC2Resource):
+    def __init__(self, ec2_backend, network_acl_id, rule_number,
+                 protocol, rule_action, egress, cidr_block,
+                 icmp_code, icmp_type, port_range_from,
+                 port_range_to):
+        self.ec2_backend = ec2_backend
+        self.network_acl_id = network_acl_id
+        self.rule_number = rule_number
+        self.protocol = protocol
+        self.rule_action = rule_action
+        self.egress = egress
+        self.cidr_block = cidr_block
+        self.icmp_code = icmp_code
+        self.icmp_type = icmp_type
+        self.port_range_from = port_range_from
+        self.port_range_to = port_range_to
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
@@ -2275,7 +2346,8 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  VPCPeeringConnectionBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
-                 ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend):
+                 ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend,
+                 NetworkAclBackend):
 
     # Use this to generate a proper error template response when in a response handler.
     def raise_error(self, code, message):

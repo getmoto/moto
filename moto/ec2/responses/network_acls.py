@@ -1,25 +1,111 @@
 from __future__ import unicode_literals
+from jinja2 import Template
 from moto.core.responses import BaseResponse
+from moto.ec2.utils import filters_from_querystring
 
 
 class NetworkACLs(BaseResponse):
+
     def create_network_acl(self):
-        raise NotImplementedError('NetworkACLs(AmazonVPC).create_network_acl is not yet implemented')
+        vpc_id = self.querystring.get('VpcId')[0]
+        network_acl = self.ec2_backend.create_network_acl(vpc_id)
+        template = Template(CREATE_NETWORK_ACL_RESPONSE)
+        return template.render(network_acl=network_acl)
 
     def create_network_acl_entry(self):
-        raise NotImplementedError('NetworkACLs(AmazonVPC).create_network_acl_entry is not yet implemented')
+        network_acl_id = self.querystring.get('NetworkAclId')[0]
+        rule_number = self.querystring.get('RuleNumber')[0]
+        protocol = self.querystring.get('Protocol')[0]
+        rule_action = self.querystring.get('RuleAction')[0]
+        egress = self.querystring.get('Egress')[0]
+        cidr_block = self.querystring.get('CidrBlock')[0]
+        icmp_code = self.querystring.get('Icmp.Code', [None])[0]
+        icmp_type = self.querystring.get('Icmp.Type', [None])[0]
+        port_range_from = self.querystring.get('PortRange.From')[0]
+        port_range_to = self.querystring.get('PortRange.To')[0]
+
+        network_acl_entry = self.ec2_backend.create_network_acl_entry(
+            network_acl_id, rule_number, protocol, rule_action,
+            egress, cidr_block, icmp_code, icmp_type,
+            port_range_from, port_range_to)
+
+        template = Template(CREATE_NETWORK_ACL_ENTRY_RESPONSE)
+        return template.render(network_acl_entry=network_acl_entry)
 
     def delete_network_acl(self):
-        raise NotImplementedError('NetworkACLs(AmazonVPC).delete_network_acl is not yet implemented')
+        raise NotImplementedError(
+            'NetworkACLs(AmazonVPC).delete_network_acl is not yet implemented')
 
     def delete_network_acl_entry(self):
-        raise NotImplementedError('NetworkACLs(AmazonVPC).delete_network_acl_entry is not yet implemented')
+        raise NotImplementedError(
+            'NetworkACLs(AmazonVPC).delete_network_acl_entry is not yet implemented')
 
     def describe_network_acls(self):
-        raise NotImplementedError('NetworkACLs(AmazonVPC).describe_network_acls is not yet implemented')
+        filters = filters_from_querystring(self.querystring)
+        network_acls = self.ec2_backend.get_all_network_acls(filters)
+        template = Template(DESCRIBE_NETWORK_ACL_RESPONSE)
+        return template.render(network_acls=network_acls)
 
     def replace_network_acl_association(self):
-        raise NotImplementedError('NetworkACLs(AmazonVPC).replace_network_acl_association is not yet implemented')
+        raise NotImplementedError(
+            'NetworkACLs(AmazonVPC).replace_network_acl_association is not yet implemented')
 
     def replace_network_acl_entry(self):
-        raise NotImplementedError('NetworkACLs(AmazonVPC).replace_network_acl_entry is not yet implemented')
+        raise NotImplementedError(
+            'NetworkACLs(AmazonVPC).replace_network_acl_entry is not yet implemented')
+
+
+CREATE_NETWORK_ACL_RESPONSE = """
+<CreateNetworkAclResponse xmlns="http://ec2.amazonaws.com/doc/2014-09-01/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <networkAcl>
+      <networkAclId>{{ network_acl.id }}</networkAclId>
+      <vpcId>{{ network_acl.vpc_id }}</vpcId>
+      <default>false</default>
+      <entrySet/>
+      <associationSet/>
+      <tagSet/>
+   </networkAcl>
+</CreateNetworkAclResponse>
+"""
+
+DESCRIBE_NETWORK_ACL_RESPONSE = """
+<DescribeNetworkAclsResponse xmlns="http://ec2.amazonaws.com/doc/2014-09-01/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <networkAclSet>
+   {% for network_acl in network_acls %}
+   <item>
+     <networkAclId>{{ network_acl.id }}</networkAclId>
+     <vpcId>{{ network_acl.vpc_id }}</vpcId>
+     <default>true</default>
+     <entrySet>
+       {% for entry in network_acl.network_acl_entries %}
+         <item>
+           <ruleNumber>{{ entry.rule_number }}</ruleNumber>
+           <protocol>{{ entry.protocol }}</protocol>
+           <ruleAction>{{ entry.rule_action }}</ruleAction>
+           <egress>{{ entry.egress.lower() }}</egress>
+           <cidrBlock>{{ entry.cidr_block }}</cidrBlock>
+           {% if entry.port_range_from or entry.port_range_to %}
+             <portRange>
+               <from>{{ entry.port_range_from }}</from>
+               <to>{{ entry.port_range_to }}</to>
+             </portRange>
+           {% endif %}
+         </item>
+       {% endfor %}
+     </entrySet>
+     <associationSet/>
+     <tagSet/>
+   </item>
+   {% endfor %}
+ </networkAclSet>
+</DescribeNetworkAclsResponse>
+"""
+
+CREATE_NETWORK_ACL_ENTRY_RESPONSE = """
+<CreateNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2014-09-01/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <return>true</return>
+</CreateNetworkAclEntryResponse>
+"""
