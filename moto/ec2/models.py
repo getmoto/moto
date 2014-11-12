@@ -2373,7 +2373,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['internet-gateway']:
                 self.describe_internet_gateways(internet_gateway_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-acl']:
-                self.raise_not_implemented_error('DescribeNetworkAcls')
+                self.get_all_network_acls()
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-interface']:
                 self.describe_network_interfaces(filters={'network-interface-id': resource_id})
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['reserved-instance']:
