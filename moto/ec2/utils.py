@@ -10,6 +10,7 @@ EC2_RESOURCE_TO_PREFIX = {
     'instance': 'i',
     'internet-gateway': 'igw',
     'network-acl': 'acl',
+    'network-acl-subnet-assoc': 'aclassoc',
     'network-interface': 'eni',
     'network-interface-attachment': 'eni-attach',
     'reserved-instance': 'uuid4',
@@ -74,6 +75,10 @@ def random_subnet_association_id():
 
 def random_network_acl_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['network-acl'])
+
+
+def random_network_acl_subnet_association_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['network-acl-subnet-assoc'])
 
 
 def random_volume_id():
@@ -160,6 +165,14 @@ def route_table_ids_from_querystring(querystring_dict):
         if 'RouteTableId' in key:
             route_table_ids.append(value[0])
     return route_table_ids
+
+
+def network_acl_ids_from_querystring(querystring_dict):
+    network_acl_ids = []
+    for key, value in querystring_dict.items():
+        if 'NetworkAclId' in key:
+            network_acl_ids.append(value[0])
+    return network_acl_ids
 
 
 def vpc_ids_from_querystring(querystring_dict):

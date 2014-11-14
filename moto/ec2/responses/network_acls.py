@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 from jinja2 import Template
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from moto.ec2.utils import filters_from_querystring, \
+    network_acl_ids_from_querystring
 
 
 class NetworkACLs(BaseResponse):
@@ -33,22 +34,32 @@ class NetworkACLs(BaseResponse):
         return template.render(network_acl_entry=network_acl_entry)
 
     def delete_network_acl(self):
-        raise NotImplementedError(
-            'NetworkACLs(AmazonVPC).delete_network_acl is not yet implemented')
+        network_acl_id = self.querystring.get('NetworkAclId')[0]
+        self.ec2_backend.delete_network_acl(network_acl_id)
+        template = Template(DELETE_NETWORK_ACL_ASSOCIATION)
+        return template.render()
 
     def delete_network_acl_entry(self):
         raise NotImplementedError(
             'NetworkACLs(AmazonVPC).delete_network_acl_entry is not yet implemented')
 
     def describe_network_acls(self):
+        network_acl_ids = network_acl_ids_from_querystring(self.querystring)
         filters = filters_from_querystring(self.querystring)
-        network_acls = self.ec2_backend.get_all_network_acls(filters)
+        network_acls = self.ec2_backend.get_all_network_acls(network_acl_ids, filters)
         template = Template(DESCRIBE_NETWORK_ACL_RESPONSE)
         return template.render(network_acls=network_acls)
 
     def replace_network_acl_association(self):
-        raise NotImplementedError(
-            'NetworkACLs(AmazonVPC).replace_network_acl_association is not yet implemented')
+        association_id = self.querystring.get('AssociationId')[0]
+        network_acl_id = self.querystring.get('NetworkAclId')[0]
+
+        association = self.ec2_backend.replace_network_acl_association(
+            association_id,
+            network_acl_id
+        )
+        template = Template(REPLACE_NETWORK_ACL_ASSOCIATION)
+        return template.render(association=association)
 
     def replace_network_acl_entry(self):
         raise NotImplementedError(
@@ -95,7 +106,15 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
          </item>
        {% endfor %}
      </entrySet>
-     <associationSet/>
+     <associationSet>
+       {% for association in network_acl.associations.values() %}
+         <item>
+           <networkAclAssociationId>{{ association.id }}</networkAclAssociationId>
+           <networkAclId>{{ association.network_acl_id }}</networkAclId>
+           <subnetId>{{ association.subnet_id }}</subnetId>
+         </item>
+       {% endfor %}
+     </associationSet>
      <tagSet/>
    </item>
    {% endfor %}
@@ -108,4 +127,18 @@ CREATE_NETWORK_ACL_ENTRY_RESPONSE = """
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </CreateNetworkAclEntryResponse>
+"""
+
+REPLACE_NETWORK_ACL_ASSOCIATION = """
+<ReplaceNetworkAclAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2014-09-01/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <newAssociationId>{{ association.new_association_id }}</newAssociationId>
+</ReplaceNetworkAclAssociationResponse>
+"""
+
+DELETE_NETWORK_ACL_ASSOCIATION = """
+<DeleteNetworkAclResponse xmlns="http://ec2.amazonaws.com/doc/2014-10-01/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <return>true</return>
+</DeleteNetworkAclResponse>
 """
