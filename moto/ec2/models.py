@@ -1606,11 +1606,11 @@ class SubnetBackend(object):
     def create_subnet(self, vpc_id, cidr_block):
         subnet_id = random_subnet_id()
         subnet = Subnet(self, subnet_id, vpc_id, cidr_block)
+        vpc = self.get_vpc(vpc_id) # Validate VPC exists
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id)
 
-        vpc = self.get_vpc(vpc_id) # Validate VPC exists
         self.subnets[subnet_id] = subnet
         return subnet
 
