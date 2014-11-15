@@ -6,7 +6,6 @@ from datetime import datetime
 import itertools
 import re
 
-import six
 import boto
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
@@ -103,6 +102,7 @@ class InstanceState(object):
         self.name = name
         self.code = code
 
+
 class StateReason(object):
     def __init__(self, message="", code=""):
         self.message = message
@@ -134,7 +134,7 @@ class TaggedEC2Resource(object):
 
 class NetworkInterface(object):
     def __init__(self, ec2_backend, subnet, private_ip_address, device_index=0,
-        public_ip_auto_assign=True, group_ids=None):
+            public_ip_auto_assign=True, group_ids=None):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
@@ -319,9 +319,9 @@ class Instance(BotoInstance, TaggedEC2Resource):
             self.vpc_id = subnet.vpc_id
 
         self.prep_nics(kwargs.get("nics", {}),
-                       subnet_id=kwargs.get("subnet_id",None),
-                       private_ip=kwargs.get("private_ip",None),
-                       associate_public_ip=kwargs.get("associate_public_ip",None))
+                       subnet_id=kwargs.get("subnet_id"),
+                       private_ip=kwargs.get("private_ip"),
+                       associate_public_ip=kwargs.get("associate_public_ip"))
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -402,7 +402,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         primary_nic = {'SubnetId': subnet_id,
                        'PrivateIpAddress': private_ip,
                        'AssociatePublicIpAddress': associate_public_ip}
-        primary_nic = dict((k,v) for k, v in primary_nic.items() if v)
+        primary_nic = dict((k, v) for k, v in primary_nic.items() if v)
 
         # If empty NIC spec but primary NIC values provided, create NIC from them.
         if primary_nic and not nic_spec:
@@ -411,12 +411,9 @@ class Instance(BotoInstance, TaggedEC2Resource):
 
         # Flesh out data structures and associations
         for nic in nic_spec.values():
-            use_eni = None
-            security_group_ids = []
-
             device_index = int(nic.get('DeviceIndex'))
 
-            nic_id = nic.get('NetworkInterfaceId', None)
+            nic_id = nic.get('NetworkInterfaceId')
             if nic_id:
                 # If existing NIC found, use it.
                 use_nic = self.ec2_backend.get_network_interface(nic_id)
@@ -430,13 +427,13 @@ class Instance(BotoInstance, TaggedEC2Resource):
 
                 subnet = self.ec2_backend.get_subnet(nic['SubnetId'])
 
-                group_id = nic.get('SecurityGroupId',None)
+                group_id = nic.get('SecurityGroupId')
                 group_ids = [group_id] if group_id else []
 
                 use_nic = self.ec2_backend.create_network_interface(subnet,
-                                                               nic.get('PrivateIpAddress',None),
+                                                               nic.get('PrivateIpAddress'),
                                                                device_index=device_index,
-                                                               public_ip_auto_assign=nic.get('AssociatePublicIpAddress',False),
+                                                               public_ip_auto_assign=nic.get('AssociatePublicIpAddress', False),
                                                                group_ids=group_ids)
 
             self.attach_eni(use_nic, device_index)
@@ -445,14 +442,14 @@ class Instance(BotoInstance, TaggedEC2Resource):
         device_index = int(device_index)
         self.nics[device_index] = eni
 
-        eni.instance = self # This is used upon associate/disassociate public IP.
+        eni.instance = self  # This is used upon associate/disassociate public IP.
         eni.attachment_id = random_eni_attach_id()
         eni.device_index = device_index
 
         return eni.attachment_id
 
     def detach_eni(self, eni):
-        self.nics.pop(eni.device_index,None)
+        self.nics.pop(eni.device_index, None)
         eni.instance = None
         eni.attachment_id = None
         eni.device_index = None
@@ -712,7 +709,7 @@ class TagBackend(object):
         resource_id_filters = []
         resource_type_filters = []
         value_filters = []
-        if not filters is None:
+        if filters is not None:
             for tag_filter in filters:
                 if tag_filter in self.VALID_TAG_FILTERS:
                     if tag_filter == 'key':
@@ -771,7 +768,7 @@ class TagBackend(object):
                         'key': key,
                         'value': value,
                         'resource_type': EC2_PREFIX_TO_RESOURCE[get_prefix(resource_id)],
-                        }
+                    }
                     results.append(result)
         return results
 
@@ -1485,8 +1482,8 @@ class VPCPeeringConnection(TaggedEC2Resource):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
         properties = cloudformation_json['Properties']
 
-        vpc = get_vpc(properties['VpcId'])
-        peer_vpc = get_vpc(properties['PeerVpcId'])
+        vpc = ec2_backend.get_vpc(properties['VpcId'])
+        peer_vpc = ec2_backend.get_vpc(properties['PeerVpcId'])
 
         vpc_pcx = ec2_backend.create_vpc_peering_connection(vpc, peer_vpc)
 
@@ -1596,7 +1593,7 @@ class SubnetBackend(object):
     def create_subnet(self, vpc_id, cidr_block):
         subnet_id = random_subnet_id()
         subnet = Subnet(self, subnet_id, vpc_id, cidr_block)
-        self.get_vpc(vpc_id) # Validate VPC exists
+        self.get_vpc(vpc_id)  # Validate VPC exists
         self.subnets[subnet_id] = subnet
         return subnet
 
@@ -1697,7 +1694,7 @@ class RouteTableBackend(object):
 
     def create_route_table(self, vpc_id, main=False):
         route_table_id = random_route_table_id()
-        vpc = self.get_vpc(vpc_id) # Validate VPC exists
+        vpc = self.get_vpc(vpc_id)  # Validate VPC exists
         route_table = RouteTable(self, route_table_id, vpc_id, main=main)
         self.route_tables[route_table_id] = route_table
 
@@ -1735,15 +1732,15 @@ class RouteTableBackend(object):
 
     def associate_route_table(self, route_table_id, subnet_id):
         # Idempotent if association already exists.
-        route_tables_by_subnet = self.get_all_route_tables(filters={'association.subnet-id':[subnet_id]})
+        route_tables_by_subnet = self.get_all_route_tables(filters={'association.subnet-id': [subnet_id]})
         if route_tables_by_subnet:
-            for association_id,check_subnet_id in route_tables_by_subnet[0].associations.items():
+            for association_id, check_subnet_id in route_tables_by_subnet[0].associations.items():
                 if subnet_id == check_subnet_id:
                     return association_id
 
         # Association does not yet exist, so create it.
         route_table = self.get_route_table(route_table_id)
-        subnet = self.get_subnet(subnet_id) # Validate subnet exists
+        self.get_subnet(subnet_id)  # Validate subnet exists
         association_id = random_subnet_association_id()
         route_table.associations[association_id] = subnet_id
         return association_id
@@ -1761,13 +1758,13 @@ class RouteTableBackend(object):
             return association_id
 
         # Find route table which currently has the association, error if none.
-        route_tables_by_association_id = self.get_all_route_tables(filters={'association.route-table-association-id':[association_id]})
+        route_tables_by_association_id = self.get_all_route_tables(filters={'association.route-table-association-id': [association_id]})
         if not route_tables_by_association_id:
             raise InvalidAssociationIdError(association_id)
 
         # Remove existing association, create new one.
         previous_route_table = route_tables_by_association_id[0]
-        subnet_id = previous_route_table.associations.pop(association_id,None)
+        subnet_id = previous_route_table.associations.pop(association_id, None)
         return self.associate_route_table(route_table_id, subnet_id)
 
 
@@ -2031,8 +2028,7 @@ class SpotRequestBackend(object):
                 spot_request_id, price, image_id, type, valid_from, valid_until,
                 launch_group, availability_zone_group, key_name, security_groups,
                 user_data, instance_type, placement, kernel_id, ramdisk_id,
-                monitoring_enabled, subnet_id
-            )
+                monitoring_enabled, subnet_id)
             self.spot_instance_requests[spot_request_id] = request
             requests.append(request)
         return requests
@@ -2064,7 +2060,7 @@ class ElasticAddress(object):
         properties = cloudformation_json.get('Properties')
         instance_id = None
         if properties:
-            domain=properties.get('Domain')
+            domain = properties.get('Domain')
             eip = ec2_backend.allocate_address(
                 domain=domain if domain else 'standard')
             instance_id = properties.get('InstanceId')
