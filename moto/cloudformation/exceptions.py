@@ -3,7 +3,6 @@ from boto.exception import BotoServerError
 from jinja2 import Template
 
 
-
 class UnformattedGetAttTemplateException(Exception):
     description = 'Template error: resource {0} does not support attribute type {1} in Fn::GetAtt'
     status_code = 400

@@ -390,8 +390,8 @@ def generic_filter(filters, objects):
 
 def simple_aws_filter_to_re(filter_string):
     import fnmatch
-    tmp_filter = filter_string.replace('\?','[?]')
-    tmp_filter = tmp_filter.replace('\*','[*]')
+    tmp_filter = filter_string.replace('\?', '[?]')
+    tmp_filter = tmp_filter.replace('\*', '[*]')
     tmp_filter = fnmatch.translate(tmp_filter)
     return tmp_filter
 
@@ -425,7 +425,7 @@ def get_prefix(resource_id):
     if resource_id_prefix == EC2_RESOURCE_TO_PREFIX['network-interface']:
         if after.startswith('attach'):
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX['network-interface-attachment']
-    if not resource_id_prefix in EC2_RESOURCE_TO_PREFIX.values():
+    if resource_id_prefix not in EC2_RESOURCE_TO_PREFIX.values():
         uuid4hex = re.compile('[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}\Z', re.I)
         if uuid4hex.match(resource_id) is not None:
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX['reserved-instance']
@@ -437,7 +437,7 @@ def get_prefix(resource_id):
 def is_valid_resource_id(resource_id):
     valid_prefixes = EC2_RESOURCE_TO_PREFIX.values()
     resource_id_prefix = get_prefix(resource_id)
-    if not resource_id_prefix in valid_prefixes:
+    if resource_id_prefix not in valid_prefixes:
         return False
     resource_id_pattern = resource_id_prefix + '-[0-9a-f]{8}'
     resource_pattern_re = re.compile(resource_id_pattern)

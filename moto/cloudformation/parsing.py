@@ -129,9 +129,9 @@ def parse_resource(logical_id, resource_json, resources_map):
     resource_json = clean_json(resource_json, resources_map)
     resource_name_property = resource_name_property_from_type(resource_type)
     if resource_name_property:
-        if not 'Properties' in resource_json:
+        if 'Properties' not in resource_json:
             resource_json['Properties'] = dict()
-        if not resource_name_property in resource_json['Properties']:
+        if resource_name_property not in resource_json['Properties']:
             resource_json['Properties'][resource_name_property] = '{0}-{1}-{2}'.format(
                 resources_map.get('AWS::StackName'),
                 logical_id,
@@ -214,7 +214,7 @@ class ResourceMap(collections.Mapping):
             self[resource]
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 tags['aws:cloudformation:logical-id'] = resource
-                ec2_models.ec2_backend.create_tags([self[resource].physical_resource_id],tags)
+                ec2_models.ec2_backend.create_tags([self[resource].physical_resource_id], tags)
 
 
 class OutputMap(collections.Mapping):

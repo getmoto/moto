@@ -12,7 +12,7 @@ class ReceiptHandleIsInvalid(Exception):
 
 
 class MessageAttributesInvalid(Exception):
-	status_code = 400
+    status_code = 400
 
-	def __init__(self, description):
-		self.description = description
+    def __init__(self, description):
+        self.description = description

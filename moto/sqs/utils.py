@@ -52,7 +52,7 @@ def parse_message_attributes(querystring, base='', value_namespace='Value.'):
         if not value:
             raise MessageAttributesInvalid("The message attribute '{0}' must contain non-empty message attribute value for message attribute type '{1}'.".format(name[0], data_type[0]))
 
-        message_attributes[name[0]] = {'data_type' : data_type[0], type_prefix.lower() + '_value' : value[0]}
+        message_attributes[name[0]] = {'data_type': data_type[0], type_prefix.lower() + '_value': value[0]}
 
         index += 1
 

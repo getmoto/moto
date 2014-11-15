@@ -272,7 +272,7 @@ class IAMBackend(BaseBackend):
         return user
 
     def create_login_profile(self, user_name, password):
-        if not user_name in self.users:
+        if user_name not in self.users:
             raise BotoServerError(404, 'Not Found')
 
         # This does not currently deal with PasswordPolicyViolation.
