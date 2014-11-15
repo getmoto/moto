@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+
 class MessageNotInflight(Exception):
     description = "The message referred to is not in flight."
     status_code = 400

@@ -31,7 +31,7 @@ class VPCPeeringConnections(BaseResponse):
 
     def reject_vpc_peering_connection(self):
         vpc_pcx_id = self.querystring.get('VpcPeeringConnectionId')[0]
-        vpc_pcx = self.ec2_backend.reject_vpc_peering_connection(vpc_pcx_id)
+        self.ec2_backend.reject_vpc_peering_connection(vpc_pcx_id)
         template = Template(REJECT_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render()
 
@@ -125,4 +125,3 @@ REJECT_VPC_PEERING_CONNECTION_RESPONSE = """
   <return>true</return>
 </RejectVpcPeeringConnectionResponse>
 """
-

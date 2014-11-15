@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
-import copy
-import itertools
+
 from collections import defaultdict
+import copy
 from datetime import datetime
+import itertools
 import re
 
 import six
@@ -11,6 +12,7 @@ from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
+import six
 
 from moto.core import BaseBackend
 from moto.core.models import Model
@@ -240,12 +242,11 @@ class NetworkInterfaceBackend(object):
             for (_filter, _filter_value) in filters.items():
                 if _filter == 'network-interface-id':
                     _filter = 'id'
-                    enis = [ eni for eni in enis if getattr(eni, _filter) in _filter_value ]
+                    enis = [eni for eni in enis if getattr(eni, _filter) in _filter_value]
                 elif _filter == 'group-id':
                     original_enis = enis
                     enis = []
                     for eni in original_enis:
-                        group_ids = []
                         for group in eni.group_set:
                             if group.id in _filter_value:
                                 enis.append(eni)
@@ -817,7 +818,7 @@ class Ami(TaggedEC2Resource):
         elif filter_name == 'kernel-id':
             return self.kernel_id
         elif filter_name in ['architecture', 'platform']:
-            return getattr(self,filter_name)
+            return getattr(self, filter_name)
         elif filter_name == 'image-id':
             return self.id
         elif filter_name == 'state':
@@ -856,7 +857,6 @@ class AmiBackend(object):
     def describe_images(self, ami_ids=(), filters=None):
         if filters:
             images = self.amis.values()
-
             return generic_filter(filters, images)
         else:
             images = []
@@ -1008,10 +1008,7 @@ class SecurityGroup(object):
     def physical_resource_id(self):
         return self.id
 
-
     def matches_filter(self, key, filter_value):
-        result = True
-
         def to_attr(filter_name):
             attr = None
 
@@ -1031,7 +1028,7 @@ class SecurityGroup(object):
             ingress_attr = to_attr(match.groups()[0])
 
             for ingress in self.ingress_rules:
-                if getattr(ingress, ingress_attr) in filters[key]:
+                if getattr(ingress, ingress_attr) in filter_value:
                     return True
         else:
             attr_name = to_attr(key)
@@ -1302,7 +1299,7 @@ class EBSBackend(object):
 
     def detach_volume(self, volume_id, instance_id, device_path):
         volume = self.get_volume(volume_id)
-        instance = self.get_instance(instance_id)
+        self.get_instance(instance_id)
 
         old_attachment = volume.attachment
         if not old_attachment:
@@ -1406,7 +1403,7 @@ class VPCBackend(object):
         self.vpcs[vpc_id] = vpc
 
         # AWS creates a default main route table and security group.
-        main_route_table = self.create_route_table(vpc_id, main=True)
+        self.create_route_table(vpc_id, main=True)
 
         default = self.get_security_group_from_name('default', vpc_id=vpc_id)
         if not default:
@@ -1429,7 +1426,7 @@ class VPCBackend(object):
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
-        route_tables = self.get_all_route_tables(filters={'vpc-id':vpc_id})
+        route_tables = self.get_all_route_tables(filters={'vpc-id': vpc_id})
         if len(route_tables) > 1:
             raise DependencyViolationError(
                 "The vpc {0} has dependencies and cannot be deleted."
@@ -1599,7 +1596,7 @@ class SubnetBackend(object):
     def create_subnet(self, vpc_id, cidr_block):
         subnet_id = random_subnet_id()
         subnet = Subnet(self, subnet_id, vpc_id, cidr_block)
-        vpc = self.get_vpc(vpc_id) # Validate VPC exists
+        self.get_vpc(vpc_id) # Validate VPC exists
         self.subnets[subnet_id] = subnet
         return subnet
 
@@ -1719,7 +1716,7 @@ class RouteTableBackend(object):
         route_tables = self.route_tables.values()
 
         if route_table_ids:
-            route_tables = [ route_table for route_table in route_tables if route_table.id in route_table_ids ]
+            route_tables = [route_table for route_table in route_tables if route_table.id in route_table_ids]
             if len(route_tables) != len(route_table_ids):
                 invalid_id = list(set(route_table_ids).difference(set([route_table.id for route_table in route_tables])))[0]
                 raise InvalidRouteTableIdError(invalid_id)

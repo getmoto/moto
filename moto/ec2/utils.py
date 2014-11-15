@@ -130,7 +130,7 @@ def generate_route_id(route_table_id, cidr_block):
 
 
 def split_route_id(route_id):
-    values = string.split(route_id, '~')
+    values = route_id.split('~')
     return values[0], values[1]
 
 

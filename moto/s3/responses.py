@@ -166,12 +166,12 @@ class ResponseObject(object):
         if request.path == u'/?delete':
             return self._bucket_response_delete_keys(request, bucket_name, headers)
 
-        #POST to bucket-url should create file from form
+        # POST to bucket-url should create file from form
         if hasattr(request, 'form'):
-            #Not HTTPretty
+            # Not HTTPretty
             form = request.form
         else:
-            #HTTPretty, build new form object
+            # HTTPretty, build new form object
             form = {}
             for kv in request.body.decode('utf-8').split('&'):
                 k, v = kv.split('=')
@@ -185,7 +185,7 @@ class ResponseObject(object):
 
         new_key = self.backend.set_key(bucket_name, key, f)
 
-        #Metadata
+        # Metadata
         meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
 
         for form_id in form:
