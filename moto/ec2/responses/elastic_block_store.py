@@ -132,6 +132,16 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
                     </item>
                 {% endif %}
              </attachmentSet>
+             <tagSet>
+               {% for tag in volume.get_tags() %}
+                 <item>
+                   <resourceId>{{ tag.resource_id }}</resourceId>
+                   <resourceType>{{ tag.resource_type }}</resourceType>
+                   <key>{{ tag.key }}</key>
+                   <value>{{ tag.value }}</value>
+                 </item>
+               {% endfor %}
+             </tagSet>
              <volumeType>standard</volumeType>
           </item>
       {% endfor %}
@@ -187,6 +197,14 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
              <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
              <tagSet>
+               {% for tag in snapshot.get_tags() %}
+                 <item>
+                   <resourceId>{{ tag.resource_id }}</resourceId>
+                   <resourceType>{{ tag.resource_type }}</resourceType>
+                   <key>{{ tag.key }}</key>
+                   <value>{{ tag.value }}</value>
+                 </item>
+               {% endfor %}
              </tagSet>
           </item>
       {% endfor %}

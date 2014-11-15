@@ -383,10 +383,6 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self._reason = ""
         self._state_reason = StateReason()
 
-    def get_tags(self):
-        tags = self.ec2_backend.describe_tags(filters={'resource-id': [self.id]})
-        return tags
-
     @property
     def dynamic_group_list(self):
         if self.nics:
@@ -1227,12 +1223,13 @@ class VolumeAttachment(object):
         return attachment
 
 
-class Volume(object):
+class Volume(TaggedEC2Resource):
     def __init__(self, volume_id, size, zone):
         self.id = volume_id
         self.size = size
         self.zone = zone
         self.attachment = None
+        self.ec2_backend = ec2_backend
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
@@ -1256,12 +1253,13 @@ class Volume(object):
             return 'available'
 
 
-class Snapshot(object):
+class Snapshot(TaggedEC2Resource):
     def __init__(self, snapshot_id, volume, description):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
         self.create_volume_permission_groups = set()
+        self.ec2_backend = ec2_backend
 
 
 class EBSBackend(object):
