@@ -4,19 +4,24 @@ import json
 from jinja2 import Template
 
 from moto.core.responses import BaseResponse
-from .models import cloudformation_backend
+from .models import cloudformation_backends
 
 
 class CloudFormationResponse(BaseResponse):
+
+    @property
+    def cloudformation_backend(self):
+        return cloudformation_backends[self.region]
 
     def create_stack(self):
         stack_name = self._get_param('StackName')
         stack_body = self._get_param('TemplateBody')
         stack_notification_arns = self._get_multi_param('NotificationARNs.member')
 
-        stack = cloudformation_backend.create_stack(
+        stack = self.cloudformation_backend.create_stack(
             name=stack_name,
             template=stack_body,
+            region_name=self.region,
             notification_arns=stack_notification_arns
         )
         stack_body = {
@@ -32,34 +37,34 @@ class CloudFormationResponse(BaseResponse):
         stack_name_or_id = None
         if self._get_param('StackName'):
             stack_name_or_id = self.querystring.get('StackName')[0]
-        stacks = cloudformation_backend.describe_stacks(stack_name_or_id)
+        stacks = self.cloudformation_backend.describe_stacks(stack_name_or_id)
 
         template = Template(DESCRIBE_STACKS_TEMPLATE)
         return template.render(stacks=stacks)
 
     def describe_stack_resources(self):
         stack_name = self._get_param('StackName')
-        stack = cloudformation_backend.get_stack(stack_name)
+        stack = self.cloudformation_backend.get_stack(stack_name)
 
         template = Template(LIST_STACKS_RESOURCES_RESPONSE)
         return template.render(stack=stack)
 
     def list_stacks(self):
-        stacks = cloudformation_backend.list_stacks()
+        stacks = self.cloudformation_backend.list_stacks()
         template = Template(LIST_STACKS_RESPONSE)
         return template.render(stacks=stacks)
 
     def get_template(self):
         name_or_stack_id = self.querystring.get('StackName')[0]
 
-        stack = cloudformation_backend.get_stack(name_or_stack_id)
+        stack = self.cloudformation_backend.get_stack(name_or_stack_id)
         return stack.template
 
     # def update_stack(self):
     #     stack_name = self._get_param('StackName')
     #     stack_body = self._get_param('TemplateBody')
 
-    #     stack = cloudformation_backend.update_stack(
+    #     stack = self.cloudformation_backend.update_stack(
     #         name=stack_name,
     #         template=stack_body,
     #     )
@@ -75,7 +80,7 @@ class CloudFormationResponse(BaseResponse):
     def delete_stack(self):
         name_or_stack_id = self.querystring.get('StackName')[0]
 
-        cloudformation_backend.delete_stack(name_or_stack_id)
+        self.cloudformation_backend.delete_stack(name_or_stack_id)
         return json.dumps({
             'DeleteStackResponse': {
                 'DeleteStackResult': {},

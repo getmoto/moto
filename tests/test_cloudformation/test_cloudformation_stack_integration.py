@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 import json
 
 import boto
+import boto.cloudformation
+import boto.ec2
 import sure  # noqa
 
 from moto import (
@@ -464,13 +466,13 @@ def test_iam_roles():
 def test_single_instance_with_ebs_volume():
 
     template_json = json.dumps(single_instance_with_ebs_volume.template)
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
         "test_stack",
         template_body=template_json,
     )
 
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
 
@@ -490,10 +492,7 @@ def test_classic_eip():
 
     template_json = json.dumps(ec2_classic_eip.template)
     conn = boto.connect_cloudformation()
-    conn.create_stack(
-        "test_stack",
-        template_body=template_json,
-        )
+    conn.create_stack("test_stack", template_body=template_json)
     ec2_conn = boto.connect_ec2()
     eip = ec2_conn.get_all_addresses()[0]
 
@@ -509,10 +508,7 @@ def test_vpc_eip():
 
     template_json = json.dumps(vpc_eip.template)
     conn = boto.connect_cloudformation()
-    conn.create_stack(
-        "test_stack",
-        template_body=template_json,
-        )
+    conn.create_stack("test_stack", template_body=template_json)
     ec2_conn = boto.connect_ec2()
     eip = ec2_conn.get_all_addresses()[0]
 
@@ -528,10 +524,7 @@ def test_fn_join():
 
     template_json = json.dumps(fn_join.template)
     conn = boto.connect_cloudformation()
-    conn.create_stack(
-        "test_stack",
-        template_body=template_json,
-        )
+    conn.create_stack("test_stack", template_body=template_json)
     ec2_conn = boto.connect_ec2()
     eip = ec2_conn.get_all_addresses()[0]
 

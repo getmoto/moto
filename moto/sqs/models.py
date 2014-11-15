@@ -5,6 +5,7 @@ import time
 import re
 from xml.sax.saxutils import escape
 
+import boto.sqs
 
 from moto.core import BaseBackend
 from moto.core.utils import camelcase_to_underscores, get_random_message_id
@@ -120,9 +121,10 @@ class Queue(object):
         self.receive_message_wait_time_seconds = 0
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
+        sqs_backend = sqs_backends[region_name]
         return sqs_backend.create_queue(
             name=properties['QueueName'],
             visibility_timeout=properties.get('VisibilityTimeout'),
@@ -272,4 +274,8 @@ class SQSBackend(BaseBackend):
                 return
         raise ReceiptHandleIsInvalid
 
-sqs_backend = SQSBackend()
+sqs_backends = {}
+for region in boto.sqs.regions():
+    sqs_backends[region.name] = SQSBackend()
+
+sqs_backend = sqs_backends['us-east-1']

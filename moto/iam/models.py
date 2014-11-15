@@ -16,7 +16,7 @@ class Role(object):
         self.policies = policies
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         return iam_backend.create_role(
@@ -45,7 +45,7 @@ class InstanceProfile(object):
         self.roles = roles if roles else []
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         role_ids = properties['Roles']

@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
+
 import json
+
 import boto
+import boto.cloudformation
 import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
+import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 from moto import mock_cloudformation
@@ -36,6 +39,18 @@ def test_create_stack():
     stack = conn.describe_stacks()[0]
     stack.stack_name.should.equal('test_stack')
     stack.get_template().should.equal(dummy_template)
+
+
+@mock_cloudformation
+def test_creating_stacks_across_regions():
+    west1_conn = boto.cloudformation.connect_to_region("us-west-1")
+    west1_conn.create_stack("test_stack", template_body=dummy_template_json)
+
+    west2_conn = boto.cloudformation.connect_to_region("us-west-2")
+    west2_conn.create_stack("test_stack", template_body=dummy_template_json)
+
+    list(west1_conn.describe_stacks()).should.have.length_of(1)
+    list(west2_conn.describe_stacks()).should.have.length_of(1)
 
 
 @mock_cloudformation
