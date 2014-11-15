@@ -106,7 +106,7 @@ def test_request_spot_instances_fulfilled():
     """
     Test that moto correctly fullfills a spot instance request
     """
-    conn = boto.connect_ec2()
+    conn = boto.ec2.connect_to_region("us-east-1")
 
     request = conn.request_spot_instances(
         price=0.5, image_id='ami-abcd1234',
@@ -184,7 +184,7 @@ def test_get_all_spot_instance_requests_filtering():
 
 @mock_ec2
 def test_request_spot_instances_setting_instance_id():
-    conn = boto.connect_ec2()
+    conn = boto.ec2.connect_to_region("us-east-1")
     request = conn.request_spot_instances(
         price=0.5, image_id='ami-abcd1234')
 

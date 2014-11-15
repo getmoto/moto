@@ -190,7 +190,7 @@ def test_modify_attribute_blockDeviceMapping():
 
     [0] https://github.com/spulec/moto/issues/160
     """
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
 
     reservation = conn.run_instances('ami-1234abcd')
 

@@ -4,6 +4,8 @@ import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import boto
+import boto.cloudformation
+import boto.ec2
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
@@ -151,12 +153,12 @@ def test_elastic_network_interfaces_filtering():
 def test_elastic_network_interfaces_cloudformation():
     template = vpc_eni.template
     template_json = json.dumps(template)
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
         "test_stack",
         template_body=template_json,
         )
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
     eni = ec2_conn.get_all_network_interfaces()[0]
 
     stack = conn.describe_stacks()[0]

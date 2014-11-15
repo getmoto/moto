@@ -4,6 +4,10 @@ import json
 import boto
 import boto.cloudformation
 import boto.ec2
+import boto.ec2.autoscale
+import boto.ec2.elb
+import boto.iam
+import boto.vpc
 import sure  # noqa
 
 from moto import (
@@ -40,7 +44,7 @@ def test_stack_sqs_integration():
     }
     sqs_template_json = json.dumps(sqs_template)
 
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
         "test_stack",
         template_body=sqs_template_json,
@@ -70,13 +74,13 @@ def test_stack_ec2_integration():
     }
     ec2_template_json = json.dumps(ec2_template)
 
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
         "ec2_stack",
         template_body=ec2_template_json,
     )
 
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
 
@@ -113,16 +117,16 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     }
     elb_template_json = json.dumps(elb_template)
 
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
         "elb_stack",
         template_body=elb_template_json,
     )
 
-    elb_conn = boto.connect_elb()
+    elb_conn = boto.ec2.elb.connect_to_region("us-west-1")
     load_balancer = elb_conn.get_all_load_balancers()[0]
 
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
     instance_id = ec2_instance.id
@@ -185,13 +189,13 @@ def test_stack_security_groups():
     }
     security_group_template_json = json.dumps(security_group_template)
 
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
         "security_group_stack",
         template_body=security_group_template_json,
     )
 
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
     security_groups = ec2_conn.get_all_security_groups()
     for group in security_groups:
         if "InstanceSecurityGroup" in group.name:
@@ -268,13 +272,13 @@ def test_autoscaling_group_with_elb():
 
     web_setup_template_json = json.dumps(web_setup_template)
 
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
         "web_stack",
         template_body=web_setup_template_json,
     )
 
-    autoscale_conn = boto.connect_autoscale()
+    autoscale_conn = boto.ec2.autoscale.connect_to_region("us-west-1")
     autoscale_group = autoscale_conn.get_all_groups()[0]
     autoscale_group.launch_config_name.should.contain("my-launch-config")
     autoscale_group.load_balancers[0].should.equal('my-elb')
@@ -283,7 +287,7 @@ def test_autoscaling_group_with_elb():
     autoscale_conn.get_all_launch_configurations().should.have.length_of(1)
 
     # Confirm the ELB was actually created
-    elb_conn = boto.connect_elb()
+    elb_conn = boto.ec2.elb.connect_to_region("us-west-1")
     elb_conn.get_all_load_balancers().should.have.length_of(1)
 
     stack = conn.describe_stacks()[0]
@@ -303,13 +307,13 @@ def test_autoscaling_group_with_elb():
 def test_vpc_single_instance_in_subnet():
 
     template_json = json.dumps(vpc_single_instance_in_subnet.template)
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
         "test_stack",
         template_body=template_json,
     )
 
-    vpc_conn = boto.connect_vpc()
+    vpc_conn = boto.vpc.connect_to_region("us-west-1")
     vpc = vpc_conn.get_all_vpcs()[0]
     vpc.cidr_block.should.equal("10.0.0.0/16")
 
@@ -319,7 +323,7 @@ def test_vpc_single_instance_in_subnet():
     subnet = vpc_conn.get_all_subnets()[0]
     subnet.vpc_id.should.equal(vpc.id)
 
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     instance = reservation.instances[0]
     # Check that the EIP is attached the the EC2 instance
@@ -428,13 +432,13 @@ def test_iam_roles():
     }
 
     iam_template_json = json.dumps(iam_template)
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
         "test_stack",
         template_body=iam_template_json,
     )
 
-    iam_conn = boto.connect_iam()
+    iam_conn = boto.iam.connect_to_region("us-west-1")
 
     role_result = iam_conn.list_roles()['list_roles_response']['list_roles_result']['roles'][0]
     role = iam_conn.get_role(role_result.role_name)
@@ -448,7 +452,7 @@ def test_iam_roles():
     instance_profile.path.should.equal("my-path")
     instance_profile.role_id.should.equal(role.role_id)
 
-    autoscale_conn = boto.connect_autoscale()
+    autoscale_conn = boto.ec2.autoscale.connect_to_region("us-west-1")
     launch_config = autoscale_conn.get_all_launch_configurations()[0]
     launch_config.instance_profile_name.should.contain("my-instance-profile")
 
@@ -491,9 +495,9 @@ def test_single_instance_with_ebs_volume():
 def test_classic_eip():
 
     template_json = json.dumps(ec2_classic_eip.template)
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack", template_body=template_json)
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
     eip = ec2_conn.get_all_addresses()[0]
 
     stack = conn.describe_stacks()[0]
@@ -507,9 +511,9 @@ def test_classic_eip():
 def test_vpc_eip():
 
     template_json = json.dumps(vpc_eip.template)
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack", template_body=template_json)
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
     eip = ec2_conn.get_all_addresses()[0]
 
     stack = conn.describe_stacks()[0]
@@ -523,9 +527,9 @@ def test_vpc_eip():
 def test_fn_join():
 
     template_json = json.dumps(fn_join.template)
-    conn = boto.connect_cloudformation()
+    conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack", template_body=template_json)
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
     eip = ec2_conn.get_all_addresses()[0]
 
     stack = conn.describe_stacks()[0]
