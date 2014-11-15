@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
-from .models import sqs_backends, sqs_backend  # flake8: noqa
+from .models import sqs_backends
 from ..core.models import MockAWS
+
+sqs_backend = sqs_backends['us-east-1']
 
 
 def mock_sqs(func=None):

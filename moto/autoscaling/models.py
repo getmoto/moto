@@ -359,6 +359,3 @@ class AutoScalingBackend(BaseBackend):
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():
     autoscaling_backends[region] = AutoScalingBackend(ec2_backend)
-
-autoscaling_backend = autoscaling_backends['us-east-1']
-default_autoscaling_backend = autoscaling_backend

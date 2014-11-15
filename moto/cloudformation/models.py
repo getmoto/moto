@@ -101,5 +101,3 @@ class CloudFormationBackend(BaseBackend):
 cloudformation_backends = {}
 for region in boto.cloudformation.regions():
     cloudformation_backends[region.name] = CloudFormationBackend()
-
-cloudformation_backend = cloudformation_backends['us-east-1']

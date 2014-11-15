@@ -277,5 +277,3 @@ class SQSBackend(BaseBackend):
 sqs_backends = {}
 for region in boto.sqs.regions():
     sqs_backends[region.name] = SQSBackend()
-
-sqs_backend = sqs_backends['us-east-1']

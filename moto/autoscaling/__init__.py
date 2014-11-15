@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
-from .models import autoscaling_backend, autoscaling_backends  # flake8: noqa
+from .models import autoscaling_backends
 from ..core.models import MockAWS
+
+autoscaling_backend = autoscaling_backends['us-east-1']
 
 
 def mock_autoscaling(func=None):

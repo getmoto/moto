@@ -6,7 +6,7 @@ import six
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime
-from moto.sqs.models import sqs_backend
+from moto.sqs import sqs_backend
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
 DEFAULT_ACCOUNT_ID = 123456789012

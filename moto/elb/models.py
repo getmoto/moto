@@ -155,5 +155,3 @@ class ELBBackend(BaseBackend):
 elb_backends = {}
 for region in boto.ec2.elb.regions():
     elb_backends[region.name] = ELBBackend()
-
-elb_backend = elb_backends['us-east-1']

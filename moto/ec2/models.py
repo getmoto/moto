@@ -2337,5 +2337,3 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
 ec2_backends = {}
 for region in boto.ec2.regions():
     ec2_backends[region.name] = EC2Backend()
-
-ec2_backend = ec2_backends['us-east-1']

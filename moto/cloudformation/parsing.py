@@ -215,7 +215,7 @@ class ResourceMap(collections.Mapping):
             self[resource]
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 tags['aws:cloudformation:logical-id'] = resource
-                ec2_models.ec2_backend.create_tags([self[resource].physical_resource_id], tags)
+                ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], tags)
 
 
 class OutputMap(collections.Mapping):
