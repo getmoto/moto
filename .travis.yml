@@ -6,7 +6,6 @@ env:
     matrix:
       - BOTO_VERSION=2.34.0
       - BOTO_VERSION=2.25.0
-      - BOTO_VERSION=2.7
 matrix:
     include:
       - python: "3.3"
