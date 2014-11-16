@@ -3,14 +3,18 @@ import json
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from .models import sns_backend
+from .models import sns_backends
 
 
 class SNSResponse(BaseResponse):
 
+    @property
+    def backend(self):
+        return sns_backends[self.region]
+
     def create_topic(self):
         name = self._get_param('Name')
-        topic = sns_backend.create_topic(name)
+        topic = self.backend.create_topic(name)
 
         return json.dumps({
             'CreateTopicResponse': {
@@ -24,7 +28,7 @@ class SNSResponse(BaseResponse):
         })
 
     def list_topics(self):
-        topics = sns_backend.list_topics()
+        topics = self.backend.list_topics()
 
         return json.dumps({
             'ListTopicsResponse': {
@@ -40,7 +44,7 @@ class SNSResponse(BaseResponse):
 
     def delete_topic(self):
         topic_arn = self._get_param('TopicArn')
-        sns_backend.delete_topic(topic_arn)
+        self.backend.delete_topic(topic_arn)
 
         return json.dumps({
             'DeleteTopicResponse': {
@@ -52,7 +56,7 @@ class SNSResponse(BaseResponse):
 
     def get_topic_attributes(self):
         topic_arn = self._get_param('TopicArn')
-        topic = sns_backend.get_topic(topic_arn)
+        topic = self.backend.get_topic(topic_arn)
 
         return json.dumps({
             "GetTopicAttributesResponse": {
@@ -80,7 +84,7 @@ class SNSResponse(BaseResponse):
         attribute_name = self._get_param('AttributeName')
         attribute_name = camelcase_to_underscores(attribute_name)
         attribute_value = self._get_param('AttributeValue')
-        sns_backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
+        self.backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
 
         return json.dumps({
             "SetTopicAttributesResponse": {
@@ -94,7 +98,7 @@ class SNSResponse(BaseResponse):
         topic_arn = self._get_param('TopicArn')
         endpoint = self._get_param('Endpoint')
         protocol = self._get_param('Protocol')
-        subscription = sns_backend.subscribe(topic_arn, endpoint, protocol)
+        subscription = self.backend.subscribe(topic_arn, endpoint, protocol)
 
         return json.dumps({
             "SubscribeResponse": {
@@ -109,7 +113,7 @@ class SNSResponse(BaseResponse):
 
     def unsubscribe(self):
         subscription_arn = self._get_param('SubscriptionArn')
-        sns_backend.unsubscribe(subscription_arn)
+        self.backend.unsubscribe(subscription_arn)
 
         return json.dumps({
             "UnsubscribeResponse": {
@@ -120,7 +124,7 @@ class SNSResponse(BaseResponse):
         })
 
     def list_subscriptions(self):
-        subscriptions = sns_backend.list_subscriptions()
+        subscriptions = self.backend.list_subscriptions()
 
         return json.dumps({
             "ListSubscriptionsResponse": {
@@ -142,7 +146,7 @@ class SNSResponse(BaseResponse):
 
     def list_subscriptions_by_topic(self):
         topic_arn = self._get_param('TopicArn')
-        subscriptions = sns_backend.list_subscriptions(topic_arn)
+        subscriptions = self.backend.list_subscriptions(topic_arn)
 
         return json.dumps({
             "ListSubscriptionsByTopicResponse": {
@@ -165,7 +169,7 @@ class SNSResponse(BaseResponse):
     def publish(self):
         topic_arn = self._get_param('TopicArn')
         message = self._get_param('Message')
-        message_id = sns_backend.publish(topic_arn, message)
+        message_id = self.backend.publish(topic_arn, message)
 
         return json.dumps({
             "PublishResponse": {

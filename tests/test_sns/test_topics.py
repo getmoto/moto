@@ -28,6 +28,18 @@ def test_create_and_delete_topic():
 
 
 @mock_sns
+def test_create_topic_in_multiple_regions():
+    west1_conn = boto.sns.connect_to_region("us-west-1")
+    west1_conn.create_topic("some-topic")
+
+    west2_conn = boto.sns.connect_to_region("us-west-2")
+    west2_conn.create_topic("some-topic")
+
+    list(west1_conn.get_all_topics()["ListTopicsResponse"]["ListTopicsResult"]["Topics"]).should.have.length_of(1)
+    list(west2_conn.get_all_topics()["ListTopicsResponse"]["ListTopicsResult"]["Topics"]).should.have.length_of(1)
+
+
+@mock_sns
 def test_topic_attributes():
     conn = boto.connect_sns()
     conn.create_topic("some-topic")

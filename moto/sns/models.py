@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
+
 import datetime
-import requests
 import uuid
+
+import boto.sns
+import requests
 import six
 
 from moto.core import BaseBackend
@@ -13,8 +16,9 @@ DEFAULT_ACCOUNT_ID = 123456789012
 
 
 class Topic(object):
-    def __init__(self, name):
+    def __init__(self, name, sns_backend):
         self.name = name
+        self.sns_backend = sns_backend
         self.account_id = DEFAULT_ACCOUNT_ID
         self.display_name = ""
         self.policy = DEFAULT_TOPIC_POLICY
@@ -28,7 +32,7 @@ class Topic(object):
 
     def publish(self, message):
         message_id = six.text_type(uuid.uuid4())
-        subscriptions = sns_backend.list_subscriptions(self.arn)
+        subscriptions = self.sns_backend.list_subscriptions(self.arn)
         for subscription in subscriptions:
             subscription.publish(message, message_id)
         return message_id
@@ -76,7 +80,7 @@ class SNSBackend(BaseBackend):
         self.subscriptions = {}
 
     def create_topic(self, name):
-        topic = Topic(name)
+        topic = Topic(name, self)
         self.topics[topic.arn] = topic
         return topic
 
@@ -114,8 +118,9 @@ class SNSBackend(BaseBackend):
         message_id = topic.publish(message)
         return message_id
 
-
-sns_backend = SNSBackend()
+sns_backends = {}
+for region in boto.sns.regions():
+    sns_backends[region.name] = SNSBackend()
 
 
 DEFAULT_TOPIC_POLICY = {
