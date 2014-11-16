@@ -16,6 +16,8 @@ MAXIMUM_VISIBILTY_TIMEOUT = 43200
 
 class QueuesResponse(BaseResponse):
 
+    region_regex = r'://(.+?)\.queue\.amazonaws\.com'
+
     @property
     def sqs_backend(self):
         return sqs_backends[self.region]

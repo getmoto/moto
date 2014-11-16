@@ -10,6 +10,7 @@ import time
 from moto import mock_sqs
 from tests.helpers import requires_boto_gte
 
+
 @mock_sqs
 def test_create_queue():
     conn = boto.connect_sqs('the_key', 'the_secret')
@@ -19,6 +20,18 @@ def test_create_queue():
     all_queues[0].name.should.equal("test-queue")
 
     all_queues[0].get_timeout().should.equal(60)
+
+
+@mock_sqs
+def test_create_queues_in_multiple_region():
+    west1_conn = boto.sqs.connect_to_region("us-west-1")
+    west1_conn.create_queue("test-queue")
+
+    west2_conn = boto.sqs.connect_to_region("us-west-2")
+    west2_conn.create_queue("test-queue")
+
+    list(west1_conn.get_all_queues()).should.have.length_of(1)
+    list(west2_conn.get_all_queues()).should.have.length_of(1)
 
 
 @mock_sqs
@@ -113,13 +126,13 @@ def test_send_message_with_attributes():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
     queue.set_message_class(RawMessage)
-    
+
     body = 'this is a test message'
     message = queue.new_message(body)
     message_attributes = {
-        'test.attribute_name' : {'data_type' : 'String', 'string_value' : 'attribute value'},
-        'test.binary_attribute' : {'data_type' : 'Binary', 'binary_value' : 'binary value'},
-        'test.number_attribute' : {'data_type' : 'Number', 'string_value' : 'string value'}
+        'test.attribute_name': {'data_type': 'String', 'string_value': 'attribute value'},
+        'test.binary_attribute': {'data_type': 'Binary', 'binary_value': 'binary value'},
+        'test.number_attribute': {'data_type': 'Number', 'string_value': 'string value'}
     }
     message.message_attributes = message_attributes
 
