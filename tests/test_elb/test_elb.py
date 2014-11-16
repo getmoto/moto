@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import boto
+import boto.ec2.elb
 from boto.ec2.elb import HealthCheck
 import sure  # noqa
 
@@ -26,6 +27,21 @@ def test_create_load_balancer():
     listener2.load_balancer_port.should.equal(443)
     listener2.instance_port.should.equal(8443)
     listener2.protocol.should.equal("TCP")
+
+
+@mock_elb
+def test_create_elb_in_multiple_region():
+    zones = ['us-east-1a', 'us-east-1b']
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+
+    west1_conn = boto.ec2.elb.connect_to_region("us-west-1")
+    west1_conn.create_load_balancer('my-lb', zones, ports)
+
+    west2_conn = boto.ec2.elb.connect_to_region("us-west-2")
+    west2_conn.create_load_balancer('my-lb', zones, ports)
+
+    list(west1_conn.get_all_load_balancers()).should.have.length_of(1)
+    list(west2_conn.get_all_load_balancers()).should.have.length_of(1)
 
 
 @mock_elb
