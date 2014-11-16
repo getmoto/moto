@@ -9,7 +9,7 @@ import six
 
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime
-from moto.sqs import sqs_backend
+from moto.sqs import sqs_backends
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
 DEFAULT_ACCOUNT_ID = 123456789012
@@ -54,7 +54,8 @@ class Subscription(object):
     def publish(self, message, message_id):
         if self.protocol == 'sqs':
             queue_name = self.endpoint.split(":")[-1]
-            sqs_backend.send_message(queue_name, message)
+            region = self.endpoint.split(":")[3]
+            sqs_backends[region].send_message(queue_name, message)
         elif self.protocol in ['http', 'https']:
             post_data = self.get_post_data(message, message_id)
             requests.post(self.endpoint, data=post_data)

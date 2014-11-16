@@ -12,11 +12,12 @@ from .exceptions import (
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
+SQS_REGION_REGEX = r'://(.+?)\.queue\.amazonaws\.com'
 
 
 class QueuesResponse(BaseResponse):
 
-    region_regex = r'://(.+?)\.queue\.amazonaws\.com'
+    region_regex = SQS_REGION_REGEX
 
     @property
     def sqs_backend(self):
@@ -49,6 +50,8 @@ class QueuesResponse(BaseResponse):
 
 
 class QueueResponse(BaseResponse):
+
+    region_regex = SQS_REGION_REGEX
 
     @property
     def sqs_backend(self):
