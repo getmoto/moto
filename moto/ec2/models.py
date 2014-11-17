@@ -2331,11 +2331,11 @@ class NetworkAclBackend(object):
                                         network_acl_id):
 
         # lookup existing association for subnet and delete it
-        default_acl = next(value for key, value in self.network_acls.iteritems()
+        default_acl = next(value for key, value in self.network_acls.items()
                    if association_id in value.associations.keys())
 
         subnet_id = None
-        for key, value in default_acl.associations.iteritems():
+        for key, value in default_acl.associations.items():
             if key == association_id:
                 subnet_id = default_acl.associations[key].subnet_id
                 del default_acl.associations[key]
