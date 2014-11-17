@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
+
 import functools
+import inspect
 import re
 
 from httpretty import HTTPretty
@@ -17,6 +19,8 @@ class MockAWS(object):
             HTTPretty.reset()
 
     def __call__(self, func):
+        if inspect.isclass(func):
+            return self.decorate_class(func)
         return self.decorate_callable(func)
 
     def __enter__(self):
@@ -66,6 +70,26 @@ class MockAWS(object):
         functools.update_wrapper(wrapper, func)
         wrapper.__wrapped__ = func
         return wrapper
+
+    def decorate_class(self, klass):
+        for attr in dir(klass):
+            if attr.startswith("_"):
+                continue
+
+            attr_value = getattr(klass, attr)
+            if not hasattr(attr_value, "__call__"):
+                continue
+
+            # Check if this is a classmethod. If so, skip patching
+            if inspect.ismethod(attr_value) and attr_value.__self__ is klass:
+                continue
+
+            try:
+                setattr(klass, attr, self(attr_value))
+            except TypeError:
+                # Sometimes we can't set this for built-in types
+                continue
+        return klass
 
 
 class Model(type):
