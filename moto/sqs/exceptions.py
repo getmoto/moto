@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+
 class MessageNotInflight(Exception):
     description = "The message referred to is not in flight."
     status_code = 400
@@ -10,7 +12,7 @@ class ReceiptHandleIsInvalid(Exception):
 
 
 class MessageAttributesInvalid(Exception):
-	status_code = 400
+    status_code = 400
 
-	def __init__(self, description):
-		self.description = description
+    def __init__(self, description):
+        self.description = description

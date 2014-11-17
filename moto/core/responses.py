@@ -43,7 +43,8 @@ def _decode_dict(d):
 
 class BaseResponse(object):
 
-    region = 'us-east-1'
+    default_region = 'us-east-1'
+    region_regex = r'\.(.+?)\.amazonaws\.com'
 
     def dispatch(self, request, full_url, headers):
         querystring = {}
@@ -76,9 +77,11 @@ class BaseResponse(object):
         self.path = urlparse(full_url).path
         self.querystring = querystring
         self.method = request.method
-        region = re.search(r'\.(.+?)\.amazonaws\.com', full_url)
+        region = re.search(self.region_regex, full_url)
         if region:
             self.region = region.group(1)
+        else:
+            self.region = self.default_region
 
         self.headers = dict(request.headers)
         self.response_headers = headers

@@ -4,7 +4,7 @@ from jinja2 import Template
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .utils import parse_message_attributes
-from .models import sqs_backend
+from .models import sqs_backends
 from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
@@ -12,9 +12,16 @@ from .exceptions import (
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
+SQS_REGION_REGEX = r'://(.+?)\.queue\.amazonaws\.com'
 
 
 class QueuesResponse(BaseResponse):
+
+    region_regex = SQS_REGION_REGEX
+
+    @property
+    def sqs_backend(self):
+        return sqs_backends[self.region]
 
     def create_queue(self):
         visibility_timeout = None
@@ -22,13 +29,13 @@ class QueuesResponse(BaseResponse):
             visibility_timeout = self.querystring.get("Attribute.1.Value")[0]
 
         queue_name = self.querystring.get("QueueName")[0]
-        queue = sqs_backend.create_queue(queue_name, visibility_timeout=visibility_timeout)
+        queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=visibility_timeout)
         template = Template(CREATE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 
     def get_queue_url(self):
         queue_name = self.querystring.get("QueueName")[0]
-        queue = sqs_backend.get_queue(queue_name)
+        queue = self.sqs_backend.get_queue(queue_name)
         if queue:
             template = Template(GET_QUEUE_URL_RESPONSE)
             return template.render(queue=queue)
@@ -37,12 +44,19 @@ class QueuesResponse(BaseResponse):
 
     def list_queues(self):
         queue_name_prefix = self.querystring.get("QueueNamePrefix", [None])[0]
-        queues = sqs_backend.list_queues(queue_name_prefix)
+        queues = self.sqs_backend.list_queues(queue_name_prefix)
         template = Template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues)
 
 
 class QueueResponse(BaseResponse):
+
+    region_regex = SQS_REGION_REGEX
+
+    @property
+    def sqs_backend(self):
+        return sqs_backends[self.region]
+
     def change_message_visibility(self):
         queue_name = self.path.split("/")[-1]
         receipt_handle = self.querystring.get("ReceiptHandle")[0]
@@ -54,7 +68,7 @@ class QueueResponse(BaseResponse):
             ), dict(status=400)
 
         try:
-            sqs_backend.change_message_visibility(
+            self.sqs_backend.change_message_visibility(
                 queue_name=queue_name,
                 receipt_handle=receipt_handle,
                 visibility_timeout=visibility_timeout
@@ -67,7 +81,7 @@ class QueueResponse(BaseResponse):
 
     def get_queue_attributes(self):
         queue_name = self.path.split("/")[-1]
-        queue = sqs_backend.get_queue(queue_name)
+        queue = self.sqs_backend.get_queue(queue_name)
         template = Template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
 
@@ -75,12 +89,12 @@ class QueueResponse(BaseResponse):
         queue_name = self.path.split("/")[-1]
         key = camelcase_to_underscores(self.querystring.get('Attribute.Name')[0])
         value = self.querystring.get('Attribute.Value')[0]
-        sqs_backend.set_queue_attribute(queue_name, key, value)
+        self.sqs_backend.set_queue_attribute(queue_name, key, value)
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
         queue_name = self.path.split("/")[-1]
-        queue = sqs_backend.delete_queue(queue_name)
+        queue = self.sqs_backend.delete_queue(queue_name)
         if not queue:
             return "A queue with name {0} does not exist".format(queue_name), dict(status=404)
         template = Template(DELETE_QUEUE_RESPONSE)
@@ -101,7 +115,7 @@ class QueueResponse(BaseResponse):
             return e.description, dict(status=e.status_code)
 
         queue_name = self.path.split("/")[-1]
-        message = sqs_backend.send_message(
+        message = self.sqs_backend.send_message(
             queue_name,
             message,
             message_attributes=message_attributes,
@@ -137,7 +151,7 @@ class QueueResponse(BaseResponse):
             message_user_id = self.querystring.get(message_user_id_key)[0]
             delay_key = 'SendMessageBatchRequestEntry.{0}.DelaySeconds'.format(index)
             delay_seconds = self.querystring.get(delay_key, [None])[0]
-            message = sqs_backend.send_message(queue_name, message_body[0], delay_seconds=delay_seconds)
+            message = self.sqs_backend.send_message(queue_name, message_body[0], delay_seconds=delay_seconds)
             message.user_id = message_user_id
 
             message_attributes = parse_message_attributes(self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index), value_namespace='')
@@ -153,7 +167,7 @@ class QueueResponse(BaseResponse):
     def delete_message(self):
         queue_name = self.path.split("/")[-1]
         receipt_handle = self.querystring.get("ReceiptHandle")[0]
-        sqs_backend.delete_message(queue_name, receipt_handle)
+        self.sqs_backend.delete_message(queue_name, receipt_handle)
         template = Template(DELETE_MESSAGE_RESPONSE)
         return template.render()
 
@@ -178,7 +192,7 @@ class QueueResponse(BaseResponse):
                 # Found all messages
                 break
 
-            sqs_backend.delete_message(queue_name, receipt_handle[0])
+            self.sqs_backend.delete_message(queue_name, receipt_handle[0])
 
             message_user_id_key = 'DeleteMessageBatchRequestEntry.{0}.Id'.format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
@@ -190,7 +204,7 @@ class QueueResponse(BaseResponse):
     def receive_message(self):
         queue_name = self.path.split("/")[-1]
         message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
-        messages = sqs_backend.receive_messages(queue_name, message_count)
+        messages = self.sqs_backend.receive_messages(queue_name, message_count)
         template = Template(RECEIVE_MESSAGE_RESPONSE)
         output = template.render(messages=messages)
         return output

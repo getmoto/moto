@@ -47,12 +47,13 @@ class FakeLaunchConfiguration(object):
         self.block_device_mapping_dict = block_device_mapping_dict
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         instance_profile_name = properties.get("IamInstanceProfile")
 
-        config = default_autoscaling_backend.create_launch_configuration(
+        backend = autoscaling_backends[region_name]
+        config = backend.create_launch_configuration(
             name=resource_name,
             image_id=properties.get("ImageId"),
             key_name=properties.get("KeyName"),
@@ -128,13 +129,14 @@ class FakeAutoScalingGroup(object):
         self.set_desired_capacity(desired_capacity)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         launch_config_name = properties.get("LaunchConfigurationName")
         load_balancer_names = properties.get("LoadBalancerNames", [])
 
-        group = default_autoscaling_backend.create_autoscaling_group(
+        backend = autoscaling_backends[region_name]
+        group = backend.create_autoscaling_group(
             name=resource_name,
             availability_zones=properties.get("AvailabilityZones", []),
             desired_capacity=properties.get("DesiredCapacity"),
@@ -357,7 +359,3 @@ class AutoScalingBackend(BaseBackend):
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():
     autoscaling_backends[region] = AutoScalingBackend(ec2_backend)
-
-autoscaling_backend = autoscaling_backends['us-east-1']
-default_autoscaling_backend = autoscaling_backend
-

@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
-import tests.backport_assert_raises
+import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 from moto import mock_ec2
@@ -57,3 +57,14 @@ def test_decorater_wrapped_gets_set():
     Moto decorator's __wrapped__ should get set to the tests function
     """
     test_decorater_wrapped_gets_set.__wrapped__.__name__.should.equal('test_decorater_wrapped_gets_set')
+
+
+@mock_ec2
+class Tester(object):
+    def test_the_class(self):
+        conn = boto.connect_ec2()
+        list(conn.get_all_instances()).should.have.length_of(0)
+
+    def test_still_the_same(self):
+        conn = boto.connect_ec2()
+        list(conn.get_all_instances()).should.have.length_of(0)

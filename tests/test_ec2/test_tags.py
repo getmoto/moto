@@ -3,6 +3,7 @@ import itertools
 
 import boto
 from boto.exception import EC2ResponseError
+from boto.ec2.instance import Reservation
 import sure  # noqa
 
 from moto import mock_ec2
@@ -253,3 +254,79 @@ def test_get_all_tags_value_filter():
 
     tags = conn.get_all_tags(filters={'value': '*value\*\?'})
     tags.should.have.length_of(1)
+
+
+@mock_ec2
+def test_retrieved_instances_must_contain_their_tags():
+    tag_key = 'Tag name'
+    tag_value = 'Tag value'
+    tags_to_be_set = {tag_key: tag_value}
+
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    reservation.should.be.a(Reservation)
+    reservation.instances.should.have.length_of(1)
+    instance = reservation.instances[0]
+
+    reservations = conn.get_all_instances()
+    reservations.should.have.length_of(1)
+    reservations[0].id.should.equal(reservation.id)
+    instances = reservations[0].instances
+    instances.should.have.length_of(1)
+    instances[0].id.should.equal(instance.id)
+
+    conn.create_tags([instance.id], tags_to_be_set)
+    reservations = conn.get_all_instances()
+    instance = reservations[0].instances[0]
+    retrieved_tags = instance.tags
+
+    #Cleanup of instance
+    conn.terminate_instances([instances[0].id])
+
+    #Check whether tag is present with correct value
+    retrieved_tags[tag_key].should.equal(tag_value)
+
+
+@mock_ec2
+def test_retrieved_volumes_must_contain_their_tags():
+    tag_key = 'Tag name'
+    tag_value = 'Tag value'
+    tags_to_be_set = {tag_key: tag_value}
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    volume = conn.create_volume(80, "us-east-1a")
+
+    all_volumes = conn.get_all_volumes()
+    volume = all_volumes[0]
+    conn.create_tags([volume.id], tags_to_be_set)
+
+    #Fetch the volume again
+    all_volumes = conn.get_all_volumes()
+    volume = all_volumes[0]
+    retrieved_tags = volume.tags
+
+    volume.delete()
+
+    #Check whether tag is present with correct value
+    retrieved_tags[tag_key].should.equal(tag_value)
+
+
+@mock_ec2
+def test_retrieved_snapshots_must_contain_their_tags():
+    tag_key = 'Tag name'
+    tag_value = 'Tag value'
+    tags_to_be_set = {tag_key: tag_value}
+    conn = boto.connect_ec2(aws_access_key_id='the_key', aws_secret_access_key='the_secret')
+    volume = conn.create_volume(80, "eu-west-1a")
+    snapshot = conn.create_snapshot(volume.id)
+    conn.create_tags([snapshot.id], tags_to_be_set)
+
+    #Fetch the snapshot again
+    all_snapshots = conn.get_all_snapshots()
+    snapshot = all_snapshots[0]
+    retrieved_tags = snapshot.tags
+
+    conn.delete_snapshot(snapshot.id)
+    volume.delete()
+
+    #Check whether tag is present with correct value
+    retrieved_tags[tag_key].should.equal(tag_value)

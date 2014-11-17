@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+import boto.ec2.elb
 from moto.core import BaseBackend
 
 
@@ -38,9 +40,10 @@ class FakeLoadBalancer(object):
             self.listeners.append(listener)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
+        elb_backend = elb_backends[region_name]
         new_elb = elb_backend.create_load_balancer(
             name=properties.get('LoadBalancerName', resource_name),
             zones=properties.get('AvailabilityZones'),
@@ -148,4 +151,7 @@ class ELBBackend(BaseBackend):
         load_balancer.instance_ids = new_instance_ids
         return load_balancer
 
-elb_backend = ELBBackend()
+
+elb_backends = {}
+for region in boto.ec2.elb.regions():
+    elb_backends[region.name] = ELBBackend()

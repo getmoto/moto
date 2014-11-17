@@ -90,19 +90,19 @@ class DynamoHandler(BaseResponse):
 
     def create_table(self):
         body = self.body
-        #get the table name
+        # get the table name
         table_name = body['TableName']
-        #get the throughput
+        # get the throughput
         throughput = body["ProvisionedThroughput"]
-        #getting the schema
+        # getting the schema
         key_schema = body['KeySchema']
-        #getting attribute definition
+        # getting attribute definition
         attr = body["AttributeDefinitions"]
-        #getting the indexes
+        # getting the indexes
         table = dynamodb_backend2.create_table(table_name,
-                   schema = key_schema,
-                   throughput = throughput,
-                   attr = attr)
+                   schema=key_schema,
+                   throughput=throughput,
+                   attr=attr)
         return dynamo_json_dump(table.describe)
 
     def delete_table(self):
@@ -169,6 +169,7 @@ class DynamoHandler(BaseResponse):
         }
 
         return dynamo_json_dump(response)
+
     def get_item(self):
         name = self.body['TableName']
         key = self.body['Key']
@@ -178,7 +179,7 @@ class DynamoHandler(BaseResponse):
             er = 'com.amazon.coral.validate#ValidationException'
             return self.error(er, status=400)
         if item:
-            item_dict = item.describe_attrs(attributes = None)
+            item_dict = item.describe_attrs(attributes=None)
             item_dict['ConsumedCapacityUnits'] = 0.5
             return dynamo_json_dump(item_dict)
         else:
@@ -190,7 +191,7 @@ class DynamoHandler(BaseResponse):
         table_batches = self.body['RequestItems']
 
         results = {
-            "ConsumedCapacity":[],
+            "ConsumedCapacity": [],
             "Responses": {
             },
             "UnprocessedKeys": {
@@ -198,10 +199,9 @@ class DynamoHandler(BaseResponse):
         }
 
         for table_name, table_request in table_batches.items():
-            items = []
             keys = table_request['Keys']
             attributes_to_get = table_request.get('AttributesToGet')
-            results["Responses"][table_name]=[]
+            results["Responses"][table_name] = []
             for key in keys:
                 item = dynamodb_backend2.get_item(table_name, key)
                 if item:
@@ -226,7 +226,7 @@ class DynamoHandler(BaseResponse):
             range_comparison = None
             range_values = []
         else:
-            if range_key_name == None:
+            if range_key_name is None:
                 er = "com.amazon.coral.validate#ValidationException"
                 return self.error(er)
             else:
@@ -247,7 +247,7 @@ class DynamoHandler(BaseResponse):
             items = items[:limit]
 
         reversed = self.body.get("ScanIndexForward")
-        if reversed != False:
+        if reversed is not False:
             items.reverse()
 
         result = {

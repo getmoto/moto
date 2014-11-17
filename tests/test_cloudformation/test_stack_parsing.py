@@ -82,7 +82,7 @@ def test_parse_stack_resources():
         stack_id="test_id",
         name="test_stack",
         template=dummy_template_json,
-    )
+        region_name='us-west-1')
 
     stack.resource_map.should.have.length_of(1)
     list(stack.resource_map.keys())[0].should.equal('Queue')
@@ -101,7 +101,8 @@ def test_parse_stack_with_name_type_resource():
     stack = FakeStack(
         stack_id="test_id",
         name="test_stack",
-        template=name_type_template_json)
+        template=name_type_template_json,
+        region_name='us-west-1')
 
     stack.resource_map.should.have.length_of(1)
     list(stack.resource_map.keys())[0].should.equal('Queue')
@@ -113,7 +114,8 @@ def test_parse_stack_with_outputs():
     stack = FakeStack(
         stack_id="test_id",
         name="test_stack",
-        template=output_type_template_json)
+        template=output_type_template_json,
+        region_name='us-west-1')
 
     stack.output_map.should.have.length_of(1)
     list(stack.output_map.keys())[0].should.equal('Output1')
@@ -126,7 +128,8 @@ def test_parse_stack_with_get_attribute_outputs():
     stack = FakeStack(
         stack_id="test_id",
         name="test_stack",
-        template=get_attribute_outputs_template_json)
+        template=get_attribute_outputs_template_json,
+        region_name='us-west-1')
 
     stack.output_map.should.have.length_of(1)
     list(stack.output_map.keys())[0].should.equal('Output1')
@@ -137,4 +140,4 @@ def test_parse_stack_with_get_attribute_outputs():
 
 def test_parse_stack_with_bad_get_attribute_outputs():
     FakeStack.when.called_with(
-        "test_id", "test_stack", bad_output_template_json).should.throw(BotoServerError)
+        "test_id", "test_stack", bad_output_template_json, "us-west-1").should.throw(BotoServerError)

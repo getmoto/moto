@@ -1,9 +1,10 @@
 from __future__ import unicode_literals
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
+import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 import boto
+import boto.ec2
 from boto.exception import EC2ResponseError
 
 import sure  # noqa
@@ -55,7 +56,7 @@ def test_ami_create_and_delete():
 @requires_boto_gte("2.14.0")
 @mock_ec2
 def test_ami_copy():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-west-1")
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
@@ -183,6 +184,7 @@ def test_ami_filters():
     amis_by_name = conn.get_all_images(filters={'name': imageA.name})
     set([ami.id for ami in amis_by_name]).should.equal(set([imageA.id]))
 
+
 @mock_ec2
 def test_ami_filtering_via_tag():
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -309,4 +311,3 @@ def test_ami_attribute():
                                                  attribute='launchPermission',
                                                  operation='remove',
                                                  user_ids=['user']).should.throw(NotImplementedError)
-

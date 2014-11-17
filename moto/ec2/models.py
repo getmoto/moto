@@ -1,16 +1,17 @@
 from __future__ import unicode_literals
-import copy
-import itertools
+
 from collections import defaultdict
+import copy
 from datetime import datetime
+import itertools
 import re
 
-import six
 import boto
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
+import six
 
 from moto.core import BaseBackend
 from moto.core.models import Model
@@ -103,6 +104,7 @@ class InstanceState(object):
         self.name = name
         self.code = code
 
+
 class StateReason(object):
     def __init__(self, message="", code=""):
         self.message = message
@@ -134,7 +136,7 @@ class TaggedEC2Resource(object):
 
 class NetworkInterface(object):
     def __init__(self, ec2_backend, subnet, private_ip_address, device_index=0,
-        public_ip_auto_assign=True, group_ids=None):
+            public_ip_auto_assign=True, group_ids=None):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
@@ -165,12 +167,13 @@ class NetworkInterface(object):
                     self._group_set.append(group)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         security_group_ids = properties.get('SecurityGroups', [])
 
         subnet_id = properties['SubnetId']
+        ec2_backend = ec2_backends[region_name]
         subnet = ec2_backend.get_subnet(subnet_id)
 
         private_ip_address = properties.get('PrivateIpAddress', None)
@@ -242,12 +245,11 @@ class NetworkInterfaceBackend(object):
             for (_filter, _filter_value) in filters.items():
                 if _filter == 'network-interface-id':
                     _filter = 'id'
-                    enis = [ eni for eni in enis if getattr(eni, _filter) in _filter_value ]
+                    enis = [eni for eni in enis if getattr(eni, _filter) in _filter_value]
                 elif _filter == 'group-id':
                     original_enis = enis
                     enis = []
                     for eni in original_enis:
-                        group_ids = []
                         for group in eni.group_set:
                             if group.id in _filter_value:
                                 enis.append(eni)
@@ -320,14 +322,15 @@ class Instance(BotoInstance, TaggedEC2Resource):
             self.vpc_id = subnet.vpc_id
 
         self.prep_nics(kwargs.get("nics", {}),
-                       subnet_id=kwargs.get("subnet_id",None),
-                       private_ip=kwargs.get("private_ip",None),
-                       associate_public_ip=kwargs.get("associate_public_ip",None))
+                       subnet_id=kwargs.get("subnet_id"),
+                       private_ip=kwargs.get("private_ip"),
+                       associate_public_ip=kwargs.get("associate_public_ip"))
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
+        ec2_backend = ec2_backends[region_name]
         security_group_ids = properties.get('SecurityGroups', [])
         group_names = [ec2_backend.get_security_group_from_id(group_id).name for group_id in security_group_ids]
 
@@ -385,10 +388,6 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self._reason = ""
         self._state_reason = StateReason()
 
-    def get_tags(self):
-        tags = self.ec2_backend.describe_tags(filters={'resource-id': [self.id]})
-        return tags
-
     @property
     def dynamic_group_list(self):
         if self.nics:
@@ -407,7 +406,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         primary_nic = {'SubnetId': subnet_id,
                        'PrivateIpAddress': private_ip,
                        'AssociatePublicIpAddress': associate_public_ip}
-        primary_nic = dict((k,v) for k, v in primary_nic.items() if v)
+        primary_nic = dict((k, v) for k, v in primary_nic.items() if v)
 
         # If empty NIC spec but primary NIC values provided, create NIC from them.
         if primary_nic and not nic_spec:
@@ -416,12 +415,9 @@ class Instance(BotoInstance, TaggedEC2Resource):
 
         # Flesh out data structures and associations
         for nic in nic_spec.values():
-            use_eni = None
-            security_group_ids = []
-
             device_index = int(nic.get('DeviceIndex'))
 
-            nic_id = nic.get('NetworkInterfaceId', None)
+            nic_id = nic.get('NetworkInterfaceId')
             if nic_id:
                 # If existing NIC found, use it.
                 use_nic = self.ec2_backend.get_network_interface(nic_id)
@@ -435,13 +431,13 @@ class Instance(BotoInstance, TaggedEC2Resource):
 
                 subnet = self.ec2_backend.get_subnet(nic['SubnetId'])
 
-                group_id = nic.get('SecurityGroupId',None)
+                group_id = nic.get('SecurityGroupId')
                 group_ids = [group_id] if group_id else []
 
                 use_nic = self.ec2_backend.create_network_interface(subnet,
-                                                               nic.get('PrivateIpAddress',None),
+                                                               nic.get('PrivateIpAddress'),
                                                                device_index=device_index,
-                                                               public_ip_auto_assign=nic.get('AssociatePublicIpAddress',False),
+                                                               public_ip_auto_assign=nic.get('AssociatePublicIpAddress', False),
                                                                group_ids=group_ids)
 
             self.attach_eni(use_nic, device_index)
@@ -450,14 +446,14 @@ class Instance(BotoInstance, TaggedEC2Resource):
         device_index = int(device_index)
         self.nics[device_index] = eni
 
-        eni.instance = self # This is used upon associate/disassociate public IP.
+        eni.instance = self  # This is used upon associate/disassociate public IP.
         eni.attachment_id = random_eni_attach_id()
         eni.device_index = device_index
 
         return eni.attachment_id
 
     def detach_eni(self, eni):
-        self.nics.pop(eni.device_index,None)
+        self.nics.pop(eni.device_index, None)
         eni.instance = None
         eni.attachment_id = None
         eni.device_index = None
@@ -717,7 +713,7 @@ class TagBackend(object):
         resource_id_filters = []
         resource_type_filters = []
         value_filters = []
-        if not filters is None:
+        if filters is not None:
             for tag_filter in filters:
                 if tag_filter in self.VALID_TAG_FILTERS:
                     if tag_filter == 'key':
@@ -776,7 +772,7 @@ class TagBackend(object):
                         'key': key,
                         'value': value,
                         'resource_type': EC2_PREFIX_TO_RESOURCE[get_prefix(resource_id)],
-                        }
+                    }
                     results.append(result)
         return results
 
@@ -823,7 +819,7 @@ class Ami(TaggedEC2Resource):
         elif filter_name == 'kernel-id':
             return self.kernel_id
         elif filter_name in ['architecture', 'platform']:
-            return getattr(self,filter_name)
+            return getattr(self, filter_name)
         elif filter_name == 'image-id':
             return self.id
         elif filter_name == 'state':
@@ -862,7 +858,6 @@ class AmiBackend(object):
     def describe_images(self, ami_ids=(), filters=None):
         if filters:
             images = self.amis.values()
-
             return generic_filter(filters, images)
         else:
             images = []
@@ -984,9 +979,10 @@ class SecurityGroup(object):
         self.vpc_id = vpc_id
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
+        ec2_backend = ec2_backends[region_name]
         vpc_id = properties.get('VpcId')
         security_group = ec2_backend.create_security_group(
             name=resource_name,
@@ -1014,10 +1010,7 @@ class SecurityGroup(object):
     def physical_resource_id(self):
         return self.id
 
-
     def matches_filter(self, key, filter_value):
-        result = True
-
         def to_attr(filter_name):
             attr = None
 
@@ -1037,7 +1030,7 @@ class SecurityGroup(object):
             ingress_attr = to_attr(match.groups()[0])
 
             for ingress in self.ingress_rules:
-                if getattr(ingress, ingress_attr) in filters[key]:
+                if getattr(ingress, ingress_attr) in filter_value:
                     return True
         else:
             attr_name = to_attr(key)
@@ -1215,12 +1208,13 @@ class VolumeAttachment(object):
         self.device = device
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         instance_id = properties['InstanceId']
         volume_id = properties['VolumeId']
 
+        ec2_backend = ec2_backends[region_name]
         attachment = ec2_backend.attach_volume(
             volume_id=volume_id,
             instance_id=instance_id,
@@ -1229,17 +1223,19 @@ class VolumeAttachment(object):
         return attachment
 
 
-class Volume(object):
-    def __init__(self, volume_id, size, zone):
+class Volume(TaggedEC2Resource):
+    def __init__(self, ec2_backend, volume_id, size, zone):
         self.id = volume_id
         self.size = size
         self.zone = zone
         self.attachment = None
+        self.ec2_backend = ec2_backend
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
+        ec2_backend = ec2_backends[region_name]
         volume = ec2_backend.create_volume(
             size=properties.get('Size'),
             zone_name=properties.get('AvailabilityZone'),
@@ -1258,12 +1254,13 @@ class Volume(object):
             return 'available'
 
 
-class Snapshot(object):
-    def __init__(self, snapshot_id, volume, description):
+class Snapshot(TaggedEC2Resource):
+    def __init__(self, ec2_backend, snapshot_id, volume, description):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
         self.create_volume_permission_groups = set()
+        self.ec2_backend = ec2_backend
 
 
 class EBSBackend(object):
@@ -1276,7 +1273,7 @@ class EBSBackend(object):
     def create_volume(self, size, zone_name):
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)
-        volume = Volume(volume_id, size, zone)
+        volume = Volume(self, volume_id, size, zone)
         self.volumes[volume_id] = volume
         return volume
 
@@ -1306,7 +1303,7 @@ class EBSBackend(object):
 
     def detach_volume(self, volume_id, instance_id, device_path):
         volume = self.get_volume(volume_id)
-        instance = self.get_instance(instance_id)
+        self.get_instance(instance_id)
 
         old_attachment = volume.attachment
         if not old_attachment:
@@ -1318,7 +1315,7 @@ class EBSBackend(object):
     def create_snapshot(self, volume_id, description):
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
-        snapshot = Snapshot(snapshot_id, volume, description)
+        snapshot = Snapshot(self, snapshot_id, volume, description)
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
@@ -1370,9 +1367,10 @@ class VPC(TaggedEC2Resource):
         self.state = 'available'
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
+        ec2_backend = ec2_backends[region_name]
         vpc = ec2_backend.create_vpc(
             cidr_block=properties['CidrBlock'],
         )
@@ -1410,7 +1408,7 @@ class VPCBackend(object):
         self.vpcs[vpc_id] = vpc
 
         # AWS creates a default main route table and security group.
-        main_route_table = self.create_route_table(vpc_id, main=True)
+        self.create_route_table(vpc_id, main=True)
 
         # AWS creates a default Network ACL
         default_network_acl = self.create_network_acl(vpc_id, default=True)
@@ -1436,7 +1434,7 @@ class VPCBackend(object):
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
-        route_tables = self.get_all_route_tables(filters={'vpc-id':vpc_id})
+        route_tables = self.get_all_route_tables(filters={'vpc-id': vpc_id})
         if len(route_tables) > 1:
             raise DependencyViolationError(
                 "The vpc {0} has dependencies and cannot be deleted."
@@ -1492,11 +1490,12 @@ class VPCPeeringConnection(TaggedEC2Resource):
         self._status = VPCPeeringConnectionStatus()
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
-        vpc = get_vpc(properties['VpcId'])
-        peer_vpc = get_vpc(properties['PeerVpcId'])
+        ec2_backend = ec2_backends[region_name]
+        vpc = ec2_backend.get_vpc(properties['VpcId'])
+        peer_vpc = ec2_backend.get_vpc(properties['PeerVpcId'])
 
         vpc_pcx = ec2_backend.create_vpc_peering_connection(vpc, peer_vpc)
 
@@ -1556,10 +1555,11 @@ class Subnet(TaggedEC2Resource):
         self.cidr_block = cidr_block
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         vpc_id = properties['VpcId']
+        ec2_backend = ec2_backends[region_name]
         subnet = ec2_backend.create_subnet(
             vpc_id=vpc_id,
             cidr_block=properties['CidrBlock']
@@ -1606,11 +1606,10 @@ class SubnetBackend(object):
     def create_subnet(self, vpc_id, cidr_block):
         subnet_id = random_subnet_id()
         subnet = Subnet(self, subnet_id, vpc_id, cidr_block)
-        vpc = self.get_vpc(vpc_id) # Validate VPC exists
+        self.get_vpc(vpc_id)  # Validate VPC exists
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id)
-
         self.subnets[subnet_id] = subnet
         return subnet
 
@@ -1632,12 +1631,13 @@ class SubnetRouteTableAssociation(object):
         self.subnet_id = subnet_id
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         route_table_id = properties['RouteTableId']
         subnet_id = properties['SubnetId']
 
+        ec2_backend = ec2_backends[region_name]
         subnet_association = ec2_backend.create_subnet_association(
             route_table_id=route_table_id,
             subnet_id=subnet_id,
@@ -1666,10 +1666,11 @@ class RouteTable(TaggedEC2Resource):
         self.routes = {}
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         vpc_id = properties['VpcId']
+        ec2_backend = ec2_backends[region_name]
         route_table = ec2_backend.create_route_table(
             vpc_id=vpc_id,
         )
@@ -1711,7 +1712,7 @@ class RouteTableBackend(object):
 
     def create_route_table(self, vpc_id, main=False):
         route_table_id = random_route_table_id()
-        vpc = self.get_vpc(vpc_id) # Validate VPC exists
+        vpc = self.get_vpc(vpc_id)  # Validate VPC exists
         route_table = RouteTable(self, route_table_id, vpc_id, main=main)
         self.route_tables[route_table_id] = route_table
 
@@ -1730,7 +1731,7 @@ class RouteTableBackend(object):
         route_tables = self.route_tables.values()
 
         if route_table_ids:
-            route_tables = [ route_table for route_table in route_tables if route_table.id in route_table_ids ]
+            route_tables = [route_table for route_table in route_tables if route_table.id in route_table_ids]
             if len(route_tables) != len(route_table_ids):
                 invalid_id = list(set(route_table_ids).difference(set([route_table.id for route_table in route_tables])))[0]
                 raise InvalidRouteTableIdError(invalid_id)
@@ -1749,15 +1750,15 @@ class RouteTableBackend(object):
 
     def associate_route_table(self, route_table_id, subnet_id):
         # Idempotent if association already exists.
-        route_tables_by_subnet = self.get_all_route_tables(filters={'association.subnet-id':[subnet_id]})
+        route_tables_by_subnet = self.get_all_route_tables(filters={'association.subnet-id': [subnet_id]})
         if route_tables_by_subnet:
-            for association_id,check_subnet_id in route_tables_by_subnet[0].associations.items():
+            for association_id, check_subnet_id in route_tables_by_subnet[0].associations.items():
                 if subnet_id == check_subnet_id:
                     return association_id
 
         # Association does not yet exist, so create it.
         route_table = self.get_route_table(route_table_id)
-        subnet = self.get_subnet(subnet_id) # Validate subnet exists
+        self.get_subnet(subnet_id)  # Validate subnet exists
         association_id = random_subnet_association_id()
         route_table.associations[association_id] = subnet_id
         return association_id
@@ -1775,13 +1776,13 @@ class RouteTableBackend(object):
             return association_id
 
         # Find route table which currently has the association, error if none.
-        route_tables_by_association_id = self.get_all_route_tables(filters={'association.route-table-association-id':[association_id]})
+        route_tables_by_association_id = self.get_all_route_tables(filters={'association.route-table-association-id': [association_id]})
         if not route_tables_by_association_id:
             raise InvalidAssociationIdError(association_id)
 
         # Remove existing association, create new one.
         previous_route_table = route_tables_by_association_id[0]
-        subnet_id = previous_route_table.associations.pop(association_id,None)
+        subnet_id = previous_route_table.associations.pop(association_id, None)
         return self.associate_route_table(route_table_id, subnet_id)
 
 
@@ -1798,7 +1799,7 @@ class Route(object):
         self.vpc_pcx = vpc_pcx
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         gateway_id = properties.get('GatewayId')
@@ -1807,6 +1808,7 @@ class Route(object):
         pcx_id = properties.get('VpcPeeringConnectionId')
 
         route_table_id = properties['RouteTableId']
+        ec2_backend = ec2_backends[region_name]
         route_table = ec2_backend.create_route(
             route_table_id=route_table_id,
             destination_cidr_block=properties['DestinationCidrBlock'],
@@ -1877,7 +1879,8 @@ class InternetGateway(TaggedEC2Resource):
         self.vpc = None
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        ec2_backend = ec2_backends[region_name]
         return ec2_backend.create_internet_gateway()
 
     @property
@@ -1952,9 +1955,10 @@ class VPCGatewayAttachment(object):
         self.vpc_id = vpc_id
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
+        ec2_backend = ec2_backends[region_name]
         return ec2_backend.create_vpc_gateway_attachment(
             gateway_id=properties['InternetGatewayId'],
             vpc_id=properties['VpcId'],
@@ -2045,8 +2049,7 @@ class SpotRequestBackend(object):
                 spot_request_id, price, image_id, type, valid_from, valid_until,
                 launch_group, availability_zone_group, key_name, security_groups,
                 user_data, instance_type, placement, kernel_id, ramdisk_id,
-                monitoring_enabled, subnet_id
-            )
+                monitoring_enabled, subnet_id)
             self.spot_instance_requests[spot_request_id] = request
             requests.append(request)
         return requests
@@ -2074,11 +2077,13 @@ class ElasticAddress(object):
         self.association_id = None
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        ec2_backend = ec2_backends[region_name]
+
         properties = cloudformation_json.get('Properties')
         instance_id = None
         if properties:
-            domain=properties.get('Domain')
+            domain = properties.get('Domain')
             eip = ec2_backend.allocate_address(
                 domain=domain if domain else 'standard')
             instance_id = properties.get('InstanceId')
@@ -2474,5 +2479,3 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
 ec2_backends = {}
 for region in boto.ec2.regions():
     ec2_backends[region.name] = EC2Backend()
-
-ec2_backend = ec2_backends['us-east-1']

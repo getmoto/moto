@@ -120,7 +120,7 @@ def resource_name_property_from_type(resource_type):
     return NAME_TYPE_MAP.get(resource_type)
 
 
-def parse_resource(logical_id, resource_json, resources_map):
+def parse_resource(logical_id, resource_json, resources_map, region_name):
     resource_type = resource_json['Type']
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
@@ -129,9 +129,9 @@ def parse_resource(logical_id, resource_json, resources_map):
     resource_json = clean_json(resource_json, resources_map)
     resource_name_property = resource_name_property_from_type(resource_type)
     if resource_name_property:
-        if not 'Properties' in resource_json:
+        if 'Properties' not in resource_json:
             resource_json['Properties'] = dict()
-        if not resource_name_property in resource_json['Properties']:
+        if resource_name_property not in resource_json['Properties']:
             resource_json['Properties'][resource_name_property] = '{0}-{1}-{2}'.format(
                 resources_map.get('AWS::StackName'),
                 logical_id,
@@ -142,7 +142,7 @@ def parse_resource(logical_id, resource_json, resources_map):
                                              logical_id,
                                              random_suffix())
 
-    resource = resource_class.create_from_cloudformation_json(resource_name, resource_json)
+    resource = resource_class.create_from_cloudformation_json(resource_name, resource_json, region_name)
     resource.type = resource_type
     resource.logical_resource_id = logical_id
     return resource
@@ -164,9 +164,10 @@ class ResourceMap(collections.Mapping):
     each resources is passed this lazy map that it can grab dependencies from.
     """
 
-    def __init__(self, stack_id, stack_name, template):
+    def __init__(self, stack_id, stack_name, region_name, template):
         self._template = template
         self._resource_json_map = template['Resources']
+        self._region_name = region_name
 
         # Create the default resources
         self._parsed_resources = {
@@ -183,7 +184,7 @@ class ResourceMap(collections.Mapping):
             return self._parsed_resources[resource_logical_id]
         else:
             resource_json = self._resource_json_map.get(resource_logical_id)
-            new_resource = parse_resource(resource_logical_id, resource_json, self)
+            new_resource = parse_resource(resource_logical_id, resource_json, self, self._region_name)
             self._parsed_resources[resource_logical_id] = new_resource
             return new_resource
 
@@ -214,7 +215,7 @@ class ResourceMap(collections.Mapping):
             self[resource]
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 tags['aws:cloudformation:logical-id'] = resource
-                ec2_models.ec2_backend.create_tags([self[resource].physical_resource_id],tags)
+                ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], tags)
 
 
 class OutputMap(collections.Mapping):

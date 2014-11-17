@@ -171,7 +171,7 @@ class InvalidSnapshotIdError(EC2ClientError):
     def __init__(self, snapshot_id):
         super(InvalidSnapshotIdError, self).__init__(
             "InvalidSnapshot.NotFound",
-            "") # Note: AWS returns empty message for this, as of 2014.08.22.
+            "")  # Note: AWS returns empty message for this, as of 2014.08.22.
 
 
 class InvalidVolumeIdError(EC2ClientError):

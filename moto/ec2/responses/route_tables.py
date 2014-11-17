@@ -22,11 +22,11 @@ class RouteTables(BaseResponse):
         interface_id = optional_from_querystring('NetworkInterfaceId', self.querystring)
         pcx_id = optional_from_querystring('VpcPeeringConnectionId', self.querystring)
 
-        route = self.ec2_backend.create_route(route_table_id, destination_cidr_block,
-                                         gateway_id=internet_gateway_id,
-                                         instance_id=instance_id,
-                                         interface_id=interface_id,
-                                         vpc_peering_connection_id=pcx_id)
+        self.ec2_backend.create_route(route_table_id, destination_cidr_block,
+            gateway_id=internet_gateway_id,
+            instance_id=instance_id,
+            interface_id=interface_id,
+            vpc_peering_connection_id=pcx_id)
 
         template = Template(CREATE_ROUTE_RESPONSE)
         return template.render()
@@ -72,11 +72,11 @@ class RouteTables(BaseResponse):
         interface_id = optional_from_querystring('NetworkInterfaceId', self.querystring)
         pcx_id = optional_from_querystring('VpcPeeringConnectionId', self.querystring)
 
-        route = self.ec2_backend.replace_route(route_table_id, destination_cidr_block,
-                                          gateway_id=internet_gateway_id,
-                                          instance_id=instance_id,
-                                          interface_id=interface_id,
-                                          vpc_peering_connection_id=pcx_id)
+        self.ec2_backend.replace_route(route_table_id, destination_cidr_block,
+            gateway_id=internet_gateway_id,
+            instance_id=instance_id,
+            interface_id=interface_id,
+            vpc_peering_connection_id=pcx_id)
 
         template = Template(REPLACE_ROUTE_RESPONSE)
         return template.render()
