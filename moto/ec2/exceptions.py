@@ -72,6 +72,14 @@ class InvalidSubnetIdError(EC2ClientError):
             .format(subnet_id))
 
 
+class InvalidNetworkAclIdError(EC2ClientError):
+    def __init__(self, network_acl_id):
+        super(InvalidNetworkAclIdError, self).__init__(
+            "InvalidNetworkAclID.NotFound",
+            "The network acl ID '{0}' does not exist"
+            .format(network_acl_id))
+
+
 class InvalidNetworkInterfaceIdError(EC2ClientError):
     def __init__(self, eni_id):
         super(InvalidNetworkInterfaceIdError, self).__init__(

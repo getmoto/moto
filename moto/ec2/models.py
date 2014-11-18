@@ -52,7 +52,8 @@ from .exceptions import (
     InvalidVPCPeeringConnectionStateTransitionError,
     TagLimitExceeded,
     InvalidID,
-    InvalidCIDRSubnetError
+    InvalidCIDRSubnetError,
+    InvalidNetworkAclIdError
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -87,7 +88,8 @@ from .utils import (
     is_valid_cidr,
     filter_internet_gateways,
     filter_reservations,
-)
+    random_network_acl_id,
+    random_network_acl_subnet_association_id)
 
 
 def validate_resource_ids(resource_ids):
@@ -1408,6 +1410,9 @@ class VPCBackend(object):
         # AWS creates a default main route table and security group.
         self.create_route_table(vpc_id, main=True)
 
+        # AWS creates a default Network ACL
+        default_network_acl = self.create_network_acl(vpc_id, default=True)
+
         default = self.get_security_group_from_name('default', vpc_id=vpc_id)
         if not default:
             self.create_security_group('default', 'default VPC security group', vpc_id=vpc_id)
@@ -1602,6 +1607,9 @@ class SubnetBackend(object):
         subnet_id = random_subnet_id()
         subnet = Subnet(self, subnet_id, vpc_id, cidr_block)
         self.get_vpc(vpc_id)  # Validate VPC exists
+
+        # AWS associates a new subnet with the default Network ACL
+        self.associate_default_network_acl_with_subnet(subnet_id)
         self.subnets[subnet_id] = subnet
         return subnet
 
@@ -2274,6 +2282,139 @@ class DHCPOptionsSetBackend(object):
         return True
 
 
+class NetworkAclBackend(object):
+    def __init__(self):
+        self.network_acls = {}
+        super(NetworkAclBackend, self).__init__()
+
+    def get_network_acl(self, network_acl_id):
+        network_acl = self.network_acls.get(network_acl_id, None)
+        if not network_acl:
+            raise InvalidNetworkAclIdError(network_acl_id)
+        return network_acl
+
+    def create_network_acl(self, vpc_id, default=False):
+        network_acl_id = random_network_acl_id()
+        vpc = self.get_vpc(vpc_id)
+        network_acl = NetworkAcl(self, network_acl_id, vpc_id, default)
+        self.network_acls[network_acl_id] = network_acl
+        return network_acl
+
+    def get_all_network_acls(self, network_acl_ids=None, filters=None):
+        network_acls = self.network_acls.values()
+
+        if network_acl_ids:
+            network_acls = [network_acl for network_acl in network_acls
+                            if network_acl.id in network_acl_ids ]
+            if len(network_acls) != len(network_acl_ids):
+                invalid_id = list(set(network_acl_ids).difference(set([network_acl.id for network_acl in network_acls])))[0]
+                raise InvalidRouteTableIdError(invalid_id)
+
+        return generic_filter(filters, network_acls)
+
+    def delete_network_acl(self, network_acl_id):
+        deleted = self.network_acls.pop(network_acl_id, None)
+        if not deleted:
+            raise InvalidNetworkAclIdError(network_acl_id)
+        return deleted
+
+    def create_network_acl_entry(self, network_acl_id, rule_number,
+                                 protocol, rule_action, egress, cidr_block,
+                                 icmp_code, icmp_type, port_range_from,
+                                 port_range_to):
+
+        network_acl_entry = NetworkAclEntry(self, network_acl_id, rule_number,
+                                            protocol, rule_action, egress,
+                                            cidr_block, icmp_code, icmp_type,
+                                            port_range_from, port_range_to)
+
+        network_acl = self.get_network_acl(network_acl_id)
+        network_acl.network_acl_entries.append(network_acl_entry)
+        return network_acl_entry
+
+    def replace_network_acl_association(self, association_id,
+                                        network_acl_id):
+
+        # lookup existing association for subnet and delete it
+        default_acl = next(value for key, value in self.network_acls.items()
+                   if association_id in value.associations.keys())
+
+        subnet_id = None
+        for key, value in default_acl.associations.items():
+            if key == association_id:
+                subnet_id = default_acl.associations[key].subnet_id
+                del default_acl.associations[key]
+                break
+
+        new_assoc_id = random_network_acl_subnet_association_id()
+        association = NetworkAclAssociation(self,
+                                            new_assoc_id,
+                                            subnet_id,
+                                            network_acl_id)
+        new_acl = self.get_network_acl(network_acl_id)
+        new_acl.associations[new_assoc_id] = association
+        return association
+
+    def associate_default_network_acl_with_subnet(self, subnet_id):
+        association_id = random_network_acl_subnet_association_id()
+        acl = next(acl for acl in self.network_acls.values() if acl.default)
+        acl.associations[association_id] = NetworkAclAssociation(self, association_id,
+                                                                 subnet_id, acl.id)
+
+
+class NetworkAclAssociation(object):
+    def __init__(self, ec2_backend, new_association_id,
+                 subnet_id, network_acl_id):
+        self.ec2_backend = ec2_backend
+        self.id = new_association_id
+        self.subnet_id = subnet_id
+        self.network_acl_id = network_acl_id
+        super(NetworkAclAssociation, self).__init__()
+
+
+class NetworkAcl(TaggedEC2Resource):
+    def __init__(self, ec2_backend, network_acl_id, vpc_id, default=False):
+        self.ec2_backend = ec2_backend
+        self.id = network_acl_id
+        self.vpc_id = vpc_id
+        self.network_acl_entries = []
+        self.associations = {}
+        self.default = default
+
+    def get_filter_value(self, filter_name):
+        if filter_name == "vpc-id":
+            return self.vpc_id
+        elif filter_name == "association.network-acl-id":
+            return self.id
+        elif filter_name == "association.subnet-id":
+            return [assoc.subnet_id for assoc in self.associations.values()]
+
+        filter_value = super(NetworkAcl, self).get_filter_value(filter_name)
+
+        if filter_value is None:
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeNetworkAcls".format(filter_name))
+
+        return filter_value
+
+
+class NetworkAclEntry(TaggedEC2Resource):
+    def __init__(self, ec2_backend, network_acl_id, rule_number,
+                 protocol, rule_action, egress, cidr_block,
+                 icmp_code, icmp_type, port_range_from,
+                 port_range_to):
+        self.ec2_backend = ec2_backend
+        self.network_acl_id = network_acl_id
+        self.rule_number = rule_number
+        self.protocol = protocol
+        self.rule_action = rule_action
+        self.egress = egress
+        self.cidr_block = cidr_block
+        self.icmp_code = icmp_code
+        self.icmp_type = icmp_type
+        self.port_range_from = port_range_from
+        self.port_range_to = port_range_to
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
@@ -2281,7 +2422,8 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  VPCPeeringConnectionBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
-                 ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend):
+                 ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend,
+                 NetworkAclBackend):
 
     # Use this to generate a proper error template response when in a response handler.
     def raise_error(self, code, message):
@@ -2307,7 +2449,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['internet-gateway']:
                 self.describe_internet_gateways(internet_gateway_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-acl']:
-                self.raise_not_implemented_error('DescribeNetworkAcls')
+                self.get_all_network_acls()
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-interface']:
                 self.describe_network_interfaces(filters={'network-interface-id': resource_id})
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['reserved-instance']:
