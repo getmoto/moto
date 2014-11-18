@@ -31,3 +31,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Joseph Lawson](https://github.com/joekiller)
 * [Trey Tacon](https://github.com/ttacon)
 * [Peter](https://github.com/pvbouwel)
+* [Tyler Sanders](https://github.com/tsanders)
