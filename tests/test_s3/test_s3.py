@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import six
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
 from io import BytesIO
@@ -10,7 +9,7 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
 import requests
-import tests.backport_assert_raises
+import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 import sure  # noqa
@@ -187,7 +186,9 @@ def test_empty_key():
     key.key = "the-key"
     key.set_contents_from_string("")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
+    key = bucket.get_key("the-key")
+    key.size.should.equal(0)
+    key.get_contents_as_string().should.equal(b'')
 
 
 @mock_s3
@@ -198,7 +199,9 @@ def test_empty_key_set_on_existing_key():
     key.key = "the-key"
     key.set_contents_from_string("foobar")
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar')
+    key = bucket.get_key("the-key")
+    key.size.should.equal(6)
+    key.get_contents_as_string().should.equal(b'foobar')
 
     key.set_contents_from_string("")
     bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
