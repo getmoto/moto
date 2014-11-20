@@ -813,6 +813,14 @@ class Ami(TaggedEC2Resource):
         volume = self.ec2_backend.create_volume(15, "us-east-1a")
         self.ebs_snapshot = self.ec2_backend.create_snapshot(volume.id, "Auto-created snapshot for AMI %s" % self.id)
 
+    @property
+    def is_public(self):
+        return 'all' in self.launch_permission_groups
+
+    @property
+    def is_public_string(self):
+        return str(self.is_public).lower()
+
     def get_filter_value(self, filter_name):
         if filter_name == 'virtualization-type':
             return self.virtualization_type
@@ -822,6 +830,8 @@ class Ami(TaggedEC2Resource):
             return getattr(self, filter_name)
         elif filter_name == 'image-id':
             return self.id
+        elif filter_name == 'is-public':
+            return str(self.is_public)
         elif filter_name == 'state':
             return self.state
         elif filter_name == 'name':
@@ -1411,7 +1421,7 @@ class VPCBackend(object):
         self.create_route_table(vpc_id, main=True)
 
         # AWS creates a default Network ACL
-        default_network_acl = self.create_network_acl(vpc_id, default=True)
+        self.create_network_acl(vpc_id, default=True)
 
         default = self.get_security_group_from_name('default', vpc_id=vpc_id)
         if not default:
@@ -2295,7 +2305,7 @@ class NetworkAclBackend(object):
 
     def create_network_acl(self, vpc_id, default=False):
         network_acl_id = random_network_acl_id()
-        vpc = self.get_vpc(vpc_id)
+        self.get_vpc(vpc_id)
         network_acl = NetworkAcl(self, network_acl_id, vpc_id, default)
         self.network_acls[network_acl_id] = network_acl
         return network_acl
@@ -2305,7 +2315,7 @@ class NetworkAclBackend(object):
 
         if network_acl_ids:
             network_acls = [network_acl for network_acl in network_acls
-                            if network_acl.id in network_acl_ids ]
+                            if network_acl.id in network_acl_ids]
             if len(network_acls) != len(network_acl_ids):
                 invalid_id = list(set(network_acl_ids).difference(set([network_acl.id for network_acl in network_acls])))[0]
                 raise InvalidRouteTableIdError(invalid_id)

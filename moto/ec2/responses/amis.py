@@ -84,7 +84,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
           <imageLocation>amazon/getting-started</imageLocation>
           <imageState>{{ image.state }}</imageState>
           <imageOwnerId>111122223333</imageOwnerId>
-          <isPublic>true</isPublic>
+          <isPublic>{{ image.is_public_string }}</isPublic>
           <architecture>{{ image.architecture }}</architecture>
           <imageType>machine</imageType>
           <kernelId>{{ image.kernel_id }}</kernelId>

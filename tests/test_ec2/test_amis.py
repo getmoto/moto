@@ -162,6 +162,7 @@ def test_ami_filters():
     instanceB.modify_attribute("virtualization_type", "paravirtual")
     imageB_id = conn.create_image(instanceB.id, "test-ami-B", "this is a test ami")
     imageB = conn.get_image(imageB_id)
+    imageB.set_launch_permissions(group_names=("all"))
 
     amis_by_architecture = conn.get_all_images(filters={'architecture': 'x86_64'})
     set([ami.id for ami in amis_by_architecture]).should.equal(set([imageB.id]))
@@ -183,6 +184,12 @@ def test_ami_filters():
 
     amis_by_name = conn.get_all_images(filters={'name': imageA.name})
     set([ami.id for ami in amis_by_name]).should.equal(set([imageA.id]))
+
+    amis_by_public = conn.get_all_images(filters={'is-public': True})
+    set([ami.id for ami in amis_by_public]).should.equal(set([imageB.id]))
+
+    amis_by_nonpublic = conn.get_all_images(filters={'is-public': False})
+    set([ami.id for ami in amis_by_nonpublic]).should.equal(set([imageA.id]))
 
 
 @mock_ec2
@@ -259,6 +266,8 @@ def test_ami_attribute():
     attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
     attributes.attrs['groups'].should.have.length_of(1)
     attributes.attrs['groups'].should.equal(['all'])
+    image = conn.get_image(image_id)
+    image.is_public.should.equal(True)
 
     # Add is idempotent
     conn.modify_image_attribute.when.called_with(**ADD_GROUP_ARGS).should_not.throw(EC2ResponseError)
@@ -268,6 +277,8 @@ def test_ami_attribute():
 
     attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
     attributes.attrs.should.have.length_of(0)
+    image = conn.get_image(image_id)
+    image.is_public.should.equal(False)
 
     # Remove is idempotent
     conn.modify_image_attribute.when.called_with(**REMOVE_GROUP_ARGS).should_not.throw(EC2ResponseError)
