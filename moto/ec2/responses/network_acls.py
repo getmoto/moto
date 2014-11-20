@@ -75,7 +75,16 @@ CREATE_NETWORK_ACL_RESPONSE = """
       <default>false</default>
       <entrySet/>
       <associationSet/>
-      <tagSet/>
+      <tagSet>
+      {% for tag in network_acl.get_tags() %}
+        <item>
+          <resourceId>{{ tag.resource_id }}</resourceId>
+          <resourceType>{{ tag.resource_type }}</resourceType>
+          <key>{{ tag.key }}</key>
+          <value>{{ tag.value }}</value>
+        </item>
+      {% endfor %}
+      </tagSet>
    </networkAcl>
 </CreateNetworkAclResponse>
 """
@@ -115,7 +124,16 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
          </item>
        {% endfor %}
      </associationSet>
-     <tagSet/>
+     <tagSet>
+      {% for tag in network_acl.get_tags() %}
+        <item>
+          <resourceId>{{ tag.resource_id }}</resourceId>
+          <resourceType>{{ tag.resource_type }}</resourceType>
+          <key>{{ tag.key }}</key>
+          <value>{{ tag.value }}</value>
+        </item>
+      {% endfor %}
+     </tagSet>
    </item>
    {% endfor %}
  </networkAclSet>

@@ -107,5 +107,22 @@ def test_delete_network_acl():
     any(acl.id == network_acl.id for acl in updated_network_acls).shouldnt.be.ok
 
 
+@mock_ec2
+def test_network_acl_tagging():
 
+    conn = boto.connect_vpc('the_key', 'the secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    network_acl = conn.create_network_acl(vpc.id)
+
+    network_acl.add_tag("a key", "some value")
+
+    tag = conn.get_all_tags()[0]
+    tag.name.should.equal("a key")
+    tag.value.should.equal("some value")
+
+    all_network_acls = conn.get_all_network_acls()
+    test_network_acl = next(na for na in all_network_acls
+                            if na.id == network_acl.id)
+    test_network_acl.tags.should.have.length_of(1)
+    test_network_acl.tags["a key"].should.equal("some value")
 
