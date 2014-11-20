@@ -2465,7 +2465,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['reserved-instance']:
                 self.raise_not_implemented_error('DescribeReservedInstances')
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['route-table']:
-                self.raise_not_implemented_error('DescribeRouteTables')
+                self.get_route_table(route_table_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['security-group']:
                 self.describe_security_groups(group_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['snapshot']:
