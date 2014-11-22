@@ -34,10 +34,10 @@ class ResponseObject(object):
             return 404, headers, ""
 
         if isinstance(response, six.string_types):
-            return 200, headers, response
+            return 200, headers, response.encode("utf-8")
         else:
             status_code, headers, response_content = response
-            return status_code, headers, response_content
+            return status_code, headers, response_content.encode("utf-8")
 
     def _bucket_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)

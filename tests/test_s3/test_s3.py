@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import unicode_literals
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
@@ -615,3 +617,27 @@ def test_acl_is_ignored_for_now():
     key = bucket.get_key(keyname)
 
     assert key.get_contents_as_string() == content
+
+
+@mock_s3
+def test_unicode_key():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('mybucket')
+    key = Key(bucket)
+    key.key = u'こんにちは.jpg'
+    key.set_contents_from_string('Hello world!')
+    list(bucket.list())
+    key = bucket.get_key(key.key)
+    assert key.get_contents_as_string() == 'Hello world!'
+
+
+@mock_s3
+def test_unicode_value():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('mybucket')
+    key = Key(bucket)
+    key.key = 'some_key'
+    key.set_contents_from_string(u'こんにちは.jpg')
+    list(bucket.list())
+    key = bucket.get_key(key.key)
+    assert key.get_contents_as_string(encoding='utf-8') == u'こんにちは.jpg'
