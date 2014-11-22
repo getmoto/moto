@@ -110,6 +110,19 @@ class BaseResponse(object):
     def _get_param(self, param_name):
         return self.querystring.get(param_name, [None])[0]
 
+    def _get_int_param(self, param_name):
+        val = self._get_param(param_name)
+        if val is not None:
+            return int(val)
+
+    def _get_bool_param(self, param_name):
+        val = self._get_param(param_name)
+        if val is not None:
+            if val.lower() == 'true':
+                return True
+            elif val.lower() == 'false':
+                return False
+
     def _get_multi_param(self, param_prefix):
         if param_prefix.endswith("."):
             prefix = param_prefix
