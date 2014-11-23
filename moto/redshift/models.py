@@ -12,29 +12,38 @@ class Cluster(object):
             preferred_maintenance_window, cluster_parameter_group_name,
             automated_snapshot_retention_period, port, cluster_version,
             allow_version_upgrade, number_of_nodes, publicly_accessible,
-            encrypted):
+            encrypted, region):
         self.cluster_identifier = cluster_identifier
         self.node_type = node_type
         self.master_username = master_username
         self.master_user_password = master_user_password
-        self.db_name = db_name
+        self.db_name = db_name if db_name else "dev"
         self.cluster_security_groups = cluster_security_groups
         self.vpc_security_group_ids = vpc_security_group_ids
         self.cluster_subnet_group_name = cluster_subnet_group_name
-        self.availability_zone = availability_zone
-        self.preferred_maintenance_window = preferred_maintenance_window
         self.cluster_parameter_group_name = cluster_parameter_group_name
-        self.automated_snapshot_retention_period = automated_snapshot_retention_period
-        self.port = port
-        self.cluster_version = cluster_version
-        self.allow_version_upgrade = allow_version_upgrade
         self.publicly_accessible = publicly_accessible
         self.encrypted = encrypted
 
+        self.allow_version_upgrade = allow_version_upgrade if allow_version_upgrade is not None else True
+        self.cluster_version = cluster_version if cluster_version else "1.0"
+        self.port = port if port else 5439
+        self.automated_snapshot_retention_period = automated_snapshot_retention_period if automated_snapshot_retention_period else 1
+        self.preferred_maintenance_window = preferred_maintenance_window if preferred_maintenance_window else "Mon:03:00-Mon:03:30"
+
+        if availability_zone:
+            self.availability_zone = availability_zone
+        else:
+            # This could probably be smarter, but there doesn't appear to be a
+            # way to pull AZs for a region in boto
+            self.availability_zone = region + "a"
+
         if cluster_type == 'single-node':
             self.number_of_nodes = 1
-        else:
+        elif number_of_nodes:
             self.number_of_nodes = number_of_nodes
+        else:
+            self.number_of_nodes = 1
 
     def to_json(self):
         return {

@@ -33,6 +33,7 @@ class RedshiftResponse(BaseResponse):
             "number_of_nodes": self._get_int_param('NumberOfNodes'),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "encrypted": self._get_param("Encrypted"),
+            "region": self.region,
         }
 
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs)

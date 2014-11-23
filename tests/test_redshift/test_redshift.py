@@ -77,6 +77,35 @@ def test_create_single_node_cluster():
 
 
 @mock_redshift
+def test_default_cluster_attibutes():
+    conn = boto.redshift.connect_to_region("us-east-1")
+    cluster_identifier = 'my_cluster'
+
+    conn.create_cluster(
+        cluster_identifier,
+        node_type="dw.hs1.xlarge",
+        master_username="username",
+        master_user_password="password",
+    )
+
+    cluster_response = conn.describe_clusters(cluster_identifier)
+    cluster = cluster_response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'][0]
+
+    cluster['DBName'].should.equal("dev")
+    # cluster['ClusterSecurityGroups'].should.equal([])
+    # cluster['VpcSecurityGroups'].should.equal([])
+    # cluster['ClusterSubnetGroupName'].should.equal(None)
+    assert "us-east-" in cluster['AvailabilityZone']
+    cluster['PreferredMaintenanceWindow'].should.equal("Mon:03:00-Mon:03:30")
+    # cluster['ClusterParameterGroups'].should.equal([])
+    cluster['AutomatedSnapshotRetentionPeriod'].should.equal(1)
+    cluster['Port'].should.equal(5439)
+    cluster['ClusterVersion'].should.equal("1.0")
+    cluster['AllowVersionUpgrade'].should.equal(True)
+    cluster['NumberOfNodes'].should.equal(1)
+
+
+@mock_redshift
 def test_describe_non_existant_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_clusters.when.called_with("not-a-cluster").should.throw(ClusterNotFound)
