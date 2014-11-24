@@ -25,7 +25,6 @@ class Cluster(object):
         self.master_username = master_username
         self.master_user_password = master_user_password
         self.db_name = db_name if db_name else "dev"
-        self.cluster_security_groups = cluster_security_groups
         self.vpc_security_group_ids = vpc_security_group_ids
         self.cluster_subnet_group_name = cluster_subnet_group_name
         self.cluster_parameter_group_name = cluster_parameter_group_name
@@ -37,6 +36,11 @@ class Cluster(object):
         self.port = port if port else 5439
         self.automated_snapshot_retention_period = automated_snapshot_retention_period if automated_snapshot_retention_period else 1
         self.preferred_maintenance_window = preferred_maintenance_window if preferred_maintenance_window else "Mon:03:00-Mon:03:30"
+
+        if cluster_security_groups:
+            self.cluster_security_groups = cluster_security_groups
+        else:
+            self.cluster_security_groups = ["Default"]
 
         if availability_zone:
             self.availability_zone = availability_zone
@@ -140,7 +144,9 @@ class RedshiftBackend(BaseBackend):
     def __init__(self, ec2_backend):
         self.clusters = {}
         self.subnet_groups = {}
-        self.security_groups = {}
+        self.security_groups = {
+            "Default": SecurityGroup("Default", "Default Redshift Security Group")
+        }
         self.ec2_backend = ec2_backend
 
     def reset(self):

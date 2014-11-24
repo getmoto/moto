@@ -41,7 +41,7 @@ def test_create_cluster():
     cluster['NodeType'].should.equal("dw.hs1.xlarge")
     cluster['MasterUsername'].should.equal("username")
     cluster['DBName'].should.equal("my_db")
-    cluster['ClusterSecurityGroups'].should.equal([])
+    cluster['ClusterSecurityGroups'][0]['ClusterSecurityGroupName'].should.equal("Default")
     cluster['VpcSecurityGroups'].should.equal([])
     cluster['ClusterSubnetGroupName'].should.equal(None)
     cluster['AvailabilityZone'].should.equal("us-east-1d")
@@ -94,7 +94,6 @@ def test_default_cluster_attibutes():
     cluster = cluster_response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'][0]
 
     cluster['DBName'].should.equal("dev")
-    # cluster['ClusterSecurityGroups'].should.equal([])
     # cluster['VpcSecurityGroups'].should.equal([])
     cluster['ClusterSubnetGroupName'].should.equal(None)
     assert "us-east-" in cluster['AvailabilityZone']
@@ -326,13 +325,13 @@ def test_delete_cluster_security_group():
 
     groups_response = conn.describe_cluster_security_groups()
     groups = groups_response['DescribeClusterSecurityGroupsResponse']['DescribeClusterSecurityGroupsResult']['ClusterSecurityGroups']
-    groups.should.have.length_of(1)
+    groups.should.have.length_of(2)  # The default group already exists
 
     conn.delete_cluster_security_group("my_security_group")
 
     groups_response = conn.describe_cluster_security_groups()
     groups = groups_response['DescribeClusterSecurityGroupsResponse']['DescribeClusterSecurityGroupsResult']['ClusterSecurityGroups']
-    groups.should.have.length_of(0)
+    groups.should.have.length_of(1)
 
     # Delete invalid id
     conn.delete_cluster_security_group.when.called_with("not-a-security-group").should.throw(ClusterSecurityGroupNotFound)
