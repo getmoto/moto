@@ -2,7 +2,8 @@ from __future__ import unicode_literals
 
 import boto.redshift
 from moto.core import BaseBackend
-from .exceptions import ClusterNotFoundError
+from moto.ec2 import ec2_backends
+from .exceptions import ClusterNotFoundError, ClusterSubnetGroupNotFound, InvalidSubnetError
 
 
 class Cluster(object):
@@ -69,10 +70,51 @@ class Cluster(object):
         }
 
 
+class SubnetGroup(object):
+
+    def __init__(self, ec2_backend, cluster_subnet_group_name, description, subnet_ids):
+        self.ec2_backend = ec2_backend
+        self.cluster_subnet_group_name = cluster_subnet_group_name
+        self.description = description
+        self.subnet_ids = subnet_ids
+        if not self.subnets:
+            raise InvalidSubnetError(subnet_ids)
+
+    @property
+    def subnets(self):
+        return self.ec2_backend.get_all_subnets(filters={'subnet-id': self.subnet_ids})
+
+    @property
+    def vpc_id(self):
+        return self.subnets[0].vpc_id
+
+    def to_json(self):
+        return {
+            "VpcId": self.vpc_id,
+            "Description": self.description,
+            "ClusterSubnetGroupName": self.cluster_subnet_group_name,
+            "SubnetGroupStatus": "Complete",
+            "Subnets": [{
+                "SubnetStatus": "Active",
+                "SubnetIdentifier": subnet.id,
+                "SubnetAvailabilityZone": {
+                    "Name": subnet.availability_zone
+                },
+            } for subnet in self.subnets],
+        }
+
+
 class RedshiftBackend(BaseBackend):
 
-    def __init__(self):
+    def __init__(self, ec2_backend):
         self.clusters = {}
+        self.subnet_groups = {}
+        self.ec2_backend = ec2_backend
+
+    def reset(self):
+        ec2_backend = self.ec2_backend
+        self.__dict__ = {}
+        self.__init__(ec2_backend)
 
     def create_cluster(self, **cluster_kwargs):
         cluster_identifier = cluster_kwargs['cluster_identifier']
@@ -110,7 +152,26 @@ class RedshiftBackend(BaseBackend):
             return self.clusters.pop(cluster_identifier)
         raise ClusterNotFoundError(cluster_identifier)
 
+    def create_cluster_subnet_group(self, cluster_subnet_group_name, description, subnet_ids):
+        subnet_group = SubnetGroup(self.ec2_backend, cluster_subnet_group_name, description, subnet_ids)
+        self.subnet_groups[cluster_subnet_group_name] = subnet_group
+        return subnet_group
+
+    def describe_cluster_subnet_groups(self, subnet_identifier):
+        subnet_groups = self.subnet_groups.values()
+        if subnet_identifier:
+            if subnet_identifier in self.subnet_groups:
+                return [self.subnet_groups[subnet_identifier]]
+            else:
+                raise ClusterSubnetGroupNotFound(subnet_identifier)
+        return subnet_groups
+
+    def delete_cluster_subnet_group(self, subnet_identifier):
+        if subnet_identifier in self.subnet_groups:
+            return self.subnet_groups.pop(subnet_identifier)
+        raise ClusterSubnetGroupNotFound(subnet_identifier)
+
 
 redshift_backends = {}
 for region in boto.redshift.regions():
-    redshift_backends[region.name] = RedshiftBackend()
+    redshift_backends[region.name] = RedshiftBackend(ec2_backends[region.name])

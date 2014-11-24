@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
 
 import boto
-from boto.redshift.exceptions import ClusterNotFound
+from boto.redshift.exceptions import ClusterNotFound, ClusterSubnetGroupNotFound
 import sure  # noqa
 
-from moto import mock_redshift
+from moto import mock_ec2, mock_redshift
 
 
 @mock_redshift
@@ -21,7 +21,6 @@ def test_create_cluster():
         cluster_type="multi-node",
         # cluster_security_groups=None,
         # vpc_security_group_ids=None,
-        # cluster_subnet_group_name=None,
         availability_zone="us-east-1d",
         preferred_maintenance_window="Mon:03:00-Mon:11:00",
         # cluster_parameter_group_name=None,
@@ -94,7 +93,7 @@ def test_default_cluster_attibutes():
     cluster['DBName'].should.equal("dev")
     # cluster['ClusterSecurityGroups'].should.equal([])
     # cluster['VpcSecurityGroups'].should.equal([])
-    # cluster['ClusterSubnetGroupName'].should.equal(None)
+    cluster['ClusterSubnetGroupName'].should.equal(None)
     assert "us-east-" in cluster['AvailabilityZone']
     cluster['PreferredMaintenanceWindow'].should.equal("Mon:03:00-Mon:03:30")
     # cluster['ClusterParameterGroups'].should.equal([])
@@ -103,6 +102,32 @@ def test_default_cluster_attibutes():
     cluster['ClusterVersion'].should.equal("1.0")
     cluster['AllowVersionUpgrade'].should.equal(True)
     cluster['NumberOfNodes'].should.equal(1)
+
+
+@mock_redshift
+@mock_ec2
+def test_create_cluster_in_subnet_group():
+    vpc_conn = boto.connect_vpc()
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.0.0.0/24")
+    redshift_conn = boto.connect_redshift()
+    redshift_conn.create_cluster_subnet_group(
+        "my_subnet_group",
+        "This is my subnet group",
+        subnet_ids=[subnet.id],
+    )
+
+    redshift_conn.create_cluster(
+        "my_cluster",
+        node_type="dw.hs1.xlarge",
+        master_username="username",
+        master_user_password="password",
+        cluster_subnet_group_name='my_subnet_group',
+    )
+
+    cluster_response = redshift_conn.describe_clusters("my_cluster")
+    cluster = cluster_response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'][0]
+    cluster['ClusterSubnetGroupName'].should.equal('my_subnet_group')
 
 
 @mock_redshift
@@ -169,9 +194,69 @@ def test_modify_cluster():
     cluster['NodeType'].should.equal("dw.hs1.xlarge")
     # cluster['ClusterSecurityGroups'].should.equal([])
     # cluster['VpcSecurityGroups'].should.equal([])
-    # cluster['ClusterSubnetGroupName'].should.equal(None)
     cluster['PreferredMaintenanceWindow'].should.equal("Tue:03:00-Tue:11:00")
     # cluster['ClusterParameterGroups'].should.equal([])
     cluster['AutomatedSnapshotRetentionPeriod'].should.equal(7)
     cluster['AllowVersionUpgrade'].should.equal(False)
     cluster['NumberOfNodes'].should.equal(2)
+
+
+@mock_redshift
+@mock_ec2
+def test_create_cluster_subnet_group():
+    vpc_conn = boto.connect_vpc()
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet1 = vpc_conn.create_subnet(vpc.id, "10.0.0.0/24")
+    subnet2 = vpc_conn.create_subnet(vpc.id, "10.0.1.0/24")
+
+    redshift_conn = boto.connect_redshift()
+
+    redshift_conn.create_cluster_subnet_group(
+        "my_subnet",
+        "This is my subnet group",
+        subnet_ids=[subnet1.id, subnet2.id],
+    )
+
+    list(redshift_conn.describe_cluster_subnet_groups()).should.have.length_of(1)
+
+    subnets_response = redshift_conn.describe_cluster_subnet_groups("my_subnet")
+    my_subnet = subnets_response['DescribeClusterSubnetGroupsResponse']['DescribeClusterSubnetGroupsResult']['ClusterSubnetGroups'][0]
+
+    my_subnet['ClusterSubnetGroupName'].should.equal("my_subnet")
+    my_subnet['Description'].should.equal("This is my subnet group")
+    subnet_ids = [subnet['SubnetIdentifier'] for subnet in my_subnet['Subnets']]
+    set(subnet_ids).should.equal(set([subnet1.id, subnet2.id]))
+
+
+@mock_redshift
+def test_describe_non_existant_subnet_group():
+    conn = boto.redshift.connect_to_region("us-east-1")
+    conn.describe_cluster_subnet_groups.when.called_with("not-a-subnet-group").should.throw(ClusterSubnetGroupNotFound)
+
+
+@mock_redshift
+@mock_ec2
+def test_delete_cluster_subnet_group():
+    vpc_conn = boto.connect_vpc()
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.0.0.0/24")
+    redshift_conn = boto.connect_redshift()
+
+    redshift_conn.create_cluster_subnet_group(
+        "my_subnet",
+        "This is my subnet group",
+        subnet_ids=[subnet.id],
+    )
+
+    subnets_response = redshift_conn.describe_cluster_subnet_groups()
+    subnets = subnets_response['DescribeClusterSubnetGroupsResponse']['DescribeClusterSubnetGroupsResult']['ClusterSubnetGroups']
+    subnets.should.have.length_of(1)
+
+    redshift_conn.delete_cluster_subnet_group("my_subnet")
+
+    subnets_response = redshift_conn.describe_cluster_subnet_groups()
+    subnets = subnets_response['DescribeClusterSubnetGroupsResponse']['DescribeClusterSubnetGroupsResult']['ClusterSubnetGroups']
+    subnets.should.have.length_of(0)
+
+    # Delete invalid id
+    redshift_conn.describe_cluster_subnet_groups.when.called_with("not-a-subnet-group").should.throw(ClusterSubnetGroupNotFound)

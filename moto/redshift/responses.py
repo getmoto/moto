@@ -111,3 +111,52 @@ class RedshiftResponse(BaseResponse):
                 }
             }
         })
+
+    def create_cluster_subnet_group(self):
+        cluster_subnet_group_name = self._get_param('ClusterSubnetGroupName')
+        description = self._get_param('Description')
+        subnet_ids = self._get_multi_param('SubnetIds.member')
+
+        subnet_group = self.redshift_backend.create_cluster_subnet_group(
+            cluster_subnet_group_name=cluster_subnet_group_name,
+            description=description,
+            subnet_ids=subnet_ids,
+        )
+
+        return json.dumps({
+            "CreateClusterSubnetGroupResponse": {
+                "CreateClusterSubnetGroupResult": {
+                    "ClusterSubnetGroup": subnet_group.to_json(),
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def describe_cluster_subnet_groups(self):
+        subnet_identifier = self._get_param("ClusterSubnetGroupName")
+        subnet_groups = self.redshift_backend.describe_cluster_subnet_groups(subnet_identifier)
+
+        return json.dumps({
+            "DescribeClusterSubnetGroupsResponse": {
+                "DescribeClusterSubnetGroupsResult": {
+                    "ClusterSubnetGroups": [subnet_group.to_json() for subnet_group in subnet_groups]
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def delete_cluster_subnet_group(self):
+        subnet_identifier = self._get_param("ClusterSubnetGroupName")
+        self.redshift_backend.delete_cluster_subnet_group(subnet_identifier)
+
+        return json.dumps({
+            "DeleteClusterSubnetGroupResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
