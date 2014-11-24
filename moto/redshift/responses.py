@@ -20,8 +20,8 @@ class RedshiftResponse(BaseResponse):
             "master_user_password": self._get_param('MasterUserPassword'),
             "db_name": self._get_param('DBName'),
             "cluster_type": self._get_param('ClusterType'),
-            "cluster_security_groups": self._get_multi_param('ClusterSecurityGroups'),
-            "vpc_security_group_ids": self._get_multi_param('VpcSecurityGroupIds'),
+            "cluster_security_groups": self._get_multi_param('ClusterSecurityGroups.member'),
+            "vpc_security_group_ids": self._get_multi_param('VpcSecurityGroupIds.member'),
             "cluster_subnet_group_name": self._get_param('ClusterSubnetGroupName'),
             "availability_zone": self._get_param('AvailabilityZone'),
             "preferred_maintenance_window": self._get_param('PreferredMaintenanceWindow'),
@@ -35,7 +35,6 @@ class RedshiftResponse(BaseResponse):
             "encrypted": self._get_param("Encrypted"),
             "region": self.region,
         }
-
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs)
 
         return json.dumps({
@@ -71,8 +70,8 @@ class RedshiftResponse(BaseResponse):
             "node_type": self._get_param('NodeType'),
             "master_user_password": self._get_param('MasterUserPassword'),
             "cluster_type": self._get_param('ClusterType'),
-            "cluster_security_groups": self._get_multi_param('ClusterSecurityGroups'),
-            "vpc_security_group_ids": self._get_multi_param('VpcSecurityGroupIds'),
+            "cluster_security_groups": self._get_multi_param('ClusterSecurityGroups.member'),
+            "vpc_security_group_ids": self._get_multi_param('VpcSecurityGroupIds.member'),
             "cluster_subnet_group_name": self._get_param('ClusterSubnetGroupName'),
             "preferred_maintenance_window": self._get_param('PreferredMaintenanceWindow'),
             "cluster_parameter_group_name": self._get_param('ClusterParameterGroupName'),
@@ -155,6 +154,53 @@ class RedshiftResponse(BaseResponse):
 
         return json.dumps({
             "DeleteClusterSubnetGroupResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def create_cluster_security_group(self):
+        cluster_security_group_name = self._get_param('ClusterSecurityGroupName')
+        description = self._get_param('Description')
+
+        security_group = self.redshift_backend.create_cluster_security_group(
+            cluster_security_group_name=cluster_security_group_name,
+            description=description,
+        )
+
+        return json.dumps({
+            "CreateClusterSecurityGroupResponse": {
+                "CreateClusterSecurityGroupResult": {
+                    "ClusterSecurityGroup": security_group.to_json(),
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def describe_cluster_security_groups(self):
+        cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
+        security_groups = self.redshift_backend.describe_cluster_security_groups(cluster_security_group_name)
+
+        return json.dumps({
+            "DescribeClusterSecurityGroupsResponse": {
+                "DescribeClusterSecurityGroupsResult": {
+                    "ClusterSecurityGroups": [security_group.to_json() for security_group in security_groups]
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def delete_cluster_security_group(self):
+        security_group_identifier = self._get_param("ClusterSecurityGroupName")
+        self.redshift_backend.delete_cluster_security_group(security_group_identifier)
+
+        return json.dumps({
+            "DeleteClusterSecurityGroupResponse": {
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
                 }

@@ -1,7 +1,11 @@
 from __future__ import unicode_literals
 
 import boto
-from boto.redshift.exceptions import ClusterNotFound, ClusterSubnetGroupNotFound
+from boto.redshift.exceptions import (
+    ClusterNotFound,
+    ClusterSecurityGroupNotFound,
+    ClusterSubnetGroupNotFound,
+)
 import sure  # noqa
 
 from moto import mock_ec2, mock_redshift
@@ -19,7 +23,6 @@ def test_create_cluster():
         master_user_password="password",
         db_name="my_db",
         cluster_type="multi-node",
-        # cluster_security_groups=None,
         # vpc_security_group_ids=None,
         availability_zone="us-east-1d",
         preferred_maintenance_window="Mon:03:00-Mon:11:00",
@@ -131,6 +134,33 @@ def test_create_cluster_in_subnet_group():
 
 
 @mock_redshift
+def test_create_cluster_with_security_group():
+    conn = boto.redshift.connect_to_region("us-east-1")
+    conn.create_cluster_security_group(
+        "security_group1",
+        "This is my security group",
+    )
+    conn.create_cluster_security_group(
+        "security_group2",
+        "This is my security group",
+    )
+
+    cluster_identifier = 'my_cluster'
+    conn.create_cluster(
+        cluster_identifier,
+        node_type="dw.hs1.xlarge",
+        master_username="username",
+        master_user_password="password",
+        cluster_security_groups=["security_group1", "security_group2"]
+    )
+
+    cluster_response = conn.describe_clusters(cluster_identifier)
+    cluster = cluster_response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'][0]
+    group_names = [group['ClusterSecurityGroupName'] for group in cluster['ClusterSecurityGroups']]
+    set(group_names).should.equal(set(["security_group1", "security_group2"]))
+
+
+@mock_redshift
 def test_describe_non_existant_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_clusters.when.called_with("not-a-cluster").should.throw(ClusterNotFound)
@@ -164,6 +194,10 @@ def test_delete_cluster():
 def test_modify_cluster():
     conn = boto.connect_redshift()
     cluster_identifier = 'my_cluster'
+    conn.create_cluster_security_group(
+        "security_group",
+        "This is my security group",
+    )
 
     conn.create_cluster(
         cluster_identifier,
@@ -177,7 +211,7 @@ def test_modify_cluster():
         cluster_type="multi-node",
         node_type="dw.hs1.xlarge",
         number_of_nodes=2,
-        # cluster_security_groups=None,
+        cluster_security_groups="security_group",
         # vpc_security_group_ids=None,
         master_user_password="new_password",
         # cluster_parameter_group_name=None,
@@ -192,7 +226,7 @@ def test_modify_cluster():
 
     cluster['ClusterIdentifier'].should.equal("new_identifier")
     cluster['NodeType'].should.equal("dw.hs1.xlarge")
-    # cluster['ClusterSecurityGroups'].should.equal([])
+    cluster['ClusterSecurityGroups'][0]['ClusterSecurityGroupName'].should.equal("security_group")
     # cluster['VpcSecurityGroups'].should.equal([])
     cluster['PreferredMaintenanceWindow'].should.equal("Tue:03:00-Tue:11:00")
     # cluster['ClusterParameterGroups'].should.equal([])
@@ -216,8 +250,6 @@ def test_create_cluster_subnet_group():
         "This is my subnet group",
         subnet_ids=[subnet1.id, subnet2.id],
     )
-
-    list(redshift_conn.describe_cluster_subnet_groups()).should.have.length_of(1)
 
     subnets_response = redshift_conn.describe_cluster_subnet_groups("my_subnet")
     my_subnet = subnets_response['DescribeClusterSubnetGroupsResponse']['DescribeClusterSubnetGroupsResult']['ClusterSubnetGroups'][0]
@@ -259,4 +291,48 @@ def test_delete_cluster_subnet_group():
     subnets.should.have.length_of(0)
 
     # Delete invalid id
-    redshift_conn.describe_cluster_subnet_groups.when.called_with("not-a-subnet-group").should.throw(ClusterSubnetGroupNotFound)
+    redshift_conn.delete_cluster_subnet_group.when.called_with("not-a-subnet-group").should.throw(ClusterSubnetGroupNotFound)
+
+
+@mock_redshift
+def test_create_cluster_security_group():
+    conn = boto.connect_redshift()
+    conn.create_cluster_security_group(
+        "my_security_group",
+        "This is my security group",
+    )
+
+    groups_response = conn.describe_cluster_security_groups("my_security_group")
+    my_group = groups_response['DescribeClusterSecurityGroupsResponse']['DescribeClusterSecurityGroupsResult']['ClusterSecurityGroups'][0]
+
+    my_group['ClusterSecurityGroupName'].should.equal("my_security_group")
+    my_group['Description'].should.equal("This is my security group")
+    list(my_group['IPRanges']).should.equal([])
+
+
+@mock_redshift
+def test_describe_non_existant_security_group():
+    conn = boto.redshift.connect_to_region("us-east-1")
+    conn.describe_cluster_security_groups.when.called_with("not-a-security-group").should.throw(ClusterSecurityGroupNotFound)
+
+
+@mock_redshift
+def test_delete_cluster_security_group():
+    conn = boto.connect_redshift()
+    conn.create_cluster_security_group(
+        "my_security_group",
+        "This is my security group",
+    )
+
+    groups_response = conn.describe_cluster_security_groups()
+    groups = groups_response['DescribeClusterSecurityGroupsResponse']['DescribeClusterSecurityGroupsResult']['ClusterSecurityGroups']
+    groups.should.have.length_of(1)
+
+    conn.delete_cluster_security_group("my_security_group")
+
+    groups_response = conn.describe_cluster_security_groups()
+    groups = groups_response['DescribeClusterSecurityGroupsResponse']['DescribeClusterSecurityGroupsResult']['ClusterSecurityGroups']
+    groups.should.have.length_of(0)
+
+    # Delete invalid id
+    conn.delete_cluster_security_group.when.called_with("not-a-security-group").should.throw(ClusterSecurityGroupNotFound)

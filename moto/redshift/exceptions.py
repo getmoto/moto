@@ -24,11 +24,18 @@ class ClusterNotFoundError(RedshiftClientError):
             "Cluster {0} not found.".format(cluster_identifier))
 
 
-class ClusterSubnetGroupNotFound(RedshiftClientError):
+class ClusterSubnetGroupNotFoundError(RedshiftClientError):
     def __init__(self, subnet_identifier):
-        super(ClusterSubnetGroupNotFound, self).__init__(
+        super(ClusterSubnetGroupNotFoundError, self).__init__(
             'ClusterSubnetGroupNotFound',
             "Subnet group {0} not found.".format(subnet_identifier))
+
+
+class ClusterSecurityGroupNotFoundError(RedshiftClientError):
+    def __init__(self, group_identifier):
+        super(ClusterSecurityGroupNotFoundError, self).__init__(
+            'ClusterSecurityGroupNotFound',
+            "Security group {0} not found.".format(group_identifier))
 
 
 class InvalidSubnetError(RedshiftClientError):

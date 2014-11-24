@@ -3,17 +3,23 @@ from __future__ import unicode_literals
 import boto.redshift
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
-from .exceptions import ClusterNotFoundError, ClusterSubnetGroupNotFound, InvalidSubnetError
+from .exceptions import (
+    ClusterNotFoundError,
+    ClusterSecurityGroupNotFoundError,
+    ClusterSubnetGroupNotFoundError,
+    InvalidSubnetError,
+)
 
 
 class Cluster(object):
-    def __init__(self, cluster_identifier, node_type, master_username,
+    def __init__(self, redshift_backend, cluster_identifier, node_type, master_username,
             master_user_password, db_name, cluster_type, cluster_security_groups,
             vpc_security_group_ids, cluster_subnet_group_name, availability_zone,
             preferred_maintenance_window, cluster_parameter_group_name,
             automated_snapshot_retention_period, port, cluster_version,
             allow_version_upgrade, number_of_nodes, publicly_accessible,
             encrypted, region):
+        self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
         self.node_type = node_type
         self.master_username = master_username
@@ -46,6 +52,14 @@ class Cluster(object):
         else:
             self.number_of_nodes = 1
 
+    @property
+    def security_groups(self):
+        return [
+            security_group for security_group
+            in self.redshift_backend.describe_cluster_security_groups()
+            if security_group.cluster_security_group_name in self.cluster_security_groups
+        ]
+
     def to_json(self):
         return {
             "MasterUsername": self.master_username,
@@ -62,7 +76,10 @@ class Cluster(object):
             "DBName": self.db_name,
             "PreferredMaintenanceWindow": self.preferred_maintenance_window,
             "ClusterParameterGroups": [],
-            "ClusterSecurityGroups": [],
+            "ClusterSecurityGroups": [{
+                "Status": "active",
+                "ClusterSecurityGroupName": group.cluster_security_group_name,
+            } for group in self.security_groups],
             "Port": self.port,
             "NodeType": self.node_type,
             "ClusterIdentifier": self.cluster_identifier,
@@ -104,11 +121,26 @@ class SubnetGroup(object):
         }
 
 
+class SecurityGroup(object):
+    def __init__(self, cluster_security_group_name, description):
+        self.cluster_security_group_name = cluster_security_group_name
+        self.description = description
+
+    def to_json(self):
+        return {
+            "EC2SecurityGroups": [],
+            "IPRanges": [],
+            "Description": self.description,
+            "ClusterSecurityGroupName": self.cluster_security_group_name,
+        }
+
+
 class RedshiftBackend(BaseBackend):
 
     def __init__(self, ec2_backend):
         self.clusters = {}
         self.subnet_groups = {}
+        self.security_groups = {}
         self.ec2_backend = ec2_backend
 
     def reset(self):
@@ -118,7 +150,7 @@ class RedshiftBackend(BaseBackend):
 
     def create_cluster(self, **cluster_kwargs):
         cluster_identifier = cluster_kwargs['cluster_identifier']
-        cluster = Cluster(**cluster_kwargs)
+        cluster = Cluster(self, **cluster_kwargs)
         self.clusters[cluster_identifier] = cluster
         return cluster
 
@@ -157,19 +189,38 @@ class RedshiftBackend(BaseBackend):
         self.subnet_groups[cluster_subnet_group_name] = subnet_group
         return subnet_group
 
-    def describe_cluster_subnet_groups(self, subnet_identifier):
+    def describe_cluster_subnet_groups(self, subnet_identifier=None):
         subnet_groups = self.subnet_groups.values()
         if subnet_identifier:
             if subnet_identifier in self.subnet_groups:
                 return [self.subnet_groups[subnet_identifier]]
             else:
-                raise ClusterSubnetGroupNotFound(subnet_identifier)
+                raise ClusterSubnetGroupNotFoundError(subnet_identifier)
         return subnet_groups
 
     def delete_cluster_subnet_group(self, subnet_identifier):
         if subnet_identifier in self.subnet_groups:
             return self.subnet_groups.pop(subnet_identifier)
-        raise ClusterSubnetGroupNotFound(subnet_identifier)
+        raise ClusterSubnetGroupNotFoundError(subnet_identifier)
+
+    def create_cluster_security_group(self, cluster_security_group_name, description):
+        security_group = SecurityGroup(cluster_security_group_name, description)
+        self.security_groups[cluster_security_group_name] = security_group
+        return security_group
+
+    def describe_cluster_security_groups(self, security_group_name=None):
+        security_groups = self.security_groups.values()
+        if security_group_name:
+            if security_group_name in self.security_groups:
+                return [self.security_groups[security_group_name]]
+            else:
+                raise ClusterSecurityGroupNotFoundError(security_group_name)
+        return security_groups
+
+    def delete_cluster_security_group(self, security_group_identifier):
+        if security_group_identifier in self.security_groups:
+            return self.security_groups.pop(security_group_identifier)
+        raise ClusterSecurityGroupNotFoundError(security_group_identifier)
 
 
 redshift_backends = {}
