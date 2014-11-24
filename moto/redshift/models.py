@@ -64,12 +64,23 @@ class Cluster(object):
             if security_group.cluster_security_group_name in self.cluster_security_groups
         ]
 
+    @property
+    def vpc_security_groups(self):
+        return [
+            security_group for security_group
+            in self.redshift_backend.ec2_backend.describe_security_groups()
+            if security_group.id in self.vpc_security_group_ids
+        ]
+
     def to_json(self):
         return {
             "MasterUsername": self.master_username,
             "MasterUserPassword": "****",
             "ClusterVersion": self.cluster_version,
-            "VpcSecurityGroups": [],
+            "VpcSecurityGroups": [{
+                "Status": "active",
+                "VpcSecurityGroupId": group.id
+            } for group in self.vpc_security_groups],
             "ClusterSubnetGroupName": self.cluster_subnet_group_name,
             "AvailabilityZone": self.availability_zone,
             "ClusterStatus": "creating",

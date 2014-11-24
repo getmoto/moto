@@ -23,7 +23,6 @@ def test_create_cluster():
         master_user_password="password",
         db_name="my_db",
         cluster_type="multi-node",
-        # vpc_security_group_ids=None,
         availability_zone="us-east-1d",
         preferred_maintenance_window="Mon:03:00-Mon:11:00",
         # cluster_parameter_group_name=None,
@@ -94,7 +93,6 @@ def test_default_cluster_attibutes():
     cluster = cluster_response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'][0]
 
     cluster['DBName'].should.equal("dev")
-    # cluster['VpcSecurityGroups'].should.equal([])
     cluster['ClusterSubnetGroupName'].should.equal(None)
     assert "us-east-" in cluster['AvailabilityZone']
     cluster['PreferredMaintenanceWindow'].should.equal("Mon:03:00-Mon:03:30")
@@ -160,6 +158,29 @@ def test_create_cluster_with_security_group():
 
 
 @mock_redshift
+@mock_ec2
+def test_create_cluster_with_vpc_security_groups():
+    vpc_conn = boto.connect_vpc()
+    ec2_conn = boto.connect_ec2()
+    redshift_conn = boto.connect_redshift()
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    security_group = ec2_conn.create_security_group("vpc_security_group", "a group", vpc_id=vpc.id)
+
+    redshift_conn.create_cluster(
+        "my_cluster",
+        node_type="dw.hs1.xlarge",
+        master_username="username",
+        master_user_password="password",
+        vpc_security_group_ids=[security_group.id],
+    )
+
+    cluster_response = redshift_conn.describe_clusters("my_cluster")
+    cluster = cluster_response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'][0]
+    group_ids = [group['VpcSecurityGroupId'] for group in cluster['VpcSecurityGroups']]
+    list(group_ids).should.equal([security_group.id])
+
+
+@mock_redshift
 def test_describe_non_existant_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_clusters.when.called_with("not-a-cluster").should.throw(ClusterNotFound)
@@ -211,7 +232,6 @@ def test_modify_cluster():
         node_type="dw.hs1.xlarge",
         number_of_nodes=2,
         cluster_security_groups="security_group",
-        # vpc_security_group_ids=None,
         master_user_password="new_password",
         # cluster_parameter_group_name=None,
         automated_snapshot_retention_period=7,
@@ -226,7 +246,6 @@ def test_modify_cluster():
     cluster['ClusterIdentifier'].should.equal("new_identifier")
     cluster['NodeType'].should.equal("dw.hs1.xlarge")
     cluster['ClusterSecurityGroups'][0]['ClusterSecurityGroupName'].should.equal("security_group")
-    # cluster['VpcSecurityGroups'].should.equal([])
     cluster['PreferredMaintenanceWindow'].should.equal("Tue:03:00-Tue:11:00")
     # cluster['ClusterParameterGroups'].should.equal([])
     cluster['AutomatedSnapshotRetentionPeriod'].should.equal(7)
