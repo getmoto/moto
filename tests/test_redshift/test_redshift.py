@@ -6,6 +6,7 @@ from boto.redshift.exceptions import (
     ClusterParameterGroupNotFound,
     ClusterSecurityGroupNotFound,
     ClusterSubnetGroupNotFound,
+    InvalidSubnet,
 )
 import sure  # noqa
 
@@ -303,6 +304,17 @@ def test_create_cluster_subnet_group():
     my_subnet['Description'].should.equal("This is my subnet group")
     subnet_ids = [subnet['SubnetIdentifier'] for subnet in my_subnet['Subnets']]
     set(subnet_ids).should.equal(set([subnet1.id, subnet2.id]))
+
+
+@mock_redshift
+@mock_ec2
+def test_create_invalid_cluster_subnet_group():
+    redshift_conn = boto.connect_redshift()
+    redshift_conn.create_cluster_subnet_group.when.called_with(
+        "my_subnet",
+        "This is my subnet group",
+        subnet_ids=["subnet-1234"],
+    ).should.throw(InvalidSubnet)
 
 
 @mock_redshift
