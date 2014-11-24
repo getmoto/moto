@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import boto
 from boto.redshift.exceptions import (
     ClusterNotFound,
+    ClusterParameterGroupNotFound,
     ClusterSecurityGroupNotFound,
     ClusterSubnetGroupNotFound,
 )
@@ -25,7 +26,6 @@ def test_create_cluster():
         cluster_type="multi-node",
         availability_zone="us-east-1d",
         preferred_maintenance_window="Mon:03:00-Mon:11:00",
-        # cluster_parameter_group_name=None,
         automated_snapshot_retention_period=10,
         port=1234,
         cluster_version="1.0",
@@ -45,7 +45,7 @@ def test_create_cluster():
     cluster['ClusterSubnetGroupName'].should.equal(None)
     cluster['AvailabilityZone'].should.equal("us-east-1d")
     cluster['PreferredMaintenanceWindow'].should.equal("Mon:03:00-Mon:11:00")
-    cluster['ClusterParameterGroups'].should.equal([])
+    cluster['ClusterParameterGroups'][0]['ParameterGroupName'].should.equal("default.redshift-1.0")
     cluster['AutomatedSnapshotRetentionPeriod'].should.equal(10)
     cluster['Port'].should.equal(1234)
     cluster['ClusterVersion'].should.equal("1.0")
@@ -96,7 +96,7 @@ def test_default_cluster_attibutes():
     cluster['ClusterSubnetGroupName'].should.equal(None)
     assert "us-east-" in cluster['AvailabilityZone']
     cluster['PreferredMaintenanceWindow'].should.equal("Mon:03:00-Mon:03:30")
-    # cluster['ClusterParameterGroups'].should.equal([])
+    cluster['ClusterParameterGroups'][0]['ParameterGroupName'].should.equal("default.redshift-1.0")
     cluster['AutomatedSnapshotRetentionPeriod'].should.equal(1)
     cluster['Port'].should.equal(5439)
     cluster['ClusterVersion'].should.equal("1.0")
@@ -181,6 +181,28 @@ def test_create_cluster_with_vpc_security_groups():
 
 
 @mock_redshift
+def test_create_cluster_with_parameter_group():
+    conn = boto.connect_redshift()
+    conn.create_cluster_parameter_group(
+        "my_parameter_group",
+        "redshift-1.0",
+        "This is my parameter group",
+    )
+
+    conn.create_cluster(
+        "my_cluster",
+        node_type="dw.hs1.xlarge",
+        master_username="username",
+        master_user_password="password",
+        cluster_parameter_group_name='my_parameter_group',
+    )
+
+    cluster_response = conn.describe_clusters("my_cluster")
+    cluster = cluster_response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'][0]
+    cluster['ClusterParameterGroups'][0]['ParameterGroupName'].should.equal("my_parameter_group")
+
+
+@mock_redshift
 def test_describe_non_existant_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_clusters.when.called_with("not-a-cluster").should.throw(ClusterNotFound)
@@ -218,6 +240,11 @@ def test_modify_cluster():
         "security_group",
         "This is my security group",
     )
+    conn.create_cluster_parameter_group(
+        "my_parameter_group",
+        "redshift-1.0",
+        "This is my parameter group",
+    )
 
     conn.create_cluster(
         cluster_identifier,
@@ -233,7 +260,7 @@ def test_modify_cluster():
         number_of_nodes=2,
         cluster_security_groups="security_group",
         master_user_password="new_password",
-        # cluster_parameter_group_name=None,
+        cluster_parameter_group_name="my_parameter_group",
         automated_snapshot_retention_period=7,
         preferred_maintenance_window="Tue:03:00-Tue:11:00",
         allow_version_upgrade=False,
@@ -247,7 +274,7 @@ def test_modify_cluster():
     cluster['NodeType'].should.equal("dw.hs1.xlarge")
     cluster['ClusterSecurityGroups'][0]['ClusterSecurityGroupName'].should.equal("security_group")
     cluster['PreferredMaintenanceWindow'].should.equal("Tue:03:00-Tue:11:00")
-    # cluster['ClusterParameterGroups'].should.equal([])
+    cluster['ClusterParameterGroups'][0]['ParameterGroupName'].should.equal("my_parameter_group")
     cluster['AutomatedSnapshotRetentionPeriod'].should.equal(7)
     cluster['AllowVersionUpgrade'].should.equal(False)
     cluster['NumberOfNodes'].should.equal(2)
@@ -354,3 +381,49 @@ def test_delete_cluster_security_group():
 
     # Delete invalid id
     conn.delete_cluster_security_group.when.called_with("not-a-security-group").should.throw(ClusterSecurityGroupNotFound)
+
+
+@mock_redshift
+def test_create_cluster_parameter_group():
+    conn = boto.connect_redshift()
+    conn.create_cluster_parameter_group(
+        "my_parameter_group",
+        "redshift-1.0",
+        "This is my parameter group",
+    )
+
+    groups_response = conn.describe_cluster_parameter_groups("my_parameter_group")
+    my_group = groups_response['DescribeClusterParameterGroupsResponse']['DescribeClusterParameterGroupsResult']['ParameterGroups'][0]
+
+    my_group['ParameterGroupName'].should.equal("my_parameter_group")
+    my_group['ParameterGroupFamily'].should.equal("redshift-1.0")
+    my_group['Description'].should.equal("This is my parameter group")
+
+
+@mock_redshift
+def test_describe_non_existant_parameter_group():
+    conn = boto.redshift.connect_to_region("us-east-1")
+    conn.describe_cluster_parameter_groups.when.called_with("not-a-parameter-group").should.throw(ClusterParameterGroupNotFound)
+
+
+@mock_redshift
+def test_delete_cluster_parameter_group():
+    conn = boto.connect_redshift()
+    conn.create_cluster_parameter_group(
+        "my_parameter_group",
+        "redshift-1.0",
+        "This is my parameter group",
+    )
+
+    groups_response = conn.describe_cluster_parameter_groups()
+    groups = groups_response['DescribeClusterParameterGroupsResponse']['DescribeClusterParameterGroupsResult']['ParameterGroups']
+    groups.should.have.length_of(2)  # The default group already exists
+
+    conn.delete_cluster_parameter_group("my_parameter_group")
+
+    groups_response = conn.describe_cluster_parameter_groups()
+    groups = groups_response['DescribeClusterParameterGroupsResponse']['DescribeClusterParameterGroupsResult']['ParameterGroups']
+    groups.should.have.length_of(1)
+
+    # Delete invalid id
+    conn.delete_cluster_parameter_group.when.called_with("not-a-parameter-group").should.throw(ClusterParameterGroupNotFound)

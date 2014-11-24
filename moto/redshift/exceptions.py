@@ -38,6 +38,13 @@ class ClusterSecurityGroupNotFoundError(RedshiftClientError):
             "Security group {0} not found.".format(group_identifier))
 
 
+class ClusterParameterGroupNotFoundError(RedshiftClientError):
+    def __init__(self, group_identifier):
+        super(ClusterParameterGroupNotFoundError, self).__init__(
+            'ClusterParameterGroupNotFound',
+            "Parameter group {0} not found.".format(group_identifier))
+
+
 class InvalidSubnetError(RedshiftClientError):
     def __init__(self, subnet_identifier):
         super(InvalidSubnetError, self).__init__(

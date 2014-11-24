@@ -5,6 +5,7 @@ from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
 from .exceptions import (
     ClusterNotFoundError,
+    ClusterParameterGroupNotFoundError,
     ClusterSecurityGroupNotFoundError,
     ClusterSubnetGroupNotFoundError,
     InvalidSubnetError,
@@ -27,7 +28,6 @@ class Cluster(object):
         self.db_name = db_name if db_name else "dev"
         self.vpc_security_group_ids = vpc_security_group_ids
         self.cluster_subnet_group_name = cluster_subnet_group_name
-        self.cluster_parameter_group_name = cluster_parameter_group_name
         self.publicly_accessible = publicly_accessible
         self.encrypted = encrypted
 
@@ -36,6 +36,11 @@ class Cluster(object):
         self.port = port if port else 5439
         self.automated_snapshot_retention_period = automated_snapshot_retention_period if automated_snapshot_retention_period else 1
         self.preferred_maintenance_window = preferred_maintenance_window if preferred_maintenance_window else "Mon:03:00-Mon:03:30"
+
+        if cluster_parameter_group_name:
+            self.cluster_parameter_group_name = [cluster_parameter_group_name]
+        else:
+            self.cluster_parameter_group_name = ['default.redshift-1.0']
 
         if cluster_security_groups:
             self.cluster_security_groups = cluster_security_groups
@@ -72,6 +77,14 @@ class Cluster(object):
             if security_group.id in self.vpc_security_group_ids
         ]
 
+    @property
+    def parameter_groups(self):
+        return [
+            parameter_group for parameter_group
+            in self.redshift_backend.describe_cluster_parameter_groups()
+            if parameter_group.cluster_parameter_group_name in self.cluster_parameter_group_name
+        ]
+
     def to_json(self):
         return {
             "MasterUsername": self.master_username,
@@ -90,7 +103,10 @@ class Cluster(object):
             "Encrypted": self.encrypted,
             "DBName": self.db_name,
             "PreferredMaintenanceWindow": self.preferred_maintenance_window,
-            "ClusterParameterGroups": [],
+            "ClusterParameterGroups": [{
+                "ParameterApplyStatus": "in-sync",
+                "ParameterGroupName": group.cluster_parameter_group_name,
+            } for group in self.parameter_groups],
             "ClusterSecurityGroups": [{
                 "Status": "active",
                 "ClusterSecurityGroupName": group.cluster_security_group_name,
@@ -150,6 +166,21 @@ class SecurityGroup(object):
         }
 
 
+class ParameterGroup(object):
+
+    def __init__(self, cluster_parameter_group_name, group_family, description):
+        self.cluster_parameter_group_name = cluster_parameter_group_name
+        self.group_family = group_family
+        self.description = description
+
+    def to_json(self):
+        return {
+            "ParameterGroupFamily": self.group_family,
+            "Description": self.description,
+            "ParameterGroupName": self.cluster_parameter_group_name,
+        }
+
+
 class RedshiftBackend(BaseBackend):
 
     def __init__(self, ec2_backend):
@@ -157,6 +188,13 @@ class RedshiftBackend(BaseBackend):
         self.subnet_groups = {}
         self.security_groups = {
             "Default": SecurityGroup("Default", "Default Redshift Security Group")
+        }
+        self.parameter_groups = {
+            "default.redshift-1.0": ParameterGroup(
+                "default.redshift-1.0",
+                "redshift-1.0",
+                "Default Redshift parameter group",
+            )
         }
         self.ec2_backend = ec2_backend
 
@@ -238,6 +276,27 @@ class RedshiftBackend(BaseBackend):
         if security_group_identifier in self.security_groups:
             return self.security_groups.pop(security_group_identifier)
         raise ClusterSecurityGroupNotFoundError(security_group_identifier)
+
+    def create_cluster_parameter_group(self, cluster_parameter_group_name,
+            group_family, description):
+        parameter_group = ParameterGroup(cluster_parameter_group_name, group_family, description)
+        self.parameter_groups[cluster_parameter_group_name] = parameter_group
+
+        return parameter_group
+
+    def describe_cluster_parameter_groups(self, parameter_group_name=None):
+        parameter_groups = self.parameter_groups.values()
+        if parameter_group_name:
+            if parameter_group_name in self.parameter_groups:
+                return [self.parameter_groups[parameter_group_name]]
+            else:
+                raise ClusterParameterGroupNotFoundError(parameter_group_name)
+        return parameter_groups
+
+    def delete_cluster_parameter_group(self, parameter_group_name):
+        if parameter_group_name in self.parameter_groups:
+            return self.parameter_groups.pop(parameter_group_name)
+        raise ClusterParameterGroupNotFoundError(parameter_group_name)
 
 
 redshift_backends = {}

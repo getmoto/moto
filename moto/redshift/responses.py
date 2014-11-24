@@ -82,7 +82,6 @@ class RedshiftResponse(BaseResponse):
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "encrypted": self._get_param("Encrypted"),
         }
-
         cluster = self.redshift_backend.modify_cluster(**cluster_kwargs)
 
         return json.dumps({
@@ -201,6 +200,55 @@ class RedshiftResponse(BaseResponse):
 
         return json.dumps({
             "DeleteClusterSecurityGroupResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def create_cluster_parameter_group(self):
+        cluster_parameter_group_name = self._get_param('ParameterGroupName')
+        group_family = self._get_param('ParameterGroupFamily')
+        description = self._get_param('Description')
+
+        parameter_group = self.redshift_backend.create_cluster_parameter_group(
+            cluster_parameter_group_name,
+            group_family,
+            description,
+        )
+
+        return json.dumps({
+            "CreateClusterParameterGroupResponse": {
+                "CreateClusterParameterGroupResult": {
+                    "ClusterParameterGroup": parameter_group.to_json(),
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def describe_cluster_parameter_groups(self):
+        cluster_parameter_group_name = self._get_param("ParameterGroupName")
+        parameter_groups = self.redshift_backend.describe_cluster_parameter_groups(cluster_parameter_group_name)
+
+        return json.dumps({
+            "DescribeClusterParameterGroupsResponse": {
+                "DescribeClusterParameterGroupsResult": {
+                    "ParameterGroups": [parameter_group.to_json() for parameter_group in parameter_groups]
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def delete_cluster_parameter_group(self):
+        cluster_parameter_group_name = self._get_param("ParameterGroupName")
+        self.redshift_backend.delete_cluster_parameter_group(cluster_parameter_group_name)
+
+        return json.dumps({
+            "DeleteClusterParameterGroupResponse": {
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
                 }
