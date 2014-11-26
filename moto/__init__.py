@@ -11,6 +11,7 @@ from .ec2 import mock_ec2  # flake8: noqa
 from .elb import mock_elb  # flake8: noqa
 from .emr import mock_emr  # flake8: noqa
 from .iam import mock_iam  # flake8: noqa
+from .kinesis import mock_kinesis  # flake8: noqa
 from .redshift import mock_redshift  # flake8: noqa
 from .s3 import mock_s3  # flake8: noqa
 from .s3bucket_path import mock_s3bucket_path  # flake8: noqa
