@@ -16,4 +16,4 @@ class ResourceNotFoundError(BadRequest):
 class StreamNotFoundError(ResourceNotFoundError):
     def __init__(self, stream_name):
         super(StreamNotFoundError, self).__init__(
-            'Stream {} under account 123456789012 not found.'.format(stream_name))
+            'Stream {0} under account 123456789012 not found.'.format(stream_name))

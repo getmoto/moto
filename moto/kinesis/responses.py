@@ -10,7 +10,7 @@ class KinesisResponse(BaseResponse):
 
     @property
     def parameters(self):
-        return json.loads(self.body)
+        return json.loads(self.body.decode("utf-8"))
 
     @property
     def kinesis_backend(self):
