@@ -55,8 +55,15 @@ class Shard(object):
         self.records[sequence_number] = Record(partition_key, data, sequence_number)
         return sequence_number
 
+    def get_min_sequence_number(self):
+        if self.records:
+            return list(self.records.keys())[0]
+        return 0
+
     def get_max_sequence_number(self):
-        return list(self.records.keys())[-1]
+        if self.records:
+            return list(self.records.keys())[-1]
+        return 0
 
     def to_json(self):
         return {
@@ -65,8 +72,8 @@ class Shard(object):
                 "StartingHashKey": "0"
             },
             "SequenceNumberRange": {
-                "EndingSequenceNumber": "21269319989741826081360214168359141376",
-                "StartingSequenceNumber": "21267647932558653966460912964485513216"
+                "EndingSequenceNumber": self.get_max_sequence_number(),
+                "StartingSequenceNumber": self.get_min_sequence_number(),
             },
             "ShardId": self.shard_id
         }
