@@ -23,9 +23,9 @@ def compose_shard_iterator(stream_name, shard, last_sequence_id):
             stream_name,
             shard.shard_id,
             last_sequence_id,
-        )
-    )
+        ).encode("utf-8")
+    ).decode("utf-8")
 
 
 def decompose_shard_iterator(shard_iterator):
-    return base64.decodestring(shard_iterator).split(":")
+    return base64.decodestring(shard_iterator.encode("utf-8")).decode("utf-8").split(":")

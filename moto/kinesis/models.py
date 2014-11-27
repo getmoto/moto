@@ -56,7 +56,7 @@ class Shard(object):
         return sequence_number
 
     def get_max_sequence_number(self):
-        return self.records.keys()[-1]
+        return list(self.records.keys())[-1]
 
     def to_json(self):
         return {
@@ -81,7 +81,7 @@ class Stream(object):
         self.shards = {}
 
         for index in range(shard_count):
-            shard_id = "shardId-{}".format(str(index).zfill(12))
+            shard_id = "shardId-{0}".format(str(index).zfill(12))
             self.shards[shard_id] = Shard(shard_id)
 
     @property
@@ -100,7 +100,7 @@ class Stream(object):
 
     def get_shard_for_key(self, partition_key):
         # TODO implement sharding
-        shard = self.shards.values()[0]
+        shard = list(self.shards.values())[0]
         return shard
 
     def put_record(self, partition_key, explicit_hash_key, sequence_number_for_ordering, data):
