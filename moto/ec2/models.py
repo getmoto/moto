@@ -1398,7 +1398,9 @@ class VPC(TaggedEC2Resource):
         return self.id
 
     def get_filter_value(self, filter_name):
-        if filter_name == 'cidr':
+        if filter_name == 'vpc-id':
+            return self.id
+        elif filter_name == 'cidr':
             return self.cidr_block
         elif filter_name == 'dhcp-options-id':
             if not self.dhcp_options:
@@ -1584,6 +1586,12 @@ class Subnet(TaggedEC2Resource):
         return subnet
 
     @property
+    def availability_zone(self):
+        # This could probably be smarter, but there doesn't appear to be a
+        # way to pull AZs for a region in boto
+        return self.ec2_backend.region_name + "a"
+
+    @property
     def physical_resource_id(self):
         return self.id
 
@@ -1705,6 +1713,8 @@ class RouteTable(TaggedEC2Resource):
                 return 'true'
             else:
                 return 'false'
+        elif filter_name == "route-table-id":
+            return self.id
         elif filter_name == "vpc-id":
             return self.vpc_id
         elif filter_name == "association.route-table-id":
@@ -2442,6 +2452,15 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend,
                  NetworkAclBackend):
 
+    def __init__(self, region_name):
+        super(EC2Backend, self).__init__()
+        self.region_name = region_name
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
+
     # Use this to generate a proper error template response when in a response handler.
     def raise_error(self, code, message):
         raise EC2ClientError(code, message)
@@ -2495,4 +2514,4 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
 
 ec2_backends = {}
 for region in boto.ec2.regions():
-    ec2_backends[region.name] = EC2Backend()
+    ec2_backends[region.name] = EC2Backend(region.name)

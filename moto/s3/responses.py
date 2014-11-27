@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
-import six
-from six.moves.urllib.parse import parse_qs, urlparse
+
 import re
 
+from boto.s3.key import Key
 from jinja2 import Template
+import six
+from six.moves.urllib.parse import parse_qs, urlparse
+
 
 from .exceptions import BucketAlreadyExists, MissingBucket
 from .models import s3_backend
@@ -34,10 +37,10 @@ class ResponseObject(object):
             return 404, headers, ""
 
         if isinstance(response, six.string_types):
-            return 200, headers, response
+            return 200, headers, response.encode("utf-8")
         else:
             status_code, headers, response_content = response
-            return status_code, headers, response_content
+            return status_code, headers, response_content.encode("utf-8")
 
     def _bucket_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
@@ -232,8 +235,14 @@ class ResponseObject(object):
         for header, value in request.headers.items():
             if isinstance(header, six.string_types):
                 result = meta_regex.match(header)
+                meta_key = None
                 if result:
+                    # Check for extra metadata
                     meta_key = result.group(0).lower()
+                elif header.lower() in Key.base_user_settable_fields:
+                    # Check for special metadata that doesn't start with x-amz-meta
+                    meta_key = header
+                if meta_key:
                     metadata = request.headers[header]
                     key.set_metadata(meta_key, metadata)
 

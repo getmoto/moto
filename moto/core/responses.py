@@ -90,6 +90,12 @@ class BaseResponse(object):
     def call_action(self):
         headers = self.response_headers
         action = self.querystring.get('Action', [""])[0]
+        if not action:  # Some services use a header for the action
+            # Headers are case-insensitive. Probably a better way to do this.
+            match = self.headers.get('x-amz-target') or self.headers.get('X-Amz-Target')
+            if match:
+                action = match.split(".")[1]
+
         action = camelcase_to_underscores(action)
         method_names = method_names_from_class(self.__class__)
         if action in method_names:
@@ -109,6 +115,19 @@ class BaseResponse(object):
 
     def _get_param(self, param_name):
         return self.querystring.get(param_name, [None])[0]
+
+    def _get_int_param(self, param_name):
+        val = self._get_param(param_name)
+        if val is not None:
+            return int(val)
+
+    def _get_bool_param(self, param_name):
+        val = self._get_param(param_name)
+        if val is not None:
+            if val.lower() == 'true':
+                return True
+            elif val.lower() == 'false':
+                return False
 
     def _get_multi_param(self, param_prefix):
         if param_prefix.endswith("."):

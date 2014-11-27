@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import unicode_literals
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
@@ -615,3 +617,40 @@ def test_acl_is_ignored_for_now():
     key = bucket.get_key(keyname)
 
     assert key.get_contents_as_string() == content
+
+
+@mock_s3
+def test_unicode_key():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('mybucket')
+    key = Key(bucket)
+    key.key = u'こんにちは.jpg'
+    key.set_contents_from_string('Hello world!')
+    list(bucket.list())
+    key = bucket.get_key(key.key)
+    assert key.get_contents_as_string().decode("utf-8") == 'Hello world!'
+
+
+@mock_s3
+def test_unicode_value():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('mybucket')
+    key = Key(bucket)
+    key.key = 'some_key'
+    key.set_contents_from_string(u'こんにちは.jpg')
+    list(bucket.list())
+    key = bucket.get_key(key.key)
+    assert key.get_contents_as_string().decode("utf-8") == u'こんにちは.jpg'
+
+
+@mock_s3
+def test_setting_content_encoding():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('mybucket')
+    key = bucket.new_key("keyname")
+    key.set_metadata("Content-Encoding", "gzip")
+    compressed_data = "abcdef"
+    key.set_contents_from_string(compressed_data)
+
+    key = bucket.get_key("keyname")
+    key.content_encoding.should.equal("gzip")
