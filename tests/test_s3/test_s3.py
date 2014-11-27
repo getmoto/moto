@@ -641,3 +641,16 @@ def test_unicode_value():
     list(bucket.list())
     key = bucket.get_key(key.key)
     assert key.get_contents_as_string().decode("utf-8") == u'こんにちは.jpg'
+
+
+@mock_s3
+def test_setting_content_encoding():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('mybucket')
+    key = bucket.new_key("keyname")
+    key.set_metadata("Content-Encoding", "gzip")
+    compressed_data = "abcdef"
+    key.set_contents_from_string(compressed_data)
+
+    key = bucket.get_key("keyname")
+    key.content_encoding.should.equal("gzip")
