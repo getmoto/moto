@@ -88,12 +88,18 @@ class InstanceResponse(BaseResponse):
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
         instance, value = self.ec2_backend.describe_instance_attribute(instance_id, key)
-        template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
+
+        if key == "group_set":
+            template = Template(EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE)
+        else:
+            template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
+
         return template.render(instance=instance, attribute=attribute, value=value)
 
     def modify_instance_attribute(self):
         handlers = [self._dot_value_instance_attribute_handler,
-                    self._block_device_mapping_handler]
+                    self._block_device_mapping_handler,
+                    self._security_grp_instance_attribute_handler]
 
         for handler in handlers:
             success = handler()
@@ -161,6 +167,17 @@ class InstanceResponse(BaseResponse):
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
         self.ec2_backend.modify_instance_attribute(instance_id, normalized_attribute, value)
+        return EC2_MODIFY_INSTANCE_ATTRIBUTE
+
+    def _security_grp_instance_attribute_handler(self):
+        new_security_grp_list = []
+        for key, value in self.querystring.items():
+            if 'GroupId.' in key:
+                new_security_grp_list.append(self.querystring.get(key)[0])
+
+        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_id = instance_ids[0]
+        self.ec2_backend.modify_instance_security_groups(instance_id, new_security_grp_list)
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
 
@@ -497,6 +514,18 @@ EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="h
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
     <value>{{ value }}</value>
+  </{{ attribute }}>
+</DescribeInstanceAttributeResponse>"""
+
+EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <instanceId>{{ instance.id }}</instanceId>
+  <{{ attribute }}>
+    {% for sg_id in value %}
+      <item>
+        <groupId>{{ sg_id }}</groupId>
+      </item>
+    {% endfor %}
   </{{ attribute }}>
 </DescribeInstanceAttributeResponse>"""
 

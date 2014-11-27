@@ -274,6 +274,22 @@ def test_instance_attribute_instance_type():
     instance_attribute.should.be.a(InstanceAttribute)
     instance_attribute.get('instanceType').should.equal("m1.small")
 
+@mock_ec2
+def test_modify_instance_attribute_security_groups():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+
+    sg_id = 'sg-1234abcd'
+    sg_id2 = 'sg-abcd4321'
+    instance.modify_attribute("groupSet", [sg_id, sg_id2])
+
+    instance_attribute = instance.get_attribute("groupSet")
+    instance_attribute.should.be.a(InstanceAttribute)
+    group_list = instance_attribute.get('groupSet')
+    any(g.id == sg_id for g in group_list).should.be.ok
+    any(g.id == sg_id2 for g in group_list).should.be.ok
+
 
 @mock_ec2
 def test_instance_attribute_user_data():
