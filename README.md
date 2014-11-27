@@ -192,6 +192,16 @@ $ moto_server ec2 -p3000
 
 Then go to [localhost](http://localhost:5000/?Action=DescribeInstances) to see a list of running instances (it will be empty since you haven't added any yet).
 
+If you want to use boto with this (using the simpler decorators above instead is strongly encouraged), the easiest way is to create a boto config file (`~/.boto`) with the following values:
+
+```
+[Boto]
+is_secure = False
+https_validate_certificates = False
+proxy_port = 5000
+proxy = 127.0.0.1
+```
+
 ## Install
 
 ```console
