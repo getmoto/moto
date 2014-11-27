@@ -1391,7 +1391,9 @@ class VPC(TaggedEC2Resource):
         return self.id
 
     def get_filter_value(self, filter_name):
-        if filter_name == 'cidr':
+        if filter_name == 'vpc-id':
+            return self.id
+        elif filter_name == 'cidr':
             return self.cidr_block
         elif filter_name == 'dhcp-options-id':
             if not self.dhcp_options:
@@ -1704,6 +1706,8 @@ class RouteTable(TaggedEC2Resource):
                 return 'true'
             else:
                 return 'false'
+        elif filter_name == "route-table-id":
+            return self.id
         elif filter_name == "vpc-id":
             return self.vpc_id
         elif filter_name == "association.route-table-id":
