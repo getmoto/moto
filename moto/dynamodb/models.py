@@ -3,13 +3,7 @@ from collections import defaultdict
 import datetime
 import json
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    # python 2.6 or earlier, use backport
-    from ordereddict import OrderedDict
-
-
+from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from .comparisons import get_comparison_func
 from .utils import unix_time

@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-from collections import OrderedDict
 import datetime
 import uuid
 
@@ -8,6 +7,7 @@ import boto.sns
 import requests
 import six
 
+from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime
 from moto.sqs import sqs_backends

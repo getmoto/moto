@@ -1,15 +1,10 @@
 from __future__ import unicode_literals
 
 import boto.kinesis
+from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from .exceptions import StreamNotFoundError, ShardNotFoundError
 from .utils import compose_shard_iterator, compose_new_shard_iterator, decompose_shard_iterator
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    # python 2.6 or earlier, use backport
-    from ordereddict import OrderedDict
 
 
 class Record(object):
