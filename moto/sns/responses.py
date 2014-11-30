@@ -28,13 +28,14 @@ class SNSResponse(BaseResponse):
         })
 
     def list_topics(self):
-        topics = self.backend.list_topics()
+        next_token = self._get_param('NextToken')
+        topics, next_token = self.backend.list_topics(next_token=next_token)
 
         return json.dumps({
             'ListTopicsResponse': {
                 'ListTopicsResult': {
                     'Topics': [{'TopicArn': topic.arn} for topic in topics],
-                    'NextToken': None,
+                    'NextToken': next_token,
                 }
             },
             'ResponseMetadata': {
@@ -124,7 +125,8 @@ class SNSResponse(BaseResponse):
         })
 
     def list_subscriptions(self):
-        subscriptions = self.backend.list_subscriptions()
+        next_token = self._get_param('NextToken')
+        subscriptions, next_token = self.backend.list_subscriptions(next_token=next_token)
 
         return json.dumps({
             "ListSubscriptionsResponse": {
@@ -136,7 +138,7 @@ class SNSResponse(BaseResponse):
                         "Owner": subscription.topic.account_id,
                         "Endpoint": subscription.endpoint,
                     } for subscription in subscriptions],
-                    'NextToken': None,
+                    'NextToken': next_token,
                 },
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
@@ -146,7 +148,8 @@ class SNSResponse(BaseResponse):
 
     def list_subscriptions_by_topic(self):
         topic_arn = self._get_param('TopicArn')
-        subscriptions = self.backend.list_subscriptions(topic_arn)
+        next_token = self._get_param('NextToken')
+        subscriptions, next_token = self.backend.list_subscriptions(topic_arn, next_token=next_token)
 
         return json.dumps({
             "ListSubscriptionsByTopicResponse": {
@@ -158,7 +161,7 @@ class SNSResponse(BaseResponse):
                         "Owner": subscription.topic.account_id,
                         "Endpoint": subscription.endpoint,
                     } for subscription in subscriptions],
-                    'NextToken': None,
+                    'NextToken': next_token,
                 },
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",

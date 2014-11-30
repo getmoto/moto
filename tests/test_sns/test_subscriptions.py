@@ -4,6 +4,7 @@ import boto
 import sure  # noqa
 
 from moto import mock_sns
+from moto.sns.models import DEFAULT_PAGE_SIZE
 
 
 @mock_sns
@@ -48,3 +49,39 @@ def test_getting_subscriptions_by_topic():
     topic1_subscriptions = conn.get_all_subscriptions_by_topic(topic1_arn)["ListSubscriptionsByTopicResponse"]["ListSubscriptionsByTopicResult"]["Subscriptions"]
     topic1_subscriptions.should.have.length_of(1)
     topic1_subscriptions[0]['Endpoint'].should.equal("http://example1.com/")
+
+
+@mock_sns
+def test_subscription_paging():
+    conn = boto.connect_sns()
+    conn.create_topic("topic1")
+    conn.create_topic("topic2")
+
+    topics_json = conn.get_all_topics()
+    topics = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
+    topic1_arn = topics[0]['TopicArn']
+    topic2_arn = topics[1]['TopicArn']
+
+    for index in range(DEFAULT_PAGE_SIZE + int(DEFAULT_PAGE_SIZE / 3)):
+        conn.subscribe(topic1_arn, 'email', 'email_' + str(index) + '@test.com')
+        conn.subscribe(topic2_arn, 'email', 'email_' + str(index) + '@test.com')
+
+    all_subscriptions = conn.get_all_subscriptions()
+    all_subscriptions["ListSubscriptionsResponse"]["ListSubscriptionsResult"]["Subscriptions"].should.have.length_of(DEFAULT_PAGE_SIZE)
+    next_token = all_subscriptions["ListSubscriptionsResponse"]["ListSubscriptionsResult"]["NextToken"]
+    next_token.should.equal(DEFAULT_PAGE_SIZE)
+
+    all_subscriptions = conn.get_all_subscriptions(next_token=next_token * 2)
+    all_subscriptions["ListSubscriptionsResponse"]["ListSubscriptionsResult"]["Subscriptions"].should.have.length_of(int(DEFAULT_PAGE_SIZE * 2 / 3))
+    next_token = all_subscriptions["ListSubscriptionsResponse"]["ListSubscriptionsResult"]["NextToken"]
+    next_token.should.equal(None)
+
+    topic1_subscriptions = conn.get_all_subscriptions_by_topic(topic1_arn)
+    topic1_subscriptions["ListSubscriptionsByTopicResponse"]["ListSubscriptionsByTopicResult"]["Subscriptions"].should.have.length_of(DEFAULT_PAGE_SIZE)
+    next_token = topic1_subscriptions["ListSubscriptionsByTopicResponse"]["ListSubscriptionsByTopicResult"]["NextToken"]
+    next_token.should.equal(DEFAULT_PAGE_SIZE)
+
+    topic1_subscriptions = conn.get_all_subscriptions_by_topic(topic1_arn, next_token=next_token)
+    topic1_subscriptions["ListSubscriptionsByTopicResponse"]["ListSubscriptionsByTopicResult"]["Subscriptions"].should.have.length_of(int(DEFAULT_PAGE_SIZE / 3))
+    next_token = topic1_subscriptions["ListSubscriptionsByTopicResponse"]["ListSubscriptionsByTopicResult"]["NextToken"]
+    next_token.should.equal(None)
