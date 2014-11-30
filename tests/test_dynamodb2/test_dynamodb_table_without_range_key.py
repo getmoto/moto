@@ -384,3 +384,55 @@ def test_get_special_item():
     table.put_item(data=data)
     returned_item = table.get_item(**{'date-joined': 127549192})
     dict(returned_item).should.equal(data)
+
+
+@mock_dynamodb2
+def test_update_item_remove():
+    conn = boto.dynamodb2.connect_to_region("us-west-2")
+    table = Table.create('messages', schema=[
+        HashKey('username')
+    ])
+
+    data = {
+        'username': "steve",
+        'SentBy': 'User A',
+        'SentTo': 'User B',
+    }
+    table.put_item(data=data)
+    key_map = {
+        "S": "steve"
+    }
+
+    # Then remove the SentBy field
+    conn.update_item("messages", key_map, update_expression="REMOVE :SentBy, :SentTo")
+
+    returned_item = table.get_item(username="steve")
+    dict(returned_item).should.equal({
+        'username': "steve",
+    })
+
+
+@mock_dynamodb2
+def test_update_item_set():
+    conn = boto.dynamodb2.connect_to_region("us-west-2")
+    table = Table.create('messages', schema=[
+        HashKey('username')
+    ])
+
+    data = {
+        'username': "steve",
+        'SentBy': 'User A',
+    }
+    table.put_item(data=data)
+    key_map = {
+        "S": "steve"
+    }
+
+    conn.update_item("messages", key_map, update_expression="SET foo=:bar, blah=:baz REMOVE :SentBy")
+
+    returned_item = table.get_item(username="steve")
+    dict(returned_item).should.equal({
+        'username': "steve",
+        'foo': 'bar',
+        'blah': 'baz',
+    })

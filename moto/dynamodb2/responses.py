@@ -315,3 +315,13 @@ class DynamoHandler(BaseResponse):
         else:
             er = 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException'
             return self.error(er)
+
+    def update_item(self):
+        name = self.body['TableName']
+        key = self.body['Key']
+        update_expression = self.body['UpdateExpression']
+        item = dynamodb_backend2.update_item(name, key, update_expression)
+
+        item_dict = item.to_json()
+        item_dict['ConsumedCapacityUnits'] = 0.5
+        return dynamo_json_dump(item_dict)

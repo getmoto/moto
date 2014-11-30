@@ -105,6 +105,26 @@ class Item(object):
             "Item": included
         }
 
+    def update(self, update_expression):
+        ACTION_VALUES = ['SET', 'REMOVE']
+
+        action = None
+        for value in update_expression.split():
+            if value in ACTION_VALUES:
+                # An action
+                action = value
+                continue
+            else:
+                # A Real value
+                value = value.lstrip(":").rstrip(",")
+
+            if action == "REMOVE":
+                self.attrs.pop(value, None)
+            elif action == 'SET':
+                key, value = value.split("=:")
+                # TODO deal with other types
+                self.attrs[key] = DynamoType({"S": value})
+
 
 class Table(object):
 
@@ -182,7 +202,7 @@ class Table(object):
     def has_range_key(self):
         return self.range_key_attr is not None
 
-    def get_item(self, hash_key, range_key):
+    def get_item(self, hash_key, range_key=None):
         if self.has_range_key and not range_key:
             raise ValueError("Table has a range key, but no range key was passed into get_item")
         try:
@@ -293,8 +313,11 @@ class DynamoDBBackend(BaseBackend):
         range_key = DynamoType(keys[table.range_key_attr]) if table.has_range_key else None
         return hash_key, range_key
 
+    def get_table(self, table_name):
+        return self.tables.get(table_name)
+
     def get_item(self, table_name, keys):
-        table = self.tables.get(table_name)
+        table = self.get_table(table_name)
         if not table:
             return None
         hash_key, range_key = self.get_keys_value(table, keys)
@@ -321,6 +344,14 @@ class DynamoDBBackend(BaseBackend):
             scan_filters[key] = (comparison_operator, dynamo_types)
 
         return table.scan(scan_filters)
+
+    def update_item(self, table_name, key, update_expression):
+        table = self.get_table(table_name)
+
+        hash_value = DynamoType(key)
+        item = table.get_item(hash_value)
+        item.update(update_expression)
+        return item
 
     def delete_item(self, table_name, keys):
         table = self.tables.get(table_name)
