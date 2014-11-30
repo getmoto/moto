@@ -9,7 +9,7 @@ import codecs
 import six
 
 from moto.core import BaseBackend
-from moto.core.utils import iso_8601_datetime, rfc_1123_datetime
+from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket
 from .utils import clean_key_name, _VersionedKeyStore
 
@@ -71,7 +71,7 @@ class FakeKey(object):
 
     @property
     def last_modified_ISO8601(self):
-        return iso_8601_datetime(self.last_modified)
+        return iso_8601_datetime_with_milliseconds(self.last_modified)
 
     @property
     def last_modified_RFC1123(self):

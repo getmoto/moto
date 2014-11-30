@@ -75,7 +75,7 @@ def test_publish_to_http():
         "TopicArn": ["arn:aws:sns:us-east-1:123456789012:some-topic"],
         "Subject": ["my subject"],
         "Message": ["my message"],
-        "Timestamp": ["2013-01-01T00:00:00Z"],
+        "Timestamp": ["2013-01-01T00:00:00.000Z"],
         "SignatureVersion": ["1"],
         "Signature": ["EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc="],
         "SigningCertURL": ["https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem"],

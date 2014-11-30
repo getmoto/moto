@@ -133,7 +133,7 @@ def test_last_modified():
     key.set_contents_from_string("some value")
 
     rs = bucket.get_all_keys()
-    rs[0].last_modified.should.equal('2012-01-01T12:00:00Z')
+    rs[0].last_modified.should.equal('2012-01-01T12:00:00.000Z')
 
     bucket.get_key("the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
 

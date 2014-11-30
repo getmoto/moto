@@ -80,8 +80,8 @@ class convert_flask_to_httpretty_response(object):
         return response, status, headers
 
 
-def iso_8601_datetime(datetime):
-    return datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
+def iso_8601_datetime_with_milliseconds(datetime):
+    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + 'Z'
 
 
 def rfc_1123_datetime(datetime):

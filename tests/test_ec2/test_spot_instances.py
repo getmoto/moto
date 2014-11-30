@@ -6,7 +6,7 @@ import sure  # noqa
 
 from moto import mock_ec2
 from moto.backends import get_model
-from moto.core.utils import iso_8601_datetime
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 
 @mock_ec2
@@ -16,8 +16,8 @@ def test_request_spot_instances():
     conn.create_security_group('group1', 'description')
     conn.create_security_group('group2', 'description')
 
-    start = iso_8601_datetime(datetime.datetime(2013, 1, 1))
-    end = iso_8601_datetime(datetime.datetime(2013, 1, 2))
+    start = iso_8601_datetime_with_milliseconds(datetime.datetime(2013, 1, 1))
+    end = iso_8601_datetime_with_milliseconds(datetime.datetime(2013, 1, 2))
 
     request = conn.request_spot_instances(
         price=0.5, image_id='ami-abcd1234', count=1, type='one-time',
@@ -145,7 +145,7 @@ def test_tag_spot_instance_request():
     request = requests[0]
 
     tag_dict = dict(request.tags)
-    tag_dict.should.equal({'tag1' : 'value1', 'tag2' : 'value2'})
+    tag_dict.should.equal({'tag1': 'value1', 'tag2': 'value2'})
 
 
 @mock_ec2
@@ -161,7 +161,7 @@ def test_get_all_spot_instance_requests_filtering():
     request2 = conn.request_spot_instances(
         price=0.5, image_id='ami-abcd1234',
     )
-    request3 = conn.request_spot_instances(
+    conn.request_spot_instances(
         price=0.5, image_id='ami-abcd1234',
     )
     request1[0].add_tag('tag1', 'value1')
@@ -169,16 +169,16 @@ def test_get_all_spot_instance_requests_filtering():
     request2[0].add_tag('tag1', 'value1')
     request2[0].add_tag('tag2', 'wrong')
 
-    requests = conn.get_all_spot_instance_requests(filters={'state' : 'active'})
+    requests = conn.get_all_spot_instance_requests(filters={'state': 'active'})
     requests.should.have.length_of(0)
 
-    requests = conn.get_all_spot_instance_requests(filters={'state' : 'open'})
+    requests = conn.get_all_spot_instance_requests(filters={'state': 'open'})
     requests.should.have.length_of(3)
 
-    requests = conn.get_all_spot_instance_requests(filters={'tag:tag1' : 'value1'})
+    requests = conn.get_all_spot_instance_requests(filters={'tag:tag1': 'value1'})
     requests.should.have.length_of(2)
 
-    requests = conn.get_all_spot_instance_requests(filters={'tag:tag1' : 'value1', 'tag:tag2' : 'value2'})
+    requests = conn.get_all_spot_instance_requests(filters={'tag:tag1': 'value1', 'tag:tag2': 'value2'})
     requests.should.have.length_of(1)
 
 

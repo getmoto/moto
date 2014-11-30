@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import datetime
 from moto.core import BaseBackend
-from moto.core.utils import iso_8601_datetime
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 
 class Token(object):
@@ -13,7 +13,7 @@ class Token(object):
 
     @property
     def expiration_ISO8601(self):
-        return iso_8601_datetime(self.expiration)
+        return iso_8601_datetime_with_milliseconds(self.expiration)
 
 
 class AssumedRole(object):
@@ -27,7 +27,7 @@ class AssumedRole(object):
 
     @property
     def expiration_ISO8601(self):
-        return iso_8601_datetime(self.expiration)
+        return iso_8601_datetime_with_milliseconds(self.expiration)
 
 
 class STSBackend(BaseBackend):
