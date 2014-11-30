@@ -8,12 +8,12 @@ from datetime import datetime
 
 class Role(object):
 
-    def __init__(self, role_id, name, assume_role_policy_document, path, policies):
+    def __init__(self, role_id, name, assume_role_policy_document, path):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
         self.path = path
-        self.policies = policies
+        self.policies = {}
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -185,9 +185,9 @@ class IAMBackend(BaseBackend):
         self.users = {}
         super(IAMBackend, self).__init__()
 
-    def create_role(self, role_name, assume_role_policy_document, path, policies):
+    def create_role(self, role_name, assume_role_policy_document, path):
         role_id = random_resource_id()
-        role = Role(role_id, role_name, assume_role_policy_document, path, policies)
+        role = Role(role_id, role_name, assume_role_policy_document, path)
         self.roles[role_id] = role
         return role
 

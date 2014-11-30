@@ -61,6 +61,12 @@ def test_create_role_and_instance_profile():
     conn.list_roles().roles[0].role_name.should.equal('my-role')
     conn.list_instance_profiles().instance_profiles[0].instance_profile_name.should.equal("my-profile")
 
+@mock_iam()
+def test_create_role():
+    conn = boto.connect_iam()
+    conn.create_role('test')
+    with assert_raises(BotoServerError):
+        conn.create_role('test')
 
 @mock_iam()
 def test_create_group():
