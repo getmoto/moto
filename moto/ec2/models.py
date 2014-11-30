@@ -543,7 +543,14 @@ class InstanceBackend(object):
         setattr(instance, key, value)
         return instance
 
+    def modify_instance_security_groups(self, instance_id, new_group_list):
+        instance = self.get_instance(instance_id)
+        setattr(instance, 'security_groups', new_group_list)
+        return instance
+
     def describe_instance_attribute(self, instance_id, key):
+        if key == 'group_set':
+            key = 'security_groups'
         instance = self.get_instance(instance_id)
         value = getattr(instance, key)
         return instance, value
@@ -2484,7 +2491,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['reserved-instance']:
                 self.raise_not_implemented_error('DescribeReservedInstances')
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['route-table']:
-                self.raise_not_implemented_error('DescribeRouteTables')
+                self.get_route_table(route_table_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['security-group']:
                 self.describe_security_groups(group_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['snapshot']:

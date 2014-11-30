@@ -121,7 +121,16 @@ CREATE_ROUTE_TABLE_RESPONSE = """
          {% endfor %}
       </routeSet>
       <associationSet/>
-      <tagSet/>
+      <tagSet>
+      {% for tag in route_table.get_tags() %}
+        <item>
+          <resourceId>{{ tag.resource_id }}</resourceId>
+          <resourceType>{{ tag.resource_type }}</resourceType>
+          <key>{{ tag.key }}</key>
+          <value>{{ tag.value }}</value>
+        </item>
+      {% endfor %}
+      </tagSet>
    </routeTable>
 </CreateRouteTableResponse>
 """
@@ -172,6 +181,16 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
             {% endfor %}
           </associationSet>
          <tagSet/>
+         <tagSet>
+          {% for tag in route_table.get_tags() %}
+           <item>
+             <resourceId>{{ tag.resource_id }}</resourceId>
+             <resourceType>{{ tag.resource_type }}</resourceType>
+             <key>{{ tag.key }}</key>
+             <value>{{ tag.value }}</value>
+           </item>
+          {% endfor %}
+         </tagSet>
        </item>
      {% endfor %}
    </routeTableSet>

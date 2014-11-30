@@ -418,3 +418,22 @@ def test_routes_vpc_peering_connection():
     new_route.state.should.equal('blackhole')
     new_route.destination_cidr_block.should.equal(ROUTE_CIDR)
 
+
+@mock_ec2
+def test_network_acl_tagging():
+
+    conn = boto.connect_vpc('the_key', 'the secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+
+    route_table = conn.create_route_table(vpc.id)
+    route_table.add_tag("a key", "some value")
+
+    tag = conn.get_all_tags()[0]
+    tag.name.should.equal("a key")
+    tag.value.should.equal("some value")
+
+    all_route_tables = conn.get_all_route_tables()
+    test_route_table = next(na for na in all_route_tables
+                            if na.id == route_table.id)
+    test_route_table.tags.should.have.length_of(1)
+    test_route_table.tags["a key"].should.equal("some value")
