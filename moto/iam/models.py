@@ -26,6 +26,9 @@ class Role(object):
             policies=properties.get('Policies', []),
         )
 
+    def put_policy(self, policy_name, policy_json):
+        self.policies[policy_name] = policy_json
+
     @property
     def physical_resource_id(self):
         return self.id
@@ -201,6 +204,29 @@ class IAMBackend(BaseBackend):
 
     def get_roles(self):
         return self.roles.values()
+
+    def put_role_policy(self, role_name, policy_name, policy_json):
+        role = self.get_role(role_name)
+        if role:
+            role.put_policy(policy_name, policy_json)
+        else:
+            raise BotoServerError(404, 'Not Found')
+
+    def get_role_policy(self, role_name, policy_name):
+        role = self.get_role(role_name)
+        if role:
+            for p, d in role.policies.iteritems():
+                if p == policy_name:
+                    return p, d
+        else:
+            raise BotoServerError(404, 'Not Found')
+
+    def list_role_policies(self, role_name):
+        role = self.get_role(role_name)
+        if role:
+            return role.policies.keys()
+        else:
+            raise BotoServerError(404, 'Not Found')
 
     def create_instance_profile(self, name, path, role_ids):
         instance_profile_id = random_resource_id()
