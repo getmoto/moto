@@ -80,6 +80,14 @@ class InvalidNetworkAclIdError(EC2ClientError):
             .format(network_acl_id))
 
 
+class InvalidVpnGatewayIdError(EC2ClientError):
+    def __init__(self, network_acl_id):
+        super(InvalidVpnGatewayIdError, self).__init__(
+            "InvalidVpnGatewayID.NotFound",
+            "The virtual private gateway ID '{0}' does not exist"
+            .format(network_acl_id))
+
+
 class InvalidNetworkInterfaceIdError(EC2ClientError):
     def __init__(self, eni_id):
         super(InvalidNetworkInterfaceIdError, self).__init__(

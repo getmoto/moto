@@ -81,6 +81,10 @@ def random_network_acl_subnet_association_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['network-acl-subnet-assoc'])
 
 
+def random_vpn_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpn-gateway'])
+
+
 def random_volume_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['volume'])
 

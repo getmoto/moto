@@ -53,7 +53,8 @@ from .exceptions import (
     TagLimitExceeded,
     InvalidID,
     InvalidCIDRSubnetError,
-    InvalidNetworkAclIdError
+    InvalidNetworkAclIdError,
+    InvalidVpnGatewayIdError
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -89,7 +90,8 @@ from .utils import (
     filter_internet_gateways,
     filter_reservations,
     random_network_acl_id,
-    random_network_acl_subnet_association_id)
+    random_network_acl_subnet_association_id,
+    random_vpn_gateway_id)
 
 
 def validate_resource_ids(resource_ids):
@@ -2442,6 +2444,57 @@ class NetworkAclEntry(TaggedEC2Resource):
         self.port_range_to = port_range_to
 
 
+class VpnGateway(TaggedEC2Resource):
+    def __init__(self, ec2_backend, id, type):
+        self.ec2_backend = ec2_backend
+        self.id = id
+        self.type = type
+        self.attachments = {}
+        super(VpnGateway, self).__init__()
+
+
+class VpnGatewayAttachment(object):
+    def __init__(self, vpc_id, state):
+        self.vpc_id = vpc_id
+        self.state = state
+        super(VpnGatewayAttachment, self).__init__()
+
+
+class VpnGatewayBackend(object):
+    def __init__(self):
+        self.vpn_gateways = {}
+        super(VpnGatewayBackend, self).__init__()
+
+    def create_vpn_gateway(self, type='ipsec.1'):
+        vpn_gateway_id = random_vpn_gateway_id()
+        vpn_gateway = VpnGateway(self, vpn_gateway_id, type)
+        self.vpn_gateways[vpn_gateway_id] = vpn_gateway
+        return vpn_gateway
+
+    def get_all_vpn_gateways(self, filters=None):
+        vpn_gateways = self.vpn_gateways.values()
+        return generic_filter(filters, vpn_gateways)
+
+    def get_vpn_gateway(self, vpn_gateway_id):
+        vpn_gateway = self.vpn_gateways.get(vpn_gateway_id, None)
+        if not vpn_gateway:
+            raise InvalidVpnGatewayIdError(vpn_gateway_id)
+        return vpn_gateway
+
+    def attach_vpn_gateway(self, vpn_gateway_id, vpc_id):
+        vpn_gateway = self.get_vpn_gateway(vpn_gateway_id)
+        self.get_vpc(vpc_id)
+        attachment = VpnGatewayAttachment(vpc_id, state='attached')
+        vpn_gateway.attachments[vpc_id] = attachment
+        return attachment
+
+    def delete_vpn_gateway(self, vpn_gateway_id):
+        deleted = self.vpn_gateways.pop(vpn_gateway_id, None)
+        if not deleted:
+            raise InvalidVpnGatewayIdError(vpn_gateway_id)
+        return deleted
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
@@ -2450,7 +2503,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
                  ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend,
-                 NetworkAclBackend):
+                 NetworkAclBackend, VpnGatewayBackend):
 
     def __init__(self, region_name):
         super(EC2Backend, self).__init__()
@@ -2509,7 +2562,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['vpn-connection']:
                 self.raise_not_implemented_error('DescribeVpnConnections')
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['vpn-gateway']:
-                self.raise_not_implemented_error('DescribeVpnGateways')
+                self.get_vpn_gateway(vpn_gateway_id=resource_id)
         return True
 
 ec2_backends = {}
