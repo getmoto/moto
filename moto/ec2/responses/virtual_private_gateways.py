@@ -34,8 +34,14 @@ class VirtualPrivateGateways(BaseResponse):
         return template.render(vpn_gateways=vpn_gateways)
 
     def detach_vpn_gateway(self):
-        raise NotImplementedError('VirtualPrivateGateways(AmazonVPC).detach_vpn_gateway is not yet implemented')
-
+        vpn_gateway_id = self.querystring.get('VpnGatewayId')[0]
+        vpc_id = self.querystring.get('VpcId')[0]
+        attachment = self.ec2_backend.detach_vpn_gateway(
+            vpn_gateway_id,
+            vpc_id
+        )
+        template = Template(DETACH_VPN_GATEWAY_RESPONSE)
+        return template.render(attachment=attachment)
 
 CREATE_VPN_GATEWAY_RESPONSE = """
 <CreateVpnGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2014-10-01/">
@@ -107,4 +113,11 @@ DELETE_VPN_GATEWAY_RESPONSE = """
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <return>true</return>
 </DeleteVpnGatewayResponse>
+"""
+
+DETACH_VPN_GATEWAY_RESPONSE = """
+<DetachVpnGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2014-10-01/">
+   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+   <return>true</return>
+</DetachVpnGatewayResponse>
 """
