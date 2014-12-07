@@ -19,12 +19,19 @@ class Role(object):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
-        return iam_backend.create_role(
+        role = iam_backend.create_role(
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
             path=properties['Path'],
-            policies=properties.get('Policies', []),
         )
+
+        policies = properties.get('Policies', [])
+        for policy in policies:
+            policy_name = policy['PolicyName']
+            policy_json = policy['PolicyDocument']
+            role.put_policy(policy_name, policy_json)
+
+        return role
 
     def put_policy(self, policy_name, policy_json):
         self.policies[policy_name] = policy_json
