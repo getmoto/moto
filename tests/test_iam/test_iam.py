@@ -63,6 +63,33 @@ def test_create_role_and_instance_profile():
 
 
 @mock_iam()
+def test_list_role_policies():
+    conn = boto.connect_iam()
+    conn.create_role("my-role")
+    conn.put_role_policy("my-role", "test policy", "my policy")
+    role = conn.list_role_policies("my-role")
+    role.policy_names[0].should.equal("test policy")
+
+
+@mock_iam()
+def test_put_role_policy():
+    conn = boto.connect_iam()
+    conn.create_role("my-role", assume_role_policy_document="some policy", path="my-path")
+    conn.put_role_policy("my-role", "test policy", "my policy")
+    policy = conn.get_role_policy("my-role", "test policy")['get_role_policy_response']['get_role_policy_result']['policy_name']
+    policy.should.equal("test policy")
+
+
+@mock_iam()
+def test_update_assume_role_policy():
+    conn = boto.connect_iam()
+    role = conn.create_role("my-role")
+    conn.update_assume_role_policy(role.role_name, "my-policy")
+    role = conn.get_role("my-role")
+    role.assume_role_policy_document.should.equal("my-policy")
+
+
+@mock_iam()
 def test_create_group():
     conn = boto.connect_iam()
     conn.create_group('my-group')

@@ -8,12 +8,12 @@ from datetime import datetime
 
 class Role(object):
 
-    def __init__(self, role_id, name, assume_role_policy_document, path, policies):
+    def __init__(self, role_id, name, assume_role_policy_document, path):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
         self.path = path
-        self.policies = policies
+        self.policies = {}
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -25,6 +25,9 @@ class Role(object):
             path=properties['Path'],
             policies=properties.get('Policies', []),
         )
+
+    def put_policy(self, policy_name, policy_json):
+        self.policies[policy_name] = policy_json
 
     @property
     def physical_resource_id(self):
@@ -185,9 +188,9 @@ class IAMBackend(BaseBackend):
         self.users = {}
         super(IAMBackend, self).__init__()
 
-    def create_role(self, role_name, assume_role_policy_document, path, policies):
+    def create_role(self, role_name, assume_role_policy_document, path):
         role_id = random_resource_id()
-        role = Role(role_id, role_name, assume_role_policy_document, path, policies)
+        role = Role(role_id, role_name, assume_role_policy_document, path)
         self.roles[role_id] = role
         return role
 
@@ -201,6 +204,29 @@ class IAMBackend(BaseBackend):
 
     def get_roles(self):
         return self.roles.values()
+
+    def put_role_policy(self, role_name, policy_name, policy_json):
+        role = self.get_role(role_name)
+        if role:
+            role.put_policy(policy_name, policy_json)
+        else:
+            raise BotoServerError(404, 'Not Found')
+
+    def get_role_policy(self, role_name, policy_name):
+        role = self.get_role(role_name)
+        if role:
+            for p, d in role.policies.iteritems():
+                if p == policy_name:
+                    return p, d
+        else:
+            raise BotoServerError(404, 'Not Found')
+
+    def list_role_policies(self, role_name):
+        role = self.get_role(role_name)
+        if role:
+            return role.policies.keys()
+        else:
+            raise BotoServerError(404, 'Not Found')
 
     def create_instance_profile(self, name, path, role_ids):
         instance_profile_id = random_resource_id()

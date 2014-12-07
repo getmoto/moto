@@ -15,7 +15,7 @@ class IamResponse(BaseResponse):
         path = self._get_param('Path')
         assume_role_policy_document = self._get_param('AssumeRolePolicyDocument')
 
-        role = iam_backend.create_role(role_name, assume_role_policy_document, path, policies=[])
+        role = iam_backend.create_role(role_name, assume_role_policy_document, path)
         template = Template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
@@ -25,6 +25,36 @@ class IamResponse(BaseResponse):
 
         template = Template(GET_ROLE_TEMPLATE)
         return template.render(role=role)
+
+    def list_role_policies(self):
+        role_name = self._get_param('RoleName')
+        role_policies_names = iam_backend.list_role_policies(role_name)
+        template = Template(LIST_ROLE_POLICIES)
+        return template.render(role_policies=role_policies_names)
+
+    def put_role_policy(self):
+        role_name = self._get_param('RoleName')
+        policy_name = self._get_param('PolicyName')
+        policy_document = self._get_param('PolicyDocument')
+        iam_backend.put_role_policy(role_name, policy_name, policy_document)
+        template = Template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="PutRolePolicyResponse")
+
+    def get_role_policy(self):
+        role_name = self._get_param('RoleName')
+        policy_name = self._get_param('PolicyName')
+        policy_name, policy_document = iam_backend.get_role_policy(role_name, policy_name)
+        template = Template(GET_ROLE_POLICY_TEMPLATE)
+        return template.render(role_name=role_name,
+                               policy_name=policy_name,
+                               policy_document=policy_document)
+
+    def update_assume_role_policy(self):
+        role_name = self._get_param('RoleName')
+        role = iam_backend.get_role(role_name)
+        role.assume_role_policy_document = self._get_param('PolicyDocument')
+        template = Template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="UpdateAssumeRolePolicyResponse")
 
     def create_instance_profile(self):
         profile_name = self._get_param('InstanceProfileName')
@@ -259,6 +289,17 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
   </ResponseMetadata>
 </CreateRoleResponse>"""
 
+GET_ROLE_POLICY_TEMPLATE = """<GetRolePolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<GetRolePolicyResult>
+  <PolicyName>{{ policy_name }}</PolicyName>
+  <RoleName>{{ role_name }}</RoleName>
+  <PolicyDocument>{{ policy_document }}</PolicyDocument>
+</GetRolePolicyResult>
+<ResponseMetadata>
+  <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</GetRolePolicyResponse>"""
+
 GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <GetRoleResult>
     <Role>
@@ -301,6 +342,20 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
     <RequestId>20f7279f-99ee-11e1-a4c3-27EXAMPLE804</RequestId>
   </ResponseMetadata>
 </ListRolesResponse>"""
+
+LIST_ROLE_POLICIES = """<ListRolePoliciesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<ListRolePoliciesResult>
+  <PolicyNames>
+    {% for policy_name in role_policies %}
+    <member>{{ policy_name }}</member>
+    {% endfor %}
+  </PolicyNames>
+  <IsTruncated>false</IsTruncated>
+</ListRolePoliciesResult>
+<ResponseMetadata>
+  <RequestId>8c7e1816-99f0-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</ListRolePoliciesResponse>"""
 
 LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ListInstanceProfilesResult>
