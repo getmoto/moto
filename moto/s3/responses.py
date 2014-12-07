@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import re
 
-from boto.s3.key import Key
 from jinja2 import Template
 import six
 from six.moves.urllib.parse import parse_qs, urlparse
@@ -10,7 +9,7 @@ from six.moves.urllib.parse import parse_qs, urlparse
 
 from .exceptions import BucketAlreadyExists, MissingBucket
 from .models import s3_backend
-from .utils import bucket_name_from_url
+from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
 
 
@@ -189,14 +188,9 @@ class ResponseObject(object):
         new_key = self.backend.set_key(bucket_name, key, f)
 
         # Metadata
-        meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+        metadata = metadata_from_headers(form)
+        new_key.set_metadata(metadata)
 
-        for form_id in form:
-            result = meta_regex.match(form_id)
-            if result:
-                meta_key = result.group(0).lower()
-                metadata = form[form_id]
-                new_key.set_metadata(meta_key, metadata)
         return 200, headers, ""
 
     def _bucket_response_delete_keys(self, request, bucket_name, headers):
@@ -228,24 +222,6 @@ class ResponseObject(object):
             status_code, headers, response_content = response
             return status_code, headers, response_content
 
-    def _key_set_metadata(self, request, key, replace=False):
-        meta_regex = re.compile('^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
-        if replace is True:
-            key.clear_metadata()
-        for header, value in request.headers.items():
-            if isinstance(header, six.string_types):
-                result = meta_regex.match(header)
-                meta_key = None
-                if result:
-                    # Check for extra metadata
-                    meta_key = result.group(0).lower()
-                elif header.lower() in Key.base_user_settable_fields:
-                    # Check for special metadata that doesn't start with x-amz-meta
-                    meta_key = header
-                if meta_key:
-                    metadata = request.headers[header]
-                    key.set_metadata(meta_key, metadata)
-
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
         query = parse_qs(parsed_url.query)
@@ -270,7 +246,7 @@ class ResponseObject(object):
         elif method == 'DELETE':
             return self._key_response_delete(bucket_name, query, key_name, headers)
         elif method == 'POST':
-            return self._key_response_post(body, parsed_url, bucket_name, query, key_name, headers)
+            return self._key_response_post(request, body, parsed_url, bucket_name, query, key_name, headers)
         else:
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
@@ -328,7 +304,8 @@ class ResponseObject(object):
             mdirective = request.headers.get('x-amz-metadata-directive')
             if mdirective is not None and mdirective == 'REPLACE':
                 new_key = self.backend.get_key(bucket_name, key_name)
-                self._key_set_metadata(request, new_key, replace=True)
+                metadata = metadata_from_headers(request.headers)
+                new_key.set_metadata(metadata, replace=True)
             template = Template(S3_OBJECT_COPY_RESPONSE)
             return template.render(key=src_key)
         streaming_request = hasattr(request, 'streaming') and request.streaming
@@ -344,7 +321,8 @@ class ResponseObject(object):
             new_key = self.backend.set_key(bucket_name, key_name, body,
                                            storage=storage_class)
             request.streaming = True
-            self._key_set_metadata(request, new_key)
+            metadata = metadata_from_headers(request.headers)
+            new_key.set_metadata(metadata)
 
         template = Template(S3_OBJECT_RESPONSE)
         headers.update(new_key.response_dict)
@@ -368,9 +346,11 @@ class ResponseObject(object):
         template = Template(S3_DELETE_OBJECT_SUCCESS)
         return 204, headers, template.render(bucket=removed_key)
 
-    def _key_response_post(self, body, parsed_url, bucket_name, query, key_name, headers):
+    def _key_response_post(self, request, body, parsed_url, bucket_name, query, key_name, headers):
         if body == b'' and parsed_url.query == 'uploads':
-            multipart = self.backend.initiate_multipart(bucket_name, key_name)
+            metadata = metadata_from_headers(request.headers)
+            multipart = self.backend.initiate_multipart(bucket_name, key_name, metadata)
+
             template = Template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(
                 bucket_name=bucket_name,

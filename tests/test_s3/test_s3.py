@@ -88,6 +88,20 @@ def test_multipart_upload():
 
 
 @mock_s3
+def test_multipart_upload_with_headers():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+
+    multipart = bucket.initiate_multipart_upload("the-key", metadata={"foo": "bar"})
+    part1 = b'0' * 10
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    multipart.complete_upload()
+
+    key = bucket.get_key("the-key")
+    key.metadata.should.equal({"foo": "bar"})
+
+
+@mock_s3
 def test_multipart_upload_with_copy_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")

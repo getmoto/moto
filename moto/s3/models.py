@@ -36,11 +36,10 @@ class FakeKey(object):
             r.name = new_name
         return r
 
-    def set_metadata(self, key, metadata):
-        self._metadata[key] = metadata
-
-    def clear_metadata(self):
-        self._metadata = {}
+    def set_metadata(self, metadata, replace=False):
+        if replace:
+            self._metadata = {}
+        self._metadata.update(metadata)
 
     def set_storage_class(self, storage_class):
         self._storage_class = storage_class
@@ -115,8 +114,9 @@ class FakeKey(object):
 
 
 class FakeMultipart(object):
-    def __init__(self, key_name):
+    def __init__(self, key_name, metadata):
         self.key_name = key_name
+        self.metadata = metadata
         self.parts = {}
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
         self.id = rand_b64.decode('utf-8').replace('=', '').replace('+', '')
@@ -267,9 +267,9 @@ class S3Backend(BaseBackend):
                     if str(key._version_id) == str(version_id):
                         return key
 
-    def initiate_multipart(self, bucket_name, key_name):
+    def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)
-        new_multipart = FakeMultipart(key_name)
+        new_multipart = FakeMultipart(key_name, metadata)
         bucket.multiparts[new_multipart.id] = new_multipart
 
         return new_multipart
@@ -282,7 +282,9 @@ class S3Backend(BaseBackend):
             return
         del bucket.multiparts[multipart_id]
 
-        return self.set_key(bucket_name, multipart.key_name, value, etag=etag)
+        key = self.set_key(bucket_name, multipart.key_name, value, etag=etag)
+        key.set_metadata(multipart.metadata)
+        return key
 
     def cancel_multipart(self, bucket_name, multipart_id):
         bucket = self.get_bucket(bucket_name)
