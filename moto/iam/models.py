@@ -222,7 +222,7 @@ class IAMBackend(BaseBackend):
     def get_role_policy(self, role_name, policy_name):
         role = self.get_role(role_name)
         if role:
-            for p, d in role.policies.iteritems():
+            for p, d in role.policies.items():
                 if p == policy_name:
                     return p, d
         else:
