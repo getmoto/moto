@@ -600,3 +600,18 @@ def test_describe_instance_status_with_non_running_instances():
 
     status3 = next((s for s in all_status if s.id == instance3.id), None)
     status3.state_name.should.equal('running')
+
+@mock_ec2
+def test_get_instance_by_security_group():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    
+    conn.run_instances('ami-1234abcd')
+    instance = conn.get_only_instances()[0]
+
+    security_group = conn.create_security_group('test', 'test')
+    conn.modify_instance_attribute(instance.id, "groupSet", [security_group.id])
+    
+    security_group_instances = security_group.instances()
+
+    assert len(security_group_instances) == 1
+    assert security_group_instances[0].id == instance.id
