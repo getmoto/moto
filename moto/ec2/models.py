@@ -1817,12 +1817,12 @@ class RouteTableBackend(object):
 
 class Route(object):
     def __init__(self, route_table, destination_cidr_block, local=False,
-                 internet_gateway=None, instance=None, interface=None, vpc_pcx=None):
+                 gateway=None, instance=None, interface=None, vpc_pcx=None):
         self.id = generate_route_id(route_table.id, destination_cidr_block)
         self.route_table = route_table
         self.destination_cidr_block = destination_cidr_block
         self.local = local
-        self.internet_gateway = internet_gateway
+        self.gateway = gateway
         self.instance = instance
         self.interface = interface
         self.vpc_pcx = vpc_pcx
@@ -1861,8 +1861,15 @@ class RouteBackend(object):
         if interface_id:
             self.raise_not_implemented_error("CreateRoute to NetworkInterfaceId")
 
+        gateway = None
+        if gateway_id:
+            if EC2_RESOURCE_TO_PREFIX['vpn-gateway'] in gateway_id:
+                gateway = self.get_vpn_gateway(gateway_id)
+            elif EC2_RESOURCE_TO_PREFIX['internet-gateway'] in gateway_id:
+                gateway = self.get_internet_gateway(gateway_id)
+
         route = Route(route_table, destination_cidr_block, local=local,
-                      internet_gateway=self.get_internet_gateway(gateway_id) if gateway_id else None,
+                      gateway=gateway,
                       instance=self.get_instance(instance_id) if instance_id else None,
                       interface=None,
                       vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id) if vpc_peering_connection_id else None)
@@ -1879,7 +1886,13 @@ class RouteBackend(object):
         if interface_id:
             self.raise_not_implemented_error("ReplaceRoute to NetworkInterfaceId")
 
-        route.internet_gateway = self.get_internet_gateway(gateway_id) if gateway_id else None
+        route.gateway = None
+        if gateway_id:
+            if EC2_RESOURCE_TO_PREFIX['vpn-gateway'] in gateway_id:
+                route.gateway = self.get_vpn_gateway(gateway_id)
+            elif EC2_RESOURCE_TO_PREFIX['internet-gateway'] in gateway_id:
+                route.gateway = self.get_internet_gateway(gateway_id)
+
         route.instance = self.get_instance(instance_id) if instance_id else None
         route.interface = None
         route.vpc_pcx = self.get_vpc_peering_connection(vpc_peering_connection_id) if vpc_peering_connection_id else None

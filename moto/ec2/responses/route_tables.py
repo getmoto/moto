@@ -17,13 +17,13 @@ class RouteTables(BaseResponse):
         route_table_id = self.querystring.get('RouteTableId')[0]
         destination_cidr_block = self.querystring.get('DestinationCidrBlock')[0]
 
-        internet_gateway_id = optional_from_querystring('GatewayId', self.querystring)
+        gateway_id = optional_from_querystring('GatewayId', self.querystring)
         instance_id = optional_from_querystring('InstanceId', self.querystring)
         interface_id = optional_from_querystring('NetworkInterfaceId', self.querystring)
         pcx_id = optional_from_querystring('VpcPeeringConnectionId', self.querystring)
 
         self.ec2_backend.create_route(route_table_id, destination_cidr_block,
-            gateway_id=internet_gateway_id,
+            gateway_id=gateway_id,
             instance_id=instance_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id)
@@ -67,13 +67,13 @@ class RouteTables(BaseResponse):
         route_table_id = self.querystring.get('RouteTableId')[0]
         destination_cidr_block = self.querystring.get('DestinationCidrBlock')[0]
 
-        internet_gateway_id = optional_from_querystring('GatewayId', self.querystring)
+        gateway_id = optional_from_querystring('GatewayId', self.querystring)
         instance_id = optional_from_querystring('InstanceId', self.querystring)
         interface_id = optional_from_querystring('NetworkInterfaceId', self.querystring)
         pcx_id = optional_from_querystring('VpcPeeringConnectionId', self.querystring)
 
         self.ec2_backend.replace_route(route_table_id, destination_cidr_block,
-            gateway_id=internet_gateway_id,
+            gateway_id=gateway_id,
             instance_id=instance_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id)
@@ -152,8 +152,8 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                   <origin>CreateRouteTable</origin>
                   <state>active</state>
                 {% endif %}
-                {% if route.internet_gateway %}
-                  <gatewayId>{{ route.internet_gateway.id }}</gatewayId>
+                {% if route.gateway %}
+                  <gatewayId>{{ route.gateway.id }}</gatewayId>
                   <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}

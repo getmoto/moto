@@ -419,6 +419,29 @@ def test_routes_vpc_peering_connection():
     new_route.destination_cidr_block.should.equal(ROUTE_CIDR)
 
 
+@requires_boto_gte("2.34.0")
+@mock_ec2
+def test_routes_vpn_gateway():
+
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    main_route_table = conn.get_all_route_tables(filters={'association.main':'true','vpc-id':vpc.id})[0]
+    ROUTE_CIDR = "10.0.0.4/24"
+
+    vpn_gw = conn.create_vpn_gateway(type="ipsec.1")
+
+    conn.create_route(main_route_table.id, ROUTE_CIDR, gateway_id=vpn_gw.id)
+
+    main_route_table = conn.get_all_route_tables(main_route_table.id)[0]
+    new_routes = [route for route in main_route_table.routes if route.destination_cidr_block != vpc.cidr_block]
+    new_routes.should.have.length_of(1)
+
+    new_route = new_routes[0]
+    new_route.gateway_id.should.equal(vpn_gw.id)
+    new_route.instance_id.should.be.none
+    new_route.vpc_peering_connection_id.should.be.none
+
+
 @mock_ec2
 def test_network_acl_tagging():
 
