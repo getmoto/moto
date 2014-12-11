@@ -307,10 +307,27 @@ def test_bucket_with_dash():
 @mock_s3
 def test_create_existing_bucket():
     "Trying to create a bucket that already exists should raise an Error"
-    conn = boto.connect_s3('the_key', 'the_secret')
+    conn = boto.s3.connect_to_region("us-west-2")
     conn.create_bucket("foobar")
     with assert_raises(S3CreateError):
         conn.create_bucket('foobar')
+
+
+@mock_s3
+def test_create_existing_bucket_in_us_east_1():
+    "Trying to create a bucket that already exists in us-east-1 returns the bucket"
+
+    """"
+    http://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html
+    Your previous request to create the named bucket succeeded and you already
+    own it. You get this error in all AWS regions except US Standard,
+    us-east-1. In us-east-1 region, you will get 200 OK, but it is no-op (if
+    bucket exists it Amazon S3 will not do anything).
+    """
+    conn = boto.s3.connect_to_region("us-east-1")
+    conn.create_bucket("foobar")
+    bucket = conn.create_bucket("foobar")
+    bucket.name.should.equal("foobar")
 
 
 @mock_s3

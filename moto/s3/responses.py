@@ -12,6 +12,9 @@ from .models import s3_backend
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
 
+REGION_URL_REGEX = r'\.s3-(.+?)\.amazonaws\.com'
+DEFAULT_REGION_NAME = 'us-east-1'
+
 
 def parse_key_name(pth):
     return pth.lstrip("/")
@@ -45,6 +48,10 @@ class ResponseObject(object):
         parsed_url = urlparse(full_url)
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
+        region_name = DEFAULT_REGION_NAME
+        region_match = re.search(REGION_URL_REGEX, full_url)
+        if region_match:
+            region_name = region_match.groups()[0]
 
         bucket_name = self.bucket_name_from_url(full_url)
         if not bucket_name:
@@ -56,7 +63,7 @@ class ResponseObject(object):
         elif method == 'GET':
             return self._bucket_response_get(bucket_name, querystring, headers)
         elif method == 'PUT':
-            return self._bucket_response_put(request, bucket_name, querystring, headers)
+            return self._bucket_response_put(request, region_name, bucket_name, querystring, headers)
         elif method == 'DELETE':
             return self._bucket_response_delete(bucket_name, headers)
         elif method == 'POST':
@@ -130,7 +137,7 @@ class ResponseObject(object):
             result_folders=result_folders
         )
 
-    def _bucket_response_put(self, request, bucket_name, querystring, headers):
+    def _bucket_response_put(self, request, region_name, bucket_name, querystring, headers):
         if 'versioning' in querystring:
             ver = re.search('<Status>([A-Za-z]+)</Status>', request.body.decode('utf-8'))
             if ver:
@@ -143,7 +150,11 @@ class ResponseObject(object):
             try:
                 new_bucket = self.backend.create_bucket(bucket_name)
             except BucketAlreadyExists:
-                return 409, headers, ""
+                if region_name == DEFAULT_REGION_NAME:
+                    # us-east-1 has different behavior
+                    new_bucket = self.backend.get_bucket(bucket_name)
+                else:
+                    return 409, headers, ""
             template = Template(S3_BUCKET_CREATE_RESPONSE)
             return 200, headers, template.render(bucket=new_bucket)
 
