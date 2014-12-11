@@ -89,6 +89,10 @@ class ResponseObject(object):
             return 200, headers, template.render(
                 bucket_name=bucket_name,
                 uploads=multiparts)
+        elif 'location' in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            template = Template(S3_BUCKET_LOCATION)
+            return 200, headers, template.render(location=bucket.location)
         elif 'versioning' in querystring:
             versioning = self.backend.get_bucket_versioning(bucket_name)
             template = Template(S3_BUCKET_GET_VERSIONING)
@@ -148,7 +152,7 @@ class ResponseObject(object):
                 return 404, headers, ""
         else:
             try:
-                new_bucket = self.backend.create_bucket(bucket_name)
+                new_bucket = self.backend.create_bucket(bucket_name, region_name)
             except BucketAlreadyExists:
                 if region_name == DEFAULT_REGION_NAME:
                     # us-east-1 has different behavior
@@ -469,6 +473,9 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 <RequestId>asdfasdfsdafds</RequestId>
 <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
 </Error>"""
+
+S3_BUCKET_LOCATION = """<?xml version="1.0" encoding="UTF-8"?>
+<LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">{{ location }}</LocationConstraint>"""
 
 S3_BUCKET_VERSIONING = """
 <?xml version="1.0" encoding="UTF-8"?>

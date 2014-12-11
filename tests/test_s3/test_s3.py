@@ -685,3 +685,10 @@ def test_setting_content_encoding():
 
     key = bucket.get_key("keyname")
     key.content_encoding.should.equal("gzip")
+
+
+@mock_s3
+def test_bucket_location():
+    conn = boto.s3.connect_to_region("us-west-2")
+    bucket = conn.create_bucket('mybucket')
+    bucket.get_location().should.equal("us-west-2")
