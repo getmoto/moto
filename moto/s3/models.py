@@ -160,11 +160,16 @@ class FakeMultipart(object):
 
 class FakeBucket(object):
 
-    def __init__(self, name):
+    def __init__(self, name, region_name):
         self.name = name
+        self.region_name = region_name
         self.keys = _VersionedKeyStore()
         self.multiparts = {}
         self.versioning_status = None
+
+    @property
+    def location(self):
+        return self.region_name
 
     @property
     def is_versioned(self):
@@ -184,10 +189,10 @@ class S3Backend(BaseBackend):
     def __init__(self):
         self.buckets = {}
 
-    def create_bucket(self, bucket_name):
+    def create_bucket(self, bucket_name, region_name):
         if bucket_name in self.buckets:
             raise BucketAlreadyExists()
-        new_bucket = FakeBucket(name=bucket_name)
+        new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
         self.buckets[bucket_name] = new_bucket
         return new_bucket
 

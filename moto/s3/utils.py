@@ -6,7 +6,7 @@ import six
 from six.moves.urllib.parse import urlparse, unquote
 import sys
 
-bucket_name_regex = re.compile("(.+).s3.amazonaws.com")
+bucket_name_regex = re.compile("(.+).s3(.*).amazonaws.com")
 
 
 def bucket_name_from_url(url):
