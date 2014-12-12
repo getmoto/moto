@@ -91,7 +91,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 uploads=multiparts)
         elif 'location' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
-            template = Template(S3_BUCKET_LOCATION)
+            template = self.response_template(S3_BUCKET_LOCATION)
             return 200, headers, template.render(location=bucket.location)
         elif 'versioning' in querystring:
             versioning = self.backend.get_bucket_versioning(bucket_name)
