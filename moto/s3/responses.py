@@ -2,10 +2,10 @@ from __future__ import unicode_literals
 
 import re
 
-from jinja2 import Template
 import six
 from six.moves.urllib.parse import parse_qs, urlparse
 
+from moto.core.responses import _TemplateEnvironmentMixin
 
 from .exceptions import BucketAlreadyExists, MissingBucket
 from .models import s3_backend
@@ -17,7 +17,7 @@ def parse_key_name(pth):
     return pth.lstrip("/")
 
 
-class ResponseObject(object):
+class ResponseObject(_TemplateEnvironmentMixin):
     def __init__(self, backend, bucket_name_from_url, parse_key_name):
         self.backend = backend
         self.bucket_name_from_url = bucket_name_from_url
@@ -26,7 +26,7 @@ class ResponseObject(object):
     def all_buckets(self):
         # No bucket specified. Listing all buckets
         all_buckets = self.backend.get_all_buckets()
-        template = Template(S3_ALL_BUCKETS)
+        template = self.response_template(S3_ALL_BUCKETS)
         return template.render(buckets=all_buckets)
 
     def bucket_response(self, request, full_url, headers):
@@ -78,13 +78,13 @@ class ResponseObject(object):
                 if unsup in querystring:
                     raise NotImplementedError("Listing multipart uploads with {} has not been implemented yet.".format(unsup))
             multiparts = list(self.backend.get_all_multiparts(bucket_name).values())
-            template = Template(S3_ALL_MULTIPARTS)
+            template = self.response_template(S3_ALL_MULTIPARTS)
             return 200, headers, template.render(
                 bucket_name=bucket_name,
                 uploads=multiparts)
         elif 'versioning' in querystring:
             versioning = self.backend.get_bucket_versioning(bucket_name)
-            template = Template(S3_BUCKET_GET_VERSIONING)
+            template = self.response_template(S3_BUCKET_GET_VERSIONING)
             return 200, headers, template.render(status=versioning)
         elif 'versions' in querystring:
             delimiter = querystring.get('delimiter', [None])[0]
@@ -103,7 +103,7 @@ class ResponseObject(object):
                 max_keys=max_keys,
                 version_id_marker=version_id_marker
             )
-            template = Template(S3_BUCKET_GET_VERSIONS)
+            template = self.response_template(S3_BUCKET_GET_VERSIONS)
             return 200, headers, template.render(
                 key_list=versions,
                 bucket=bucket,
@@ -121,7 +121,7 @@ class ResponseObject(object):
         prefix = querystring.get('prefix', [None])[0]
         delimiter = querystring.get('delimiter', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
-        template = Template(S3_BUCKET_GET_RESPONSE)
+        template = self.response_template(S3_BUCKET_GET_RESPONSE)
         return 200, headers, template.render(
             bucket=bucket,
             prefix=prefix,
@@ -135,7 +135,7 @@ class ResponseObject(object):
             ver = re.search('<Status>([A-Za-z]+)</Status>', request.body.decode('utf-8'))
             if ver:
                 self.backend.set_bucket_versioning(bucket_name, ver.group(1))
-                template = Template(S3_BUCKET_VERSIONING)
+                template = self.response_template(S3_BUCKET_VERSIONING)
                 return template.render(bucket_versioning_status=ver.group(1))
             else:
                 return 404, headers, ""
@@ -144,7 +144,7 @@ class ResponseObject(object):
                 new_bucket = self.backend.create_bucket(bucket_name)
             except BucketAlreadyExists:
                 return 409, headers, ""
-            template = Template(S3_BUCKET_CREATE_RESPONSE)
+            template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, headers, template.render(bucket=new_bucket)
 
     def _bucket_response_delete(self, bucket_name, headers):
@@ -152,16 +152,16 @@ class ResponseObject(object):
             removed_bucket = self.backend.delete_bucket(bucket_name)
         except MissingBucket:
             # Non-existant bucket
-            template = Template(S3_DELETE_NON_EXISTING_BUCKET)
+            template = self.response_template(S3_DELETE_NON_EXISTING_BUCKET)
             return 404, headers, template.render(bucket_name=bucket_name)
 
         if removed_bucket:
             # Bucket exists
-            template = Template(S3_DELETE_BUCKET_SUCCESS)
+            template = self.response_template(S3_DELETE_BUCKET_SUCCESS)
             return 204, headers, template.render(bucket=removed_bucket)
         else:
             # Tried to delete a bucket that still has keys
-            template = Template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
+            template = self.response_template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
             return 409, headers, template.render(bucket=removed_bucket)
 
     def _bucket_response_post(self, request, bucket_name, headers):
@@ -194,7 +194,7 @@ class ResponseObject(object):
         return 200, headers, ""
 
     def _bucket_response_delete_keys(self, request, bucket_name, headers):
-        template = Template(S3_DELETE_KEYS_RESPONSE)
+        template = self.response_template(S3_DELETE_KEYS_RESPONSE)
 
         keys = minidom.parseString(request.body.decode('utf-8')).getElementsByTagName('Key')
         deleted_names = []
@@ -254,7 +254,7 @@ class ResponseObject(object):
         if 'uploadId' in query:
             upload_id = query['uploadId'][0]
             parts = self.backend.list_multipart(bucket_name, upload_id)
-            template = Template(S3_MULTIPART_LIST_RESPONSE)
+            template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
             return 200, headers, template.render(
                 bucket_name=bucket_name,
                 key_name=key_name,
@@ -281,7 +281,7 @@ class ResponseObject(object):
                 key = self.backend.copy_part(
                     bucket_name, upload_id, part_number, src_bucket,
                     src_key)
-                template = Template(S3_MULTIPART_UPLOAD_RESPONSE)
+                template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
                 response = template.render(part=key)
             else:
                 key = self.backend.set_part(
@@ -306,7 +306,7 @@ class ResponseObject(object):
                 new_key = self.backend.get_key(bucket_name, key_name)
                 metadata = metadata_from_headers(request.headers)
                 new_key.set_metadata(metadata, replace=True)
-            template = Template(S3_OBJECT_COPY_RESPONSE)
+            template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             return template.render(key=src_key)
         streaming_request = hasattr(request, 'streaming') and request.streaming
         closing_connection = headers.get('connection') == 'close'
@@ -324,7 +324,7 @@ class ResponseObject(object):
             metadata = metadata_from_headers(request.headers)
             new_key.set_metadata(metadata)
 
-        template = Template(S3_OBJECT_RESPONSE)
+        template = self.response_template(S3_OBJECT_RESPONSE)
         headers.update(new_key.response_dict)
         return 200, headers, template.render(key=new_key)
 
@@ -343,7 +343,7 @@ class ResponseObject(object):
             self.backend.cancel_multipart(bucket_name, upload_id)
             return 204, headers, ""
         removed_key = self.backend.delete_key(bucket_name, key_name)
-        template = Template(S3_DELETE_OBJECT_SUCCESS)
+        template = self.response_template(S3_DELETE_OBJECT_SUCCESS)
         return 204, headers, template.render(bucket=removed_key)
 
     def _key_response_post(self, request, body, parsed_url, bucket_name, query, key_name, headers):
@@ -351,7 +351,7 @@ class ResponseObject(object):
             metadata = metadata_from_headers(request.headers)
             multipart = self.backend.initiate_multipart(bucket_name, key_name, metadata)
 
-            template = Template(S3_MULTIPART_INITIATE_RESPONSE)
+            template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(
                 bucket_name=bucket_name,
                 key_name=key_name,
@@ -364,13 +364,13 @@ class ResponseObject(object):
             key = self.backend.complete_multipart(bucket_name, upload_id)
 
             if key is not None:
-                template = Template(S3_MULTIPART_COMPLETE_RESPONSE)
+                template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
                 return template.render(
                     bucket_name=bucket_name,
                     key_name=key.name,
                     etag=key.etag,
                 )
-            template = Template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
+            template = self.response_template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
             return 400, headers, template.render()
         elif parsed_url.query == 'restore':
             es = minidom.parseString(body).getElementsByTagName('Days')

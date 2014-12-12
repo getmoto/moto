@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from .models import sts_backend
@@ -10,7 +9,7 @@ class TokenResponse(BaseResponse):
     def get_session_token(self):
         duration = int(self.querystring.get('DurationSeconds', [43200])[0])
         token = sts_backend.get_session_token(duration=duration)
-        template = Template(GET_SESSION_TOKEN_RESPONSE)
+        template = self.response_template(GET_SESSION_TOKEN_RESPONSE)
         return template.render(token=token)
 
     def get_federation_token(self):
@@ -19,7 +18,7 @@ class TokenResponse(BaseResponse):
         name = self.querystring.get('Name')[0]
         token = sts_backend.get_federation_token(
             duration=duration, name=name, policy=policy)
-        template = Template(GET_FEDERATION_TOKEN_RESPONSE)
+        template = self.response_template(GET_FEDERATION_TOKEN_RESPONSE)
         return template.render(token=token)
 
     def assume_role(self):
@@ -37,7 +36,7 @@ class TokenResponse(BaseResponse):
             duration=duration,
             external_id=external_id,
         )
-        template = Template(ASSUME_ROLE_RESPONSE)
+        template = self.response_template(ASSUME_ROLE_RESPONSE)
         return template.render(role=role)
 
 

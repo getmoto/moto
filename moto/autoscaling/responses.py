@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -52,19 +51,19 @@ class AutoScalingResponse(BaseResponse):
             associate_public_ip_address=self._get_param("AssociatePublicIpAddress"),
             block_device_mappings=self._get_list_prefix('BlockDeviceMappings.member')
         )
-        template = Template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
+        template = self.response_template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
 
     def describe_launch_configurations(self):
         names = self._get_multi_param('LaunchConfigurationNames.member')
         launch_configurations = self.autoscaling_backend.describe_launch_configurations(names)
-        template = Template(DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE)
+        template = self.response_template(DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE)
         return template.render(launch_configurations=launch_configurations)
 
     def delete_launch_configuration(self):
         launch_configurations_name = self.querystring.get('LaunchConfigurationName')[0]
         self.autoscaling_backend.delete_launch_configuration(launch_configurations_name)
-        template = Template(DELETE_LAUNCH_CONFIGURATION_TEMPLATE)
+        template = self.response_template(DELETE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
 
     def create_auto_scaling_group(self):
@@ -83,13 +82,13 @@ class AutoScalingResponse(BaseResponse):
             placement_group=self._get_param('PlacementGroup'),
             termination_policies=self._get_multi_param('TerminationPolicies.member'),
         )
-        template = Template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
+        template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
     def describe_auto_scaling_groups(self):
         names = self._get_multi_param("AutoScalingGroupNames.member")
         groups = self.autoscaling_backend.describe_autoscaling_groups(names)
-        template = Template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
+        template = self.response_template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
         return template.render(groups=groups)
 
     def update_auto_scaling_group(self):
@@ -108,25 +107,25 @@ class AutoScalingResponse(BaseResponse):
             placement_group=self._get_param('PlacementGroup'),
             termination_policies=self._get_multi_param('TerminationPolicies.member'),
         )
-        template = Template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
+        template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
     def delete_auto_scaling_group(self):
         group_name = self._get_param('AutoScalingGroupName')
         self.autoscaling_backend.delete_autoscaling_group(group_name)
-        template = Template(DELETE_AUTOSCALING_GROUP_TEMPLATE)
+        template = self.response_template(DELETE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
     def set_desired_capacity(self):
         group_name = self._get_param('AutoScalingGroupName')
         desired_capacity = self._get_int_param('DesiredCapacity')
         self.autoscaling_backend.set_desired_capacity(group_name, desired_capacity)
-        template = Template(SET_DESIRED_CAPACITY_TEMPLATE)
+        template = self.response_template(SET_DESIRED_CAPACITY_TEMPLATE)
         return template.render()
 
     def describe_auto_scaling_instances(self):
         instances = self.autoscaling_backend.describe_autoscaling_instances()
-        template = Template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
+        template = self.response_template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
         return template.render(instances=instances)
 
     def put_scaling_policy(self):
@@ -137,24 +136,24 @@ class AutoScalingResponse(BaseResponse):
             scaling_adjustment=self._get_int_param('ScalingAdjustment'),
             cooldown=self._get_int_param('Cooldown'),
         )
-        template = Template(CREATE_SCALING_POLICY_TEMPLATE)
+        template = self.response_template(CREATE_SCALING_POLICY_TEMPLATE)
         return template.render(policy=policy)
 
     def describe_policies(self):
         policies = self.autoscaling_backend.describe_policies()
-        template = Template(DESCRIBE_SCALING_POLICIES_TEMPLATE)
+        template = self.response_template(DESCRIBE_SCALING_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
     def delete_policy(self):
         group_name = self._get_param('PolicyName')
         self.autoscaling_backend.delete_policy(group_name)
-        template = Template(DELETE_POLICY_TEMPLATE)
+        template = self.response_template(DELETE_POLICY_TEMPLATE)
         return template.render()
 
     def execute_policy(self):
         group_name = self._get_param('PolicyName')
         self.autoscaling_backend.execute_policy(group_name)
-        template = Template(EXECUTE_POLICY_TEMPLATE)
+        template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
 

@@ -4,7 +4,6 @@ from moto.ec2.utils import (
     sequence_from_querystring,
     filters_from_querystring,
 )
-from jinja2 import Template
 
 
 class InternetGateways(BaseResponse):
@@ -12,18 +11,18 @@ class InternetGateways(BaseResponse):
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
         self.ec2_backend.attach_internet_gateway(igw_id, vpc_id)
-        template = Template(ATTACH_INTERNET_GATEWAY_RESPONSE)
+        template = self.response_template(ATTACH_INTERNET_GATEWAY_RESPONSE)
         return template.render()
 
     def create_internet_gateway(self):
         igw = self.ec2_backend.create_internet_gateway()
-        template = Template(CREATE_INTERNET_GATEWAY_RESPONSE)
+        template = self.response_template(CREATE_INTERNET_GATEWAY_RESPONSE)
         return template.render(internet_gateway=igw)
 
     def delete_internet_gateway(self):
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
         self.ec2_backend.delete_internet_gateway(igw_id)
-        template = Template(DELETE_INTERNET_GATEWAY_RESPONSE)
+        template = self.response_template(DELETE_INTERNET_GATEWAY_RESPONSE)
         return template.render()
 
     def describe_internet_gateways(self):
@@ -35,7 +34,7 @@ class InternetGateways(BaseResponse):
         else:
             igws = self.ec2_backend.describe_internet_gateways(filters=filter_dict)
 
-        template = Template(DESCRIBE_INTERNET_GATEWAYS_RESPONSE)
+        template = self.response_template(DESCRIBE_INTERNET_GATEWAYS_RESPONSE)
         return template.render(internet_gateways=igws)
 
     def detach_internet_gateway(self):
@@ -44,7 +43,7 @@ class InternetGateways(BaseResponse):
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
         self.ec2_backend.detach_internet_gateway(igw_id, vpc_id)
-        template = Template(DETACH_INTERNET_GATEWAY_RESPONSE)
+        template = self.response_template(DETACH_INTERNET_GATEWAY_RESPONSE)
         return template.render()
 
 

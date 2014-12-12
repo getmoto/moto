@@ -1,6 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -17,7 +15,7 @@ class SpotInstances(BaseResponse):
     def cancel_spot_instance_requests(self):
         request_ids = self._get_multi_param('SpotInstanceRequestId')
         requests = self.ec2_backend.cancel_spot_instance_requests(request_ids)
-        template = Template(CANCEL_SPOT_INSTANCES_TEMPLATE)
+        template = self.response_template(CANCEL_SPOT_INSTANCES_TEMPLATE)
         return template.render(requests=requests)
 
     def create_spot_datafeed_subscription(self):
@@ -32,7 +30,7 @@ class SpotInstances(BaseResponse):
     def describe_spot_instance_requests(self):
         filters = filters_from_querystring(self.querystring)
         requests = self.ec2_backend.describe_spot_instance_requests(filters=filters)
-        template = Template(DESCRIBE_SPOT_INSTANCES_TEMPLATE)
+        template = self.response_template(DESCRIBE_SPOT_INSTANCES_TEMPLATE)
         return template.render(requests=requests)
 
     def describe_spot_price_history(self):
@@ -77,7 +75,7 @@ class SpotInstances(BaseResponse):
             subnet_id=subnet_id,
         )
 
-        template = Template(REQUEST_SPOT_INSTANCES_TEMPLATE)
+        template = self.response_template(REQUEST_SPOT_INSTANCES_TEMPLATE)
         return template.render(requests=requests)
 
 

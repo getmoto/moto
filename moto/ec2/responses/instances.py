@@ -1,6 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, \
@@ -16,7 +14,7 @@ class InstanceResponse(BaseResponse):
         else:
             reservations = self.ec2_backend.all_reservations(make_copy=True, filters=filter_dict)
 
-        template = Template(EC2_DESCRIBE_INSTANCES)
+        template = self.response_template(EC2_DESCRIBE_INSTANCES)
         return template.render(reservations=reservations)
 
     def run_instances(self):
@@ -38,31 +36,31 @@ class InstanceResponse(BaseResponse):
             key_name=key_name, security_group_ids=security_group_ids,
             nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip)
 
-        template = Template(EC2_RUN_INSTANCES)
+        template = self.response_template(EC2_RUN_INSTANCES)
         return template.render(reservation=new_reservation)
 
     def terminate_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         instances = self.ec2_backend.terminate_instances(instance_ids)
-        template = Template(EC2_TERMINATE_INSTANCES)
+        template = self.response_template(EC2_TERMINATE_INSTANCES)
         return template.render(instances=instances)
 
     def reboot_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         instances = self.ec2_backend.reboot_instances(instance_ids)
-        template = Template(EC2_REBOOT_INSTANCES)
+        template = self.response_template(EC2_REBOOT_INSTANCES)
         return template.render(instances=instances)
 
     def stop_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         instances = self.ec2_backend.stop_instances(instance_ids)
-        template = Template(EC2_STOP_INSTANCES)
+        template = self.response_template(EC2_STOP_INSTANCES)
         return template.render(instances=instances)
 
     def start_instances(self):
         instance_ids = instance_ids_from_querystring(self.querystring)
         instances = self.ec2_backend.start_instances(instance_ids)
-        template = Template(EC2_START_INSTANCES)
+        template = self.response_template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
     def describe_instance_status(self):
@@ -77,7 +75,7 @@ class InstanceResponse(BaseResponse):
         else:
             instances = self.ec2_backend.all_running_instances()
 
-        template = Template(EC2_INSTANCE_STATUS)
+        template = self.response_template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
 
     def describe_instance_attribute(self):
@@ -90,9 +88,9 @@ class InstanceResponse(BaseResponse):
         instance, value = self.ec2_backend.describe_instance_attribute(instance_id, key)
 
         if key == "group_set":
-            template = Template(EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE)
+            template = self.response_template(EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE)
         else:
-            template = Template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
+            template = self.response_template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
 
         return template.render(instance=instance, attribute=attribute, value=value)
 

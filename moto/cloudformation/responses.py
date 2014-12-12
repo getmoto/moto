@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
 import json
 
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 from .models import cloudformation_backends
 
@@ -39,19 +37,19 @@ class CloudFormationResponse(BaseResponse):
             stack_name_or_id = self.querystring.get('StackName')[0]
         stacks = self.cloudformation_backend.describe_stacks(stack_name_or_id)
 
-        template = Template(DESCRIBE_STACKS_TEMPLATE)
+        template = self.response_template(DESCRIBE_STACKS_TEMPLATE)
         return template.render(stacks=stacks)
 
     def describe_stack_resources(self):
         stack_name = self._get_param('StackName')
         stack = self.cloudformation_backend.get_stack(stack_name)
 
-        template = Template(LIST_STACKS_RESOURCES_RESPONSE)
+        template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
         return template.render(stack=stack)
 
     def list_stacks(self):
         stacks = self.cloudformation_backend.list_stacks()
-        template = Template(LIST_STACKS_RESPONSE)
+        template = self.response_template(LIST_STACKS_RESPONSE)
         return template.render(stacks=stacks)
 
     def get_template(self):

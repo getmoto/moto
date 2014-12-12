@@ -1,6 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 
 
@@ -11,7 +9,7 @@ class ElasticBlockStore(BaseResponse):
         device_path = self.querystring.get('Device')[0]
 
         attachment = self.ec2_backend.attach_volume(volume_id, instance_id, device_path)
-        template = Template(ATTACHED_VOLUME_RESPONSE)
+        template = self.response_template(ATTACHED_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
 
     def copy_snapshot(self):
@@ -23,14 +21,14 @@ class ElasticBlockStore(BaseResponse):
             description = self.querystring.get('Description')[0]
         volume_id = self.querystring.get('VolumeId')[0]
         snapshot = self.ec2_backend.create_snapshot(volume_id, description)
-        template = Template(CREATE_SNAPSHOT_RESPONSE)
+        template = self.response_template(CREATE_SNAPSHOT_RESPONSE)
         return template.render(snapshot=snapshot)
 
     def create_volume(self):
         size = self.querystring.get('Size')[0]
         zone = self.querystring.get('AvailabilityZone')[0]
         volume = self.ec2_backend.create_volume(size, zone)
-        template = Template(CREATE_VOLUME_RESPONSE)
+        template = self.response_template(CREATE_VOLUME_RESPONSE)
         return template.render(volume=volume)
 
     def delete_snapshot(self):
@@ -45,12 +43,12 @@ class ElasticBlockStore(BaseResponse):
 
     def describe_snapshots(self):
         snapshots = self.ec2_backend.describe_snapshots()
-        template = Template(DESCRIBE_SNAPSHOTS_RESPONSE)
+        template = self.response_template(DESCRIBE_SNAPSHOTS_RESPONSE)
         return template.render(snapshots=snapshots)
 
     def describe_volumes(self):
         volumes = self.ec2_backend.describe_volumes()
-        template = Template(DESCRIBE_VOLUMES_RESPONSE)
+        template = self.response_template(DESCRIBE_VOLUMES_RESPONSE)
         return template.render(volumes=volumes)
 
     def describe_volume_attribute(self):
@@ -65,7 +63,7 @@ class ElasticBlockStore(BaseResponse):
         device_path = self.querystring.get('Device')[0]
 
         attachment = self.ec2_backend.detach_volume(volume_id, instance_id, device_path)
-        template = Template(DETATCH_VOLUME_RESPONSE)
+        template = self.response_template(DETATCH_VOLUME_RESPONSE)
         return template.render(attachment=attachment)
 
     def enable_volume_io(self):
@@ -77,7 +75,7 @@ class ElasticBlockStore(BaseResponse):
     def describe_snapshot_attribute(self):
         snapshot_id = self.querystring.get('SnapshotId')[0]
         groups = self.ec2_backend.get_create_volume_permission_groups(snapshot_id)
-        template = Template(DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE)
+        template = self.response_template(DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE)
         return template.render(snapshot_id=snapshot_id, groups=groups)
 
     def modify_snapshot_attribute(self):

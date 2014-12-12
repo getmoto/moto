@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -41,7 +40,7 @@ class ElasticMapReduceResponse(BaseResponse):
         steps = self._get_list_prefix('Steps.member')
 
         job_flow = emr_backend.add_job_flow_steps(job_flow_id, steps)
-        template = Template(ADD_JOB_FLOW_STEPS_TEMPLATE)
+        template = self.response_template(ADD_JOB_FLOW_STEPS_TEMPLATE)
         return template.render(job_flow=job_flow)
 
     def run_job_flow(self):
@@ -56,38 +55,38 @@ class ElasticMapReduceResponse(BaseResponse):
             flow_name, log_uri, job_flow_role,
             visible_to_all_users, steps, instance_attrs
         )
-        template = Template(RUN_JOB_FLOW_TEMPLATE)
+        template = self.response_template(RUN_JOB_FLOW_TEMPLATE)
         return template.render(job_flow=job_flow)
 
     def describe_job_flows(self):
         job_flows = emr_backend.describe_job_flows()
-        template = Template(DESCRIBE_JOB_FLOWS_TEMPLATE)
+        template = self.response_template(DESCRIBE_JOB_FLOWS_TEMPLATE)
         return template.render(job_flows=job_flows)
 
     def terminate_job_flows(self):
         job_ids = self._get_multi_param('JobFlowIds.member.')
         job_flows = emr_backend.terminate_job_flows(job_ids)
-        template = Template(TERMINATE_JOB_FLOWS_TEMPLATE)
+        template = self.response_template(TERMINATE_JOB_FLOWS_TEMPLATE)
         return template.render(job_flows=job_flows)
 
     def add_instance_groups(self):
         jobflow_id = self._get_param('JobFlowId')
         instance_groups = self._get_list_prefix('InstanceGroups.member')
         instance_groups = emr_backend.add_instance_groups(jobflow_id, instance_groups)
-        template = Template(ADD_INSTANCE_GROUPS_TEMPLATE)
+        template = self.response_template(ADD_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups)
 
     def modify_instance_groups(self):
         instance_groups = self._get_list_prefix('InstanceGroups.member')
         instance_groups = emr_backend.modify_instance_groups(instance_groups)
-        template = Template(MODIFY_INSTANCE_GROUPS_TEMPLATE)
+        template = self.response_template(MODIFY_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups)
 
     def set_visible_to_all_users(self):
         visible_to_all_users = self._get_param('VisibleToAllUsers')
         job_ids = self._get_multi_param('JobFlowIds.member')
         emr_backend.set_visible_to_all_users(job_ids, visible_to_all_users)
-        template = Template(SET_VISIBLE_TO_ALL_USERS_TEMPLATE)
+        template = self.response_template(SET_VISIBLE_TO_ALL_USERS_TEMPLATE)
         return template.render()
 
 

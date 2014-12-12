@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from .models import ses_backend
@@ -10,30 +9,30 @@ class EmailResponse(BaseResponse):
     def verify_email_identity(self):
         address = self.querystring.get('EmailAddress')[0]
         ses_backend.verify_email_identity(address)
-        template = Template(VERIFY_EMAIL_IDENTITY)
+        template = self.response_template(VERIFY_EMAIL_IDENTITY)
         return template.render()
 
     def list_identities(self):
         identities = ses_backend.list_identities()
-        template = Template(LIST_IDENTITIES_RESPONSE)
+        template = self.response_template(LIST_IDENTITIES_RESPONSE)
         return template.render(identities=identities)
 
     def verify_domain_dkim(self):
         domain = self.querystring.get('Domain')[0]
         ses_backend.verify_domain(domain)
-        template = Template(VERIFY_DOMAIN_DKIM_RESPONSE)
+        template = self.response_template(VERIFY_DOMAIN_DKIM_RESPONSE)
         return template.render()
 
     def verify_domain_identity(self):
         domain = self.querystring.get('Domain')[0]
         ses_backend.verify_domain(domain)
-        template = Template(VERIFY_DOMAIN_DKIM_RESPONSE)
+        template = self.response_template(VERIFY_DOMAIN_DKIM_RESPONSE)
         return template.render()
 
     def delete_identity(self):
         domain = self.querystring.get('Identity')[0]
         ses_backend.delete_identity(domain)
-        template = Template(DELETE_IDENTITY_RESPONSE)
+        template = self.response_template(DELETE_IDENTITY_RESPONSE)
         return template.render()
 
     def send_email(self):
@@ -47,7 +46,7 @@ class EmailResponse(BaseResponse):
         message = ses_backend.send_email(source, subject, body, destination)
         if not message:
             return "Did not have authority to send from email {0}".format(source), dict(status=400)
-        template = Template(SEND_EMAIL_RESPONSE)
+        template = self.response_template(SEND_EMAIL_RESPONSE)
         return template.render(message=message)
 
     def send_raw_email(self):
@@ -58,12 +57,12 @@ class EmailResponse(BaseResponse):
         message = ses_backend.send_raw_email(source, destination, raw_data)
         if not message:
             return "Did not have authority to send from email {0}".format(source), dict(status=400)
-        template = Template(SEND_RAW_EMAIL_RESPONSE)
+        template = self.response_template(SEND_RAW_EMAIL_RESPONSE)
         return template.render(message=message)
 
     def get_send_quota(self):
         quota = ses_backend.get_send_quota()
-        template = Template(GET_SEND_QUOTA_RESPONSE)
+        template = self.response_template(GET_SEND_QUOTA_RESPONSE)
         return template.render(quota=quota)
 
 

@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from .models import elb_backends
@@ -35,7 +34,7 @@ class ELBResponse(BaseResponse):
             zones=availability_zones,
             ports=ports,
         )
-        template = Template(CREATE_LOAD_BALANCER_TEMPLATE)
+        template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
     def create_load_balancer_listeners(self):
@@ -55,13 +54,13 @@ class ELBResponse(BaseResponse):
 
         self.elb_backend.create_load_balancer_listeners(name=load_balancer_name, ports=ports)
 
-        template = Template(CREATE_LOAD_BALANCER_LISTENERS_TEMPLATE)
+        template = self.response_template(CREATE_LOAD_BALANCER_LISTENERS_TEMPLATE)
         return template.render()
 
     def describe_load_balancers(self):
         names = [value[0] for key, value in self.querystring.items() if "LoadBalancerNames.member" in key]
         load_balancers = self.elb_backend.describe_load_balancers(names)
-        template = Template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
+        template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(load_balancers=load_balancers)
 
     def delete_load_balancer_listeners(self):
@@ -78,13 +77,13 @@ class ELBResponse(BaseResponse):
             ports.append(int(port))
 
         self.elb_backend.delete_load_balancer_listeners(load_balancer_name, ports)
-        template = Template(DELETE_LOAD_BALANCER_LISTENERS)
+        template = self.response_template(DELETE_LOAD_BALANCER_LISTENERS)
         return template.render()
 
     def delete_load_balancer(self):
         load_balancer_name = self.querystring.get('LoadBalancerName')[0]
         self.elb_backend.delete_load_balancer(load_balancer_name)
-        template = Template(DELETE_LOAD_BALANCER_TEMPLATE)
+        template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
     def configure_health_check(self):
@@ -96,13 +95,13 @@ class ELBResponse(BaseResponse):
             interval=self.querystring.get('HealthCheck.Interval')[0],
             target=self.querystring.get('HealthCheck.Target')[0],
         )
-        template = Template(CONFIGURE_HEALTH_CHECK_TEMPLATE)
+        template = self.response_template(CONFIGURE_HEALTH_CHECK_TEMPLATE)
         return template.render(check=check)
 
     def register_instances_with_load_balancer(self):
         load_balancer_name = self.querystring.get('LoadBalancerName')[0]
         instance_ids = [value[0] for key, value in self.querystring.items() if "Instances.member" in key]
-        template = Template(REGISTER_INSTANCES_TEMPLATE)
+        template = self.response_template(REGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.register_instances(load_balancer_name, instance_ids)
         return template.render(load_balancer=load_balancer)
 
@@ -113,13 +112,13 @@ class ELBResponse(BaseResponse):
 
         self.elb_backend.set_load_balancer_listener_sslcertificate(load_balancer_name, lb_port, ssl_certificate_id)
 
-        template = Template(SET_LOAD_BALANCER_SSL_CERTIFICATE)
+        template = self.response_template(SET_LOAD_BALANCER_SSL_CERTIFICATE)
         return template.render()
 
     def deregister_instances_from_load_balancer(self):
         load_balancer_name = self.querystring.get('LoadBalancerName')[0]
         instance_ids = [value[0] for key, value in self.querystring.items() if "Instances.member" in key]
-        template = Template(DEREGISTER_INSTANCES_TEMPLATE)
+        template = self.response_template(DEREGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.deregister_instances(load_balancer_name, instance_ids)
         return template.render(load_balancer=load_balancer)
 

@@ -1,6 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -48,7 +46,7 @@ class SecurityGroups(BaseResponse):
         description = self.querystring.get('GroupDescription', [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
         group = self.ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
-        template = Template(CREATE_SECURITY_GROUP_RESPONSE)
+        template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
         return template.render(group=group)
 
     def delete_security_group(self):
@@ -75,7 +73,7 @@ class SecurityGroups(BaseResponse):
             filters=filters
         )
 
-        template = Template(DESCRIBE_SECURITY_GROUPS_RESPONSE)
+        template = self.response_template(DESCRIBE_SECURITY_GROUPS_RESPONSE)
         return template.render(groups=groups)
 
     def revoke_security_group_egress(self):

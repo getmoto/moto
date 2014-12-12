@@ -1,5 +1,3 @@
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import cloudwatch_backend
@@ -48,18 +46,18 @@ class CloudWatchResponse(BaseResponse):
                                                     alarm_actions, ok_actions,
                                                     insufficient_data_actions,
                                                     unit)
-        template = Template(PUT_METRIC_ALARM_TEMPLATE)
+        template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
 
     def describe_alarms(self):
         alarms = cloudwatch_backend.get_all_alarms()
-        template = Template(DESCRIBE_ALARMS_TEMPLATE)
+        template = self.response_template(DESCRIBE_ALARMS_TEMPLATE)
         return template.render(alarms=alarms)
 
     def delete_alarms(self):
         alarm_names = self._get_multi_param('AlarmNames.member')
         cloudwatch_backend.delete_alarms(alarm_names)
-        template = Template(DELETE_METRIC_ALARMS_TEMPLATE)
+        template = self.response_template(DELETE_METRIC_ALARMS_TEMPLATE)
         return template.render()
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
