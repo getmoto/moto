@@ -3,6 +3,8 @@ import datetime
 import json
 import re
 
+from jinja2 import Environment, DictLoader, TemplateNotFound
+
 import six
 from six.moves.urllib.parse import parse_qs, urlparse
 
@@ -41,7 +43,41 @@ def _decode_dict(d):
     return decoded
 
 
-class BaseResponse(object):
+class DynamicDictLoader(DictLoader):
+    """
+      Note: There's a bug in jinja2 pre-2.7.3 DictLoader where caching does not work.
+        Including the fixed (current) method version here to ensure performance benefit
+        even for those using older jinja versions.
+    """
+    def get_source(self, environment, template):
+        if template in self.mapping:
+            source = self.mapping[template]
+            return source, None, lambda: source == self.mapping.get(template)
+        raise TemplateNotFound(template)
+
+    def update(self, mapping):
+        self.mapping.update(mapping)
+
+    def contains(self, template):
+        return bool(template in self.mapping)
+
+
+class _TemplateEnvironmentMixin(object):
+    loader = DynamicDictLoader({})
+    environment = Environment(loader=loader)
+
+    def contains_template(self, template_id):
+        return self.loader.contains(template_id)
+
+    def response_template(self, source):
+        template_id = id(source)
+        if not self.contains_template(template_id):
+            self.loader.update({template_id: source})
+            self.environment = Environment(loader=self.loader)
+        return self.environment.get_template(template_id)
+
+
+class BaseResponse(_TemplateEnvironmentMixin):
 
     default_region = 'us-east-1'
     region_regex = r'\.(.+?)\.amazonaws\.com'

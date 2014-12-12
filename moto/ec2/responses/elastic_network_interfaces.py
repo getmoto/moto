@@ -1,6 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import sequence_from_querystring, filters_from_querystring
 
@@ -12,13 +10,13 @@ class ElasticNetworkInterfaces(BaseResponse):
         groups = sequence_from_querystring('SecurityGroupId', self.querystring)
         subnet = self.ec2_backend.get_subnet(subnet_id)
         eni = self.ec2_backend.create_network_interface(subnet, private_ip_address, groups)
-        template = Template(CREATE_NETWORK_INTERFACE_RESPONSE)
+        template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
         return template.render(eni=eni)
 
     def delete_network_interface(self):
         eni_id = self.querystring.get('NetworkInterfaceId')[0]
         self.ec2_backend.delete_network_interface(eni_id)
-        template = Template(DELETE_NETWORK_INTERFACE_RESPONSE)
+        template = self.response_template(DELETE_NETWORK_INTERFACE_RESPONSE)
         return template.render()
 
     def describe_network_interface_attribute(self):
@@ -28,7 +26,7 @@ class ElasticNetworkInterfaces(BaseResponse):
         # Partially implemented. Supports only network-interface-id and group-id filters
         filters = filters_from_querystring(self.querystring)
         enis = self.ec2_backend.describe_network_interfaces(filters)
-        template = Template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
+        template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
         return template.render(enis=enis)
 
     def attach_network_interface(self):
@@ -36,13 +34,13 @@ class ElasticNetworkInterfaces(BaseResponse):
         instance_id = self.querystring.get('InstanceId')[0]
         device_index = self.querystring.get('DeviceIndex')[0]
         attachment_id = self.ec2_backend.attach_network_interface(eni_id, instance_id, device_index)
-        template = Template(ATTACH_NETWORK_INTERFACE_RESPONSE)
+        template = self.response_template(ATTACH_NETWORK_INTERFACE_RESPONSE)
         return template.render(attachment_id=attachment_id)
 
     def detach_network_interface(self):
         attachment_id = self.querystring.get('AttachmentId')[0]
         self.ec2_backend.detach_network_interface(attachment_id)
-        template = Template(DETACH_NETWORK_INTERFACE_RESPONSE)
+        template = self.response_template(DETACH_NETWORK_INTERFACE_RESPONSE)
         return template.render()
 
     def modify_network_interface_attribute(self):

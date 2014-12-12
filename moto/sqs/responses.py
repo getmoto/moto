@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -30,14 +29,14 @@ class QueuesResponse(BaseResponse):
 
         queue_name = self.querystring.get("QueueName")[0]
         queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=visibility_timeout)
-        template = Template(CREATE_QUEUE_RESPONSE)
+        template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 
     def get_queue_url(self):
         queue_name = self.querystring.get("QueueName")[0]
         queue = self.sqs_backend.get_queue(queue_name)
         if queue:
-            template = Template(GET_QUEUE_URL_RESPONSE)
+            template = self.response_template(GET_QUEUE_URL_RESPONSE)
             return template.render(queue=queue)
         else:
             return "", dict(status=404)
@@ -45,7 +44,7 @@ class QueuesResponse(BaseResponse):
     def list_queues(self):
         queue_name_prefix = self.querystring.get("QueueNamePrefix", [None])[0]
         queues = self.sqs_backend.list_queues(queue_name_prefix)
-        template = Template(LIST_QUEUES_RESPONSE)
+        template = self.response_template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues)
 
 
@@ -76,13 +75,13 @@ class QueueResponse(BaseResponse):
         except (ReceiptHandleIsInvalid, MessageNotInflight) as e:
             return "Invalid request: {0}".format(e.description), dict(status=e.status_code)
 
-        template = Template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
+        template = self.response_template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()
 
     def get_queue_attributes(self):
         queue_name = self.path.split("/")[-1]
         queue = self.sqs_backend.get_queue(queue_name)
-        template = Template(GET_QUEUE_ATTRIBUTES_RESPONSE)
+        template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
 
     def set_queue_attributes(self):
@@ -97,7 +96,7 @@ class QueueResponse(BaseResponse):
         queue = self.sqs_backend.delete_queue(queue_name)
         if not queue:
             return "A queue with name {0} does not exist".format(queue_name), dict(status=404)
-        template = Template(DELETE_QUEUE_RESPONSE)
+        template = self.response_template(DELETE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 
     def send_message(self):
@@ -121,7 +120,7 @@ class QueueResponse(BaseResponse):
             message_attributes=message_attributes,
             delay_seconds=delay_seconds
         )
-        template = Template(SEND_MESSAGE_RESPONSE)
+        template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
 
     def send_message_batch(self):
@@ -161,14 +160,14 @@ class QueueResponse(BaseResponse):
 
             messages.append(message)
 
-        template = Template(SEND_MESSAGE_BATCH_RESPONSE)
+        template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)
         return template.render(messages=messages)
 
     def delete_message(self):
         queue_name = self.path.split("/")[-1]
         receipt_handle = self.querystring.get("ReceiptHandle")[0]
         self.sqs_backend.delete_message(queue_name, receipt_handle)
-        template = Template(DELETE_MESSAGE_RESPONSE)
+        template = self.response_template(DELETE_MESSAGE_RESPONSE)
         return template.render()
 
     def delete_message_batch(self):
@@ -198,14 +197,14 @@ class QueueResponse(BaseResponse):
             message_user_id = self.querystring.get(message_user_id_key)[0]
             message_ids.append(message_user_id)
 
-        template = Template(DELETE_MESSAGE_BATCH_RESPONSE)
+        template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
         return template.render(message_ids=message_ids)
 
     def receive_message(self):
         queue_name = self.path.split("/")[-1]
         message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
         messages = self.sqs_backend.receive_messages(queue_name, message_count)
-        template = Template(RECEIVE_MESSAGE_RESPONSE)
+        template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         output = template.render(messages=messages)
         return output
 

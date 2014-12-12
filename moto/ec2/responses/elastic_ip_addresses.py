@@ -1,6 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import sequence_from_querystring
 
@@ -12,7 +10,7 @@ class ElasticIPAddresses(BaseResponse):
         else:
             domain = "standard"
         address = self.ec2_backend.allocate_address(domain)
-        template = Template(ALLOCATE_ADDRESS_RESPONSE)
+        template = self.response_template(ALLOCATE_ADDRESS_RESPONSE)
         return template.render(address=address)
 
     def associate_address(self):
@@ -39,11 +37,11 @@ class ElasticIPAddresses(BaseResponse):
         else:
             self.ec2_backend.raise_error("MissingParameter", "Invalid request, expect either instance or ENI.")
 
-        template = Template(ASSOCIATE_ADDRESS_RESPONSE)
+        template = self.response_template(ASSOCIATE_ADDRESS_RESPONSE)
         return template.render(address=eip)
 
     def describe_addresses(self):
-        template = Template(DESCRIBE_ADDRESS_RESPONSE)
+        template = self.response_template(DESCRIBE_ADDRESS_RESPONSE)
 
         if "Filter.1.Name" in self.querystring:
             raise NotImplementedError("Filtering not supported in describe_address.")
@@ -65,7 +63,7 @@ class ElasticIPAddresses(BaseResponse):
         else:
             self.ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AssociationId parameter.")
 
-        return Template(DISASSOCIATE_ADDRESS_RESPONSE).render()
+        return self.response_template(DISASSOCIATE_ADDRESS_RESPONSE).render()
 
     def release_address(self):
         if "PublicIp" in self.querystring:
@@ -75,7 +73,7 @@ class ElasticIPAddresses(BaseResponse):
         else:
             self.ec2_backend.raise_error("MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")
 
-        return Template(RELEASE_ADDRESS_RESPONSE).render()
+        return self.response_template(RELEASE_ADDRESS_RESPONSE).render()
 
 
 ALLOCATE_ADDRESS_RESPONSE = """<AllocateAddressResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">

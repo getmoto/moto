@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring, \
     network_acl_ids_from_querystring
@@ -10,7 +9,7 @@ class NetworkACLs(BaseResponse):
     def create_network_acl(self):
         vpc_id = self.querystring.get('VpcId')[0]
         network_acl = self.ec2_backend.create_network_acl(vpc_id)
-        template = Template(CREATE_NETWORK_ACL_RESPONSE)
+        template = self.response_template(CREATE_NETWORK_ACL_RESPONSE)
         return template.render(network_acl=network_acl)
 
     def create_network_acl_entry(self):
@@ -30,13 +29,13 @@ class NetworkACLs(BaseResponse):
             egress, cidr_block, icmp_code, icmp_type,
             port_range_from, port_range_to)
 
-        template = Template(CREATE_NETWORK_ACL_ENTRY_RESPONSE)
+        template = self.response_template(CREATE_NETWORK_ACL_ENTRY_RESPONSE)
         return template.render(network_acl_entry=network_acl_entry)
 
     def delete_network_acl(self):
         network_acl_id = self.querystring.get('NetworkAclId')[0]
         self.ec2_backend.delete_network_acl(network_acl_id)
-        template = Template(DELETE_NETWORK_ACL_ASSOCIATION)
+        template = self.response_template(DELETE_NETWORK_ACL_ASSOCIATION)
         return template.render()
 
     def delete_network_acl_entry(self):
@@ -47,7 +46,7 @@ class NetworkACLs(BaseResponse):
         network_acl_ids = network_acl_ids_from_querystring(self.querystring)
         filters = filters_from_querystring(self.querystring)
         network_acls = self.ec2_backend.get_all_network_acls(network_acl_ids, filters)
-        template = Template(DESCRIBE_NETWORK_ACL_RESPONSE)
+        template = self.response_template(DESCRIBE_NETWORK_ACL_RESPONSE)
         return template.render(network_acls=network_acls)
 
     def replace_network_acl_association(self):
@@ -58,7 +57,7 @@ class NetworkACLs(BaseResponse):
             association_id,
             network_acl_id
         )
-        template = Template(REPLACE_NETWORK_ACL_ASSOCIATION)
+        template = self.response_template(REPLACE_NETWORK_ACL_ASSOCIATION)
         return template.render(association=association)
 
     def replace_network_acl_entry(self):

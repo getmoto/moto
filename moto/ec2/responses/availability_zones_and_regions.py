@@ -1,18 +1,16 @@
 from __future__ import unicode_literals
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 
 
 class AvailabilityZonesAndRegions(BaseResponse):
     def describe_availability_zones(self):
         zones = self.ec2_backend.describe_availability_zones()
-        template = Template(DESCRIBE_ZONES_RESPONSE)
+        template = self.response_template(DESCRIBE_ZONES_RESPONSE)
         return template.render(zones=zones)
 
     def describe_regions(self):
         regions = self.ec2_backend.describe_regions()
-        template = Template(DESCRIBE_REGIONS_RESPONSE)
+        template = self.response_template(DESCRIBE_REGIONS_RESPONSE)
         return template.render(regions=regions)
 
 DESCRIBE_REGIONS_RESPONSE = """<DescribeRegionsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">

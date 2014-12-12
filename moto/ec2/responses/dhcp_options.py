@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import (
     dhcp_configuration_from_querystring,
@@ -16,7 +15,7 @@ class DHCPOptions(BaseResponse):
 
         self.ec2_backend.associate_dhcp_options(dhcp_opt, vpc)
 
-        template = Template(ASSOCIATE_DHCP_OPTIONS_RESPONSE)
+        template = self.response_template(ASSOCIATE_DHCP_OPTIONS_RESPONSE)
         return template.render()
 
     def create_dhcp_options(self):
@@ -38,13 +37,13 @@ class DHCPOptions(BaseResponse):
             netbios_node_type=netbios_node_type
         )
 
-        template = Template(CREATE_DHCP_OPTIONS_RESPONSE)
+        template = self.response_template(CREATE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options_set=dhcp_options_set)
 
     def delete_dhcp_options(self):
         dhcp_opt_id = self.querystring.get("DhcpOptionsId", [None])[0]
         delete_status = self.ec2_backend.delete_dhcp_options_set(dhcp_opt_id)
-        template = Template(DELETE_DHCP_OPTIONS_RESPONSE)
+        template = self.response_template(DELETE_DHCP_OPTIONS_RESPONSE)
         return template.render(delete_status=delete_status)
 
     def describe_dhcp_options(self):
@@ -55,7 +54,7 @@ class DHCPOptions(BaseResponse):
             dhcp_opt = self.ec2_backend.describe_dhcp_options(dhcp_opt_ids)
         else:
             dhcp_opt = self.ec2_backend.describe_dhcp_options()
-        template = Template(DESCRIBE_DHCP_OPTIONS_RESPONSE)
+        template = self.response_template(DESCRIBE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options=dhcp_opt)
 
 

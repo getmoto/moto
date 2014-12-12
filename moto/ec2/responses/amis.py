@@ -1,6 +1,4 @@
 from __future__ import unicode_literals
-from jinja2 import Template
-
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring, filters_from_querystring
 
@@ -15,7 +13,7 @@ class AmisResponse(BaseResponse):
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
         image = self.ec2_backend.create_image(instance_id, name, description)
-        template = Template(CREATE_IMAGE_RESPONSE)
+        template = self.response_template(CREATE_IMAGE_RESPONSE)
         return template.render(image=image)
 
     def copy_image(self):
@@ -24,26 +22,26 @@ class AmisResponse(BaseResponse):
         name = self.querystring.get('Name')[0] if self.querystring.get('Name') else None
         description = self.querystring.get('Description')[0] if self.querystring.get('Description') else None
         image = self.ec2_backend.copy_image(source_image_id, source_region, name, description)
-        template = Template(COPY_IMAGE_RESPONSE)
+        template = self.response_template(COPY_IMAGE_RESPONSE)
         return template.render(image=image)
 
     def deregister_image(self):
         ami_id = self.querystring.get('ImageId')[0]
         success = self.ec2_backend.deregister_image(ami_id)
-        template = Template(DEREGISTER_IMAGE_RESPONSE)
+        template = self.response_template(DEREGISTER_IMAGE_RESPONSE)
         return template.render(success=str(success).lower())
 
     def describe_images(self):
         ami_ids = image_ids_from_querystring(self.querystring)
         filters = filters_from_querystring(self.querystring)
         images = self.ec2_backend.describe_images(ami_ids=ami_ids, filters=filters)
-        template = Template(DESCRIBE_IMAGES_RESPONSE)
+        template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 
     def describe_image_attribute(self):
         ami_id = self.querystring.get('ImageId')[0]
         groups = self.ec2_backend.get_launch_permission_groups(ami_id)
-        template = Template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
+        template = self.response_template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
         return template.render(ami_id=ami_id, groups=groups)
 
     def modify_image_attribute(self):
