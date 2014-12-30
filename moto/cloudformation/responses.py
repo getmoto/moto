@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
+
 import json
+import urlparse
 
 from moto.core.responses import BaseResponse
+from moto.s3 import s3_backend
 from .models import cloudformation_backends
 
 
@@ -11,9 +14,20 @@ class CloudFormationResponse(BaseResponse):
     def cloudformation_backend(self):
         return cloudformation_backends[self.region]
 
+    def _get_stack_from_s3_url(self, template_url):
+        template_url_parts = urlparse.urlparse(template_url)
+        bucket_name = template_url_parts.netloc.split(".")[0]
+        key_name = template_url_parts.path.lstrip("/")
+
+        key = s3_backend.get_key(bucket_name, key_name)
+        return key.value
+
     def create_stack(self):
         stack_name = self._get_param('StackName')
         stack_body = self._get_param('TemplateBody')
+        template_url = self._get_param('TemplateURL')
+        if template_url:
+            stack_body = self._get_stack_from_s3_url(template_url)
         stack_notification_arns = self._get_multi_param('NotificationARNs.member')
 
         stack = self.cloudformation_backend.create_stack(

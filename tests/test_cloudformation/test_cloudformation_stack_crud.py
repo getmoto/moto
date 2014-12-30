@@ -3,13 +3,15 @@ from __future__ import unicode_literals
 import json
 
 import boto
+import boto.s3
+import boto.s3.key
 import boto.cloudformation
 import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_cloudformation
+from moto import mock_cloudformation, mock_s3
 from moto.cloudformation.exceptions import ValidationError
 
 dummy_template = {
@@ -64,6 +66,24 @@ def test_create_stack_with_notification_arn():
 
     stack = conn.describe_stacks()[0]
     [n.value for n in stack.notification_arns].should.contain('arn:aws:sns:us-east-1:123456789012:fake-queue')
+
+
+@mock_cloudformation
+@mock_s3
+def test_create_stack_from_s3_url():
+    s3_conn = boto.s3.connect_to_region('us-west-1')
+    bucket = s3_conn.create_bucket("foobar")
+    key = boto.s3.key.Key(bucket)
+    key.key = "template-key"
+    key.set_contents_from_string(dummy_template_json)
+    key_url = key.generate_url(expires_in=0, query_auth=False)
+
+    conn = boto.cloudformation.connect_to_region('us-west-1')
+    conn.create_stack('new-stack', template_url=key_url)
+
+    stack = conn.describe_stacks()[0]
+    stack.stack_name.should.equal('new-stack')
+    stack.get_template().should.equal(dummy_template)
 
 
 @mock_cloudformation
