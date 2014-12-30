@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import json
-import urlparse
+from six.moves.urllib_parse import urlparse
 
 from moto.core.responses import BaseResponse
 from moto.s3 import s3_backend
@@ -15,12 +15,12 @@ class CloudFormationResponse(BaseResponse):
         return cloudformation_backends[self.region]
 
     def _get_stack_from_s3_url(self, template_url):
-        template_url_parts = urlparse.urlparse(template_url)
+        template_url_parts = urlparse(template_url)
         bucket_name = template_url_parts.netloc.split(".")[0]
         key_name = template_url_parts.path.lstrip("/")
 
         key = s3_backend.get_key(bucket_name, key_name)
-        return key.value
+        return key.value.decode("utf-8")
 
     def create_stack(self):
         stack_name = self._get_param('StackName')
