@@ -8,7 +8,7 @@ from moto.elb import models as elb_models
 from moto.iam import models as iam_models
 from moto.sqs import models as sqs_models
 from .utils import random_suffix
-from .exceptions import UnformattedGetAttTemplateException
+from .exceptions import MissingParameterError, UnformattedGetAttTemplateException
 from boto.cloudformation.stack import Output
 from boto.exception import BotoServerError
 
@@ -164,10 +164,12 @@ class ResourceMap(collections.Mapping):
     each resources is passed this lazy map that it can grab dependencies from.
     """
 
-    def __init__(self, stack_id, stack_name, region_name, template):
+    def __init__(self, stack_id, stack_name, parameters, region_name, template):
         self._template = template
         self._resource_json_map = template['Resources']
         self._region_name = region_name
+        self.input_parameters = parameters
+        self.resolved_parameters = {}
 
         # Create the default resources
         self._parsed_resources = {
@@ -199,10 +201,22 @@ class ResourceMap(collections.Mapping):
         return self._resource_json_map.keys()
 
     def load_parameters(self):
-        parameters = self._template.get('Parameters', {})
-        for parameter_name, parameter in parameters.items():
-            # Just initialize parameters to empty string for now.
-            self._parsed_resources[parameter_name] = ""
+        parameter_slots = self._template.get('Parameters', {})
+        for parameter_name, parameter in parameter_slots.items():
+            # Set the default values.
+            self.resolved_parameters[parameter_name] = parameter.get('Default')
+
+        # Set any input parameters that were passed
+        for key, value in self.input_parameters.items():
+            if key in self.resolved_parameters:
+                self.resolved_parameters[key] = value
+
+        # Check if there are any non-default params that were not passed input params
+        for key, value in self.resolved_parameters.items():
+            if value is None:
+                raise MissingParameterError(key)
+
+        self._parsed_resources.update(self.resolved_parameters)
 
     def create(self):
         self.load_parameters()

@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from boto.exception import BotoServerError
+from werkzeug.exceptions import BadRequest
 from jinja2 import Template
 
 
@@ -8,17 +8,31 @@ class UnformattedGetAttTemplateException(Exception):
     status_code = 400
 
 
-class ValidationError(BotoServerError):
+class ValidationError(BadRequest):
     def __init__(self, name_or_id):
-        template = Template(STACK_DOES_NOT_EXIST_RESPONSE)
-        super(ValidationError, self).__init__(status=400, reason='Bad Request',
-                                              body=template.render(name_or_id=name_or_id))
+        template = Template(ERROR_RESPONSE)
+        super(ValidationError, self).__init__()
+        self.description = template.render(
+            code="ValidationError",
+            messgae="Stack:{0} does not exist".format(name_or_id),
+        )
 
-STACK_DOES_NOT_EXIST_RESPONSE = """<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+
+class MissingParameterError(BadRequest):
+    def __init__(self, parameter_name):
+        template = Template(ERROR_RESPONSE)
+        super(MissingParameterError, self).__init__()
+        self.description = template.render(
+            code="Missing Parameter",
+            messgae="Missing parameter {0}".format(parameter_name),
+        )
+
+
+ERROR_RESPONSE = """<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <Error>
     <Type>Sender</Type>
-    <Code>ValidationError</Code>
-    <Message>Stack:{{ name_or_id }} does not exist</Message>
+    <Code>{{ code }}</Code>
+    <Message>{{ message }}</Message>
   </Error>
   <RequestId>cf4c737e-5ae2-11e4-a7c9-ad44eEXAMPLE</RequestId>
 </ErrorResponse>

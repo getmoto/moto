@@ -6,6 +6,7 @@ import boto.cloudformation
 import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
+from boto.exception import BotoServerError
 import boto.iam
 import boto.vpc
 import sure  # noqa
@@ -311,6 +312,7 @@ def test_vpc_single_instance_in_subnet():
     conn.create_stack(
         "test_stack",
         template_body=template_json,
+        parameters=[("KeyName", "my_key")],
     )
 
     vpc_conn = boto.vpc.connect_to_region("us-west-1")
@@ -474,6 +476,7 @@ def test_single_instance_with_ebs_volume():
     conn.create_stack(
         "test_stack",
         template_body=template_json,
+        parameters=[("KeyName", "key_name")]
     )
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
@@ -488,6 +491,16 @@ def test_single_instance_with_ebs_volume():
     resources = stack.describe_resources()
     ebs_volume = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Volume'][0]
     ebs_volume.physical_resource_id.should.equal(volume.id)
+
+
+@mock_cloudformation()
+def test_create_template_without_required_param():
+    template_json = json.dumps(single_instance_with_ebs_volume.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack.when.called_with(
+        "test_stack",
+        template_body=template_json,
+    ).should.throw(BotoServerError)
 
 
 @mock_ec2()

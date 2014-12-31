@@ -10,22 +10,27 @@ from .exceptions import ValidationError
 
 
 class FakeStack(object):
-    def __init__(self, stack_id, name, template, region_name, notification_arns=None):
+    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None):
         self.stack_id = stack_id
         self.name = name
+        self.template = template
+        self.parameters = parameters
         self.region_name = region_name
         self.notification_arns = notification_arns if notification_arns else []
-        self.template = template
         self.status = 'CREATE_COMPLETE'
 
         template_dict = json.loads(self.template)
         self.description = template_dict.get('Description')
 
-        self.resource_map = ResourceMap(stack_id, name, region_name, template_dict)
+        self.resource_map = ResourceMap(stack_id, name, parameters, region_name, template_dict)
         self.resource_map.create()
 
         self.output_map = OutputMap(self.resource_map, template_dict)
         self.output_map.create()
+
+    @property
+    def stack_parameters(self):
+        return self.resource_map.resolved_parameters
 
     @property
     def stack_resources(self):
@@ -42,12 +47,13 @@ class CloudFormationBackend(BaseBackend):
         self.stacks = {}
         self.deleted_stacks = {}
 
-    def create_stack(self, name, template, region_name, notification_arns=None):
+    def create_stack(self, name, template, parameters, region_name, notification_arns=None):
         stack_id = generate_stack_id(name)
         new_stack = FakeStack(
             stack_id=stack_id,
             name=name,
             template=template,
+            parameters=parameters,
             region_name=region_name,
             notification_arns=notification_arns,
         )

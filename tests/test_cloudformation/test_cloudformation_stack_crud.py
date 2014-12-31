@@ -6,13 +6,13 @@ import boto
 import boto.s3
 import boto.s3.key
 import boto.cloudformation
+from boto.exception import BotoServerError
 import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 from moto import mock_cloudformation, mock_s3
-from moto.cloudformation.exceptions import ValidationError
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -182,7 +182,7 @@ def test_delete_stack_by_id():
     conn.list_stacks().should.have.length_of(1)
     conn.delete_stack(stack_id)
     conn.list_stacks().should.have.length_of(0)
-    with assert_raises(ValidationError):
+    with assert_raises(BotoServerError):
         conn.describe_stacks("test_stack")
 
     conn.describe_stacks(stack_id).should.have.length_of(1)
@@ -191,8 +191,32 @@ def test_delete_stack_by_id():
 @mock_cloudformation
 def test_bad_describe_stack():
     conn = boto.connect_cloudformation()
-    with assert_raises(ValidationError):
+    with assert_raises(BotoServerError):
         conn.describe_stacks("bad_stack")
+
+
+@mock_cloudformation()
+def test_cloudformation_params():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack 1",
+        "Resources": {},
+        "Parameters": {
+            "APPNAME": {
+                "Default": "app-name",
+                "Description": "The name of the app",
+                "Type": "String"
+            }
+        }
+    }
+    dummy_template_json = json.dumps(dummy_template)
+    cfn = boto.connect_cloudformation()
+    cfn.create_stack('test_stack1', template_body=dummy_template_json, parameters=[('APPNAME', 'testing123')])
+    stack = cfn.describe_stacks('test_stack1')[0]
+    stack.parameters.should.have.length_of(1)
+    param = stack.parameters[0]
+    param.key.should.equal('APPNAME')
+    param.value.should.equal('testing123')
 
 
 # @mock_cloudformation

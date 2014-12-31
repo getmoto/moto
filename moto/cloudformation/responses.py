@@ -26,6 +26,14 @@ class CloudFormationResponse(BaseResponse):
         stack_name = self._get_param('StackName')
         stack_body = self._get_param('TemplateBody')
         template_url = self._get_param('TemplateURL')
+        parameters_list = self._get_list_prefix("Parameters.member")
+
+        # Hack dict-comprehension
+        parameters = dict([
+            (parameter['parameter_key'], parameter['parameter_value'])
+            for parameter
+            in parameters_list
+        ])
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
         stack_notification_arns = self._get_multi_param('NotificationARNs.member')
@@ -33,6 +41,7 @@ class CloudFormationResponse(BaseResponse):
         stack = self.cloudformation_backend.create_stack(
             name=stack_name,
             template=stack_body,
+            parameters=parameters,
             region_name=self.region,
             notification_arns=stack_notification_arns
         )
@@ -126,6 +135,14 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResult>
         </member>
       {% endfor %}
       </Outputs>
+      <Parameters>
+      {% for param_name, param_value in stack.stack_parameters.items() %}
+        <member>
+          <ParameterKey>{{ param_name }}</ParameterKey>
+          <ParameterValue>{{ param_value }}</ParameterValue>
+        </member>
+      {% endfor %}
+      </Parameters>
     </member>
     {% endfor %}
   </Stacks>
