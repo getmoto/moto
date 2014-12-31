@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores
 from .models import autoscaling_backends
 
 
@@ -10,26 +9,6 @@ class AutoScalingResponse(BaseResponse):
     @property
     def autoscaling_backend(self):
         return autoscaling_backends[self.region]
-
-    def _get_int_param(self, param_name):
-        value = self._get_param(param_name)
-        if value is not None:
-            return int(value)
-
-    def _get_list_prefix(self, param_prefix):
-        results = []
-        param_index = 1
-        while True:
-            index_prefix = "{0}.{1}.".format(param_prefix, param_index)
-            new_items = {}
-            for key, value in self.querystring.items():
-                if key.startswith(index_prefix):
-                    new_items[camelcase_to_underscores(key.replace(index_prefix, ""))] = value[0]
-            if not new_items:
-                break
-            results.append(new_items)
-            param_index += 1
-        return results
 
     def create_launch_configuration(self):
         instance_monitoring_string = self._get_param('InstanceMonitoring.Enabled')

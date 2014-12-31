@@ -6,9 +6,6 @@ from .models import iam_backend
 
 class IamResponse(BaseResponse):
 
-    def _get_param(self, param_name):
-        return self.querystring.get(param_name, [None])[0]
-
     def create_role(self):
         role_name = self._get_param('RoleName')
         path = self._get_param('Path')

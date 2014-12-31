@@ -4,13 +4,6 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class SpotInstances(BaseResponse):
-    def _get_param(self, param_name):
-        return self.querystring.get(param_name, [None])[0]
-
-    def _get_int_param(self, param_name):
-        value = self._get_param(param_name)
-        if value is not None:
-            return int(value)
 
     def cancel_spot_instance_requests(self):
         request_ids = self._get_multi_param('SpotInstanceRequestId')

@@ -1,39 +1,10 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores
 from .models import emr_backend
 
 
 class ElasticMapReduceResponse(BaseResponse):
-
-    def _get_param(self, param_name):
-        return self.querystring.get(param_name, [None])[0]
-
-    def _get_multi_param(self, param_prefix):
-        return [value[0] for key, value in self.querystring.items() if key.startswith(param_prefix)]
-
-    def _get_dict_param(self, param_prefix):
-        params = {}
-        for key, value in self.querystring.items():
-            if key.startswith(param_prefix):
-                params[camelcase_to_underscores(key.replace(param_prefix, ""))] = value[0]
-        return params
-
-    def _get_list_prefix(self, param_prefix):
-        results = []
-        param_index = 1
-        while True:
-            index_prefix = "{0}.{1}.".format(param_prefix, param_index)
-            new_items = {}
-            for key, value in self.querystring.items():
-                if key.startswith(index_prefix):
-                    new_items[camelcase_to_underscores(key.replace(index_prefix, ""))] = value[0]
-            if not new_items:
-                break
-            results.append(new_items)
-            param_index += 1
-        return results
 
     def add_job_flow_steps(self):
         job_flow_id = self._get_param('JobFlowId')

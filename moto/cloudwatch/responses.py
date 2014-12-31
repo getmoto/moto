@@ -1,30 +1,8 @@
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores
 from .models import cloudwatch_backend
 
 
 class CloudWatchResponse(BaseResponse):
-
-    def _get_param(self, param_name):
-        return self.querystring.get(param_name, [None])[0]
-
-    def _get_multi_param(self, param_prefix):
-        return [value[0] for key, value in self.querystring.items() if key.startswith(param_prefix)]
-
-    def _get_list_prefix(self, param_prefix):
-        results = []
-        param_index = 1
-        while True:
-            index_prefix = "{0}.{1}.".format(param_prefix, param_index)
-            new_items = {}
-            for key, value in self.querystring.items():
-                if key.startswith(index_prefix):
-                    new_items[camelcase_to_underscores(key.replace(index_prefix, ""))] = value[0]
-            if not new_items:
-                break
-            results.append(new_items)
-            param_index += 1
-        return results
 
     def put_metric_alarm(self):
         name = self._get_param('AlarmName')
@@ -35,9 +13,9 @@ class CloudWatchResponse(BaseResponse):
         statistic = self._get_param('Statistic')
         description = self._get_param('AlarmDescription')
         dimensions = self._get_list_prefix('Dimensions.member')
-        alarm_actions = self._get_multi_param('AlarmActions')
-        ok_actions = self._get_multi_param('OKActions')
-        insufficient_data_actions = self._get_multi_param("InsufficientDataActions")
+        alarm_actions = self._get_multi_param('AlarmActions.member')
+        ok_actions = self._get_multi_param('OKActions.member')
+        insufficient_data_actions = self._get_multi_param("InsufficientDataActions.member")
         unit = self._get_param('Unit')
         alarm = cloudwatch_backend.put_metric_alarm(name, comparison_operator,
                                                     evaluation_periods, period,

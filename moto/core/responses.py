@@ -166,6 +166,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 return False
 
     def _get_multi_param(self, param_prefix):
+        """
+        Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
+        this will return ['my-test-1', 'my-test-2']
+        """
         if param_prefix.endswith("."):
             prefix = param_prefix
         else:
@@ -180,6 +184,63 @@ class BaseResponse(_TemplateEnvironmentMixin):
             else:
                 index += 1
         return values
+
+    def _get_dict_param(self, param_prefix):
+        """
+        Given a parameter dict of
+        {
+            'Instances.SlaveInstanceType': ['m1.small'],
+            'Instances.InstanceCount': ['1']
+        }
+
+        returns
+        {
+            "SlaveInstanceType": "m1.small",
+            "InstanceCount": "1",
+        }
+        """
+        params = {}
+        for key, value in self.querystring.items():
+            if key.startswith(param_prefix):
+                params[camelcase_to_underscores(key.replace(param_prefix, ""))] = value[0]
+        return params
+
+    def _get_list_prefix(self, param_prefix):
+        """
+        Given a query dict like
+        {
+            'Steps.member.1.Name': ['example1'],
+            'Steps.member.1.ActionOnFailure': ['TERMINATE_JOB_FLOW'],
+            'Steps.member.1.HadoopJarStep.Jar': ['streaming1.jar'],
+            'Steps.member.2.Name': ['example2'],
+            'Steps.member.2.ActionOnFailure': ['TERMINATE_JOB_FLOW'],
+            'Steps.member.2.HadoopJarStep.Jar': ['streaming2.jar'],
+        }
+
+        returns
+        [{
+            'name': u'example1',
+            'action_on_failure': u'TERMINATE_JOB_FLOW',
+            'hadoop_jar_step._jar': u'streaming1.jar',
+        }, {
+            'name': u'example2',
+            'action_on_failure': u'TERMINATE_JOB_FLOW',
+            'hadoop_jar_step._jar': u'streaming2.jar',
+        }]
+        """
+        results = []
+        param_index = 1
+        while True:
+            index_prefix = "{0}.{1}.".format(param_prefix, param_index)
+            new_items = {}
+            for key, value in self.querystring.items():
+                if key.startswith(index_prefix):
+                    new_items[camelcase_to_underscores(key.replace(index_prefix, ""))] = value[0]
+            if not new_items:
+                break
+            results.append(new_items)
+            param_index += 1
+        return results
 
 
 def metadata_response(request, full_url, headers):
