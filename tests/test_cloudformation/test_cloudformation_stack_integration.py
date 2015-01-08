@@ -8,6 +8,7 @@ import boto.ec2.autoscale
 import boto.ec2.elb
 from boto.exception import BotoServerError
 import boto.iam
+import boto.sqs
 import boto.vpc
 import sure  # noqa
 
@@ -17,6 +18,7 @@ from moto import (
     mock_ec2,
     mock_elb,
     mock_iam,
+    mock_sqs,
 )
 
 from .fixtures import (
@@ -548,3 +550,105 @@ def test_fn_join():
     stack = conn.describe_stacks()[0]
     fn_join_output = stack.outputs[0]
     fn_join_output.value.should.equal('test eip:{0}'.format(eip.public_ip))
+
+
+@mock_cloudformation()
+@mock_sqs()
+def test_conditional_resources():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Parameters": {
+            "EnvType": {
+                "Description": "Environment type.",
+                "Type": "String",
+            }
+        },
+        "Conditions": {
+            "CreateQueue": {"Fn::Equals": [{"Ref": "EnvType"}, "prod"]}
+        },
+        "Resources": {
+            "QueueGroup": {
+                "Condition": "CreateQueue",
+                "Type": "AWS::SQS::Queue",
+                "Properties": {
+                    "QueueName": "my-queue",
+                    "VisibilityTimeout": 60,
+                }
+            },
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack_without_queue",
+        template_body=sqs_template_json,
+        parameters=[("EnvType", "staging")],
+    )
+    sqs_conn = boto.sqs.connect_to_region("us-west-1")
+    list(sqs_conn.get_all_queues()).should.have.length_of(0)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack_with_queue",
+        template_body=sqs_template_json,
+        parameters=[("EnvType", "prod")],
+    )
+    sqs_conn = boto.sqs.connect_to_region("us-west-1")
+    list(sqs_conn.get_all_queues()).should.have.length_of(1)
+
+
+@mock_cloudformation()
+@mock_ec2()
+def test_conditional_if_handling():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Conditions": {
+            "EnvEqualsPrd": {
+                "Fn::Equals": [
+                    {
+                        "Ref": "ENV"
+                    },
+                    "prd"
+                ]
+            }
+        },
+        "Parameters": {
+            "ENV": {
+                "Default": "dev",
+                "Description": "Deployment environment for the stack (dev/prd)",
+                "Type": "String"
+            },
+        },
+        "Description": "Stack 1",
+        "Resources": {
+            "App1": {
+                "Properties": {
+                    "ImageId": {
+                        "Fn::If": [
+                            "EnvEqualsPrd",
+                            "ami-00000000",
+                            "ami-ffffffff"
+                        ]
+                    },
+                },
+                "Type": "AWS::EC2::Instance"
+            },
+        }
+    }
+    dummy_template_json = json.dumps(dummy_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack('test_stack1', template_body=dummy_template_json)
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
+    reservation = ec2_conn.get_all_instances()[0]
+    ec2_instance = reservation.instances[0]
+    ec2_instance.image_id.should.equal("ami-ffffffff")
+    ec2_instance.terminate()
+
+    conn = boto.cloudformation.connect_to_region("us-west-2")
+    conn.create_stack('test_stack1', template_body=dummy_template_json, parameters=[("ENV", "prd")])
+    ec2_conn = boto.ec2.connect_to_region("us-west-2")
+    reservation = ec2_conn.get_all_instances()[0]
+    ec2_instance = reservation.instances[0]
+    ec2_instance.image_id.should.equal("ami-00000000")

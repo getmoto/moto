@@ -95,6 +95,13 @@ def clean_json(resource_json, resources_map):
                 join_list.append(cleaned_val if cleaned_val else '{0}'.format(val))
             return resource_json['Fn::Join'][0].join(join_list)
 
+        if 'Fn::If' in resource_json:
+            condition_name, true_value, false_value = resource_json['Fn::If']
+            if resources_map[condition_name]:
+                return true_value
+            else:
+                return false_value
+
         cleaned_json = {}
         for key, value in resource_json.items():
             cleaned_json[key] = clean_json(value, resources_map)
@@ -126,6 +133,11 @@ def parse_resource(logical_id, resource_json, resources_map, region_name):
     if not resource_class:
         return None
 
+    condition = resource_json.get('Condition')
+    if condition and not resources_map[condition]:
+        # If this has a False condition, don't create the resource
+        return None
+
     resource_json = clean_json(resource_json, resources_map)
     resource_name_property = resource_name_property_from_type(resource_type)
     if resource_name_property:
@@ -146,6 +158,36 @@ def parse_resource(logical_id, resource_json, resources_map, region_name):
     resource.type = resource_type
     resource.logical_resource_id = logical_id
     return resource
+
+
+def parse_condition(condition, resources_map):
+    if isinstance(condition, bool):
+        return condition
+
+    condition_operator = condition.keys()[0]
+
+    condition_values = []
+    for value in condition.values()[0]:
+        # Check if we are referencing another Condition
+        if 'Condition' in value:
+            condition_values.append(resources_map[value['Condition']])
+        else:
+            condition_values.append(clean_json(value, resources_map))
+
+    if condition_operator == "Fn::Equals":
+        return condition_values[0] == condition_values[1]
+    elif condition_operator == "Fn::Not":
+        return not parse_condition(condition_values[0], resources_map)
+    elif condition_operator == "Fn::And":
+        return all([
+            parse_condition(condition_value, resources_map)
+            for condition_value
+            in condition_values])
+    elif condition_operator == "Fn::Or":
+        return any([
+            parse_condition(condition_value, resources_map)
+            for condition_value
+            in condition_values])
 
 
 def parse_output(output_logical_id, output_json, resources_map):
@@ -218,8 +260,15 @@ class ResourceMap(collections.Mapping):
 
         self._parsed_resources.update(self.resolved_parameters)
 
+    def load_conditions(self):
+        conditions = self._template.get('Conditions', {})
+
+        for condition_name, condition in conditions.items():
+            self._parsed_resources[condition_name] = parse_condition(condition, self._parsed_resources)
+
     def create(self):
         self.load_parameters()
+        self.load_conditions()
 
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.

@@ -5,7 +5,7 @@ from mock import patch
 import sure  # noqa
 
 from moto.cloudformation.models import FakeStack
-from moto.cloudformation.parsing import resource_class_from_type
+from moto.cloudformation.parsing import resource_class_from_type, parse_condition
 from moto.sqs.models import Queue
 from boto.cloudformation.stack import Output
 from boto.exception import BotoServerError
@@ -145,3 +145,86 @@ def test_parse_stack_with_get_attribute_outputs():
 def test_parse_stack_with_bad_get_attribute_outputs():
     FakeStack.when.called_with(
         "test_id", "test_stack", bad_output_template_json, {}, "us-west-1").should.throw(BotoServerError)
+
+
+def test_parse_equals_condition():
+    parse_condition(
+        condition={"Fn::Equals": [{"Ref": "EnvType"}, "prod"]},
+        resources_map={"EnvType": "prod"},
+    ).should.equal(True)
+
+    parse_condition(
+        condition={"Fn::Equals": [{"Ref": "EnvType"}, "prod"]},
+        resources_map={"EnvType": "staging"},
+    ).should.equal(False)
+
+
+def test_parse_not_condition():
+    parse_condition(
+        condition={
+            "Fn::Not": [{
+                "Fn::Equals": [{"Ref": "EnvType"}, "prod"]
+            }]
+        },
+        resources_map={"EnvType": "prod"},
+    ).should.equal(False)
+
+    parse_condition(
+        condition={
+            "Fn::Not": [{
+                "Fn::Equals": [{"Ref": "EnvType"}, "prod"]
+            }]
+        },
+        resources_map={"EnvType": "staging"},
+    ).should.equal(True)
+
+
+def test_parse_and_condition():
+    parse_condition(
+        condition={
+            "Fn::And": [
+                {"Fn::Equals": [{"Ref": "EnvType"}, "prod"]},
+                {"Fn::Equals": [{"Ref": "EnvType"}, "staging"]},
+            ]
+        },
+        resources_map={"EnvType": "prod"},
+    ).should.equal(False)
+
+    parse_condition(
+        condition={
+            "Fn::And": [
+                {"Fn::Equals": [{"Ref": "EnvType"}, "prod"]},
+                {"Fn::Equals": [{"Ref": "EnvType"}, "prod"]},
+            ]
+        },
+        resources_map={"EnvType": "prod"},
+    ).should.equal(True)
+
+
+def test_parse_or_condition():
+    parse_condition(
+        condition={
+            "Fn::Or": [
+                {"Fn::Equals": [{"Ref": "EnvType"}, "prod"]},
+                {"Fn::Equals": [{"Ref": "EnvType"}, "staging"]},
+            ]
+        },
+        resources_map={"EnvType": "prod"},
+    ).should.equal(True)
+
+    parse_condition(
+        condition={
+            "Fn::Or": [
+                {"Fn::Equals": [{"Ref": "EnvType"}, "staging"]},
+                {"Fn::Equals": [{"Ref": "EnvType"}, "staging"]},
+            ]
+        },
+        resources_map={"EnvType": "prod"},
+    ).should.equal(False)
+
+
+def test_reference_other_conditions():
+    parse_condition(
+        condition={"Fn::Not": [{"Condition": "OtherCondition"}]},
+        resources_map={"OtherCondition": True},
+    ).should.equal(False)
