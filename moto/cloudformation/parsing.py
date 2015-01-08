@@ -73,6 +73,14 @@ def clean_json(resource_json, resources_map):
             else:
                 return resource
 
+        if "Fn::FindInMap" in resource_json:
+            map_name = resource_json["Fn::FindInMap"][0]
+            map_path = resource_json["Fn::FindInMap"][1:]
+            result = resources_map[map_name]
+            for path in map_path:
+                result = result[clean_json(path, resources_map)]
+            return result
+
         if 'Fn::GetAtt' in resource_json:
             resource = resources_map[resource_json['Fn::GetAtt'][0]]
             if resource is None:
@@ -88,19 +96,19 @@ def clean_json(resource_json, resources_map):
                     UnformattedGetAttTemplateException.description.format(
                         resource_json['Fn::GetAtt'][0], resource_json['Fn::GetAtt'][1]))
 
-        if 'Fn::Join' in resource_json:
-            join_list = []
-            for val in resource_json['Fn::Join'][1]:
-                cleaned_val = clean_json(val, resources_map)
-                join_list.append(cleaned_val if cleaned_val else '{0}'.format(val))
-            return resource_json['Fn::Join'][0].join(join_list)
-
         if 'Fn::If' in resource_json:
             condition_name, true_value, false_value = resource_json['Fn::If']
             if resources_map[condition_name]:
                 return true_value
             else:
                 return false_value
+
+        if 'Fn::Join' in resource_json:
+            join_list = []
+            for val in resource_json['Fn::Join'][1]:
+                cleaned_val = clean_json(val, resources_map)
+                join_list.append(cleaned_val if cleaned_val else '{0}'.format(val))
+            return resource_json['Fn::Join'][0].join(join_list)
 
         cleaned_json = {}
         for key, value in resource_json.items():
@@ -216,7 +224,7 @@ class ResourceMap(collections.Mapping):
         # Create the default resources
         self._parsed_resources = {
             "AWS::AccountId": "123456789012",
-            "AWS::Region": "us-east-1",
+            "AWS::Region": self._region_name,
             "AWS::StackId": stack_id,
             "AWS::StackName": stack_name,
         }
@@ -241,6 +249,9 @@ class ResourceMap(collections.Mapping):
     @property
     def resources(self):
         return self._resource_json_map.keys()
+
+    def load_mapping(self):
+        self._parsed_resources.update(self._template.get('Mappings', {}))
 
     def load_parameters(self):
         parameter_slots = self._template.get('Parameters', {})
@@ -267,6 +278,7 @@ class ResourceMap(collections.Mapping):
             self._parsed_resources[condition_name] = parse_condition(condition, self._parsed_resources)
 
     def create(self):
+        self.load_mapping()
         self.load_parameters()
         self.load_conditions()
 
