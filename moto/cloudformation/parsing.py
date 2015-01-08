@@ -164,10 +164,10 @@ def parse_condition(condition, resources_map):
     if isinstance(condition, bool):
         return condition
 
-    condition_operator = condition.keys()[0]
+    condition_operator = list(condition.keys())[0]
 
     condition_values = []
-    for value in condition.values()[0]:
+    for value in list(condition.values())[0]:
         # Check if we are referencing another Condition
         if 'Condition' in value:
             condition_values.append(resources_map[value['Condition']])
