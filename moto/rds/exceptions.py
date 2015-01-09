@@ -22,3 +22,10 @@ class DBInstanceNotFoundError(RDSClientError):
         super(DBInstanceNotFoundError, self).__init__(
             'DBInstanceNotFound',
             "Database {0} not found.".format(database_identifier))
+
+
+class DBSecurityGroupNotFoundError(RDSClientError):
+    def __init__(self, security_group_name):
+        super(DBSecurityGroupNotFoundError, self).__init__(
+            'DBSecurityGroupNotFound',
+            "Security Group {0} not found.".format(security_group_name))
