@@ -1,0 +1,24 @@
+from __future__ import unicode_literals
+
+import json
+from werkzeug.exceptions import BadRequest
+
+
+class RDSClientError(BadRequest):
+    def __init__(self, code, message):
+        super(RDSClientError, self).__init__()
+        self.description = json.dumps({
+            "Error": {
+                "Code": code,
+                "Message": message,
+                'Type': 'Sender',
+            },
+            'RequestId': '6876f774-7273-11e4-85dc-39e55ca848d1',
+        })
+
+
+class DBInstanceNotFoundError(RDSClientError):
+    def __init__(self, database_identifier):
+        super(DBInstanceNotFoundError, self).__init__(
+            'DBInstanceNotFound',
+            "Database {0} not found.".format(database_identifier))
