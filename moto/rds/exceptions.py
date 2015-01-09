@@ -29,3 +29,10 @@ class DBSecurityGroupNotFoundError(RDSClientError):
         super(DBSecurityGroupNotFoundError, self).__init__(
             'DBSecurityGroupNotFound',
             "Security Group {0} not found.".format(security_group_name))
+
+
+class DBSubnetGroupNotFoundError(RDSClientError):
+    def __init__(self, subnet_group_name):
+        super(DBSubnetGroupNotFoundError, self).__init__(
+            'DBSubnetGroupNotFound',
+            "Subnet Group {0} not found.".format(subnet_group_name))

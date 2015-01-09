@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
+from moto.ec2.models import ec2_backends
 from .models import rds_backends
 
 
@@ -94,6 +95,27 @@ class RDSResponse(BaseResponse):
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
+    def create_dbsubnet_group(self):
+        subnet_name = self._get_param('DBSubnetGroupName')
+        description = self._get_param('DBSubnetGroupDescription')
+        subnet_ids = self._get_multi_param('SubnetIds.member')
+        subnets = [ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids]
+        subnet_group = self.backend.create_subnet_group(subnet_name, description, subnets)
+        template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
+        return template.render(subnet_group=subnet_group)
+
+    def describe_dbsubnet_groups(self):
+        subnet_name = self._get_param('DBSubnetGroupName')
+        subnet_groups = self.backend.describe_subnet_groups(subnet_name)
+        template = self.response_template(DESCRIBE_SUBNET_GROUPS_TEMPLATE)
+        return template.render(subnet_groups=subnet_groups)
+
+    def delete_dbsubnet_group(self):
+        subnet_name = self._get_param('DBSubnetGroupName')
+        subnet_group = self.backend.delete_subnet_group(subnet_name)
+        template = self.response_template(DELETE_SUBNET_GROUP_TEMPLATE)
+        return template.render(subnet_group=subnet_group)
+
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBInstanceResult>
@@ -171,3 +193,31 @@ AUTHORIZE_SECURITY_GROUP_TEMPLATE = """<AuthorizeDBSecurityGroupIngressResponse 
     <RequestId>6176b5f8-bfed-11d3-f92b-31fa5e8dbc99</RequestId>
   </ResponseMetadata>
 </AuthorizeDBSecurityGroupIngressResponse>"""
+
+CREATE_SUBNET_GROUP_TEMPLATE = """<CreateDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CreateDBSubnetGroupResult>
+    {{ subnet_group.to_xml() }}
+  </CreateDBSubnetGroupResult>
+  <ResponseMetadata>
+    <RequestId>3a401b3f-bb9e-11d3-f4c6-37db295f7674</RequestId>
+  </ResponseMetadata>
+</CreateDBSubnetGroupResponse>"""
+
+DESCRIBE_SUBNET_GROUPS_TEMPLATE = """<DescribeDBSubnetGroupsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeDBSubnetGroupsResult>
+    <DBSubnetGroups>
+    {% for subnet_group in subnet_groups %}
+        {{ subnet_group.to_xml() }}
+    {% endfor %}
+    </DBSubnetGroups>
+  </DescribeDBSubnetGroupsResult>
+  <ResponseMetadata>
+    <RequestId>b783db3b-b98c-11d3-fbc7-5c0aad74da7c</RequestId>
+  </ResponseMetadata>
+</DescribeDBSubnetGroupsResponse>"""
+
+DELETE_SUBNET_GROUP_TEMPLATE = """<DeleteDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <ResponseMetadata>
+    <RequestId>6295e5ab-bbf3-11d3-f4c6-37db295f7674</RequestId>
+  </ResponseMetadata>
+</DeleteDBSubnetGroupResponse>"""

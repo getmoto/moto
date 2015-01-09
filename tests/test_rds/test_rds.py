@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 
 import boto.rds
+import boto.vpc
 from boto.exception import BotoServerError
 import sure  # noqa
 
-from moto import mock_rds
+from moto import mock_ec2, mock_rds
 
 
 @mock_rds
@@ -138,3 +139,55 @@ def test_add_security_group_to_database():
     list(database.security_groups).should.have.length_of(1)
 
     database.security_groups[0].name.should.equal("db_sg")
+
+
+@mock_ec2
+@mock_rds
+def test_add_database_subnet_group():
+    vpc_conn = boto.vpc.connect_to_region("us-west-2")
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet1 = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+    subnet2 = vpc_conn.create_subnet(vpc.id, "10.2.0.0/24")
+
+    subnet_ids = [subnet1.id, subnet2.id]
+    conn = boto.rds.connect_to_region("us-west-2")
+    subnet_group = conn.create_db_subnet_group("db_subnet", "my db subnet", subnet_ids)
+    subnet_group.name.should.equal('db_subnet')
+    subnet_group.description.should.equal("my db subnet")
+    list(subnet_group.subnet_ids).should.equal(subnet_ids)
+
+
+@mock_ec2
+@mock_rds
+def test_describe_database_subnet_group():
+    vpc_conn = boto.vpc.connect_to_region("us-west-2")
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+
+    conn = boto.rds.connect_to_region("us-west-2")
+    conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
+    conn.create_db_subnet_group("db_subnet2", "my db subnet", [subnet.id])
+
+    list(conn.get_all_db_subnet_groups()).should.have.length_of(2)
+    list(conn.get_all_db_subnet_groups("db_subnet1")).should.have.length_of(1)
+
+    conn.get_all_db_subnet_groups.when.called_with("not-a-subnet").should.throw(BotoServerError)
+
+
+@mock_ec2
+@mock_rds
+def test_delete_database_subnet_group():
+    vpc_conn = boto.vpc.connect_to_region("us-west-2")
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+
+    conn = boto.rds.connect_to_region("us-west-2")
+    conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
+    list(conn.get_all_db_subnet_groups()).should.have.length_of(1)
+
+    conn.delete_db_subnet_group("db_subnet1")
+    list(conn.get_all_db_subnet_groups()).should.have.length_of(0)
+
+    conn.delete_db_subnet_group.when.called_with("db_subnet1").should.throw(BotoServerError)
+
+# TODO incorporate subnet groups with actual DBs

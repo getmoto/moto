@@ -4,7 +4,7 @@ import boto.rds
 from jinja2 import Template
 
 from moto.core import BaseBackend
-from .exceptions import DBInstanceNotFoundError, DBSecurityGroupNotFoundError
+from .exceptions import DBInstanceNotFoundError, DBSecurityGroupNotFoundError, DBSubnetGroupNotFoundError
 
 
 class Database(object):
@@ -118,11 +118,42 @@ class SecurityGroup(object):
         self.ip_ranges.append(cidr_ip)
 
 
+class SubnetGroup(object):
+    def __init__(self, subnet_name, description, subnets):
+        self.subnet_name = subnet_name
+        self.description = description
+        self.subnets = subnets
+
+        self.vpc_id = self.subnets[0].vpc_id
+
+    def to_xml(self):
+        template = Template("""<DBSubnetGroup>
+              <VpcId>{{ subnet_group.vpc_id }}</VpcId>
+              <SubnetGroupStatus>Complete</SubnetGroupStatus>
+              <DBSubnetGroupDescription>{{ subnet_group.description }}</DBSubnetGroupDescription>
+              <DBSubnetGroupName>{{ subnet_group.subnet_name }}</DBSubnetGroupName>
+              <Subnets>
+                {% for subnet in subnet_group.subnets %}
+                <Subnet>
+                  <SubnetStatus>Active</SubnetStatus>
+                  <SubnetIdentifier>{{ subnet.id }}</SubnetIdentifier>
+                  <SubnetAvailabilityZone>
+                    <Name>{{ subnet.availability_zone }}</Name>
+                    <ProvisionedIopsCapable>false</ProvisionedIopsCapable>
+                  </SubnetAvailabilityZone>
+                </Subnet>
+                {% endfor %}
+              </Subnets>
+            </DBSubnetGroup>""")
+        return template.render(subnet_group=self)
+
+
 class RDSBackend(BaseBackend):
 
     def __init__(self):
         self.databases = {}
         self.security_groups = {}
+        self.subnet_groups = {}
 
     def create_database(self, db_kwargs):
         database_id = db_kwargs['db_instance_identifier']
@@ -172,6 +203,26 @@ class RDSBackend(BaseBackend):
         security_group = self.describe_security_groups(security_group_name)[0]
         security_group.authorize(cidr_ip)
         return security_group
+
+    def create_subnet_group(self, subnet_name, description, subnets):
+        subnet_group = SubnetGroup(subnet_name, description, subnets)
+        self.subnet_groups[subnet_name] = subnet_group
+        return subnet_group
+
+    def describe_subnet_groups(self, subnet_group_name):
+        if subnet_group_name:
+            if subnet_group_name in self.subnet_groups:
+                return [self.subnet_groups[subnet_group_name]]
+            else:
+                raise DBSubnetGroupNotFoundError(subnet_group_name)
+        return self.subnet_groups.values()
+
+    def delete_subnet_group(self, subnet_name):
+        if subnet_name in self.subnet_groups:
+            return self.subnet_groups.pop(subnet_name)
+        else:
+            raise DBSubnetGroupNotFoundError(subnet_name)
+
 
 rds_backends = {}
 for region in boto.rds.regions():
