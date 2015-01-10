@@ -190,4 +190,42 @@ def test_delete_database_subnet_group():
 
     conn.delete_db_subnet_group.when.called_with("db_subnet1").should.throw(BotoServerError)
 
-# TODO incorporate subnet groups with actual DBs
+
+@mock_ec2
+@mock_rds
+def test_create_database_in_subnet_group():
+    vpc_conn = boto.vpc.connect_to_region("us-west-2")
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+
+    conn = boto.rds.connect_to_region("us-west-2")
+    conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
+
+    database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small',
+        'root', 'hunter2', db_subnet_group_name="db_subnet1")
+
+    database = conn.get_all_dbinstances("db-master-1")[0]
+    database.subnet_group.name.should.equal("db_subnet1")
+
+
+@mock_rds
+def test_create_database_replica():
+    conn = boto.rds.connect_to_region("us-west-2")
+
+    primary = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
+
+    replica = conn.create_dbinstance_read_replica("replica", "db-master-1", "db.m1.small")
+    replica.id.should.equal("replica")
+    replica.instance_class.should.equal("db.m1.small")
+    status_info = replica.status_infos[0]
+    status_info.normal.should.equal(True)
+    status_info.status_type.should.equal('read replication')
+    status_info.status.should.equal('replicating')
+
+    primary = conn.get_all_dbinstances("db-master-1")[0]
+    primary.read_replica_dbinstance_identifiers[0].should.equal("replica")
+
+    conn.delete_dbinstance("replica")
+
+    primary = conn.get_all_dbinstances("db-master-1")[0]
+    list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)

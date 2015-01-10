@@ -13,34 +13,45 @@ class RDSResponse(BaseResponse):
 
     def _get_db_kwargs(self):
         return {
-            "engine": self._get_param("Engine"),
-            "engine_version": self._get_param("EngineVersion"),
-            "region": self.region,
-            "iops": self._get_int_param("Iops"),
-            "storage_type": self._get_param("StorageType"),
-
-            "master_username": self._get_param('MasterUsername'),
-            "master_password": self._get_param('MasterUserPassword'),
             "auto_minor_version_upgrade": self._get_param('AutoMinorVersionUpgrade'),
             "allocated_storage": self._get_int_param('AllocatedStorage'),
+            "availability_zone": self._get_param("AvailabilityZone"),
+            "backup_retention_period": self._get_param("BackupRetentionPeriod"),
             "db_instance_class": self._get_param('DBInstanceClass'),
-            "port": self._get_param('Port'),
             "db_instance_identifier": self._get_param('DBInstanceIdentifier'),
             "db_name": self._get_param("DBName"),
-            "publicly_accessible": self._get_param("PubliclyAccessible"),
-
+            # DBParameterGroupName
+            "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
+            "engine": self._get_param("Engine"),
+            "engine_version": self._get_param("EngineVersion"),
+            "iops": self._get_int_param("Iops"),
+            "master_password": self._get_param('MasterUserPassword'),
+            "master_username": self._get_param('MasterUsername'),
+            "multi_az": self._get_bool_param("MultiAZ"),
+            # OptionGroupName
+            "port": self._get_param('Port'),
             # PreferredBackupWindow
             # PreferredMaintenanceWindow
-            "backup_retention_period": self._get_param("BackupRetentionPeriod"),
-
-            # OptionGroupName
-            # DBParameterGroupName
+            "publicly_accessible": self._get_param("PubliclyAccessible"),
+            "region": self.region,
             "security_groups": self._get_multi_param('DBSecurityGroups.member'),
+            "storage_type": self._get_param("StorageType"),
             # VpcSecurityGroupIds.member.N
+        }
 
+    def _get_db_replica_kwargs(self):
+        return {
+            "auto_minor_version_upgrade": self._get_param('AutoMinorVersionUpgrade'),
             "availability_zone": self._get_param("AvailabilityZone"),
-            "multi_az": self._get_bool_param("MultiAZ"),
+            "db_instance_class": self._get_param('DBInstanceClass'),
+            "db_instance_identifier": self._get_param('DBInstanceIdentifier'),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
+            "iops": self._get_int_param("Iops"),
+            # OptionGroupName
+            "port": self._get_param('Port'),
+            "publicly_accessible": self._get_param("PubliclyAccessible"),
+            "source_db_identifier": self._get_param('SourceDBInstanceIdentifier'),
+            "storage_type": self._get_param("StorageType"),
         }
 
     def create_dbinstance(self):
@@ -48,6 +59,13 @@ class RDSResponse(BaseResponse):
 
         database = self.backend.create_database(db_kwargs)
         template = self.response_template(CREATE_DATABASE_TEMPLATE)
+        return template.render(database=database)
+
+    def create_dbinstance_read_replica(self):
+        db_kwargs = self._get_db_replica_kwargs()
+
+        database = self.backend.create_database_replica(db_kwargs)
+        template = self.response_template(CREATE_DATABASE_REPLICA_TEMPLATE)
         return template.render(database=database)
 
     def describe_dbinstances(self):
@@ -125,6 +143,15 @@ CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazon
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
   </ResponseMetadata>
 </CreateDBInstanceResponse>"""
+
+CREATE_DATABASE_REPLICA_TEMPLATE = """<CreateDBInstanceReadReplicaResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CreateDBInstanceReadReplicaResult>
+    {{ database.to_xml() }}
+  </CreateDBInstanceReadReplicaResult>
+  <ResponseMetadata>
+    <RequestId>ba8dedf0-bb9a-11d3-855b-576787000e19</RequestId>
+  </ResponseMetadata>
+</CreateDBInstanceReadReplicaResponse>"""
 
 DESCRIBE_DATABASES_TEMPLATE = """<DescribeDBInstancesResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <DescribeDBInstancesResult>

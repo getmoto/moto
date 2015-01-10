@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import copy
+
 import boto.rds
 from jinja2 import Template
 
@@ -11,6 +13,9 @@ class Database(object):
     def __init__(self, **kwargs):
         self.status = "available"
 
+        self.is_replica = False
+        self.replicas = []
+
         self.region = kwargs.get('region')
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version")
@@ -21,6 +26,7 @@ class Database(object):
         self.auto_minor_version_upgrade = kwargs.get('auto_minor_version_upgrade')
         self.allocated_storage = kwargs.get('allocated_storage')
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
+        self.source_db_identifier = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get('db_instance_class')
         self.port = kwargs.get('port')
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
@@ -34,6 +40,10 @@ class Database(object):
         self.availability_zone = kwargs.get("availability_zone")
         self.multi_az = kwargs.get("multi_az")
         self.db_subnet_group_name = kwargs.get("db_subnet_group_name")
+        if self.db_subnet_group_name:
+            self.db_subnet_group = rds_backends[self.region].describe_subnet_groups(self.db_subnet_group_name)[0]
+        else:
+            self.db_subnet_group = []
 
         self.security_groups = kwargs.get('security_groups', [])
 
@@ -47,6 +57,16 @@ class Database(object):
     @property
     def address(self):
         return "{}.aaaaaaaaaa.{}.rds.amazonaws.com".format(self.db_instance_identifier, self.region)
+
+    def add_replica(self, replica):
+        self.replicas.append(replica.db_instance_identifier)
+
+    def remove_replica(self, replica):
+        self.replicas.remove(replica.db_instance_identifier)
+
+    def set_as_replica(self):
+        self.is_replica = True
+        self.replicas = []
 
     def update(self, db_kwargs):
         for key, value in db_kwargs.items():
@@ -62,7 +82,24 @@ class Database(object):
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
               <PreferredBackupWindow>03:50-04:20</PreferredBackupWindow>
               <PreferredMaintenanceWindow>wed:06:38-wed:07:08</PreferredMaintenanceWindow>
-              <ReadReplicaDBInstanceIdentifiers/>
+              <ReadReplicaDBInstanceIdentifiers>
+                {% for replica_id in database.replicas %}
+                    <ReadReplicaDBInstanceIdentifier>{{ replica_id }}</ReadReplicaDBInstanceIdentifier>
+                {% endfor %}
+              </ReadReplicaDBInstanceIdentifiers>
+              <StatusInfos>
+                {% if database.is_replica %}
+                <DBInstanceStatusInfo>
+                    <StatusType>read replication</StatusType>
+                    <Status>replicating</Status>
+                    <Normal>true</Normal>
+                    <Message></Message>
+                </DBInstanceStatusInfo>
+                {% endif %}
+              </StatusInfos>
+              {% if database.is_replica %}
+              <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
+              {% endif %}
               <Engine>{{ database.engine }}</Engine>
               <LicenseModel>general-public-license</LicenseModel>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
@@ -78,6 +115,24 @@ class Database(object):
                 </DBSecurityGroup>
                 {% endfor %}
               </DBSecurityGroups>
+              <DBSubnetGroup>
+                <DBSubnetGroupName>{{ database.db_subnet_group.subnet_name }}</DBSubnetGroupName>
+                <DBSubnetGroupDescription>{{ database.db_subnet_group.description }}</DBSubnetGroupDescription>
+                <SubnetGroupStatus>{{ database.db_subnet_group.status }}</SubnetGroupStatus>
+                <Subnets>
+                    {% for subnet in database.db_subnet_group.subnets %}
+                    <Subnet>
+                      <SubnetStatus>Active</SubnetStatus>
+                      <SubnetIdentifier>{{ subnet.id }}</SubnetIdentifier>
+                      <SubnetAvailabilityZone>
+                        <Name>{{ subnet.availability_zone }}</Name>
+                        <ProvisionedIopsCapable>false</ProvisionedIopsCapable>
+                      </SubnetAvailabilityZone>
+                    </Subnet>
+                    {% endfor %}
+                </Subnets>
+                <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
+              </DBSubnetGroup>
               <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
               <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
@@ -96,6 +151,7 @@ class SecurityGroup(object):
         self.group_name = group_name
         self.description = description
         self.ip_ranges = []
+        self.status = "authorized"
 
     def to_xml(self):
         template = Template("""<DBSecurityGroup>
@@ -123,13 +179,14 @@ class SubnetGroup(object):
         self.subnet_name = subnet_name
         self.description = description
         self.subnets = subnets
+        self.status = "Complete"
 
         self.vpc_id = self.subnets[0].vpc_id
 
     def to_xml(self):
         template = Template("""<DBSubnetGroup>
               <VpcId>{{ subnet_group.vpc_id }}</VpcId>
-              <SubnetGroupStatus>Complete</SubnetGroupStatus>
+              <SubnetGroupStatus>{{ subnet_group.status }}</SubnetGroupStatus>
               <DBSubnetGroupDescription>{{ subnet_group.description }}</DBSubnetGroupDescription>
               <DBSubnetGroupName>{{ subnet_group.subnet_name }}</DBSubnetGroupName>
               <Subnets>
@@ -161,6 +218,17 @@ class RDSBackend(BaseBackend):
         self.databases[database_id] = database
         return database
 
+    def create_database_replica(self, db_kwargs):
+        database_id = db_kwargs['db_instance_identifier']
+        source_database_id = db_kwargs['source_db_identifier']
+        primary = self.describe_databases(source_database_id)[0]
+        replica = copy.deepcopy(primary)
+        replica.update(db_kwargs)
+        replica.set_as_replica()
+        self.databases[database_id] = replica
+        primary.add_replica(replica)
+        return replica
+
     def describe_databases(self, db_instance_identifier=None):
         if db_instance_identifier:
             if db_instance_identifier in self.databases:
@@ -176,7 +244,11 @@ class RDSBackend(BaseBackend):
 
     def delete_database(self, db_instance_identifier):
         if db_instance_identifier in self.databases:
-            return self.databases.pop(db_instance_identifier)
+            database = self.databases.pop(db_instance_identifier)
+            if database.is_replica:
+                primary = self.describe_databases(database.source_db_identifier)[0]
+                primary.remove_replica(database)
+            return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)
 
