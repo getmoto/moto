@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 import collections
+import functools
 import logging
 
 from moto.autoscaling import models as autoscaling_models
 from moto.ec2 import models as ec2_models
 from moto.elb import models as elb_models
 from moto.iam import models as iam_models
+from moto.rds import models as rds_models
 from moto.sqs import models as sqs_models
 from .utils import random_suffix
 from .exceptions import MissingParameterError, UnformattedGetAttTemplateException
@@ -31,6 +33,9 @@ MODEL_MAP = {
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,
+    "AWS::RDS::DBInstance": rds_models.Database,
+    "AWS::RDS::DBSecurityGroup": rds_models.SecurityGroup,
+    "AWS::RDS::DBSubnetGroup": rds_models.SubnetGroup,
     "AWS::SQS::Queue": sqs_models.Queue,
 }
 
@@ -55,6 +60,15 @@ NULL_MODELS = [
 ]
 
 logger = logging.getLogger("moto")
+
+
+class LazyDict(dict):
+    def __getitem__(self, key):
+        val = dict.__getitem__(self, key)
+        if callable(val):
+            val = val()
+            self[key] = val
+        return val
 
 
 def clean_json(resource_json, resources_map):
@@ -99,15 +113,15 @@ def clean_json(resource_json, resources_map):
         if 'Fn::If' in resource_json:
             condition_name, true_value, false_value = resource_json['Fn::If']
             if resources_map[condition_name]:
-                return true_value
+                return clean_json(true_value, resources_map)
             else:
-                return false_value
+                return clean_json(false_value, resources_map)
 
         if 'Fn::Join' in resource_json:
             join_list = []
             for val in resource_json['Fn::Join'][1]:
                 cleaned_val = clean_json(val, resources_map)
-                join_list.append(cleaned_val if cleaned_val else '{0}'.format(val))
+                join_list.append('{0}'.format(cleaned_val) if cleaned_val else '{0}'.format(val))
             return resource_json['Fn::Join'][0].join(join_list)
 
         cleaned_json = {}
@@ -168,7 +182,7 @@ def parse_resource(logical_id, resource_json, resources_map, region_name):
     return resource
 
 
-def parse_condition(condition, resources_map):
+def parse_condition(condition, resources_map, condition_map):
     if isinstance(condition, bool):
         return condition
 
@@ -178,22 +192,22 @@ def parse_condition(condition, resources_map):
     for value in list(condition.values())[0]:
         # Check if we are referencing another Condition
         if 'Condition' in value:
-            condition_values.append(resources_map[value['Condition']])
+            condition_values.append(condition_map[value['Condition']])
         else:
             condition_values.append(clean_json(value, resources_map))
 
     if condition_operator == "Fn::Equals":
         return condition_values[0] == condition_values[1]
     elif condition_operator == "Fn::Not":
-        return not parse_condition(condition_values[0], resources_map)
+        return not parse_condition(condition_values[0], resources_map, condition_map)
     elif condition_operator == "Fn::And":
         return all([
-            parse_condition(condition_value, resources_map)
+            parse_condition(condition_value, resources_map, condition_map)
             for condition_value
             in condition_values])
     elif condition_operator == "Fn::Or":
         return any([
-            parse_condition(condition_value, resources_map)
+            parse_condition(condition_value, resources_map, condition_map)
             for condition_value
             in condition_values])
 
@@ -227,6 +241,7 @@ class ResourceMap(collections.Mapping):
             "AWS::Region": self._region_name,
             "AWS::StackId": stack_id,
             "AWS::StackName": stack_name,
+            "AWS::NoValue": None,
         }
 
     def __getitem__(self, key):
@@ -273,9 +288,13 @@ class ResourceMap(collections.Mapping):
 
     def load_conditions(self):
         conditions = self._template.get('Conditions', {})
-
+        lazy_condition_map = LazyDict()
         for condition_name, condition in conditions.items():
-            self._parsed_resources[condition_name] = parse_condition(condition, self._parsed_resources)
+            lazy_condition_map[condition_name] = functools.partial(parse_condition,
+                condition, self._parsed_resources, lazy_condition_map)
+
+        for condition_name in lazy_condition_map:
+            self._parsed_resources[condition_name] = lazy_condition_map[condition_name]
 
     def create(self):
         self.load_mapping()

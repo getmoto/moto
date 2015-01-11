@@ -151,11 +151,13 @@ def test_parse_equals_condition():
     parse_condition(
         condition={"Fn::Equals": [{"Ref": "EnvType"}, "prod"]},
         resources_map={"EnvType": "prod"},
+        condition_map={},
     ).should.equal(True)
 
     parse_condition(
         condition={"Fn::Equals": [{"Ref": "EnvType"}, "prod"]},
         resources_map={"EnvType": "staging"},
+        condition_map={},
     ).should.equal(False)
 
 
@@ -167,6 +169,7 @@ def test_parse_not_condition():
             }]
         },
         resources_map={"EnvType": "prod"},
+        condition_map={},
     ).should.equal(False)
 
     parse_condition(
@@ -176,6 +179,7 @@ def test_parse_not_condition():
             }]
         },
         resources_map={"EnvType": "staging"},
+        condition_map={},
     ).should.equal(True)
 
 
@@ -188,6 +192,7 @@ def test_parse_and_condition():
             ]
         },
         resources_map={"EnvType": "prod"},
+        condition_map={},
     ).should.equal(False)
 
     parse_condition(
@@ -198,6 +203,7 @@ def test_parse_and_condition():
             ]
         },
         resources_map={"EnvType": "prod"},
+        condition_map={},
     ).should.equal(True)
 
 
@@ -210,6 +216,7 @@ def test_parse_or_condition():
             ]
         },
         resources_map={"EnvType": "prod"},
+        condition_map={},
     ).should.equal(True)
 
     parse_condition(
@@ -220,11 +227,13 @@ def test_parse_or_condition():
             ]
         },
         resources_map={"EnvType": "prod"},
+        condition_map={},
     ).should.equal(False)
 
 
 def test_reference_other_conditions():
     parse_condition(
         condition={"Fn::Not": [{"Condition": "OtherCondition"}]},
-        resources_map={"OtherCondition": True},
+        resources_map={},
+        condition_map={"OtherCondition": True},
     ).should.equal(False)

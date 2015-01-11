@@ -996,6 +996,7 @@ class SecurityGroup(object):
         self.egress_rules = []
         self.enis = {}
         self.vpc_id = vpc_id
+        self.owner_id = "123456789012"
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):

@@ -18,15 +18,17 @@ from moto import (
     mock_ec2,
     mock_elb,
     mock_iam,
+    mock_rds,
     mock_sqs,
 )
 
 from .fixtures import (
-    single_instance_with_ebs_volume,
-    vpc_single_instance_in_subnet,
     ec2_classic_eip,
+    fn_join,
+    rds_mysql_with_read_replica,
+    single_instance_with_ebs_volume,
     vpc_eip,
-    fn_join
+    vpc_single_instance_in_subnet,
 )
 
 
@@ -348,6 +350,76 @@ def test_vpc_single_instance_in_subnet():
 
     eip_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
     eip_resource.physical_resource_id.should.equal(eip.allocation_id)
+
+
+@mock_cloudformation()
+@mock_ec2()
+@mock_rds()
+def test_rds_mysql_with_read_replica():
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
+    ec2_conn.create_security_group('application', 'Our Application Group')
+
+    template_json = json.dumps(rds_mysql_with_read_replica.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+        parameters=[
+            ("DBInstanceIdentifier", "master_db"),
+            ("DBName", "my_db"),
+            ("DBUser", "my_user"),
+            ("DBPassword", "my_password"),
+            ("DBAllocatedStorage", "20"),
+            ("DBInstanceClass", "db.m1.medium"),
+            ("EC2SecurityGroup", "application"),
+            ("MultiAZ", "true"),
+        ],
+    )
+
+    rds_conn = boto.rds.connect_to_region("us-west-1")
+
+    primary = rds_conn.get_all_dbinstances("master_db")[0]
+    primary.master_username.should.equal("my_user")
+    primary.allocated_storage.should.equal(20)
+    primary.instance_class.should.equal("db.m1.medium")
+    primary.multi_az.should.equal(True)
+    list(primary.read_replica_dbinstance_identifiers).should.have.length_of(1)
+    replica_id = primary.read_replica_dbinstance_identifiers[0]
+
+    replica = rds_conn.get_all_dbinstances(replica_id)[0]
+    replica.instance_class.should.equal("db.m1.medium")
+
+    security_group_name = primary.security_groups[0].name
+    security_group = rds_conn.get_all_dbsecurity_groups(security_group_name)[0]
+    security_group.ec2_groups[0].name.should.equal("application")
+
+
+@mock_cloudformation()
+@mock_ec2()
+@mock_rds()
+def test_rds_mysql_with_read_replica_in_vpc():
+    template_json = json.dumps(rds_mysql_with_read_replica.template)
+    conn = boto.cloudformation.connect_to_region("eu-central-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+        parameters=[
+            ("DBInstanceIdentifier", "master_db"),
+            ("DBName", "my_db"),
+            ("DBUser", "my_user"),
+            ("DBPassword", "my_password"),
+            ("DBAllocatedStorage", "20"),
+            ("DBInstanceClass", "db.m1.medium"),
+            ("MultiAZ", "true"),
+        ],
+    )
+
+    rds_conn = boto.rds.connect_to_region("eu-central-1")
+    primary = rds_conn.get_all_dbinstances("master_db")[0]
+
+    subnet_group_name = primary.subnet_group.name
+    subnet_group = rds_conn.get_all_db_subnet_groups(subnet_group_name)[0]
+    subnet_group.description.should.equal("my db subnet group")
 
 
 @mock_autoscaling()
