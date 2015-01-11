@@ -65,7 +65,7 @@ class Database(object):
 
     @property
     def address(self):
-        return "{}.aaaaaaaaaa.{}.rds.amazonaws.com".format(self.db_instance_identifier, self.region)
+        return "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(self.db_instance_identifier, self.region)
 
     def add_replica(self, replica):
         self.replicas.append(replica.db_instance_identifier)
