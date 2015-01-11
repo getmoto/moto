@@ -5,7 +5,10 @@ import copy
 import boto.rds
 from jinja2 import Template
 
+from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.core import BaseBackend
+from moto.core.utils import get_random_hex
+from moto.ec2.models import ec2_backends
 from .exceptions import DBInstanceNotFoundError, DBSecurityGroupNotFoundError, DBSubnetGroupNotFoundError
 
 
@@ -19,11 +22,15 @@ class Database(object):
         self.region = kwargs.get('region')
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version")
+        if self.engine_version is None:
+            self.engine_version = "5.6.21"
         self.iops = kwargs.get("iops")
         self.storage_type = kwargs.get("storage_type")
         self.master_username = kwargs.get('master_username')
         self.master_password = kwargs.get('master_password')
         self.auto_minor_version_upgrade = kwargs.get('auto_minor_version_upgrade')
+        if self.auto_minor_version_upgrade is None:
+            self.auto_minor_version_upgrade = True
         self.allocated_storage = kwargs.get('allocated_storage')
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.source_db_identifier = kwargs.get("source_db_identifier")
@@ -32,6 +39,8 @@ class Database(object):
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.db_name = kwargs.get("db_name")
         self.publicly_accessible = kwargs.get("publicly_accessible")
+        if self.publicly_accessible is None:
+            self.publicly_accessible = True
 
         self.backup_retention_period = kwargs.get("backup_retention_period")
         if self.backup_retention_period is None:
@@ -72,6 +81,58 @@ class Database(object):
         for key, value in db_kwargs.items():
             if value is not None:
                 setattr(self, key, value)
+
+    def get_cfn_attribute(self, attribute_name):
+        if attribute_name == 'Endpoint.Address':
+            return self.address
+        elif attribute_name == 'Endpoint.Port':
+            return self.port
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        db_instance_identifier = properties.get('DBInstanceIdentifier')
+        if not db_instance_identifier:
+            db_instance_identifier = resource_name.lower() + get_random_hex(12)
+        db_security_groups = properties.get('DBSecurityGroups')
+        if not db_security_groups:
+            db_security_groups = []
+        security_groups = [group.group_name for group in db_security_groups]
+        db_subnet_group = properties.get("DBSubnetGroupName")
+        db_subnet_group_name = db_subnet_group.subnet_name if db_subnet_group else None
+        db_kwargs = {
+            "auto_minor_version_upgrade": properties.get('AutoMinorVersionUpgrade'),
+            "allocated_storage": properties.get('AllocatedStorage'),
+            "availability_zone": properties.get("AvailabilityZone"),
+            "backup_retention_period": properties.get("BackupRetentionPeriod"),
+            "db_instance_class": properties.get('DBInstanceClass'),
+            "db_instance_identifier": db_instance_identifier,
+            "db_name": properties.get("DBName"),
+            "db_subnet_group_name": db_subnet_group_name,
+            "engine": properties.get("Engine"),
+            "engine_version": properties.get("EngineVersion"),
+            "iops": properties.get("Iops"),
+            "master_password": properties.get('MasterUserPassword'),
+            "master_username": properties.get('MasterUsername'),
+            "multi_az": properties.get("MultiAZ"),
+            "port": properties.get('Port', 3306),
+            "publicly_accessible": properties.get("PubliclyAccessible"),
+            "region": region_name,
+            "security_groups": security_groups,
+            "storage_type": properties.get("StorageType"),
+        }
+
+        rds_backend = rds_backends[region_name]
+        source_db_identifier = properties.get("SourceDBInstanceIdentifier")
+        if source_db_identifier:
+            # Replica
+            db_kwargs["source_db_identifier"] = source_db_identifier.db_instance_identifier
+            database = rds_backend.create_database_replica(db_kwargs)
+        else:
+            database = rds_backend.create_database(db_kwargs)
+        return database
 
     def to_xml(self):
         template = Template("""<DBInstance>
@@ -115,6 +176,7 @@ class Database(object):
                 </DBSecurityGroup>
                 {% endfor %}
               </DBSecurityGroups>
+              {% if database.db_subnet_group %}
               <DBSubnetGroup>
                 <DBSubnetGroupName>{{ database.db_subnet_group.subnet_name }}</DBSubnetGroupName>
                 <DBSubnetGroupDescription>{{ database.db_subnet_group.description }}</DBSubnetGroupDescription>
@@ -133,6 +195,7 @@ class Database(object):
                 </Subnets>
                 <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
               </DBSubnetGroup>
+              {% endif %}
               <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
               <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
@@ -150,12 +213,23 @@ class SecurityGroup(object):
     def __init__(self, group_name, description):
         self.group_name = group_name
         self.description = description
-        self.ip_ranges = []
         self.status = "authorized"
+        self.ip_ranges = []
+        self.ec2_security_groups = []
 
     def to_xml(self):
         template = Template("""<DBSecurityGroup>
-            <EC2SecurityGroups/>
+            <EC2SecurityGroups>
+            {% for security_group in security_group.ec2_security_groups %}
+                <EC2SecurityGroup>
+                    <EC2SecurityGroupId>{{ security_group.id }}</EC2SecurityGroupId>
+                    <EC2SecurityGroupName>{{ security_group.name }}</EC2SecurityGroupName>
+                    <EC2SecurityGroupOwnerId>{{ security_group.owner_id }}</EC2SecurityGroupOwnerId>
+                    <Status>authorized</Status>
+                </EC2SecurityGroup>
+            {% endfor %}
+            </EC2SecurityGroups>
+
             <DBSecurityGroupDescription>{{ security_group.description }}</DBSecurityGroupDescription>
             <IPRanges>
             {% for ip_range in security_group.ip_ranges %}
@@ -170,8 +244,35 @@ class SecurityGroup(object):
         </DBSecurityGroup>""")
         return template.render(security_group=self)
 
-    def authorize(self, cidr_ip):
+    def authorize_cidr(self, cidr_ip):
         self.ip_ranges.append(cidr_ip)
+
+    def authorize_security_group(self, security_group):
+        self.ec2_security_groups.append(security_group)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        group_name = resource_name.lower() + get_random_hex(12)
+        description = properties['GroupDescription']
+        security_group_ingress = properties['DBSecurityGroupIngress']
+
+        ec2_backend = ec2_backends[region_name]
+        rds_backend = rds_backends[region_name]
+        security_group = rds_backend.create_security_group(
+            group_name,
+            description,
+        )
+        for ingress_type, ingress_value in security_group_ingress.items():
+            if ingress_type == "CIDRIP":
+                security_group.authorize_cidr(ingress_value)
+            elif ingress_type == "EC2SecurityGroupName":
+                subnet = ec2_backend.get_security_group_from_name(ingress_value)
+                security_group.authorize_security_group(subnet)
+            elif ingress_type == "EC2SecurityGroupId":
+                subnet = ec2_backend.get_security_group_from_id(ingress_value)
+                security_group.authorize_security_group(subnet)
+        return security_group
 
 
 class SubnetGroup(object):
@@ -203,6 +304,24 @@ class SubnetGroup(object):
               </Subnets>
             </DBSubnetGroup>""")
         return template.render(subnet_group=self)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        subnet_name = resource_name.lower() + get_random_hex(12)
+        description = properties['DBSubnetGroupDescription']
+        subnet_ids = properties['SubnetIds']
+
+        ec2_backend = ec2_backends[region_name]
+        subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
+        rds_backend = rds_backends[region_name]
+        subnet_group = rds_backend.create_subnet_group(
+            subnet_name,
+            description,
+            subnets,
+        )
+        return subnet_group
 
 
 class RDSBackend(BaseBackend):
@@ -273,7 +392,7 @@ class RDSBackend(BaseBackend):
 
     def authorize_security_group(self, security_group_name, cidr_ip):
         security_group = self.describe_security_groups(security_group_name)[0]
-        security_group.authorize(cidr_ip)
+        security_group.authorize_cidr(cidr_ip)
         return security_group
 
     def create_subnet_group(self, subnet_name, description, subnets):
