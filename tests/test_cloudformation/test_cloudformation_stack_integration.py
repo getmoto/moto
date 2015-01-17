@@ -780,7 +780,7 @@ def test_route53_roundrobin():
 
     template_json = json.dumps(route53_roundrobin.template)
     conn = boto.cloudformation.connect_to_region("us-west-1")
-    conn.create_stack(
+    stack = conn.create_stack(
         "test_stack",
         template_body=template_json,
     )
@@ -798,7 +798,7 @@ def test_route53_roundrobin():
     record_set1.type.should.equal('CNAME')
     record_set1.ttl.should.equal('900')
     record_set1.weight.should.equal('3')
-    # FIXME record_set1.resource_records[0].should.equal("aws.amazon.com")
+    record_set1.resource_records[0].should.equal("aws.amazon.com")
 
     record_set2 = rrsets[1]
     record_set2.name.should.equal('test_stack.us-west-1.my_zone.')
@@ -806,4 +806,9 @@ def test_route53_roundrobin():
     record_set2.type.should.equal('CNAME')
     record_set2.ttl.should.equal('900')
     record_set2.weight.should.equal('1')
-    # FIXME record_set2.resource_records[0].should.equal("www.amazon.com")
+    record_set2.resource_records[0].should.equal("www.amazon.com")
+
+    stack = conn.describe_stacks()[0]
+    output = stack.outputs[0]
+    output.key.should.equal('DomainName')
+    output.value.should.equal('arn:aws:route53:::hostedzone/{0}'.format(zone_id))

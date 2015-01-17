@@ -1,6 +1,37 @@
 from __future__ import unicode_literals
+
+from jinja2 import Template
+
 from moto.core import BaseBackend
 from moto.core.utils import get_random_hex
+
+
+class RecordSet(object):
+    def __init__(self, kwargs):
+        self.name = kwargs.get('Name')
+        self.type = kwargs.get('Type')
+        self.ttl = kwargs.get('TTL')
+        self.records = kwargs.get('ResourceRecords', [])
+        self.set_identifier = kwargs.get('SetIdentifier')
+        self.weight = kwargs.get('Weight')
+
+    def to_xml(self):
+        template = Template("""<ResourceRecordSet>
+                <Name>{{ record_set.name }}</Name>
+                <Type>{{ record_set.type }}</Type>
+                <SetIdentifier>{{ record_set.set_identifier }}</SetIdentifier>
+                <Weight>{{ record_set.weight }}</Weight>
+                <TTL>{{ record_set.ttl }}</TTL>
+                <ResourceRecords>
+                    {% for record in record_set.records %}
+                    <ResourceRecord>
+                        <Value>{{ record }}</Value>
+                    </ResourceRecord>
+                    {% endfor %}
+                </ResourceRecords>
+                <HealthCheckId></HealthCheckId>
+            </ResourceRecordSet>""")
+        return template.render(record_set=self)
 
 
 class FakeZone(object):
@@ -10,11 +41,21 @@ class FakeZone(object):
         self.id = id_
         self.rrsets = []
 
-    def add_rrset(self, name, rrset):
-        self.rrsets.append(rrset)
+    def add_rrset(self, record_set):
+        record_set = RecordSet(record_set)
+        self.rrsets.append(record_set)
 
     def delete_rrset(self, name):
-        self.rrsets = [record_set for record_set in self.rrsets if record_set['Name'] != name]
+        self.rrsets = [record_set for record_set in self.rrsets if record_set.name != name]
+
+    def get_record_sets(self, type_filter, name_filter):
+        record_sets = list(self.rrsets)  # Copy the list
+        if type_filter:
+            record_sets = [record_set for record_set in record_sets if record_set.type == type_filter]
+        if name_filter:
+            record_sets = [record_set for record_set in record_sets if record_set.name == name_filter]
+
+        return record_sets
 
     @property
     def physical_resource_id(self):
@@ -30,8 +71,13 @@ class FakeZone(object):
 
 
 class RecordSetGroup(object):
-    def __init__(self, record_sets):
+    def __init__(self, hosted_zone_id, record_sets):
+        self.hosted_zone_id = hosted_zone_id
         self.record_sets = record_sets
+
+    @property
+    def physical_resource_id(self):
+        return "arn:aws:route53:::hostedzone/{0}".format(self.hosted_zone_id)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -41,9 +87,9 @@ class RecordSetGroup(object):
         hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
         record_sets = properties["RecordSets"]
         for record_set in record_sets:
-            hosted_zone.add_rrset(record_set["Name"], record_set)
+            hosted_zone.add_rrset(record_set)
 
-        record_set_group = RecordSetGroup(record_sets)
+        record_set_group = RecordSetGroup(hosted_zone.id, record_sets)
         return record_set_group
 
 

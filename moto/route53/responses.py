@@ -3,7 +3,6 @@ from jinja2 import Template
 from six.moves.urllib.parse import parse_qs, urlparse
 from .models import route53_backend
 import xmltodict
-import dicttoxml
 
 
 def list_or_create_hostzone_response(request, full_url, headers):
@@ -53,33 +52,28 @@ def rrset_response(request, full_url, headers):
 
         for value in change_list:
             action = value['Action']
-            rrset = value['ResourceRecordSet']
-
+            record_set = value['ResourceRecordSet']
             if action == 'CREATE':
-                the_zone.add_rrset(rrset["Name"], rrset)
+                record_set['ResourceRecords'] = [x['Value'] for x in record_set['ResourceRecords'].values()]
+                the_zone.add_rrset(record_set)
             elif action == "DELETE":
-                the_zone.delete_rrset(rrset["Name"])
+                the_zone.delete_rrset(record_set["Name"])
 
         return 200, headers, CHANGE_RRSET_RESPONSE
 
     elif method == "GET":
         querystring = parse_qs(parsed_url.query)
         template = Template(LIST_RRSET_REPONSE)
-        rrset_list = []
-        for record_set in the_zone.rrsets:
-            if 'type' in querystring and querystring["type"][0] != record_set["Type"]:
-                continue
-            if 'name' in querystring and querystring["name"][0] != record_set["Name"]:
-                continue
-            rrset_list.append(dicttoxml.dicttoxml({"ResourceRecordSet": record_set}, root=False))
-
-        return 200, headers, template.render(rrsets=rrset_list)
+        type_filter = querystring.get("type", [None])[0]
+        name_filter = querystring.get("name", [None])[0]
+        record_sets = the_zone.get_record_sets(type_filter, name_filter)
+        return 200, headers, template.render(record_sets=record_sets)
 
 
 LIST_RRSET_REPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>
-   {% for rrset in rrsets %}
-      {{ rrset }}
+   {% for record_set in record_sets %}
+      {{ record_set.to_xml() }}
    {% endfor %}
    </ResourceRecordSets>
 </ListResourceRecordSetsResponse>"""
