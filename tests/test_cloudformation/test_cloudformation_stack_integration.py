@@ -27,6 +27,7 @@ from .fixtures import (
     ec2_classic_eip,
     fn_join,
     rds_mysql_with_read_replica,
+    route53_ec2_instance_with_public_ip,
     route53_roundrobin,
     single_instance_with_ebs_volume,
     vpc_eip,
@@ -812,3 +813,35 @@ def test_route53_roundrobin():
     output = stack.outputs[0]
     output.key.should.equal('DomainName')
     output.value.should.equal('arn:aws:route53:::hostedzone/{0}'.format(zone_id))
+
+
+@mock_cloudformation()
+@mock_ec2()
+@mock_route53()
+def test_route53_ec2_instance_with_public_ip():
+    route53_conn = boto.connect_route53()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
+
+    template_json = json.dumps(route53_ec2_instance_with_public_ip.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    stack = conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    instance_id = ec2_conn.get_all_reservations()[0].instances[0].id
+
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    list(zones).should.have.length_of(1)
+    zone_id = zones[0]['Id']
+
+    rrsets = route53_conn.get_all_rrsets(zone_id)
+    rrsets.should.have.length_of(1)
+
+    record_set1 = rrsets[0]
+    record_set1.name.should.equal('{0}.us-west-1.my_zone.'.format(instance_id))
+    record_set1.identifier.should.equal(None)
+    record_set1.type.should.equal('A')
+    record_set1.ttl.should.equal('900')
+    record_set1.weight.should.equal(None)
+    record_set1.resource_records[0].should.equal("10.0.0.25")

@@ -299,6 +299,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self.subnet_id = kwargs.get("subnet_id")
         self.key_name = kwargs.get("key_name")
         self.source_dest_check = "true"
+        self.private_ip_address = kwargs.get('private_ip_address')
 
         self.block_device_mapping = BlockDeviceMapping()
         self.block_device_mapping['/dev/sda1'] = BlockDeviceType(volume_id=random_volume_id())
@@ -344,6 +345,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
             instance_type=properties.get("InstanceType", "m1.small"),
             subnet_id=properties.get("SubnetId"),
             key_name=properties.get("KeyName"),
+            private_ip_address=properties.get('PrivateIpAddress'),
         )
         return reservation.instances[0]
 

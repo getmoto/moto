@@ -9,18 +9,31 @@ from moto.core.utils import get_random_hex
 class RecordSet(object):
     def __init__(self, kwargs):
         self.name = kwargs.get('Name')
-        self.type = kwargs.get('Type')
+        self._type = kwargs.get('Type')
         self.ttl = kwargs.get('TTL')
         self.records = kwargs.get('ResourceRecords', [])
         self.set_identifier = kwargs.get('SetIdentifier')
         self.weight = kwargs.get('Weight')
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        zone_name = properties["HostedZoneName"]
+        hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
+        record_set = hosted_zone.add_rrset(properties)
+        return record_set
+
     def to_xml(self):
         template = Template("""<ResourceRecordSet>
                 <Name>{{ record_set.name }}</Name>
-                <Type>{{ record_set.type }}</Type>
-                <SetIdentifier>{{ record_set.set_identifier }}</SetIdentifier>
-                <Weight>{{ record_set.weight }}</Weight>
+                <Type>{{ record_set._type }}</Type>
+                {% if record_set.set_identifier %}
+                    <SetIdentifier>{{ record_set.set_identifier }}</SetIdentifier>
+                {% endif %}
+                {% if record_set.weight %}
+                    <Weight>{{ record_set.weight }}</Weight>
+                {% endif %}
                 <TTL>{{ record_set.ttl }}</TTL>
                 <ResourceRecords>
                     {% for record in record_set.records %}
@@ -44,6 +57,7 @@ class FakeZone(object):
     def add_rrset(self, record_set):
         record_set = RecordSet(record_set)
         self.rrsets.append(record_set)
+        return record_set
 
     def delete_rrset(self, name):
         self.rrsets = [record_set for record_set in self.rrsets if record_set.name != name]
@@ -51,7 +65,7 @@ class FakeZone(object):
     def get_record_sets(self, type_filter, name_filter):
         record_sets = list(self.rrsets)  # Copy the list
         if type_filter:
-            record_sets = [record_set for record_set in record_sets if record_set.type == type_filter]
+            record_sets = [record_set for record_set in record_sets if record_set._type == type_filter]
         if name_filter:
             record_sets = [record_set for record_set in record_sets if record_set.name == name_filter]
 

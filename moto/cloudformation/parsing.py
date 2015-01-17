@@ -38,6 +38,7 @@ MODEL_MAP = {
     "AWS::RDS::DBSecurityGroup": rds_models.SecurityGroup,
     "AWS::RDS::DBSubnetGroup": rds_models.SubnetGroup,
     "AWS::Route53::HostedZone": route53_models.FakeZone,
+    "AWS::Route53::RecordSet": route53_models.RecordSet,
     "AWS::Route53::RecordSetGroup": route53_models.RecordSetGroup,
     "AWS::SQS::Queue": sqs_models.Queue,
 }
