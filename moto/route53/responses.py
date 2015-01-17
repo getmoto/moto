@@ -66,12 +66,12 @@ def rrset_response(request, full_url, headers):
         querystring = parse_qs(parsed_url.query)
         template = Template(LIST_RRSET_REPONSE)
         rrset_list = []
-        for key, value in the_zone.rrsets.items():
-            if 'type' in querystring and querystring["type"][0] != value["Type"]:
+        for record_set in the_zone.rrsets:
+            if 'type' in querystring and querystring["type"][0] != record_set["Type"]:
                 continue
-            if 'name' in querystring and querystring["name"][0] != value["Name"]:
+            if 'name' in querystring and querystring["name"][0] != record_set["Name"]:
                 continue
-            rrset_list.append(dicttoxml.dicttoxml({"ResourceRecordSet": value}, root=False))
+            rrset_list.append(dicttoxml.dicttoxml({"ResourceRecordSet": record_set}, root=False))
 
         return 200, headers, template.render(rrsets=rrset_list)
 
@@ -79,7 +79,7 @@ def rrset_response(request, full_url, headers):
 LIST_RRSET_REPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>
    {% for rrset in rrsets %}
-   {{ rrset }}
+      {{ rrset }}
    {% endfor %}
    </ResourceRecordSets>
 </ListResourceRecordSetsResponse>"""

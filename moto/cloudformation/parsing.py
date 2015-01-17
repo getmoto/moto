@@ -8,6 +8,7 @@ from moto.ec2 import models as ec2_models
 from moto.elb import models as elb_models
 from moto.iam import models as iam_models
 from moto.rds import models as rds_models
+from moto.route53 import models as route53_models
 from moto.sqs import models as sqs_models
 from .utils import random_suffix
 from .exceptions import MissingParameterError, UnformattedGetAttTemplateException
@@ -36,6 +37,8 @@ MODEL_MAP = {
     "AWS::RDS::DBInstance": rds_models.Database,
     "AWS::RDS::DBSecurityGroup": rds_models.SecurityGroup,
     "AWS::RDS::DBSubnetGroup": rds_models.SubnetGroup,
+    "AWS::Route53::HostedZone": route53_models.FakeZone,
+    "AWS::Route53::RecordSetGroup": route53_models.RecordSetGroup,
     "AWS::SQS::Queue": sqs_models.Queue,
 }
 

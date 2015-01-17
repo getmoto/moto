@@ -19,6 +19,7 @@ from moto import (
     mock_elb,
     mock_iam,
     mock_rds,
+    mock_route53,
     mock_sqs,
 )
 
@@ -26,6 +27,7 @@ from .fixtures import (
     ec2_classic_eip,
     fn_join,
     rds_mysql_with_read_replica,
+    route53_roundrobin,
     single_instance_with_ebs_volume,
     vpc_eip,
     vpc_single_instance_in_subnet,
@@ -769,3 +771,39 @@ def test_cloudformation_mapping():
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
     ec2_instance.image_id.should.equal("ami-c9c7978c")
+
+
+@mock_cloudformation()
+@mock_route53()
+def test_route53_roundrobin():
+    route53_conn = boto.connect_route53()
+
+    template_json = json.dumps(route53_roundrobin.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    list(zones).should.have.length_of(1)
+    zone_id = zones[0]['Id']
+
+    rrsets = route53_conn.get_all_rrsets(zone_id)
+    rrsets.hosted_zone_id.should.equal(zone_id)
+    rrsets.should.have.length_of(2)
+    record_set1 = rrsets[0]
+    record_set1.name.should.equal('test_stack.us-west-1.my_zone.')
+    record_set1.identifier.should.equal("test_stack AWS")
+    record_set1.type.should.equal('CNAME')
+    record_set1.ttl.should.equal('900')
+    record_set1.weight.should.equal('3')
+    # FIXME record_set1.resource_records[0].should.equal("aws.amazon.com")
+
+    record_set2 = rrsets[1]
+    record_set2.name.should.equal('test_stack.us-west-1.my_zone.')
+    record_set2.identifier.should.equal("test_stack Amazon")
+    record_set2.type.should.equal('CNAME')
+    record_set2.ttl.should.equal('900')
+    record_set2.weight.should.equal('1')
+    # FIXME record_set2.resource_records[0].should.equal("www.amazon.com")
