@@ -299,6 +299,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self.subnet_id = kwargs.get("subnet_id")
         self.key_name = kwargs.get("key_name")
         self.source_dest_check = "true"
+        self.launch_time = datetime.now().strftime('%y-%m-%dT%H:%M:%S%z')
 
         self.block_device_mapping = BlockDeviceMapping()
         self.block_device_mapping['/dev/sda1'] = BlockDeviceType(volume_id=random_volume_id())

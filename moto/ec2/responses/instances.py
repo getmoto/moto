@@ -325,7 +325,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <amiLaunchIndex>0</amiLaunchIndex>
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
-                    <launchTime>YYYY-MM-DDTHH:MM:SS+0000</launchTime>
+                    <launchTime>{{ instance.launch_time }}</launchTime>
                     <placement>
                       <availabilityZone>us-west-2a</availabilityZone>
                       <groupName/>
