@@ -8,6 +8,7 @@ import boto.ec2.autoscale
 import boto.ec2.elb
 from boto.exception import BotoServerError
 import boto.iam
+import boto.sns
 import boto.sqs
 import boto.vpc
 import sure  # noqa
@@ -20,6 +21,7 @@ from moto import (
     mock_iam,
     mock_rds,
     mock_route53,
+    mock_sns,
     mock_sqs,
 )
 
@@ -825,7 +827,7 @@ def test_route53_ec2_instance_with_public_ip():
 
     template_json = json.dumps(route53_ec2_instance_with_public_ip.template)
     conn = boto.cloudformation.connect_to_region("us-west-1")
-    stack = conn.create_stack(
+    conn.create_stack(
         "test_stack",
         template_body=template_json,
     )
@@ -855,7 +857,7 @@ def test_route53_associate_health_check():
 
     template_json = json.dumps(route53_health_check.template)
     conn = boto.cloudformation.connect_to_region("us-west-1")
-    stack = conn.create_stack(
+    conn.create_stack(
         "test_stack",
         template_body=template_json,
     )
@@ -881,3 +883,56 @@ def test_route53_associate_health_check():
 
     record_set = rrsets[0]
     record_set.health_check.should.equal(health_check_id)
+
+
+@mock_cloudformation()
+@mock_sns()
+def test_sns_topic():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "MySNSTopic": {
+                "Type": "AWS::SNS::Topic",
+                "Properties": {
+                    "Subscription": [
+                        {"Endpoint": "https://example.com", "Protocol": "https"},
+                    ],
+                    "TopicName": "my_topics",
+                }
+            }
+        },
+        "Outputs": {
+            "topic_name": {
+                "Value": {"Fn::GetAtt": ["MySNSTopic", "TopicName"]}
+            },
+            "topic_arn": {
+                "Value": {"Ref": "MySNSTopic"}
+            },
+        }
+    }
+    template_json = json.dumps(dummy_template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    stack = conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    sns_conn = boto.sns.connect_to_region("us-west-1")
+    topics = sns_conn.get_all_topics()["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
+    topics.should.have.length_of(1)
+    topic_arn = topics[0]['TopicArn']
+    topic_arn.should.contain("my_topics")
+
+    subscriptions = sns_conn.get_all_subscriptions()["ListSubscriptionsResponse"]["ListSubscriptionsResult"]["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["TopicArn"].should.equal(topic_arn)
+    subscription["Protocol"].should.equal("https")
+    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription["Endpoint"].should.equal("https://example.com")
+
+    stack = conn.describe_stacks()[0]
+    topic_name_output = [x for x in stack.outputs if x.key == 'topic_name'][0]
+    topic_name_output.value.should.equal("my_topics")
+    topic_arn_output = [x for x in stack.outputs if x.key == 'topic_arn'][0]
+    topic_arn_output.value.should.equal(topic_arn)
