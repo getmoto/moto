@@ -67,8 +67,11 @@ def test_describe_non_existant_database():
 @mock_rds2
 def test_create_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
-    print conn.create_option_group('test', 'postgres', '9.3', 'test')
-
+    option_group = conn.create_option_group('test', 'postgres', '9.3', 'test option group')
+    option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['OptionGroupName'].should.equal('test')
+    option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['EngineName'].should.equal('postgres')
+    option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['OptionGroupDescription'].should.equal('test option group')
+    option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['MajorEngineVersion'].should.equal('9.3')
 
 #@disable_on_py3()
 #@mock_rds2

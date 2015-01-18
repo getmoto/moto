@@ -462,7 +462,7 @@ class OptionGroup(object):
     def to_json(self):
         template = Template("""{
     "VpcId": null,
-    "MajorEngineVersion": "{{ option_group.engine_name }}",
+    "MajorEngineVersion": "{{ option_group.major_engine_version }}",
     "OptionGroupDescription": "{{ option_group.description }}",
     "AllowsVpcAndNonVpcInstanceMemberships": "{{ option_group.vpc_and_non_vpc_instance_memberships }}",
     "EngineName": "{{ option_group.engine_name }}",
