@@ -204,7 +204,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <keyName>{{ instance.key_name }}</keyName>
           <amiLaunchIndex>0</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
-          <launchTime>2007-08-07T11:51:50.000Z</launchTime>
+          <launchTime>{{ instance.launch_time }}</launchTime>
           <placement>
             <availabilityZone>us-east-1b</availabilityZone>
             <groupName/>
