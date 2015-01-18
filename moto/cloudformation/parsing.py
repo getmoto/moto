@@ -149,8 +149,6 @@ def resource_class_from_type(resource_type):
 
 
 def resource_name_property_from_type(resource_type):
-    if resource_type not in NAME_TYPE_MAP:
-        return None
     return NAME_TYPE_MAP.get(resource_type)
 
 
