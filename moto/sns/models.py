@@ -45,6 +45,22 @@ class Topic(object):
             return self.name
         raise UnformattedGetAttTemplateException()
 
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        sns_backend = sns_backends[region_name]
+        properties = cloudformation_json['Properties']
+
+        topic = sns_backend.create_topic(
+            properties.get("TopicName")
+        )
+        for subscription in properties.get("Subscription", []):
+            sns_backend.subscribe(topic.arn, subscription['Endpoint'], subscription['Protocol'])
+        return topic
+
 
 class Subscription(object):
     def __init__(self, topic, endpoint, protocol):
