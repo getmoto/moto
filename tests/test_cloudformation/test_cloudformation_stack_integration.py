@@ -8,6 +8,7 @@ import boto.ec2.autoscale
 import boto.ec2.elb
 from boto.exception import BotoServerError
 import boto.iam
+import boto.sns
 import boto.sqs
 import boto.vpc
 import sure  # noqa
@@ -19,6 +20,8 @@ from moto import (
     mock_elb,
     mock_iam,
     mock_rds,
+    mock_route53,
+    mock_sns,
     mock_sqs,
 )
 
@@ -26,6 +29,9 @@ from .fixtures import (
     ec2_classic_eip,
     fn_join,
     rds_mysql_with_read_replica,
+    route53_ec2_instance_with_public_ip,
+    route53_health_check,
+    route53_roundrobin,
     single_instance_with_ebs_volume,
     vpc_eip,
     vpc_single_instance_in_subnet,
@@ -769,3 +775,164 @@ def test_cloudformation_mapping():
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
     ec2_instance.image_id.should.equal("ami-c9c7978c")
+
+
+@mock_cloudformation()
+@mock_route53()
+def test_route53_roundrobin():
+    route53_conn = boto.connect_route53()
+
+    template_json = json.dumps(route53_roundrobin.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    stack = conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    list(zones).should.have.length_of(1)
+    zone_id = zones[0]['Id']
+
+    rrsets = route53_conn.get_all_rrsets(zone_id)
+    rrsets.hosted_zone_id.should.equal(zone_id)
+    rrsets.should.have.length_of(2)
+    record_set1 = rrsets[0]
+    record_set1.name.should.equal('test_stack.us-west-1.my_zone.')
+    record_set1.identifier.should.equal("test_stack AWS")
+    record_set1.type.should.equal('CNAME')
+    record_set1.ttl.should.equal('900')
+    record_set1.weight.should.equal('3')
+    record_set1.resource_records[0].should.equal("aws.amazon.com")
+
+    record_set2 = rrsets[1]
+    record_set2.name.should.equal('test_stack.us-west-1.my_zone.')
+    record_set2.identifier.should.equal("test_stack Amazon")
+    record_set2.type.should.equal('CNAME')
+    record_set2.ttl.should.equal('900')
+    record_set2.weight.should.equal('1')
+    record_set2.resource_records[0].should.equal("www.amazon.com")
+
+    stack = conn.describe_stacks()[0]
+    output = stack.outputs[0]
+    output.key.should.equal('DomainName')
+    output.value.should.equal('arn:aws:route53:::hostedzone/{0}'.format(zone_id))
+
+
+@mock_cloudformation()
+@mock_ec2()
+@mock_route53()
+def test_route53_ec2_instance_with_public_ip():
+    route53_conn = boto.connect_route53()
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
+
+    template_json = json.dumps(route53_ec2_instance_with_public_ip.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    instance_id = ec2_conn.get_all_reservations()[0].instances[0].id
+
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    list(zones).should.have.length_of(1)
+    zone_id = zones[0]['Id']
+
+    rrsets = route53_conn.get_all_rrsets(zone_id)
+    rrsets.should.have.length_of(1)
+
+    record_set1 = rrsets[0]
+    record_set1.name.should.equal('{0}.us-west-1.my_zone.'.format(instance_id))
+    record_set1.identifier.should.equal(None)
+    record_set1.type.should.equal('A')
+    record_set1.ttl.should.equal('900')
+    record_set1.weight.should.equal(None)
+    record_set1.resource_records[0].should.equal("10.0.0.25")
+
+
+@mock_cloudformation()
+@mock_route53()
+def test_route53_associate_health_check():
+    route53_conn = boto.connect_route53()
+
+    template_json = json.dumps(route53_health_check.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    checks = route53_conn.get_list_health_checks()['ListHealthChecksResponse']['HealthChecks']
+    list(checks).should.have.length_of(1)
+    check = checks[0]
+    health_check_id = check['Id']
+    config = check['HealthCheckConfig']
+    config["FailureThreshold"].should.equal("3")
+    config["IPAddress"].should.equal("10.0.0.4")
+    config["Port"].should.equal("80")
+    config["RequestInterval"].should.equal("10")
+    config["ResourcePath"].should.equal("/")
+    config["Type"].should.equal("HTTP")
+
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    list(zones).should.have.length_of(1)
+    zone_id = zones[0]['Id']
+
+    rrsets = route53_conn.get_all_rrsets(zone_id)
+    rrsets.should.have.length_of(1)
+
+    record_set = rrsets[0]
+    record_set.health_check.should.equal(health_check_id)
+
+
+@mock_cloudformation()
+@mock_sns()
+def test_sns_topic():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "MySNSTopic": {
+                "Type": "AWS::SNS::Topic",
+                "Properties": {
+                    "Subscription": [
+                        {"Endpoint": "https://example.com", "Protocol": "https"},
+                    ],
+                    "TopicName": "my_topics",
+                }
+            }
+        },
+        "Outputs": {
+            "topic_name": {
+                "Value": {"Fn::GetAtt": ["MySNSTopic", "TopicName"]}
+            },
+            "topic_arn": {
+                "Value": {"Ref": "MySNSTopic"}
+            },
+        }
+    }
+    template_json = json.dumps(dummy_template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    stack = conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    sns_conn = boto.sns.connect_to_region("us-west-1")
+    topics = sns_conn.get_all_topics()["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
+    topics.should.have.length_of(1)
+    topic_arn = topics[0]['TopicArn']
+    topic_arn.should.contain("my_topics")
+
+    subscriptions = sns_conn.get_all_subscriptions()["ListSubscriptionsResponse"]["ListSubscriptionsResult"]["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["TopicArn"].should.equal(topic_arn)
+    subscription["Protocol"].should.equal("https")
+    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription["Endpoint"].should.equal("https://example.com")
+
+    stack = conn.describe_stacks()[0]
+    topic_name_output = [x for x in stack.outputs if x.key == 'topic_name'][0]
+    topic_name_output.value.should.equal("my_topics")
+    topic_arn_output = [x for x in stack.outputs if x.key == 'topic_arn'][0]
+    topic_arn_output.value.should.equal(topic_arn)
