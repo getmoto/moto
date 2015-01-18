@@ -28,6 +28,7 @@ from .fixtures import (
     fn_join,
     rds_mysql_with_read_replica,
     route53_ec2_instance_with_public_ip,
+    route53_health_check,
     route53_roundrobin,
     single_instance_with_ebs_volume,
     vpc_eip,
@@ -845,3 +846,38 @@ def test_route53_ec2_instance_with_public_ip():
     record_set1.ttl.should.equal('900')
     record_set1.weight.should.equal(None)
     record_set1.resource_records[0].should.equal("10.0.0.25")
+
+
+@mock_cloudformation()
+@mock_route53()
+def test_route53_associate_health_check():
+    route53_conn = boto.connect_route53()
+
+    template_json = json.dumps(route53_health_check.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    stack = conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    checks = route53_conn.get_list_health_checks()['ListHealthChecksResponse']['HealthChecks']
+    list(checks).should.have.length_of(1)
+    check = checks[0]
+    health_check_id = check['Id']
+    config = check['HealthCheckConfig']
+    config["FailureThreshold"].should.equal("3")
+    config["IPAddress"].should.equal("10.0.0.4")
+    config["Port"].should.equal("80")
+    config["RequestInterval"].should.equal("10")
+    config["ResourcePath"].should.equal("/")
+    config["Type"].should.equal("HTTP")
+
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    list(zones).should.have.length_of(1)
+    zone_id = zones[0]['Id']
+
+    rrsets = route53_conn.get_all_rrsets(zone_id)
+    rrsets.should.have.length_of(1)
+
+    record_set = rrsets[0]
+    record_set.health_check.should.equal(health_check_id)

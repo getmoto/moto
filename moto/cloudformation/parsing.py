@@ -37,6 +37,7 @@ MODEL_MAP = {
     "AWS::RDS::DBInstance": rds_models.Database,
     "AWS::RDS::DBSecurityGroup": rds_models.SecurityGroup,
     "AWS::RDS::DBSubnetGroup": rds_models.SubnetGroup,
+    "AWS::Route53::HealthCheck": route53_models.HealthCheck,
     "AWS::Route53::HostedZone": route53_models.FakeZone,
     "AWS::Route53::RecordSet": route53_models.RecordSet,
     "AWS::Route53::RecordSetGroup": route53_models.RecordSetGroup,

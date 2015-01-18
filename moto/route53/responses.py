@@ -70,6 +70,35 @@ def rrset_response(request, full_url, headers):
         return 200, headers, template.render(record_sets=record_sets)
 
 
+def health_check_response(request, full_url, headers):
+    parsed_url = urlparse(full_url)
+    method = request.method
+
+    if method == "POST":
+        properties = xmltodict.parse(request.body)['CreateHealthCheckRequest']['HealthCheckConfig']
+        health_check_args = {
+            "ip_address": properties.get('IPAddress'),
+            "port": properties.get('Port'),
+            "type": properties['Type'],
+            "resource_path": properties.get('ResourcePath'),
+            "fqdn": properties.get('FullyQualifiedDomainName'),
+            "search_string": properties.get('SearchString'),
+            "request_interval": properties.get('RequestInterval'),
+            "failure_threshold": properties.get('FailureThreshold'),
+        }
+        health_check = route53_backend.create_health_check(health_check_args)
+        template = Template(CREATE_HEALTH_CHECK_RESPONSE)
+        return 201, headers, template.render(health_check=health_check)
+    elif method == "DELETE":
+        health_check_id = parsed_url.path.split("/")[-1]
+        route53_backend.delete_health_check(health_check_id)
+        return 200, headers, DELETE_HEALTH_CHECK_REPONSE
+    elif method == "GET":
+        template = Template(LIST_HEALTH_CHECKS_REPONSE)
+        health_checks = route53_backend.get_health_checks()
+        return 200, headers, template.render(health_checks=health_checks)
+
+
 LIST_RRSET_REPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>
    {% for record_set in record_sets %}
@@ -126,3 +155,23 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
       {% endfor %}
    </HostedZones>
 </ListHostedZonesResponse>"""
+
+CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateHealthCheckResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+  {{ health_check.to_xml() }}
+</CreateHealthCheckResponse>"""
+
+LIST_HEALTH_CHECKS_REPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListHealthChecksResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <HealthChecks>
+   {% for health_check in health_checks %}
+      {{ health_check.to_xml() }}
+    {% endfor %}
+   </HealthChecks>
+   <IsTruncated>false</IsTruncated>
+   <MaxItems>{{ health_checks|length }}</MaxItems>
+</ListHealthChecksResponse>"""
+
+DELETE_HEALTH_CHECK_REPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+    <DeleteHealthCheckResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+</DeleteHealthCheckResponse>"""

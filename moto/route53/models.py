@@ -1,9 +1,63 @@
 from __future__ import unicode_literals
 
+import uuid
 from jinja2 import Template
 
 from moto.core import BaseBackend
 from moto.core.utils import get_random_hex
+
+
+class HealthCheck(object):
+    def __init__(self, health_check_id, health_check_args):
+        self.id = health_check_id
+        self.ip_address = health_check_args.get("ip_address")
+        self.port = health_check_args.get("port", 80)
+        self._type = health_check_args.get("type")
+        self.resource_path = health_check_args.get("resource_path")
+        self.fqdn = health_check_args.get("fqdn")
+        self.search_string = health_check_args.get("search_string")
+        self.request_interval = health_check_args.get("request_interval", 30)
+        self.failure_threshold = health_check_args.get("failure_threshold", 3)
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']['HealthCheckConfig']
+        health_check_args = {
+            "ip_address": properties.get('IPAddress'),
+            "port": properties.get('Port'),
+            "type": properties['Type'],
+            "resource_path": properties.get('ResourcePath'),
+            "fqdn": properties.get('FullyQualifiedDomainName'),
+            "search_string": properties.get('SearchString'),
+            "request_interval": properties.get('RequestInterval'),
+            "failure_threshold": properties.get('FailureThreshold'),
+        }
+        health_check = route53_backend.create_health_check(health_check_args)
+        return health_check
+
+    def to_xml(self):
+        template = Template("""<HealthCheck>
+            <Id>{{ health_check.id }}</Id>
+            <CallerReference>example.com 192.0.2.17</CallerReference>
+            <HealthCheckConfig>
+                <IPAddress>{{ health_check.ip_address }}</IPAddress>
+                <Port>{{ health_check.port }}</Port>
+                <Type>{{ health_check._type }}</Type>
+                <ResourcePath>{{ health_check.resource_path }}</ResourcePath>
+                <FullyQualifiedDomainName>{{ health_check.fqdn }}</FullyQualifiedDomainName>
+                <RequestInterval>{{ health_check.request_interval }}</RequestInterval>
+                <FailureThreshold>{{ health_check.failure_threshold }}</FailureThreshold>
+                {% if health_check.search_string %}
+                    <SearchString>{{ health_check.search_string }}</SearchString>
+                {% endif %}
+            </HealthCheckConfig>
+            <HealthCheckVersion>1</HealthCheckVersion>
+        </HealthCheck>""")
+        return template.render(health_check=self)
 
 
 class RecordSet(object):
@@ -14,6 +68,7 @@ class RecordSet(object):
         self.records = kwargs.get('ResourceRecords', [])
         self.set_identifier = kwargs.get('SetIdentifier')
         self.weight = kwargs.get('Weight')
+        self.health_check = kwargs.get('HealthCheckId')
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -42,7 +97,9 @@ class RecordSet(object):
                     </ResourceRecord>
                     {% endfor %}
                 </ResourceRecords>
-                <HealthCheckId></HealthCheckId>
+                {% if record_set.health_check %}
+                    <HealthCheckId>{{ record_set.health_check }}</HealthCheckId>
+                {% endif %}
             </ResourceRecordSet>""")
         return template.render(record_set=self)
 
@@ -111,6 +168,7 @@ class Route53Backend(BaseBackend):
 
     def __init__(self):
         self.zones = {}
+        self.health_checks = {}
 
     def create_hosted_zone(self, name):
         new_id = get_random_hex()
@@ -135,5 +193,16 @@ class Route53Backend(BaseBackend):
             del self.zones[id_]
             return zone
 
+    def create_health_check(self, health_check_args):
+        health_check_id = str(uuid.uuid4())
+        health_check = HealthCheck(health_check_id, health_check_args)
+        self.health_checks[health_check_id] = health_check
+        return health_check
+
+    def get_health_checks(self):
+        return self.health_checks.values()
+
+    def delete_health_check(self, health_check_id):
+        return self.health_checks.pop(health_check_id, None)
 
 route53_backend = Route53Backend()
