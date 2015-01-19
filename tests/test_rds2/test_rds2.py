@@ -67,36 +67,37 @@ def test_describe_non_existant_database():
 @mock_rds2
 def test_create_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
-    option_group = conn.create_option_group('test', 'postgres', '9.3', 'test option group')
+    option_group = conn.create_option_group('test', 'mysql', '5.6', 'test option group')
     option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['OptionGroupName'].should.equal('test')
-    option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['EngineName'].should.equal('postgres')
+    option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['EngineName'].should.equal('mysql')
     option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['OptionGroupDescription'].should.equal('test option group')
-    option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['MajorEngineVersion'].should.equal('9.3')
+    option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['MajorEngineVersion'].should.equal('5.6')
 
 @mock_rds2
 def test_create_option_group_bad_engine_name():
     conn = boto.rds2.connect_to_region("us-west-2")
-    conn.create_option_group.when.called_with('test', 'invalid_engine', '9.3', 'test invalid engine').should.throw(BotoServerError)
+    conn.create_option_group.when.called_with('test', 'invalid_engine', '5.6', 'test invalid engine').should.throw(BotoServerError)
 
 
 @mock_rds2
 def test_create_option_group_bad_engine_major_version():
     conn = boto.rds2.connect_to_region("us-west-2")
-    conn.create_option_group.when.called_with('test', 'postgres', '9.3.a', 'test invalid engine version').should.throw(BotoServerError)
+    conn.create_option_group.when.called_with('test', 'mysql', '6.6.6', 'test invalid engine version').should.throw(BotoServerError)
 
 
 @mock_rds2
 def test_create_option_group_empty_description():
     conn = boto.rds2.connect_to_region("us-west-2")
-    conn.create_option_group.when.called_with('test', 'postgres', '9.3', '').should.throw(BotoServerError)
+    conn.create_option_group.when.called_with('test', 'mysql', '5.6', '').should.throw(BotoServerError)
 
 
 @mock_rds2
 def test_describe_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
-    conn.create_option_group('test', 'postgres', '9.3', 'test option group')
+    conn.create_option_group('test', 'mysql', '5.6', 'test option group')
     option_groups = conn.describe_option_groups('test')
     option_groups['DescribeOptionGroupsResponse']['DescribeOptionGroupsResult']['OptionGroupsList'][0]['OptionGroupName'].should.equal('test')
+
 
 @mock_rds2
 def test_describe_non_existant_option_group():
@@ -107,7 +108,7 @@ def test_describe_non_existant_option_group():
 @mock_rds2
 def test_delete_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
-    conn.create_option_group('test', 'postgres', '9.3', 'test option group')
+    conn.create_option_group('test', 'mysql', '5.6', 'test option group')
     option_groups = conn.describe_option_groups('test')
     option_groups['DescribeOptionGroupsResponse']['DescribeOptionGroupsResult']['OptionGroupsList'][0]['OptionGroupName'].should.equal('test')
     conn.delete_option_group('test')
@@ -120,6 +121,17 @@ def test_delete_non_existant_option_group():
     conn.delete_option_group.when.called_with('non-existant').should.throw(BotoServerError)
 
 
+@mock_rds2
+def test_describe_option_group_options():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    option_group_options = conn.describe_option_group_options('sqlserver-ee')
+    len(option_group_options['DescribeOptionGroupOptionsResponse']['DescribeOptionGroupOptionsResult']['OptionGroupOptions']).should.equal(4)
+    option_group_options = conn.describe_option_group_options('sqlserver-ee', '11.00')
+    len(option_group_options['DescribeOptionGroupOptionsResponse']['DescribeOptionGroupOptionsResult']['OptionGroupOptions']).should.equal(2)
+    option_group_options = conn.describe_option_group_options('mysql', '5.6')
+    len(option_group_options['DescribeOptionGroupOptionsResponse']['DescribeOptionGroupOptionsResult']['OptionGroupOptions']).should.equal(1)
+    conn.describe_option_group_options.when.called_with('non-existent').should.throw(BotoServerError)
+    conn.describe_option_group_options.when.called_with('mysql', 'non-existent').should.throw(BotoServerError)
 
 #@disable_on_py3()
 #@mock_rds2

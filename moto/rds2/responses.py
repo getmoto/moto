@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds2_backends
+import json
 
 
 class RDS2Response(BaseResponse):
@@ -178,6 +179,11 @@ class RDS2Response(BaseResponse):
         template = self.response_template(DESCRIBE_OPTION_GROUP_TEMPLATE)
         return template.render(option_groups=option_groups)
 
+    def describe_option_group_options(self):
+        engine_name = self._get_param('EngineName')
+        major_engine_version = self._get_param('MajorEngineVersion')
+        option_group_options = self.backend.describe_option_group_options(engine_name, major_engine_version)
+        return option_group_options
 
 CREATE_DATABASE_TEMPLATE = """{
   "CreateDBInstanceResponse": {
@@ -319,3 +325,15 @@ DESCRIBE_OPTION_GROUP_TEMPLATE = \
             "ResponseMetadata": {"RequestId": "4caf445d-9fbc-11e4-87ea-a31c60ed2e36"}
         }}"""
 
+DESCRIBE_OPTION_GROUP_OPTIONS_TEMPLATE = \
+    """{"DescribeOptionGroupOptionsResponse": {
+          "DescribeOptionGroupOptionsResult": {
+            "Marker": null,
+            "OptionGroupOptions": [
+                {%- for option_group_option in option_group_options -%}
+                {%- if loop.index != 1 -%},{%- endif -%}
+                {{ option_group_option.to_json() }}
+                {%- endfor -%}
+            ]},
+          "ResponseMetadata": {"RequestId": "457f7bb8-9fbf-11e4-9084-5754f80d5144"}
+        }}"""
