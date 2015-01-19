@@ -36,3 +36,4 @@ class DBSubnetGroupNotFoundError(RDSClientError):
         super(DBSubnetGroupNotFoundError, self).__init__(
             'DBSubnetGroupNotFound',
             "Subnet Group {0} not found.".format(subnet_group_name))
+

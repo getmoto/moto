@@ -9,7 +9,7 @@ from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.core import BaseBackend
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
-from .exceptions import DBInstanceNotFoundError, DBSecurityGroupNotFoundError, DBSubnetGroupNotFoundError
+from .exceptions import RDSClientError, DBInstanceNotFoundError, DBSecurityGroupNotFoundError, DBSubnetGroupNotFoundError
 
 
 class Database(object):
@@ -444,13 +444,27 @@ class RDS2Backend(BaseBackend):
 
     def create_option_group(self, option_group_kwargs):
         option_group_id = option_group_kwargs['name']
+        valid_option_group_engines = {'postgres': ['9.3'], 'mysql': []}
+
+        if 'description' not in option_group_kwargs or not option_group_kwargs['description']:
+            raise RDSClientError('InvalidParameterValue',
+                                 'The parameter OptionGroupDescription must be provided and must not be blank.')
+        if option_group_kwargs['engine_name'] not in valid_option_group_engines.keys():
+            raise RDSClientError('InvalidParameterValue', 'Invalid DB engine: non-existant')
+        if option_group_kwargs['major_engine_version'] not in\
+           valid_option_group_engines[option_group_kwargs['engine_name']]:
+                raise RDSClientError('InvalidParameterCombination',
+                                     'Cannot find major version {0} for {1}'.format(
+                                         option_group_kwargs['major_engine_version'],
+                                         option_group_kwargs['engine_name']
+                                     ))
         option_group = OptionGroup(**option_group_kwargs)
         self.option_groups[option_group_id] = option_group
         return option_group
 
 
 class OptionGroup(object):
-    def __init__(self, name, engine_name, major_engine_version, description):
+    def __init__(self, name, engine_name, major_engine_version, description=None):
         self.engine_name = engine_name
         self.major_engine_version = major_engine_version
         self.description = description

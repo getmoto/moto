@@ -73,6 +73,24 @@ def test_create_option_group():
     option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['OptionGroupDescription'].should.equal('test option group')
     option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['MajorEngineVersion'].should.equal('9.3')
 
+@mock_rds2
+def test_create_option_group_bad_engine_name():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_option_group.when.called_with('test', 'invalid_engine', '9.3', 'test invalid engine').should.throw(BotoServerError)
+
+
+@mock_rds2
+def test_create_option_group_bad_engine_major_version():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_option_group.when.called_with('test', 'postgres', '9.3.a', 'test invalid engine version').should.throw(BotoServerError)
+
+
+@mock_rds2
+def test_create_option_group_empty_description():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_option_group.when.called_with('test', 'postgres', '9.3', '').should.throw(BotoServerError)
+
+
 #@disable_on_py3()
 #@mock_rds2
 #def test_delete_database():
