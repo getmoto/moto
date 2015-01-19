@@ -9,6 +9,7 @@ import datetime
 import boto
 from boto.ec2.instance import Reservation, InstanceAttribute
 from boto.exception import EC2ResponseError
+from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2
@@ -35,6 +36,7 @@ def test_add_servers():
 ############################################
 
 
+@freeze_time("2014-01-01 05:00:00")
 @mock_ec2
 def test_instance_launch_and_terminate():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -51,7 +53,7 @@ def test_instance_launch_and_terminate():
     instances.should.have.length_of(1)
     instances[0].id.should.equal(instance.id)
     instances[0].state.should.equal('running')
-    datetime.datetime.strptime(instances[0].launch_time, '%Y-%m-%dT%H:%M:%S.%f')
+    instances[0].launch_time.should.equal("2014-01-01T05:00:00")
 
     root_device_name = instances[0].root_device_name
     instances[0].block_device_mapping[root_device_name].status.should.equal('attached')
