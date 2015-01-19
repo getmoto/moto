@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import copy
 
 import boto.rds2
+import json
 from jinja2 import Template
 
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -461,6 +462,40 @@ class RDS2Backend(BaseBackend):
         option_group = OptionGroup(**option_group_kwargs)
         self.option_groups[option_group_id] = option_group
         return option_group
+
+    def delete_option_group(self, option_group_name):
+        if option_group_name in self.option_groups:
+            return self.option_groups.pop(option_group_name)
+        else:
+            raise RDSClientError('OptionGroupNotFoundFault', 'Specified OptionGroupName: {} not found.'.format(option_group_name))
+
+    def describe_option_groups(self, option_group_kwargs):
+        option_group_list = []
+
+        if option_group_kwargs['marker']:
+            marker = option_group_kwargs['marker']
+        else:
+            marker = 0
+        if option_group_kwargs['max_records']:
+            max_records = option_group_kwargs['max_records']
+        else:
+            max_records = 100
+
+        for option_group_name, option_group in self.option_groups.items():
+            if option_group_kwargs['name'] and option_group.name != option_group_kwargs['name']:
+                continue
+            elif option_group_kwargs['engine_name'] and \
+                    option_group.engine_name != option_group_kwargs['engine_name']:
+                continue
+            elif option_group_kwargs['major_engine_version'] and \
+                    option_group.major_engine_version != option_group_kwargs['major_engine_version']:
+                continue
+            else:
+                option_group_list.append(option_group)
+        if not len(option_group_list):
+            raise RDSClientError('OptionGroupNotFoundFault',
+                                 'Specified OptionGroupName: {} not found.'.format(option_group_kwargs['name']))
+        return option_group_list[marker:max_records+marker]
 
 
 class OptionGroup(object):

@@ -164,6 +164,21 @@ class RDS2Response(BaseResponse):
         template = self.response_template(CREATE_OPTION_GROUP_TEMPLATE)
         return template.render(option_group=option_group)
 
+    def delete_option_group(self):
+        kwargs = self._get_option_group_kwargs()
+        option_group = self.backend.delete_option_group(kwargs['name'])
+        template = self.response_template(DELETE_OPTION_GROUP_TEMPLATE)
+        return template.render(option_group=option_group)
+
+    def describe_option_groups(self):
+        kwargs = self._get_option_group_kwargs()
+        kwargs['max_records'] = self._get_param('MaxRecords')
+        kwargs['marker'] = self._get_param('Marker')
+        option_groups = self.backend.describe_option_groups(kwargs)
+        template = self.response_template(DESCRIBE_OPTION_GROUP_TEMPLATE)
+        return template.render(option_groups=option_groups)
+
+
 CREATE_DATABASE_TEMPLATE = """{
   "CreateDBInstanceResponse": {
     "CreateDBInstanceResult": {
@@ -287,3 +302,20 @@ CREATE_OPTION_GROUP_TEMPLATE = """{
         }
     }
 }"""
+
+DELETE_OPTION_GROUP_TEMPLATE = \
+    """{"DeleteOptionGroupResponse": {"ResponseMetadata": {"RequestId": "e2590367-9fa2-11e4-99cf-55e92d41c60e"}}}"""
+
+DESCRIBE_OPTION_GROUP_TEMPLATE = \
+    """{"DescribeOptionGroupsResponse": {
+          "DescribeOptionGroupsResult": {
+            "Marker": null,
+            "OptionGroupsList": [
+            {%- for option_group in option_groups -%}
+                {%- if loop.index != 1 -%},{%- endif -%}
+                {{ option_group.to_json() }}
+            {%- endfor -%}
+            ]},
+            "ResponseMetadata": {"RequestId": "4caf445d-9fbc-11e4-87ea-a31c60ed2e36"}
+        }}"""
+

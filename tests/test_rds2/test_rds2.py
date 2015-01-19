@@ -91,6 +91,36 @@ def test_create_option_group_empty_description():
     conn.create_option_group.when.called_with('test', 'postgres', '9.3', '').should.throw(BotoServerError)
 
 
+@mock_rds2
+def test_describe_option_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_option_group('test', 'postgres', '9.3', 'test option group')
+    option_groups = conn.describe_option_groups('test')
+    option_groups['DescribeOptionGroupsResponse']['DescribeOptionGroupsResult']['OptionGroupsList'][0]['OptionGroupName'].should.equal('test')
+
+@mock_rds2
+def test_describe_non_existant_option_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.describe_option_groups.when.called_with("not-a-option-group").should.throw(BotoServerError)
+
+
+@mock_rds2
+def test_delete_option_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_option_group('test', 'postgres', '9.3', 'test option group')
+    option_groups = conn.describe_option_groups('test')
+    option_groups['DescribeOptionGroupsResponse']['DescribeOptionGroupsResult']['OptionGroupsList'][0]['OptionGroupName'].should.equal('test')
+    conn.delete_option_group('test')
+    conn.describe_option_groups.when.called_with('test').should.throw(BotoServerError)
+
+
+@mock_rds2
+def test_delete_non_existant_option_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.delete_option_group.when.called_with('non-existant').should.throw(BotoServerError)
+
+
+
 #@disable_on_py3()
 #@mock_rds2
 #def test_delete_database():
