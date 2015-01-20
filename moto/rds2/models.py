@@ -548,7 +548,7 @@ class RDS2Backend(BaseBackend):
             self.option_groups[option_group_name].remove_options(options_to_remove)
         if options_to_include:
             self.option_groups[option_group_name].add_options(options_to_include)
-        return ['a']
+        return self.option_groups[option_group_name]
 
 
 class OptionGroup(object):

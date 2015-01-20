@@ -198,17 +198,19 @@ class RDS2Response(BaseResponse):
                 'VpcSecurityGroupMemberships': self._get_param('OptionsToInclude.member.{}.VpcSecurityGroupMemberships'.format(count))
             })
             count += 1
+
         count = 1
         options_to_remove = []
         while self._get_param('OptionsToRemove.member.{}'.format(count)):
             options_to_remove.append(self._get_param('OptionsToRemove.member.{}'.format(count)))
             count += 1
         apply_immediately = self._get_param('ApplyImmediately')
-        result = self.backend.modify_option_group(option_group_name,
-                                                  options_to_include,
-                                                  options_to_remove,
-                                                  apply_immediately)
-        return json.dumps('{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "2789.0.v1", "OptionsDependedOn": [], "MajorEngineVersion": "10.50", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "Mirroring", "PortRequired": false, "Description": "SQLServer Database Mirroring"}, {"MinimumRequiredMinorEngineVersion": "2789.0.v1", "OptionsDependedOn": [], "MajorEngineVersion": "10.50", "Persistent": true, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "TDE", "PortRequired": false, "Description": "SQL Server - Transparent Data Encryption"}, {"MinimumRequiredMinorEngineVersion": "2100.60.v1", "OptionsDependedOn": [], "MajorEngineVersion": "11.00", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "Mirroring", "PortRequired": false, "Description": "SQLServer Database Mirroring"}, {"MinimumRequiredMinorEngineVersion": "2100.60.v1", "OptionsDependedOn": [], "MajorEngineVersion": "11.00", "Persistent": true, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "TDE", "PortRequired": false, "Description": "SQL Server - Transparent Data Encryption"}]}, "ResponseMetadata": {"RequestId": "c9f2fd9b-9fcb-11e4-8add-31b6fe33145f"}}}')
+        option_group = self.backend.modify_option_group(option_group_name,
+                                                        options_to_include,
+                                                        options_to_remove,
+                                                        apply_immediately)
+        template = self.response_template(MODIFY_OPTION_GROUP_TEMPLATE)
+        return template.render(option_group=option_group)
 
 
 CREATE_DATABASE_TEMPLATE = """{
@@ -363,3 +365,13 @@ DESCRIBE_OPTION_GROUP_OPTIONS_TEMPLATE = \
             ]},
           "ResponseMetadata": {"RequestId": "457f7bb8-9fbf-11e4-9084-5754f80d5144"}
         }}"""
+
+MODIFY_OPTION_GROUP_TEMPLATE = \
+    """{"ModifyOptionGroupResponse": {
+          "ResponseMetadata": {
+              "RequestId": "ce9284a5-a0de-11e4-b984-a11a53e1f328"
+          },
+          "ModifyOptionGroupResult":
+            {{ option_group.to_json() }}
+        }
+      }"""

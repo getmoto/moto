@@ -73,6 +73,7 @@ def test_create_option_group():
     option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['OptionGroupDescription'].should.equal('test option group')
     option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['MajorEngineVersion'].should.equal('5.6')
 
+
 @mock_rds2
 def test_create_option_group_bad_engine_name():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -144,7 +145,14 @@ def test_describe_option_group_options():
 @mock_rds2
 def test_modify_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
-    # if Someone can tell me how the hell to use this function I can finish coding this.
+    conn.create_option_group('test', 'mysql', '5.6', 'test option group')
+    # if Someone can tell me how the hell to use this function
+    # to add options to an option_group, I can finish coding this.
+    result = conn.modify_option_group('test', [], ['MEMCACHED'], True)
+    result['ModifyOptionGroupResponse']['ModifyOptionGroupResult']['EngineName'].should.equal('mysql')
+    result['ModifyOptionGroupResponse']['ModifyOptionGroupResult']['Options'].should.equal([])
+    result['ModifyOptionGroupResponse']['ModifyOptionGroupResult']['OptionGroupName'].should.equal('test')
+
 
 
 @mock_rds2
