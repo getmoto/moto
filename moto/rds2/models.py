@@ -574,9 +574,11 @@ class OptionGroup(object):
         return template.render(option_group=self)
 
     def remove_options(self, options_to_remove):
+        # TODO: Check for option in self.options and remove if exists. Raise error otherwise
         return
 
     def add_options(self, options_to_add):
+        # TODO: Validate option and add it to self.options. If invalid raise error
         return
 
 
@@ -584,6 +586,8 @@ class OptionGroupOption(object):
     def __init__(self, engine_name, major_engine_version):
         self.engine_name = engine_name
         self.major_engine_version = major_engine_version
+        #TODO: Create validation for Options
+        #TODO: formulate way to store options settings
 
     def to_json(self):
         template = Template("""{ "MinimumRequiredMinorEngineVersion":
