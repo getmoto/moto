@@ -185,6 +185,32 @@ class RDS2Response(BaseResponse):
         option_group_options = self.backend.describe_option_group_options(engine_name, major_engine_version)
         return option_group_options
 
+    def modify_option_group(self):
+        option_group_name = self._get_param('OptionGroupName')
+        count = 1
+        options_to_include = []
+        while self._get_param('OptionsToInclude.member.{}.OptionName'.format(count)):
+            options_to_include.append({
+                'Port': self._get_param('OptionsToInclude.member.{}.Port'.format(count)),
+                'OptionName': self._get_param('OptionsToInclude.member.{}.OptionName'.format(count)),
+                'DBSecurityGroupMemberships': self._get_param('OptionsToInclude.member.{}.DBSecurityGroupMemberships'.format(count)),
+                'OptionSettings': self._get_param('OptionsToInclude.member.{}.OptionSettings'.format(count)),
+                'VpcSecurityGroupMemberships': self._get_param('OptionsToInclude.member.{}.VpcSecurityGroupMemberships'.format(count))
+            })
+            count += 1
+        count = 1
+        options_to_remove = []
+        while self._get_param('OptionsToRemove.member.{}'.format(count)):
+            options_to_remove.append(self._get_param('OptionsToRemove.member.{}'.format(count)))
+            count += 1
+        apply_immediately = self._get_param('ApplyImmediately')
+        result = self.backend.modify_option_group(option_group_name,
+                                                  options_to_include,
+                                                  options_to_remove,
+                                                  apply_immediately)
+        return json.dumps('{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "2789.0.v1", "OptionsDependedOn": [], "MajorEngineVersion": "10.50", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "Mirroring", "PortRequired": false, "Description": "SQLServer Database Mirroring"}, {"MinimumRequiredMinorEngineVersion": "2789.0.v1", "OptionsDependedOn": [], "MajorEngineVersion": "10.50", "Persistent": true, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "TDE", "PortRequired": false, "Description": "SQL Server - Transparent Data Encryption"}, {"MinimumRequiredMinorEngineVersion": "2100.60.v1", "OptionsDependedOn": [], "MajorEngineVersion": "11.00", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "Mirroring", "PortRequired": false, "Description": "SQLServer Database Mirroring"}, {"MinimumRequiredMinorEngineVersion": "2100.60.v1", "OptionsDependedOn": [], "MajorEngineVersion": "11.00", "Persistent": true, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "TDE", "PortRequired": false, "Description": "SQL Server - Transparent Data Encryption"}]}, "ResponseMetadata": {"RequestId": "c9f2fd9b-9fcb-11e4-8add-31b6fe33145f"}}}')
+
+
 CREATE_DATABASE_TEMPLATE = """{
   "CreateDBInstanceResponse": {
     "CreateDBInstanceResult": {

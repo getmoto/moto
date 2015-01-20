@@ -92,6 +92,13 @@ def test_create_option_group_empty_description():
 
 
 @mock_rds2
+def test_create_option_group_duplicate():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_option_group('test', 'mysql', '5.6', 'test option group')
+    conn.create_option_group.when.called_with('test', 'mysql', '5.6', 'foo').should.throw(BotoServerError)
+
+
+@mock_rds2
 def test_describe_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.create_option_group('test', 'mysql', '5.6', 'test option group')
@@ -132,6 +139,26 @@ def test_describe_option_group_options():
     len(option_group_options['DescribeOptionGroupOptionsResponse']['DescribeOptionGroupOptionsResult']['OptionGroupOptions']).should.equal(1)
     conn.describe_option_group_options.when.called_with('non-existent').should.throw(BotoServerError)
     conn.describe_option_group_options.when.called_with('mysql', 'non-existent').should.throw(BotoServerError)
+
+
+@mock_rds2
+def test_modify_option_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    # if Someone can tell me how the hell to use this function I can finish coding this.
+
+
+@mock_rds2
+def test_modify_option_group_no_options():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_option_group('test', 'mysql', '5.6', 'test option group')
+    conn.modify_option_group.when.called_with('test').should.throw(BotoServerError)
+
+
+@mock_rds2
+def test_modify_non_existant_option_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.modify_option_group.when.called_with('non-existant', [('OptionName', 'Port', 'DBSecurityGroupMemberships', 'VpcSecurityGroupMemberships', 'OptionSettings')]).should.throw(BotoServerError)
+
 
 #@disable_on_py3()
 #@mock_rds2

@@ -452,7 +452,9 @@ class RDS2Backend(BaseBackend):
                                       'sqlserver-se': ['10.50', '11.00'],
                                       'sqlserver-ee': ['10.50', '11.00']
                                       }
-
+        if option_group_kwargs['name'] in self.option_groups:
+            raise RDSClientError('OptionGroupAlreadyExistsFault',
+                                 'An option group named {} already exists.'.format(option_group_kwargs['name']))
         if 'description' not in option_group_kwargs or not option_group_kwargs['description']:
             raise RDSClientError('InvalidParameterValue',
                                  'The parameter OptionGroupDescription must be provided and must not be blank.')
@@ -535,6 +537,19 @@ class RDS2Backend(BaseBackend):
             return default_option_group_options[engine_name][major_engine_version]
         return default_option_group_options[engine_name]['all']
 
+    def modify_option_group(self, option_group_name, options_to_include=None, options_to_remove=None, apply_immediately=None):
+        if option_group_name not in self.option_groups:
+            raise RDSClientError('OptionGroupNotFoundFault',
+                                 'Specified OptionGroupName: {} not found.'.format(option_group_name))
+        if not options_to_include and not options_to_remove:
+            raise RDSClientError('InvalidParameterValue',
+                                 'At least one option must be added, modified, or removed.')
+        if options_to_remove:
+            self.option_groups[option_group_name].remove_options(options_to_remove)
+        if options_to_include:
+            self.option_groups[option_group_name].add_options(options_to_include)
+        return ['a']
+
 
 class OptionGroup(object):
     def __init__(self, name, engine_name, major_engine_version, description=None):
@@ -557,6 +572,12 @@ class OptionGroup(object):
     "OptionGroupName": "{{ option_group.name }}"
 }""")
         return template.render(option_group=self)
+
+    def remove_options(self, options_to_remove):
+        return
+
+    def add_options(self, options_to_add):
+        return
 
 
 class OptionGroupOption(object):
