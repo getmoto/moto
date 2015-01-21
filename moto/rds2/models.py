@@ -88,12 +88,14 @@ class Database(object):
     def address(self):
         return "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(self.db_instance_identifier, self.region)
 
+    # TODO: confirm how this should represent in the RESULT JSON
     def add_replica(self, replica):
         self.replicas.append(replica.db_instance_identifier)
 
     def remove_replica(self, replica):
         self.replicas.remove(replica.db_instance_identifier)
 
+    # TODO: confirm how this should represent in the RESULT JSON
     def set_as_replica(self):
         self.is_replica = True
         self.replicas = []
@@ -223,7 +225,11 @@ class Database(object):
         "Endpoint": null,
         "InstanceCreateTime": null,
         "Iops": null,
-        "ReadReplicaDBInstanceIdentifiers": [],
+        "ReadReplicaDBInstanceIdentifiers": [{%- for replica in database.replicas -%}
+            {%- if not loop.first -%},{%- endif -%}
+            "{{ replica }}"
+        {%- endfor -%}
+        ],
         "ReadReplicaSourceDBInstanceIdentifier": null,
         "SecondaryAvailabilityZone": null,
         "StatusInfos": null,

@@ -58,12 +58,53 @@ def test_get_databases():
     instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult'][0]['DBInstance']['DBInstanceIdentifier'].should.equal("db-master-1")
 
 
+@disable_on_py3()
 @mock_rds2
 def test_describe_non_existant_database():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.describe_db_instances.when.called_with("not-a-db").should.throw(BotoServerError)
 
 
+@disable_on_py3()
+@mock_rds2
+def test_modify_db_instance():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    database = conn.create_db_instance(db_instance_identifier='db-master-1',
+                                       allocated_storage=10,
+                                       engine='postgres',
+                                       db_instance_class='db.m1.small',
+                                       master_username='root',
+                                       master_user_password='hunter2',
+                                       db_security_groups=["my_sg"])
+    instances = conn.describe_db_instances('db-master-1')
+    instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult'][0]['DBInstance']['AllocatedStorage'].should.equal('10')
+    conn.modify_db_instance(db_instance_identifier='db-master-1', allocated_storage=20, apply_immediately=True)
+    instances = conn.describe_db_instances('db-master-1')
+    instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult'][0]['DBInstance']['AllocatedStorage'].should.equal('20')
+
+
+@disable_on_py3()
+@mock_rds2
+def test_delete_database():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    instances = conn.describe_db_instances()
+    list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(0)
+    conn.create_db_instance(db_instance_identifier='db-master-1',
+                            allocated_storage=10,
+                            engine='postgres',
+                            db_instance_class='db.m1.small',
+                            master_username='root',
+                            master_user_password='hunter2',
+                            db_security_groups=["my_sg"])
+    instances = conn.describe_db_instances()
+    list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(1)
+
+    conn.delete_db_instance("db-master-1")
+    instances = conn.describe_db_instances()
+    list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(0)
+
+
+@disable_on_py3()
 @mock_rds2
 def test_create_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -74,24 +115,28 @@ def test_create_option_group():
     option_group['CreateOptionGroupResponse']['CreateOptionGroupResult']['OptionGroup']['MajorEngineVersion'].should.equal('5.6')
 
 
+@disable_on_py3()
 @mock_rds2
 def test_create_option_group_bad_engine_name():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.create_option_group.when.called_with('test', 'invalid_engine', '5.6', 'test invalid engine').should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_create_option_group_bad_engine_major_version():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.create_option_group.when.called_with('test', 'mysql', '6.6.6', 'test invalid engine version').should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_create_option_group_empty_description():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.create_option_group.when.called_with('test', 'mysql', '5.6', '').should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_create_option_group_duplicate():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -99,6 +144,7 @@ def test_create_option_group_duplicate():
     conn.create_option_group.when.called_with('test', 'mysql', '5.6', 'foo').should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_describe_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -107,12 +153,14 @@ def test_describe_option_group():
     option_groups['DescribeOptionGroupsResponse']['DescribeOptionGroupsResult']['OptionGroupsList'][0]['OptionGroupName'].should.equal('test')
 
 
+@disable_on_py3()
 @mock_rds2
 def test_describe_non_existant_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.describe_option_groups.when.called_with("not-a-option-group").should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_delete_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -123,6 +171,7 @@ def test_delete_option_group():
     conn.describe_option_groups.when.called_with('test').should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_delete_non_existant_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -142,10 +191,12 @@ def test_describe_option_group_options():
     conn.describe_option_group_options.when.called_with('mysql', 'non-existent').should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_modify_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.create_option_group('test', 'mysql', '5.6', 'test option group')
+    # TODO: create option and validate before deleting.
     # if Someone can tell me how the hell to use this function
     # to add options to an option_group, I can finish coding this.
     result = conn.modify_option_group('test', [], ['MEMCACHED'], True)
@@ -154,7 +205,7 @@ def test_modify_option_group():
     result['ModifyOptionGroupResponse']['ModifyOptionGroupResult']['OptionGroupName'].should.equal('test')
 
 
-
+@disable_on_py3()
 @mock_rds2
 def test_modify_option_group_no_options():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -162,31 +213,21 @@ def test_modify_option_group_no_options():
     conn.modify_option_group.when.called_with('test').should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_modify_non_existant_option_group():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.modify_option_group.when.called_with('non-existant', [('OptionName', 'Port', 'DBSecurityGroupMemberships', 'VpcSecurityGroupMemberships', 'OptionSettings')]).should.throw(BotoServerError)
 
 
+@disable_on_py3()
+@mock_rds2
+def test_delete_non_existant_database():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.delete_db_instance.when.called_with("not-a-db").should.throw(BotoServerError)
+
+
 #@disable_on_py3()
-#@mock_rds2
-#def test_delete_database():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    list(conn.get_all_dbinstances()).should.have.length_of(0)
-#
-#    conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
-#    list(conn.get_all_dbinstances()).should.have.length_of(1)
-#
-#    conn.delete_dbinstance("db-master-1")
-#    list(conn.get_all_dbinstances()).should.have.length_of(0)
-#
-#
-#@mock_rds2
-#def test_delete_non_existant_database():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    conn.delete_dbinstance.when.called_with("not-a-db").should.throw(BotoServerError)
-
-
 #@mock_rds2
 #def test_create_database_security_group():
 #    conn = boto.rds2.connect_to_region("us-west-2")
@@ -338,20 +379,30 @@ def test_modify_non_existant_option_group():
 #def test_create_database_replica():
 #    conn = boto.rds2.connect_to_region("us-west-2")
 #
-#    primary = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
+#    conn.create_db_instance(db_instance_identifier='db-master-1',
+#                            allocated_storage=10,
+#                            engine='postgres',
+#                            db_instance_class='db.m1.small',
+#                            master_username='root',
+#                            master_user_password='hunter2',
+#                            db_security_groups=["my_sg"])
 #
-#    replica = conn.create_dbinstance_read_replica("replica", "db-master-1", "db.m1.small")
-#    replica.id.should.equal("replica")
-#    replica.instance_class.should.equal("db.m1.small")
-#    status_info = replica.status_infos[0]
-#    status_info.normal.should.equal(True)
-#    status_info.status_type.should.equal('read replication')
-#    status_info.status.should.equal('replicating')
-#
-#    primary = conn.get_all_dbinstances("db-master-1")[0]
-#    primary.read_replica_dbinstance_identifiers[0].should.equal("replica")
-#
-#    conn.delete_dbinstance("replica")
-#
-#    primary = conn.get_all_dbinstances("db-master-1")[0]
-#    list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
+#    # TODO: confirm the RESULT JSON
+#    replica = conn.create_db_instance_read_replica("replica", "db-master-1", "db.m1.small")
+#    print replica
+    #replica.id.should.equal("replica")
+    #replica.instance_class.should.equal("db.m1.small")
+    #status_info = replica.status_infos[0]
+    #status_info.normal.should.equal(True)
+    #status_info.status_type.should.equal('read replication')
+    #status_info.status.should.equal('replicating')
+
+    # TODO: formulate checks on read replica status
+#    primary = conn.describe_db_instances("db-master-1")
+#    print primary
+    #primary.read_replica_dbinstance_identifiers[0].should.equal("replica")
+
+    #conn.delete_dbinstance("replica")
+
+    #primary = conn.get_all_dbinstances("db-master-1")[0]
+    #list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)

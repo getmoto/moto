@@ -90,16 +90,20 @@ class RDS2Response(BaseResponse):
         template = self.response_template(DESCRIBE_DATABASES_TEMPLATE)
         return template.render(databases=databases)
 
-    # TODO: Update function to new method
     def modify_dbinstance(self):
+        return self.modify_db_instance()
+
+    def modify_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         db_kwargs = self._get_db_kwargs()
         database = self.backend.modify_database(db_instance_identifier, db_kwargs)
         template = self.response_template(MODIFY_DATABASE_TEMPLATE)
         return template.render(database=database)
 
-    # TODO: Update function to new method
     def delete_dbinstance(self):
+        return self.delete_db_instance()
+
+    def delete_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         database = self.backend.delete_database(db_instance_identifier)
         template = self.response_template(DELETE_DATABASE_TEMPLATE)
@@ -222,14 +226,14 @@ CREATE_DATABASE_TEMPLATE = """{
   }
 }"""
 
-CREATE_DATABASE_REPLICA_TEMPLATE = """<CreateDBInstanceReadReplicaResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <CreateDBInstanceReadReplicaResult>
-    {{ database.to_xml() }}
-  </CreateDBInstanceReadReplicaResult>
-  <ResponseMetadata>
-    <RequestId>ba8dedf0-bb9a-11d3-855b-576787000e19</RequestId>
-  </ResponseMetadata>
-</CreateDBInstanceReadReplicaResponse>"""
+CREATE_DATABASE_REPLICA_TEMPLATE = """{
+  "CreateDBInstanceResponse": {
+    "CreateDBInstanceResult": {
+      {{ database.to_json() }}
+    },
+    "ResponseMetadata": { "RequestId": "523e3218-afc7-11c3-90f5-f90431260ab4" }
+  }
+}"""
 
 DESCRIBE_DATABASES_TEMPLATE = """{
   "DescribeDBInstanceResponse": {
@@ -243,23 +247,24 @@ DESCRIBE_DATABASES_TEMPLATE = """{
   }
 }"""
 
-MODIFY_DATABASE_TEMPLATE = """<ModifyDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <ModifyDBInstanceResult>
-    {{ database.to_xml() }}
-  </ModifyDBInstanceResult>
-  <ResponseMetadata>
-    <RequestId>f643f1ac-bbfe-11d3-f4c6-37db295f7674</RequestId>
-  </ResponseMetadata>
-</ModifyDBInstanceResponse>"""
+MODIFY_DATABASE_TEMPLATE = """{"ModifyDBInstanceResponse": {
+    "ModifyDBInstanceResult": {
+      {{ database.to_json() }},
+      "ResponseMetadata": {
+        "RequestId": "bb58476c-a1a8-11e4-99cf-55e92d4bbada"
+      }
+    }
+  }
+}"""
 
-DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <DeleteDBInstanceResult>
-    {{ database.to_xml() }}
-  </DeleteDBInstanceResult>
-  <ResponseMetadata>
-    <RequestId>7369556f-b70d-11c3-faca-6ba18376ea1b</RequestId>
-  </ResponseMetadata>
-</DeleteDBInstanceResponse>"""
+# TODO: update delete DB TEMPLATE
+DELETE_DATABASE_TEMPLATE = """{
+  "DeleteDBInstanceResponse": {
+    "DeleteDBInstanceResult": {
+    },
+    "ResponseMetadata": { "RequestId": "523e3218-afc7-11c3-90f5-f90431260ab4" }
+  }
+}"""
 
 CREATE_SECURITY_GROUP_TEMPLATE = """<CreateDBSecurityGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBSecurityGroupResult>
