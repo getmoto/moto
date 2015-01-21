@@ -299,6 +299,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self.subnet_id = kwargs.get("subnet_id")
         self.key_name = kwargs.get("key_name")
         self.source_dest_check = "true"
+        self.launch_time = datetime.utcnow().isoformat()
         self.private_ip_address = kwargs.get('private_ip_address')
 
         self.block_device_mapping = BlockDeviceMapping()

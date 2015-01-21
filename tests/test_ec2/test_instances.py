@@ -4,10 +4,12 @@ import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import base64
+import datetime
 
 import boto
 from boto.ec2.instance import Reservation, InstanceAttribute
 from boto.exception import EC2ResponseError
+from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2
@@ -34,6 +36,7 @@ def test_add_servers():
 ############################################
 
 
+@freeze_time("2014-01-01 05:00:00")
 @mock_ec2
 def test_instance_launch_and_terminate():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -50,6 +53,7 @@ def test_instance_launch_and_terminate():
     instances.should.have.length_of(1)
     instances[0].id.should.equal(instance.id)
     instances[0].state.should.equal('running')
+    instances[0].launch_time.should.equal("2014-01-01T05:00:00")
 
     root_device_name = instances[0].root_device_name
     instances[0].block_device_mapping[root_device_name].status.should.equal('attached')
@@ -604,13 +608,13 @@ def test_describe_instance_status_with_non_running_instances():
 @mock_ec2
 def test_get_instance_by_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    
+
     conn.run_instances('ami-1234abcd')
     instance = conn.get_only_instances()[0]
 
     security_group = conn.create_security_group('test', 'test')
     conn.modify_instance_attribute(instance.id, "groupSet", [security_group.id])
-    
+
     security_group_instances = security_group.instances()
 
     assert len(security_group_instances) == 1
