@@ -218,7 +218,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
             <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
             <privateIpAddress>{{ instance.nics[0].private_ip_address }}</privateIpAddress>
             {% if instance.nics[0].public_ip %}
-            <ipAddress>46.51.219.63</ipAddress>
+                <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
             {% endif %}
           {% else %}
             <subnetId>{{ instance.subnet_id }}</subnetId>
@@ -342,7 +342,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
                       <privateIpAddress>{{ instance.nics[0].private_ip_address }}</privateIpAddress>
                       {% if instance.nics[0].public_ip %}
-                      <ipAddress>46.51.219.63</ipAddress>
+                          <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
                       {% endif %}
                     {% endif %}
                     <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
