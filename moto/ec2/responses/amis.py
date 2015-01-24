@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring, filters_from_querystring
+from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring, \
+    filters_from_querystring, sequence_from_querystring
 
 
 class AmisResponse(BaseResponse):
@@ -41,18 +42,19 @@ class AmisResponse(BaseResponse):
     def describe_image_attribute(self):
         ami_id = self.querystring.get('ImageId')[0]
         groups = self.ec2_backend.get_launch_permission_groups(ami_id)
+        users = self.ec2_backend.get_launch_permission_users(ami_id)
         template = self.response_template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
-        return template.render(ami_id=ami_id, groups=groups)
+        return template.render(ami_id=ami_id, groups=groups, users=users)
 
     def modify_image_attribute(self):
         ami_id = self.querystring.get('ImageId')[0]
         operation_type = self.querystring.get('OperationType')[0]
         group = self.querystring.get('UserGroup.1', [None])[0]
-        user_id = self.querystring.get('UserId.1', [None])[0]
+        user_ids = sequence_from_querystring('UserId', self.querystring)
         if (operation_type == 'add'):
-            self.ec2_backend.add_launch_permission(ami_id, user_id=user_id, group=group)
+            self.ec2_backend.add_launch_permission(ami_id, user_ids=user_ids, group=group)
         elif (operation_type == 'remove'):
-            self.ec2_backend.remove_launch_permission(ami_id, user_id=user_id, group=group)
+            self.ec2_backend.remove_launch_permission(ami_id, user_ids=user_ids, group=group)
         return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
 
     def register_image(self):
@@ -140,16 +142,24 @@ DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE = """
 <DescribeImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-08-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <imageId>{{ ami_id }}</imageId>
-   {% if not groups %}
+   {% if not groups and not users %}
       <launchPermission/>
-   {% endif %}
-   {% if groups %}
+   {% else %}
       <launchPermission>
-         {% for group in groups %}
-            <item>
-               <group>{{ group }}</group>
-            </item>
-         {% endfor %}
+         {% if groups %}
+            {% for group in groups %}
+               <item>
+                  <group>{{ group }}</group>
+               </item>
+            {% endfor %}
+         {% endif %}
+         {% if users %}
+            {% for user in users %}
+               <item>
+                  <userId>{{ user }}</userId>
+               </item>
+            {% endfor %}
+         {% endif %}
       </launchPermission>
    {% endif %}
 </DescribeImageAttributeResponse>"""

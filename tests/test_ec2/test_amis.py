@@ -238,7 +238,7 @@ def test_getting_malformed_ami():
 
 
 @mock_ec2
-def test_ami_attribute():
+def test_ami_attribute_group_permissions():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
@@ -283,6 +283,132 @@ def test_ami_attribute():
     # Remove is idempotent
     conn.modify_image_attribute.when.called_with(**REMOVE_GROUP_ARGS).should_not.throw(EC2ResponseError)
 
+
+@mock_ec2
+def test_ami_attribute_user_permissions():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+    image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
+    image = conn.get_image(image_id)
+
+    # Baseline
+    attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
+    attributes.name.should.equal('launch_permission')
+    attributes.attrs.should.have.length_of(0)
+
+    # Both str and int values should work.
+    USER1 = '123456789011'
+    USER2 = 123456789022
+
+    ADD_USERS_ARGS = {'image_id': image.id,
+                      'attribute': 'launchPermission',
+                      'operation': 'add',
+                      'user_ids': [USER1, USER2]}
+
+    REMOVE_USERS_ARGS = {'image_id': image.id,
+                         'attribute': 'launchPermission',
+                         'operation': 'remove',
+                         'user_ids': [USER1, USER2]}
+
+    REMOVE_SINGLE_USER_ARGS = {'image_id': image.id,
+                               'attribute': 'launchPermission',
+                               'operation': 'remove',
+                               'user_ids': [USER1]}
+
+    # Add multiple users and confirm
+    conn.modify_image_attribute(**ADD_USERS_ARGS)
+
+    attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
+    attributes.attrs['user_ids'].should.have.length_of(2)
+    set(attributes.attrs['user_ids']).should.equal(set([str(USER1), str(USER2)]))
+    image = conn.get_image(image_id)
+    image.is_public.should.equal(False)
+
+    # Add is idempotent
+    conn.modify_image_attribute.when.called_with(**ADD_USERS_ARGS).should_not.throw(EC2ResponseError)
+
+    # Remove single user and confirm
+    conn.modify_image_attribute(**REMOVE_SINGLE_USER_ARGS)
+
+    attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
+    attributes.attrs['user_ids'].should.have.length_of(1)
+    set(attributes.attrs['user_ids']).should.equal(set([str(USER2)]))
+    image = conn.get_image(image_id)
+    image.is_public.should.equal(False)
+
+    # Remove multiple users and confirm
+    conn.modify_image_attribute(**REMOVE_USERS_ARGS)
+
+    attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
+    attributes.attrs.should.have.length_of(0)
+    image = conn.get_image(image_id)
+    image.is_public.should.equal(False)
+
+    # Remove is idempotent
+    conn.modify_image_attribute.when.called_with(**REMOVE_USERS_ARGS).should_not.throw(EC2ResponseError)
+
+
+@mock_ec2
+def test_ami_attribute_user_and_group_permissions():
+    """
+      Boto supports adding/removing both users and groups at the same time.
+      Just spot-check this -- input variations, idempotency, etc are validated
+        via user-specific and group-specific tests above.
+    """
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+    image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
+    image = conn.get_image(image_id)
+
+    # Baseline
+    attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
+    attributes.name.should.equal('launch_permission')
+    attributes.attrs.should.have.length_of(0)
+
+    USER1 = '123456789011'
+    USER2 = '123456789022'
+
+    ADD_ARGS = {'image_id': image.id,
+                'attribute': 'launchPermission',
+                'operation': 'add',
+                'groups': ['all'],
+                'user_ids': [USER1, USER2]}
+
+    REMOVE_ARGS = {'image_id': image.id,
+                   'attribute': 'launchPermission',
+                   'operation': 'remove',
+                   'groups': ['all'],
+                   'user_ids': [USER1, USER2]}
+
+    # Add and confirm
+    conn.modify_image_attribute(**ADD_ARGS)
+
+    attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
+    attributes.attrs['user_ids'].should.have.length_of(2)
+    set(attributes.attrs['user_ids']).should.equal(set([USER1, USER2]))
+    set(attributes.attrs['groups']).should.equal(set(['all']))
+    image = conn.get_image(image_id)
+    image.is_public.should.equal(True)
+
+    # Remove and confirm
+    conn.modify_image_attribute(**REMOVE_ARGS)
+
+    attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
+    attributes.attrs.should.have.length_of(0)
+    image = conn.get_image(image_id)
+    image.is_public.should.equal(False)
+
+
+@mock_ec2
+def test_ami_attribute_error_cases():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+    image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
+    image = conn.get_image(image_id)
+
     # Error: Add with group != 'all'
     with assert_raises(EC2ResponseError) as cm:
         conn.modify_image_attribute(image.id,
@@ -292,6 +418,49 @@ def test_ami_attribute():
     cm.exception.code.should.equal('InvalidAMIAttributeItemValue')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+    # Error: Add with user ID that isn't an integer.
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_image_attribute(image.id,
+                                    attribute='launchPermission',
+                                    operation='add',
+                                    user_ids='12345678901A')
+    cm.exception.code.should.equal('InvalidAMIAttributeItemValue')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Error: Add with user ID that is > length 12.
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_image_attribute(image.id,
+                                    attribute='launchPermission',
+                                    operation='add',
+                                    user_ids='1234567890123')
+    cm.exception.code.should.equal('InvalidAMIAttributeItemValue')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Error: Add with user ID that is < length 12.
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_image_attribute(image.id,
+                                    attribute='launchPermission',
+                                    operation='add',
+                                    user_ids='12345678901')
+    cm.exception.code.should.equal('InvalidAMIAttributeItemValue')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Error: Add with one invalid user ID among other valid IDs, ensure no partial changes.
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_image_attribute(image.id,
+                                    attribute='launchPermission',
+                                    operation='add',
+                                    user_ids=['123456789011', 'foo', '123456789022'])
+    cm.exception.code.should.equal('InvalidAMIAttributeItemValue')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    attributes = conn.get_image_attribute(image.id, attribute='launchPermission')
+    attributes.attrs.should.have.length_of(0)
 
     # Error: Add with invalid image ID
     with assert_raises(EC2ResponseError) as cm:
@@ -313,12 +482,3 @@ def test_ami_attribute():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-    # Error: Add or remove with user ID instead of group
-    conn.modify_image_attribute.when.called_with(image.id,
-                                                 attribute='launchPermission',
-                                                 operation='add',
-                                                 user_ids=['user']).should.throw(NotImplementedError)
-    conn.modify_image_attribute.when.called_with(image.id,
-                                                 attribute='launchPermission',
-                                                 operation='remove',
-                                                 user_ids=['user']).should.throw(NotImplementedError)

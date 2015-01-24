@@ -820,6 +820,7 @@ class Ami(TaggedEC2Resource):
             self.description = description if description else source_ami.description
 
         self.launch_permission_groups = set()
+        self.launch_permission_users = set()
 
         # AWS auto-creates these, we should reflect the same.
         volume = self.ec2_backend.create_volume(15, "us-east-1a")
@@ -902,24 +903,49 @@ class AmiBackend(object):
         ami = self.describe_images(ami_ids=[ami_id])[0]
         return ami.launch_permission_groups
 
-    def add_launch_permission(self, ami_id, user_id=None, group=None):
-        if user_id:
-            self.raise_not_implemented_error("The UserId parameter for ModifyImageAttribute")
-
-        if group != 'all':
-            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+    def get_launch_permission_users(self, ami_id):
         ami = self.describe_images(ami_ids=[ami_id])[0]
-        ami.launch_permission_groups.add(group)
+        return ami.launch_permission_users
+
+    def validate_permission_targets(self, user_ids=None, group=None):
+        # If anything is invalid, nothing is added. (No partial success.)
+        if user_ids:
+            """
+              AWS docs:
+                "The AWS account ID is a 12-digit number, such as 123456789012, that you use to construct Amazon Resource Names (ARNs)."
+                http://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
+            """
+            for user_id in user_ids:
+                if len(user_id) != 12 or not user_id.isdigit():
+                    raise InvalidAMIAttributeItemValueError("userId", user_id)
+
+        if group and group != 'all':
+            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+
+    def add_launch_permission(self, ami_id, user_ids=None, group=None):
+        ami = self.describe_images(ami_ids=[ami_id])[0]
+        self.validate_permission_targets(user_ids=user_ids, group=group)
+
+        if user_ids:
+            for user_id in user_ids:
+                ami.launch_permission_users.add(user_id)
+
+        if group:
+            ami.launch_permission_groups.add(group)
+
         return True
 
-    def remove_launch_permission(self, ami_id, user_id=None, group=None):
-        if user_id:
-            self.raise_not_implemented_error("The UserId parameter for ModifyImageAttribute")
-
-        if group != 'all':
-            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+    def remove_launch_permission(self, ami_id, user_ids=None, group=None):
         ami = self.describe_images(ami_ids=[ami_id])[0]
-        ami.launch_permission_groups.discard(group)
+        self.validate_permission_targets(user_ids=user_ids, group=group)
+
+        if user_ids:
+            for user_id in user_ids:
+                ami.launch_permission_users.discard(user_id)
+
+        if group:
+            ami.launch_permission_groups.discard(group)
+
         return True
 
 
