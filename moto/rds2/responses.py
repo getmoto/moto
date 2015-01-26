@@ -303,14 +303,13 @@ AUTHORIZE_SECURITY_GROUP_TEMPLATE = """<AuthorizeDBSecurityGroupIngressResponse 
   </ResponseMetadata>
 </AuthorizeDBSecurityGroupIngressResponse>"""
 
-CREATE_SUBNET_GROUP_TEMPLATE = """<CreateDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <CreateDBSubnetGroupResult>
-    {{ subnet_group.to_xml() }}
-  </CreateDBSubnetGroupResult>
-  <ResponseMetadata>
-    <RequestId>3a401b3f-bb9e-11d3-f4c6-37db295f7674</RequestId>
-  </ResponseMetadata>
-</CreateDBSubnetGroupResponse>"""
+CREATE_SUBNET_GROUP_TEMPLATE = """{
+  "CreateDBSubnetGroupResponse": {
+    "CreateDBSubnetGroupResult":
+        {{ subnet_group.to_json() }},
+    "ResponseMetadata": { "RequestId": "3a401b3f-bb9e-11d3-f4c6-37db295f7674" }
+  }
+}"""
 
 DESCRIBE_SUBNET_GROUPS_TEMPLATE = """<DescribeDBSubnetGroupsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <DescribeDBSubnetGroupsResult>
