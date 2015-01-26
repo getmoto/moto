@@ -139,7 +139,6 @@ class RDS2Response(BaseResponse):
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
-    # TODO: Update function to new method
     def create_dbsubnet_group(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         description = self._get_param('DBSubnetGroupDescription')
