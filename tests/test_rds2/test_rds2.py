@@ -322,21 +322,31 @@ def test_delete_non_existant_database():
 #    list(subnet_group.subnet_ids).should.equal(subnet_ids)
 #
 #
-#@mock_ec2
-#@mock_rds2
-#def test_describe_database_subnet_group():
-#    vpc_conn = boto.vpc.connect_to_region("us-west-2")
-#    vpc = vpc_conn.create_vpc("10.0.0.0/16")
-#    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
-#
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
-#    conn.create_db_subnet_group("db_subnet2", "my db subnet", [subnet.id])
-#
-#    list(conn.get_all_db_subnet_groups()).should.have.length_of(2)
-#    list(conn.get_all_db_subnet_groups("db_subnet1")).should.have.length_of(1)
-#
-#    conn.get_all_db_subnet_groups.when.called_with("not-a-subnet").should.throw(BotoServerError)
+@mock_ec2
+@mock_rds2
+def test_describe_database_subnet_group():
+   vpc_conn = boto.vpc.connect_to_region("us-west-2")
+   vpc = vpc_conn.create_vpc("10.0.0.0/16")
+   subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+
+   conn = boto.rds2.connect_to_region("us-west-2")
+   conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
+   conn.create_db_subnet_group("db_subnet2", "my db subnet", [subnet.id])
+
+   resp = conn.describe_db_subnet_groups()
+   groups_resp = resp['DescribeDBSubnetGroupsResponse']
+
+   subnet_groups = groups_resp['DescribeDBSubnetGroupsResult']['DBSubnetGroups']
+   subnet_groups.should.have.length_of(2)
+
+   subnets = groups_resp['DescribeDBSubnetGroupsResult']['DBSubnetGroups'][0]['DBSubnetGroup']['Subnets']
+   subnets.should.have.length_of(1)
+
+   list(resp).should.have.length_of(1)
+   list(groups_resp).should.have.length_of(2)
+   list(conn.describe_db_subnet_groups("db_subnet1")).should.have.length_of(1)
+
+   conn.describe_db_subnet_groups.when.called_with("not-a-subnet").should.throw(BotoServerError)
 #
 #
 #@mock_ec2
