@@ -139,7 +139,6 @@ class RDS2Response(BaseResponse):
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
-    # TODO: Update function to new method
     def create_dbsubnet_group(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         description = self._get_param('DBSubnetGroupDescription')
@@ -149,7 +148,6 @@ class RDS2Response(BaseResponse):
         template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)
 
-    # TODO: Update function to new method
     def describe_dbsubnet_groups(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         subnet_groups = self.backend.describe_subnet_groups(subnet_name)
@@ -303,27 +301,28 @@ AUTHORIZE_SECURITY_GROUP_TEMPLATE = """<AuthorizeDBSecurityGroupIngressResponse 
   </ResponseMetadata>
 </AuthorizeDBSecurityGroupIngressResponse>"""
 
-CREATE_SUBNET_GROUP_TEMPLATE = """<CreateDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <CreateDBSubnetGroupResult>
-    {{ subnet_group.to_xml() }}
-  </CreateDBSubnetGroupResult>
-  <ResponseMetadata>
-    <RequestId>3a401b3f-bb9e-11d3-f4c6-37db295f7674</RequestId>
-  </ResponseMetadata>
-</CreateDBSubnetGroupResponse>"""
+CREATE_SUBNET_GROUP_TEMPLATE = """{
+  "CreateDBSubnetGroupResponse": {
+    "CreateDBSubnetGroupResult":
+        {{ subnet_group.to_json() }},
+    "ResponseMetadata": { "RequestId": "3a401b3f-bb9e-11d3-f4c6-37db295f7674" }
+  }
+}"""
 
-DESCRIBE_SUBNET_GROUPS_TEMPLATE = """<DescribeDBSubnetGroupsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <DescribeDBSubnetGroupsResult>
-    <DBSubnetGroups>
-    {% for subnet_group in subnet_groups %}
-        {{ subnet_group.to_xml() }}
-    {% endfor %}
-    </DBSubnetGroups>
-  </DescribeDBSubnetGroupsResult>
-  <ResponseMetadata>
-    <RequestId>b783db3b-b98c-11d3-fbc7-5c0aad74da7c</RequestId>
-  </ResponseMetadata>
-</DescribeDBSubnetGroupsResponse>"""
+DESCRIBE_SUBNET_GROUPS_TEMPLATE = """{
+  "DescribeDBSubnetGroupsResponse": {
+    "DescribeDBSubnetGroupsResult": {
+      "DBSubnetGroups": [
+              {% for subnet_group in subnet_groups %}
+                  {{ subnet_group.to_json() }}{%- if not loop.last -%},{%- endif -%}
+              {% endfor %}
+          ],
+          "Marker": null
+    },
+    "ResponseMetadata": { "RequestId": "b783db3b-b98c-11d3-fbc7-5c0aad74da7c" }
+  }
+}"""
+
 
 DELETE_SUBNET_GROUP_TEMPLATE = """<DeleteDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <ResponseMetadata>
