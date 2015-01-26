@@ -5,7 +5,7 @@ import copy
 import boto.rds2
 import json
 from jinja2 import Template
-
+from re import compile as re_compile
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.core import BaseBackend
 from moto.core.utils import get_random_hex
@@ -82,7 +82,7 @@ class Database(object):
         if not self.option_group_name and self.engine in self.default_option_groups:
             self.option_group_name = self.default_option_groups[self.engine]
         self.character_set_name = kwargs.get('character_set_name', None)
-        self.tags = kwargs.get('tags', None)
+        self.tags = kwargs.get('tags', [])
 
     @property
     def address(self):
@@ -242,6 +242,9 @@ class Database(object):
       }""")
         return template.render(database=self)
 
+    def get_tags(self):
+        return self.tags
+
 
 class SecurityGroup(object):
     def __init__(self, group_name, description):
@@ -384,6 +387,7 @@ class SubnetGroup(object):
 class RDS2Backend(BaseBackend):
 
     def __init__(self):
+        self.arn_regex = re_compile(r'^arn:aws:rds:.*:[0-9]*:db:.*$')
         self.databases = {}
         self.security_groups = {}
         self.subnet_groups = {}
@@ -417,6 +421,10 @@ class RDS2Backend(BaseBackend):
     def modify_database(self, db_instance_identifier, db_kwargs):
         database = self.describe_databases(db_instance_identifier)[0]
         database.update(db_kwargs)
+        return database
+
+    def reboot_db_instance(self, db_instance_identifier):
+        database = self.describe_databases(db_instance_identifier)[0]
         return database
 
     def delete_database(self, db_instance_identifier):
@@ -579,6 +587,17 @@ class RDS2Backend(BaseBackend):
             self.option_groups[option_group_name].add_options(options_to_include)
         return self.option_groups[option_group_name]
 
+    def list_tags_for_resource(self, arn):
+        if self.arn_regex.match(arn):
+            arn_breakdown = arn.split(':')
+            db_instance_name = arn_breakdown[len(arn_breakdown)-1]
+            if db_instance_name in self.databases:
+                return self.databases[db_instance_name].get_tags()
+            else:
+                return []
+        else:
+            raise RDSClientError('InvalidParameterValue',
+                                 'Invalid resource name: {}'.format(arn))
 
 class OptionGroup(object):
     def __init__(self, name, engine_name, major_engine_version, description=None):

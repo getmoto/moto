@@ -85,6 +85,36 @@ def test_modify_db_instance():
 
 @disable_on_py3()
 @mock_rds2
+def test_modify_non_existant_database():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.modify_db_instance.when.called_with(db_instance_identifier='not-a-db',
+                                             allocated_storage=20,
+                                             apply_immediately=True).should.throw(BotoServerError)
+
+@disable_on_py3()
+@mock_rds2
+def test_reboot_db_instance():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_db_instance(db_instance_identifier='db-master-1',
+                            allocated_storage=10,
+                            engine='postgres',
+                            db_instance_class='db.m1.small',
+                            master_username='root',
+                            master_user_password='hunter2',
+                            db_security_groups=["my_sg"])
+    database = conn.reboot_db_instance('db-master-1')
+    database['RebootDBInstanceResponse']['RebootDBInstanceResult']['DBInstance']['DBInstanceIdentifier'].should.equal("db-master-1")
+
+
+@disable_on_py3()
+@mock_rds2
+def test_reboot_non_existant_database():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.reboot_db_instance.when.called_with("not-a-db").should.throw(BotoServerError)
+
+
+@disable_on_py3()
+@mock_rds2
 def test_delete_database():
     conn = boto.rds2.connect_to_region("us-west-2")
     instances = conn.describe_db_instances()
@@ -102,6 +132,13 @@ def test_delete_database():
     conn.delete_db_instance("db-master-1")
     instances = conn.describe_db_instances()
     list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(0)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_delete_non_existant_database():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.delete_db_instance.when.called_with("not-a-db").should.throw(BotoServerError)
 
 
 @disable_on_py3()
@@ -226,6 +263,29 @@ def test_delete_non_existant_database():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.delete_db_instance.when.called_with("not-a-db").should.throw(BotoServerError)
 
+
+@disable_on_py3()
+@mock_rds2
+def test_list_tags_invalid_arn():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.list_tags_for_resource.when.called_with('arn:aws:rds:bad-arn').should.throw(BotoServerError)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_list_tags():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:db:foo')
+    result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList'].should.equal([])
+    conn.create_db_instance(db_instance_identifier='db-master-1',
+                            allocated_storage=10,
+                            engine='postgres',
+                            db_instance_class='db.m1.small',
+                            master_username='root',
+                            master_user_password='hunter2',
+                            db_security_groups=["my_sg"],
+                            tags=[{'Key': 'foo', 'Value': 'bar'}])
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:db:db-master-1')
 
 #@disable_on_py3()
 #@mock_rds2

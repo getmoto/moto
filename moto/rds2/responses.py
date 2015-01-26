@@ -4,6 +4,7 @@ from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds2_backends
 import json
+import re
 
 
 class RDS2Response(BaseResponse):
@@ -73,8 +74,10 @@ class RDS2Response(BaseResponse):
         result = template.render(database=database)
         return result
 
-    # TODO: Update function to new method
     def create_dbinstance_read_replica(self):
+        return self.create_db_instance_read_replica()
+
+    def create_db_instance_read_replica(self):
         db_kwargs = self._get_db_replica_kwargs()
 
         database = self.backend.create_database_replica(db_kwargs)
@@ -84,7 +87,7 @@ class RDS2Response(BaseResponse):
     def describe_dbinstances(self):
         return self.describe_db_instances()
 
-    def describe_dbinstances(self):
+    def describe_db_instances(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         databases = self.backend.describe_databases(db_instance_identifier)
         template = self.response_template(DESCRIBE_DATABASES_TEMPLATE)
@@ -108,6 +111,21 @@ class RDS2Response(BaseResponse):
         database = self.backend.delete_database(db_instance_identifier)
         template = self.response_template(DELETE_DATABASE_TEMPLATE)
         return template.render(database=database)
+
+    def reboot_dbinstance(self):
+        return self.reboot_db_instance()
+
+    def reboot_db_instance(self):
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        database = self.backend.reboot_db_instance(db_instance_identifier)
+        template = self.response_template(REBOOT_DATABASE_TEMPLATE)
+        return template.render(database=database)
+
+    def list_tags_for_resource(self):
+        arn = self._get_param('ResourceName')
+        template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
+        tags = self.backend.list_tags_for_resource(arn)
+        return template.render(tags=tags)
 
     # TODO: Update function to new method
     def create_dbsecurity_group(self):
@@ -255,14 +273,24 @@ MODIFY_DATABASE_TEMPLATE = """{"ModifyDBInstanceResponse": {
   }
 }"""
 
-# TODO: update delete DB TEMPLATE
-DELETE_DATABASE_TEMPLATE = """{
-  "DeleteDBInstanceResponse": {
-    "DeleteDBInstanceResult": {
-    },
-    "ResponseMetadata": { "RequestId": "523e3218-afc7-11c3-90f5-f90431260ab4" }
+REBOOT_DATABASE_TEMPLATE = """{"RebootDBInstanceResponse": {
+    "RebootDBInstanceResult": {
+      {{ database.to_json() }},
+    "ResponseMetadata": {
+      "RequestId": "d55711cb-a1ab-11e4-99cf-55e92d4bbada"
+    }
   }
-}"""
+}}"""
+
+# TODO: update delete DB TEMPLATE
+DELETE_DATABASE_TEMPLATE = """{ "DeleteDBInstanceResponse": {
+    "DeleteDBInstanceResult": {
+      {{ database.to_json() }},
+    "ResponseMetadata": {
+      "RequestId": "523e3218-afc7-11c3-90f5-f90431260ab4"
+    }
+  }
+}}"""
 
 CREATE_SECURITY_GROUP_TEMPLATE = """<CreateDBSecurityGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBSecurityGroupResult>
@@ -379,3 +407,20 @@ MODIFY_OPTION_GROUP_TEMPLATE = \
             {{ option_group.to_json() }}
         }
       }"""
+
+LIST_TAGS_FOR_RESOURCE_TEMPLATE = \
+    """{"ListTagsForResourceResponse":
+      {"ListTagsForResourceResult":
+        {"TagList": [
+          {%- for tag in tags -%}
+            {%- if loop.index != 1 -%},{%- endif -%}
+            {%- for key in tag -%}
+              {"Value": "{{ tag[key] }}", "Key": "{{ key }}"}
+            {%- endfor -%}
+          {%- endfor -%}
+        ]},
+        "ResponseMetadata": {
+          "RequestId": "8c21ba39-a598-11e4-b688-194eaf8658fa"
+        }
+      }
+    }"""
