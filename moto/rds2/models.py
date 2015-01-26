@@ -339,6 +339,29 @@ class SubnetGroup(object):
             </DBSubnetGroup>""")
         return template.render(subnet_group=self)
 
+    def to_json(self):
+        template = Template("""{
+            "DBSubnetGroup": {
+                "VpcId": "{{ subnet_group.vpc_id }}",
+                "SubnetGroupStatus": "{{ subnet_group.status }}",
+                "DBSubnetGroupDescription": "{{ subnet_group.description }}",
+                "DBSubnetGroupName": "{{ subnet_group.subnet_name }}",
+                "Subnets": {
+                  "Subnet": [
+                    {% for subnet in subnet_group.subnets %}{
+                      "SubnetStatus": "Active",
+                      "SubnetIdentifier": "{{ subnet.id }}",
+                      "SubnetAvailabilityZone": {
+                        "Name": "{{ subnet.availability_zone }}",
+                        "ProvisionedIopsCapable": "false"
+                      }
+                    }{%- if not loop.last -%},{%- endif -%}{% endfor %}
+                  ]
+                }
+            }
+          }""")
+        return template.render(subnet_group=self)
+
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
