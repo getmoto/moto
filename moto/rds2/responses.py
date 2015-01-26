@@ -148,7 +148,6 @@ class RDS2Response(BaseResponse):
         template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)
 
-    # TODO: Update function to new method
     def describe_dbsubnet_groups(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         subnet_groups = self.backend.describe_subnet_groups(subnet_name)
@@ -310,18 +309,20 @@ CREATE_SUBNET_GROUP_TEMPLATE = """{
   }
 }"""
 
-DESCRIBE_SUBNET_GROUPS_TEMPLATE = """<DescribeDBSubnetGroupsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <DescribeDBSubnetGroupsResult>
-    <DBSubnetGroups>
-    {% for subnet_group in subnet_groups %}
-        {{ subnet_group.to_xml() }}
-    {% endfor %}
-    </DBSubnetGroups>
-  </DescribeDBSubnetGroupsResult>
-  <ResponseMetadata>
-    <RequestId>b783db3b-b98c-11d3-fbc7-5c0aad74da7c</RequestId>
-  </ResponseMetadata>
-</DescribeDBSubnetGroupsResponse>"""
+DESCRIBE_SUBNET_GROUPS_TEMPLATE = """{
+  "DescribeDBSubnetGroupsResponse": {
+    "DescribeDBSubnetGroupsResult": {
+      "DBSubnetGroups": [
+              {% for subnet_group in subnet_groups %}
+                  {{ subnet_group.to_json() }}{%- if not loop.last -%},{%- endif -%}
+              {% endfor %}
+          ],
+          "Marker": null
+    },
+    "ResponseMetadata": { "RequestId": "b783db3b-b98c-11d3-fbc7-5c0aad74da7c" }
+  }
+}"""
+
 
 DELETE_SUBNET_GROUP_TEMPLATE = """<DeleteDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <ResponseMetadata>
