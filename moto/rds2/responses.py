@@ -14,7 +14,7 @@ class RDS2Response(BaseResponse):
         return rds2_backends[self.region]
 
     def _get_db_kwargs(self):
-        return {
+        args = {
             "auto_minor_version_upgrade": self._get_param('AutoMinorVersionUpgrade'),
             "allocated_storage": self._get_int_param('AllocatedStorage'),
             "availability_zone": self._get_param("AvailabilityZone"),
@@ -39,7 +39,16 @@ class RDS2Response(BaseResponse):
             "security_groups": self._get_multi_param('DBSecurityGroups.member'),
             "storage_type": self._get_param("StorageType"),
             # VpcSecurityGroupIds.member.N
+            "tags": []
         }
+        count = 1
+        while self._get_param('Tags.member.{}.Key'.format(count)):
+            args["tags"].append({
+                "Key": self._get_param('Tags.member.{}.Key'.format(count)),
+                "Value": self._get_param('Tags.member.{}.Value'.format(count))
+            })
+            count += 1
+        return args
 
     def _get_db_replica_kwargs(self):
         return {
@@ -414,9 +423,10 @@ LIST_TAGS_FOR_RESOURCE_TEMPLATE = \
         {"TagList": [
           {%- for tag in tags -%}
             {%- if loop.index != 1 -%},{%- endif -%}
-            {%- for key in tag -%}
-              {"Value": "{{ tag[key] }}", "Key": "{{ key }}"}
-            {%- endfor -%}
+            {
+              "Key": "{{ tag['Key'] }}",
+              "Value": "{{ tag['Value'] }}"
+            }
           {%- endfor -%}
         ]},
         "ResponseMetadata": {
