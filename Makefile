@@ -6,5 +6,5 @@ init:
 
 test:
 	rm -f .coverage
-	@nosetests -sv --nocapture ./tests/
+	@nosetests -sv --with-coverage ./tests/
 
