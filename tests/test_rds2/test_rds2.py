@@ -34,7 +34,7 @@ def test_get_databases():
     conn = boto.rds2.connect_to_region("us-west-2")
 
     instances = conn.describe_db_instances()
-    list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(0)
+    list(instances['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']).should.have.length_of(0)
 
     conn.create_db_instance(db_instance_identifier='db-master-1',
                             allocated_storage=10,
@@ -51,11 +51,11 @@ def test_get_databases():
                             master_user_password='hunter2',
                             db_security_groups=["my_sg"])
     instances = conn.describe_db_instances()
-    list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(2)
+    list(instances['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']).should.have.length_of(2)
 
     instances = conn.describe_db_instances("db-master-1")
-    list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(1)
-    instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult'][0]['DBInstance']['DBInstanceIdentifier'].should.equal("db-master-1")
+    list(instances['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']).should.have.length_of(1)
+    instances['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['DBInstanceIdentifier'].should.equal("db-master-1")
 
 
 @disable_on_py3()
@@ -77,10 +77,10 @@ def test_modify_db_instance():
                                        master_user_password='hunter2',
                                        db_security_groups=["my_sg"])
     instances = conn.describe_db_instances('db-master-1')
-    instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult'][0]['DBInstance']['AllocatedStorage'].should.equal('10')
+    instances['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['AllocatedStorage'].should.equal('10')
     conn.modify_db_instance(db_instance_identifier='db-master-1', allocated_storage=20, apply_immediately=True)
     instances = conn.describe_db_instances('db-master-1')
-    instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult'][0]['DBInstance']['AllocatedStorage'].should.equal('20')
+    instances['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['AllocatedStorage'].should.equal('20')
 
 
 @disable_on_py3()
@@ -118,7 +118,7 @@ def test_reboot_non_existant_database():
 def test_delete_database():
     conn = boto.rds2.connect_to_region("us-west-2")
     instances = conn.describe_db_instances()
-    list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(0)
+    list(instances['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']).should.have.length_of(0)
     conn.create_db_instance(db_instance_identifier='db-master-1',
                             allocated_storage=10,
                             engine='postgres',
@@ -127,11 +127,11 @@ def test_delete_database():
                             master_user_password='hunter2',
                             db_security_groups=["my_sg"])
     instances = conn.describe_db_instances()
-    list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(1)
+    list(instances['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']).should.have.length_of(1)
 
     conn.delete_db_instance("db-master-1")
     instances = conn.describe_db_instances()
-    list(instances['DescribeDBInstanceResponse']['DescribeDBInstanceResult']).should.have.length_of(0)
+    list(instances['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']).should.have.length_of(0)
 
 
 @disable_on_py3()
