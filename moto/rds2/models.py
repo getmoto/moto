@@ -248,6 +248,14 @@ class Database(object):
     def get_tags(self):
         return self.tags
 
+    def add_tags(self, tags):
+        new_keys = [tag_set['Key'] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in new_keys]
+        self.tags.extend(tags)
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in tag_keys]
+
 
 class SecurityGroup(object):
     def __init__(self, group_name, description):
@@ -596,6 +604,28 @@ class RDS2Backend(BaseBackend):
             db_instance_name = arn_breakdown[len(arn_breakdown)-1]
             if db_instance_name in self.databases:
                 return self.databases[db_instance_name].get_tags()
+            else:
+                return []
+        else:
+            raise RDSClientError('InvalidParameterValue',
+                                 'Invalid resource name: {}'.format(arn))
+
+    def remove_tags_from_resource(self, arn, tag_keys):
+        if self.arn_regex.match(arn):
+            arn_breakdown = arn.split(':')
+            db_instance_name = arn_breakdown[len(arn_breakdown)-1]
+            if db_instance_name in self.databases:
+                self.databases[db_instance_name].remove_tags(tag_keys)
+        else:
+            raise RDSClientError('InvalidParameterValue',
+                                 'Invalid resource name: {}'.format(arn))
+
+    def add_tags_to_resource(self, arn, tags):
+        if self.arn_regex.match(arn):
+            arn_breakdown = arn.split(':')
+            db_instance_name = arn_breakdown[len(arn_breakdown)-1]
+            if db_instance_name in self.databases:
+                return self.databases[db_instance_name].add_tags(tags)
             else:
                 return []
         else:

@@ -291,6 +291,46 @@ def test_list_tags():
                                                                                                 {'Value': 'bar1',
                                                                                                  'Key': 'foo1'}])
 
+
+@disable_on_py3()
+@mock_rds2
+def test_add_tags():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_db_instance(db_instance_identifier='db-without-tags',
+                            allocated_storage=10,
+                            engine='postgres',
+                            db_instance_class='db.m1.small',
+                            master_username='root',
+                            master_user_password='hunter2',
+                            db_security_groups=["my_sg"],
+                            tags=[('foo', 'bar'), ('foo1', 'bar1')])
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:db:db-without-tags')
+    list(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.have.length_of(2)
+    conn.add_tags_to_resource('arn:aws:rds:us-west-2:1234567890:db:db-without-tags',
+                              [('foo', 'fish'), ('foo2', 'bar2')])
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:db:db-without-tags')
+    list(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.have.length_of(3)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_remove_tags():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_db_instance(db_instance_identifier='db-with-tags',
+                            allocated_storage=10,
+                            engine='postgres',
+                            db_instance_class='db.m1.small',
+                            master_username='root',
+                            master_user_password='hunter2',
+                            db_security_groups=["my_sg"],
+                            tags=[('foo', 'bar'), ('foo1', 'bar1')])
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:db:db-with-tags')
+    len(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.equal(2)
+    conn.remove_tags_from_resource('arn:aws:rds:us-west-2:1234567890:db:db-with-tags', ['foo'])
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:db:db-with-tags')
+    len(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.equal(1)
+
+
 #@disable_on_py3()
 #@mock_rds2
 #def test_create_database_security_group():

@@ -39,15 +39,9 @@ class RDS2Response(BaseResponse):
             "security_groups": self._get_multi_param('DBSecurityGroups.member'),
             "storage_type": self._get_param("StorageType"),
             # VpcSecurityGroupIds.member.N
-            "tags": []
+            "tags": list()
         }
-        count = 1
-        while self._get_param('Tags.member.{}.Key'.format(count)):
-            args["tags"].append({
-                "Key": self._get_param('Tags.member.{}.Key'.format(count)),
-                "Value": self._get_param('Tags.member.{}.Value'.format(count))
-            })
-            count += 1
+        args['tags'] = self.unpack_complex_list_params('Tags.member', ('Key', 'Value'))
         return args
 
     def _get_db_replica_kwargs(self):
@@ -72,6 +66,25 @@ class RDS2Response(BaseResponse):
             'engine_name': self._get_param('EngineName'),
             'name': self._get_param('OptionGroupName')
         }
+
+    def unpack_complex_list_params(self, label, names):
+        unpacked_list = list()
+        count = 1
+        while self._get_param('{0}.{1}.{2}'.format(label, count, names[0])):
+            param = dict()
+            for i in range(len(names)):
+                param[names[i]] = self._get_param('{0}.{1}.{2}'.format(label, count, names[i]))
+            unpacked_list.append(param)
+            count += 1
+        return unpacked_list
+
+    def unpack_list_params(self, label):
+        unpacked_list = list()
+        count = 1
+        while self._get_param('{0}.{1}'.format(label, count)):
+            unpacked_list.append(self._get_param('{0}.{1}'.format(label, count)))
+            count += 1
+        return unpacked_list
 
     def create_dbinstance(self):
         return self.create_db_instance()
@@ -134,6 +147,21 @@ class RDS2Response(BaseResponse):
         template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
         tags = self.backend.list_tags_for_resource(arn)
         return template.render(tags=tags)
+
+    def add_tags_to_resource(self):
+        arn = self._get_param('ResourceName')
+        tags = self.unpack_complex_list_params('Tags.member', ('Key', 'Value'))
+        self.backend.add_tags_to_resource(arn, tags)
+        template = self.response_template(ADD_TAGS_TO_RESOURCE_TEMPLATE)
+        return template.render()
+
+
+    def remove_tags_from_resource(self):
+        arn = self._get_param('ResourceName')
+        tag_keys = self.unpack_list_params('TagKeys.member')
+        self.backend.remove_tags_from_resource(arn, tag_keys)
+        template = self.response_template(REMOVE_TAGS_FROM_RESOURCE_TEMPLATE)
+        return template.render()
 
     # TODO: Update function to new method
     def create_dbsecurity_group(self):
@@ -437,3 +465,10 @@ LIST_TAGS_FOR_RESOURCE_TEMPLATE = \
         }
       }
     }"""
+
+ADD_TAGS_TO_RESOURCE_TEMPLATE = \
+   """{"ListTagsForResourceResponse": {"ListTagsForResourceResult": {"TagList": [{"Value": "production", "Key": "workload-type"}, {"Value": "testvalue", "Key": "testkey"}]}, "ResponseMetadata": {"RequestId": "b194d9ca-a664-11e4-b688-194eaf8658fa"}}}"""
+
+REMOVE_TAGS_FROM_RESOURCE_TEMPLATE = \
+   """{"RemoveTagsFromResourceResponse": {"ResponseMetadata": {"RequestId": "c6499a01-a664-11e4-8069-fb454b71a80e"}}}
+   """
