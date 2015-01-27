@@ -252,6 +252,7 @@ class Database(object):
         new_keys = [tag_set['Key'] for tag_set in tags]
         self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in new_keys]
         self.tags.extend(tags)
+        return self.tags
 
     def remove_tags(self, tag_keys):
         self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in tag_keys]

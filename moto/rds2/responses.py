@@ -151,9 +151,9 @@ class RDS2Response(BaseResponse):
     def add_tags_to_resource(self):
         arn = self._get_param('ResourceName')
         tags = self.unpack_complex_list_params('Tags.member', ('Key', 'Value'))
-        self.backend.add_tags_to_resource(arn, tags)
+        tags = self.backend.add_tags_to_resource(arn, tags)
         template = self.response_template(ADD_TAGS_TO_RESOURCE_TEMPLATE)
-        return template.render()
+        return template.render(tags=tags)
 
 
     def remove_tags_from_resource(self):
@@ -467,7 +467,22 @@ LIST_TAGS_FOR_RESOURCE_TEMPLATE = \
     }"""
 
 ADD_TAGS_TO_RESOURCE_TEMPLATE = \
-   """{"ListTagsForResourceResponse": {"ListTagsForResourceResult": {"TagList": [{"Value": "production", "Key": "workload-type"}, {"Value": "testvalue", "Key": "testkey"}]}, "ResponseMetadata": {"RequestId": "b194d9ca-a664-11e4-b688-194eaf8658fa"}}}"""
+   """{"ListTagsForResourceResponse":  {
+         "ListTagsForResourceResult": {
+           "TagList": [
+           {%- for tag in tags -%}
+               {%- if loop.index != 1 -%},{%- endif -%}
+               {
+                  "Key": "{{ tag['Key'] }}",
+                  "Value": "{{ tag['Value'] }}"
+               }
+           {%- endfor -%}
+           ]},
+           "ResponseMetadata": {
+             "RequestId": "b194d9ca-a664-11e4-b688-194eaf8658fa"
+           }
+         }
+   }"""
 
 REMOVE_TAGS_FROM_RESOURCE_TEMPLATE = \
    """{"RemoveTagsFromResourceResponse": {"ResponseMetadata": {"RequestId": "c6499a01-a664-11e4-8069-fb454b71a80e"}}}
