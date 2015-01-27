@@ -158,7 +158,7 @@ class Database(object):
         return database
 
     def to_json(self):
-        template = Template(""""DBInstance": {
+        template = Template("""{
         "AllocatedStorage": 10,
         "AutoMinorVersionUpgrade": "{{ database.auto_minor_version_upgrade }}",
         "AvailabilityZone": "{{ database.availability_zone }}",
@@ -222,7 +222,10 @@ class Database(object):
         "PreferredMaintenanceWindow": "{{ database.preferred_maintenance_window }}",
         "PubliclyAccessible": "{{ database.publicly_accessible }}",
         "AllocatedStorage": "{{ database.allocated_storage }}",
-        "Endpoint": null,
+        "Endpoint": {
+            "Address": "{{ database.address }}",
+            "Port": "{{ database.port }}"
+        },
         "InstanceCreateTime": null,
         "Iops": null,
         "ReadReplicaDBInstanceIdentifiers": [{%- for replica in database.replicas -%}
