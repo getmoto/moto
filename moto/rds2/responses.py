@@ -80,8 +80,7 @@ class RDS2Response(BaseResponse):
         db_kwargs = self._get_db_kwargs()
         database = self.backend.create_database(db_kwargs)
         template = self.response_template(CREATE_DATABASE_TEMPLATE)
-        result = template.render(database=database)
-        return result
+        return template.render(database=database)
 
     def create_dbinstance_read_replica(self):
         return self.create_db_instance_read_replica()
@@ -245,7 +244,7 @@ class RDS2Response(BaseResponse):
 CREATE_DATABASE_TEMPLATE = """{
   "CreateDBInstanceResponse": {
     "CreateDBInstanceResult": {
-      {{ database.to_json() }}
+      "DBInstance": {{ database.to_json() }}
     },
     "ResponseMetadata": { "RequestId": "523e3218-afc7-11c3-90f5-f90431260ab4" }
   }
@@ -261,20 +260,22 @@ CREATE_DATABASE_REPLICA_TEMPLATE = """{
 }"""
 
 DESCRIBE_DATABASES_TEMPLATE = """{
-  "DescribeDBInstanceResponse": {
-    "DescribeDBInstanceResult": [
-      {%- for database in databases -%}
-        {%- if loop.index != 1 -%},{%- endif -%}
-        { {{ database.to_json() }} }
-      {%- endfor -%}
-    ],
+  "DescribeDBInstancesResponse": {
+    "DescribeDBInstancesResult": {
+      "DBInstances": [
+        {%- for database in databases -%}
+          {%- if loop.index != 1 -%},{%- endif -%}
+          {{ database.to_json() }}
+        {%- endfor -%}
+      ]
+    },
     "ResponseMetadata": { "RequestId": "523e3218-afc7-11c3-90f5-f90431260ab4" }
   }
 }"""
 
 MODIFY_DATABASE_TEMPLATE = """{"ModifyDBInstanceResponse": {
     "ModifyDBInstanceResult": {
-      {{ database.to_json() }},
+      "DBInstance": {{ database.to_json() }},
       "ResponseMetadata": {
         "RequestId": "bb58476c-a1a8-11e4-99cf-55e92d4bbada"
       }
@@ -284,22 +285,24 @@ MODIFY_DATABASE_TEMPLATE = """{"ModifyDBInstanceResponse": {
 
 REBOOT_DATABASE_TEMPLATE = """{"RebootDBInstanceResponse": {
     "RebootDBInstanceResult": {
-      {{ database.to_json() }},
-    "ResponseMetadata": {
-      "RequestId": "d55711cb-a1ab-11e4-99cf-55e92d4bbada"
+      "DBInstance": {{ database.to_json() }},
+      "ResponseMetadata": {
+        "RequestId": "d55711cb-a1ab-11e4-99cf-55e92d4bbada"
+      }
     }
   }
-}}"""
+}"""
 
 # TODO: update delete DB TEMPLATE
 DELETE_DATABASE_TEMPLATE = """{ "DeleteDBInstanceResponse": {
     "DeleteDBInstanceResult": {
-      {{ database.to_json() }},
+      "DBInstance": {{ database.to_json() }}
+    },
     "ResponseMetadata": {
       "RequestId": "523e3218-afc7-11c3-90f5-f90431260ab4"
     }
   }
-}}"""
+}"""
 
 CREATE_SECURITY_GROUP_TEMPLATE = """<CreateDBSecurityGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBSecurityGroupResult>
