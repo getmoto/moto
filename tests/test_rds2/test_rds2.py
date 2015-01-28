@@ -331,6 +331,34 @@ def test_remove_tags_db():
     len(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.equal(1)
 
 
+@disable_on_py3()
+@mock_rds2
+def test_add_tags_option_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_option_group('test', 'mysql', '5.6', 'test option group')
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:og:test')
+    list(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.have.length_of(0)
+    conn.add_tags_to_resource('arn:aws:rds:us-west-2:1234567890:og:test',
+                                       [('foo', 'fish'), ('foo2', 'bar2')])
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:og:test')
+    list(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.have.length_of(2)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_remove_tags_option_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_option_group('test', 'mysql', '5.6', 'test option group')
+    conn.add_tags_to_resource('arn:aws:rds:us-west-2:1234567890:og:test',
+                                       [('foo', 'fish'), ('foo2', 'bar2')])
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:og:test')
+    list(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.have.length_of(2)
+    conn.remove_tags_from_resource('arn:aws:rds:us-west-2:1234567890:og:test',
+                                 ['foo'])
+    result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:og:test')
+    list(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.have.length_of(1)
+
+
 #@disable_on_py3()
 #@mock_rds2
 #def test_create_database_security_group():

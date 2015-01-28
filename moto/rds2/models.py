@@ -424,7 +424,7 @@ class SubnetGroup(object):
 class RDS2Backend(BaseBackend):
 
     def __init__(self):
-        self.arn_regex = re_compile(r'^arn:aws:rds:.*:[0-9]*:db:.*$')
+        self.arn_regex = re_compile(r'^arn:aws:rds:.*:[0-9]*:(db|es|og|pg|ri|secgrp|snapshot|subgrp):.*$')
         self.databases = {}
         self.security_groups = {}
         self.subnet_groups = {}
