@@ -325,6 +325,7 @@ class SecurityGroup(object):
         return security_group
 
     def get_tags(self):
+        # TODO: Write tags add/remove/list tests for SecurityGroups
         return self.tags
 
     def add_tags(self, tags):
@@ -409,6 +410,7 @@ class SubnetGroup(object):
         return subnet_group
 
     def get_tags(self):
+        # TODO: Write tags add/remove/list tests for SubnetGroups
         return self.tags
 
     def add_tags(self, tags):
@@ -633,18 +635,22 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.databases:
                     return self.databases[resource_name].get_tags()
             elif resource_type == 'es':  # Event Subscription
+                # TODO: Complete call to tags on resource type Event Subscription
                 return []
             elif resource_type == 'og':  # Option Group
                 if resource_name in self.option_groups:
                     return self.option_groups[resource_name].get_tags()
             elif resource_type == 'pg':  # Parameter Group
+                # TODO: Complete call to tags on resource type Parameter Group
                 return []
             elif resource_type == 'ri':  # Reserved DB instance
+                # TODO: Complete call to tags on resource type Reserved DB instance
                 return []
             elif resource_type == 'secgrp':  # DB security group
                 if resource_type in self.security_groups:
                     return self.security_groups[resource_name].get_tags()
             elif resource_type == 'snapshot':  # DB Snapshot
+                # TODO: Complete call to tags on resource type DB Snapshot
                 return []
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_type in self.subnet_groups:
