@@ -265,6 +265,7 @@ class SecurityGroup(object):
         self.status = "authorized"
         self.ip_ranges = []
         self.ec2_security_groups = []
+        self.tags = []
 
     def to_xml(self):
         template = Template("""<DBSecurityGroup>
@@ -323,6 +324,18 @@ class SecurityGroup(object):
                 security_group.authorize_security_group(subnet)
         return security_group
 
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set['Key'] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in tag_keys]
+
 
 class SubnetGroup(object):
     def __init__(self, subnet_name, description, subnets):
@@ -330,7 +343,7 @@ class SubnetGroup(object):
         self.description = description
         self.subnets = subnets
         self.status = "Complete"
-
+        self.tags = []
         self.vpc_id = self.subnets[0].vpc_id
 
     def to_xml(self):
@@ -394,6 +407,18 @@ class SubnetGroup(object):
             subnets,
         )
         return subnet_group
+
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set['Key'] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in tag_keys]
 
 
 class RDS2Backend(BaseBackend):
@@ -602,21 +627,58 @@ class RDS2Backend(BaseBackend):
     def list_tags_for_resource(self, arn):
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(':')
-            db_instance_name = arn_breakdown[len(arn_breakdown)-1]
-            if db_instance_name in self.databases:
-                return self.databases[db_instance_name].get_tags()
-            else:
+            resource_type = arn_breakdown[len(arn_breakdown)-2]
+            resource_name = arn_breakdown[len(arn_breakdown)-1]
+            if resource_type == 'db':  # Database
+                if resource_name in self.databases:
+                    return self.databases[resource_name].get_tags()
+            elif resource_type == 'es':  # Event Subscription
                 return []
+            elif resource_type == 'og':  # Option Group
+                if resource_name in self.option_groups:
+                    return self.option_groups[resource_name].get_tags()
+            elif resource_type == 'pg':  # Parameter Group
+                return []
+            elif resource_type == 'ri':  # Reserved DB instance
+                return []
+            elif resource_type == 'secgrp':  # DB security group
+                if resource_type in self.security_groups:
+                    return self.security_groups[resource_name].get_tags()
+            elif resource_type == 'snapshot':  # DB Snapshot
+                return []
+            elif resource_type == 'subgrp':  # DB subnet group
+                if resource_type in self.subnet_groups:
+                    return self.subnet_groups[resource_name].get_tags()
         else:
             raise RDSClientError('InvalidParameterValue',
                                  'Invalid resource name: {}'.format(arn))
+        return []
 
     def remove_tags_from_resource(self, arn, tag_keys):
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(':')
-            db_instance_name = arn_breakdown[len(arn_breakdown)-1]
-            if db_instance_name in self.databases:
-                self.databases[db_instance_name].remove_tags(tag_keys)
+            resource_type = arn_breakdown[len(arn_breakdown)-2]
+            resource_name = arn_breakdown[len(arn_breakdown)-1]
+            if resource_type == 'db':  # Database
+                if resource_name in self.databases:
+                    self.databases[resource_name].remove_tags(tag_keys)
+            elif resource_type == 'es':  # Event Subscription
+                return None
+            elif resource_type == 'og':  # Option Group
+                if resource_name in self.option_groups:
+                    return self.option_groups[resource_name].remove_tags(tag_keys)
+            elif resource_type == 'pg':  # Parameter Group
+                return None
+            elif resource_type == 'ri':  # Reserved DB instance
+                return None
+            elif resource_type == 'secgrp':  # DB security group
+                if resource_type in self.security_groups:
+                    return self.security_groups[resource_name].remove_tags(tag_keys)
+            elif resource_type == 'snapshot':  # DB Snapshot
+                return None
+            elif resource_type == 'subgrp':  # DB subnet group
+                if resource_type in self.subnet_groups:
+                    return self.subnet_groups[resource_name].remove_tags(tag_keys)
         else:
             raise RDSClientError('InvalidParameterValue',
                                  'Invalid resource name: {}'.format(arn))
@@ -624,14 +686,32 @@ class RDS2Backend(BaseBackend):
     def add_tags_to_resource(self, arn, tags):
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(':')
-            db_instance_name = arn_breakdown[len(arn_breakdown)-1]
-            if db_instance_name in self.databases:
-                return self.databases[db_instance_name].add_tags(tags)
-            else:
+            resource_type = arn_breakdown[len(arn_breakdown)-2]
+            resource_name = arn_breakdown[len(arn_breakdown)-1]
+            if resource_type == 'db':  # Database
+                if resource_name in self.databases:
+                    return self.databases[resource_name].add_tags(tags)
+            elif resource_type == 'es':  # Event Subscription
                 return []
+            elif resource_type == 'og':  # Option Group
+                if resource_name in self.option_groups:
+                    return self.option_groups[resource_name].add_tags(tags)
+            elif resource_type == 'pg':  # Parameter Group
+                return []
+            elif resource_type == 'ri':  # Reserved DB instance
+                return []
+            elif resource_type == 'secgrp':  # DB security group
+                if resource_type in self.security_groups:
+                    return self.security_groups[resource_name].add_tags(tags)
+            elif resource_type == 'snapshot':  # DB Snapshot
+                return []
+            elif resource_type == 'subgrp':  # DB subnet group
+                if resource_type in self.subnet_groups:
+                    return self.subnet_groups[resource_name].add_tags(tags)
         else:
             raise RDSClientError('InvalidParameterValue',
                                  'Invalid resource name: {}'.format(arn))
+
 
 class OptionGroup(object):
     def __init__(self, name, engine_name, major_engine_version, description=None):
@@ -642,6 +722,7 @@ class OptionGroup(object):
         self.vpc_and_non_vpc_instance_memberships = False
         self.options = {}
         self.vpcId = 'null'
+        self.tags = []
 
     def to_json(self):
         template = Template("""{
@@ -662,6 +743,18 @@ class OptionGroup(object):
     def add_options(self, options_to_add):
         # TODO: Validate option and add it to self.options. If invalid raise error
         return
+
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set['Key'] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in tag_keys]
 
 
 class OptionGroupOption(object):
@@ -686,6 +779,7 @@ class OptionGroupOption(object):
             "Description": "SQLServer Database Mirroring"
         }""")
         return template.render(option_group=self)
+
 
 rds2_backends = {}
 for region in boto.rds2.regions():

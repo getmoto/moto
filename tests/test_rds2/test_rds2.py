@@ -273,7 +273,7 @@ def test_list_tags_invalid_arn():
 
 @disable_on_py3()
 @mock_rds2
-def test_list_tags():
+def test_list_tags_db():
     conn = boto.rds2.connect_to_region("us-west-2")
     result = conn.list_tags_for_resource('arn:aws:rds:us-west-2:1234567890:db:foo')
     result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList'].should.equal([])
@@ -294,7 +294,7 @@ def test_list_tags():
 
 @disable_on_py3()
 @mock_rds2
-def test_add_tags():
+def test_add_tags_db():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.create_db_instance(db_instance_identifier='db-without-tags',
                             allocated_storage=10,
@@ -314,7 +314,7 @@ def test_add_tags():
 
 @disable_on_py3()
 @mock_rds2
-def test_remove_tags():
+def test_remove_tags_db():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.create_db_instance(db_instance_identifier='db-with-tags',
                             allocated_storage=10,
@@ -424,8 +424,8 @@ def test_remove_tags():
 #    subnet_group.name.should.equal('db_subnet')
 #    subnet_group.description.should.equal("my db subnet")
 #    list(subnet_group.subnet_ids).should.equal(subnet_ids)
-#
-#
+
+
 @mock_ec2
 @mock_rds2
 def test_describe_database_subnet_group():
@@ -451,8 +451,8 @@ def test_describe_database_subnet_group():
    list(conn.describe_db_subnet_groups("db_subnet1")).should.have.length_of(1)
 
    conn.describe_db_subnet_groups.when.called_with("not-a-subnet").should.throw(BotoServerError)
-#
-#
+
+
 #@mock_ec2
 #@mock_rds2
 #def test_delete_database_subnet_group():

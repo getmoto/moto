@@ -155,7 +155,6 @@ class RDS2Response(BaseResponse):
         template = self.response_template(ADD_TAGS_TO_RESOURCE_TEMPLATE)
         return template.render(tags=tags)
 
-
     def remove_tags_from_resource(self):
         arn = self._get_param('ResourceName')
         tag_keys = self.unpack_list_params('TagKeys.member')
