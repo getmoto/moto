@@ -60,8 +60,8 @@ class Database(object):
         if self.db_subnet_group_name:
             self.db_subnet_group = rds2_backends[self.region].describe_subnet_groups(self.db_subnet_group_name)[0]
         else:
-            self.db_subnet_group = []
-        self.db_security_groups = kwargs.get('security_groups', ['a'])
+            self.db_subnet_group = None
+        self.security_groups = kwargs.get('security_groups', [])
         self.vpc_security_group_ids = kwargs.get('vpc_security_group_ids', [])
         self.preferred_maintenance_window = kwargs.get('preferred_maintenance_window', 'wed:06:38-wed:07:08')
         self.db_parameter_group_name = kwargs.get('db_parameter_group_name', None)
@@ -174,37 +174,14 @@ class Database(object):
             "DBParameterGroupName": "{{ database.db_parameter_group_name }}"
           }
         },{%- endif %}
-        "DBSecurityGroups": [{
-          {% for security_group in database.db_security_groups -%}{%- if loop.index != 1 -%},{%- endif -%}
-          "DBSecurityGroup": {
+        "DBSecurityGroups": [
+          {% for security_group in database.security_groups -%}{%- if loop.index != 1 -%},{%- endif -%}
+          {"DBSecurityGroup": {
             "Status": "active",
             "DBSecurityGroupName": "{{ security_group }}"
-          }{% endfor %}
-        }],{%- if database.db_subnet_group -%}
-        "DBSubnetGroup": {
-            "DBSubnetGroupDescription": "nabil-db-subnet-group",
-            "DBSubnetGroupName": "nabil-db-subnet-group",
-            "SubnetGroupStatus": "Complete",
-            "Subnets": [
-                {
-                    "SubnetAvailabilityZone": {
-                        "Name": "us-west-2c",
-                        "ProvisionedIopsCapable": false
-                    },
-                    "SubnetIdentifier": "subnet-c0ea0099",
-                    "SubnetStatus": "Active"
-                },
-                {
-                    "SubnetAvailabilityZone": {
-                        "Name": "us-west-2a",
-                        "ProvisionedIopsCapable": false
-                    },
-                    "SubnetIdentifier": "subnet-ff885d88",
-                    "SubnetStatus": "Active"
-                }
-            ],
-            "VpcId": "vpc-8e6ab6eb"
-        },{%- endif %}
+          }}{% endfor %}
+        ],
+        {%- if database.db_subnet_group -%}{{ database.db_subnet_group.to_json() }},{%- endif %}
         "Engine": "{{ database.engine }}",
         "EngineVersion": "{{ database.engine_version }}",
         "LatestRestorableTime": null,
@@ -386,8 +363,7 @@ class SubnetGroup(object):
         return template.render(subnet_group=self)
 
     def to_json(self):
-        template = Template("""{
-            "DBSubnetGroup": {
+        template = Template(""""DBSubnetGroup": {
                 "VpcId": "{{ subnet_group.vpc_id }}",
                 "SubnetGroupStatus": "{{ subnet_group.status }}",
                 "DBSubnetGroupDescription": "{{ subnet_group.description }}",
@@ -404,8 +380,7 @@ class SubnetGroup(object):
                     }{%- if not loop.last -%},{%- endif -%}{% endfor %}
                   ]
                 }
-            }
-          }""")
+            }""")
         return template.render(subnet_group=self)
 
     @classmethod

@@ -394,7 +394,7 @@ AUTHORIZE_SECURITY_GROUP_TEMPLATE = """{
 CREATE_SUBNET_GROUP_TEMPLATE = """{
   "CreateDBSubnetGroupResponse": {
     "CreateDBSubnetGroupResult":
-        {{ subnet_group.to_json() }},
+        { {{ subnet_group.to_json() }} },
     "ResponseMetadata": { "RequestId": "3a401b3f-bb9e-11d3-f4c6-37db295f7674" }
   }
 }"""
@@ -404,7 +404,7 @@ DESCRIBE_SUBNET_GROUPS_TEMPLATE = """{
     "DescribeDBSubnetGroupsResult": {
       "DBSubnetGroups": [
               {% for subnet_group in subnet_groups %}
-                  {{ subnet_group.to_json() }}{%- if not loop.last -%},{%- endif -%}
+                  { {{ subnet_group.to_json() }} }{%- if not loop.last -%},{%- endif -%}
               {% endfor %}
           ],
           "Marker": null
@@ -414,11 +414,7 @@ DESCRIBE_SUBNET_GROUPS_TEMPLATE = """{
 }"""
 
 
-DELETE_SUBNET_GROUP_TEMPLATE = """<DeleteDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <ResponseMetadata>
-    <RequestId>6295e5ab-bbf3-11d3-f4c6-37db295f7674</RequestId>
-  </ResponseMetadata>
-</DeleteDBSubnetGroupResponse>"""
+DELETE_SUBNET_GROUP_TEMPLATE = """{"DeleteDBSubnetGroupResponse": {"ResponseMetadata": {"RequestId": "13785dd5-a7fc-11e4-bb9c-7f371d0859b0"}}}"""
 
 CREATE_OPTION_GROUP_TEMPLATE = """{
     "CreateOptionGroupResponse": {

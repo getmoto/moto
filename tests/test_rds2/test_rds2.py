@@ -4,7 +4,7 @@ import boto.rds2
 import boto.vpc
 from boto.exception import BotoServerError
 import sure  # noqa
-
+import json
 from moto import mock_ec2, mock_rds2
 from tests.helpers import disable_on_py3
 
@@ -435,35 +435,63 @@ def test_security_group_authorize():
     result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'][0]['IPRanges'].should.equal(['10.3.2.45/32', '10.3.2.46/32'])
 
 
-#@disable_on_py3()
-#@mock_rds2
-#def test_add_security_group_to_database():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#
-#    database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
-#    security_group = conn.create_dbsecurity_group('db_sg', 'DB Security Group')
-#    database.modify(security_groups=[security_group])
-#
-#    database = conn.get_all_dbinstances()[0]
-#    list(database.security_groups).should.have.length_of(1)
-#
-#    database.security_groups[0].name.should.equal("db_sg")
-#
-#
-#@mock_ec2
-#@mock_rds2
-#def test_add_database_subnet_group():
-#    vpc_conn = boto.vpc.connect_to_region("us-west-2")
-#    vpc = vpc_conn.create_vpc("10.0.0.0/16")
-#    subnet1 = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
-#    subnet2 = vpc_conn.create_subnet(vpc.id, "10.2.0.0/24")
-#
-#    subnet_ids = [subnet1.id, subnet2.id]
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    subnet_group = conn.create_db_subnet_group("db_subnet", "my db subnet", subnet_ids)
-#    subnet_group.name.should.equal('db_subnet')
-#    subnet_group.description.should.equal("my db subnet")
-#    list(subnet_group.subnet_ids).should.equal(subnet_ids)
+@disable_on_py3()
+@mock_rds2
+def test_add_security_group_to_database():
+    conn = boto.rds2.connect_to_region("us-west-2")
+
+    conn.create_db_instance(db_instance_identifier='db-master-1',
+                            allocated_storage=10,
+                            engine='postgres',
+                            db_instance_class='db.m1.small',
+                            master_username='root',
+                            master_user_password='hunter2')
+    result = conn.describe_db_instances()
+    result['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['DBSecurityGroups'].should.equal([])
+    conn.create_db_security_group('db_sg', 'DB Security Group')
+    conn.modify_db_instance(db_instance_identifier='db-master-1',
+                            db_security_groups=['db_sg'])
+    result = conn.describe_db_instances()
+    result['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['DBSecurityGroups'][0]['DBSecurityGroup']['DBSecurityGroupName'].should.equal('db_sg')
+
+
+@mock_ec2
+@mock_rds2
+def test_create_database_subnet_group():
+    vpc_conn = boto.vpc.connect_to_region("us-west-2")
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet1 = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+    subnet2 = vpc_conn.create_subnet(vpc.id, "10.2.0.0/24")
+
+    subnet_ids = [subnet1.id, subnet2.id]
+    conn = boto.rds2.connect_to_region("us-west-2")
+    result = conn.create_db_subnet_group("db_subnet", "my db subnet", subnet_ids)
+    result['CreateDBSubnetGroupResponse']['CreateDBSubnetGroupResult']['DBSubnetGroup']['DBSubnetGroupName'].should.equal("db_subnet")
+    result['CreateDBSubnetGroupResponse']['CreateDBSubnetGroupResult']['DBSubnetGroup']['DBSubnetGroupDescription'].should.equal("my db subnet")
+    subnets = result['CreateDBSubnetGroupResponse']['CreateDBSubnetGroupResult']['DBSubnetGroup']['Subnets']
+    subnet_group_ids = [subnets['Subnet'][0]['SubnetIdentifier'], subnets['Subnet'][1]['SubnetIdentifier']]
+    list(subnet_group_ids).should.equal(subnet_ids)
+
+
+@disable_on_py3()
+@mock_ec2
+@mock_rds2
+def test_create_database_in_subnet_group():
+    vpc_conn = boto.vpc.connect_to_region("us-west-2")
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
+    conn.create_db_instance(db_instance_identifier='db-master-1',
+                            allocated_storage=10,
+                            engine='postgres',
+                            db_instance_class='db.m1.small',
+                            master_username='root',
+                            master_user_password='hunter2',
+                            db_subnet_group_name='db_subnet1')
+    result = conn.describe_db_instances("db-master-1")
+    result['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['DBSubnetGroup']['DBSubnetGroupName'].should.equal("db_subnet1")
 
 
 @mock_ec2
@@ -493,41 +521,29 @@ def test_describe_database_subnet_group():
    conn.describe_db_subnet_groups.when.called_with("not-a-subnet").should.throw(BotoServerError)
 
 
-#@mock_ec2
-#@mock_rds2
-#def test_delete_database_subnet_group():
-#    vpc_conn = boto.vpc.connect_to_region("us-west-2")
-#    vpc = vpc_conn.create_vpc("10.0.0.0/16")
-#    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
-#
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
-#    list(conn.get_all_db_subnet_groups()).should.have.length_of(1)
-#
-#    conn.delete_db_subnet_group("db_subnet1")
-#    list(conn.get_all_db_subnet_groups()).should.have.length_of(0)
-#
-#    conn.delete_db_subnet_group.when.called_with("db_subnet1").should.throw(BotoServerError)
-#
-#
-#@disable_on_py3()
-#@mock_ec2
-#@mock_rds2
-#def test_create_database_in_subnet_group():
-#    vpc_conn = boto.vpc.connect_to_region("us-west-2")
-#    vpc = vpc_conn.create_vpc("10.0.0.0/16")
-#    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
-#
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
-#
-#    database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small',
-#        'root', 'hunter2', db_subnet_group_name="db_subnet1")
-#
-#    database = conn.get_all_dbinstances("db-master-1")[0]
-#    database.subnet_group.name.should.equal("db_subnet1")
-#
-#
+@mock_ec2
+@mock_rds2
+def test_delete_database_subnet_group():
+    vpc_conn = boto.vpc.connect_to_region("us-west-2")
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+
+    conn = boto.rds2.connect_to_region("us-west-2")
+    result = conn.describe_db_subnet_groups()
+    result['DescribeDBSubnetGroupsResponse']['DescribeDBSubnetGroupsResult']['DBSubnetGroups'].should.have.length_of(0)
+
+    conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
+    result = conn.describe_db_subnet_groups()
+    result['DescribeDBSubnetGroupsResponse']['DescribeDBSubnetGroupsResult']['DBSubnetGroups'].should.have.length_of(1)
+
+    conn.delete_db_subnet_group("db_subnet1")
+    result = conn.describe_db_subnet_groups()
+    result['DescribeDBSubnetGroupsResponse']['DescribeDBSubnetGroupsResult']['DBSubnetGroups'].should.have.length_of(0)
+
+    conn.delete_db_subnet_group.when.called_with("db_subnet1").should.throw(BotoServerError)
+
+
+
 #@disable_on_py3()
 #@mock_rds2
 #def test_create_database_replica():
