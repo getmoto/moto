@@ -333,7 +333,7 @@ class S3Backend(BaseBackend):
             for key_name, key in bucket.keys.items():
                 if delimiter and delimiter in key_name:
                     # If delimiter, we need to split out folder_results
-                    folder_results.add(key_name.split(delimiter)[0])
+                    folder_results.add(key_name.split(delimiter)[0] + delimiter)
                 else:
                     key_results.add(key)
 
