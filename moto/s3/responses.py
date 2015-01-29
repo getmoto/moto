@@ -81,10 +81,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
         if 'uploads' in querystring:
-            for unsup in ('delimiter', 'prefix', 'max-uploads'):
+            for unsup in ('delimiter', 'max-uploads'):
                 if unsup in querystring:
                     raise NotImplementedError("Listing multipart uploads with {} has not been implemented yet.".format(unsup))
             multiparts = list(self.backend.get_all_multiparts(bucket_name).values())
+            if 'prefix' in querystring:
+                prefix = querystring.get('prefix', [None])[0]
+                multiparts = [upload for upload in multiparts if upload.key_name.startswith(prefix)]
             template = self.response_template(S3_ALL_MULTIPARTS)
             return 200, headers, template.render(
                 bucket_name=bucket_name,
