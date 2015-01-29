@@ -162,30 +162,38 @@ class RDS2Response(BaseResponse):
         template = self.response_template(REMOVE_TAGS_FROM_RESOURCE_TEMPLATE)
         return template.render()
 
-    # TODO: Update function to new method
     def create_dbsecurity_group(self):
+        return self.create_db_security_group()
+
+    def create_db_security_group(self):
         group_name = self._get_param('DBSecurityGroupName')
         description = self._get_param('DBSecurityGroupDescription')
         security_group = self.backend.create_security_group(group_name, description)
         template = self.response_template(CREATE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
-    # TODO: Update function to new method
     def describe_dbsecurity_groups(self):
+        return self.describe_db_security_groups()
+
+    def describe_db_security_groups(self):
         security_group_name = self._get_param('DBSecurityGroupName')
         security_groups = self.backend.describe_security_groups(security_group_name)
         template = self.response_template(DESCRIBE_SECURITY_GROUPS_TEMPLATE)
         return template.render(security_groups=security_groups)
 
-    # TODO: Update function to new method
     def delete_dbsecurity_group(self):
+        return self.delete_db_security_group()
+
+    def delete_db_security_group(self):
         security_group_name = self._get_param('DBSecurityGroupName')
         security_group = self.backend.delete_security_group(security_group_name)
         template = self.response_template(DELETE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
-    # TODO: Update function to new method
     def authorize_dbsecurity_group_ingress(self):
+        return self.authorize_db_security_group_ingress()
+
+    def authorize_db_security_group_ingress(self):
         security_group_name = self._get_param('DBSecurityGroupName')
         cidr_ip = self._get_param('CIDRIP')
         security_group = self.backend.authorize_security_group(security_group_name, cidr_ip)
@@ -193,6 +201,9 @@ class RDS2Response(BaseResponse):
         return template.render(security_group=security_group)
 
     def create_dbsubnet_group(self):
+        return self.create_db_subnet_group()
+
+    def create_db_subnet_group(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         description = self._get_param('DBSubnetGroupDescription')
         subnet_ids = self._get_multi_param('SubnetIds.member')
@@ -202,13 +213,18 @@ class RDS2Response(BaseResponse):
         return template.render(subnet_group=subnet_group)
 
     def describe_dbsubnet_groups(self):
+        return self.describe_db_subnet_groups()
+
+    def describe_db_subnet_groups(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         subnet_groups = self.backend.describe_subnet_groups(subnet_name)
         template = self.response_template(DESCRIBE_SUBNET_GROUPS_TEMPLATE)
         return template.render(subnet_groups=subnet_groups)
 
-    # TODO: Update function to new method
     def delete_dbsubnet_group(self):
+        return self.delete_db_subnet_group()
+
+    def delete_db_subnet_group(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         subnet_group = self.backend.delete_subnet_group(subnet_name)
         template = self.response_template(DELETE_SUBNET_GROUP_TEMPLATE)
@@ -331,42 +347,49 @@ DELETE_DATABASE_TEMPLATE = """{ "DeleteDBInstanceResponse": {
   }
 }"""
 
-CREATE_SECURITY_GROUP_TEMPLATE = """<CreateDBSecurityGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <CreateDBSecurityGroupResult>
-    {{ security_group.to_xml() }}
-  </CreateDBSecurityGroupResult>
-  <ResponseMetadata>
-    <RequestId>e68ef6fa-afc1-11c3-845a-476777009d19</RequestId>
-  </ResponseMetadata>
-</CreateDBSecurityGroupResponse>"""
+CREATE_SECURITY_GROUP_TEMPLATE = """{"CreateDBSecurityGroupResponse": {
+    "CreateDBSecurityGroupResult": {
+        "DBSecurityGroup":
+            {{ security_group.to_json() }},
+        "ResponseMetadata": {
+            "RequestId": "462165d0-a77a-11e4-a5fa-75b30c556f97"
+        }}
+    }
+}"""
 
-DESCRIBE_SECURITY_GROUPS_TEMPLATE = """<DescribeDBSecurityGroupsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <DescribeDBSecurityGroupsResult>
-    <DBSecurityGroups>
-    {% for security_group in security_groups %}
-        {{ security_group.to_xml() }}
-    {% endfor %}
-    </DBSecurityGroups>
-  </DescribeDBSecurityGroupsResult>
-  <ResponseMetadata>
-    <RequestId>b76e692c-b98c-11d3-a907-5a2c468b9cb0</RequestId>
-  </ResponseMetadata>
-</DescribeDBSecurityGroupsResponse>"""
+DESCRIBE_SECURITY_GROUPS_TEMPLATE = """{
+    "DescribeDBSecurityGroupsResponse": {
+        "ResponseMetadata": {
+            "RequestId": "5df2014e-a779-11e4-bdb0-594def064d0c"
+        },
+        "DescribeDBSecurityGroupsResult": {
+            "Marker": "null",
+            "DBSecurityGroups": [
+            {% for security_group in security_groups %}
+                {%- if loop.index != 1 -%},{%- endif -%}
+                {{ security_group.to_json() }}
+            {% endfor %}
+            ]
+        }
+    }
+}"""
 
-DELETE_SECURITY_GROUP_TEMPLATE = """<DeleteDBSecurityGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <ResponseMetadata>
-    <RequestId>7aec7454-ba25-11d3-855b-576787000e19</RequestId>
-  </ResponseMetadata>
-</DeleteDBSecurityGroupResponse>"""
+DELETE_SECURITY_GROUP_TEMPLATE = """{"DeleteDBSecurityGroupResponse": {
+  "ResponseMetadata": {
+    "RequestId": "97e846bd-a77d-11e4-ac58-91351c0f3426"
+  }
+}}"""
 
-AUTHORIZE_SECURITY_GROUP_TEMPLATE = """<AuthorizeDBSecurityGroupIngressResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
-  <AuthorizeDBSecurityGroupIngressResult>
-  {{ security_group.to_xml() }}
-  </AuthorizeDBSecurityGroupIngressResult>
-  <ResponseMetadata>
-    <RequestId>6176b5f8-bfed-11d3-f92b-31fa5e8dbc99</RequestId>
-  </ResponseMetadata>
-</AuthorizeDBSecurityGroupIngressResponse>"""
+AUTHORIZE_SECURITY_GROUP_TEMPLATE = """{
+    "AuthorizeDBSecurityGroupIngressResponse": {
+        "AuthorizeDBSecurityGroupIngressResult": {
+            "DBSecurityGroup": {{ security_group.to_json() }}
+        },
+        "ResponseMetadata": {
+            "RequestId": "75d32fd5-a77e-11e4-8892-b10432f7a87d"
+        }
+    }
+}"""
 
 CREATE_SUBNET_GROUP_TEMPLATE = """{
   "CreateDBSubnetGroupResponse": {

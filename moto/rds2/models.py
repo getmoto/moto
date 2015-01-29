@@ -266,6 +266,8 @@ class SecurityGroup(object):
         self.ip_ranges = []
         self.ec2_security_groups = []
         self.tags = []
+        self.owner_id = '1234567890'
+        self.vpc_id = None
 
     def to_xml(self):
         template = Template("""<DBSecurityGroup>
@@ -292,6 +294,21 @@ class SecurityGroup(object):
             <OwnerId>{{ security_group.ownder_id }}</OwnerId>
             <DBSecurityGroupName>{{ security_group.group_name }}</DBSecurityGroupName>
         </DBSecurityGroup>""")
+        return template.render(security_group=self)
+
+    def to_json(self):
+        template = Template("""{
+            "DBSecurityGroupDescription": "{{ security_group.description }}",
+            "DBSecurityGroupName": "{{ security_group.group_name }}",
+            "EC2SecurityGroups": {{ security_group.ec2_security_groups }},
+            "IPRanges": [{%- for ip in security_group.ip_ranges -%}
+                         {%- if loop.index != 1 -%},{%- endif -%}
+                         "{{ ip }}"
+                         {%- endfor -%}
+                        ],
+            "OwnerId": "{{ security_group.owner_id }}",
+            "VpcId": "{{ security_group.vpc_id }}"
+        }""")
         return template.render(security_group=self)
 
     def authorize_cidr(self, cidr_ip):

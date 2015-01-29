@@ -359,70 +359,82 @@ def test_remove_tags_option_group():
     list(result['ListTagsForResourceResponse']['ListTagsForResourceResult']['TagList']).should.have.length_of(1)
 
 
-#@disable_on_py3()
-#@mock_rds2
-#def test_create_database_security_group():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#
-#    security_group = conn.create_dbsecurity_group('db_sg', 'DB Security Group')
-#    security_group.name.should.equal('db_sg')
-#    security_group.description.should.equal("DB Security Group")
-#    list(security_group.ip_ranges).should.equal([])
-#
-#
-#@mock_rds2
-#def test_get_security_groups():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#
-#    list(conn.get_all_dbsecurity_groups()).should.have.length_of(0)
-#
-#    conn.create_dbsecurity_group('db_sg1', 'DB Security Group')
-#    conn.create_dbsecurity_group('db_sg2', 'DB Security Group')
-#
-#    list(conn.get_all_dbsecurity_groups()).should.have.length_of(2)
-#
-#    databases = conn.get_all_dbsecurity_groups("db_sg1")
-#    list(databases).should.have.length_of(1)
-#
-#    databases[0].name.should.equal("db_sg1")
-#
-#
-#@mock_rds2
-#def test_get_non_existant_security_group():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    conn.get_all_dbsecurity_groups.when.called_with("not-a-sg").should.throw(BotoServerError)
-#
-#
-#@mock_rds2
-#def test_delete_database_security_group():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    conn.create_dbsecurity_group('db_sg', 'DB Security Group')
-#
-#    list(conn.get_all_dbsecurity_groups()).should.have.length_of(1)
-#
-#    conn.delete_dbsecurity_group("db_sg")
-#    list(conn.get_all_dbsecurity_groups()).should.have.length_of(0)
-#
-#
-#@mock_rds2
-#def test_delete_non_existant_security_group():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    conn.delete_dbsecurity_group.when.called_with("not-a-db").should.throw(BotoServerError)
-#
-#
-#@disable_on_py3()
-#@mock_rds2
-#def test_security_group_authorize():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#    security_group = conn.create_dbsecurity_group('db_sg', 'DB Security Group')
-#    list(security_group.ip_ranges).should.equal([])
-#
-#    security_group.authorize(cidr_ip='10.3.2.45/32')
-#    security_group = conn.get_all_dbsecurity_groups()[0]
-#    list(security_group.ip_ranges).should.have.length_of(1)
-#    security_group.ip_ranges[0].cidr_ip.should.equal('10.3.2.45/32')
-#
-#
+@disable_on_py3()
+@mock_rds2
+def test_create_database_security_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+
+    result = conn.create_db_security_group('db_sg', 'DB Security Group')
+    result['CreateDBSecurityGroupResponse']['CreateDBSecurityGroupResult']['DBSecurityGroup']['DBSecurityGroupName'].should.equal("db_sg")
+    result['CreateDBSecurityGroupResponse']['CreateDBSecurityGroupResult']['DBSecurityGroup']['DBSecurityGroupDescription'].should.equal("DB Security Group")
+    result['CreateDBSecurityGroupResponse']['CreateDBSecurityGroupResult']['DBSecurityGroup']['IPRanges'].should.equal([])
+
+
+@mock_rds2
+def test_get_security_groups():
+    conn = boto.rds2.connect_to_region("us-west-2")
+
+    result = conn.describe_db_security_groups()
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'].should.have.length_of(0)
+
+    conn.create_db_security_group('db_sg1', 'DB Security Group')
+    conn.create_db_security_group('db_sg2', 'DB Security Group')
+
+    result = conn.describe_db_security_groups()
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'].should.have.length_of(2)
+
+    result = conn.describe_db_security_groups("db_sg1")
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'].should.have.length_of(1)
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'][0]['DBSecurityGroupName'].should.equal("db_sg1")
+
+
+@mock_rds2
+def test_get_non_existant_security_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.describe_db_security_groups.when.called_with("not-a-sg").should.throw(BotoServerError)
+
+
+@mock_rds2
+def test_delete_database_security_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.create_db_security_group('db_sg', 'DB Security Group')
+
+    result = conn.describe_db_security_groups()
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'].should.have.length_of(1)
+
+    conn.delete_db_security_group("db_sg")
+    result = conn.describe_db_security_groups()
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'].should.have.length_of(0)
+
+
+@mock_rds2
+def test_delete_non_existant_security_group():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    conn.delete_db_security_group.when.called_with("not-a-db").should.throw(BotoServerError)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_security_group_authorize():
+    conn = boto.rds2.connect_to_region("us-west-2")
+    security_group = conn.create_db_security_group('db_sg', 'DB Security Group')
+    security_group['CreateDBSecurityGroupResponse']['CreateDBSecurityGroupResult']['DBSecurityGroup']['IPRanges'].should.equal([])
+
+
+    conn.authorize_db_security_group_ingress(db_security_group_name='db_sg',
+                                             cidrip='10.3.2.45/32')
+
+    result = conn.describe_db_security_groups("db_sg")
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'][0]['IPRanges'].should.have.length_of(1)
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'][0]['IPRanges'].should.equal(['10.3.2.45/32'])
+
+    conn.authorize_db_security_group_ingress(db_security_group_name='db_sg',
+                                             cidrip='10.3.2.46/32')
+    result = conn.describe_db_security_groups("db_sg")
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'][0]['IPRanges'].should.have.length_of(2)
+    result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'][0]['IPRanges'].should.equal(['10.3.2.45/32', '10.3.2.46/32'])
+
+
 #@disable_on_py3()
 #@mock_rds2
 #def test_add_security_group_to_database():
