@@ -272,7 +272,7 @@ def test_bucket_key_listing_order():
     # Test delimiter with no prefix
     delimiter = '/'
     keys = [x.name for x in bucket.list(prefix=None, delimiter=delimiter)]
-    keys.should.equal(['toplevel'])
+    keys.should.equal(['toplevel/'])
 
     delimiter = None
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
