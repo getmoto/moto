@@ -293,14 +293,14 @@ CREATE_DATABASE_TEMPLATE = """{
   }
 }"""
 
-CREATE_DATABASE_REPLICA_TEMPLATE = """{
-  "CreateDBInstanceResponse": {
-    "CreateDBInstanceResult": {
-      {{ database.to_json() }}
-    },
-    "ResponseMetadata": { "RequestId": "523e3218-afc7-11c3-90f5-f90431260ab4" }
+CREATE_DATABASE_REPLICA_TEMPLATE = """{"CreateDBInstanceReadReplicaResponse": {
+  "ResponseMetadata": {
+    "RequestId": "5e60c46d-a844-11e4-bb68-17f36418e58f"
+  },
+  "CreateDBInstanceReadReplicaResult": {
+    "DBInstance": {{ database.to_json() }}
   }
-}"""
+}}"""
 
 DESCRIBE_DATABASES_TEMPLATE = """{
   "DescribeDBInstancesResponse": {
@@ -336,7 +336,7 @@ REBOOT_DATABASE_TEMPLATE = """{"RebootDBInstanceResponse": {
   }
 }"""
 
-# TODO: update delete DB TEMPLATE
+
 DELETE_DATABASE_TEMPLATE = """{ "DeleteDBInstanceResponse": {
     "DeleteDBInstanceResult": {
       "DBInstance": {{ database.to_json() }}

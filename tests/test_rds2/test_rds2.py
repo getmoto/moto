@@ -4,7 +4,6 @@ import boto.rds2
 import boto.vpc
 from boto.exception import BotoServerError
 import sure  # noqa
-import json
 from moto import mock_ec2, mock_rds2
 from tests.helpers import disable_on_py3
 
@@ -543,36 +542,28 @@ def test_delete_database_subnet_group():
     conn.delete_db_subnet_group.when.called_with("db_subnet1").should.throw(BotoServerError)
 
 
+@disable_on_py3()
+@mock_rds2
+def test_create_database_replica():
+    conn = boto.rds2.connect_to_region("us-west-2")
 
-#@disable_on_py3()
-#@mock_rds2
-#def test_create_database_replica():
-#    conn = boto.rds2.connect_to_region("us-west-2")
-#
-#    conn.create_db_instance(db_instance_identifier='db-master-1',
-#                            allocated_storage=10,
-#                            engine='postgres',
-#                            db_instance_class='db.m1.small',
-#                            master_username='root',
-#                            master_user_password='hunter2',
-#                            db_security_groups=["my_sg"])
-#
-#    # TODO: confirm the RESULT JSON
-#    replica = conn.create_db_instance_read_replica("replica", "db-master-1", "db.m1.small")
-#    print replica
-    #replica.id.should.equal("replica")
-    #replica.instance_class.should.equal("db.m1.small")
-    #status_info = replica.status_infos[0]
-    #status_info.normal.should.equal(True)
-    #status_info.status_type.should.equal('read replication')
-    #status_info.status.should.equal('replicating')
+    conn.create_db_instance(db_instance_identifier='db-master-1',
+                            allocated_storage=10,
+                            engine='postgres',
+                            db_instance_class='db.m1.small',
+                            master_username='root',
+                            master_user_password='hunter2',
+                            db_security_groups=["my_sg"])
 
-    # TODO: formulate checks on read replica status
-#    primary = conn.describe_db_instances("db-master-1")
-#    print primary
-    #primary.read_replica_dbinstance_identifiers[0].should.equal("replica")
+    replica = conn.create_db_instance_read_replica("db-replica-1", "db-master-1", "db.m1.small")
+    replica['CreateDBInstanceReadReplicaResponse']['CreateDBInstanceReadReplicaResult']['DBInstance']['ReadReplicaSourceDBInstanceIdentifier'].should.equal('db-master-1')
+    replica['CreateDBInstanceReadReplicaResponse']['CreateDBInstanceReadReplicaResult']['DBInstance']['DBInstanceClass'].should.equal('db.m1.small')
+    replica['CreateDBInstanceReadReplicaResponse']['CreateDBInstanceReadReplicaResult']['DBInstance']['DBInstanceIdentifier'].should.equal('db-replica-1')
 
-    #conn.delete_dbinstance("replica")
+    master = conn.describe_db_instances("db-master-1")
+    master['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['ReadReplicaDBInstanceIdentifiers'].should.equal(['db-replica-1'])
 
-    #primary = conn.get_all_dbinstances("db-master-1")[0]
-    #list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
+    conn.delete_db_instance("db-replica-1")
+
+    master = conn.describe_db_instances("db-master-1")
+    master['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['ReadReplicaDBInstanceIdentifiers'].should.equal([])
