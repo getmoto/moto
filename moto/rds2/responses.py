@@ -260,20 +260,20 @@ class RDS2Response(BaseResponse):
         option_group_name = self._get_param('OptionGroupName')
         count = 1
         options_to_include = []
-        while self._get_param('OptionsToInclude.member.{}.OptionName'.format(count)):
+        while self._get_param('OptionsToInclude.member.{0}.OptionName'.format(count)):
             options_to_include.append({
-                'Port': self._get_param('OptionsToInclude.member.{}.Port'.format(count)),
-                'OptionName': self._get_param('OptionsToInclude.member.{}.OptionName'.format(count)),
-                'DBSecurityGroupMemberships': self._get_param('OptionsToInclude.member.{}.DBSecurityGroupMemberships'.format(count)),
-                'OptionSettings': self._get_param('OptionsToInclude.member.{}.OptionSettings'.format(count)),
-                'VpcSecurityGroupMemberships': self._get_param('OptionsToInclude.member.{}.VpcSecurityGroupMemberships'.format(count))
+                'Port': self._get_param('OptionsToInclude.member.{0}.Port'.format(count)),
+                'OptionName': self._get_param('OptionsToInclude.member.{0}.OptionName'.format(count)),
+                'DBSecurityGroupMemberships': self._get_param('OptionsToInclude.member.{0}.DBSecurityGroupMemberships'.format(count)),
+                'OptionSettings': self._get_param('OptionsToInclude.member.{0}.OptionSettings'.format(count)),
+                'VpcSecurityGroupMemberships': self._get_param('OptionsToInclude.member.{0}.VpcSecurityGroupMemberships'.format(count))
             })
             count += 1
 
         count = 1
         options_to_remove = []
-        while self._get_param('OptionsToRemove.member.{}'.format(count)):
-            options_to_remove.append(self._get_param('OptionsToRemove.member.{}'.format(count)))
+        while self._get_param('OptionsToRemove.member.{0}'.format(count)):
+            options_to_remove.append(self._get_param('OptionsToRemove.member.{0}'.format(count)))
             count += 1
         apply_immediately = self._get_param('ApplyImmediately')
         option_group = self.backend.modify_option_group(option_group_name,
