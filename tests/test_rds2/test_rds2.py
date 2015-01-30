@@ -214,6 +214,7 @@ def test_delete_non_existant_option_group():
     conn.delete_option_group.when.called_with('non-existant').should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_describe_option_group_options():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -369,6 +370,7 @@ def test_create_database_security_group():
     result['CreateDBSecurityGroupResponse']['CreateDBSecurityGroupResult']['DBSecurityGroup']['IPRanges'].should.equal([])
 
 
+@disable_on_py3()
 @mock_rds2
 def test_get_security_groups():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -387,12 +389,14 @@ def test_get_security_groups():
     result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'][0]['DBSecurityGroupName'].should.equal("db_sg1")
 
 
+@disable_on_py3()
 @mock_rds2
 def test_get_non_existant_security_group():
     conn = boto.rds2.connect_to_region("us-west-2")
     conn.describe_db_security_groups.when.called_with("not-a-sg").should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_delete_database_security_group():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -406,6 +410,7 @@ def test_delete_database_security_group():
     result['DescribeDBSecurityGroupsResponse']['DescribeDBSecurityGroupsResult']['DBSecurityGroups'].should.have.length_of(0)
 
 
+@disable_on_py3()
 @mock_rds2
 def test_delete_non_existant_security_group():
     conn = boto.rds2.connect_to_region("us-west-2")
@@ -454,6 +459,7 @@ def test_add_security_group_to_database():
     result['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['DBSecurityGroups'][0]['DBSecurityGroup']['DBSecurityGroupName'].should.equal('db_sg')
 
 
+@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_create_database_subnet_group():
@@ -493,6 +499,7 @@ def test_create_database_in_subnet_group():
     result['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['DBSubnetGroup']['DBSubnetGroupName'].should.equal("db_subnet1")
 
 
+@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_describe_database_subnet_group():
@@ -520,6 +527,7 @@ def test_describe_database_subnet_group():
    conn.describe_db_subnet_groups.when.called_with("not-a-subnet").should.throw(BotoServerError)
 
 
+@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_delete_database_subnet_group():
