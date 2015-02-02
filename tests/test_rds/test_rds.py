@@ -6,7 +6,7 @@ from boto.exception import BotoServerError
 import sure  # noqa
 
 from moto import mock_ec2, mock_rds
-from tests.helpers import disable_on_py3
+from tests.helpers import disable_on_py3, requires_boto_lte
 
 
 @disable_on_py3()
@@ -257,3 +257,16 @@ def test_connecting_to_us_east_1():
     database.master_username.should.equal("root")
     database.endpoint.should.equal(('db-master-1.aaaaaaaaaa.us-east-1.rds.amazonaws.com', 3306))
     database.security_groups[0].name.should.equal('my_sg')
+
+
+@requires_boto_lte('2.36.0')
+@disable_on_py3()
+@mock_rds
+def test_create_database_with_iops():
+    conn = boto.rds.connect_to_region("us-west-2")
+
+    database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2', iops=6000)
+
+    database.status.should.equal('available')
+    database.iops.should.equal(6000)
+    database.StorageType.should.equal('io1')
