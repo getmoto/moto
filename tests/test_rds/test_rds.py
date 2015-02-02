@@ -237,3 +237,23 @@ def test_create_database_replica():
 
     primary = conn.get_all_dbinstances("db-master-1")[0]
     list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
+
+
+@disable_on_py3()
+@mock_rds
+def test_connecting_to_us_east_1():
+    # boto does not use us-east-1 in the URL for RDS,
+    # and that broke moto in the past:
+    # https://github.com/boto/boto/blob/e271ff09364ea18d9d8b6f4d63d6b0ac6cbc9b75/boto/endpoints.json#L285
+    conn = boto.rds.connect_to_region("us-east-1")
+
+    database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2',
+        security_groups=["my_sg"])
+
+    database.status.should.equal('available')
+    database.id.should.equal("db-master-1")
+    database.allocated_storage.should.equal(10)
+    database.instance_class.should.equal("db.m1.small")
+    database.master_username.should.equal("root")
+    database.endpoint.should.equal(('db-master-1.aaaaaaaaaa.us-east-1.rds.amazonaws.com', 3306))
+    database.security_groups[0].name.should.equal('my_sg')
