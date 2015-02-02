@@ -4,7 +4,7 @@ import sure  # noqa
 
 from nose.tools import assert_raises, assert_equals, assert_not_equals
 from boto.exception import BotoServerError
-
+import base64
 from moto import mock_iam
 
 
@@ -200,3 +200,24 @@ def test_delete_user():
         conn.delete_user('my-user')
     conn.create_user('my-user')
     conn.delete_user('my-user')
+
+@mock_iam()
+def test_generate_credential_report():
+    conn = boto.connect_iam()
+    result = conn.generate_credential_report()
+    result['generate_credential_report_response']['generate_credential_report_result']['state'].should.equal('STARTED')
+    result = conn.generate_credential_report()
+    result['generate_credential_report_response']['generate_credential_report_result']['state'].should.equal('COMPLETE')
+
+@mock_iam()
+def test_get_credential_report():
+    conn = boto.connect_iam()
+    conn.create_user('my-user')
+    with assert_raises(BotoServerError):
+        conn.get_credential_report()
+    result = conn.generate_credential_report()
+    while result['generate_credential_report_response']['generate_credential_report_result']['state'] != 'COMPLETE':
+        result = conn.generate_credential_report()
+    result = conn.get_credential_report()
+    report = base64.b64decode(result['get_credential_report_response']['get_credential_report_result']['content'])
+    report.should.contain('my-user')
