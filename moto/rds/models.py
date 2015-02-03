@@ -199,6 +199,12 @@ class Database(object):
               <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
               <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
+              {% if database.iops %}
+              <Iops>{{ database.iops }}</Iops>
+              <StorageType>io1</StorageType>
+              {% else %}
+              <StorageType>{{ database.storage_type }}</StorageType>
+              {% endif %}
               <DBInstanceClass>{{ database.db_instance_class }}</DBInstanceClass>
               <MasterUsername>{{ database.master_username }}</MasterUsername>
               <Endpoint>

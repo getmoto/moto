@@ -257,3 +257,16 @@ def test_connecting_to_us_east_1():
     database.master_username.should.equal("root")
     database.endpoint.should.equal(('db-master-1.aaaaaaaaaa.us-east-1.rds.amazonaws.com', 3306))
     database.security_groups[0].name.should.equal('my_sg')
+
+
+@disable_on_py3()
+@mock_rds
+def test_create_database_with_iops():
+    conn = boto.rds.connect_to_region("us-west-2")
+
+    database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2', iops=6000)
+
+    database.status.should.equal('available')
+    database.iops.should.equal(6000)
+    # boto>2.36.0 may change the following property name to `storage_type`
+    database.StorageType.should.equal('io1')
