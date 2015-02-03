@@ -6,7 +6,7 @@ from boto.exception import BotoServerError
 import sure  # noqa
 
 from moto import mock_ec2, mock_rds
-from tests.helpers import disable_on_py3, requires_boto_lte
+from tests.helpers import disable_on_py3
 
 
 @disable_on_py3()
@@ -259,7 +259,6 @@ def test_connecting_to_us_east_1():
     database.security_groups[0].name.should.equal('my_sg')
 
 
-@requires_boto_lte('2.36.0')
 @disable_on_py3()
 @mock_rds
 def test_create_database_with_iops():
@@ -269,4 +268,5 @@ def test_create_database_with_iops():
 
     database.status.should.equal('available')
     database.iops.should.equal(6000)
+    # boto>2.36.0 may change the following property name to `storage_type`
     database.StorageType.should.equal('io1')

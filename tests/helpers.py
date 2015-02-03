@@ -26,19 +26,6 @@ class requires_boto_gte(object):
         return skip_test
 
 
-class requires_boto_lte(object):
-    """Decorator for requiring boto version lesser than or equal to 'version'"""
-    def __init__(self, version):
-        self.version = version
-
-    def __call__(self, test):
-        boto_version = version_tuple(boto.__version__)
-        required = version_tuple(self.version)
-        if boto_version <= required:
-            return test
-        return skip_test
-
-
 class disable_on_py3(object):
     def __call__(self, test):
         if not six.PY3:
