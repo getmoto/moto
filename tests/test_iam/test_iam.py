@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import boto
 import sure  # noqa
+import re
 
 from nose.tools import assert_raises, assert_equals, assert_not_equals
 from boto.exception import BotoServerError
@@ -220,4 +221,4 @@ def test_get_credential_report():
         result = conn.generate_credential_report()
     result = conn.get_credential_report()
     report = base64.b64decode(result['get_credential_report_response']['get_credential_report_result']['content'])
-    report.should.contain('my-user')
+    report.should.match(r'.*my-user.*')
