@@ -13,6 +13,7 @@ from .emr import mock_emr  # flake8: noqa
 from .iam import mock_iam  # flake8: noqa
 from .kinesis import mock_kinesis  # flake8: noqa
 from .rds import mock_rds  # flake8: noqa
+from .rds2 import mock_rds2  # flake8: noqa
 from .redshift import mock_redshift  # flake8: noqa
 from .s3 import mock_s3  # flake8: noqa
 from .s3bucket_path import mock_s3bucket_path  # flake8: noqa
