@@ -219,6 +219,18 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name='DeleteUser')
 
+    def generate_credential_report(self):
+        if iam_backend.report_generated():
+            template = self.response_template(CREDENTIAL_REPORT_GENERATED)
+        else:
+            template = self.response_template(CREDENTIAL_REPORT_GENERATING)
+        iam_backend.generate_report()
+        return template.render()
+
+    def get_credential_report(self):
+        report = iam_backend.get_credential_report()
+        template = self.response_template(CREDENTIAL_REPORT)
+        return template.render(report=report)
 
 GENERIC_EMPTY_TEMPLATE = """<{{ name }}Response>
    <ResponseMetadata>
@@ -559,3 +571,34 @@ LIST_ACCESS_KEYS_TEMPLATE = """<ListAccessKeysResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </ListAccessKeysResponse>"""
+
+CREDENTIAL_REPORT_GENERATING = """
+<GenerateCredentialReportResponse>
+    <GenerateCredentialReportResult>
+        <state>STARTED</state>
+        <description>No report exists. Starting a new report generation task</description>
+    </GenerateCredentialReportResult>
+    <ResponseMetadata>
+        <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
+    </ResponseMetadata>
+</GenerateCredentialReportResponse>"""
+
+CREDENTIAL_REPORT_GENERATED = """<GenerateCredentialReportResponse>
+    <GenerateCredentialReportResult>
+        <state>COMPLETE</state>
+    </GenerateCredentialReportResult>
+    <ResponseMetadata>
+        <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
+    </ResponseMetadata>
+</GenerateCredentialReportResponse>"""
+
+CREDENTIAL_REPORT = """<GetCredentialReportResponse>
+    <GetCredentialReportResult>
+        <content>{{ report }}</content>
+        <GeneratedTime>2015-02-02T20:02:02Z</GeneratedTime>
+        <ReportFormat>text/csv</ReportFormat>
+    </GetCredentialReportResult>
+    <ResponseMetadata>
+        <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
+    </ResponseMetadata>
+</GetCredentialReportResponse>"""

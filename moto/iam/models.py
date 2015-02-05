@@ -4,7 +4,7 @@ from boto.exception import BotoServerError
 from moto.core import BaseBackend
 from .utils import random_access_key, random_alphanumeric, random_resource_id
 from datetime import datetime
-
+import base64
 
 class Role(object):
 
@@ -135,7 +135,7 @@ class User(object):
             datetime.utcnow(),
             "%Y-%m-%d-%H-%M-%S"
         )
-
+        self.arn = 'arn:aws:iam::123456789012:user/{0}'.format(name)
         self.policies = {}
         self.access_keys = []
         self.password = None
@@ -184,6 +184,45 @@ class User(object):
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
         raise UnformattedGetAttTemplateException()
 
+    def to_csv(self):
+        date_format = '%Y-%m-%dT%H:%M:%S+00:00'
+        date_created = datetime.strptime(self.created, '%Y-%m-%d-%H-%M-%S')
+        # aagrawal,arn:aws:iam::509284790694:user/aagrawal,2014-09-01T22:28:48+00:00,true,2014-11-12T23:36:49+00:00,2014-09-03T18:59:00+00:00,N/A,false,true,2014-09-01T22:28:48+00:00,false,N/A,false,N/A,false,N/A
+        if not self.password:
+            password_enabled = 'false'
+            password_last_used = 'not_supported'
+        else:
+            password_enabled = 'true'
+            password_last_used = 'no_information'
+
+        if len(self.access_keys) == 0:
+            access_key_1_active = 'false'
+            access_key_1_last_rotated = 'N/A'
+            access_key_2_active = 'false'
+            access_key_2_last_rotated = 'N/A'
+        elif len(self.access_keys) == 1:
+            access_key_1_active = 'true'
+            access_key_1_last_rotated = date_created.strftime(date_format)
+            access_key_2_active = 'false'
+            access_key_2_last_rotated = 'N/A'
+        else:
+            access_key_1_active = 'true'
+            access_key_1_last_rotated = date_created.strftime(date_format)
+            access_key_2_active = 'true'
+            access_key_2_last_rotated = date_created.strftime(date_format)
+
+        return '{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},{9},false,N/A,false,N/A'.format(self.name,
+                               self.arn,
+                               date_created.strftime(date_format),
+                               password_enabled,
+                               password_last_used,
+                               date_created.strftime(date_format),
+                               access_key_1_active,
+                               access_key_1_last_rotated,
+                               access_key_2_active,
+                               access_key_2_last_rotated
+                               )
+
 
 class IAMBackend(BaseBackend):
 
@@ -193,6 +232,7 @@ class IAMBackend(BaseBackend):
         self.certificates = {}
         self.groups = {}
         self.users = {}
+        self.credential_report = None
         super(IAMBackend, self).__init__()
 
     def create_role(self, role_name, assume_role_policy_document, path):
@@ -394,5 +434,18 @@ class IAMBackend(BaseBackend):
         except KeyError:
             raise BotoServerError(404, 'Not Found')
 
+    def report_generated(self):
+        return self.credential_report
+
+    def generate_report(self):
+        self.credential_report = True
+
+    def get_credential_report(self):
+        if not self.credential_report:
+            raise BotoServerError(410, 'ReportNotPresent')
+        report = 'user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_2_active,access_key_2_last_rotated,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated\n'
+        for user in self.users:
+            report += self.users[user].to_csv()
+        return base64.b64encode(report.encode('ascii')).decode('ascii')
 
 iam_backend = IAMBackend()
