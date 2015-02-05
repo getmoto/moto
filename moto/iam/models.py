@@ -4,7 +4,7 @@ from boto.exception import BotoServerError
 from moto.core import BaseBackend
 from .utils import random_access_key, random_alphanumeric, random_resource_id
 from datetime import datetime
-import base64
+import codecs
 
 class Role(object):
 
@@ -446,6 +446,6 @@ class IAMBackend(BaseBackend):
         report = 'user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_2_active,access_key_2_last_rotated,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated\n'
         for user in self.users:
             report += self.users[user].to_csv()
-        return base64.b64encode(report.encode('ascii'))
+        return codecs.encode(report.encode('ascii'), 'base64').decode('ascii')
 
 iam_backend = IAMBackend()

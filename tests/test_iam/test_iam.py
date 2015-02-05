@@ -5,7 +5,7 @@ import re
 
 from nose.tools import assert_raises, assert_equals, assert_not_equals
 from boto.exception import BotoServerError
-import base64
+import codecs
 from moto import mock_iam
 
 
@@ -220,5 +220,5 @@ def test_get_credential_report():
     while result['generate_credential_report_response']['generate_credential_report_result']['state'] != 'COMPLETE':
         result = conn.generate_credential_report()
     result = conn.get_credential_report()
-    report = base64.b64decode(result['get_credential_report_response']['get_credential_report_result']['content'])
+    report = codecs.decode(result['get_credential_report_response']['get_credential_report_result']['content'].encode('ascii'), 'base64').decode('ascii')
     report.should.match(r'.*my-user.*')
