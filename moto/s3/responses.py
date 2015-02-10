@@ -237,7 +237,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
         begin = 0
         end = None
         if 'range' in request.headers:
-            begin, end = map(int, request.headers.get('range').split('-'))
+            _, rspec = request.headers.get('range').split('=')
+            if ',' in rspec:
+                raise NotImplementedError("Multiple range specifiers not supported")
+            begin, end = map(lambda i: int(i) if i else None, rspec.split('-'))
 
         if isinstance(response, six.string_types):
             return 200, headers, response[begin:end]
