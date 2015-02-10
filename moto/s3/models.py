@@ -8,6 +8,7 @@ import itertools
 import codecs
 import six
 
+from bisect import insort
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket
@@ -118,6 +119,7 @@ class FakeMultipart(object):
         self.key_name = key_name
         self.metadata = metadata
         self.parts = {}
+        self.partlist = []  # ordered list of part ID's
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
         self.id = rand_b64.decode('utf-8').replace('=', '').replace('+', '')
 
@@ -125,18 +127,19 @@ class FakeMultipart(object):
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
-        last_part_name = len(self.list_parts())
 
-        for part in self.list_parts():
-            if part.name != last_part_name and len(part.value) < UPLOAD_PART_MIN_SIZE:
+        last = None
+        for index, part in enumerate(self.list_parts(), start=1):
+            if last is not None and len(last.value) < UPLOAD_PART_MIN_SIZE:
                 return None, None
             part_etag = part.etag.replace('"', '')
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
+            last = part
 
         etag = hashlib.md5()
         etag.update(bytes(md5s))
-        return total, "{0}-{1}".format(etag.hexdigest(), last_part_name)
+        return total, "{0}-{1}".format(etag.hexdigest(), index)
 
     def set_part(self, part_id, value):
         if part_id < 1:
@@ -144,18 +147,12 @@ class FakeMultipart(object):
 
         key = FakeKey(part_id, value)
         self.parts[part_id] = key
+        insort(self.partlist, part_id)
         return key
 
     def list_parts(self):
-        parts = []
-
-        for part_id, index in enumerate(sorted(self.parts.keys()), start=1):
-            # Make sure part ids are continuous
-            if part_id != index:
-                return
-            parts.append(self.parts[part_id])
-
-        return parts
+        for part_id in self.partlist:
+            yield self.parts[part_id]
 
 
 class FakeBucket(object):
@@ -297,7 +294,7 @@ class S3Backend(BaseBackend):
 
     def list_multipart(self, bucket_name, multipart_id):
         bucket = self.get_bucket(bucket_name)
-        return bucket.multiparts[multipart_id].list_parts()
+        return list(bucket.multiparts[multipart_id].list_parts())
 
     def get_all_multiparts(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
