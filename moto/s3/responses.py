@@ -7,7 +7,7 @@ from six.moves.urllib.parse import parse_qs, urlparse
 
 from moto.core.responses import _TemplateEnvironmentMixin
 
-from .exceptions import BucketAlreadyExists, MissingBucket
+from .exceptions import BucketAlreadyExists, S3ClientError
 from .models import s3_backend
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
@@ -35,8 +35,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def bucket_response(self, request, full_url, headers):
         try:
             response = self._bucket_response(request, full_url, headers)
-        except MissingBucket:
-            return 404, headers, ""
+        except S3ClientError as s3error:
+            response = s3error.code, headers, s3error.description
 
         if isinstance(response, six.string_types):
             return 200, headers, response.encode("utf-8")
@@ -72,12 +72,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
     def _bucket_response_head(self, bucket_name, headers):
-        try:
-            self.backend.get_bucket(bucket_name)
-        except MissingBucket:
-            return 404, headers, ""
-        else:
-            return 200, headers, ""
+        self.backend.get_bucket(bucket_name)
+        return 200, headers, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
         if 'uploads' in querystring:
@@ -127,11 +123,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 is_truncated='false',
             )
 
-        try:
-            bucket = self.backend.get_bucket(bucket_name)
-        except MissingBucket:
-            return 404, headers, ""
-
+        bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get('prefix', [None])[0]
         delimiter = querystring.get('delimiter', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
@@ -161,17 +153,12 @@ class ResponseObject(_TemplateEnvironmentMixin):
                     # us-east-1 has different behavior
                     new_bucket = self.backend.get_bucket(bucket_name)
                 else:
-                    return 409, headers, ""
+                    raise
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, headers, template.render(bucket=new_bucket)
 
     def _bucket_response_delete(self, bucket_name, headers):
-        try:
-            removed_bucket = self.backend.delete_bucket(bucket_name)
-        except MissingBucket:
-            # Non-existant bucket
-            template = self.response_template(S3_DELETE_NON_EXISTING_BUCKET)
-            return 404, headers, template.render(bucket_name=bucket_name)
+        removed_bucket = self.backend.delete_bucket(bucket_name)
 
         if removed_bucket:
             # Bucket exists
@@ -231,8 +218,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def key_response(self, request, full_url, headers):
         try:
             response = self._key_response(request, full_url, headers)
-        except MissingBucket:
-            return 404, headers, ""
+        except S3ClientError as s3error:
+            response = s3error.code, headers, s3error.description
 
         if isinstance(response, six.string_types):
             return 200, headers, response
@@ -460,14 +447,6 @@ S3_DELETE_BUCKET_SUCCESS = """<DeleteBucketResponse xmlns="http://s3.amazonaws.c
     <Description>No Content</Description>
   </DeleteBucketResponse>
 </DeleteBucketResponse>"""
-
-S3_DELETE_NON_EXISTING_BUCKET = """<?xml version="1.0" encoding="UTF-8"?>
-<Error><Code>NoSuchBucket</Code>
-<Message>The specified bucket does not exist</Message>
-<BucketName>{{ bucket_name }}</BucketName>
-<RequestId>asdfasdfsadf</RequestId>
-<HostId>asfasdfsfsafasdf</HostId>
-</Error>"""
 
 S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 <Error><Code>BucketNotEmpty</Code>

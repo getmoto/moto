@@ -191,7 +191,7 @@ class S3Backend(BaseBackend):
 
     def create_bucket(self, bucket_name, region_name):
         if bucket_name in self.buckets:
-            raise BucketAlreadyExists()
+            raise BucketAlreadyExists(bucket=bucket_name)
         new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
         self.buckets[bucket_name] = new_bucket
         return new_bucket
@@ -203,7 +203,7 @@ class S3Backend(BaseBackend):
         try:
             return self.buckets[bucket_name]
         except KeyError:
-            raise MissingBucket()
+            raise MissingBucket(bucket=bucket_name)
 
     def delete_bucket(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
