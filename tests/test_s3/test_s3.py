@@ -703,4 +703,4 @@ def test_ranged_get():
     key.set_contents_from_string('0' * 50 + '1' * 50)
     key.get_contents_as_string(headers={'Range': 'bytes=45-55'}).should.equal(b'0' * 5 + b'1' * 5)
     key.get_contents_as_string(headers={'Range': 'bytes=45-'}).should.equal(b'0' * 5 + b'1' * 50)
-    key.get_contents_as_string(headers={'Range': 'bytes=-55'}).should.equal(b'0' * 50 + b'1' * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=-55'}).should.equal(b'0' * 5 + b'1' * 50)

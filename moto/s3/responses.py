@@ -228,25 +228,40 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         return 200, headers, template.render(deleted=deleted_names, delete_errors=error_names)
 
+    def _handle_range_header(self, request, headers, response_content):
+        length = len(response_content)
+        _, rspec = request.headers.get('range').split('=')
+        if ',' in rspec:
+            raise NotImplementedError(
+                "Multiple range specifiers not supported")
+        toint = lambda i: int(i) if i else None
+        begin, end = map(toint, rspec.split('-'))
+        if begin is not None:  # byte range
+            end = end or length
+        elif end is not None:  # suffix byte range
+            begin = length - end
+            end = length
+        else:
+            return 400, headers, ""
+        if begin < 0 or end > length or begin > min(end, length):
+            return 416, headers, ""
+        return 206, headers, response_content[begin:end]
+
     def key_response(self, request, full_url, headers):
         try:
             response = self._key_response(request, full_url, headers)
         except MissingBucket:
             return 404, headers, ""
 
-        begin = 0
-        end = None
-        if 'range' in request.headers:
-            _, rspec = request.headers.get('range').split('=')
-            if ',' in rspec:
-                raise NotImplementedError("Multiple range specifiers not supported")
-            begin, end = map(lambda i: int(i) if i else None, rspec.split('-'))
-
         if isinstance(response, six.string_types):
-            return 200, headers, response[begin:end]
+            status_code = 200
+            response_content = response
         else:
             status_code, headers, response_content = response
-            return status_code, headers, response_content[begin:end]
+
+        if status_code == 200 and 'range' in request.headers:
+            return self._handle_range_header(request, headers, response_content)
+        return status_code, headers, response_content
 
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
