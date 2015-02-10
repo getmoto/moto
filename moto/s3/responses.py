@@ -234,11 +234,16 @@ class ResponseObject(_TemplateEnvironmentMixin):
         except MissingBucket:
             return 404, headers, ""
 
+        begin = 0
+        end = None
+        if 'range' in request.headers:
+            begin, end = map(int, request.headers.get('range').split('-'))
+
         if isinstance(response, six.string_types):
-            return 200, headers, response
+            return 200, headers, response[begin:end]
         else:
             status_code, headers, response_content = response
-            return status_code, headers, response_content
+            return status_code, headers, response_content[begin:end]
 
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
