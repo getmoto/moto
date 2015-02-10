@@ -88,6 +88,22 @@ def test_multipart_upload():
 
 
 @mock_s3
+def test_multipart_upload_out_of_order():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    # last part, can be less than 5 MB
+    part2 = b'1'
+    multipart.upload_part_from_file(BytesIO(part2), 4)
+    part1 = b'0' * 5242880
+    multipart.upload_part_from_file(BytesIO(part1), 2)
+    multipart.complete_upload()
+    # we should get both parts as the key contents
+    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
+
+
+@mock_s3
 def test_multipart_upload_with_headers():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
