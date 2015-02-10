@@ -230,6 +230,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
     def _handle_range_header(self, request, headers, response_content):
         length = len(response_content)
+        last = length - 1
         _, rspec = request.headers.get('range').split('=')
         if ',' in rspec:
             raise NotImplementedError(
@@ -237,17 +238,17 @@ class ResponseObject(_TemplateEnvironmentMixin):
         toint = lambda i: int(i) if i else None
         begin, end = map(toint, rspec.split('-'))
         if begin is not None:  # byte range
-            end = end or length
+            end = last if end is None else end
         elif end is not None:  # suffix byte range
             begin = length - end
-            end = length
+            end = last
         else:
             return 400, headers, ""
-        if begin < 0 or end > length or begin > min(end, length):
+        if begin < 0 or end > length or begin > min(end, last):
             return 416, headers, ""
         headers['content-range'] = "bytes {0}-{1}/{2}".format(
             begin, end, length)
-        return 206, headers, response_content[begin:end]
+        return 206, headers, response_content[begin:end + 1]
 
     def key_response(self, request, full_url, headers):
         try:

@@ -700,8 +700,13 @@ def test_ranged_get():
     bucket = conn.create_bucket('mybucket')
     key = Key(bucket)
     key.key = 'bigkey'
-    key.set_contents_from_string('0' * 50 + '1' * 50)
-    key.get_contents_as_string(headers={'Range': 'bytes=45-55'}).should.equal(b'0' * 5 + b'1' * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=45-'}).should.equal(b'0' * 5 + b'1' * 50)
-    key.get_contents_as_string(headers={'Range': 'bytes=-55'}).should.equal(b'0' * 5 + b'1' * 50)
+    rep = "0123456789"
+    key.set_contents_from_string(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
+    key.get_contents_as_string(headers={'Range': 'bytes=99-99'}).should.equal(b'9')
+    key.get_contents_as_string(headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
+    key.get_contents_as_string(headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=-60'}).should.equal(rep * 6)
     key.size.should.equal(100)
