@@ -7,7 +7,7 @@ from six.moves.urllib.parse import parse_qs, urlparse
 
 from moto.core.responses import _TemplateEnvironmentMixin
 
-from .exceptions import BucketAlreadyExists, S3ClientError
+from .exceptions import BucketAlreadyExists, S3ClientError, InvalidPartOrder
 from .models import s3_backend
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
@@ -351,6 +351,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
         template = self.response_template(S3_DELETE_OBJECT_SUCCESS)
         return 204, headers, template.render(bucket=removed_key)
 
+    def _complete_multipart_body(self, body):
+        ps = minidom.parseString(body).getElementsByTagName('Part')
+        prev = 0
+        for p in ps:
+            pn = int(p.getElementsByTagName('PartNumber')[0].firstChild.wholeText)
+            if pn <= prev:
+                raise InvalidPartOrder()
+            yield (pn, p.getElementsByTagName('ETag')[0].firstChild.wholeText)
+
     def _key_response_post(self, request, body, parsed_url, bucket_name, query, key_name, headers):
         if body == b'' and parsed_url.query == 'uploads':
             metadata = metadata_from_headers(request.headers)
@@ -365,18 +374,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 200, headers, response
 
         if 'uploadId' in query:
+            body = self._complete_multipart_body(body)
             upload_id = query['uploadId'][0]
-            key = self.backend.complete_multipart(bucket_name, upload_id)
-
-            if key is not None:
-                template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
-                return template.render(
-                    bucket_name=bucket_name,
-                    key_name=key.name,
-                    etag=key.etag,
-                )
-            template = self.response_template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
-            return 400, headers, template.render()
+            key = self.backend.complete_multipart(bucket_name, upload_id, body)
+            template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
+            return template.render(
+                bucket_name=bucket_name,
+                key_name=key.name,
+                etag=key.etag,
+            )
         elif parsed_url.query == 'restore':
             es = minidom.parseString(body).getElementsByTagName('Days')
             days = es[0].childNodes[0].wholeText
@@ -587,14 +593,6 @@ S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <ETag>{{ etag }}</ETag>
 </CompleteMultipartUploadResult>
 """
-
-S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>EntityTooSmall</Code>
-  <Message>Your proposed upload is smaller than the minimum allowed object size.</Message>
-  <RequestId>asdfasdfsdafds</RequestId>
-  <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
-</Error>"""
 
 S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
 <ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">

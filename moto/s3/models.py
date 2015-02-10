@@ -11,7 +11,7 @@ import six
 from bisect import insort
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket
+from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -123,23 +123,28 @@ class FakeMultipart(object):
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
         self.id = rand_b64.decode('utf-8').replace('=', '').replace('+', '')
 
-    def complete(self):
+    def complete(self, body):
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
 
         last = None
-        for index, part in enumerate(self.list_parts(), start=1):
+        count = 0
+        for pn, etag in body:
+            part = self.parts.get(pn)
+            if part is None or part.etag != etag:
+                raise InvalidPart()
             if last is not None and len(last.value) < UPLOAD_PART_MIN_SIZE:
-                return None, None
+                raise EntityTooSmall()
             part_etag = part.etag.replace('"', '')
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
             last = part
+            count += 1
 
         etag = hashlib.md5()
         etag.update(bytes(md5s))
-        return total, "{0}-{1}".format(etag.hexdigest(), index)
+        return total, "{0}-{1}".format(etag.hexdigest(), count)
 
     def set_part(self, part_id, value):
         if part_id < 1:
@@ -276,10 +281,10 @@ class S3Backend(BaseBackend):
 
         return new_multipart
 
-    def complete_multipart(self, bucket_name, multipart_id):
+    def complete_multipart(self, bucket_name, multipart_id, body):
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
-        value, etag = multipart.complete()
+        value, etag = multipart.complete(body)
         if value is None:
             return
         del bucket.multiparts[multipart_id]
