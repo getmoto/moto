@@ -245,6 +245,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 400, headers, ""
         if begin < 0 or end > length or begin > min(end, length):
             return 416, headers, ""
+        headers['content-range'] = "bytes {0}-{1}/{2}".format(
+            begin, end, length)
         return 206, headers, response_content[begin:end]
 
     def key_response(self, request, full_url, headers):
