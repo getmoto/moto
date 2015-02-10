@@ -176,9 +176,9 @@ def test_multipart_invalid_order():
     # last part, can be less than 5 MB
     part2 = b'1'
     etag2 = multipart.upload_part_from_file(BytesIO(part2), 2).etag
-    xml = "<Part><PartNumber>{}</PartNumber><ETag>{}</ETag></Part>"
+    xml = "<Part><PartNumber>{0}</PartNumber><ETag>{1}</ETag></Part>"
     xml = xml.format(2, etag2) + xml.format(1, etag1)
-    xml = "<CompleteMultipartUpload>{}</CompleteMultipartUpload>".format(xml)
+    xml = "<CompleteMultipartUpload>{0}</CompleteMultipartUpload>".format(xml)
     bucket.complete_multipart_upload.when.called_with(
         multipart.key_name, multipart.id, xml).should.throw(S3ResponseError)
 
