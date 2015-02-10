@@ -165,6 +165,25 @@ def test_multipart_etag():
 
 
 @mock_s3
+def test_multipart_invalid_order():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket('mybucket')
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = b'0' * 5242880
+    etag1 = multipart.upload_part_from_file(BytesIO(part1), 1).etag
+    # last part, can be less than 5 MB
+    part2 = b'1'
+    etag2 = multipart.upload_part_from_file(BytesIO(part2), 2).etag
+    xml = "<Part><PartNumber>{}</PartNumber><ETag>{}</ETag></Part>"
+    xml = xml.format(2, etag2) + xml.format(1, etag1)
+    xml = "<CompleteMultipartUpload>{}</CompleteMultipartUpload>".format(xml)
+    bucket.complete_multipart_upload.when.called_with(
+        multipart.key_name, multipart.id, xml).should.throw(S3ResponseError)
+
+
+@mock_s3
 def test_list_multiparts():
     # Create Bucket so that test can run
     conn = boto.connect_s3('the_key', 'the_secret')
