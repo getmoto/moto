@@ -1,13 +1,9 @@
 from __future__ import unicode_literals
-from werkzeug.exceptions import BadRequest
-from jinja2 import Template
+from moto.core.exceptions import RESTError
 
 
-class EC2ClientError(BadRequest):
-    def __init__(self, code, message):
-        super(EC2ClientError, self).__init__()
-        self.description = ERROR_RESPONSE_TEMPLATE.render(
-            code=code, message=message)
+class EC2ClientError(RESTError):
+    code = 400
 
 
 class DependencyViolationError(EC2ClientError):
@@ -306,17 +302,3 @@ class InvalidCIDRSubnetError(EC2ClientError):
             "InvalidParameterValue",
             "invalid CIDR subnet specification: {0}"
             .format(cidr))
-
-
-ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
-  <Response>
-    <Errors>
-      <Error>
-        <Code>{{code}}</Code>
-        <Message>{{message}}</Message>
-      </Error>
-    </Errors>
-  <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
-</Response>
-"""
-ERROR_RESPONSE_TEMPLATE = Template(ERROR_RESPONSE)
