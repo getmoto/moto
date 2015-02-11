@@ -2031,10 +2031,12 @@ class VPCGatewayAttachment(object):
         properties = cloudformation_json['Properties']
 
         ec2_backend = ec2_backends[region_name]
-        return ec2_backend.create_vpc_gateway_attachment(
+        attachment = ec2_backend.create_vpc_gateway_attachment(
             gateway_id=properties['InternetGatewayId'],
             vpc_id=properties['VpcId'],
         )
+        ec2_backend.attach_internet_gateway(properties['InternetGatewayId'], properties['VpcId'])
+        return attachment
 
     @property
     def physical_resource_id(self):

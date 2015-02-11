@@ -936,3 +936,51 @@ def test_sns_topic():
     topic_name_output.value.should.equal("my_topics")
     topic_arn_output = [x for x in stack.outputs if x.key == 'topic_arn'][0]
     topic_arn_output.value.should.equal(topic_arn)
+
+
+
+@mock_cloudformation
+def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "internetgateway": {
+                "Type": "AWS::EC2::InternetGateway"
+            },
+            "testvpc": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16",
+                    "EnableDnsHostnames": "true",
+                    "EnableDnsSupport": "true",
+                    "InstanceTenancy": "default"
+                },
+            },
+            "vpcgatewayattachment": {
+                "Type": "AWS::EC2::VPCGatewayAttachment",
+                "Properties": {
+                    "InternetGatewayId": {
+                        "Ref": "internetgateway"
+                    },
+                    "VpcId": {
+                        "Ref": "testvpc"
+                    }
+                },
+            },
+        }
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    vpc_conn = boto.vpc.connect_to_region("us-west-1")
+    vpc = vpc_conn.get_all_vpcs()[0]
+    igws = vpc_conn.get_all_internet_gateways(
+        filters={'attachment.vpc-id': vpc.id}
+    )
+
+    igws.should.have.length_of(1)
