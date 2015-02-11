@@ -700,7 +700,7 @@ def test_ranged_get():
     bucket = conn.create_bucket('mybucket')
     key = Key(bucket)
     key.key = 'bigkey'
-    rep = "0123456789"
+    rep = b"0123456789"
     key.set_contents_from_string(rep * 10)
     key.get_contents_as_string(headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
     key.get_contents_as_string(headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
