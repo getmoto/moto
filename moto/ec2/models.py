@@ -163,7 +163,7 @@ class NetworkInterface(object):
                 group = self.ec2_backend.get_security_group_from_id(group_id)
                 if not group:
                     # Create with specific group ID.
-                    group = SecurityGroup(group_id, group_id, group_id, vpc_id=subnet.vpc_id)
+                    group = SecurityGroup(group.ec2_backend, group_id, group_id, group_id, vpc_id=subnet.vpc_id)
                     self.ec2_backend.groups[subnet.vpc_id][group_id] = group
                 if group:
                     self._group_set.append(group)
@@ -1016,8 +1016,9 @@ class SecurityRule(object):
         return self.unique_representation == other.unique_representation
 
 
-class SecurityGroup(object):
-    def __init__(self, group_id, name, description, vpc_id=None):
+class SecurityGroup(TaggedEC2Resource):
+    def __init__(self, ec2_backend, group_id, name, description, vpc_id=None):
+        self.ec2_backend = ec2_backend
         self.id = group_id
         self.name = name
         self.description = description
@@ -1116,7 +1117,7 @@ class SecurityGroupBackend(object):
             existing_group = self.get_security_group_from_name(name, vpc_id)
             if existing_group:
                 raise InvalidSecurityGroupDuplicateError(name)
-        group = SecurityGroup(group_id, name, description, vpc_id=vpc_id)
+        group = SecurityGroup(self, group_id, name, description, vpc_id=vpc_id)
 
         self.groups[vpc_id][group_id] = group
         return group

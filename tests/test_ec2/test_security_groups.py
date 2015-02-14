@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
+import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 import boto
@@ -201,7 +201,7 @@ def test_authorize_group_in_vpc():
 def test_get_all_security_groups():
     conn = boto.connect_ec2()
     sg1 = conn.create_security_group(name='test1', description='test1', vpc_id='vpc-mjm05d27')
-    sg2 = conn.create_security_group(name='test2', description='test2')
+    conn.create_security_group(name='test2', description='test2')
 
     resp = conn.get_all_security_groups(groupnames=['test1'])
     resp.should.have.length_of(1)
@@ -232,3 +232,19 @@ def test_authorize_bad_cidr_throws_invalid_parameter_value():
     cm.exception.code.should.equal('InvalidParameterValue')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_security_group_tagging():
+    conn = boto.connect_vpc()
+    vpc = conn.create_vpc("10.0.0.0/16")
+    sg = conn.create_security_group("test-sg", "Test SG", vpc.id)
+    sg.add_tag("Test", "Tag")
+
+    tag = conn.get_all_tags()[0]
+    tag.name.should.equal("Test")
+    tag.value.should.equal("Tag")
+
+    group = conn.get_all_security_groups("test-sg")[0]
+    group.tags.should.have.length_of(1)
+    group.tags["Test"].should.equal("Tag")
