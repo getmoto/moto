@@ -364,7 +364,7 @@ def test_cluster_tagging():
 
     cluster = conn.describe_cluster(cluster_id)
     cluster.tags.should.have.length_of(2)
-    tags = {tag.key: tag.value for tag in cluster.tags}
+    tags = dict((tag.key, tag.value) for tag in cluster.tags)
     tags['tag1'].should.equal('val1')
     tags['tag2'].should.equal('val2')
 
@@ -372,5 +372,5 @@ def test_cluster_tagging():
     conn.remove_tags(cluster_id, ["tag1"])
     cluster = conn.describe_cluster(cluster_id)
     cluster.tags.should.have.length_of(1)
-    tags = {tag.key: tag.value for tag in cluster.tags}
+    tags = dict((tag.key, tag.value) for tag in cluster.tags)
     tags['tag2'].should.equal('val2')
