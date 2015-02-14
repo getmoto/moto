@@ -8,9 +8,10 @@ import itertools
 import codecs
 import six
 
+from bisect import insort
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket
+from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -118,25 +119,32 @@ class FakeMultipart(object):
         self.key_name = key_name
         self.metadata = metadata
         self.parts = {}
+        self.partlist = []  # ordered list of part ID's
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
         self.id = rand_b64.decode('utf-8').replace('=', '').replace('+', '')
 
-    def complete(self):
+    def complete(self, body):
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
-        last_part_name = len(self.list_parts())
 
-        for part in self.list_parts():
-            if part.name != last_part_name and len(part.value) < UPLOAD_PART_MIN_SIZE:
-                return None, None
+        last = None
+        count = 0
+        for pn, etag in body:
+            part = self.parts.get(pn)
+            if part is None or part.etag != etag:
+                raise InvalidPart()
+            if last is not None and len(last.value) < UPLOAD_PART_MIN_SIZE:
+                raise EntityTooSmall()
             part_etag = part.etag.replace('"', '')
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
+            last = part
+            count += 1
 
         etag = hashlib.md5()
         etag.update(bytes(md5s))
-        return total, "{0}-{1}".format(etag.hexdigest(), last_part_name)
+        return total, "{0}-{1}".format(etag.hexdigest(), count)
 
     def set_part(self, part_id, value):
         if part_id < 1:
@@ -144,18 +152,12 @@ class FakeMultipart(object):
 
         key = FakeKey(part_id, value)
         self.parts[part_id] = key
+        insort(self.partlist, part_id)
         return key
 
     def list_parts(self):
-        parts = []
-
-        for part_id, index in enumerate(sorted(self.parts.keys()), start=1):
-            # Make sure part ids are continuous
-            if part_id != index:
-                return
-            parts.append(self.parts[part_id])
-
-        return parts
+        for part_id in self.partlist:
+            yield self.parts[part_id]
 
 
 class FakeBucket(object):
@@ -191,7 +193,7 @@ class S3Backend(BaseBackend):
 
     def create_bucket(self, bucket_name, region_name):
         if bucket_name in self.buckets:
-            raise BucketAlreadyExists()
+            raise BucketAlreadyExists(bucket=bucket_name)
         new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
         self.buckets[bucket_name] = new_bucket
         return new_bucket
@@ -203,7 +205,7 @@ class S3Backend(BaseBackend):
         try:
             return self.buckets[bucket_name]
         except KeyError:
-            raise MissingBucket()
+            raise MissingBucket(bucket=bucket_name)
 
     def delete_bucket(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
@@ -279,10 +281,10 @@ class S3Backend(BaseBackend):
 
         return new_multipart
 
-    def complete_multipart(self, bucket_name, multipart_id):
+    def complete_multipart(self, bucket_name, multipart_id, body):
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
-        value, etag = multipart.complete()
+        value, etag = multipart.complete(body)
         if value is None:
             return
         del bucket.multiparts[multipart_id]
@@ -297,7 +299,7 @@ class S3Backend(BaseBackend):
 
     def list_multipart(self, bucket_name, multipart_id):
         bucket = self.get_bucket(bucket_name)
-        return bucket.multiparts[multipart_id].list_parts()
+        return list(bucket.multiparts[multipart_id].list_parts())
 
     def get_all_multiparts(self, bucket_name):
         bucket = self.get_bucket(bucket_name)

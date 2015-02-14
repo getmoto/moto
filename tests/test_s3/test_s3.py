@@ -19,6 +19,25 @@ import sure  # noqa
 from moto import mock_s3
 
 
+REDUCED_PART_SIZE = 256
+
+
+def reduced_min_part_size(f):
+    """ speed up tests by temporarily making the multipart minimum part size
+        small
+    """
+    import moto.s3.models as s3model
+    orig_size = s3model.UPLOAD_PART_MIN_SIZE
+
+    def wrapped(*args, **kwargs):
+        try:
+            s3model.UPLOAD_PART_MIN_SIZE = REDUCED_PART_SIZE
+            return f(*args, **kwargs)
+        finally:
+            s3model.UPLOAD_PART_MIN_SIZE = orig_size
+    return wrapped
+
+
 class MyModel(object):
     def __init__(self, name, value):
         self.name = name
@@ -72,12 +91,13 @@ def test_multipart_upload_too_small():
 
 
 @mock_s3
+@reduced_min_part_size
 def test_multipart_upload():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
 
     multipart = bucket.initiate_multipart_upload("the-key")
-    part1 = b'0' * 5242880
+    part1 = b'0' * REDUCED_PART_SIZE
     multipart.upload_part_from_file(BytesIO(part1), 1)
     # last part, can be less than 5 MB
     part2 = b'1'
@@ -88,6 +108,24 @@ def test_multipart_upload():
 
 
 @mock_s3
+@reduced_min_part_size
+def test_multipart_upload_out_of_order():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    # last part, can be less than 5 MB
+    part2 = b'1'
+    multipart.upload_part_from_file(BytesIO(part2), 4)
+    part1 = b'0' * REDUCED_PART_SIZE
+    multipart.upload_part_from_file(BytesIO(part1), 2)
+    multipart.complete_upload()
+    # we should get both parts as the key contents
+    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
+
+
+@mock_s3
+@reduced_min_part_size
 def test_multipart_upload_with_headers():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -102,6 +140,7 @@ def test_multipart_upload_with_headers():
 
 
 @mock_s3
+@reduced_min_part_size
 def test_multipart_upload_with_copy_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -110,7 +149,7 @@ def test_multipart_upload_with_copy_key():
     key.set_contents_from_string("key_value")
 
     multipart = bucket.initiate_multipart_upload("the-key")
-    part1 = b'0' * 5242880
+    part1 = b'0' * REDUCED_PART_SIZE
     multipart.upload_part_from_file(BytesIO(part1), 1)
     multipart.copy_part_from_key("foobar", "original-key", 2)
     multipart.complete_upload()
@@ -118,12 +157,13 @@ def test_multipart_upload_with_copy_key():
 
 
 @mock_s3
+@reduced_min_part_size
 def test_multipart_upload_cancel():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
 
     multipart = bucket.initiate_multipart_upload("the-key")
-    part1 = b'0' * 5242880
+    part1 = b'0' * REDUCED_PART_SIZE
     multipart.upload_part_from_file(BytesIO(part1), 1)
     multipart.cancel_upload()
     # TODO we really need some sort of assertion here, but we don't currently
@@ -131,13 +171,14 @@ def test_multipart_upload_cancel():
 
 
 @mock_s3
+@reduced_min_part_size
 def test_multipart_etag():
     # Create Bucket so that test can run
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('mybucket')
 
     multipart = bucket.initiate_multipart_upload("the-key")
-    part1 = b'0' * 5242880
+    part1 = b'0' * REDUCED_PART_SIZE
     multipart.upload_part_from_file(BytesIO(part1), 1)
     # last part, can be less than 5 MB
     part2 = b'1'
@@ -146,6 +187,26 @@ def test_multipart_etag():
     # we should get both parts as the key contents
     bucket.get_key("the-key").etag.should.equal(
         '"140f92a6df9f9e415f74a1463bcee9bb-2"')
+
+
+@mock_s3
+@reduced_min_part_size
+def test_multipart_invalid_order():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket('mybucket')
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = b'0' * 5242880
+    etag1 = multipart.upload_part_from_file(BytesIO(part1), 1).etag
+    # last part, can be less than 5 MB
+    part2 = b'1'
+    etag2 = multipart.upload_part_from_file(BytesIO(part2), 2).etag
+    xml = "<Part><PartNumber>{0}</PartNumber><ETag>{1}</ETag></Part>"
+    xml = xml.format(2, etag2) + xml.format(1, etag1)
+    xml = "<CompleteMultipartUpload>{0}</CompleteMultipartUpload>".format(xml)
+    bucket.complete_multipart_upload.when.called_with(
+        multipart.key_name, multipart.id, xml).should.throw(S3ResponseError)
 
 
 @mock_s3
