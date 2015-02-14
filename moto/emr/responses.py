@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
 from .models import emr_backend
+from .utils import tags_from_query_string
 
 
 class ElasticMapReduceResponse(BaseResponse):
@@ -30,7 +31,8 @@ class ElasticMapReduceResponse(BaseResponse):
         return template.render(job_flow=job_flow)
 
     def describe_job_flows(self):
-        job_flows = emr_backend.describe_job_flows()
+        job_flow_ids = self._get_multi_param("JobFlowIds.member")
+        job_flows = emr_backend.describe_job_flows(job_flow_ids)
         template = self.response_template(DESCRIBE_JOB_FLOWS_TEMPLATE)
         return template.render(job_flows=job_flows)
 
@@ -58,6 +60,31 @@ class ElasticMapReduceResponse(BaseResponse):
         job_ids = self._get_multi_param('JobFlowIds.member')
         emr_backend.set_visible_to_all_users(job_ids, visible_to_all_users)
         template = self.response_template(SET_VISIBLE_TO_ALL_USERS_TEMPLATE)
+        return template.render()
+
+    def list_clusters(self):
+        clusters = emr_backend.list_clusters()
+        template = self.response_template(LIST_CLUSTERS_TEMPLATE)
+        return template.render(clusters=clusters)
+
+    def describe_cluster(self):
+        cluster_id = self._get_param('ClusterId')
+        cluster = emr_backend.get_cluster(cluster_id)
+        template = self.response_template(DESCRIBE_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
+
+    def add_tags(self):
+        cluster_id = self._get_param('ResourceId')
+        tags = tags_from_query_string(self.querystring)
+        emr_backend.add_tags(cluster_id, tags)
+        template = self.response_template(ADD_TAGS_TEMPLATE)
+        return template.render()
+
+    def remove_tags(self):
+        cluster_id = self._get_param('ResourceId')
+        tag_keys = self._get_multi_param('TagKeys.member')
+        emr_backend.remove_tags(cluster_id, tag_keys)
+        template = self.response_template(REMOVE_TAGS_TEMPLATE)
         return template.render()
 
 
@@ -163,6 +190,85 @@ ADD_JOB_FLOW_STEPS_TEMPLATE = """<AddJobFlowStepsResponse xmlns="http://elasticm
    </ResponseMetadata>
 </AddJobFlowStepsResponse>"""
 
+LIST_CLUSTERS_TEMPLATE = """<ListClustersResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+    <Clusters>
+    {% for cluster in clusters %}
+        <member>
+            <Id>{{ cluster.id }}</Id>
+            <Name>{{ cluster.name }}</Name>
+            <NormalizedInstanceHours>{{ cluster.normalized_instance_hours }}</NormalizedInstanceHours>
+            <Status>
+                <State>{{ cluster.state }}</State>
+                <StateChangeReason>
+                    <Code></Code>
+                    <Message></Message>
+                </StateChangeReason>
+                <Timeline></Timeline>
+            </Status>
+        </member>
+    {% endfor %}
+    </Clusters>
+    <Marker></Marker>
+    <ResponseMetadata>
+        <RequestId>
+            2690d7eb-ed86-11dd-9877-6fad448a8418
+        </RequestId>
+    </ResponseMetadata>
+</ListClustersResponse>"""
+
+DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <DescribeClusterResult>
+    <Cluster>
+      <Id>{{ cluster.id }}</Id>
+      <Tags>
+      {% for tag_key, tag_value in cluster.tags.items() %}
+          <member>
+              <Key>{{ tag_key }}</Key>
+              <Value>{{ tag_value }}</Value>
+          </member>
+      {% endfor %}
+      </Tags>
+      <Ec2InstanceAttributes>
+        <Ec2AvailabilityZone>{{ cluster.availability_zone }}</Ec2AvailabilityZone>
+        <Ec2SubnetId>{{ cluster.subnet_id }}</Ec2SubnetId>
+        <Ec2KeyName>{{ cluster.ec2_key_name }}</Ec2KeyName>
+      </Ec2InstanceAttributes>
+      <RunningAmiVersion>{{ cluster.running_ami_version }}</RunningAmiVersion>
+      <VisibleToAllUsers>{{ cluster.visible_to_all_users }}</VisibleToAllUsers>
+      <Status>
+        <StateChangeReason>
+          <Message>Terminated by user request</Message>
+          <Code>USER_REQUEST</Code>
+        </StateChangeReason>
+        <State>{{ cluster.state }}</State>
+        <Timeline>
+          <CreationDateTime>2014-01-24T01:21:21Z</CreationDateTime>
+          <ReadyDateTime>2014-01-24T01:25:26Z</ReadyDateTime>
+          <EndDateTime>2014-01-24T02:19:46Z</EndDateTime>
+        </Timeline>
+      </Status>
+      <AutoTerminate>{{ cluster.auto_terminate }}</AutoTerminate>
+      <Name>{{ cluster.name }}</Name>
+      <RequestedAmiVersion>{{ cluster.requested_ami_version }}</RequestedAmiVersion>
+      <Applications>
+        {% for application in cluster.applications %}
+        <member>
+          <Name>{{ application.name }}</Name>
+          <Version>{{ application.version }}</Version>
+        </member>
+        {% endfor %}
+      </Applications>
+      <TerminationProtected>{{ cluster.termination_protection }}</TerminationProtected>
+      <MasterPublicDnsName>ec2-184-0-0-1.us-west-1.compute.amazonaws.com</MasterPublicDnsName>
+      <NormalizedInstanceHours>{{ cluster.normalized_instance_hours }}</NormalizedInstanceHours>
+      <ServiceRole>{{ cluster.service_role }}</ServiceRole>
+    </Cluster>
+  </DescribeClusterResult>
+  <ResponseMetadata>
+    <RequestId>aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</RequestId>
+  </ResponseMetadata>
+</DescribeClusterResponse>"""
+
 ADD_INSTANCE_GROUPS_TEMPLATE = """<AddInstanceGroupsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
    <InstanceGroupIds>{% for instance_group in instance_groups %}{{ instance_group.id }}{% if loop.index != loop.length %},{% endif %}{% endfor %}</InstanceGroupIds>
 </AddInstanceGroupsResponse>"""
@@ -182,3 +288,20 @@ SET_VISIBLE_TO_ALL_USERS_TEMPLATE = """<SetVisibleToAllUsersResponse xmlns="http
       </RequestId>
    </ResponseMetadata>
 </SetVisibleToAllUsersResponse>"""
+
+
+ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+   <ResponseMetadata>
+      <RequestId>
+         2690d7eb-ed86-11dd-9877-6fad448a8419
+      </RequestId>
+   </ResponseMetadata>
+</AddTagsResponse>"""
+
+REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+   <ResponseMetadata>
+      <RequestId>
+         2690d7eb-ed86-11dd-9877-6fad448a8419
+      </RequestId>
+   </ResponseMetadata>
+</RemoveTagsResponse>"""
