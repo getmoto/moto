@@ -491,23 +491,23 @@ def test_instance_with_nic_attach_detach():
     eni = conn.create_network_interface(subnet.id, groups=[security_group2.id])
 
     # Check initial instance and ENI data
-    instance.interfaces.should.have.length_of(0)
+    instance.interfaces.should.have.length_of(1)
 
     eni.groups.should.have.length_of(1)
     set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
 
     # Attach
-    conn.attach_network_interface(eni.id, instance.id, device_index=0)
+    conn.attach_network_interface(eni.id, instance.id, device_index=1)
 
     # Check attached instance and ENI data
     instance.update()
-    instance.interfaces.should.have.length_of(1)
-    instance_eni = instance.interfaces[0]
+    instance.interfaces.should.have.length_of(2)
+    instance_eni = instance.interfaces[1]
     instance_eni.id.should.equal(eni.id)
     instance_eni.groups.should.have.length_of(2)
     set([group.id for group in instance_eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
 
-    eni = conn.get_all_network_interfaces(eni.id)[0]
+    eni = conn.get_all_network_interfaces(filters={'network-interface-id': eni.id})[0]
     eni.groups.should.have.length_of(2)
     set([group.id for group in eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
 
@@ -516,9 +516,9 @@ def test_instance_with_nic_attach_detach():
 
     # Check detached instance and ENI data
     instance.update()
-    instance.interfaces.should.have.length_of(0)
+    instance.interfaces.should.have.length_of(1)
 
-    eni = conn.get_all_network_interfaces(eni.id)[0]
+    eni = conn.get_all_network_interfaces(filters={'network-interface-id': eni.id})[0]
     eni.groups.should.have.length_of(1)
     set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
 
@@ -528,6 +528,18 @@ def test_instance_with_nic_attach_detach():
     cm.exception.code.should.equal('InvalidAttachmentID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_ec2_classic_has_public_ip_address():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd', key_name="keypair_name")
+    instance = reservation.instances[0]
+    instance.ip_address.should_not.equal(None)
+    instance.public_dns_name.should.contain(instance.ip_address)
+
+    instance.private_ip_address.should_not.equal(None)
+    instance.private_dns_name.should.contain(instance.private_ip_address)
 
 
 @mock_ec2

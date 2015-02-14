@@ -76,14 +76,14 @@ def test_elastic_network_interfaces_with_groups():
     subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
     security_group1 = conn.create_security_group('test security group #1', 'this is a test security group')
     security_group2 = conn.create_security_group('test security group #2', 'this is a test security group')
-    conn.create_network_interface(subnet.id, groups=[security_group1.id,security_group2.id])
+    conn.create_network_interface(subnet.id, groups=[security_group1.id, security_group2.id])
 
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(1)
 
     eni = all_enis[0]
     eni.groups.should.have.length_of(2)
-    set([group.id for group in eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
+    set([group.id for group in eni.groups]).should.equal(set([security_group1.id, security_group2.id]))
 
 
 @requires_boto_gte("2.12.0")
@@ -122,25 +122,30 @@ def test_elastic_network_interfaces_filtering():
     security_group1 = conn.create_security_group('test security group #1', 'this is a test security group')
     security_group2 = conn.create_security_group('test security group #2', 'this is a test security group')
 
-    eni1 = conn.create_network_interface(subnet.id, groups=[security_group1.id,security_group2.id])
+    eni1 = conn.create_network_interface(subnet.id, groups=[security_group1.id, security_group2.id])
     eni2 = conn.create_network_interface(subnet.id, groups=[security_group1.id])
     eni3 = conn.create_network_interface(subnet.id)
 
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(3)
 
+    # Filter by NetworkInterfaceId
+    enis_by_id = conn.get_all_network_interfaces([eni1.id])
+    enis_by_id.should.have.length_of(1)
+    set([eni.id for eni in enis_by_id]).should.equal(set([eni1.id]))
+
     # Filter by ENI ID
-    enis_by_id = conn.get_all_network_interfaces(filters={'network-interface-id':eni1.id})
+    enis_by_id = conn.get_all_network_interfaces(filters={'network-interface-id': eni1.id})
     enis_by_id.should.have.length_of(1)
     set([eni.id for eni in enis_by_id]).should.equal(set([eni1.id]))
 
     # Filter by Security Group
     enis_by_group = conn.get_all_network_interfaces(filters={'group-id':security_group1.id})
     enis_by_group.should.have.length_of(2)
-    set([eni.id for eni in enis_by_group]).should.equal(set([eni1.id,eni2.id]))
+    set([eni.id for eni in enis_by_group]).should.equal(set([eni1.id, eni2.id]))
 
     # Filter by ENI ID and Security Group
-    enis_by_group = conn.get_all_network_interfaces(filters={'network-interface-id':eni1.id, 'group-id':security_group1.id})
+    enis_by_group = conn.get_all_network_interfaces(filters={'network-interface-id': eni1.id, 'group-id': security_group1.id})
     enis_by_group.should.have.length_of(1)
     set([eni.id for eni in enis_by_group]).should.equal(set([eni1.id]))
 
@@ -157,7 +162,7 @@ def test_elastic_network_interfaces_cloudformation():
     conn.create_stack(
         "test_stack",
         template_body=template_json,
-        )
+    )
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     eni = ec2_conn.get_all_network_interfaces()[0]
 

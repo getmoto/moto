@@ -69,6 +69,7 @@ from .utils import (
     random_internet_gateway_id,
     random_ip,
     random_key_pair,
+    random_private_ip,
     random_public_ip,
     random_reservation_id,
     random_route_table_id,
@@ -174,9 +175,12 @@ class NetworkInterface(object):
 
         security_group_ids = properties.get('SecurityGroups', [])
 
-        subnet_id = properties['SubnetId']
         ec2_backend = ec2_backends[region_name]
-        subnet = ec2_backend.get_subnet(subnet_id)
+        subnet_id = properties.get('SubnetId')
+        if subnet_id:
+            subnet = ec2_backend.get_subnet(subnet_id)
+        else:
+            subnet = None
 
         private_ip_address = properties.get('PrivateIpAddress', None)
 
@@ -224,7 +228,7 @@ class NetworkInterfaceBackend(object):
         super(NetworkInterfaceBackend, self).__init__()
 
     def create_network_interface(self, subnet, private_ip_address, group_ids=None, **kwargs):
-        eni = NetworkInterface(self, subnet, private_ip_address, group_ids=group_ids)
+        eni = NetworkInterface(self, subnet, private_ip_address, group_ids=group_ids, **kwargs)
         self.enis[eni.id] = eni
         return eni
 
@@ -297,10 +301,14 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self.instance_type = kwargs.get("instance_type", "m1.small")
         self.vpc_id = None
         self.subnet_id = kwargs.get("subnet_id")
+        in_ec2_classic = not bool(self.subnet_id)
         self.key_name = kwargs.get("key_name")
         self.source_dest_check = "true"
         self.launch_time = datetime.utcnow().isoformat()
-        self.private_ip_address = kwargs.get('private_ip_address')
+        associate_public_ip = kwargs.get("associate_public_ip", False)
+        if in_ec2_classic:
+            # If we are in EC2-Classic, autoassign a public IP
+            associate_public_ip = True
 
         self.block_device_mapping = BlockDeviceMapping()
         self.block_device_mapping['/dev/sda1'] = BlockDeviceType(volume_id=random_volume_id())
@@ -326,9 +334,26 @@ class Instance(BotoInstance, TaggedEC2Resource):
             self.vpc_id = subnet.vpc_id
 
         self.prep_nics(kwargs.get("nics", {}),
-                       subnet_id=kwargs.get("subnet_id"),
+                       subnet_id=self.subnet_id,
                        private_ip=kwargs.get("private_ip"),
-                       associate_public_ip=kwargs.get("associate_public_ip"))
+                       associate_public_ip=associate_public_ip)
+
+    @property
+    def private_ip(self):
+        return self.nics[0].private_ip_address
+
+    @property
+    def private_dns(self):
+        return "ip-{0}.ec2.internal".format(self.private_ip)
+
+    @property
+    def public_ip(self):
+        return self.nics[0].public_ip
+
+    @property
+    def public_dns(self):
+        if self.public_ip:
+            return "ec2-{0}.compute-1.amazonaws.com".format(self.public_ip)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -346,7 +371,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
             instance_type=properties.get("InstanceType", "m1.small"),
             subnet_id=properties.get("SubnetId"),
             key_name=properties.get("KeyName"),
-            private_ip_address=properties.get('PrivateIpAddress'),
+            private_ip=properties.get('PrivateIpAddress'),
         )
         return reservation.instances[0]
 
@@ -407,6 +432,9 @@ class Instance(BotoInstance, TaggedEC2Resource):
     def prep_nics(self, nic_spec, subnet_id=None, private_ip=None, associate_public_ip=None):
         self.nics = {}
 
+        if not private_ip:
+            private_ip = random_private_ip()
+
         # Primary NIC defaults
         primary_nic = {'SubnetId': subnet_id,
                        'PrivateIpAddress': private_ip,
@@ -434,7 +462,10 @@ class Instance(BotoInstance, TaggedEC2Resource):
                 if device_index == 0 and primary_nic:
                     nic.update(primary_nic)
 
-                subnet = self.ec2_backend.get_subnet(nic['SubnetId'])
+                if 'SubnetId' in nic:
+                    subnet = self.ec2_backend.get_subnet(nic['SubnetId'])
+                else:
+                    subnet = None
 
                 group_id = nic.get('SecurityGroupId')
                 group_ids = [group_id] if group_id else []
@@ -468,13 +499,13 @@ class Instance(BotoInstance, TaggedEC2Resource):
         if attribute_name == 'AvailabilityZone':
             return self.placement
         elif attribute_name == 'PrivateDnsName':
-            return self.private_dns_name
+            return self.private_dns
         elif attribute_name == 'PublicDnsName':
-            return self.public_dns_name
+            return self.public_dns
         elif attribute_name == 'PrivateIp':
-            return self.private_ip_address
+            return self.private_ip
         elif attribute_name == 'PublicIp':
-            return self.ip_address
+            return self.public_ip
         raise UnformattedGetAttTemplateException()
 
 
