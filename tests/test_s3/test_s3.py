@@ -753,3 +753,21 @@ def test_bucket_location():
     conn = boto.s3.connect_to_region("us-west-2")
     bucket = conn.create_bucket('mybucket')
     bucket.get_location().should.equal("us-west-2")
+
+
+@mock_s3
+def test_ranged_get():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('mybucket')
+    key = Key(bucket)
+    key.key = 'bigkey'
+    rep = b"0123456789"
+    key.set_contents_from_string(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
+    key.get_contents_as_string(headers={'Range': 'bytes=99-99'}).should.equal(b'9')
+    key.get_contents_as_string(headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
+    key.get_contents_as_string(headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=-60'}).should.equal(rep * 6)
+    key.size.should.equal(100)

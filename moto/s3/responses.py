@@ -215,6 +215,28 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         return 200, headers, template.render(deleted=deleted_names, delete_errors=error_names)
 
+    def _handle_range_header(self, request, headers, response_content):
+        length = len(response_content)
+        last = length - 1
+        _, rspec = request.headers.get('range').split('=')
+        if ',' in rspec:
+            raise NotImplementedError(
+                "Multiple range specifiers not supported")
+        toint = lambda i: int(i) if i else None
+        begin, end = map(toint, rspec.split('-'))
+        if begin is not None:  # byte range
+            end = last if end is None else end
+        elif end is not None:  # suffix byte range
+            begin = length - end
+            end = last
+        else:
+            return 400, headers, ""
+        if begin < 0 or end > length or begin > min(end, last):
+            return 416, headers, ""
+        headers['content-range'] = "bytes {0}-{1}/{2}".format(
+            begin, end, length)
+        return 206, headers, response_content[begin:end + 1]
+
     def key_response(self, request, full_url, headers):
         try:
             response = self._key_response(request, full_url, headers)
@@ -222,10 +244,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
             response = s3error.code, headers, s3error.description
 
         if isinstance(response, six.string_types):
-            return 200, headers, response
+            status_code = 200
+            response_content = response
         else:
             status_code, headers, response_content = response
-            return status_code, headers, response_content
+
+        if status_code == 200 and 'range' in request.headers:
+            return self._handle_range_header(request, headers, response_content)
+        return status_code, headers, response_content
 
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
