@@ -165,7 +165,7 @@ class Database(object):
         "DBInstanceClass": "{{ database.db_instance_class }}",
         "DBInstanceIdentifier": "{{ database.db_instance_identifier }}",
         "DBInstanceStatus": "{{ database.status }}",
-        "DBName": {%- if database.db_name -%}{{ database.db_name }}{%- else %} null{%- endif -%},
+        "DBName": {%- if database.db_name -%}"{{ database.db_name }}"{%- else %} null{%- endif -%},
         {% if database.db_parameter_group_name -%}"DBParameterGroups": {
             "DBParameterGroup": {
             "ParameterApplyStatus": "in-sync",
