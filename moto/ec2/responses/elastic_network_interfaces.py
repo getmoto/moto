@@ -25,6 +25,11 @@ class ElasticNetworkInterfaces(BaseResponse):
     def describe_network_interfaces(self):
         # Partially implemented. Supports only network-interface-id and group-id filters
         filters = filters_from_querystring(self.querystring)
+        eni_ids = self._get_multi_param('NetworkInterfaceId.')
+        if 'network-interface-id' not in filters and eni_ids:
+            # Network interfaces can be filtered by passing the 'network-interface-id'
+            # filter or by passing the NetworkInterfaceId parameter
+            filters['network-interface-id'] = eni_ids
         enis = self.ec2_backend.describe_network_interfaces(filters)
         template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
         return template.render(enis=enis)

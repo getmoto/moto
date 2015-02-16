@@ -7,7 +7,7 @@ from six.moves.urllib.parse import parse_qs, urlparse
 
 from moto.core.responses import _TemplateEnvironmentMixin
 
-from .exceptions import BucketAlreadyExists, MissingBucket
+from .exceptions import BucketAlreadyExists, S3ClientError, InvalidPartOrder
 from .models import s3_backend
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
@@ -35,8 +35,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def bucket_response(self, request, full_url, headers):
         try:
             response = self._bucket_response(request, full_url, headers)
-        except MissingBucket:
-            return 404, headers, ""
+        except S3ClientError as s3error:
+            response = s3error.code, headers, s3error.description
 
         if isinstance(response, six.string_types):
             return 200, headers, response.encode("utf-8")
@@ -72,12 +72,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
     def _bucket_response_head(self, bucket_name, headers):
-        try:
-            self.backend.get_bucket(bucket_name)
-        except MissingBucket:
-            return 404, headers, ""
-        else:
-            return 200, headers, ""
+        self.backend.get_bucket(bucket_name)
+        return 200, headers, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
         if 'uploads' in querystring:
@@ -127,11 +123,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 is_truncated='false',
             )
 
-        try:
-            bucket = self.backend.get_bucket(bucket_name)
-        except MissingBucket:
-            return 404, headers, ""
-
+        bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get('prefix', [None])[0]
         delimiter = querystring.get('delimiter', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
@@ -161,17 +153,12 @@ class ResponseObject(_TemplateEnvironmentMixin):
                     # us-east-1 has different behavior
                     new_bucket = self.backend.get_bucket(bucket_name)
                 else:
-                    return 409, headers, ""
+                    raise
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, headers, template.render(bucket=new_bucket)
 
     def _bucket_response_delete(self, bucket_name, headers):
-        try:
-            removed_bucket = self.backend.delete_bucket(bucket_name)
-        except MissingBucket:
-            # Non-existant bucket
-            template = self.response_template(S3_DELETE_NON_EXISTING_BUCKET)
-            return 404, headers, template.render(bucket_name=bucket_name)
+        removed_bucket = self.backend.delete_bucket(bucket_name)
 
         if removed_bucket:
             # Bucket exists
@@ -228,17 +215,43 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         return 200, headers, template.render(deleted=deleted_names, delete_errors=error_names)
 
+    def _handle_range_header(self, request, headers, response_content):
+        length = len(response_content)
+        last = length - 1
+        _, rspec = request.headers.get('range').split('=')
+        if ',' in rspec:
+            raise NotImplementedError(
+                "Multiple range specifiers not supported")
+        toint = lambda i: int(i) if i else None
+        begin, end = map(toint, rspec.split('-'))
+        if begin is not None:  # byte range
+            end = last if end is None else end
+        elif end is not None:  # suffix byte range
+            begin = length - end
+            end = last
+        else:
+            return 400, headers, ""
+        if begin < 0 or end > length or begin > min(end, last):
+            return 416, headers, ""
+        headers['content-range'] = "bytes {0}-{1}/{2}".format(
+            begin, end, length)
+        return 206, headers, response_content[begin:end + 1]
+
     def key_response(self, request, full_url, headers):
         try:
             response = self._key_response(request, full_url, headers)
-        except MissingBucket:
-            return 404, headers, ""
+        except S3ClientError as s3error:
+            response = s3error.code, headers, s3error.description
 
         if isinstance(response, six.string_types):
-            return 200, headers, response
+            status_code = 200
+            response_content = response
         else:
             status_code, headers, response_content = response
-            return status_code, headers, response_content
+
+        if status_code == 200 and 'range' in request.headers:
+            return self._handle_range_header(request, headers, response_content)
+        return status_code, headers, response_content
 
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
@@ -364,6 +377,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
         template = self.response_template(S3_DELETE_OBJECT_SUCCESS)
         return 204, headers, template.render(bucket=removed_key)
 
+    def _complete_multipart_body(self, body):
+        ps = minidom.parseString(body).getElementsByTagName('Part')
+        prev = 0
+        for p in ps:
+            pn = int(p.getElementsByTagName('PartNumber')[0].firstChild.wholeText)
+            if pn <= prev:
+                raise InvalidPartOrder()
+            yield (pn, p.getElementsByTagName('ETag')[0].firstChild.wholeText)
+
     def _key_response_post(self, request, body, parsed_url, bucket_name, query, key_name, headers):
         if body == b'' and parsed_url.query == 'uploads':
             metadata = metadata_from_headers(request.headers)
@@ -378,18 +400,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 200, headers, response
 
         if 'uploadId' in query:
+            body = self._complete_multipart_body(body)
             upload_id = query['uploadId'][0]
-            key = self.backend.complete_multipart(bucket_name, upload_id)
-
-            if key is not None:
-                template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
-                return template.render(
-                    bucket_name=bucket_name,
-                    key_name=key.name,
-                    etag=key.etag,
-                )
-            template = self.response_template(S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR)
-            return 400, headers, template.render()
+            key = self.backend.complete_multipart(bucket_name, upload_id, body)
+            template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
+            return template.render(
+                bucket_name=bucket_name,
+                key_name=key.name,
+                etag=key.etag,
+            )
         elif parsed_url.query == 'restore':
             es = minidom.parseString(body).getElementsByTagName('Days')
             days = es[0].childNodes[0].wholeText
@@ -460,14 +479,6 @@ S3_DELETE_BUCKET_SUCCESS = """<DeleteBucketResponse xmlns="http://s3.amazonaws.c
     <Description>No Content</Description>
   </DeleteBucketResponse>
 </DeleteBucketResponse>"""
-
-S3_DELETE_NON_EXISTING_BUCKET = """<?xml version="1.0" encoding="UTF-8"?>
-<Error><Code>NoSuchBucket</Code>
-<Message>The specified bucket does not exist</Message>
-<BucketName>{{ bucket_name }}</BucketName>
-<RequestId>asdfasdfsadf</RequestId>
-<HostId>asfasdfsfsafasdf</HostId>
-</Error>"""
 
 S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 <Error><Code>BucketNotEmpty</Code>
@@ -608,14 +619,6 @@ S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <ETag>{{ etag }}</ETag>
 </CompleteMultipartUploadResult>
 """
-
-S3_MULTIPART_COMPLETE_TOO_SMALL_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>EntityTooSmall</Code>
-  <Message>Your proposed upload is smaller than the minimum allowed object size.</Message>
-  <RequestId>asdfasdfsdafds</RequestId>
-  <HostId>sdfgdsfgdsfgdfsdsfgdfs</HostId>
-</Error>"""
 
 S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
 <ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">

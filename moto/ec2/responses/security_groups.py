@@ -133,6 +133,16 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                 {% endfor %}
              </ipPermissions>
              <ipPermissionsEgress/>
+             <tagSet>
+               {% for tag in group.get_tags() %}
+                 <item>
+                   <resourceId>{{ tag.resource_id }}</resourceId>
+                   <resourceType>{{ tag.resource_type }}</resourceType>
+                   <key>{{ tag.key }}</key>
+                   <value>{{ tag.value }}</value>
+                 </item>
+               {% endfor %}
+             </tagSet>
           </item>
       {% endfor %}
    </securityGroupInfo>

@@ -198,8 +198,8 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
             <code>0</code>
             <name>pending</name>
           </instanceState>
-          <privateDnsName/>
-          <dnsName/>
+          <privateDnsName>{{ instance.private_dns }}</privateDnsName>
+          <publicDnsName>{{ instance.public_dns }}</publicDnsName>
           <reason/>
           <keyName>{{ instance.key_name }}</keyName>
           <amiLaunchIndex>0</amiLaunchIndex>
@@ -216,9 +216,9 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           {% if instance.nics %}
             <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
             <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
-            <privateIpAddress>{{ instance.nics[0].private_ip_address }}</privateIpAddress>
-            {% if instance.nics[0].public_ip %}
-                <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
+            <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
+            {% if instance.public_ip %}
+                <ipAddress>{{ instance.public_ip }}</ipAddress>
             {% endif %}
           {% else %}
             <subnetId>{{ instance.subnet_id }}</subnetId>
@@ -318,8 +318,8 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       <code>{{ instance._state.code }}</code>
                       <name>{{ instance._state.name }}</name>
                     </instanceState>
-                    <privateDnsName>ip-10.0.0.12.ec2.internal</privateDnsName>
-                    <dnsName>ec2-46.51.219.63.compute-1.amazonaws.com</dnsName>
+                    <privateDnsName>{{ instance.private_dns }}</privateDnsName>
+                    <publicDnsName>{{ instance.public_dns }}</publicDnsName>
                     <reason>{{ instance._reason }}</reason>
                     <keyName>{{ instance.key_name }}</keyName>
                     <amiLaunchIndex>0</amiLaunchIndex>
@@ -340,7 +340,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     {% if instance.nics %}
                       <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
                       <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
-                      <privateIpAddress>{{ instance.nics[0].private_ip_address }}</privateIpAddress>
+                      <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
                       {% if instance.nics[0].public_ip %}
                           <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
                       {% endif %}

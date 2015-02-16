@@ -130,6 +130,12 @@ def random_public_ip():
                                    random.choice(range(255)))
 
 
+def random_private_ip():
+    return '10.{0}.{1}.{2}'.format(random.choice(range(255)),
+                                   random.choice(range(255)),
+                                   random.choice(range(255)))
+
+
 def random_ip():
     return "127.{0}.{1}.{2}".format(
         random.randint(0, 255),
@@ -331,7 +337,7 @@ filter_dict_attribute_mapping = {
 
 def passes_filter_dict(instance, filter_dict):
     for filter_name, filter_values in filter_dict.items():
-          
+
         if filter_name in filter_dict_attribute_mapping:
             instance_attr = filter_dict_attribute_mapping[filter_name]
             instance_value = get_object_value(instance, instance_attr)
@@ -347,13 +353,15 @@ def passes_filter_dict(instance, filter_dict):
                 filter_name)
     return True
 
+
 def instance_value_in_filter_values(instance_value, filter_values):
     if isinstance(instance_value, list):
         if not set(filter_values).intersection(set(instance_value)):
             return False
-    elif instance_value not in filter_values: 
+    elif instance_value not in filter_values:
             return False
     return True
+
 
 def filter_reservations(reservations, filter_dict):
     result = []

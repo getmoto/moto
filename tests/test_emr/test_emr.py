@@ -124,6 +124,31 @@ def test_terminate_job_flow():
 
 
 @mock_emr
+def test_describe_job_flows():
+    conn = boto.connect_emr()
+    job1_id = conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        steps=[]
+    )
+    job2_id = conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        steps=[]
+    )
+
+    jobs = conn.describe_jobflows()
+    jobs.should.have.length_of(2)
+
+    jobs = conn.describe_jobflows(jobflow_ids=[job2_id])
+    jobs.should.have.length_of(1)
+    jobs[0].jobflowid.should.equal(job2_id)
+
+    first_job = conn.describe_jobflow(job1_id)
+    first_job.jobflowid.should.equal(job1_id)
+
+
+@mock_emr
 def test_add_steps_to_flow():
     conn = boto.connect_emr()
 
@@ -291,3 +316,61 @@ def test_set_visible_to_all_users():
 
     job_flow = conn.describe_jobflow(job_id)
     job_flow.visibletoallusers.should.equal('False')
+
+
+@mock_emr
+def test_list_clusters():
+    conn = boto.connect_emr()
+    conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        steps=[],
+    )
+
+    summary = conn.list_clusters()
+    clusters = summary.clusters
+    clusters.should.have.length_of(1)
+    cluster = clusters[0]
+    cluster.name.should.equal("My jobflow")
+    cluster.normalizedinstancehours.should.equal('0')
+    cluster.status.state.should.equal("RUNNING")
+
+
+@mock_emr
+def test_describe_cluster():
+    conn = boto.connect_emr()
+    job_id = conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        steps=[],
+    )
+
+    cluster = conn.describe_cluster(job_id)
+    cluster.name.should.equal("My jobflow")
+    cluster.normalizedinstancehours.should.equal('0')
+    cluster.status.state.should.equal("RUNNING")
+
+
+@mock_emr
+def test_cluster_tagging():
+    conn = boto.connect_emr()
+    job_id = conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        steps=[],
+    )
+    cluster_id = job_id
+    conn.add_tags(cluster_id, {"tag1": "val1", "tag2": "val2"})
+
+    cluster = conn.describe_cluster(cluster_id)
+    cluster.tags.should.have.length_of(2)
+    tags = dict((tag.key, tag.value) for tag in cluster.tags)
+    tags['tag1'].should.equal('val1')
+    tags['tag2'].should.equal('val2')
+
+    # Remove a tag
+    conn.remove_tags(cluster_id, ["tag1"])
+    cluster = conn.describe_cluster(cluster_id)
+    cluster.tags.should.have.length_of(1)
+    tags = dict((tag.key, tag.value) for tag in cluster.tags)
+    tags['tag2'].should.equal('val2')
