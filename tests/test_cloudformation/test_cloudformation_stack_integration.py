@@ -984,3 +984,33 @@ def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
     )
 
     igws.should.have.length_of(1)
+
+
+@mock_cloudformation
+@mock_ec2
+def test_vpc_peering_creation():
+    vpc_conn = boto.vpc.connect_to_region("us-west-1")
+    vpc_source = vpc_conn.create_vpc("10.0.0.0/16")
+    peer_vpc = vpc_conn.create_vpc("10.1.0.0/16")
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "vpcpeeringconnection": {
+                "Type": "AWS::EC2::VPCPeeringConnection",
+                "Properties": {
+                    "PeerVpcId": peer_vpc.id,
+                    "VpcId": vpc_source.id,
+                }
+            },
+        }
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    peering_connections = vpc_conn.get_all_vpc_peering_connections()
+    peering_connections.should.have.length_of(1)
