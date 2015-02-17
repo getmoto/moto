@@ -32,6 +32,7 @@ MODEL_MAP = {
     "AWS::EC2::VolumeAttachment": ec2_models.VolumeAttachment,
     "AWS::EC2::VPC": ec2_models.VPC,
     "AWS::EC2::VPCGatewayAttachment": ec2_models.VPCGatewayAttachment,
+    "AWS::EC2::VPCPeeringConnection": ec2_models.VPCPeeringConnection,
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,
