@@ -44,6 +44,7 @@ def test_remove_tag():
     conn.get_all_tags().should.have.length_of(1)
     instance.remove_tag("a key", "some value")
 
+
 @mock_ec2
 def test_get_all_tags():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -56,6 +57,20 @@ def test_get_all_tags():
     tag = tags[0]
     tag.name.should.equal("a key")
     tag.value.should.equal("some value")
+
+
+@mock_ec2
+def test_get_all_tags_with_special_characters():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+
+    instance.add_tag("a key", "some<> value")
+
+    tags = conn.get_all_tags()
+    tag = tags[0]
+    tag.name.should.equal("a key")
+    tag.value.should.equal("some<> value")
 
 
 @mock_ec2
@@ -280,10 +295,10 @@ def test_retrieved_instances_must_contain_their_tags():
     instance = reservations[0].instances[0]
     retrieved_tags = instance.tags
 
-    #Cleanup of instance
+    # Cleanup of instance
     conn.terminate_instances([instances[0].id])
 
-    #Check whether tag is present with correct value
+    # Check whether tag is present with correct value
     retrieved_tags[tag_key].should.equal(tag_value)
 
 
@@ -299,14 +314,14 @@ def test_retrieved_volumes_must_contain_their_tags():
     volume = all_volumes[0]
     conn.create_tags([volume.id], tags_to_be_set)
 
-    #Fetch the volume again
+    # Fetch the volume again
     all_volumes = conn.get_all_volumes()
     volume = all_volumes[0]
     retrieved_tags = volume.tags
 
     volume.delete()
 
-    #Check whether tag is present with correct value
+    # Check whether tag is present with correct value
     retrieved_tags[tag_key].should.equal(tag_value)
 
 
@@ -320,7 +335,7 @@ def test_retrieved_snapshots_must_contain_their_tags():
     snapshot = conn.create_snapshot(volume.id)
     conn.create_tags([snapshot.id], tags_to_be_set)
 
-    #Fetch the snapshot again
+    # Fetch the snapshot again
     all_snapshots = conn.get_all_snapshots()
     snapshot = all_snapshots[0]
     retrieved_tags = snapshot.tags
@@ -328,5 +343,5 @@ def test_retrieved_snapshots_must_contain_their_tags():
     conn.delete_snapshot(snapshot.id)
     volume.delete()
 
-    #Check whether tag is present with correct value
+    # Check whether tag is present with correct value
     retrieved_tags[tag_key].should.equal(tag_value)

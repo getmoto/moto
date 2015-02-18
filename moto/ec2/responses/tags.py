@@ -1,10 +1,9 @@
 from __future__ import unicode_literals
-from jinja2 import Template
 
+from xml.sax.saxutils import escape
 from moto.core.responses import BaseResponse
 from moto.ec2.models import validate_resource_ids
 from moto.ec2.utils import sequence_from_querystring, tags_from_query_string, filters_from_querystring
-from xml.sax.saxutils import escape
 
 
 class TagResponse(BaseResponse):
@@ -29,7 +28,7 @@ class TagResponse(BaseResponse):
         tags = self.ec2_backend.describe_tags(filters=filters)
         for tag in tags:
             tag['value'] = escape(tag['value'])
-        template = Template(DESCRIBE_RESPONSE)
+        template = self.response_template(DESCRIBE_RESPONSE)
         return template.render(tags=tags)
 
 
