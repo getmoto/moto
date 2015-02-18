@@ -581,10 +581,10 @@ def test_bucket_list_quote_folders():
 
     # test with unicode in common prefixes
     folder_name = 'validunicode\x01invalidxmlfolder'
-    k = Key(bucket, folder_name+"/lala")
+    k = Key(bucket, folder_name + "/lala")
     k.set_contents_from_string('somedata')
     keys = [x.name for x in bucket.list(encoding_type='url', delimiter='/')]
-    keys.should.equal([quote(folder_name)])
+    keys.should.equal([quote(folder_name + '/')])
 
 
 @mock_s3
