@@ -33,6 +33,7 @@ def test_context_manager():
         list(conn.get_all_instances()).should.equal([])
 
     with assert_raises(EC2ResponseError):
+        conn = boto.connect_ec2('the_key', 'the_secret')
         conn.get_all_instances()
 
 
