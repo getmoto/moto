@@ -61,6 +61,7 @@ class MockAWS(object):
 
         if self.__class__.nested_count == 0:
             HTTPretty.disable()
+            HTTPretty.reset()
 
     def decorate_callable(self, func):
         def wrapper(*args, **kwargs):
