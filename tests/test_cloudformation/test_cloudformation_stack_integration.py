@@ -938,8 +938,8 @@ def test_sns_topic():
     topic_arn_output.value.should.equal(topic_arn)
 
 
-
 @mock_cloudformation
+@mock_ec2
 def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
