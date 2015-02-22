@@ -39,6 +39,16 @@ def test_s3_server_bucket_create():
     res.data.should.equal(b"test value")
 
 
+def test_s3_server_bucket_versioning():
+    backend = server.create_backend_app("s3")
+    test_client = backend.test_client()
+
+    # Just enough XML to enable versioning
+    body = '<Status>Enabled</Status>'
+    res = test_client.put('/?versioning', 'http://foobaz.localhost:5000', data=body)
+    res.status_code.should.equal(200)
+
+
 def test_s3_server_post_to_bucket():
     backend = server.create_backend_app("s3")
     test_client = backend.test_client()
