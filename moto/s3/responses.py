@@ -137,8 +137,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
         )
 
     def _bucket_response_put(self, request, region_name, bucket_name, querystring, headers):
+        if hasattr(request, 'body'):
+            # Boto
+            body = request.body
+        else:
+            # Flask server
+            body = request.data
         if 'versioning' in querystring:
-            ver = re.search('<Status>([A-Za-z]+)</Status>', request.body.decode('utf-8'))
+            ver = re.search('<Status>([A-Za-z]+)</Status>', body.decode('utf-8'))
             if ver:
                 self.backend.set_bucket_versioning(bucket_name, ver.group(1))
                 template = self.response_template(S3_BUCKET_VERSIONING)
