@@ -8,3 +8,5 @@ test:
 	rm -f .coverage
 	@nosetests -sv --with-coverage ./tests/
 
+publish:
+	python setup.py sdist bdist_wheel upload
