@@ -139,6 +139,44 @@ def test_get_instances_filtering_by_instance_id():
     reservations = conn.get_all_instances(filters={'instance-id': 'non-existing-id'})
     reservations.should.have.length_of(0)
 
+
+@mock_ec2
+def test_get_instances_filtering_by_instance_type():
+    conn = boto.connect_ec2()
+    reservation1 = conn.run_instances('ami-1234abcd', instance_type='m1.small')
+    instance1 = reservation1.instances[0]
+    reservation2 = conn.run_instances('ami-1234abcd', instance_type='m1.small')
+    instance2 = reservation2.instances[0]
+    reservation3 = conn.run_instances('ami-1234abcd', instance_type='t1.micro')
+    instance3 = reservation3.instances[0]
+
+    reservations = conn.get_all_instances(filters={'instance-type': 'm1.small'})
+    # get_all_instances should return instance1,2
+    reservations.should.have.length_of(2)
+    reservations[0].instances.should.have.length_of(1)
+    reservations[1].instances.should.have.length_of(1)
+    reservations[0].instances[0].id.should.equal(instance1.id)
+    reservations[1].instances[0].id.should.equal(instance2.id)
+
+    reservations = conn.get_all_instances(filters={'instance-type': 't1.micro'})
+    # get_all_instances should return one
+    reservations.should.have.length_of(1)
+    reservations[0].instances.should.have.length_of(1)
+    reservations[0].instances[0].id.should.equal(instance3.id)
+
+    reservations = conn.get_all_instances(filters={'instance-type': ['t1.micro', 'm1.small']})
+    reservations.should.have.length_of(3)
+    reservations[0].instances.should.have.length_of(1)
+    reservations[1].instances.should.have.length_of(1)
+    reservations[2].instances.should.have.length_of(1)
+    reservations[0].instances[0].id.should.equal(instance1.id)
+    reservations[1].instances[0].id.should.equal(instance3.id)
+    reservations[2].instances[0].id.should.equal(instance2.id)
+
+    reservations = conn.get_all_instances(filters={'instance-type': 'bogus'})
+    #bogus instance-type should return none
+    reservations.should.have.length_of(0)
+
 @mock_ec2
 def test_get_instances_filtering_by_reason_code():
     conn = boto.connect_ec2()
