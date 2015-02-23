@@ -310,7 +310,9 @@ def get_object_value(obj, attr):
 
 
 def is_tag_filter(filter_name):
-    return filter_name.startswith('tag:')
+    return (filter_name.startswith('tag:') or 
+            filter_name.startswith('tag-value') or
+            filter_name.startswith('tag-key'))
 
 
 def get_obj_tag(obj, filter_name):
@@ -318,10 +320,24 @@ def get_obj_tag(obj, filter_name):
     tags = dict((tag['key'], tag['value']) for tag in obj.get_tags())
     return tags.get(tag_name)
 
+def get_obj_tag_names(obj):
+    tags = set((tag['key'] for tag in obj.get_tags()))
+    return tags
+
+def get_obj_tag_values(obj):
+    tags = set((tag['value'] for tag in obj.get_tags()))
+    return tags
 
 def tag_filter_matches(obj, filter_name, filter_values):
-    tag_value = get_obj_tag(obj, filter_name)
-    return tag_value in filter_values
+    if filter_name == 'tag-key':
+        tag_names = get_obj_tag_names(obj)
+        return len(set(filter_values).intersection(tag_names)) > 0
+    elif filter_name == 'tag-value':
+        tag_values = get_obj_tag_values(obj)
+        return len(set(filter_values).intersection(tag_values)) > 0
+    else:
+        tag_value = get_obj_tag(obj, filter_name)
+        return tag_value in filter_values
 
 
 filter_dict_attribute_mapping = {
@@ -331,7 +347,7 @@ filter_dict_attribute_mapping = {
     'source-dest-check': 'source_dest_check',
     'vpc-id': 'vpc_id',
     'group-id': 'security_groups',
-    'instance.group-id': 'security_groups'
+    'instance.group-id': 'security_groups',
 }
 
 

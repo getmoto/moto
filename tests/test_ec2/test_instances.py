@@ -241,6 +241,42 @@ def test_get_instances_filtering_by_tag():
     reservations[0].instances[1].id.should.equal(instance3.id)
 
 @mock_ec2
+def test_get_instances_filtering_by_tag_name():
+    conn = boto.connect_ec2()
+    reservation = conn.run_instances('ami-1234abcd', min_count=3)
+    instance1, instance2, instance3 = reservation.instances
+    instance1.add_tag('tag1')
+    instance1.add_tag('tag2')
+    instance2.add_tag('tag1')
+    instance2.add_tag('tag2X')
+    instance3.add_tag('tag3')
+
+    reservations = conn.get_all_instances(filters={'tag-key' : 'tagX'})
+    # get_all_instances should return no instances
+    reservations.should.have.length_of(0)
+
+    reservations = conn.get_all_instances(filters={'tag-key' : 'tag1'})
+    # get_all_instances should return both instances with this tag value
+    reservations.should.have.length_of(1)
+    reservations[0].instances.should.have.length_of(2)
+    reservations[0].instances[0].id.should.equal(instance1.id)
+    reservations[0].instances[1].id.should.equal(instance2.id)
+
+    reservations = conn.get_all_instances(filters={'tag-key' : 'tag1', 'tag-key' : 'tag2'})
+    # get_all_instances should return the instance with both tag values
+    reservations.should.have.length_of(1)
+    reservations[0].instances.should.have.length_of(1)
+    reservations[0].instances[0].id.should.equal(instance1.id)
+
+    reservations = conn.get_all_instances(filters={'tag-key' : ['tag1', 'tag3']})
+    # get_all_instances should return both instances with one of the acceptable tag values
+    reservations.should.have.length_of(1)
+    reservations[0].instances.should.have.length_of(3)
+    reservations[0].instances[0].id.should.equal(instance1.id)
+    reservations[0].instances[1].id.should.equal(instance2.id)
+    reservations[0].instances[2].id.should.equal(instance3.id)
+
+@mock_ec2
 def test_instance_start_and_stop():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd', min_count=2)
