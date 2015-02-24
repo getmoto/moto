@@ -248,3 +248,13 @@ def test_security_group_tagging():
     group = conn.get_all_security_groups("test-sg")[0]
     group.tags.should.have.length_of(1)
     group.tags["Test"].should.equal("Tag")
+
+
+@mock_ec2
+def test_security_group_tag_filtering():
+    conn = boto.connect_ec2()
+    sg = conn.create_security_group("test-sg", "Test SG")
+    sg.add_tag("test-tag", "test-value")
+
+    groups = conn.get_all_security_groups(filters={"tag:test-tag": "test-value"})
+    groups.should.have.length_of(1)

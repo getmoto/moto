@@ -92,7 +92,9 @@ from .utils import (
     filter_reservations,
     random_network_acl_id,
     random_network_acl_subnet_association_id,
-    random_vpn_gateway_id)
+    random_vpn_gateway_id,
+    is_tag_filter,
+)
 
 
 def validate_resource_ids(resource_ids):
@@ -1113,6 +1115,9 @@ class SecurityGroup(TaggedEC2Resource):
             for ingress in self.ingress_rules:
                 if getattr(ingress, ingress_attr) in filter_value:
                     return True
+        elif is_tag_filter(key):
+            tag_value = self.get_filter_value(key)
+            return tag_value in filter_value
         else:
             attr_name = to_attr(key)
             return getattr(self, attr_name) in filter_value
