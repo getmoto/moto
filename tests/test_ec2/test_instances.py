@@ -155,8 +155,8 @@ def test_get_instances_filtering_by_instance_type():
     reservations.should.have.length_of(2)
     reservations[0].instances.should.have.length_of(1)
     reservations[1].instances.should.have.length_of(1)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-    reservations[1].instances[0].id.should.equal(instance2.id)
+    instance_ids = [ reservations[0].instances[0].id, reservations[1].instances[0].id ]
+    set(instance_ids).should.equal(set([instance1.id, instance2.id]))
 
     reservations = conn.get_all_instances(filters={'instance-type': 't1.micro'})
     # get_all_instances should return one
@@ -169,9 +169,12 @@ def test_get_instances_filtering_by_instance_type():
     reservations[0].instances.should.have.length_of(1)
     reservations[1].instances.should.have.length_of(1)
     reservations[2].instances.should.have.length_of(1)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-    reservations[1].instances[0].id.should.equal(instance3.id)
-    reservations[2].instances[0].id.should.equal(instance2.id)
+    instance_ids = [
+        reservations[0].instances[0].id,
+        reservations[1].instances[0].id,
+        reservations[2].instances[0].id,
+        ]
+    set(instance_ids).should.equal(set([instance1.id, instance2.id, instance3.id]))
 
     reservations = conn.get_all_instances(filters={'instance-type': 'bogus'})
     #bogus instance-type should return none
