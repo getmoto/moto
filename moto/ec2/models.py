@@ -121,6 +121,9 @@ class TaggedEC2Resource(object):
         tags = self.ec2_backend.describe_tags(filters={'resource-id': [self.id]})
         return tags
 
+    def add_tag(self, key, value):
+        self.ec2_backend.create_tags([self.id], {key: value})
+
     def get_filter_value(self, filter_name):
         tags = self.get_tags()
 
@@ -1073,6 +1076,11 @@ class SecurityGroup(TaggedEC2Resource):
             vpc_id=vpc_id,
         )
 
+        for tag in properties.get("Tags", []):
+            tag_key = tag["Key"]
+            tag_value = tag["Value"]
+            security_group.add_tag(tag_key, tag_value)
+
         for ingress_rule in properties.get('SecurityGroupIngress', []):
             source_group_id = ingress_rule.get('SourceSecurityGroupId')
 
@@ -1285,6 +1293,64 @@ class SecurityGroupBackend(object):
             return security_rule
 
         raise InvalidPermissionNotFoundError()
+
+
+class SecurityGroupIngress(object):
+
+    def __init__(self, security_group, properties):
+        self.security_group = security_group
+        self.properties = properties
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        ec2_backend = ec2_backends[region_name]
+        group_name = properties.get('GroupName')
+        group_id = properties.get('GroupId')
+        ip_protocol = properties.get("IpProtocol")
+        cidr_ip = properties.get("CidrIp")
+        from_port = properties.get("FromPort")
+        source_security_group_id = properties.get("SourceSecurityGroupId")
+        source_security_group_name = properties.get("SourceSecurityGroupName")
+        source_security_owner_id = properties.get("SourceSecurityGroupOwnerId")  # IGNORED AT THE MOMENT
+        to_port = properties.get("ToPort")
+
+        assert group_id or group_name
+        assert source_security_group_name or cidr_ip or source_security_group_id
+        assert ip_protocol
+
+        if source_security_group_id:
+            source_security_group_ids = [source_security_group_id]
+        else:
+            source_security_group_ids = None
+        if source_security_group_name:
+            source_security_group_names = [source_security_group_name]
+        else:
+            source_security_group_names = None
+        if cidr_ip:
+            ip_ranges = [cidr_ip]
+        else:
+            ip_ranges = []
+
+
+        if group_id:
+            security_group = ec2_backend.describe_security_groups(group_ids=[group_id])[0]
+        else:
+            security_group = ec2_backend.describe_security_groups(groupnames=[group_name])[0]
+
+        ec2_backend.authorize_security_group_ingress(
+            group_name=security_group.name,
+            group_id=security_group.id,
+            ip_protocol=ip_protocol,
+            from_port=from_port,
+            to_port=to_port,
+            ip_ranges=ip_ranges,
+            source_group_ids=source_security_group_ids,
+            source_group_names=source_security_group_names,
+        )
+
+        return cls(security_group, properties)
 
 
 class VolumeAttachment(object):
