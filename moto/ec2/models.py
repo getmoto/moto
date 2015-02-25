@@ -1085,8 +1085,7 @@ class SecurityGroup(TaggedEC2Resource):
             source_group_id = ingress_rule.get('SourceSecurityGroupId')
 
             ec2_backend.authorize_security_group_ingress(
-                group_name=security_group.name,
-                group_id=security_group.id,
+                group_name_or_id=security_group.id,
                 ip_protocol=ingress_rule['IpProtocol'],
                 from_port=ingress_rule['FromPort'],
                 to_port=ingress_rule['ToPort'],
@@ -1218,9 +1217,15 @@ class SecurityGroupBackend(object):
             default_group = self.create_security_group("default", "The default security group", vpc_id=vpc_id, force=True)
             return default_group
 
+    def get_security_group_by_name_or_id(self, group_name_or_id, vpc_id):
+        # try searching by id, fallbacks to name search
+        group = self.get_security_group_from_id(group_name_or_id)
+        if group is None:
+            group = self.get_security_group_from_name(group_name_or_id, vpc_id)
+        return group
+
     def authorize_security_group_ingress(self,
-                                         group_name,
-                                         group_id,
+                                         group_name_or_id,
                                          ip_protocol,
                                          from_port,
                                          to_port,
@@ -1228,12 +1233,7 @@ class SecurityGroupBackend(object):
                                          source_group_names=None,
                                          source_group_ids=None,
                                          vpc_id=None):
-        # to auth a group in a VPC you need the group_id the name isn't enough
-
-        if group_name:
-            group = self.get_security_group_from_name(group_name, vpc_id)
-        elif group_id:
-            group = self.get_security_group_from_id(group_id)
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
 
         if ip_ranges and not isinstance(ip_ranges, list):
             ip_ranges = [ip_ranges]
@@ -1261,8 +1261,7 @@ class SecurityGroupBackend(object):
         group.ingress_rules.append(security_rule)
 
     def revoke_security_group_ingress(self,
-                                      group_name,
-                                      group_id,
+                                      group_name_or_id,
                                       ip_protocol,
                                       from_port,
                                       to_port,
@@ -1271,10 +1270,7 @@ class SecurityGroupBackend(object):
                                       source_group_ids=None,
                                       vpc_id=None):
 
-        if group_name:
-            group = self.get_security_group_from_name(group_name, vpc_id)
-        elif group_id:
-            group = self.get_security_group_from_id(group_id)
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
 
         source_groups = []
         for source_group_name in source_group_names:
@@ -1340,8 +1336,7 @@ class SecurityGroupIngress(object):
             security_group = ec2_backend.describe_security_groups(groupnames=[group_name])[0]
 
         ec2_backend.authorize_security_group_ingress(
-            group_name=security_group.name,
-            group_id=security_group.id,
+            group_name_or_id=security_group.id,
             ip_protocol=ip_protocol,
             from_port=from_port,
             to_port=to_port,
