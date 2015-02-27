@@ -291,6 +291,16 @@ class IAMBackend(BaseBackend):
     def get_instance_profiles(self):
         return self.instance_profiles.values()
 
+    def get_instance_profiles_for_role(self, role_name):
+        found_profiles = []
+
+        for profile in self.get_instance_profiles():
+            if len(profile.roles) > 0:
+                if profile.roles[0].name == role_name:
+                    found_profiles.append(profile)
+
+        return found_profiles
+
     def add_role_to_instance_profile(self, profile_name, role_name):
         profile = self.get_instance_profile(profile_name)
         role = self.get_role(role_name)

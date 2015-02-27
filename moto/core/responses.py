@@ -137,7 +137,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
         if action in method_names:
             method = getattr(self, action)
             try:
-                response = method()
+                if action != 'list_instance_profiles_for_role':
+                    response = method()
+                else:
+                    response = method(role_name=self.querystring['RoleName'][0])
             except HTTPException as http_error:
                 response = http_error.description, dict(status=http_error.code)
             if isinstance(response, six.string_types):
