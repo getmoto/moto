@@ -62,6 +62,34 @@ def test_create_role_and_instance_profile():
     conn.list_roles().roles[0].role_name.should.equal('my-role')
     conn.list_instance_profiles().instance_profiles[0].instance_profile_name.should.equal("my-profile")
 
+@mock_iam()
+def test_list_instance_profiles_for_role():
+    conn = boto.connect_iam()
+
+    conn.create_role(role_name="my-role", assume_role_policy_document="some policy", path="my-path")
+    conn.create_role(role_name="my-role2", assume_role_policy_document="some policy2", path="my-path2")
+
+    profile_name_list = ['my-profile', 'my-profile2']
+    profile_path_list = ['my-path', 'my-path2']
+    for profile_count in range(0,2):
+        conn.create_instance_profile(profile_name_list[profile_count], path=profile_path_list[profile_count])
+
+    for profile_count in range(0,2):
+        conn.add_role_to_instance_profile(profile_name_list[profile_count], "my-role")
+
+    profile_dump = conn.list_instance_profiles_for_role(role_name="my-role")
+    profile_list = profile_dump['list_instance_profiles_for_role_response']['list_instance_profiles_for_role_result']['instance_profiles']
+    for profile_count in range(0,len(profile_list)):
+        profile_name_list.remove(profile_list[profile_count]["instance_profile_name"])
+        profile_path_list.remove(profile_list[profile_count]["path"])
+        profile_list[profile_count]["roles"]["member"]["role_name"].should.equal("my-role")
+
+    len(profile_name_list).should.equal(0)
+    len(profile_path_list).should.equal(0)
+
+    profile_dump2 = conn.list_instance_profiles_for_role(role_name="my-role2")
+    profile_list = profile_dump2['list_instance_profiles_for_role_response']['list_instance_profiles_for_role_result']['instance_profiles']
+    len(profile_list).should.equal(0)
 
 @mock_iam()
 def test_list_role_policies():
