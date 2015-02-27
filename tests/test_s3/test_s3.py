@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
+from functools import wraps
 from io import BytesIO
 
 import boto
@@ -29,6 +30,7 @@ def reduced_min_part_size(f):
     import moto.s3.models as s3model
     orig_size = s3model.UPLOAD_PART_MIN_SIZE
 
+    @wraps(f)
     def wrapped(*args, **kwargs):
         try:
             s3model.UPLOAD_PART_MIN_SIZE = REDUCED_PART_SIZE
