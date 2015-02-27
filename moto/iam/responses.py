@@ -87,7 +87,8 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_INSTANCE_PROFILES_TEMPLATE)
         return template.render(instance_profiles=profiles)
 
-    def list_instance_profiles_for_role(self, role_name=None):
+    def list_instance_profiles_for_role(self):
+        role_name = self._get_param('RoleName')
         profiles = iam_backend.get_instance_profiles_for_role(role_name=role_name)
 
         template = self.response_template(LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE)
