@@ -210,7 +210,23 @@ def test_multipart_invalid_order():
     bucket.complete_multipart_upload.when.called_with(
         multipart.key_name, multipart.id, xml).should.throw(S3ResponseError)
 
+@mock_s3
+@reduced_min_part_size
+def test_multipart_duplicate_upload():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
 
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = b'0' * REDUCED_PART_SIZE
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    # same part again
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    part2 = b'1' * 1024
+    multipart.upload_part_from_file(BytesIO(part2), 2)
+    multipart.complete_upload()
+    # We should get only one copy of part 1.
+    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
+    
 @mock_s3
 def test_list_multiparts():
     # Create Bucket so that test can run
