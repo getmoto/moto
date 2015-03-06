@@ -188,7 +188,7 @@ def test_multipart_etag():
     multipart.complete_upload()
     # we should get both parts as the key contents
     bucket.get_key("the-key").etag.should.equal(
-        '"140f92a6df9f9e415f74a1463bcee9bb-2"')
+        '"66d1a1a2ed08fd05c137f316af4ff255-2"')
 
 
 @mock_s3
