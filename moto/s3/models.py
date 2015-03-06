@@ -152,7 +152,8 @@ class FakeMultipart(object):
 
         key = FakeKey(part_id, value)
         self.parts[part_id] = key
-        insort(self.partlist, part_id)
+        if part_id not in self.partlist:
+            insort(self.partlist, part_id)
         return key
 
     def list_parts(self):
