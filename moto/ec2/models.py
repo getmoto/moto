@@ -1149,6 +1149,10 @@ class SecurityGroupBackend(object):
     def __init__(self):
         # the key in the dict group is the vpc_id or None (non-vpc)
         self.groups = defaultdict(dict)
+
+        # Create the default security group
+        self.create_security_group("default", "The default security group")
+
         super(SecurityGroupBackend, self).__init__()
 
     def create_security_group(self, name, description, vpc_id=None, force=False):
@@ -1211,11 +1215,6 @@ class SecurityGroupBackend(object):
         for group_id, group in self.groups[vpc_id].items():
             if group.name == name:
                 return group
-
-        if name == 'default':
-            # If the request is for the default group and it does not exist, create it
-            default_group = self.create_security_group("default", "The default security group", vpc_id=vpc_id, force=True)
-            return default_group
 
     def get_security_group_by_name_or_id(self, group_name_or_id, vpc_id):
         # try searching by id, fallbacks to name search

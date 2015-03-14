@@ -26,8 +26,9 @@ def test_create_and_describe_security_group():
     cm.exception.request_id.should_not.be.none
 
     all_groups = conn.get_all_security_groups()
-    all_groups.should.have.length_of(1)
-    all_groups[0].name.should.equal('test security group')
+    all_groups.should.have.length_of(2)  # The default group gets created automatically
+    group_names = [group.name for group in all_groups]
+    set(group_names).should.equal(set(["default", "test security group"]))
 
 
 @mock_ec2
@@ -39,6 +40,14 @@ def test_create_security_group_without_description_raises_error():
     cm.exception.code.should.equal('MissingParameter')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_default_security_group():
+    conn = boto.ec2.connect_to_region('us-east-1')
+    groups = conn.get_all_security_groups()
+    groups.should.have.length_of(1)
+    groups[0].name.should.equal("default")
 
 
 @mock_ec2
@@ -59,7 +68,7 @@ def test_create_and_describe_vpc_security_group():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-    all_groups = conn.get_all_security_groups()
+    all_groups = conn.get_all_security_groups(filters={'vpc_id': [vpc_id]})
 
     all_groups[0].vpc_id.should.equal(vpc_id)
 
@@ -78,9 +87,10 @@ def test_create_two_security_groups_with_same_name_in_different_vpc():
 
     all_groups = conn.get_all_security_groups()
 
-    all_groups.should.have.length_of(2)
-    all_groups[0].name.should.equal('test security group')
-    all_groups[1].name.should.equal('test security group')
+    all_groups.should.have.length_of(3)
+    group_names = [group.name for group in all_groups]
+    # The default group is created automatically
+    set(group_names).should.equal(set(["default", "test security group"]))
 
 
 @mock_ec2
@@ -89,7 +99,7 @@ def test_deleting_security_groups():
     security_group1 = conn.create_security_group('test1', 'test1')
     conn.create_security_group('test2', 'test2')
 
-    conn.get_all_security_groups().should.have.length_of(2)
+    conn.get_all_security_groups().should.have.length_of(3)  # We need to include the default security group
 
     # Deleting a group that doesn't exist should throw an error
     with assert_raises(EC2ResponseError) as cm:
@@ -100,11 +110,11 @@ def test_deleting_security_groups():
 
     # Delete by name
     conn.delete_security_group('test2')
-    conn.get_all_security_groups().should.have.length_of(1)
+    conn.get_all_security_groups().should.have.length_of(2)
 
     # Delete by group id
     conn.delete_security_group(group_id=security_group1.id)
-    conn.get_all_security_groups().should.have.length_of(0)
+    conn.get_all_security_groups().should.have.length_of(1)
 
 
 @mock_ec2
@@ -125,7 +135,7 @@ def test_authorize_ip_range_and_revoke():
     success = security_group.authorize(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32")
     assert success.should.be.true
 
-    security_group = conn.get_all_security_groups()[0]
+    security_group = conn.get_all_security_groups(groupnames=['test'])[0]
     int(security_group.rules[0].to_port).should.equal(2222)
     security_group.rules[0].grants[0].cidr_ip.should.equal("123.123.123.123/32")
 
@@ -220,7 +230,7 @@ def test_get_all_security_groups():
     resp[0].id.should.equal(sg1.id)
 
     resp = conn.get_all_security_groups()
-    resp.should.have.length_of(2)
+    resp.should.have.length_of(3)  # We need to include the default group here
 
 
 @mock_ec2

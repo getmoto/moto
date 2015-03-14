@@ -41,13 +41,13 @@ def test_vpc_defaults():
 
     conn.get_all_vpcs().should.have.length_of(1)
     conn.get_all_route_tables().should.have.length_of(1)
-    conn.get_all_security_groups().should.have.length_of(1)
+    conn.get_all_security_groups(filters={'vpc-id': [vpc.id]}).should.have.length_of(1)
 
     vpc.delete()
 
     conn.get_all_vpcs().should.have.length_of(0)
     conn.get_all_route_tables().should.have.length_of(0)
-    conn.get_all_security_groups().should.have.length_of(0)
+    conn.get_all_security_groups(filters={'vpc-id': [vpc.id]}).should.have.length_of(0)
 
 
 @mock_ec2
