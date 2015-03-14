@@ -170,9 +170,11 @@ class SNSResponse(BaseResponse):
         })
 
     def publish(self):
+        target_arn = self._get_param('TargetArn')
         topic_arn = self._get_param('TopicArn')
+        arn = target_arn if target_arn else topic_arn
         message = self._get_param('Message')
-        message_id = self.backend.publish(topic_arn, message)
+        message_id = self.backend.publish(arn, message)
 
         return json.dumps({
             "PublishResponse": {
@@ -185,24 +187,167 @@ class SNSResponse(BaseResponse):
             }
         })
 
+    def create_platform_application(self):
+        name = self._get_param('Name')
+        platform = self._get_param('Platform')
+        attributes = self._get_list_prefix('Attributes.entry')
+        attributes = {
+            attribute['key']: attribute['value']
+            for attribute
+            in attributes
+        }
+        platform_application = self.backend.create_platform_application(self.region, name, platform, attributes)
+
+        return json.dumps({
+            "CreatePlatformApplicationResponse": {
+                "CreatePlatformApplicationResult": {
+                    "PlatformApplicationArn": platform_application.arn,
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937b",
+                }
+            }
+        })
+
+    def get_platform_application_attributes(self):
+        arn = self._get_param('PlatformApplicationArn')
+        application = self.backend.get_application(arn)
+
+        return json.dumps({
+            "GetPlatformApplicationAttributesResponse": {
+                "GetPlatformApplicationAttributesResult": {
+                    "Attributes": application.attributes,
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937f",
+                }
+            }
+        })
+
+    def set_platform_application_attributes(self):
+        arn = self._get_param('PlatformApplicationArn')
+        attributes = self._get_list_prefix('Attributes.entry')
+        attributes = {
+            attribute['key']: attribute['value']
+            for attribute
+            in attributes
+        }
+        self.backend.set_application_attributes(arn, attributes)
+
+        return json.dumps({
+            "SetPlatformApplicationAttributesResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-12df-8963-01868b7c937f",
+                }
+            }
+        })
+
+    def list_platform_applications(self):
+        applications = self.backend.list_platform_applications()
+
+        return json.dumps({
+            "ListPlatformApplicationsResponse": {
+                "ListPlatformApplicationsResult": {
+                    "PlatformApplications": [{
+                        "PlatformApplicationArn": application.arn,
+                        "attributes": application.attributes,
+                    } for application in applications]
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937c",
+                }
+            }
+        })
+
+    def delete_platform_application(self):
+        platform_arn = self._get_param('PlatformApplicationArn')
+        self.backend.delete_platform_application(platform_arn)
+
+        return json.dumps({
+            "DeletePlatformApplicationResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937e",
+                }
+            }
+        })
+
+    def create_platform_endpoint(self):
+        application_arn = self._get_param('PlatformApplicationArn')
+        application = self.backend.get_application(application_arn)
+
+        custom_user_data = self._get_param('CustomUserData')
+        token = self._get_param('Token')
+        attributes = self._get_list_prefix('Attributes.entry')
+        attributes = {
+            attribute['key']: attribute['value']
+            for attribute
+            in attributes
+        }
+
+        platform_endpoint = self.backend.create_platform_endpoint(
+            self.region, application, custom_user_data, token, attributes)
+
+        return json.dumps({
+            "CreatePlatformEndpointResponse": {
+                "CreatePlatformEndpointResult": {
+                    "EndpointArn": platform_endpoint.arn,
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3779-11df-8963-01868b7c937b",
+                }
+            }
+        })
+
     def list_endpoints_by_platform_application(self):
+        application_arn = self._get_param('PlatformApplicationArn')
+        endpoints = self.backend.list_endpoints_by_platform_application(application_arn)
+
         return json.dumps({
             "ListEndpointsByPlatformApplicationResponse": {
                 "ListEndpointsByPlatformApplicationResult": {
                     "Endpoints": [
                         {
-                            "Attributes": {
-                                "Token": "TOKEN",
-                                "Enabled": "true",
-                                "CustomUserData": ""
-                            },
-                            "EndpointArn": "FAKE_ARN_ENDPOINT"
-                        }
+                            "Attributes": endpoint.attributes,
+                            "EndpointArn": endpoint.arn,
+                        } for endpoint in endpoints
                     ],
                     "NextToken": None
                 },
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def get_endpoint_attributes(self):
+        arn = self._get_param('EndpointArn')
+        endpoint = self.backend.get_endpoint(arn)
+
+        return json.dumps({
+            "GetEndpointAttributesResponse": {
+                "GetEndpointAttributesResult": {
+                    "Attributes": endpoint.attributes,
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937f",
+                }
+            }
+        })
+
+    def set_endpoint_attributes(self):
+        arn = self._get_param('EndpointArn')
+        attributes = self._get_list_prefix('Attributes.entry')
+        attributes = {
+            attribute['key']: attribute['value']
+            for attribute
+            in attributes
+        }
+        self.backend.set_endpoint_attributes(arn, attributes)
+
+        return json.dumps({
+            "SetEndpointAttributesResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384bc68d-3775-12df-8963-01868b7c937f",
                 }
             }
         })
