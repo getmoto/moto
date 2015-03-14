@@ -1308,7 +1308,7 @@ class SecurityGroupIngress(object):
         from_port = properties.get("FromPort")
         source_security_group_id = properties.get("SourceSecurityGroupId")
         source_security_group_name = properties.get("SourceSecurityGroupName")
-        source_security_owner_id = properties.get("SourceSecurityGroupOwnerId")  # IGNORED AT THE MOMENT
+        # source_security_owner_id = properties.get("SourceSecurityGroupOwnerId")  # IGNORED AT THE MOMENT
         to_port = properties.get("ToPort")
 
         assert group_id or group_name
@@ -1327,7 +1327,6 @@ class SecurityGroupIngress(object):
             ip_ranges = [cidr_ip]
         else:
             ip_ranges = []
-
 
         if group_id:
             security_group = ec2_backend.describe_security_groups(group_ids=[group_id])[0]

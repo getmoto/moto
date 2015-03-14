@@ -339,7 +339,7 @@ def test_vpc_single_instance_in_subnet():
     eip.domain.should.equal('vpc')
     eip.instance_id.should.equal(instance.id)
 
-    security_group = ec2_conn.get_all_security_groups()[0]
+    security_group = ec2_conn.get_all_security_groups(filters={'vpc_id': [vpc.id]})[0]
     security_group.vpc_id.should.equal(vpc.id)
 
     stack = conn.describe_stacks()[0]
@@ -1014,7 +1014,7 @@ def test_vpc_peering_creation():
 
 @mock_cloudformation
 @mock_ec2
-def test_security_group_ingress_separate_from_security_group_by_id():
+def test_multiple_security_group_ingress_separate_from_security_group_by_id():
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
