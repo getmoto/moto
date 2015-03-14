@@ -99,10 +99,12 @@ class DynamoHandler(BaseResponse):
         # getting attribute definition
         attr = body["AttributeDefinitions"]
         # getting the indexes
+        global_indexes = body.get("GlobalSecondaryIndexes", [])
         table = dynamodb_backend2.create_table(table_name,
                    schema=key_schema,
                    throughput=throughput,
-                   attr=attr)
+                   attr=attr,
+                   global_indexes=global_indexes)
         return dynamo_json_dump(table.describe)
 
     def delete_table(self):
@@ -216,13 +218,14 @@ class DynamoHandler(BaseResponse):
 
     def query(self):
         name = self.body['TableName']
-        keys = self.body['KeyConditions']
-        hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name)
+        key_conditions = self.body['KeyConditions']
+        hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name, key_conditions.keys())
+        # hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name)
         if hash_key_name is None:
             er = "'com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
             return self.error(er)
-        hash_key = keys[hash_key_name]['AttributeValueList'][0]
-        if len(keys) == 1:
+        hash_key = key_conditions[hash_key_name]['AttributeValueList'][0]
+        if len(key_conditions) == 1:
             range_comparison = None
             range_values = []
         else:
@@ -230,7 +233,7 @@ class DynamoHandler(BaseResponse):
                 er = "com.amazon.coral.validate#ValidationException"
                 return self.error(er)
             else:
-                range_condition = keys[range_key_name]
+                range_condition = key_conditions[range_key_name]
                 if range_condition:
                     range_comparison = range_condition['ComparisonOperator']
                     range_values = range_condition['AttributeValueList']

@@ -7,10 +7,8 @@ from moto import mock_dynamodb2
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
 try:
-    from boto.dynamodb2.fields import HashKey
-    from boto.dynamodb2.fields import RangeKey
-    from boto.dynamodb2.table import Table
-    from boto.dynamodb2.table import Item
+    from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey
+    from boto.dynamodb2.table import Item, Table
     from boto.dynamodb2.exceptions import ValidationException
 except ImportError:
     pass
@@ -53,7 +51,8 @@ def test_create_table():
                 {'KeyType': 'HASH', 'AttributeName': 'forum_name'},
                 {'KeyType': 'RANGE', 'AttributeName': 'subject'}
             ],
-            'ItemCount': 0, 'CreationDateTime': 1326499200.0
+            'ItemCount': 0, 'CreationDateTime': 1326499200.0,
+            'GlobalSecondaryIndexes': [],
         }
     }
     table.describe().should.equal(expected)
@@ -445,3 +444,92 @@ def test_get_key_fields():
     table = create_table()
     kf = table.get_key_fields()
     kf.should.equal(['forum_name', 'subject'])
+
+
+@mock_dynamodb2
+def test_create_with_global_indexes():
+    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+
+    Table.create('messages', schema=[
+        HashKey('subject'),
+        RangeKey('version'),
+    ], global_indexes=[
+        GlobalAllIndex('topic-created_at-index',
+            parts=[
+                HashKey('topic'),
+                RangeKey('created_at', data_type='N')
+            ],
+            throughput={
+                'read': 6,
+                'write': 1
+            }
+        ),
+    ])
+
+    table_description = conn.describe_table("messages")
+    table_description['Table']["GlobalSecondaryIndexes"].should.equal([
+        {
+            "IndexName": "topic-created_at-index",
+            "KeySchema": [
+                {
+                    "AttributeName": "topic",
+                    "KeyType": "HASH"
+                },
+                {
+                    "AttributeName": "created_at",
+                    "KeyType": "RANGE"
+                },
+            ],
+            "Projection": {
+                "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 6,
+                "WriteCapacityUnits": 1,
+            }
+        }
+    ])
+
+
+@mock_dynamodb2
+def test_query_with_global_indexes():
+    table = Table.create('messages', schema=[
+        HashKey('subject'),
+        RangeKey('version'),
+    ], global_indexes=[
+        GlobalAllIndex('topic-created_at-index',
+            parts=[
+                HashKey('topic'),
+                RangeKey('created_at', data_type='N')
+            ],
+            throughput={
+                'read': 6,
+                'write': 1
+            }
+        ),
+        GlobalAllIndex('status-created_at-index',
+            parts=[
+                HashKey('status'),
+                RangeKey('created_at', data_type='N')
+            ],
+            throughput={
+                'read': 2,
+                'write': 1
+            }
+        )
+    ])
+
+    item_data = {
+        'subject': 'Check this out!',
+        'version': '1',
+        'created_at': 0,
+        'status': 'inactive'
+    }
+    item = Item(table, item_data)
+    item.save(overwrite=True)
+
+    item['version'] = '2'
+    item.save(overwrite=True)
+
+    results = table.query(status__eq='active')
+    list(results).should.have.length_of(0)

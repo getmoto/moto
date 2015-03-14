@@ -122,7 +122,7 @@ class Item(object):
 
 class Table(object):
 
-    def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None):
+    def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None):
         self.name = table_name
         self.attr = attr
         self.schema = schema
@@ -143,6 +143,7 @@ class Table(object):
             self.throughput = throughput
         self.throughput["NumberOfDecreasesToday"] = 0
         self.indexes = indexes
+        self.global_indexes = global_indexes if global_indexes else []
         self.created_at = datetime.datetime.now()
         self.items = defaultdict(dict)
 
@@ -158,6 +159,7 @@ class Table(object):
                 'KeySchema': self.schema,
                 'ItemCount': len(self),
                 'CreationDateTime': unix_time(self.created_at),
+                'GlobalSecondaryIndexes': [index for index in self.global_indexes],
             }
         }
         return results
@@ -170,6 +172,24 @@ class Table(object):
             else:
                 count += 1
         return count
+
+    @property
+    def hash_key_names(self):
+        keys = [self.hash_key_attr]
+        for index in self.global_indexes:
+            for key in index['KeySchema']:
+                if key['KeyType'] == 'HASH':
+                    keys.append(key['AttributeName'])
+        return keys
+
+    @property
+    def range_key_names(self):
+        keys = [self.range_key_attr]
+        for index in self.global_indexes:
+            for key in index['KeySchema']:
+                if key['KeyType'] == 'RANGE':
+                    keys.append(key['AttributeName'])
+        return keys
 
     def put_item(self, item_attrs):
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))
@@ -293,12 +313,21 @@ class DynamoDBBackend(BaseBackend):
             return None
         return table.put_item(item_attrs)
 
-    def get_table_keys_name(self, table_name):
+    def get_table_keys_name(self, table_name, keys):
+        """
+        Given a set of keys, extracts the key and range key
+        """
         table = self.tables.get(table_name)
         if not table:
             return None, None
         else:
-            return table.hash_key_attr, table.range_key_attr
+            hash_key = range_key = None
+            for key in keys:
+                if key in table.hash_key_names:
+                    hash_key = key
+                elif key in table.range_key_names:
+                    range_key = key
+            return hash_key, range_key
 
     def get_keys_value(self, table, keys):
         if table.hash_key_attr not in keys or (table.has_range_key and table.range_key_attr not in keys):

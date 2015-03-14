@@ -43,7 +43,8 @@ def test_create_table():
             'KeySchema': [
                 {'KeyType': 'HASH', 'AttributeName': 'forum_name'}
             ],
-            'ItemCount': 0, 'CreationDateTime': 1326499200.0
+            'ItemCount': 0, 'CreationDateTime': 1326499200.0,
+            'GlobalSecondaryIndexes': [],
         }
     }
     conn = boto.dynamodb2.connect_to_region(
