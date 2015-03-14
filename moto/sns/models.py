@@ -167,7 +167,7 @@ class SNSBackend(BaseBackend):
         try:
             return self.topics[arn]
         except KeyError:
-            raise SNSNotFoundError("Topic with arn {} not found".format(arn))
+            raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
 
     def set_topic_attribute(self, topic_arn, attribute_name, attribute_value):
         topic = self.get_topic(topic_arn)
@@ -208,7 +208,7 @@ class SNSBackend(BaseBackend):
         try:
             return self.applications[arn]
         except KeyError:
-            raise SNSNotFoundError("Application with arn {} not found".format(arn))
+            raise SNSNotFoundError("Application with arn {0} not found".format(arn))
 
     def set_application_attributes(self, arn, attributes):
         application = self.get_application(arn)
@@ -237,7 +237,7 @@ class SNSBackend(BaseBackend):
         try:
             return self.platform_endpoints[arn]
         except KeyError:
-            raise SNSNotFoundError("Endpoint with arn {} not found".format(arn))
+            raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
 
     def set_endpoint_attributes(self, arn, attributes):
         endpoint = self.get_endpoint(arn)
