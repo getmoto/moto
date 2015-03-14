@@ -11,6 +11,7 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.sqs import sqs_backends
+from .exceptions import SNSNotFoundError
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
 DEFAULT_ACCOUNT_ID = 123456789012
@@ -93,10 +94,52 @@ class Subscription(object):
         }
 
 
+class PlatformApplication(object):
+    def __init__(self, region, name, platform, attributes):
+        self.region = region
+        self.name = name
+        self.platform = platform
+        self.attributes = attributes
+
+    @property
+    def arn(self):
+        return "arn:aws:sns:{region}:123456789012:app/{platform}/{name}".format(
+            region=self.region,
+            platform=self.platform,
+            name=self.name,
+        )
+
+
+class PlatformEndpoint(object):
+    def __init__(self, region, application, custom_user_data, token, attributes):
+        self.region = region
+        self.application = application
+        self.custom_user_data = custom_user_data
+        self.token = token
+        self.attributes = attributes
+        self.id = uuid.uuid4()
+
+    @property
+    def arn(self):
+        return "arn:aws:sns:{region}:123456789012:endpoint/{platform}/{name}/{id}".format(
+            region=self.region,
+            platform=self.application.platform,
+            name=self.application.name,
+            id=self.id,
+        )
+
+    def publish(self, message):
+        message_id = six.text_type(uuid.uuid4())
+        # This is where we would actually send a message
+        return message_id
+
+
 class SNSBackend(BaseBackend):
     def __init__(self):
         self.topics = OrderedDict()
         self.subscriptions = OrderedDict()
+        self.applications = {}
+        self.platform_endpoints = {}
 
     def create_topic(self, name):
         topic = Topic(name, self)
@@ -121,7 +164,10 @@ class SNSBackend(BaseBackend):
         self.topics.pop(arn)
 
     def get_topic(self, arn):
-        return self.topics[arn]
+        try:
+            return self.topics[arn]
+        except KeyError:
+            raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
 
     def set_topic_attribute(self, topic_arn, attribute_name, attribute_value):
         topic = self.get_topic(topic_arn)
@@ -144,10 +190,60 @@ class SNSBackend(BaseBackend):
         else:
             return self._get_values_nexttoken(self.subscriptions, next_token)
 
-    def publish(self, topic_arn, message):
-        topic = self.get_topic(topic_arn)
-        message_id = topic.publish(message)
+    def publish(self, arn, message):
+        try:
+            topic = self.get_topic(arn)
+            message_id = topic.publish(message)
+        except SNSNotFoundError:
+            endpoint = self.get_endpoint(arn)
+            message_id = endpoint.publish(message)
         return message_id
+
+    def create_platform_application(self, region, name, platform, attributes):
+        application = PlatformApplication(region, name, platform, attributes)
+        self.applications[application.arn] = application
+        return application
+
+    def get_application(self, arn):
+        try:
+            return self.applications[arn]
+        except KeyError:
+            raise SNSNotFoundError("Application with arn {0} not found".format(arn))
+
+    def set_application_attributes(self, arn, attributes):
+        application = self.get_application(arn)
+        application.attributes.update(attributes)
+        return application
+
+    def list_platform_applications(self):
+        return self.applications.values()
+
+    def delete_platform_application(self, platform_arn):
+        self.applications.pop(platform_arn)
+
+    def create_platform_endpoint(self, region, application, custom_user_data, token, attributes):
+        platform_endpoint = PlatformEndpoint(region, application, custom_user_data, token, attributes)
+        self.platform_endpoints[platform_endpoint.arn] = platform_endpoint
+        return platform_endpoint
+
+    def list_endpoints_by_platform_application(self, application_arn):
+        return [
+            endpoint for endpoint
+            in self.platform_endpoints.values()
+            if endpoint.application.arn == application_arn
+        ]
+
+    def get_endpoint(self, arn):
+        try:
+            return self.platform_endpoints[arn]
+        except KeyError:
+            raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
+
+    def set_endpoint_attributes(self, arn, attributes):
+        endpoint = self.get_endpoint(arn)
+        endpoint.attributes.update(attributes)
+        return endpoint
+
 
 sns_backends = {}
 for region in boto.sns.regions():
