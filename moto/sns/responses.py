@@ -12,6 +12,14 @@ class SNSResponse(BaseResponse):
     def backend(self):
         return sns_backends[self.region]
 
+    def _get_attributes(self):
+        attributes = self._get_list_prefix('Attributes.entry')
+        return dict(
+            (attribute['key'], attribute['value'])
+            for attribute
+            in attributes
+        )
+
     def create_topic(self):
         name = self._get_param('Name')
         topic = self.backend.create_topic(name)
@@ -190,12 +198,7 @@ class SNSResponse(BaseResponse):
     def create_platform_application(self):
         name = self._get_param('Name')
         platform = self._get_param('Platform')
-        attributes = self._get_list_prefix('Attributes.entry')
-        attributes = {
-            attribute['key']: attribute['value']
-            for attribute
-            in attributes
-        }
+        attributes = self._get_attributes()
         platform_application = self.backend.create_platform_application(self.region, name, platform, attributes)
 
         return json.dumps({
@@ -226,12 +229,8 @@ class SNSResponse(BaseResponse):
 
     def set_platform_application_attributes(self):
         arn = self._get_param('PlatformApplicationArn')
-        attributes = self._get_list_prefix('Attributes.entry')
-        attributes = {
-            attribute['key']: attribute['value']
-            for attribute
-            in attributes
-        }
+        attributes = self._get_attributes()
+
         self.backend.set_application_attributes(arn, attributes)
 
         return json.dumps({
@@ -277,12 +276,7 @@ class SNSResponse(BaseResponse):
 
         custom_user_data = self._get_param('CustomUserData')
         token = self._get_param('Token')
-        attributes = self._get_list_prefix('Attributes.entry')
-        attributes = {
-            attribute['key']: attribute['value']
-            for attribute
-            in attributes
-        }
+        attributes = self._get_attributes()
 
         platform_endpoint = self.backend.create_platform_endpoint(
             self.region, application, custom_user_data, token, attributes)
@@ -336,12 +330,8 @@ class SNSResponse(BaseResponse):
 
     def set_endpoint_attributes(self):
         arn = self._get_param('EndpointArn')
-        attributes = self._get_list_prefix('Attributes.entry')
-        attributes = {
-            attribute['key']: attribute['value']
-            for attribute
-            in attributes
-        }
+        attributes = self._get_attributes()
+
         self.backend.set_endpoint_attributes(arn, attributes)
 
         return json.dumps({
