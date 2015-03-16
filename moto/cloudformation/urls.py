@@ -6,5 +6,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': CloudFormationResponse().dispatch,
+    '{0}/$': CloudFormationResponse.dispatch,
 }

@@ -74,7 +74,15 @@ def create_backend_app(service):
 
     backend = BACKENDS[service]
     for url_path, handler in backend.flask_paths.items():
-        backend_app.route(url_path, methods=HTTP_METHODS)(convert_flask_to_httpretty_response(handler))
+        if handler.__name__ == 'dispatch':
+            endpoint = '{}.dispatch'.format(handler.__self__.__name__)
+        else:
+            endpoint = None
+
+        backend_app.route(
+            url_path,
+            endpoint=endpoint,
+            methods=HTTP_METHODS)(convert_flask_to_httpretty_response(handler))
 
     return backend_app
 
