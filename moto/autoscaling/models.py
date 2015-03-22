@@ -186,7 +186,7 @@ class FakeAutoScalingGroup(object):
 
         if self.desired_capacity > curr_instance_count:
             # Need more instances
-            count_needed = self.desired_capacity - curr_instance_count
+            count_needed = int(self.desired_capacity) - int(curr_instance_count)
             reservation = self.autoscaling_backend.ec2_backend.add_instances(
                 self.launch_config.image_id,
                 count_needed,
