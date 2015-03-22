@@ -122,6 +122,14 @@ class ELBResponse(BaseResponse):
         load_balancer = self.elb_backend.deregister_instances(load_balancer_name, instance_ids)
         return template.render(load_balancer=load_balancer)
 
+    def describe_instance_health(self):
+        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        instance_ids = [value[0] for key, value in self.querystring.items() if "Instances.member" in key]
+        if len(instance_ids) == 0:
+            instance_ids = self.elb_backend.describe_load_balancers(load_balancer_name)[0].instance_ids
+        template = self.response_template(DESCRIBE_INSTANCE_HEALTH_TEMPLATE)
+        return template.render(instance_ids=instance_ids)
+
 CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResult xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
     <DNSName>tests.us-east-1.elb.amazonaws.com</DNSName>
 </CreateLoadBalancerResult>"""
@@ -253,3 +261,22 @@ DELETE_LOAD_BALANCER_LISTENERS = """<DeleteLoadBalancerListenersResponse xmlns="
     <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
 </ResponseMetadata>
 </DeleteLoadBalancerListenersResponse>"""
+
+DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <DescribeInstanceHealthResult>
+    <InstanceStates>
+      {% for instance_id in instance_ids %}
+      <member>
+        <Description>N/A</Description>
+        <InstanceId>{{ instance_id }}</InstanceId>
+        <State>InService</State>
+        <ReasonCode>N/A</ReasonCode>
+      </member>
+      {% endfor %}
+    </InstanceStates>
+  </DescribeInstanceHealthResult>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DescribeInstanceHealthResponse>"""
+

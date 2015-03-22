@@ -193,3 +193,33 @@ def test_deregister_instances():
 
     balancer.instances.should.have.length_of(1)
     balancer.instances[0].id.should.equal(instance_id2)
+
+@mock_ec2
+@mock_elb
+def test_describe_instance_health():
+    ec2_conn = boto.connect_ec2()
+    reservation = ec2_conn.run_instances('ami-1234abcd', 2)
+    instance_id1 = reservation.instances[0].id
+    instance_id2 = reservation.instances[1].id
+
+    conn = boto.connect_elb()
+    zones = ['us-east-1a', 'us-east-1b']
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', zones, ports)
+
+    instances_health = conn.describe_instance_health('my-lb')
+    instances_health.should.be.empty
+
+    lb.register_instances([instance_id1, instance_id2])
+
+    instances_health = conn.describe_instance_health('my-lb')
+    instances_health.should.have.length_of(2)
+    for instance_health in instances_health:
+        instance_health.instance_id.should.be.within([instance_id1, instance_id2])
+        instance_health.state.should.equal('InService')
+
+    instances_health = conn.describe_instance_health('my-lb', [instance_id1])
+    instances_health.should.have.length_of(1)
+    instances_health[0].instance_id.should.equal(instance_id1)
+    instances_health[0].state.should.equal('InService')
+
