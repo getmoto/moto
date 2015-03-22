@@ -37,3 +37,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Mike Fuller](https://github.com/mfulleratlassian)
 * [Andy](https://github.com/aaltepet)
 * [Mike Grima](https://github.com/mikegrima)
+* [Marco Rucci](https://github.com/mrucci)
