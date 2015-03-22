@@ -2,6 +2,11 @@ from __future__ import unicode_literals
 import boto
 import boto.ec2.elb
 from boto.ec2.elb import HealthCheck
+from boto.ec2.elb.attributes import (
+    ConnectionSettingAttribute,
+    ConnectionDrainingAttribute,
+    AccessLogAttribute,
+)
 import sure  # noqa
 
 from moto import mock_elb, mock_ec2
@@ -193,3 +198,99 @@ def test_deregister_instances():
 
     balancer.instances.should.have.length_of(1)
     balancer.instances[0].id.should.equal(instance_id2)
+
+@mock_elb
+def test_default_attributes():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+    attributes = lb.get_attributes()
+
+    attributes.cross_zone_load_balancing.enabled.should.be.false
+    attributes.connection_draining.enabled.should.be.false
+    attributes.access_log.enabled.should.be.false
+    attributes.connecting_settings.idle_timeout.should.equal(60)
+
+
+@mock_elb
+def test_cross_zone_load_balancing_attribute():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+
+    conn.modify_lb_attribute("my-lb", "CrossZoneLoadBalancing", True)
+    attributes = lb.get_attributes(force=True)
+    attributes.cross_zone_load_balancing.enabled.should.be.true
+
+    conn.modify_lb_attribute("my-lb", "CrossZoneLoadBalancing", False)
+    attributes = lb.get_attributes(force=True)
+    attributes.cross_zone_load_balancing.enabled.should.be.false
+
+@mock_elb
+def test_connection_draining_attribute():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+
+    connection_draining = ConnectionDrainingAttribute()
+    connection_draining.enabled = True
+    connection_draining.timeout = 60
+
+    conn.modify_lb_attribute("my-lb", "ConnectionDraining", connection_draining)
+    attributes = lb.get_attributes(force=True)
+    attributes.connection_draining.enabled.should.be.true
+    attributes.connection_draining.timeout.should.equal(60)
+
+    connection_draining.timeout = 30
+    conn.modify_lb_attribute("my-lb", "ConnectionDraining", connection_draining)
+    attributes = lb.get_attributes(force=True)
+    attributes.connection_draining.timeout.should.equal(30)
+
+    connection_draining.enabled = False
+    conn.modify_lb_attribute("my-lb", "ConnectionDraining", connection_draining)
+    attributes = lb.get_attributes(force=True)
+    attributes.connection_draining.enabled.should.be.false
+
+@mock_elb
+def test_access_log_attribute():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+
+    access_log = AccessLogAttribute()
+    access_log.enabled = True
+    access_log.s3_bucket_name = 'bucket'
+    access_log.s3_bucket_prefix = 'prefix'
+    access_log.emit_interval = 60
+
+    conn.modify_lb_attribute("my-lb", "AccessLog", access_log)
+    attributes = lb.get_attributes(force=True)
+    attributes.access_log.enabled.should.be.true
+    attributes.access_log.s3_bucket_name.should.equal("bucket")
+    attributes.access_log.s3_bucket_prefix.should.equal("prefix")
+    attributes.access_log.emit_interval.should.equal(60)
+
+    access_log.enabled = False
+    conn.modify_lb_attribute("my-lb", "AccessLog", access_log)
+    attributes = lb.get_attributes(force=True)
+    attributes.access_log.enabled.should.be.false
+
+@mock_elb
+def test_connection_settings_attribute():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+
+    connection_settings = ConnectionSettingAttribute(conn)
+    connection_settings.idle_timeout = 120
+
+    conn.modify_lb_attribute("my-lb", "ConnectingSettings", connection_settings)
+    attributes = lb.get_attributes(force=True)
+    attributes.connecting_settings.idle_timeout.should.equal(120)
+
+    connection_settings.idle_timeout = 60
+    conn.modify_lb_attribute("my-lb", "ConnectingSettings", connection_settings)
+    attributes = lb.get_attributes(force=True)
+    attributes.connecting_settings.idle_timeout.should.equal(60)
+
+
