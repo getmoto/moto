@@ -250,7 +250,8 @@ class SNSResponse(BaseResponse):
                     "PlatformApplications": [{
                         "PlatformApplicationArn": application.arn,
                         "attributes": application.attributes,
-                    } for application in applications]
+                    } for application in applications],
+                    "NextToken": None
                 },
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937c",
