@@ -1151,7 +1151,7 @@ class SecurityGroupBackend(object):
         self.groups = defaultdict(dict)
 
         # Create the default security group
-        self.create_security_group("default", "The default security group")
+        self.create_security_group("default", "default group")
 
         super(SecurityGroupBackend, self).__init__()
 
