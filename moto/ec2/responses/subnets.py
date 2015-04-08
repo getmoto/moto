@@ -41,7 +41,7 @@ CREATE_SUBNET_RESPONSE = """
     <vpcId>{{ subnet.vpc_id }}</vpcId>
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
     <availableIpAddressCount>251</availableIpAddressCount>
-    <availabilityZone>us-east-1a</availabilityZone>
+    <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
     <tagSet>
       {% for tag in subnet.get_tags() %}
         <item>
@@ -72,7 +72,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <vpcId>{{ subnet.vpc_id }}</vpcId>
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
         <availableIpAddressCount>251</availableIpAddressCount>
-        <availabilityZone>us-east-1a</availabilityZone>
+        <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
         <tagSet>
           {% for tag in subnet.get_tags() %}
             <item>

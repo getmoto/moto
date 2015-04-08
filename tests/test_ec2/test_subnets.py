@@ -62,6 +62,14 @@ def test_subnet_tagging():
 
 
 @mock_ec2
+def test_subnet_should_have_proper_availability_zone_set():
+    conn = boto.vpc.connect_to_region('us-west-1')
+    vpcA = conn.create_vpc("10.0.0.0/16")
+    subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24", availability_zone='us-west-1b')
+    subnetA.availability_zone.should.equal('us-west-1b')
+
+
+@mock_ec2
 def test_get_subnets_filtering():
     conn = boto.vpc.connect_to_region('us-west-1')
     vpcA = conn.create_vpc("10.0.0.0/16")
