@@ -1189,3 +1189,32 @@ def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
     security_group1.rules[0].ip_protocol.should.equal('tcp')
     security_group1.rules[0].from_port.should.equal('80')
     security_group1.rules[0].to_port.should.equal('8080')
+
+
+@mock_cloudformation
+@mock_ec2
+def test_subnets_should_be_created_with_availability_zone():
+    vpc_conn = boto.vpc.connect_to_region('us-west-1')
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+
+    subnet_template = {
+       "AWSTemplateFormatVersion" : "2010-09-09",
+       "Resources" : {
+          "testSubnet" : {
+             "Type" : "AWS::EC2::Subnet",
+             "Properties" : {
+                "VpcId" : vpc.id,
+                "CidrBlock" : "10.0.0.0/24",
+                "AvailabilityZone" : "us-west-1b",
+             }
+          }
+       }
+    }
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    template_json = json.dumps(subnet_template)
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+    subnet = vpc_conn.get_all_subnets(filters={'cidrBlock': '10.0.0.0/24'})[0]
+    subnet.availability_zone.should.equal('us-west-1b')

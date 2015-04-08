@@ -1707,10 +1707,13 @@ class Subnet(TaggedEC2Resource):
         properties = cloudformation_json['Properties']
 
         vpc_id = properties['VpcId']
+        cidr_block = properties['CidrBlock']
+        availability_zone = properties.get('AvailabilityZone')
         ec2_backend = ec2_backends[region_name]
         subnet = ec2_backend.create_subnet(
             vpc_id=vpc_id,
-            cidr_block=properties['CidrBlock']
+            cidr_block=cidr_block,
+            availability_zone=availability_zone,
         )
         return subnet
 
