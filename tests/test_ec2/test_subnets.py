@@ -4,6 +4,7 @@ import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import boto
+import boto.vpc
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
@@ -62,12 +63,12 @@ def test_subnet_tagging():
 
 @mock_ec2
 def test_get_subnets_filtering():
-    conn = boto.connect_vpc('the_key', 'the_secret')
+    conn = boto.vpc.connect_to_region('us-west-1')
     vpcA = conn.create_vpc("10.0.0.0/16")
-    subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24")
+    subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24", availability_zone='us-west-1a')
     vpcB = conn.create_vpc("10.0.0.0/16")
-    subnetB1 = conn.create_subnet(vpcB.id, "10.0.0.0/24")
-    subnetB2 = conn.create_subnet(vpcB.id, "10.0.1.0/24")
+    subnetB1 = conn.create_subnet(vpcB.id, "10.0.0.0/24", availability_zone='us-west-1a')
+    subnetB2 = conn.create_subnet(vpcB.id, "10.0.1.0/24", availability_zone='us-west-1b')
 
     all_subnets = conn.get_all_subnets()
     all_subnets.should.have.length_of(3)
@@ -99,6 +100,11 @@ def test_get_subnets_filtering():
     subnets_by_id = conn.get_all_subnets(filters={'subnet-id': subnetA.id})
     subnets_by_id.should.have.length_of(1)
     set([subnet.id for subnet in subnets_by_id]).should.equal(set([subnetA.id]))
+
+    # Filter by availabilityZone
+    subnets_by_az = conn.get_all_subnets(filters={'availabilityZone': 'us-west-1a', 'vpc-id': vpcB.id})
+    subnets_by_az.should.have.length_of(1)
+    set([subnet.id for subnet in subnets_by_az]).should.equal(set([subnetB1.id]))
 
     # Unsupported filter
     conn.get_all_subnets.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
