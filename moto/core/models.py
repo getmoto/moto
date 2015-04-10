@@ -29,10 +29,11 @@ class MockAWS(object):
     def __exit__(self, *args):
         self.stop()
 
-    def start(self):
+    def start(self, reset=True):
         self.__class__.nested_count += 1
-        for backend in self.backends.values():
-            backend.reset()
+        if reset:
+            for backend in self.backends.values():
+                backend.reset()
 
         if not HTTPretty.is_enabled():
             HTTPretty.enable()
