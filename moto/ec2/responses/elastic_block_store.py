@@ -103,7 +103,7 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   <snapshotId/>
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
-  <createTime>YYYY-MM-DDTHH:MM:SS.000Z</createTime>
+  <createTime>2013-10-04T17:38:53.000Z</createTime>
   <volumeType>standard</volumeType>
 </CreateVolumeResponse>"""
 
@@ -117,7 +117,7 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
              <snapshotId/>
              <availabilityZone>{{ volume.zone.name }}</availabilityZone>
              <status>{{ volume.status }}</status>
-             <createTime>YYYY-MM-DDTHH:MM:SS.SSSZ</createTime>
+             <createTime>2013-10-04T17:38:53.000Z</createTime>
              <attachmentSet>
                 {% if volume.attachment %}
                     <item>
@@ -125,7 +125,7 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
                        <instanceId>{{ volume.attachment.instance.id }}</instanceId>
                        <device>{{ volume.attachment.device }}</device>
                        <status>attached</status>
-                       <attachTime>YYYY-MM-DDTHH:MM:SS.SSSZ</attachTime>
+                       <attachTime>2013-10-04T17:38:53.000Z</attachTime>
                        <deleteOnTermination>false</deleteOnTermination>
                     </item>
                 {% endif %}
@@ -157,7 +157,7 @@ ATTACHED_VOLUME_RESPONSE = """<AttachVolumeResponse xmlns="http://ec2.amazonaws.
   <instanceId>{{ attachment.instance.id }}</instanceId>
   <device>{{ attachment.device }}</device>
   <status>attaching</status>
-  <attachTime>YYYY-MM-DDTHH:MM:SS.000Z</attachTime>
+  <attachTime>2013-10-04T17:38:53.000Z</attachTime>
 </AttachVolumeResponse>"""
 
 DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
@@ -166,7 +166,7 @@ DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.c
    <instanceId>{{ attachment.instance.id }}</instanceId>
    <device>{{ attachment.device }}</device>
    <status>detaching</status>
-   <attachTime>YYYY-MM-DDTHH:MM:SS.000Z</attachTime>
+   <attachTime>2013-10-04T17:38:53.000Z</attachTime>
 </DetachVolumeResponse>"""
 
 CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
@@ -174,7 +174,7 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   <snapshotId>{{ snapshot.id }}</snapshotId>
   <volumeId>{{ snapshot.volume.id }}</volumeId>
   <status>pending</status>
-  <startTime>YYYY-MM-DDTHH:MM:SS.000Z</startTime>
+  <startTime>2013-10-04T17:38:53.000Z</startTime>
   <progress>60%</progress>
   <ownerId>111122223333</ownerId>
   <volumeSize>{{ snapshot.volume.size }}</volumeSize>
@@ -189,7 +189,7 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
              <snapshotId>{{ snapshot.id }}</snapshotId>
              <volumeId>{{ snapshot.volume.id }}</volumeId>
              <status>pending</status>
-             <startTime>YYYY-MM-DDTHH:MM:SS.SSSZ</startTime>
+             <startTime>2013-10-04T17:38:53.000Z</startTime>
              <progress>30%</progress>
              <ownerId>111122223333</ownerId>
              <volumeSize>{{ snapshot.volume.size }}</volumeSize>
