@@ -131,6 +131,18 @@ class IamResponse(BaseResponse):
         template = self.response_template(GET_GROUP_TEMPLATE)
         return template.render(group=group)
 
+    def list_groups(self):
+        groups = iam_backend.list_groups()
+        template = self.response_template(LIST_GROUPS_TEMPLATE)
+        return template.render(groups=groups)
+
+    def list_groups_for_user(self):
+        user_name = self._get_param('UserName')
+
+        groups = iam_backend.get_groups_for_user(user_name)
+        template = self.response_template(LIST_GROUPS_FOR_USER_TEMPLATE)
+        return template.render(groups=groups)
+
     def create_user(self):
         user_name = self._get_param('UserName')
         path = self._get_param('Path')
@@ -501,6 +513,45 @@ GET_GROUP_TEMPLATE = """<GetGroupResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </GetGroupResponse>"""
+
+LIST_GROUPS_TEMPLATE = """<ListGroupsResponse>
+  <ListGroupsResult>
+    <Groups>
+        {% for group in groups %}
+        <member>
+            <Path>{{ group.path }}</Path>
+            <GroupName>{{ group.name }}</GroupName>
+            <GroupId>{{ group.id }}</GroupId>
+            <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+        </member>
+        {% endfor %}
+    </Groups>
+    <IsTruncated>false</IsTruncated>
+  </ListGroupsResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListGroupsResponse>"""
+
+LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
+  <ListGroupsForUserResult>
+    <Groups>
+        {% for group in groups %}
+        <member>
+            <Path>{{ group.path }}</Path>
+            <GroupName>{{ group.name }}</GroupName>
+            <GroupId>{{ group.id }}</GroupId>
+            <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+        </member>
+        {% endfor %}
+    </Groups>
+    <IsTruncated>false</IsTruncated>
+  </ListGroupsForUserResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListGroupsForUserResponse>"""
+
 
 USER_TEMPLATE = """<{{ action }}UserResponse>
    <{{ action }}UserResult>
