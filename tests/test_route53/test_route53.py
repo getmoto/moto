@@ -167,6 +167,7 @@ def test_use_health_check_in_resource_record_set():
     record_sets = conn.get_all_rrsets(zone_id)
     record_sets[0].health_check.should.equal(check_id)
 
+
 @mock_route53
 def test_hosted_zone_comment_preserved():
     conn = boto.connect_route53('the_key', 'the_secret')
@@ -182,3 +183,23 @@ def test_hosted_zone_comment_preserved():
 
     zone = conn.get_zone("testdns.aws.com.")
     zone.config["Comment"].should.equal("test comment")
+
+
+@mock_route53
+def test_deleting_weighted_route():
+    conn = boto.connect_route53()
+
+    conn.create_hosted_zone("testdns.aws.com.")
+    zone = conn.get_zone("testdns.aws.com.")
+
+    zone.add_cname("cname.testdns.aws.com", "example.com", identifier=('success-test-foo', '50'))
+    zone.add_cname("cname.testdns.aws.com", "example.com", identifier=('success-test-bar', '50'))
+
+    cnames = zone.get_cname('cname.testdns.aws.com.', all=True)
+    cnames.should.have.length_of(2)
+    foo_cname = [cname for cname in cnames if cname.identifier == 'success-test-foo'][0]
+
+    zone.delete_record(foo_cname)
+    cname = zone.get_cname('cname.testdns.aws.com.', all=True)
+    # When get_cname only had one result, it returns just that result instead of a list.
+    cname.identifier.should.equal('success-test-bar')

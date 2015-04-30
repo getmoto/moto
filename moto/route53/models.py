@@ -117,8 +117,11 @@ class FakeZone(object):
         self.rrsets.append(record_set)
         return record_set
 
-    def delete_rrset(self, name):
+    def delete_rrset_by_name(self, name):
         self.rrsets = [record_set for record_set in self.rrsets if record_set.name != name]
+
+    def delete_rrset_by_id(self, set_identifier):
+        self.rrsets = [record_set for record_set in self.rrsets if record_set.set_identifier != set_identifier]
 
     def get_record_sets(self, type_filter, name_filter):
         record_sets = list(self.rrsets)  # Copy the list

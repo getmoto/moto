@@ -58,7 +58,10 @@ def rrset_response(request, full_url, headers):
                 record_set['ResourceRecords'] = [x['Value'] for x in record_set['ResourceRecords'].values()]
                 the_zone.add_rrset(record_set)
             elif action == "DELETE":
-                the_zone.delete_rrset(record_set["Name"])
+                if 'SetIdentifier' in record_set:
+                    the_zone.delete_rrset_by_id(record_set["SetIdentifier"])
+                else:
+                    the_zone.delete_rrset_by_name(record_set["Name"])
 
         return 200, headers, CHANGE_RRSET_RESPONSE
 
