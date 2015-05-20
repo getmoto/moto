@@ -220,7 +220,7 @@ class Table(object):
         results = []
         last_page = True  # Once pagination is implemented, change this
 
-        possible_results = [item for item in list(self.all_items()) if item.hash_key == hash_key]
+        possible_results = [item for item in list(self.all_items()) if isinstance(item, Item) and item.hash_key == hash_key]
         if range_comparison:
             for result in possible_results:
                 if result.range_key.compare(range_comparison, range_objs):
