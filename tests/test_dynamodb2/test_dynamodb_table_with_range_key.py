@@ -533,3 +533,23 @@ def test_query_with_global_indexes():
 
     results = table.query(status__eq='active')
     list(results).should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_lookup():
+    from decimal import Decimal
+    table = Table.create('messages', schema=[
+        HashKey('test_hash'),
+        RangeKey('test_range'),
+    ], throughput={
+        'read': 10,
+        'write': 10,
+    })
+
+    hash_key = 3241526475
+    range_key = 1234567890987
+    data = {'test_hash': hash_key, 'test_range': range_key}
+    table.put_item(data=data)
+    message = table.lookup(hash_key, range_key)
+    message.get('test_hash').should.equal(Decimal(hash_key))
+    message.get('test_range').should.equal(Decimal(range_key))
