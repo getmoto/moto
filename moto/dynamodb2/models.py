@@ -288,6 +288,16 @@ class Table(object):
                 results.append(result)
         return results, scanned_count, last_page
 
+    def lookup(self, *args, **kwargs):
+        if not self.schema:
+            self.describe()
+        for x, arg in enumerate(args):
+            kwargs[self.schema[x].name] = arg
+        ret = self.get_item(**kwargs)
+        if not ret.keys():
+            return None
+        return ret
+
 
 class DynamoDBBackend(BaseBackend):
 
