@@ -31,7 +31,7 @@ class ELBResponse(BaseResponse):
                 break
             lb_port = self.querystring['Listeners.member.{0}.LoadBalancerPort'.format(port_index)][0]
             instance_port = self.querystring['Listeners.member.{0}.InstancePort'.format(port_index)][0]
-            ssl_certificate_id = self.querystring.get('Listeners.member.{0}.SSLCertificateId'.format(port_index)[0], None)
+            ssl_certificate_id = self.querystring.get('Listeners.member.{0}.SSLCertificateId'.format(port_index), [None])[0]
             ports.append([protocol, lb_port, instance_port, ssl_certificate_id])
             port_index += 1
 

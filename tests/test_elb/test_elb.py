@@ -48,6 +48,24 @@ def test_create_elb_in_multiple_region():
     list(west1_conn.get_all_load_balancers()).should.have.length_of(1)
     list(west2_conn.get_all_load_balancers()).should.have.length_of(1)
 
+@mock_elb
+def test_create_load_balancer_with_certificate():
+    conn = boto.connect_elb()
+
+    zones = ['us-east-1a']
+    ports = [(443, 8443, 'https', 'arn:aws:iam:123456789012:server-certificate/test-cert')]
+    conn.create_load_balancer('my-lb', zones, ports)
+
+    balancers = conn.get_all_load_balancers()
+    balancer = balancers[0]
+    balancer.name.should.equal("my-lb")
+    set(balancer.availability_zones).should.equal(set(['us-east-1a']))
+    listener = balancer.listeners[0]
+    listener.load_balancer_port.should.equal(443)
+    listener.instance_port.should.equal(8443)
+    listener.protocol.should.equal("HTTPS")
+    listener.ssl_certificate_id.should.equal('arn:aws:iam:123456789012:server-certificate/test-cert')
+
 
 @mock_elb
 def test_add_listener():
