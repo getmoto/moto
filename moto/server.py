@@ -75,7 +75,7 @@ def create_backend_app(service):
     backend = BACKENDS[service]
     for url_path, handler in backend.flask_paths.items():
         if handler.__name__ == 'dispatch':
-            endpoint = '{}.dispatch'.format(handler.__self__.__name__)
+            endpoint = '{0}.dispatch'.format(handler.__self__.__name__)
         else:
             endpoint = None
 
