@@ -25,10 +25,19 @@ class FakeAlarm(object):
         self.unit = unit
 
 
+class MetricDatum(object):
+    def __init__(self, namespace, name, value, dimensions):
+        self.namespace = namespace
+        self.name = name
+        self.value = value
+        self.dimensions = [Dimension(dimension['name'], dimension['value']) for dimension in dimensions]
+
+
 class CloudWatchBackend(BaseBackend):
 
     def __init__(self):
         self.alarms = {}
+        self.metric_data = []
 
     def put_metric_alarm(self, name, comparison_operator, evaluation_periods,
                          period, threshold, statistic, description, dimensions,
@@ -45,6 +54,13 @@ class CloudWatchBackend(BaseBackend):
     def delete_alarms(self, alarm_names):
         for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
+
+    def put_metric_data(self, namespace, metric_data):
+        for name, value, dimensions in metric_data:
+            self.metric_data.append(MetricDatum(namespace, name, value, dimensions))
+
+    def get_all_metrics(self):
+        return self.metric_data
 
 
 cloudwatch_backend = CloudWatchBackend()

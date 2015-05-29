@@ -38,6 +38,38 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(DELETE_METRIC_ALARMS_TEMPLATE)
         return template.render()
 
+    def put_metric_data(self):
+        namespace = self._get_param('Namespace')
+        metric_data = []
+        metric_index = 1
+        while True:
+            try:
+                metric_name = self.querystring['MetricData.member.{0}.MetricName'.format(metric_index)][0]
+            except KeyError:
+                break
+            value = self.querystring.get('MetricData.member.{0}.Value'.format(metric_index), [None])[0]
+            dimensions = []
+            dimension_index = 1
+            while True:
+                try:
+                    dimension_name = self.querystring['MetricData.member.{0}.Dimensions.member.{1}.Name'.format(metric_index, dimension_index)][0]
+                except KeyError:
+                    break
+                dimension_value = self.querystring['MetricData.member.{0}.Dimensions.member.{1}.Value'.format(metric_index, dimension_index)][0]
+                dimensions.append({'name': dimension_name, 'value': dimension_value})
+                dimension_index += 1
+            metric_data.append([metric_name, value, dimensions])
+            metric_index += 1
+        cloudwatch_backend.put_metric_data(namespace, metric_data)
+        template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
+        return template.render()
+
+    def list_metrics(self):
+        metrics = cloudwatch_backend.get_all_metrics()
+        template = self.response_template(LIST_METRICS_TEMPLATE)
+        return template.render(metrics=metrics)
+
+
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
       <RequestId>
@@ -102,3 +134,35 @@ DELETE_METRIC_ALARMS_TEMPLATE = """<DeleteMetricAlarmResponse xmlns="http://moni
       </RequestId>
    </ResponseMetadata>
 </DeleteMetricAlarmResponse>"""
+
+PUT_METRIC_DATA_TEMPLATE = """<PutMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+   <ResponseMetadata>
+      <RequestId>
+         2690d7eb-ed86-11dd-9877-6fad448a8419
+      </RequestId>
+   </ResponseMetadata>
+</PutMetricDataResponse>"""
+
+LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <ListMetricsResult>
+        <Metrics>
+            {% for metric in metrics %}
+            <member>
+                <Dimensions>
+                    {% for dimension in metric.dimensions %}
+                    <member>
+                        <Name>{{ dimension.name }}</Name>
+                        <Value>{{ dimension.value }}</Value>
+                    </member>
+                    {% endfor %}
+                </Dimensions>
+                <MetricName>{{ metric.name }}</MetricName>
+                <Namespace>{{ metric.namespace }}</Namespace>
+            </member>
+            {% endfor %}
+        </Metrics>
+        <NextToken>
+            96e88479-4662-450b-8a13-239ded6ce9fe
+        </NextToken>
+    </ListMetricsResult>
+</ListMetricsResponse>"""

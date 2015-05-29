@@ -69,3 +69,22 @@ def test_delete_alarm():
 
     alarms = conn.describe_alarms()
     alarms.should.have.length_of(0)
+
+
+@mock_cloudwatch
+def test_put_metric_data():
+    conn = boto.connect_cloudwatch()
+
+    conn.put_metric_data(
+        namespace='tester',
+        name='metric',
+        value=1.5,
+        dimensions={'InstanceId': ['i-0123456,i-0123457']},
+    )
+
+    metrics = conn.list_metrics()
+    metrics.should.have.length_of(1)
+    metric = metrics[0]
+    metric.namespace.should.equal('tester')
+    metric.name.should.equal('metric')
+    dict(metric.dimensions).should.equal({'InstanceId': ['i-0123456,i-0123457']})
