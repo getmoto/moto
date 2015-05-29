@@ -214,8 +214,10 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
             <state>enabled</state>
           </monitoring>
           {% if instance.nics %}
-            <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
-            <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
+            {% if instance.nics[0].subnet %}
+              <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
+              <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
+            {% endif %}
             <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
             {% if instance.public_ip %}
                 <ipAddress>{{ instance.public_ip }}</ipAddress>
@@ -245,8 +247,10 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
             {% for nic in instance.nics.values() %}
               <item>
                 <networkInterfaceId>{{ nic.id }}</networkInterfaceId>
-                <subnetId>{{ nic.subnet.id }}</subnetId>
-                <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
+                {% if nic.subnet %}
+                  <subnetId>{{ nic.subnet.id }}</subnetId>
+                  <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
+                {% endif %}
                 <description>Primary network interface</description>
                 <ownerId>111122223333</ownerId>
                 <status>in-use</status>
@@ -338,8 +342,10 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       <state>disabled</state>
                     </monitoring>
                     {% if instance.nics %}
-                      <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
-                      <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
+                      {% if instance.nics[0].subnet %}
+                        <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
+                        <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
+                      {% endif %}
                       <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
                       {% if instance.nics[0].public_ip %}
                           <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
@@ -390,8 +396,10 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                       {% for nic in instance.nics.values() %}
                         <item>
                           <networkInterfaceId>{{ nic.id }}</networkInterfaceId>
-                          <subnetId>{{ nic.subnet.id }}</subnetId>
-                          <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
+                          {% if nic.subnet %}
+                            <subnetId>{{ nic.subnet.id }}</subnetId>
+                            <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
+                          {% endif %}
                           <description>Primary network interface</description>
                           <ownerId>111122223333</ownerId>
                           <status>in-use</status>

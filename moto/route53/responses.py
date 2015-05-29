@@ -9,7 +9,8 @@ def list_or_create_hostzone_response(request, full_url, headers):
 
     if request.method == "POST":
         elements = xmltodict.parse(request.body)
-        new_zone = route53_backend.create_hosted_zone(elements["CreateHostedZoneRequest"]["Name"])
+        comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["Comment"]
+        new_zone = route53_backend.create_hosted_zone(elements["CreateHostedZoneRequest"]["Name"], comment=comment)
         template = Template(CREATE_HOSTED_ZONE_RESPONSE)
         return 201, headers, template.render(zone=new_zone)
 
@@ -57,7 +58,10 @@ def rrset_response(request, full_url, headers):
                 record_set['ResourceRecords'] = [x['Value'] for x in record_set['ResourceRecords'].values()]
                 the_zone.add_rrset(record_set)
             elif action == "DELETE":
-                the_zone.delete_rrset(record_set["Name"])
+                if 'SetIdentifier' in record_set:
+                    the_zone.delete_rrset_by_id(record_set["SetIdentifier"])
+                else:
+                    the_zone.delete_rrset_by_name(record_set["Name"])
 
         return 200, headers, CHANGE_RRSET_RESPONSE
 
@@ -125,6 +129,9 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
       <Id>/hostedzone/{{ zone.id }}</Id>
       <Name>{{ zone.name }}</Name>
       <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
+      <Config>
+        <Comment>{{ zone.comment }}</Comment>
+      </Config>
    </HostedZone>
    <DelegationSet>
          <NameServer>moto.test.com</NameServer>
@@ -150,6 +157,9 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
       <HostedZone>
          <Id>{{ zone.id }}</Id>
          <Name>{{ zone.name }}</Name>
+         <Config>
+           <Comment>{{ zone.comment }}</Comment>
+         </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
       </HostedZone>
       {% endfor %}

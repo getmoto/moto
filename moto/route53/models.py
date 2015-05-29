@@ -106,9 +106,10 @@ class RecordSet(object):
 
 class FakeZone(object):
 
-    def __init__(self, name, id_):
+    def __init__(self, name, id_, comment=None):
         self.name = name
         self.id = id_
+        self.comment = comment
         self.rrsets = []
 
     def add_rrset(self, record_set):
@@ -116,8 +117,11 @@ class FakeZone(object):
         self.rrsets.append(record_set)
         return record_set
 
-    def delete_rrset(self, name):
+    def delete_rrset_by_name(self, name):
         self.rrsets = [record_set for record_set in self.rrsets if record_set.name != name]
+
+    def delete_rrset_by_id(self, set_identifier):
+        self.rrsets = [record_set for record_set in self.rrsets if record_set.set_identifier != set_identifier]
 
     def get_record_sets(self, type_filter, name_filter):
         record_sets = list(self.rrsets)  # Copy the list
@@ -170,9 +174,9 @@ class Route53Backend(BaseBackend):
         self.zones = {}
         self.health_checks = {}
 
-    def create_hosted_zone(self, name):
+    def create_hosted_zone(self, name, comment=None):
         new_id = get_random_hex()
-        new_zone = FakeZone(name, new_id)
+        new_zone = FakeZone(name, new_id, comment=comment)
         self.zones[new_id] = new_zone
         return new_zone
 

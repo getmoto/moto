@@ -1149,6 +1149,10 @@ class SecurityGroupBackend(object):
     def __init__(self):
         # the key in the dict group is the vpc_id or None (non-vpc)
         self.groups = defaultdict(dict)
+
+        # Create the default security group
+        self.create_security_group("default", "default group")
+
         super(SecurityGroupBackend, self).__init__()
 
     def create_security_group(self, name, description, vpc_id=None, force=False):
@@ -1211,11 +1215,6 @@ class SecurityGroupBackend(object):
         for group_id, group in self.groups[vpc_id].items():
             if group.name == name:
                 return group
-
-        if name == 'default':
-            # If the request is for the default group and it does not exist, create it
-            default_group = self.create_security_group("default", "The default security group", vpc_id=vpc_id, force=True)
-            return default_group
 
     def get_security_group_by_name_or_id(self, group_name_or_id, vpc_id):
         # try searching by id, fallbacks to name search
@@ -1309,7 +1308,7 @@ class SecurityGroupIngress(object):
         from_port = properties.get("FromPort")
         source_security_group_id = properties.get("SourceSecurityGroupId")
         source_security_group_name = properties.get("SourceSecurityGroupName")
-        source_security_owner_id = properties.get("SourceSecurityGroupOwnerId")  # IGNORED AT THE MOMENT
+        # source_security_owner_id = properties.get("SourceSecurityGroupOwnerId")  # IGNORED AT THE MOMENT
         to_port = properties.get("ToPort")
 
         assert group_id or group_name
@@ -1328,7 +1327,6 @@ class SecurityGroupIngress(object):
             ip_ranges = [cidr_ip]
         else:
             ip_ranges = []
-
 
         if group_id:
             security_group = ec2_backend.describe_security_groups(group_ids=[group_id])[0]
@@ -1697,41 +1695,66 @@ class VPCPeeringConnectionBackend(object):
 
 
 class Subnet(TaggedEC2Resource):
-    def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block):
+    def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone):
         self.ec2_backend = ec2_backend
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
+        self._availability_zone = availability_zone
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         vpc_id = properties['VpcId']
+        cidr_block = properties['CidrBlock']
+        availability_zone = properties.get('AvailabilityZone')
         ec2_backend = ec2_backends[region_name]
         subnet = ec2_backend.create_subnet(
             vpc_id=vpc_id,
-            cidr_block=properties['CidrBlock']
+            cidr_block=cidr_block,
+            availability_zone=availability_zone,
         )
         return subnet
 
     @property
     def availability_zone(self):
-        # This could probably be smarter, but there doesn't appear to be a
-        # way to pull AZs for a region in boto
-        return self.ec2_backend.region_name + "a"
+        if self._availability_zone is None:
+            # This could probably be smarter, but there doesn't appear to be a
+            # way to pull AZs for a region in boto
+            return self.ec2_backend.region_name + "a"
+        else:
+            return self._availability_zone
 
     @property
     def physical_resource_id(self):
         return self.id
 
     def get_filter_value(self, filter_name):
+        """
+        API Version 2014-10-01 defines the following filters for DescribeSubnets:
+
+        * availabilityZone
+        * available-ip-address-count
+        * cidrBlock
+        * defaultForAz
+        * state
+        * subnet-id
+        * tag:key=value
+        * tag-key
+        * tag-value
+        * vpc-id
+
+        Taken from: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSubnets.html
+        """
         if filter_name in ['cidr', 'cidrBlock', 'cidr-block']:
             return self.cidr_block
         elif filter_name == 'vpc-id':
             return self.vpc_id
         elif filter_name == 'subnet-id':
             return self.id
+        elif filter_name == 'availabilityZone':
+            return self.availability_zone
 
         filter_value = super(Subnet, self).get_filter_value(filter_name)
 
@@ -1758,9 +1781,9 @@ class SubnetBackend(object):
             raise InvalidSubnetIdError(subnet_id)
         return subnet
 
-    def create_subnet(self, vpc_id, cidr_block):
+    def create_subnet(self, vpc_id, cidr_block, availability_zone=None):
         subnet_id = random_subnet_id()
-        subnet = Subnet(self, subnet_id, vpc_id, cidr_block)
+        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone)
         self.get_vpc(vpc_id)  # Validate VPC exists
 
         # AWS associates a new subnet with the default Network ACL

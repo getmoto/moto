@@ -6,6 +6,7 @@ from .utils import random_access_key, random_alphanumeric, random_resource_id
 from datetime import datetime
 import base64
 
+
 class Role(object):
 
     def __init__(self, role_id, name, assume_role_policy_document, path):
@@ -212,16 +213,16 @@ class User(object):
             access_key_2_last_rotated = date_created.strftime(date_format)
 
         return '{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},{9},false,N/A,false,N/A'.format(self.name,
-                               self.arn,
-                               date_created.strftime(date_format),
-                               password_enabled,
-                               password_last_used,
-                               date_created.strftime(date_format),
-                               access_key_1_active,
-                               access_key_1_last_rotated,
-                               access_key_2_active,
-                               access_key_2_last_rotated
-                               )
+            self.arn,
+            date_created.strftime(date_format),
+            password_enabled,
+            password_last_used,
+            date_created.strftime(date_format),
+            access_key_1_active,
+            access_key_1_last_rotated,
+            access_key_2_active,
+            access_key_2_last_rotated
+        )
 
 
 class IAMBackend(BaseBackend):
@@ -336,6 +337,18 @@ class IAMBackend(BaseBackend):
             raise BotoServerError(404, 'Not Found')
 
         return group
+
+    def list_groups(self):
+        return self.groups.values()
+
+    def get_groups_for_user(self, user_name):
+        user = self.get_user(user_name)
+        groups = []
+        for group in self.list_groups():
+            if user in group.users:
+                groups.append(group)
+
+        return groups
 
     def create_user(self, user_name, path='/'):
         if user_name in self.users:

@@ -207,12 +207,8 @@ def test_stack_security_groups():
     )
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    security_groups = ec2_conn.get_all_security_groups()
-    for group in security_groups:
-        if "InstanceSecurityGroup" in group.name:
-            instance_group = group
-        else:
-            other_group = group
+    instance_group = ec2_conn.get_all_security_groups(filters={'description': ['My security group']})[0]
+    other_group = ec2_conn.get_all_security_groups(filters={'description': ['My other group']})[0]
 
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
@@ -343,7 +339,7 @@ def test_vpc_single_instance_in_subnet():
     eip.domain.should.equal('vpc')
     eip.instance_id.should.equal(instance.id)
 
-    security_group = ec2_conn.get_all_security_groups()[0]
+    security_group = ec2_conn.get_all_security_groups(filters={'vpc_id': [vpc.id]})[0]
     security_group.vpc_id.should.equal(vpc.id)
 
     stack = conn.describe_stacks()[0]
@@ -1018,7 +1014,7 @@ def test_vpc_peering_creation():
 
 @mock_cloudformation
 @mock_ec2
-def test_security_group_ingress_separate_from_security_group_by_id():
+def test_multiple_security_group_ingress_separate_from_security_group_by_id():
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
@@ -1076,7 +1072,6 @@ def test_security_group_ingress_separate_from_security_group_by_id():
     security_group1.rules[0].ip_protocol.should.equal('tcp')
     security_group1.rules[0].from_port.should.equal('80')
     security_group1.rules[0].to_port.should.equal('8080')
-
 
 
 @mock_cloudformation
@@ -1194,3 +1189,32 @@ def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
     security_group1.rules[0].ip_protocol.should.equal('tcp')
     security_group1.rules[0].from_port.should.equal('80')
     security_group1.rules[0].to_port.should.equal('8080')
+
+
+@mock_cloudformation
+@mock_ec2
+def test_subnets_should_be_created_with_availability_zone():
+    vpc_conn = boto.vpc.connect_to_region('us-west-1')
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+
+    subnet_template = {
+       "AWSTemplateFormatVersion" : "2010-09-09",
+       "Resources" : {
+          "testSubnet" : {
+             "Type" : "AWS::EC2::Subnet",
+             "Properties" : {
+                "VpcId" : vpc.id,
+                "CidrBlock" : "10.0.0.0/24",
+                "AvailabilityZone" : "us-west-1b",
+             }
+          }
+       }
+    }
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    template_json = json.dumps(subnet_template)
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+    subnet = vpc_conn.get_all_subnets(filters={'cidrBlock': '10.0.0.0/24'})[0]
+    subnet.availability_zone.should.equal('us-west-1b')

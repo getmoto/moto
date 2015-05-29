@@ -1,4 +1,10 @@
 from __future__ import unicode_literals
+from boto.ec2.elb.attributes import (
+    ConnectionSettingAttribute,
+    ConnectionDrainingAttribute,
+    AccessLogAttribute,
+    CrossZoneLoadBalancingAttribute,
+)
 
 from moto.core.responses import BaseResponse
 from .models import elb_backends
@@ -25,7 +31,7 @@ class ELBResponse(BaseResponse):
                 break
             lb_port = self.querystring['Listeners.member.{0}.LoadBalancerPort'.format(port_index)][0]
             instance_port = self.querystring['Listeners.member.{0}.InstancePort'.format(port_index)][0]
-            ssl_certificate_id = self.querystring.get('Listeners.member.{0}.SSLCertificateId'.format(port_index)[0], None)
+            ssl_certificate_id = self.querystring.get('Listeners.member.{0}.SSLCertificateId'.format(port_index), [None])[0]
             ports.append([protocol, lb_port, instance_port, ssl_certificate_id])
             port_index += 1
 
@@ -121,6 +127,64 @@ class ELBResponse(BaseResponse):
         template = self.response_template(DEREGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.deregister_instances(load_balancer_name, instance_ids)
         return template.render(load_balancer=load_balancer)
+
+    def describe_load_balancer_attributes(self):
+        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        load_balancer = self.elb_backend.describe_load_balancers(load_balancer_name)[0]
+        template = self.response_template(DESCRIBE_ATTRIBUTES_TEMPLATE)
+        return template.render(attributes=load_balancer.attributes)
+
+    def modify_load_balancer_attributes(self):
+        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        load_balancer = self.elb_backend.describe_load_balancers(load_balancer_name)[0]
+
+        def parse_attribute(attribute_name):
+            """
+            Transform self.querystring parameters matching `LoadBalancerAttributes.attribute_name.attribute_key`
+            into a dictionary of (attribute_name, attribute_key)` pairs.
+            """
+            attribute_prefix = "LoadBalancerAttributes." + attribute_name
+            return dict((key.lstrip(attribute_prefix), value[0]) for key, value in self.querystring.items() if key.startswith(attribute_prefix))
+
+        cross_zone = parse_attribute("CrossZoneLoadBalancing")
+        if cross_zone:
+            attribute = CrossZoneLoadBalancingAttribute()
+            attribute.enabled = cross_zone["Enabled"] == "true"
+            self.elb_backend.set_cross_zone_load_balancing_attribute(load_balancer_name, attribute)
+
+        access_log = parse_attribute("AccessLog")
+        if access_log:
+            attribute = AccessLogAttribute()
+            attribute.enabled = access_log["Enabled"] == "true"
+            attribute.s3_bucket_name = access_log["S3BucketName"]
+            attribute.s3_bucket_prefix = access_log["S3BucketPrefix"]
+            attribute.emit_interval = access_log["EmitInterval"]
+            self.elb_backend.set_access_log_attribute(load_balancer_name, attribute)
+
+        connection_draining = parse_attribute("ConnectionDraining")
+        if connection_draining:
+            attribute = ConnectionDrainingAttribute()
+            attribute.enabled = connection_draining["Enabled"] == "true"
+            attribute.timeout = connection_draining["Timeout"]
+            self.elb_backend.set_connection_draining_attribute(load_balancer_name, attribute)
+
+        connection_settings = parse_attribute("ConnectionSettings")
+        if connection_settings:
+            attribute = ConnectionSettingAttribute()
+            attribute.idle_timeout = connection_settings["IdleTimeout"]
+            self.elb_backend.set_connection_settings_attribute(load_balancer_name, attribute)
+
+        template = self.response_template(MODIFY_ATTRIBUTES_TEMPLATE)
+        return template.render(attributes=load_balancer.attributes)
+
+    def describe_instance_health(self):
+        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        instance_ids = [value[0] for key, value in self.querystring.items() if "Instances.member" in key]
+        if len(instance_ids) == 0:
+            instance_ids = self.elb_backend.describe_load_balancers(load_balancer_name)[0].instance_ids
+        template = self.response_template(DESCRIBE_INSTANCE_HEALTH_TEMPLATE)
+        return template.render(instance_ids=instance_ids)
+
 
 CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResult xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
     <DNSName>tests.us-east-1.elb.amazonaws.com</DNSName>
@@ -253,3 +317,84 @@ DELETE_LOAD_BALANCER_LISTENERS = """<DeleteLoadBalancerListenersResponse xmlns="
     <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
 </ResponseMetadata>
 </DeleteLoadBalancerListenersResponse>"""
+
+DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <DescribeLoadBalancerAttributesResult>
+    <LoadBalancerAttributes>
+      <AccessLog>
+        <Enabled>{{ attributes.access_log.enabled }}</Enabled>
+        {% if attributes.access_log.enabled %}
+        <S3BucketName>{{ attributes.access_log.s3_bucket_name }}</S3BucketName>
+        <S3BucketPrefix>{{ attributes.access_log.s3_bucket_prefix }}</S3BucketPrefix>
+        <EmitInterval>{{ attributes.access_log.emit_interval }}</EmitInterval>
+        {% endif %}
+      </AccessLog>
+      <ConnectionSettings>
+        <IdleTimeout>{{ attributes.connecting_settings.idle_timeout }}</IdleTimeout>
+      </ConnectionSettings>
+      <CrossZoneLoadBalancing>
+        <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
+      </CrossZoneLoadBalancing>
+      <ConnectionDraining>
+        <Enabled>{{ attributes.connection_draining.enabled }}</Enabled>
+        {% if attributes.connection_draining.enabled %}
+        <Timeout>{{ attributes.connection_draining.timeout }}</Timeout>
+        {% endif %}
+      </ConnectionDraining>
+    </LoadBalancerAttributes>
+  </DescribeLoadBalancerAttributesResult>
+  <ResponseMetadata>
+    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+  </ResponseMetadata>
+</DescribeLoadBalancerAttributesResponse>
+"""
+
+MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <ModifyLoadBalancerAttributesResult>
+  <LoadBalancerName>my-loadbalancer</LoadBalancerName>
+    <LoadBalancerAttributes>
+      <AccessLog>
+        <Enabled>{{ attributes.access_log.enabled }}</Enabled>
+        {% if attributes.access_log.enabled %}
+        <S3BucketName>{{ attributes.access_log.s3_bucket_name }}</S3BucketName>
+        <S3BucketPrefix>{{ attributes.access_log.s3_bucket_prefix }}</S3BucketPrefix>
+        <EmitInterval>{{ attributes.access_log.emit_interval }}</EmitInterval>
+        {% endif %}
+      </AccessLog>
+      <ConnectionSettings>
+        <IdleTimeout>{{ attributes.connecting_settings.idle_timeout }}</IdleTimeout>
+      </ConnectionSettings>
+      <CrossZoneLoadBalancing>
+        <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
+      </CrossZoneLoadBalancing>
+      <ConnectionDraining>
+        <Enabled>{{ attributes.connection_draining.enabled }}</Enabled>
+        {% if attributes.connection_draining.enabled %}
+        <Timeout>{{ attributes.connection_draining.timeout }}</Timeout>
+        {% endif %}
+      </ConnectionDraining>
+    </LoadBalancerAttributes>
+  </ModifyLoadBalancerAttributesResult>
+  <ResponseMetadata>
+    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+  </ResponseMetadata>
+</ModifyLoadBalancerAttributesResponse>
+"""
+
+DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <DescribeInstanceHealthResult>
+    <InstanceStates>
+      {% for instance_id in instance_ids %}
+      <member>
+        <Description>N/A</Description>
+        <InstanceId>{{ instance_id }}</InstanceId>
+        <State>InService</State>
+        <ReasonCode>N/A</ReasonCode>
+      </member>
+      {% endfor %}
+    </InstanceStates>
+  </DescribeInstanceHealthResult>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DescribeInstanceHealthResponse>"""

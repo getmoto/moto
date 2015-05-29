@@ -7,7 +7,15 @@ class Subnets(BaseResponse):
     def create_subnet(self):
         vpc_id = self.querystring.get('VpcId')[0]
         cidr_block = self.querystring.get('CidrBlock')[0]
-        subnet = self.ec2_backend.create_subnet(vpc_id, cidr_block)
+        if 'AvailabilityZone' in self.querystring:
+            availability_zone = self.querystring['AvailabilityZone'][0]
+        else:
+            availability_zone = None
+        subnet = self.ec2_backend.create_subnet(
+          vpc_id,
+          cidr_block,
+          availability_zone,
+        )
         template = self.response_template(CREATE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
 
@@ -33,7 +41,7 @@ CREATE_SUBNET_RESPONSE = """
     <vpcId>{{ subnet.vpc_id }}</vpcId>
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
     <availableIpAddressCount>251</availableIpAddressCount>
-    <availabilityZone>us-east-1a</availabilityZone>
+    <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
     <tagSet>
       {% for tag in subnet.get_tags() %}
         <item>
@@ -64,7 +72,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <vpcId>{{ subnet.vpc_id }}</vpcId>
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
         <availableIpAddressCount>251</availableIpAddressCount>
-        <availabilityZone>us-east-1a</availabilityZone>
+        <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
         <tagSet>
           {% for tag in subnet.get_tags() %}
             <item>

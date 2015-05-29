@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
+import tests.backport_assert_raises  # flake8: noqa
 from nose.tools import assert_raises
 
 import boto
@@ -41,13 +41,13 @@ def test_vpc_defaults():
 
     conn.get_all_vpcs().should.have.length_of(1)
     conn.get_all_route_tables().should.have.length_of(1)
-    conn.get_all_security_groups().should.have.length_of(1)
+    conn.get_all_security_groups(filters={'vpc-id': [vpc.id]}).should.have.length_of(1)
 
     vpc.delete()
 
     conn.get_all_vpcs().should.have.length_of(0)
     conn.get_all_route_tables().should.have.length_of(0)
-    conn.get_all_security_groups().should.have.length_of(0)
+    conn.get_all_security_groups(filters={'vpc-id': [vpc.id]}).should.have.length_of(0)
 
 
 @mock_ec2
@@ -72,7 +72,7 @@ def test_vpc_get_by_id():
     conn = boto.connect_vpc()
     vpc1 = conn.create_vpc("10.0.0.0/16")
     vpc2 = conn.create_vpc("10.0.0.0/16")
-    vpc3 = conn.create_vpc("10.0.0.0/16")
+    conn.create_vpc("10.0.0.0/16")
 
     vpcs = conn.get_all_vpcs(vpc_ids=[vpc1.id, vpc2.id])
     vpcs.should.have.length_of(2)
@@ -86,7 +86,7 @@ def test_vpc_get_by_cidr_block():
     conn = boto.connect_vpc()
     vpc1 = conn.create_vpc("10.0.0.0/16")
     vpc2 = conn.create_vpc("10.0.0.0/16")
-    vpc3 = conn.create_vpc("10.0.0.0/24")
+    conn.create_vpc("10.0.0.0/24")
 
     vpcs = conn.get_all_vpcs(filters={'cidr': '10.0.0.0/16'})
     vpcs.should.have.length_of(2)
@@ -101,7 +101,7 @@ def test_vpc_get_by_dhcp_options_id():
     dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
     vpc1 = conn.create_vpc("10.0.0.0/16")
     vpc2 = conn.create_vpc("10.0.0.0/16")
-    vpc3 = conn.create_vpc("10.0.0.0/24")
+    conn.create_vpc("10.0.0.0/24")
 
     conn.associate_dhcp_options(dhcp_options.id, vpc1.id)
     conn.associate_dhcp_options(dhcp_options.id, vpc2.id)
@@ -196,7 +196,7 @@ def test_vpc_get_by_tag_value_subset():
     conn = boto.connect_vpc()
     vpc1 = conn.create_vpc("10.0.0.0/16")
     vpc2 = conn.create_vpc("10.0.0.0/16")
-    vpc3 = conn.create_vpc("10.0.0.0/24")
+    conn.create_vpc("10.0.0.0/24")
 
     vpc1.add_tag('Name', 'TestVPC')
     vpc1.add_tag('Key', 'TestVPC2')

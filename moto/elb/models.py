@@ -1,6 +1,13 @@
 from __future__ import unicode_literals
 
 import boto.ec2.elb
+from boto.ec2.elb.attributes import (
+    LbAttributes,
+    ConnectionSettingAttribute,
+    ConnectionDrainingAttribute,
+    AccessLogAttribute,
+    CrossZoneLoadBalancingAttribute,
+)
 from moto.core import BaseBackend
 
 
@@ -29,6 +36,7 @@ class FakeLoadBalancer(object):
         self.instance_ids = []
         self.zones = zones
         self.listeners = []
+        self.attributes = FakeLoadBalancer.get_default_attributes()
 
         for protocol, lb_port, instance_port, ssl_certificate_id in ports:
             listener = FakeListener(
@@ -72,6 +80,28 @@ class FakeLoadBalancer(object):
         elif attribute_name == 'SourceSecurityGroup.OwnerAlias':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.OwnerAlias" ]"')
         raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def get_default_attributes(cls):
+        attributes = LbAttributes()
+
+        cross_zone_load_balancing = CrossZoneLoadBalancingAttribute()
+        cross_zone_load_balancing.enabled = False
+        attributes.cross_zone_load_balancing = cross_zone_load_balancing
+
+        connection_draining = ConnectionDrainingAttribute()
+        connection_draining.enabled = False
+        attributes.connection_draining = connection_draining
+
+        access_log = AccessLogAttribute()
+        access_log.enabled = False
+        attributes.access_log = access_log
+
+        connection_settings = ConnectionSettingAttribute()
+        connection_settings.idle_timeout = 60
+        attributes.connecting_settings = connection_settings
+
+        return attributes
 
 
 class ELBBackend(BaseBackend):
@@ -149,6 +179,26 @@ class ELBBackend(BaseBackend):
         load_balancer = self.get_load_balancer(load_balancer_name)
         new_instance_ids = [instance_id for instance_id in load_balancer.instance_ids if instance_id not in instance_ids]
         load_balancer.instance_ids = new_instance_ids
+        return load_balancer
+
+    def set_cross_zone_load_balancing_attribute(self, load_balancer_name, attribute):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.attributes.cross_zone_load_balancing = attribute
+        return load_balancer
+
+    def set_access_log_attribute(self, load_balancer_name, attribute):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.attributes.access_log = attribute
+        return load_balancer
+
+    def set_connection_draining_attribute(self, load_balancer_name, attribute):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.attributes.connection_draining = attribute
+        return load_balancer
+
+    def set_connection_settings_attribute(self, load_balancer_name, attribute):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.attributes.connecting_settings = attribute
         return load_balancer
 
 

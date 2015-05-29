@@ -4,6 +4,7 @@ import six
 
 import sure  # noqa
 
+from boto.exception import BotoServerError
 from moto import mock_sns
 from moto.sns.models import DEFAULT_TOPIC_POLICY, DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
 
@@ -25,6 +26,12 @@ def test_create_and_delete_topic():
     topics_json = conn.get_all_topics()
     topics = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
     topics.should.have.length_of(0)
+
+
+@mock_sns
+def test_get_missing_topic():
+    conn = boto.connect_sns()
+    conn.get_topic_attributes.when.called_with("a-fake-arn").should.throw(BotoServerError)
 
 
 @mock_sns
