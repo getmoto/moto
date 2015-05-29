@@ -92,7 +92,9 @@ from .utils import (
     filter_reservations,
     random_network_acl_id,
     random_network_acl_subnet_association_id,
-    random_vpn_gateway_id)
+    random_vpn_gateway_id,
+    is_tag_filter,
+)
 
 
 def validate_resource_ids(resource_ids):
@@ -118,6 +120,9 @@ class TaggedEC2Resource(object):
     def get_tags(self, *args, **kwargs):
         tags = self.ec2_backend.describe_tags(filters={'resource-id': [self.id]})
         return tags
+
+    def add_tag(self, key, value):
+        self.ec2_backend.create_tags([self.id], {key: value})
 
     def get_filter_value(self, filter_name):
         tags = self.get_tags()
@@ -1071,12 +1076,16 @@ class SecurityGroup(TaggedEC2Resource):
             vpc_id=vpc_id,
         )
 
+        for tag in properties.get("Tags", []):
+            tag_key = tag["Key"]
+            tag_value = tag["Value"]
+            security_group.add_tag(tag_key, tag_value)
+
         for ingress_rule in properties.get('SecurityGroupIngress', []):
             source_group_id = ingress_rule.get('SourceSecurityGroupId')
 
             ec2_backend.authorize_security_group_ingress(
-                group_name=security_group.name,
-                group_id=security_group.id,
+                group_name_or_id=security_group.id,
                 ip_protocol=ingress_rule['IpProtocol'],
                 from_port=ingress_rule['FromPort'],
                 to_port=ingress_rule['ToPort'],
@@ -1113,6 +1122,9 @@ class SecurityGroup(TaggedEC2Resource):
             for ingress in self.ingress_rules:
                 if getattr(ingress, ingress_attr) in filter_value:
                     return True
+        elif is_tag_filter(key):
+            tag_value = self.get_filter_value(key)
+            return tag_value in filter_value
         else:
             attr_name = to_attr(key)
             return getattr(self, attr_name) in filter_value
@@ -1205,9 +1217,15 @@ class SecurityGroupBackend(object):
             default_group = self.create_security_group("default", "The default security group", vpc_id=vpc_id, force=True)
             return default_group
 
+    def get_security_group_by_name_or_id(self, group_name_or_id, vpc_id):
+        # try searching by id, fallbacks to name search
+        group = self.get_security_group_from_id(group_name_or_id)
+        if group is None:
+            group = self.get_security_group_from_name(group_name_or_id, vpc_id)
+        return group
+
     def authorize_security_group_ingress(self,
-                                         group_name,
-                                         group_id,
+                                         group_name_or_id,
                                          ip_protocol,
                                          from_port,
                                          to_port,
@@ -1215,12 +1233,7 @@ class SecurityGroupBackend(object):
                                          source_group_names=None,
                                          source_group_ids=None,
                                          vpc_id=None):
-        # to auth a group in a VPC you need the group_id the name isn't enough
-
-        if group_name:
-            group = self.get_security_group_from_name(group_name, vpc_id)
-        elif group_id:
-            group = self.get_security_group_from_id(group_id)
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
 
         if ip_ranges and not isinstance(ip_ranges, list):
             ip_ranges = [ip_ranges]
@@ -1248,8 +1261,7 @@ class SecurityGroupBackend(object):
         group.ingress_rules.append(security_rule)
 
     def revoke_security_group_ingress(self,
-                                      group_name,
-                                      group_id,
+                                      group_name_or_id,
                                       ip_protocol,
                                       from_port,
                                       to_port,
@@ -1258,10 +1270,7 @@ class SecurityGroupBackend(object):
                                       source_group_ids=None,
                                       vpc_id=None):
 
-        if group_name:
-            group = self.get_security_group_from_name(group_name, vpc_id)
-        elif group_id:
-            group = self.get_security_group_from_id(group_id)
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
 
         source_groups = []
         for source_group_name in source_group_names:
@@ -1280,6 +1289,63 @@ class SecurityGroupBackend(object):
             return security_rule
 
         raise InvalidPermissionNotFoundError()
+
+
+class SecurityGroupIngress(object):
+
+    def __init__(self, security_group, properties):
+        self.security_group = security_group
+        self.properties = properties
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        ec2_backend = ec2_backends[region_name]
+        group_name = properties.get('GroupName')
+        group_id = properties.get('GroupId')
+        ip_protocol = properties.get("IpProtocol")
+        cidr_ip = properties.get("CidrIp")
+        from_port = properties.get("FromPort")
+        source_security_group_id = properties.get("SourceSecurityGroupId")
+        source_security_group_name = properties.get("SourceSecurityGroupName")
+        source_security_owner_id = properties.get("SourceSecurityGroupOwnerId")  # IGNORED AT THE MOMENT
+        to_port = properties.get("ToPort")
+
+        assert group_id or group_name
+        assert source_security_group_name or cidr_ip or source_security_group_id
+        assert ip_protocol
+
+        if source_security_group_id:
+            source_security_group_ids = [source_security_group_id]
+        else:
+            source_security_group_ids = None
+        if source_security_group_name:
+            source_security_group_names = [source_security_group_name]
+        else:
+            source_security_group_names = None
+        if cidr_ip:
+            ip_ranges = [cidr_ip]
+        else:
+            ip_ranges = []
+
+
+        if group_id:
+            security_group = ec2_backend.describe_security_groups(group_ids=[group_id])[0]
+        else:
+            security_group = ec2_backend.describe_security_groups(groupnames=[group_name])[0]
+
+        ec2_backend.authorize_security_group_ingress(
+            group_name_or_id=security_group.id,
+            ip_protocol=ip_protocol,
+            from_port=from_port,
+            to_port=to_port,
+            ip_ranges=ip_ranges,
+            source_group_ids=source_security_group_ids,
+            source_group_names=source_security_group_names,
+        )
+
+        return cls(security_group, properties)
 
 
 class VolumeAttachment(object):

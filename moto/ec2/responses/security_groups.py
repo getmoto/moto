@@ -4,14 +4,10 @@ from moto.ec2.utils import filters_from_querystring
 
 
 def process_rules_from_querystring(querystring):
-
-    name = None
-    group_id = None
-
     try:
-        name = querystring.get('GroupName')[0]
+        group_name_or_id = querystring.get('GroupName')[0]
     except:
-        group_id = querystring.get('GroupId')[0]
+        group_name_or_id = querystring.get('GroupId')[0]
 
     ip_protocol = querystring.get('IpPermissions.1.IpProtocol')[0]
     from_port = querystring.get('IpPermissions.1.FromPort')[0]
@@ -30,7 +26,7 @@ def process_rules_from_querystring(querystring):
         elif 'IpPermissions.1.Groups' in key:
             source_groups.append(value[0])
 
-    return (name, group_id, ip_protocol, from_port, to_port, ip_ranges, source_groups, source_group_ids)
+    return (group_name_or_id, ip_protocol, from_port, to_port, ip_ranges, source_groups, source_group_ids)
 
 
 class SecurityGroups(BaseResponse):

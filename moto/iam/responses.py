@@ -87,6 +87,13 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_INSTANCE_PROFILES_TEMPLATE)
         return template.render(instance_profiles=profiles)
 
+    def list_instance_profiles_for_role(self):
+        role_name = self._get_param('RoleName')
+        profiles = iam_backend.get_instance_profiles_for_role(role_name=role_name)
+
+        template = self.response_template(LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE)
+        return template.render(instance_profiles=profiles)
+
     def upload_server_certificate(self):
         cert_name = self._get_param('ServerCertificateName')
         cert_body = self._get_param('CertificateBody')
@@ -602,3 +609,35 @@ CREDENTIAL_REPORT = """<GetCredentialReportResponse>
         <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
     </ResponseMetadata>
 </GetCredentialReportResponse>"""
+
+LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleResponse>
+<ListInstanceProfilesForRoleResult>
+  <IsTruncated>false</IsTruncated>
+  <InstanceProfiles>
+    {% for profile in instance_profiles %}
+    <member>
+    <Id>{{ profile.id }}</Id>
+      <Roles>
+        {% for role in profile.roles %}
+        <member>
+          <Path>{{ role.path }}</Path>
+          <Arn>arn:aws:iam::123456789012:role{{ role.path }}S3Access</Arn>
+          <RoleName>{{ role.name }}</RoleName>
+          <AssumeRolePolicyDocument>{{ role.assume_policy_document }}</AssumeRolePolicyDocument>
+          <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+          <RoleId>{{ role.id }}</RoleId>
+        </member>
+        {% endfor %}
+      </Roles>
+      <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
+      <Path>{{ profile.path }}</Path>
+      <Arn>arn:aws:iam::123456789012:instance-profile{{ profile.path }}Webserver</Arn>
+      <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+    </member>
+    {% endfor %}
+  </InstanceProfiles>
+</ListInstanceProfilesForRoleResult>
+<ResponseMetadata>
+  <RequestId>6a8c3992-99f4-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</ListInstanceProfilesForRoleResponse>"""

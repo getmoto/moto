@@ -26,6 +26,7 @@ MODEL_MAP = {
     "AWS::EC2::Route": ec2_models.Route,
     "AWS::EC2::RouteTable": ec2_models.RouteTable,
     "AWS::EC2::SecurityGroup": ec2_models.SecurityGroup,
+    "AWS::EC2::SecurityGroupIngress": ec2_models.SecurityGroupIngress,
     "AWS::EC2::Subnet": ec2_models.Subnet,
     "AWS::EC2::SubnetRouteTableAssociation": ec2_models.SubnetRouteTableAssociation,
     "AWS::EC2::Volume": ec2_models.Volume,

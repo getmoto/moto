@@ -184,3 +184,25 @@ class SNSResponse(BaseResponse):
                 }
             }
         })
+
+    def list_endpoints_by_platform_application(self):
+        return json.dumps({
+            "ListEndpointsByPlatformApplicationResponse": {
+                "ListEndpointsByPlatformApplicationResult": {
+                    "Endpoints": [
+                        {
+                            "Attributes": {
+                                "Token": "TOKEN",
+                                "Enabled": "true",
+                                "CustomUserData": ""
+                            },
+                            "EndpointArn": "FAKE_ARN_ENDPOINT"
+                        }
+                    ],
+                    "NextToken": None
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })

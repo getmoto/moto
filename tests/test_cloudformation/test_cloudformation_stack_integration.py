@@ -1014,3 +1014,183 @@ def test_vpc_peering_creation():
 
     peering_connections = vpc_conn.get_all_vpc_peering_connections()
     peering_connections.should.have.length_of(1)
+
+
+@mock_cloudformation
+@mock_ec2
+def test_security_group_ingress_separate_from_security_group_by_id():
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "test-security-group1": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription": "test security group",
+                    "Tags": [
+                        {
+                            "Key": "sg-name",
+                            "Value": "sg1"
+                        }
+                    ]
+                },
+            },
+            "test-security-group2": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription": "test security group",
+                    "Tags": [
+                        {
+                            "Key": "sg-name",
+                            "Value": "sg2"
+                        }
+                    ]
+                },
+            },
+            "test-sg-ingress": {
+                "Type": "AWS::EC2::SecurityGroupIngress",
+                "Properties": {
+                    "GroupId": {"Ref": "test-security-group1"},
+                    "IpProtocol": "tcp",
+                    "FromPort": "80",
+                    "ToPort": "8080",
+                    "SourceSecurityGroupId": {"Ref": "test-security-group2"},
+                }
+            }
+        }
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
+
+    security_group1 = ec2_conn.get_all_security_groups(filters={"tag:sg-name": "sg1"})[0]
+    security_group2 = ec2_conn.get_all_security_groups(filters={"tag:sg-name": "sg2"})[0]
+
+    security_group1.rules.should.have.length_of(1)
+    security_group1.rules[0].grants.should.have.length_of(1)
+    security_group1.rules[0].grants[0].group_id.should.equal(security_group2.id)
+    security_group1.rules[0].ip_protocol.should.equal('tcp')
+    security_group1.rules[0].from_port.should.equal('80')
+    security_group1.rules[0].to_port.should.equal('8080')
+
+
+
+@mock_cloudformation
+@mock_ec2
+def test_security_group_ingress_separate_from_security_group_by_id():
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
+    ec2_conn.create_security_group("test-security-group1", "test security group")
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "test-security-group2": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription": "test security group",
+                    "Tags": [
+                        {
+                            "Key": "sg-name",
+                            "Value": "sg2"
+                        }
+                    ]
+                },
+            },
+            "test-sg-ingress": {
+                "Type": "AWS::EC2::SecurityGroupIngress",
+                "Properties": {
+                    "GroupName": "test-security-group1",
+                    "IpProtocol": "tcp",
+                    "FromPort": "80",
+                    "ToPort": "8080",
+                    "SourceSecurityGroupId": {"Ref": "test-security-group2"},
+                }
+            }
+        }
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+    security_group1 = ec2_conn.get_all_security_groups(groupnames=["test-security-group1"])[0]
+    security_group2 = ec2_conn.get_all_security_groups(filters={"tag:sg-name": "sg2"})[0]
+
+    security_group1.rules.should.have.length_of(1)
+    security_group1.rules[0].grants.should.have.length_of(1)
+    security_group1.rules[0].grants[0].group_id.should.equal(security_group2.id)
+    security_group1.rules[0].ip_protocol.should.equal('tcp')
+    security_group1.rules[0].from_port.should.equal('80')
+    security_group1.rules[0].to_port.should.equal('8080')
+
+
+@mock_cloudformation
+@mock_ec2
+def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
+    vpc_conn = boto.vpc.connect_to_region("us-west-1")
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "test-security-group1": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription": "test security group",
+                    "VpcId": vpc.id,
+                    "Tags": [
+                        {
+                            "Key": "sg-name",
+                            "Value": "sg1"
+                        }
+                    ]
+                },
+            },
+            "test-security-group2": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription": "test security group",
+                    "VpcId": vpc.id,
+                    "Tags": [
+                        {
+                            "Key": "sg-name",
+                            "Value": "sg2"
+                        }
+                    ]
+                },
+            },
+            "test-sg-ingress": {
+                "Type": "AWS::EC2::SecurityGroupIngress",
+                "Properties": {
+                    "GroupId": {"Ref": "test-security-group1"},
+                    "VpcId": vpc.id,
+                    "IpProtocol": "tcp",
+                    "FromPort": "80",
+                    "ToPort": "8080",
+                    "SourceSecurityGroupId": {"Ref": "test-security-group2"},
+                }
+            }
+        }
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+    security_group1 = vpc_conn.get_all_security_groups(filters={"tag:sg-name": "sg1"})[0]
+    security_group2 = vpc_conn.get_all_security_groups(filters={"tag:sg-name": "sg2"})[0]
+
+    security_group1.rules.should.have.length_of(1)
+    security_group1.rules[0].grants.should.have.length_of(1)
+    security_group1.rules[0].grants[0].group_id.should.equal(security_group2.id)
+    security_group1.rules[0].ip_protocol.should.equal('tcp')
+    security_group1.rules[0].from_port.should.equal('80')
+    security_group1.rules[0].to_port.should.equal('8080')
