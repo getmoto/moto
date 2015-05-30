@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import boto
 from boto.exception import SQSError
-from boto.sqs.message import RawMessage
+from boto.sqs.message import RawMessage, Message
 
 import requests
 import sure  # noqa
@@ -441,3 +441,24 @@ def test_purge_action():
     queue.purge()
 
     queue.count().should.equal(0)
+
+
+@mock_sqs
+def test_delete_message_after_visibility_timeout():
+    VISIBILITY_TIMEOUT = 1
+    conn = boto.sqs.connect_to_region("us-east-1")
+    new_queue = conn.create_queue('new-queue', visibility_timeout=VISIBILITY_TIMEOUT)
+
+    m1 = Message()
+    m1.set_body('Message 1!')
+    new_queue.write(m1)
+
+    assert new_queue.count() == 1
+
+    m1_retrieved = new_queue.read()
+
+    time.sleep(VISIBILITY_TIMEOUT + 1)
+
+    m1_retrieved.delete()
+
+    assert new_queue.count() == 0

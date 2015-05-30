@@ -259,7 +259,7 @@ class SQSBackend(BaseBackend):
         for message in queue._messages:
             # Only delete message if it is not visible and the reciept_handle
             # matches.
-            if not message.visible and message.receipt_handle == receipt_handle:
+            if message.receipt_handle == receipt_handle:
                 continue
             new_messages.append(message)
         queue._messages = new_messages
