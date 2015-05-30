@@ -7,5 +7,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': RDS2Response().dispatch,
+    '{0}/$': RDS2Response.dispatch,
 }

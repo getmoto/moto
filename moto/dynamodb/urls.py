@@ -7,5 +7,5 @@ url_bases = [
 ]
 
 url_paths = {
-    "{0}/": DynamoHandler().dispatch,
+    "{0}/": DynamoHandler.dispatch,
 }

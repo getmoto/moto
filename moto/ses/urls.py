@@ -6,5 +6,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': EmailResponse().dispatch,
+    '{0}/$': EmailResponse.dispatch,
 }

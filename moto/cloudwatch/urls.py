@@ -5,5 +5,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': CloudWatchResponse().dispatch,
+    '{0}/$': CloudWatchResponse.dispatch,
 }

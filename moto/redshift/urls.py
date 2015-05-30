@@ -6,5 +6,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': RedshiftResponse().dispatch,
+    '{0}/$': RedshiftResponse.dispatch,
 }

@@ -6,5 +6,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': ELBResponse().dispatch,
+    '{0}/$': ELBResponse.dispatch,
 }

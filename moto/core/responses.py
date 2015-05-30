@@ -82,7 +82,11 @@ class BaseResponse(_TemplateEnvironmentMixin):
     default_region = 'us-east-1'
     region_regex = r'\.(.+?)\.amazonaws\.com'
 
-    def dispatch(self, request, full_url, headers):
+    @classmethod
+    def dispatch(cls, *args, **kwargs):
+        return cls()._dispatch(*args, **kwargs)
+
+    def _dispatch(self, request, full_url, headers):
         querystring = {}
 
         if hasattr(request, 'body'):

@@ -6,5 +6,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': SNSResponse().dispatch,
+    '{0}/$': SNSResponse.dispatch,
 }

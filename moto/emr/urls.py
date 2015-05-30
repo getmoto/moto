@@ -6,5 +6,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': ElasticMapReduceResponse().dispatch,
+    '{0}/$': ElasticMapReduceResponse.dispatch,
 }
