@@ -200,6 +200,12 @@ class QueueResponse(BaseResponse):
         template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
         return template.render(message_ids=message_ids)
 
+    def purge_queue(self):
+        queue_name = self.path.split("/")[-1]
+        self.sqs_backend.purge_queue(queue_name)
+        template = self.response_template(PURGE_QUEUE_RESPONSE)
+        return template.render()
+
     def receive_message(self):
         queue_name = self.path.split("/")[-1]
         message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
@@ -389,3 +395,11 @@ CHANGE_MESSAGE_VISIBILITY_RESPONSE = """<ChangeMessageVisibilityResponse>
         </RequestId>
     </ResponseMetadata>
 </ChangeMessageVisibilityResponse>"""
+
+PURGE_QUEUE_RESPONSE = """<PurgeQueueResponse>
+    <ResponseMetadata>
+        <RequestId>
+            6fde8d1e-52cd-4581-8cd9-c512f4c64223
+        </RequestId>
+    </ResponseMetadata>
+</PurgeQueueResponse>"""

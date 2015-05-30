@@ -274,6 +274,11 @@ class SQSBackend(BaseBackend):
                 return
         raise ReceiptHandleIsInvalid
 
+    def purge_queue(self, queue_name):
+        queue = self.get_queue(queue_name)
+        queue._messages = []
+
+
 sqs_backends = {}
 for region in boto.sqs.regions():
     sqs_backends[region.name] = SQSBackend()

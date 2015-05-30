@@ -428,3 +428,16 @@ def test_change_message_visibility_on_visible_message():
     queue.count().should.equal(1)
 
     original_message.change_visibility.when.called_with(100).should.throw(SQSError)
+
+
+@mock_sqs
+def test_purge_action():
+    conn = boto.sqs.connect_to_region("us-east-1")
+
+    queue = conn.create_queue('new-queue')
+    queue.write(queue.new_message('this is another test message'))
+    queue.count().should.equal(1)
+
+    queue.purge()
+
+    queue.count().should.equal(0)
