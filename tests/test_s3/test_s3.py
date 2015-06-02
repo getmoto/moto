@@ -7,6 +7,7 @@ from functools import wraps
 from io import BytesIO
 
 import boto
+from urllib import quote
 from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
@@ -18,6 +19,7 @@ from nose.tools import assert_raises
 import sure  # noqa
 
 from moto import mock_s3
+from tests.helpers import requires_boto_gte
 
 
 REDUCED_PART_SIZE = 256
@@ -542,6 +544,65 @@ def test_key_with_special_characters():
     key_list = bucket.list('test_list_keys_2/', '/')
     keys = [x for x in key_list]
     keys[0].name.should.equal("test_list_keys_2/x?y")
+
+
+@mock_s3
+def test_bucket_list_no_quote():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+
+    # test characters which should not be url encoded
+    key_name = 'validchars\n'
+    k = Key(bucket, key_name)
+    k.set_contents_from_string('somedata')
+    keys = [x.name for x in bucket.list()]
+    keys.should.equal([key_name])
+
+
+@requires_boto_gte('2.21.0')
+@mock_s3
+def test_bucket_list_unicode():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+
+    # test with unicode
+    key_name = u'έγκυροι χαρακτήρες'
+    k = Key(bucket, key_name.encode('utf-8'))
+    k.set_contents_from_string('somedata')
+    keys = [x.name for x in bucket.list()]
+    keys.should.equal([key_name])
+
+    # test with unicode when url encoding
+    keys = [x.name for x in bucket.list(encoding_type='url')]
+    keys.should.equal([quote(key_name.encode('utf-8'))])
+
+
+@requires_boto_gte('2.21.0')
+@mock_s3
+def test_bucket_list_quote_invalid():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+
+    # test with characters which are invalid xml
+    key_name = 'validunicode\x01invalidxml'
+    k = Key(bucket, key_name)
+    k.set_contents_from_string('somedata')
+    keys = [x.name for x in bucket.list(encoding_type='url')]
+    keys.should.equal([quote(key_name)])
+
+
+@requires_boto_gte('2.21.0')
+@mock_s3
+def test_bucket_list_quote_folders():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test_bucket')
+
+    # test with unicode in common prefixes
+    folder_name = 'validunicode\x01invalidxmlfolder'
+    k = Key(bucket, folder_name + "/lala")
+    k.set_contents_from_string('somedata')
+    keys = [x.name for x in bucket.list(encoding_type='url', delimiter='/')]
+    keys.should.equal([quote(folder_name + '/')])
 
 
 @mock_s3

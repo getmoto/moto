@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import re
 
 import six
-from six.moves.urllib.parse import parse_qs, urlparse
+from six.moves.urllib.parse import parse_qs, urlparse, quote, unquote
 
 from moto.core.responses import _TemplateEnvironmentMixin
 
@@ -17,7 +17,9 @@ DEFAULT_REGION_NAME = 'us-east-1'
 
 
 def parse_key_name(pth):
-    return pth.lstrip("/")
+    if pth[0] == '/':
+        pth = pth[1:]
+    return unquote(pth).decode('utf-8')
 
 
 class ResponseObject(_TemplateEnvironmentMixin):
@@ -126,15 +128,20 @@ class ResponseObject(_TemplateEnvironmentMixin):
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get('prefix', [None])[0]
         delimiter = querystring.get('delimiter', [None])[0]
+        encoding_type = querystring.get('encoding-type', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
+        if encoding_type == 'url':
+            result_keys = [k.copy(quote(k.name.encode('utf-8'))) for k in result_keys]
+            result_folders = [quote(f.encode('utf-8')) for f in result_folders]
         template = self.response_template(S3_BUCKET_GET_RESPONSE)
         return 200, headers, template.render(
             bucket=bucket,
             prefix=prefix,
             delimiter=delimiter,
             result_keys=result_keys,
-            result_folders=result_folders
-        )
+            result_folders=result_folders,
+            encoding_type=encoding_type
+        ).encode('utf-8')
 
     def _bucket_response_put(self, request, region_name, bucket_name, querystring, headers):
         if hasattr(request, 'body'):
@@ -260,7 +267,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         return status_code, headers, response_content
 
     def _key_response(self, request, full_url, headers):
-        parsed_url = urlparse(full_url)
+        parsed_url = urlparse(full_url.encode('utf-8'))
         query = parse_qs(parsed_url.query)
         method = request.method
 
@@ -470,6 +477,9 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
         <Prefix>{{ folder }}</Prefix>
       </CommonPrefixes>
     {% endfor %}
+  {% endif %}
+  {% if encoding_type %}
+    <Encoding-Type>{{ encoding_type }}</Encoding-Type>
   {% endif %}
   </ListBucketResult>"""
 
