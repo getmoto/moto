@@ -161,6 +161,20 @@ class FakeMultipart(object):
             yield self.parts[part_id]
 
 
+class LifecycleRule(object):
+    def __init__(self, id=None, prefix=None, status=None, expiration_days=None,
+                 expiration_date=None, transition_days=None,
+                 transition_date=None, storage_class=None):
+        self.id = id
+        self.prefix = prefix
+        self.status = status
+        self.expiration_days = expiration_days
+        self.expiration_date = expiration_date
+        self.transition_days = transition_days
+        self.transition_date = transition_date
+        self.storage_class = storage_class
+
+
 class FakeBucket(object):
 
     def __init__(self, name, region_name):
@@ -169,6 +183,7 @@ class FakeBucket(object):
         self.keys = _VersionedKeyStore()
         self.multiparts = {}
         self.versioning_status = None
+        self.rules = []
 
     @property
     def location(self):
@@ -177,6 +192,25 @@ class FakeBucket(object):
     @property
     def is_versioned(self):
         return self.versioning_status == 'Enabled'
+
+    def set_lifecycle(self, rules):
+        self.rules = []
+        for rule in rules:
+            expiration = rule.get('Expiration')
+            transition = rule.get('Transition')
+            self.rules.append(LifecycleRule(
+                id=rule.get('ID'),
+                prefix=rule['Prefix'],
+                status=rule['Status'],
+                expiration_days=expiration.get('Days') if expiration else None,
+                expiration_date=expiration.get('Date') if expiration else None,
+                transition_days=transition.get('Days') if transition else None,
+                transition_date=transition.get('Date') if transition else None,
+                storage_class=transition['StorageClass'] if transition else None,
+            ))
+
+    def delete_lifecycle(self):
+        self.rules = []
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -234,6 +268,10 @@ class S3Backend(BaseBackend):
                 "Called get_bucket_versions with some of delimiter, encoding_type, key_marker, version_id_marker")
 
         return itertools.chain(*(l for _, l in bucket.keys.iterlists()))
+
+    def set_bucket_lifecycle(self, bucket_name, rules):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_lifecycle(rules)
 
     def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)

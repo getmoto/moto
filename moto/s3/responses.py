@@ -4,6 +4,7 @@ import re
 
 import six
 from six.moves.urllib.parse import parse_qs, urlparse
+import xmltodict
 
 from moto.core.responses import _TemplateEnvironmentMixin
 
@@ -65,7 +66,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif method == 'PUT':
             return self._bucket_response_put(request, region_name, bucket_name, querystring, headers)
         elif method == 'DELETE':
-            return self._bucket_response_delete(bucket_name, headers)
+            return self._bucket_response_delete(bucket_name, querystring, headers)
         elif method == 'POST':
             return self._bucket_response_post(request, bucket_name, headers)
         else:
@@ -92,6 +93,12 @@ class ResponseObject(_TemplateEnvironmentMixin):
             bucket = self.backend.get_bucket(bucket_name)
             template = self.response_template(S3_BUCKET_LOCATION)
             return 200, headers, template.render(location=bucket.location)
+        elif 'lifecycle' in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if not bucket.rules:
+                return 404, headers, "NoSuchLifecycleConfiguration"
+            template = self.response_template(S3_BUCKET_LIFECYCLE_CONFIGURATION)
+            return 200, headers, template.render(rules=bucket.rules)
         elif 'versioning' in querystring:
             versioning = self.backend.get_bucket_versioning(bucket_name)
             template = self.response_template(S3_BUCKET_GET_VERSIONING)
@@ -143,14 +150,23 @@ class ResponseObject(_TemplateEnvironmentMixin):
         else:
             # Flask server
             body = request.data
+        body = body.decode('utf-8')
+
         if 'versioning' in querystring:
-            ver = re.search('<Status>([A-Za-z]+)</Status>', body.decode('utf-8'))
+            ver = re.search('<Status>([A-Za-z]+)</Status>', body)
             if ver:
                 self.backend.set_bucket_versioning(bucket_name, ver.group(1))
                 template = self.response_template(S3_BUCKET_VERSIONING)
                 return template.render(bucket_versioning_status=ver.group(1))
             else:
                 return 404, headers, ""
+        elif 'lifecycle' in querystring:
+            rules = xmltodict.parse(body)['LifecycleConfiguration']['Rule']
+            if not isinstance(rules, list):
+                # If there is only one rule, xmldict returns just the item
+                rules = [rules]
+            self.backend.set_bucket_lifecycle(bucket_name, rules)
+            return ""
         else:
             try:
                 new_bucket = self.backend.create_bucket(bucket_name, region_name)
@@ -163,7 +179,12 @@ class ResponseObject(_TemplateEnvironmentMixin):
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, headers, template.render(bucket=new_bucket)
 
-    def _bucket_response_delete(self, bucket_name, headers):
+    def _bucket_response_delete(self, bucket_name, querystring, headers):
+        if 'lifecycle' in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            bucket.delete_lifecycle()
+            return 204, headers, ""
+
         removed_bucket = self.backend.delete_bucket(bucket_name)
 
         if removed_bucket:
@@ -496,6 +517,39 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 
 S3_BUCKET_LOCATION = """<?xml version="1.0" encoding="UTF-8"?>
 <LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">{{ location }}</LocationConstraint>"""
+
+S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
+<LifecycleConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    {% for rule in rules %}
+    <Rule>
+        <ID>{{ rule.id }}</ID>
+        <Prefix>{{ rule.prefix if rule.prefix != None }}</Prefix>
+        <Status>{{ rule.status }}</Status>
+        {% if rule.storage_class %}
+        <Transition>
+            {% if rule.transition_days %}
+               <Days>{{ rule.transition_days }}</Days>
+            {% endif %}
+            {% if rule.transition_date %}
+               <Date>{{ rule.transition_date }}</Date>
+            {% endif %}
+           <StorageClass>{{ rule.storage_class }}</StorageClass>
+        </Transition>
+        {% endif %}
+        {% if rule.expiration_days or rule.expiration_date %}
+        <Expiration>
+            {% if rule.expiration_days %}
+               <Days>{{ rule.expiration_days }}</Days>
+            {% endif %}
+            {% if rule.expiration_date %}
+               <Date>{{ rule.expiration_date }}</Date>
+            {% endif %}
+        </Expiration>
+        {% endif %}
+    </Rule>
+    {% endfor %}
+</LifecycleConfiguration>
+"""
 
 S3_BUCKET_VERSIONING = """
 <?xml version="1.0" encoding="UTF-8"?>
