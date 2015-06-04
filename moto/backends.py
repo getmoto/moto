@@ -6,6 +6,7 @@ from moto.dynamodb2 import dynamodb_backend2
 from moto.ec2 import ec2_backend
 from moto.elb import elb_backend
 from moto.emr import emr_backend
+from moto.glacier import glacier_backend
 from moto.kinesis import kinesis_backend
 from moto.rds import rds_backend
 from moto.redshift import redshift_backend
@@ -24,6 +25,7 @@ BACKENDS = {
     'ec2': ec2_backend,
     'elb': elb_backend,
     'emr': emr_backend,
+    'glacier': glacier_backend,
     'kinesis': kinesis_backend,
     'redshift': redshift_backend,
     'rds': rds_backend,
