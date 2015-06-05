@@ -123,7 +123,7 @@ class GlacierResponse(_TemplateEnvironmentMixin):
                 "Marker": None,
             })
         elif method == 'POST':
-            json_body = json.loads(body)
+            json_body = json.loads(body.decode("utf-8"))
             archive_id = json_body['ArchiveId']
             job_id = self.backend.initiate_job(vault_name, archive_id)
             headers['x-amz-job-id'] = job_id

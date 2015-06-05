@@ -10,7 +10,7 @@ from moto import mock_glacier
 @mock_glacier
 def test_create_and_delete_archive():
     the_file = NamedTemporaryFile(delete=False)
-    the_file.write("some stuff")
+    the_file.write(b"some stuff")
     the_file.close()
 
     conn = boto.glacier.connect_to_region("us-west-2")
