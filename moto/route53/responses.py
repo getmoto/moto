@@ -55,7 +55,7 @@ def rrset_response(request, full_url, headers):
             action = value['Action']
             record_set = value['ResourceRecordSet']
             if action == 'CREATE':
-                resource_records = record_set['ResourceRecords'].values()[0]
+                resource_records = list(record_set['ResourceRecords'].values())[0]
                 if not isinstance(resource_records, list):
                     # Depending on how many records there are, this may or may not be a list
                     resource_records = [resource_records]
