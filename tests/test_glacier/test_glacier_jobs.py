@@ -36,7 +36,7 @@ def test_describe_job():
     job_id = job_response['JobId']
 
     job = conn.describe_job(vault_name, job_id)
-    json.loads(job.read()).should.equal({
+    json.loads(job.read().decode("utf-8")).should.equal({
         'CompletionDate': '2013-03-20T17:03:43.221Z',
         'VaultARN': None,
         'RetrievalByteRange': None,
@@ -91,4 +91,4 @@ def test_get_job_output():
     job_id = job_response['JobId']
 
     output = conn.get_job_output(vault_name, job_id)
-    output.read().should.equal("some stuff")
+    output.read().decode("utf-8").should.equal("some stuff")
