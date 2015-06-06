@@ -93,6 +93,23 @@ def test_rrset():
 
 
 @mock_route53
+def test_rrset_with_multiple_values():
+    conn = boto.connect_route53('the_key', 'the_secret')
+    zone = conn.create_hosted_zone("testdns.aws.com")
+    zoneid = zone["CreateHostedZoneResponse"]["HostedZone"]["Id"].split("/")[-1]
+
+    changes = ResourceRecordSets(conn, zoneid)
+    change = changes.add_change("CREATE", "foo.bar.testdns.aws.com", "A")
+    change.add_value("1.2.3.4")
+    change.add_value("5.6.7.8")
+    changes.commit()
+
+    rrsets = conn.get_all_rrsets(zoneid, type="A")
+    rrsets.should.have.length_of(1)
+    set(rrsets[0].resource_records).should.equal(set(['1.2.3.4', '5.6.7.8']))
+
+
+@mock_route53
 def test_create_health_check():
     conn = boto.connect_route53('the_key', 'the_secret')
 
