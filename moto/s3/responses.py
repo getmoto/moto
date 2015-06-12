@@ -551,15 +551,13 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
 </LifecycleConfiguration>
 """
 
-S3_BUCKET_VERSIONING = """
-<?xml version="1.0" encoding="UTF-8"?>
+S3_BUCKET_VERSIONING = """<?xml version="1.0" encoding="UTF-8"?>
 <VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
     <Status>{{ bucket_versioning_status }}</Status>
 </VersioningConfiguration>
 """
 
-S3_BUCKET_GET_VERSIONING = """
-<?xml version="1.0" encoding="UTF-8"?>
+S3_BUCKET_GET_VERSIONING = """<?xml version="1.0" encoding="UTF-8"?>
 {% if status is none %}
     <VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
 {% else %}
