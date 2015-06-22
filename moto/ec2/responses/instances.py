@@ -374,7 +374,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                           <ebs>
                             <volumeId>{{ instance.block_device_mapping['/dev/sda1'].volume_id }}</volumeId>
                             <status>attached</status>
-                            <attachTime>YYYY-MM-DDTHH:MM:SS.SSSZ</attachTime>
+                            <attachTime>2015-01-01T00:00:00.000Z</attachTime>
                             <deleteOnTermination>true</deleteOnTermination>
                         </ebs>
                       </item>

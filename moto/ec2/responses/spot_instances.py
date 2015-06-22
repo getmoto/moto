@@ -83,7 +83,7 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
       <state>{{ request.state }}</state>
       <status>
         <code>pending-evaluation</code>
-        <updateTime>YYYY-MM-DDTHH:MM:SS.000Z</updateTime>
+        <updateTime>2015-01-01T00:00:00.000Z</updateTime>
         <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
       </status>
       <instanceId>{{ request.instance_id }}</instanceId>
@@ -114,7 +114,7 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
         </PlacementRequestType>
       </launchSpecification>
       <launchGroup>{{ request.launch_group }}</launchGroup>
-      <createTime>YYYY-MM-DDTHH:MM:SS.000Z</createTime>
+      <createTime>2015-01-01T00:00:00.000Z</createTime>
       {% if request.valid_from %}
       <validFrom>{{ request.valid_from }}</validFrom>
       {% endif %}
@@ -138,7 +138,7 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
       <state>{{ request.state }}</state>
       <status>
         <code>pending-evaluation</code>
-        <updateTime>YYYY-MM-DDTHH:MM:SS.000Z</updateTime>
+        <updateTime>2015-01-01T00:00:00.000Z</updateTime>
         <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
       </status>
       <instanceId>{{ request.instance_id }}</instanceId>
@@ -193,7 +193,7 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
       {% if request.launch_group %}
         <launchGroup>{{ request.launch_group }}</launchGroup>
       {% endif %}
-        <createTime>YYYY-MM-DDTHH:MM:SS.000Z</createTime>
+        <createTime>2015-01-01T00:00:00.000Z</createTime>
       {% if request.valid_from %}
         <validFrom>{{ request.valid_from }}</validFrom>
       {% endif %}
