@@ -386,7 +386,10 @@ class S3Backend(BaseBackend):
     def delete_key(self, bucket_name, key_name):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
-        return bucket.keys.pop(key_name)
+        try:
+            return bucket.keys.pop(key_name)
+        except:
+            return None
 
     def copy_key(self, src_bucket_name, src_key_name, dest_bucket_name, dest_key_name, storage=None):
         src_key_name = clean_key_name(src_key_name)
