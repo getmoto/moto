@@ -400,7 +400,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
             upload_id = query['uploadId'][0]
             self.backend.cancel_multipart(bucket_name, upload_id)
             return 204, headers, ""
-        removed_key = self.backend.delete_key(bucket_name, key_name)
+        try:
+            removed_key = self.backend.delete_key(bucket_name, key_name)
+        except KeyError:
+            return 404, headers, ""
         template = self.response_template(S3_DELETE_OBJECT_SUCCESS)
         return 204, headers, template.render(bucket=removed_key)
 

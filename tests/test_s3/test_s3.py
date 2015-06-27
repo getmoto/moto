@@ -210,6 +210,7 @@ def test_multipart_invalid_order():
     bucket.complete_multipart_upload.when.called_with(
         multipart.key_name, multipart.id, xml).should.throw(S3ResponseError)
 
+
 @mock_s3
 @reduced_min_part_size
 def test_multipart_duplicate_upload():
@@ -226,7 +227,8 @@ def test_multipart_duplicate_upload():
     multipart.complete_upload()
     # We should get only one copy of part 1.
     bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
-    
+
+
 @mock_s3
 def test_list_multiparts():
     # Create Bucket so that test can run
@@ -473,6 +475,14 @@ def test_post_with_metadata_to_bucket():
     })
 
     bucket.get_key('the-key').get_metadata('test').should.equal('metadata')
+
+
+@mock_s3
+def test_delete_missing_key():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket('foobar')
+
+    bucket.delete_key.when.called_with('foobar').should.throw(S3ResponseError)
 
 
 @mock_s3
