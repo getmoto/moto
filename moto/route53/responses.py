@@ -55,11 +55,15 @@ def rrset_response(request, full_url, headers):
             action = value['Action']
             record_set = value['ResourceRecordSet']
             if action == 'CREATE':
-                resource_records = list(record_set['ResourceRecords'].values())[0]
-                if not isinstance(resource_records, list):
-                    # Depending on how many records there are, this may or may not be a list
-                    resource_records = [resource_records]
-                record_set['ResourceRecords'] = [x['Value'] for x in resource_records]
+                if 'ResourceRecords' in record_set:
+                    resource_records = list(record_set['ResourceRecords'].values())[0]
+                    if not isinstance(resource_records, list):
+                        # Depending on how many records there are, this may or may not be a list
+                        resource_records = [resource_records]
+                    record_values = [x['Value'] for x in resource_records]
+                elif 'AliasTarget' in record_set:
+                    record_values = [record_set['AliasTarget']['DNSName']]
+                record_set['ResourceRecords'] = record_values
                 the_zone.add_rrset(record_set)
             elif action == "DELETE":
                 if 'SetIdentifier' in record_set:
@@ -138,7 +142,9 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
       </Config>
    </HostedZone>
    <DelegationSet>
+      <NameServers>
          <NameServer>moto.test.com</NameServer>
+      </NameServers>
    </DelegationSet>
 </GetHostedZoneResponse>"""
 
