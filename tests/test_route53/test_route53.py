@@ -110,6 +110,25 @@ def test_rrset_with_multiple_values():
 
 
 @mock_route53
+def test_alias_rrset():
+    conn = boto.connect_route53('the_key', 'the_secret')
+    zone = conn.create_hosted_zone("testdns.aws.com")
+    zoneid = zone["CreateHostedZoneResponse"]["HostedZone"]["Id"].split("/")[-1]
+
+    changes = ResourceRecordSets(conn, zoneid)
+    changes.add_change("CREATE", "foo.alias.testdns.aws.com", "A", alias_hosted_zone_id="Z3DG6IL3SJCGPX", alias_dns_name="foo.testdns.aws.com")
+    changes.add_change("CREATE", "bar.alias.testdns.aws.com", "CNAME", alias_hosted_zone_id="Z3DG6IL3SJCGPX", alias_dns_name="bar.testdns.aws.com")
+    changes.commit()
+
+    rrsets = conn.get_all_rrsets(zoneid, type="A")
+    rrsets.should.have.length_of(1)
+    rrsets[0].resource_records[0].should.equal('foo.testdns.aws.com')
+    rrsets = conn.get_all_rrsets(zoneid, type="CNAME")
+    rrsets.should.have.length_of(1)
+    rrsets[0].resource_records[0].should.equal('bar.testdns.aws.com')
+
+
+@mock_route53
 def test_create_health_check():
     conn = boto.connect_route53('the_key', 'the_secret')
 
