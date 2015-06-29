@@ -249,6 +249,7 @@ class IAMBackend(BaseBackend):
         for role in self.get_roles():
             if role.name == role_name:
                 return role
+        raise BotoServerError(404, 'Not Found')
 
     def get_roles(self):
         return self.roles.values()
