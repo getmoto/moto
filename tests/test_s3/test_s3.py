@@ -794,6 +794,7 @@ def test_ranged_get():
     key.get_contents_as_string(headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
     key.get_contents_as_string(headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
     key.get_contents_as_string(headers={'Range': 'bytes=0-100'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-700'}).should.equal(rep * 10)
     key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
     key.get_contents_as_string(headers={'Range': 'bytes=99-99'}).should.equal(b'9')
     key.get_contents_as_string(headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
