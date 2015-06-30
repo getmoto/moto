@@ -17,7 +17,7 @@ class Key(object):
 
     @property
     def arn(self):
-        return "arn:aws:kms:{}:{}:key/{}".format(self.region, self.account_id, self.id)
+        return "arn:aws:kms:{0}:{1}:key/{2}".format(self.region, self.account_id, self.id)
 
     def to_dict(self):
         return {
