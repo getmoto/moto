@@ -254,7 +254,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if begin is not None:  # byte range
             end = last if end is None else min(end, last)
         elif end is not None:  # suffix byte range
-            begin = length - end
+            begin = length - min(end, length)
             end = last
         else:
             return 400, headers, ""
