@@ -258,7 +258,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             end = last
         else:
             return 400, headers, ""
-        if begin < 0 or end > length or begin > min(end, last):
+        if begin < 0 or end > last or begin > min(end, last):
             return 416, headers, ""
         headers['content-range'] = "bytes {0}-{1}/{2}".format(
             begin, end, length)
