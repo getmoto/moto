@@ -8,6 +8,7 @@ from moto.elb import elb_backend
 from moto.emr import emr_backend
 from moto.glacier import glacier_backend
 from moto.kinesis import kinesis_backend
+from moto.kms import kms_backend
 from moto.rds import rds_backend
 from moto.redshift import redshift_backend
 from moto.s3 import s3_backend
@@ -27,6 +28,7 @@ BACKENDS = {
     'emr': emr_backend,
     'glacier': glacier_backend,
     'kinesis': kinesis_backend,
+    'kms': kms_backend,
     'redshift': redshift_backend,
     'rds': rds_backend,
     's3': s3_backend,
