@@ -795,7 +795,7 @@ def test_ranged_get():
     # Implicitly bounded range requests.
     key.get_contents_as_string(headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
     key.get_contents_as_string(headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=99-'}).should.equal(rep[-1])
+    key.get_contents_as_string(headers={'Range': 'bytes=99-'}).should.equal(b'9')
 
     # Explicitly bounded range requests starting from the first byte.
     key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
@@ -816,7 +816,7 @@ def test_ranged_get():
     key.get_contents_as_string(headers={'Range': 'bytes=99-700'}).should.equal(b'9')
 
     # Suffix range requests.
-    key.get_contents_as_string(headers={'Range': 'bytes=-1'}).should.equal(rep[-1])
+    key.get_contents_as_string(headers={'Range': 'bytes=-1'}).should.equal(b'9')
     key.get_contents_as_string(headers={'Range': 'bytes=-60'}).should.equal(rep * 6)
     key.get_contents_as_string(headers={'Range': 'bytes=-100'}).should.equal(rep * 10)
     key.get_contents_as_string(headers={'Range': 'bytes=-101'}).should.equal(rep * 10)
