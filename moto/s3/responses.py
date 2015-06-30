@@ -252,7 +252,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         toint = lambda i: int(i) if i else None
         begin, end = map(toint, rspec.split('-'))
         if begin is not None:  # byte range
-            end = last if end is None else end
+            end = last if end is None else min(end, last)
         elif end is not None:  # suffix byte range
             begin = length - end
             end = last
