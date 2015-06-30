@@ -791,13 +791,35 @@ def test_ranged_get():
     key.key = 'bigkey'
     rep = b"0123456789"
     key.set_contents_from_string(rep * 10)
+
+    # Implicitly bounded range requests.
     key.get_contents_as_string(headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=99-'}).should.equal(rep[-1])
+
+    # Explicitly bounded range requests starting from the first byte.
+    key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
+    key.get_contents_as_string(headers={'Range': 'bytes=0-49'}).should.equal(rep * 5)
     key.get_contents_as_string(headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
     key.get_contents_as_string(headers={'Range': 'bytes=0-100'}).should.equal(rep * 10)
     key.get_contents_as_string(headers={'Range': 'bytes=0-700'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
-    key.get_contents_as_string(headers={'Range': 'bytes=99-99'}).should.equal(b'9')
+
+    # Explicitly bounded range requests starting from the / a middle byte.
     key.get_contents_as_string(headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
-    key.get_contents_as_string(headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=50-99'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=50-100'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=50-700'}).should.equal(rep * 5)
+
+    # Explicitly bounded range requests starting from the last byte.
+    key.get_contents_as_string(headers={'Range': 'bytes=99-99'}).should.equal(b'9')
+    key.get_contents_as_string(headers={'Range': 'bytes=99-100'}).should.equal(b'9')
+    key.get_contents_as_string(headers={'Range': 'bytes=99-700'}).should.equal(b'9')
+
+    # Suffix range requests.
+    key.get_contents_as_string(headers={'Range': 'bytes=-1'}).should.equal(rep[-1])
     key.get_contents_as_string(headers={'Range': 'bytes=-60'}).should.equal(rep * 6)
+    key.get_contents_as_string(headers={'Range': 'bytes=-100'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=-101'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=-700'}).should.equal(rep * 10)
+
     key.size.should.equal(100)
