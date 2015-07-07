@@ -220,7 +220,7 @@ class Table(object):
             else:
                 current_attr = current
 
-            for key, val in expected.iteritems():
+            for key, val in expected.items():
                 if 'Exists' in val and val['Exists'] == False:
                     if key in current_attr:
                         raise ValueError("The conditional request failed")
