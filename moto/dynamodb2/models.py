@@ -191,7 +191,7 @@ class Table(object):
                     keys.append(key['AttributeName'])
         return keys
 
-    def put_item(self, item_attrs):
+    def put_item(self, item_attrs, expected = None, overwrite = False):
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))
         if self.has_range_key:
             range_value = DynamoType(item_attrs.get(self.range_key_attr))
@@ -199,6 +199,35 @@ class Table(object):
             range_value = None
 
         item = Item(hash_value, self.hash_key_type, range_value, self.range_key_type, item_attrs)
+
+        if not overwrite:
+            if expected is None:
+                expected = {}
+                lookup_range_value = range_value
+            else:
+                expected_range_value = expected.get(self.range_key_attr, {}).get("Value")
+                if(expected_range_value is None):
+                    lookup_range_value = range_value
+                else:
+                    lookup_range_value = DynamoType(expected_range_value)
+
+            current = self.get_item(hash_value, lookup_range_value)
+
+            if current is None:
+                current_attr = {}
+            elif hasattr(current,'attrs'):
+                current_attr = current.attrs
+            else:
+                current_attr = current
+
+            for key, val in expected.iteritems():
+                if 'Exists' in val and val['Exists'] == False:
+                    if key in current_attr:
+                        raise ValueError("The conditional request failed")
+                elif key not in current_attr:
+                    raise ValueError("The conditional request failed")
+                elif DynamoType(val['Value']).value != current_attr[key].value:
+                    raise ValueError("The conditional request failed")
 
         if range_value:
             self.items[hash_value][range_value] = item
@@ -317,11 +346,11 @@ class DynamoDBBackend(BaseBackend):
         table.throughput = throughput
         return table
 
-    def put_item(self, table_name, item_attrs):
+    def put_item(self, table_name, item_attrs, expected = None, overwrite = False):
         table = self.tables.get(table_name)
         if not table:
             return None
-        return table.put_item(item_attrs)
+        return table.put_item(item_attrs, expected, overwrite)
 
     def get_table_keys_name(self, table_name, keys):
         """

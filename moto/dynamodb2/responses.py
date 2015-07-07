@@ -134,7 +134,17 @@ class DynamoHandler(BaseResponse):
     def put_item(self):
         name = self.body['TableName']
         item = self.body['Item']
-        result = dynamodb_backend2.put_item(name, item)
+        overwrite = 'Expected' not in self.body
+        if not overwrite:
+            expected = self.body['Expected']
+        else:
+            expected = None
+
+        try:
+            result = dynamodb_backend2.put_item(name, item, expected, overwrite)
+        except Exception:
+            er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
+            return self.error(er)
 
         if result:
             item_dict = result.to_json()
