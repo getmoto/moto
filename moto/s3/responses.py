@@ -252,13 +252,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
         toint = lambda i: int(i) if i else None
         begin, end = map(toint, rspec.split('-'))
         if begin is not None:  # byte range
-            end = last if end is None else end
+            end = last if end is None else min(end, last)
         elif end is not None:  # suffix byte range
-            begin = length - end
+            begin = length - min(end, length)
             end = last
         else:
             return 400, headers, ""
-        if begin < 0 or end > length or begin > min(end, last):
+        if begin < 0 or end > last or begin > min(end, last):
             return 416, headers, ""
         headers['content-range'] = "bytes {0}-{1}/{2}".format(
             begin, end, length)
