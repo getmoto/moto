@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
+
 import boto
 from boto.emr.instance_group import InstanceGroup
+
 from boto.emr.step import StreamingStep
 import sure  # noqa
 
@@ -105,6 +107,27 @@ def test_create_job_flow_visible_to_all_users():
     )
     job_flow = conn.describe_jobflow(job_id)
     job_flow.visibletoallusers.should.equal('True')
+
+
+@requires_boto_gte("2.8")
+@mock_emr
+def test_create_job_flow_with_instance_groups():
+    conn = boto.connect_emr()
+
+    instance_groups = [InstanceGroup(6, 'TASK', 'c1.medium', 'SPOT', 'spot-0.07', '0.07'),
+                       InstanceGroup(6, 'TASK', 'c1.medium', 'SPOT', 'spot-0.07', '0.07')]
+    job_id = conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        steps=[],
+        instance_groups=instance_groups
+    )
+
+    job_flow = conn.describe_jobflow(job_id)
+    int(job_flow.instancecount).should.equal(12)
+    instance_group = job_flow.instancegroups[0]
+    int(instance_group.instancerunningcount).should.equal(6)
+
 
 
 @mock_emr
@@ -316,6 +339,30 @@ def test_set_visible_to_all_users():
 
     job_flow = conn.describe_jobflow(job_id)
     job_flow.visibletoallusers.should.equal('False')
+
+
+@requires_boto_gte("2.8")
+@mock_emr
+def test_set_termination_protection():
+    conn = boto.connect_emr()
+
+    job_id = conn.run_jobflow(
+        name='My jobflow',
+        log_uri='s3://some_bucket/jobflow_logs',
+        steps=[]
+    )
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.terminationprotected.should.equal(u'None')
+
+    conn.set_termination_protection(job_id, True)
+
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.terminationprotected.should.equal('true')
+
+    conn.set_termination_protection(job_id, False)
+
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.terminationprotected.should.equal('false')
 
 
 @mock_emr
