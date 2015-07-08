@@ -10,6 +10,7 @@ try:
     from boto.dynamodb2.fields import HashKey
     from boto.dynamodb2.table import Table
     from boto.dynamodb2.table import Item
+    from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 except ImportError:
     pass
 
@@ -437,3 +438,50 @@ def test_update_item_set():
         'foo': 'bar',
         'blah': 'baz',
     })
+
+
+@mock_dynamodb2
+def test_failed_overwrite():
+    from decimal import Decimal
+    table = Table.create('messages', schema=[
+        HashKey('id'),
+    ], throughput={
+        'read': 7,
+        'write': 3,
+    })
+
+    data1 = {'id': '123', 'data':'678'}
+    table.put_item(data=data1)
+
+    data2 = {'id': '123', 'data':'345'}
+    table.put_item(data=data2, overwrite = True)
+
+    data3 = {'id': '123', 'data':'812'}
+    table.put_item.when.called_with(data=data3).should.throw(ConditionalCheckFailedException)
+
+    returned_item = table.lookup('123')
+    dict(returned_item).should.equal(data2)
+
+    data4 = {'id': '124', 'data':812}
+    table.put_item(data=data4)
+
+    returned_item = table.lookup('124')
+    dict(returned_item).should.equal(data4)
+
+
+@mock_dynamodb2
+def test_conflicting_writes():
+    table = Table.create('messages', schema=[
+        HashKey('id'),
+    ])
+
+    item_data = {'id': '123', 'data':'678'}
+    item1 = Item(table, item_data)
+    item2 = Item(table, item_data)
+    item1.save()
+
+    item1['data'] = '579'
+    item2['data'] = '912'
+
+    item1.save()
+    item2.save.when.called_with().should.throw(ConditionalCheckFailedException)

@@ -10,6 +10,7 @@ try:
     from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey
     from boto.dynamodb2.table import Item, Table
     from boto.dynamodb2.exceptions import ValidationException
+    from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 except ImportError:
     pass
 
@@ -553,3 +554,52 @@ def test_lookup():
     message = table.lookup(hash_key, range_key)
     message.get('test_hash').should.equal(Decimal(hash_key))
     message.get('test_range').should.equal(Decimal(range_key))
+
+
+@mock_dynamodb2
+def test_failed_overwrite():
+    from decimal import Decimal
+    table = Table.create('messages', schema=[
+        HashKey('id'),
+        RangeKey('range'),
+    ], throughput={
+        'read': 7,
+        'write': 3,
+    })
+
+    data1 = {'id': '123', 'range': 'abc', 'data':'678'}
+    table.put_item(data=data1)
+
+    data2 = {'id': '123', 'range': 'abc', 'data':'345'}
+    table.put_item(data=data2, overwrite = True)
+
+    data3 = {'id': '123', 'range': 'abc', 'data':'812'}
+    table.put_item.when.called_with(data=data3).should.throw(ConditionalCheckFailedException)
+
+    returned_item = table.lookup('123', 'abc')
+    dict(returned_item).should.equal(data2)
+
+    data4 = {'id': '123', 'range': 'ghi', 'data':812}
+    table.put_item(data=data4)
+
+    returned_item = table.lookup('123', 'ghi')
+    dict(returned_item).should.equal(data4)
+
+
+@mock_dynamodb2
+def test_conflicting_writes():
+    table = Table.create('messages', schema=[
+        HashKey('id'),
+        RangeKey('range'),
+    ])
+
+    item_data = {'id': '123', 'range':'abc', 'data':'678'}
+    item1 = Item(table, item_data)
+    item2 = Item(table, item_data)
+    item1.save()
+
+    item1['data'] = '579'
+    item2['data'] = '912'
+
+    item1.save()
+    item2.save.when.called_with().should.throw(ConditionalCheckFailedException)
