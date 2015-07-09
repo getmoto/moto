@@ -27,6 +27,10 @@ class ElasticMapReduceResponse(BaseResponse):
             flow_name, log_uri, job_flow_role,
             visible_to_all_users, steps, instance_attrs
         )
+        instance_groups = self._get_list_prefix('Instances.InstanceGroups.member')
+        if instance_groups:
+            emr_backend.add_instance_groups(job_flow.id, instance_groups)
+
         template = self.response_template(RUN_JOB_FLOW_TEMPLATE)
         return template.render(job_flow=job_flow)
 
@@ -60,6 +64,13 @@ class ElasticMapReduceResponse(BaseResponse):
         job_ids = self._get_multi_param('JobFlowIds.member')
         emr_backend.set_visible_to_all_users(job_ids, visible_to_all_users)
         template = self.response_template(SET_VISIBLE_TO_ALL_USERS_TEMPLATE)
+        return template.render()
+
+    def set_termination_protection(self):
+        termination_protection = self._get_param('TerminationProtected')
+        job_ids = self._get_multi_param('JobFlowIds.member')
+        emr_backend.set_termination_protection(job_ids, termination_protection)
+        template = self.response_template(SET_TERMINATION_PROTECTION_TEMPLATE)
         return template.render()
 
     def list_clusters(self):
@@ -149,6 +160,7 @@ DESCRIBE_JOB_FLOWS_TEMPLATE = """<DescribeJobFlowsResponse xmlns="http://elastic
                <InstanceCount>{{ job_flow.instance_count }}</InstanceCount>
                <KeepJobFlowAliveWhenNoSteps>{{ job_flow.keep_job_flow_alive_when_no_steps }}</KeepJobFlowAliveWhenNoSteps>
                <TerminationProtected>{{ job_flow.termination_protected }}</TerminationProtected>
+               <MasterPublicDnsName>ec2-184-0-0-1.us-west-1.compute.amazonaws.com</MasterPublicDnsName>
                <InstanceGroups>
                   {% for instance_group in job_flow.instance_groups %}
                   <member>
@@ -289,6 +301,14 @@ SET_VISIBLE_TO_ALL_USERS_TEMPLATE = """<SetVisibleToAllUsersResponse xmlns="http
    </ResponseMetadata>
 </SetVisibleToAllUsersResponse>"""
 
+
+SET_TERMINATION_PROTECTION_TEMPLATE = """<SetTerminationProtection xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+   <ResponseMetadata>
+      <RequestId>
+         2690d7eb-ed86-11dd-9877-6fad448a8419
+      </RequestId>
+   </ResponseMetadata>
+</SetTerminationProtection>"""
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
    <ResponseMetadata>

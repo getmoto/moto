@@ -124,6 +124,10 @@ class FakeJobFlow(object):
         else:
             self.visible_to_all_users = False
 
+
+    def set_termination_protection(self, value):
+        self.termination_protected = value
+
     def add_steps(self, steps):
         for index, step in enumerate(steps):
             if self.steps:
@@ -235,6 +239,11 @@ class ElasticMapReduceBackend(BaseBackend):
         for job_id in job_ids:
             job = self.job_flows[job_id]
             job.set_visibility(visible_to_all_users)
+
+    def set_termination_protection(self, job_ids, value):
+        for job_id in job_ids:
+            job = self.job_flows[job_id]
+            job.set_termination_protection(value)
 
     def add_tags(self, cluster_id, tags):
         cluster = self.get_cluster(cluster_id)
