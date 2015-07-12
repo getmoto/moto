@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
+
+import boto.emr
 from moto.core import BaseBackend
 
-from .utils import random_job_id, random_instance_group_id
+from .utils import random_instance_group_id, random_job_id
 
 DEFAULT_JOB_FLOW_ROLE = 'EMRJobflowDefault'
 
@@ -80,7 +82,7 @@ class FakeStep(object):
 
 
 class FakeJobFlow(object):
-    def __init__(self, job_id, name, log_uri, job_flow_role, visible_to_all_users, steps, instance_attrs):
+    def __init__(self, job_id, name, log_uri, job_flow_role, visible_to_all_users, steps, instance_attrs, emr_backend):
         self.id = job_id
         self.name = name
         self.log_uri = log_uri
@@ -103,6 +105,8 @@ class FakeJobFlow(object):
 
         self.instance_group_ids = []
 
+        self.emr_backend = emr_backend
+
     def create_cluster(self):
         cluster = Cluster(
             id=self.id,
@@ -124,7 +128,6 @@ class FakeJobFlow(object):
         else:
             self.visible_to_all_users = False
 
-
     def set_termination_protection(self, value):
         self.termination_protected = value
 
@@ -141,7 +144,7 @@ class FakeJobFlow(object):
 
     @property
     def instance_groups(self):
-        return emr_backend.get_instance_groups(self.instance_group_ids)
+        return self.emr_backend.get_instance_groups(self.instance_group_ids)
 
     @property
     def master_instance_type(self):
@@ -180,7 +183,8 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def run_job_flow(self, name, log_uri, job_flow_role, visible_to_all_users, steps, instance_attrs):
         job_id = random_job_id()
-        job_flow = FakeJobFlow(job_id, name, log_uri, job_flow_role, visible_to_all_users, steps, instance_attrs)
+        job_flow = FakeJobFlow(
+            job_id, name, log_uri, job_flow_role, visible_to_all_users, steps, instance_attrs, self)
         self.job_flows[job_id] = job_flow
         cluster = job_flow.create_cluster()
         self.clusters[cluster.id] = cluster
@@ -254,4 +258,6 @@ class ElasticMapReduceBackend(BaseBackend):
         cluster.remove_tags(tag_keys)
 
 
-emr_backend = ElasticMapReduceBackend()
+emr_backends = {}
+for region in boto.emr.regions():
+    emr_backends[region.name] = ElasticMapReduceBackend()

@@ -11,6 +11,40 @@ from tests.helpers import requires_boto_gte
 
 
 @mock_emr
+def test_create_job_flow_in_multiple_regions():
+    step = StreamingStep(
+        name='My wordcount example',
+        mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter.py',
+        reducer='aggregate',
+        input='s3n://elasticmapreduce/samples/wordcount/input',
+        output='s3n://output_bucket/output/wordcount_output'
+    )
+
+    west1_conn = boto.emr.connect_to_region('us-east-1')
+    west1_job_id = west1_conn.run_jobflow(
+        name='us-east-1',
+        log_uri='s3://some_bucket/jobflow_logs',
+        master_instance_type='m1.medium',
+        slave_instance_type='m1.small',
+        steps=[step],
+    )
+
+    west2_conn = boto.emr.connect_to_region('eu-west-1')
+    west2_job_id = west2_conn.run_jobflow(
+        name='eu-west-1',
+        log_uri='s3://some_bucket/jobflow_logs',
+        master_instance_type='m1.medium',
+        slave_instance_type='m1.small',
+        steps=[step],
+    )
+
+    west1_job_flow = west1_conn.describe_jobflow(west1_job_id)
+    west1_job_flow.name.should.equal('us-east-1')
+    west2_job_flow = west2_conn.describe_jobflow(west2_job_id)
+    west2_job_flow.name.should.equal('eu-west-1')
+
+
+@mock_emr
 def test_create_job_flow():
     conn = boto.connect_emr()
 
@@ -127,7 +161,6 @@ def test_create_job_flow_with_instance_groups():
     int(job_flow.instancecount).should.equal(12)
     instance_group = job_flow.instancegroups[0]
     int(instance_group.instancerunningcount).should.equal(6)
-
 
 
 @mock_emr
