@@ -130,6 +130,24 @@ class Queue(object):
             visibility_timeout=properties.get('VisibilityTimeout'),
         )
 
+    @classmethod
+    def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        queue_name = properties['QueueName']
+
+        sqs_backend = sqs_backends[region_name]
+        queue = sqs_backend.get_queue(queue_name)
+        if 'VisibilityTimeout' in properties:
+            queue.visibility_timeout = int(properties['VisibilityTimeout'])
+        return queue
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        queue_name = properties['QueueName']
+        sqs_backend = sqs_backends[region_name]
+        sqs_backend.delete_queue(queue_name)
+
     @property
     def approximate_number_of_messages_delayed(self):
         return len([m for m in self._messages if m.delayed])

@@ -240,7 +240,6 @@ LIST_QUEUES_RESPONSE = """<ListQueuesResponse>
     <ListQueuesResult>
         {% for queue in queues %}
             <QueueUrl>http://sqs.us-east-1.amazonaws.com/123456789012/{{ queue.name }}</QueueUrl>
-            <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
         {% endfor %}
     </ListQueuesResult>
     <ResponseMetadata>
