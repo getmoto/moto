@@ -103,9 +103,9 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def describe_auto_scaling_instances(self):
-        instances = self.autoscaling_backend.describe_autoscaling_instances()
+        instance_states = self.autoscaling_backend.describe_autoscaling_instances()
         template = self.response_template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
-        return template.render(instances=instances)
+        return template.render(instance_states=instance_states)
 
     def put_scaling_policy(self):
         policy = self.autoscaling_backend.create_autoscaling_policy(
@@ -243,13 +243,13 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <EnabledMetrics/>
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
         <Instances>
-          {% for instance in group.instances %}
+          {% for instance_state in group.instance_states %}
           <member>
             <HealthStatus>HEALTHY</HealthStatus>
             <AvailabilityZone>us-east-1e</AvailabilityZone>
-            <InstanceId>{{ instance.id }}</InstanceId>
-            <LaunchConfigurationName>{{ instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
-            <LifecycleState>InService</LifecycleState>
+            <InstanceId>{{ instance_state.instance.id }}</InstanceId>
+            <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
+            <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
           </member>
           {% endfor %}
         </Instances>
@@ -315,14 +315,14 @@ DELETE_AUTOSCALING_GROUP_TEMPLATE = """<DeleteAutoScalingGroupResponse xmlns="ht
 DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <DescribeAutoScalingInstancesResult>
     <AutoScalingInstances>
-      {% for instance in instances %}
+      {% for instance_state in instance_states %}
       <member>
         <HealthStatus>HEALTHY</HealthStatus>
-        <AutoScalingGroupName>{{ instance.autoscaling_group.name }}</AutoScalingGroupName>
+        <AutoScalingGroupName>{{ instance_state.instance.autoscaling_group.name }}</AutoScalingGroupName>
         <AvailabilityZone>us-east-1e</AvailabilityZone>
-        <InstanceId>{{ instance.id }}</InstanceId>
-        <LaunchConfigurationName>{{ instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
-        <LifecycleState>InService</LifecycleState>
+        <InstanceId>{{ instance_state.instance.id }}</InstanceId>
+        <LaunchConfigurationName>{{ instance_state.instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
+        <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
       </member>
       {% endfor %}
     </AutoScalingInstances>

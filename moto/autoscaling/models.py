@@ -7,6 +7,12 @@ from moto.ec2 import ec2_backends
 DEFAULT_COOLDOWN = 300
 
 
+class InstanceState(object):
+    def __init__(self, instance, lifecycle_state="InService"):
+        self.instance = instance
+        self.lifecycle_state = lifecycle_state
+
+
 class FakeScalingPolicy(object):
     def __init__(self, name, adjustment_type, as_name, scaling_adjustment,
                  cooldown, autoscaling_backend):
@@ -125,7 +131,7 @@ class FakeAutoScalingGroup(object):
         self.placement_group = placement_group
         self.termination_policies = termination_policies
 
-        self.instances = []
+        self.instance_states = []
         self.set_desired_capacity(desired_capacity)
 
     @classmethod
@@ -179,7 +185,7 @@ class FakeAutoScalingGroup(object):
         else:
             self.desired_capacity = new_capacity
 
-        curr_instance_count = len(self.instances)
+        curr_instance_count = len(self.instance_states)
 
         if self.desired_capacity == curr_instance_count:
             return
@@ -195,14 +201,14 @@ class FakeAutoScalingGroup(object):
             )
             for instance in reservation.instances:
                 instance.autoscaling_group = self
-            self.instances.extend(reservation.instances)
+                self.instance_states.append(InstanceState(instance))
         else:
             # Need to remove some instances
             count_to_remove = curr_instance_count - self.desired_capacity
-            instances_to_remove = self.instances[:count_to_remove]
-            instance_ids_to_remove = [instance.id for instance in instances_to_remove]
+            instances_to_remove = self.instance_states[:count_to_remove]
+            instance_ids_to_remove = [instance.instance.id for instance in instances_to_remove]
             self.autoscaling_backend.ec2_backend.terminate_instances(instance_ids_to_remove)
-            self.instances = self.instances[count_to_remove:]
+            self.instance_states = self.instance_states[count_to_remove:]
 
 
 class AutoScalingBackend(BaseBackend):
@@ -307,10 +313,10 @@ class AutoScalingBackend(BaseBackend):
         self.autoscaling_groups.pop(group_name, None)
 
     def describe_autoscaling_instances(self):
-        instances = []
+        instance_states = []
         for group in self.autoscaling_groups.values():
-            instances.extend(group.instances)
-        return instances
+            instance_states.extend(group.instance_states)
+        return instance_states
 
     def set_desired_capacity(self, group_name, desired_capacity):
         group = self.autoscaling_groups[group_name]
