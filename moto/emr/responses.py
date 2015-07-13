@@ -1,17 +1,21 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
-from .models import emr_backend
+from .models import emr_backends
 from .utils import tags_from_query_string
 
 
 class ElasticMapReduceResponse(BaseResponse):
 
+    @property
+    def backend(self):
+        return emr_backends[self.region]
+
     def add_job_flow_steps(self):
         job_flow_id = self._get_param('JobFlowId')
         steps = self._get_list_prefix('Steps.member')
 
-        job_flow = emr_backend.add_job_flow_steps(job_flow_id, steps)
+        job_flow = self.backend.add_job_flow_steps(job_flow_id, steps)
         template = self.response_template(ADD_JOB_FLOW_STEPS_TEMPLATE)
         return template.render(job_flow=job_flow)
 
@@ -23,78 +27,78 @@ class ElasticMapReduceResponse(BaseResponse):
         job_flow_role = self._get_param('JobFlowRole')
         visible_to_all_users = self._get_param('VisibleToAllUsers')
 
-        job_flow = emr_backend.run_job_flow(
+        job_flow = self.backend.run_job_flow(
             flow_name, log_uri, job_flow_role,
             visible_to_all_users, steps, instance_attrs
         )
         instance_groups = self._get_list_prefix('Instances.InstanceGroups.member')
         if instance_groups:
-            emr_backend.add_instance_groups(job_flow.id, instance_groups)
+            self.backend.add_instance_groups(job_flow.id, instance_groups)
 
         template = self.response_template(RUN_JOB_FLOW_TEMPLATE)
         return template.render(job_flow=job_flow)
 
     def describe_job_flows(self):
         job_flow_ids = self._get_multi_param("JobFlowIds.member")
-        job_flows = emr_backend.describe_job_flows(job_flow_ids)
+        job_flows = self.backend.describe_job_flows(job_flow_ids)
         template = self.response_template(DESCRIBE_JOB_FLOWS_TEMPLATE)
         return template.render(job_flows=job_flows)
 
     def terminate_job_flows(self):
         job_ids = self._get_multi_param('JobFlowIds.member.')
-        job_flows = emr_backend.terminate_job_flows(job_ids)
+        job_flows = self.backend.terminate_job_flows(job_ids)
         template = self.response_template(TERMINATE_JOB_FLOWS_TEMPLATE)
         return template.render(job_flows=job_flows)
 
     def add_instance_groups(self):
         jobflow_id = self._get_param('JobFlowId')
         instance_groups = self._get_list_prefix('InstanceGroups.member')
-        instance_groups = emr_backend.add_instance_groups(jobflow_id, instance_groups)
+        instance_groups = self.backend.add_instance_groups(jobflow_id, instance_groups)
         template = self.response_template(ADD_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups)
 
     def modify_instance_groups(self):
         instance_groups = self._get_list_prefix('InstanceGroups.member')
-        instance_groups = emr_backend.modify_instance_groups(instance_groups)
+        instance_groups = self.backend.modify_instance_groups(instance_groups)
         template = self.response_template(MODIFY_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups)
 
     def set_visible_to_all_users(self):
         visible_to_all_users = self._get_param('VisibleToAllUsers')
         job_ids = self._get_multi_param('JobFlowIds.member')
-        emr_backend.set_visible_to_all_users(job_ids, visible_to_all_users)
+        self.backend.set_visible_to_all_users(job_ids, visible_to_all_users)
         template = self.response_template(SET_VISIBLE_TO_ALL_USERS_TEMPLATE)
         return template.render()
 
     def set_termination_protection(self):
         termination_protection = self._get_param('TerminationProtected')
         job_ids = self._get_multi_param('JobFlowIds.member')
-        emr_backend.set_termination_protection(job_ids, termination_protection)
+        self.backend.set_termination_protection(job_ids, termination_protection)
         template = self.response_template(SET_TERMINATION_PROTECTION_TEMPLATE)
         return template.render()
 
     def list_clusters(self):
-        clusters = emr_backend.list_clusters()
+        clusters = self.backend.list_clusters()
         template = self.response_template(LIST_CLUSTERS_TEMPLATE)
         return template.render(clusters=clusters)
 
     def describe_cluster(self):
         cluster_id = self._get_param('ClusterId')
-        cluster = emr_backend.get_cluster(cluster_id)
+        cluster = self.backend.get_cluster(cluster_id)
         template = self.response_template(DESCRIBE_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 
     def add_tags(self):
         cluster_id = self._get_param('ResourceId')
         tags = tags_from_query_string(self.querystring)
-        emr_backend.add_tags(cluster_id, tags)
+        self.backend.add_tags(cluster_id, tags)
         template = self.response_template(ADD_TAGS_TEMPLATE)
         return template.render()
 
     def remove_tags(self):
         cluster_id = self._get_param('ResourceId')
         tag_keys = self._get_multi_param('TagKeys.member')
-        emr_backend.remove_tags(cluster_id, tag_keys)
+        self.backend.remove_tags(cluster_id, tag_keys)
         template = self.response_template(REMOVE_TAGS_TEMPLATE)
         return template.render()
 
