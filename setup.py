@@ -21,7 +21,7 @@ if sys.version_info < (2, 7):
 
 setup(
     name='moto',
-    version='0.4.4',
+    version='0.4.5',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',
