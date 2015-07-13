@@ -156,15 +156,10 @@ def resource_name_property_from_type(resource_type):
     return NAME_TYPE_MAP.get(resource_type)
 
 
-def parse_resource(logical_id, resource_json, resources_map, region_name):
+def parse_resource(logical_id, resource_json, resources_map):
     resource_type = resource_json['Type']
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
-        return None
-
-    condition = resource_json.get('Condition')
-    if condition and not resources_map[condition]:
-        # If this has a False condition, don't create the resource
         return None
 
     resource_json = clean_json(resource_json, resources_map)
@@ -182,11 +177,36 @@ def parse_resource(logical_id, resource_json, resources_map, region_name):
         resource_name = '{0}-{1}-{2}'.format(resources_map.get('AWS::StackName'),
                                              logical_id,
                                              random_suffix())
+    return resource_class, resource_json, resource_name
 
+
+def parse_and_create_resource(logical_id, resource_json, resources_map, region_name):
+    condition = resource_json.get('Condition')
+    if condition and not resources_map[condition]:
+        # If this has a False condition, don't create the resource
+        return None
+
+    resource_type = resource_json['Type']
+    resource_tuple = parse_resource(logical_id, resource_json, resources_map)
+    if not resource_tuple:
+        return None
+    resource_class, resource_json, resource_name = resource_tuple
     resource = resource_class.create_from_cloudformation_json(resource_name, resource_json, region_name)
     resource.type = resource_type
     resource.logical_resource_id = logical_id
     return resource
+
+
+def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
+    resource_class, resource_json, resource_name = parse_resource(logical_id, resource_json, resources_map)
+    resource = resource_class.update_from_cloudformation_json(resource_name, resource_json, region_name)
+    return resource
+
+
+def parse_and_delete_resource(logical_id, resource_json, resources_map, region_name):
+    resource_class, resource_json, resource_name = parse_resource(logical_id, resource_json, resources_map)
+    resource_class.delete_from_cloudformation_json(resource_name, resource_json, region_name)
+    return None
 
 
 def parse_condition(condition, resources_map, condition_map):
@@ -258,7 +278,7 @@ class ResourceMap(collections.Mapping):
             return self._parsed_resources[resource_logical_id]
         else:
             resource_json = self._resource_json_map.get(resource_logical_id)
-            new_resource = parse_resource(resource_logical_id, resource_json, self, self._region_name)
+            new_resource = parse_and_create_resource(resource_logical_id, resource_json, self, self._region_name)
             self._parsed_resources[resource_logical_id] = new_resource
             return new_resource
 
@@ -317,6 +337,34 @@ class ResourceMap(collections.Mapping):
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 tags['aws:cloudformation:logical-id'] = resource
                 ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], tags)
+
+    def update(self, template):
+        self.load_mapping()
+        self.load_parameters()
+        self.load_conditions()
+
+        old_template = self._resource_json_map
+        new_template = template['Resources']
+        self._resource_json_map = new_template
+
+        new_resource_names = set(new_template) - set(old_template)
+        for resource_name in new_resource_names:
+            resource_json = new_template[resource_name]
+            new_resource = parse_and_create_resource(resource_name, resource_json, self, self._region_name)
+            self._parsed_resources[resource_name] = new_resource
+
+        removed_resource_nams = set(old_template) - set(new_template)
+        for resource_name in removed_resource_nams:
+            resource_json = old_template[resource_name]
+            parse_and_delete_resource(resource_name, resource_json, self, self._region_name)
+            self._parsed_resources.pop(resource_name)
+
+        for resource_name in new_template:
+            if resource_name in old_template and new_template[resource_name] != old_template[resource_name]:
+                resource_json = new_template[resource_name]
+
+                changed_resource = parse_and_update_resource(resource_name, resource_json, self, self._region_name)
+                self._parsed_resources[resource_name] = changed_resource
 
 
 class OutputMap(collections.Mapping):

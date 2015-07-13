@@ -99,6 +99,119 @@ def test_stack_list_resources():
     queue.physical_resource_id.should.equal("my-queue")
 
 
+@mock_cloudformation()
+@mock_sqs()
+def test_update_stack():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+
+                "Type": "AWS::SQS::Queue",
+                "Properties": {
+                    "QueueName": "my-queue",
+                    "VisibilityTimeout": 60,
+                }
+            },
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=sqs_template_json,
+    )
+
+    sqs_conn = boto.sqs.connect_to_region("us-west-1")
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(1)
+    queues[0].get_attributes('VisibilityTimeout')['VisibilityTimeout'].should.equal('60')
+
+    sqs_template['Resources']['QueueGroup']['Properties']['VisibilityTimeout'] = 100
+    sqs_template_json = json.dumps(sqs_template)
+    conn.update_stack("test_stack", sqs_template_json)
+
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(1)
+    queues[0].get_attributes('VisibilityTimeout')['VisibilityTimeout'].should.equal('100')
+
+
+@mock_cloudformation()
+@mock_sqs()
+def test_update_stack_and_remove_resource():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+
+                "Type": "AWS::SQS::Queue",
+                "Properties": {
+                    "QueueName": "my-queue",
+                    "VisibilityTimeout": 60,
+                }
+            },
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=sqs_template_json,
+    )
+
+    sqs_conn = boto.sqs.connect_to_region("us-west-1")
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(1)
+
+    sqs_template['Resources'].pop('QueueGroup')
+    sqs_template_json = json.dumps(sqs_template)
+    conn.update_stack("test_stack", sqs_template_json)
+
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(0)
+
+
+@mock_cloudformation()
+@mock_sqs()
+def test_update_stack_and_add_resource():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {},
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=sqs_template_json,
+    )
+
+    sqs_conn = boto.sqs.connect_to_region("us-west-1")
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(0)
+
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+
+                "Type": "AWS::SQS::Queue",
+                "Properties": {
+                    "QueueName": "my-queue",
+                    "VisibilityTimeout": 60,
+                }
+            },
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+    conn.update_stack("test_stack", sqs_template_json)
+
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(1)
+
+
 @mock_ec2()
 @mock_cloudformation()
 def test_stack_ec2_integration():
