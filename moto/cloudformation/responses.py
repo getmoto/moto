@@ -67,13 +67,20 @@ class CloudFormationResponse(BaseResponse):
         stack_name = self._get_param('StackName')
         stack = self.cloudformation_backend.get_stack(stack_name)
 
-        template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
+        template = self.response_template(DESCRIBE_STACKS_RESOURCES_RESPONSE)
         return template.render(stack=stack)
 
     def list_stacks(self):
         stacks = self.cloudformation_backend.list_stacks()
         template = self.response_template(LIST_STACKS_RESPONSE)
         return template.render(stacks=stacks)
+
+    def list_stack_resources(self):
+        stack_name_or_id = self._get_param('StackName')
+        resources = self.cloudformation_backend.list_stack_resources(stack_name_or_id)
+
+        template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
+        return template.render(resources=resources)
 
     def get_template(self):
         name_or_stack_id = self.querystring.get('StackName')[0]
@@ -166,7 +173,7 @@ LIST_STACKS_RESPONSE = """<ListStacksResponse>
 </ListStacksResponse>"""
 
 
-LIST_STACKS_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
+DESCRIBE_STACKS_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
   <StackResources>
     {% for resource in stack.stack_resources %}
     <member>
@@ -181,3 +188,23 @@ LIST_STACKS_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
     {% endfor %}
   </StackResources>
 </DescribeStackResourcesResult>"""
+
+
+LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
+  <ListStackResourcesResult>
+    <StackResourceSummaries>
+      {% for resource in resources %}
+      <member>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
+        <LastUpdatedTimestamp>2011-06-21T20:15:58Z</LastUpdatedTimestamp>
+        <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
+        <ResourceType>{{ resource.type }}</ResourceType>
+      </member>
+      {% endfor %}
+    </StackResourceSummaries>
+  </ListStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>2d06e36c-ac1d-11e0-a958-f9382b6eb86b</RequestId>
+  </ResponseMetadata>
+</ListStackResourcesResponse>"""

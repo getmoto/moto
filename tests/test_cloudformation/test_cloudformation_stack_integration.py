@@ -68,6 +68,37 @@ def test_stack_sqs_integration():
     queue.physical_resource_id.should.equal("my-queue")
 
 
+@mock_cloudformation()
+def test_stack_list_resources():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+
+                "Type": "AWS::SQS::Queue",
+                "Properties": {
+                    "QueueName": "my-queue",
+                    "VisibilityTimeout": 60,
+                }
+            },
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=sqs_template_json,
+    )
+
+    resources = conn.list_stack_resources("test_stack")
+    assert len(resources) == 1
+    queue = resources[0]
+    queue.resource_type.should.equal('AWS::SQS::Queue')
+    queue.logical_resource_id.should.equal("QueueGroup")
+    queue.physical_resource_id.should.equal("my-queue")
+
+
 @mock_ec2()
 @mock_cloudformation()
 def test_stack_ec2_integration():
@@ -1198,17 +1229,17 @@ def test_subnets_should_be_created_with_availability_zone():
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
 
     subnet_template = {
-       "AWSTemplateFormatVersion" : "2010-09-09",
-       "Resources" : {
-          "testSubnet" : {
-             "Type" : "AWS::EC2::Subnet",
-             "Properties" : {
-                "VpcId" : vpc.id,
-                "CidrBlock" : "10.0.0.0/24",
-                "AvailabilityZone" : "us-west-1b",
-             }
-          }
-       }
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "testSubnet": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "VpcId": vpc.id,
+                    "CidrBlock": "10.0.0.0/24",
+                    "AvailabilityZone": "us-west-1b",
+                }
+            }
+        }
     }
     cf_conn = boto.cloudformation.connect_to_region("us-west-1")
     template_json = json.dumps(subnet_template)
