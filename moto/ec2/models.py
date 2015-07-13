@@ -1715,6 +1715,11 @@ class Subnet(TaggedEC2Resource):
             cidr_block=cidr_block,
             availability_zone=availability_zone,
         )
+        for tag in properties.get("Tags", []):
+            tag_key = tag["Key"]
+            tag_value = tag["Value"]
+            subnet.add_tag(tag_key, tag_value)
+
         return subnet
 
     @property
