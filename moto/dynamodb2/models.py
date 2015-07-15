@@ -81,7 +81,9 @@ class Item(object):
     def to_json(self):
         attributes = {}
         for attribute_key, attribute in self.attrs.items():
-            attributes[attribute_key] = attribute.value
+            attributes[attribute_key] = {
+                attribute.type : attribute.value
+            }
 
         return {
             "Attributes": attributes
