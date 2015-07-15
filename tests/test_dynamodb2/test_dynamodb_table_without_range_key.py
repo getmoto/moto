@@ -10,7 +10,7 @@ try:
     from boto.dynamodb2.fields import HashKey
     from boto.dynamodb2.table import Table
     from boto.dynamodb2.table import Item
-    from boto.dynamodb2.exceptions import ConditionalCheckFailedException
+    from boto.dynamodb2.exceptions import ConditionalCheckFailedException, ItemNotFound
 except ImportError:
     pass
 
@@ -367,6 +367,13 @@ def test_get_key_fields():
     table = create_table()
     kf = table.get_key_fields()
     kf[0].should.equal('forum_name')
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_get_missing_item():
+    table = create_table()
+    table.get_item.when.called_with(forum_name='missing').should.throw(ItemNotFound)
 
 
 @requires_boto_gte("2.9")

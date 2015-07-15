@@ -196,8 +196,8 @@ class DynamoHandler(BaseResponse):
             return dynamo_json_dump(item_dict)
         else:
             # Item not found
-            er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
-            return self.error(er, status=404)
+            er = '{}'
+            return self.error(er, status=200)
 
     def batch_get_item(self):
         table_batches = self.body['RequestItems']
