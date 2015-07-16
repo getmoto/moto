@@ -397,8 +397,6 @@ def test_set_policies_of_listener():
     lb.set_policies_of_listener(listener_port, [policy_name])
 
     lb = conn.get_all_load_balancers()[0]
-    print lb.listeners
-    print lb.backends
     listener = lb.listeners[0]
     listener.load_balancer_port.should.equal(listener_port)
     # by contrast to a backend, a listener stores only policy name strings
