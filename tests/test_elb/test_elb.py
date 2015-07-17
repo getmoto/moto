@@ -334,11 +334,11 @@ def test_create_lb_cookie_stickiness_policy():
     lb = conn.get_all_load_balancers()[0]
     # There appears to be a quirk about boto, whereby it returns a unicode
     # string for cookie_expiration_period, despite being stated in
-    # documentation to be a long.
+    # documentation to be a long numeric.
     #
-    # To work around that, this value is converted to a long and checked.
+    # To work around that, this value is converted to an int and checked.
     cookie_expiration_period_response_str = lb.policies.lb_cookie_stickiness_policies[0].cookie_expiration_period
-    long(cookie_expiration_period_response_str).should.equal(cookie_expiration_period)
+    int(cookie_expiration_period_response_str).should.equal(cookie_expiration_period)
     lb.policies.lb_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
 
 @mock_elb

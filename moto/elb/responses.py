@@ -220,7 +220,7 @@ class ELBResponse(BaseResponse):
         policy.policy_name = policy_name
         cookie_expirations = [value[0] for key, value in self.querystring.items() if "CookieExpirationPeriod" in key]
         if cookie_expirations:
-            policy.cookie_expiration_period = long(cookie_expirations[0])
+            policy.cookie_expiration_period = int(cookie_expirations[0])
         else:
             policy.cookie_expiration_period = None
 
