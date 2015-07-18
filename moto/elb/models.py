@@ -8,12 +8,7 @@ from boto.ec2.elb.attributes import (
     AccessLogAttribute,
     CrossZoneLoadBalancingAttribute,
 )
-from boto.ec2.elb.policies import (
-    Policies,
-    AppCookieStickinessPolicy,
-    LBCookieStickinessPolicy,
-    OtherPolicy,
-)
+from boto.ec2.elb.policies import Policies
 from moto.core import BaseBackend
 
 
@@ -43,7 +38,7 @@ class FakeBackend(object):
     def __init__(self, instance_port):
         self.instance_port = instance_port
         self.policy_names = []
-    
+
     def __repr__(self):
         return "FakeBackend(inp: %s, policies: %s)" % (self.instance_port, self.policy_names)
 
@@ -62,19 +57,19 @@ class FakeLoadBalancer(object):
         self.policies.app_cookie_stickiness_policies = []
         self.policies.lb_cookie_stickiness_policies = []
 
-        for protocol, lb_port, instance_port, ssl_certificate_id in ports:
+        for port in ports:
             listener = FakeListener(
-                protocol=protocol,
-                load_balancer_port=lb_port,
-                instance_port=instance_port,
-                ssl_certificate_id=ssl_certificate_id
+                protocol=port['protocol'],
+                load_balancer_port=port['load_balancer_port'],
+                instance_port=port['instance_port'],
+                ssl_certificate_id=port.get('sslcertificate_id'),
             )
             self.listeners.append(listener)
-            
+
             # it is unclear per the AWS documentation as to when or how backend
             # information gets set, so let's guess and set it here *shrug*
             backend = FakeBackend(
-                instance_port = instance_port,
+                instance_port=port['instance_port'],
             )
             self.backends.append(backend)
 
@@ -134,6 +129,7 @@ class FakeLoadBalancer(object):
 
         return attributes
 
+
 class ELBBackend(BaseBackend):
 
     def __init__(self):
@@ -147,7 +143,11 @@ class ELBBackend(BaseBackend):
     def create_load_balancer_listeners(self, name, ports):
         balancer = self.load_balancers.get(name, None)
         if balancer:
-            for protocol, lb_port, instance_port, ssl_certificate_id in ports:
+            for port in ports:
+                protocol = port['protocol']
+                instance_port = port['instance_port']
+                lb_port = port['load_balancer_port']
+                ssl_certificate_id = port.get('sslcertificate_id')
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
                         break
