@@ -8,6 +8,12 @@ from boto.ec2.elb.attributes import (
     AccessLogAttribute,
     CrossZoneLoadBalancingAttribute,
 )
+from boto.ec2.elb.policies import (
+    Policies,
+    AppCookieStickinessPolicy,
+    LBCookieStickinessPolicy,
+    OtherPolicy,
+)
 from moto.core import BaseBackend
 
 
@@ -27,6 +33,19 @@ class FakeListener(object):
         self.instance_port = instance_port
         self.protocol = protocol.upper()
         self.ssl_certificate_id = ssl_certificate_id
+        self.policy_names = []
+
+    def __repr__(self):
+        return "FakeListener(lbp: %s, inp: %s, pro: %s, cid: %s, policies: %s)" % (self.load_balancer_port, self.instance_port, self.protocol, self.ssl_certificate_id, self.policy_names)
+
+
+class FakeBackend(object):
+    def __init__(self, instance_port):
+        self.instance_port = instance_port
+        self.policy_names = []
+    
+    def __repr__(self):
+        return "FakeBackend(inp: %s, policies: %s)" % (self.instance_port, self.policy_names)
 
 
 class FakeLoadBalancer(object):
@@ -36,7 +55,12 @@ class FakeLoadBalancer(object):
         self.instance_ids = []
         self.zones = zones
         self.listeners = []
+        self.backends = []
         self.attributes = FakeLoadBalancer.get_default_attributes()
+        self.policies = Policies()
+        self.policies.other_policies = []
+        self.policies.app_cookie_stickiness_policies = []
+        self.policies.lb_cookie_stickiness_policies = []
 
         for protocol, lb_port, instance_port, ssl_certificate_id in ports:
             listener = FakeListener(
@@ -46,6 +70,13 @@ class FakeLoadBalancer(object):
                 ssl_certificate_id=ssl_certificate_id
             )
             self.listeners.append(listener)
+            
+            # it is unclear per the AWS documentation as to when or how backend
+            # information gets set, so let's guess and set it here *shrug*
+            backend = FakeBackend(
+                instance_port = instance_port,
+            )
+            self.backends.append(backend)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -102,7 +133,6 @@ class FakeLoadBalancer(object):
         attributes.connecting_settings = connection_settings
 
         return attributes
-
 
 class ELBBackend(BaseBackend):
 
@@ -199,6 +229,37 @@ class ELBBackend(BaseBackend):
     def set_connection_settings_attribute(self, load_balancer_name, attribute):
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.attributes.connecting_settings = attribute
+        return load_balancer
+
+    def create_lb_other_policy(self, load_balancer_name, other_policy):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.policies.other_policies.append(other_policy)
+        return load_balancer
+
+    def create_app_cookie_stickiness_policy(self, load_balancer_name, policy):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.policies.app_cookie_stickiness_policies.append(policy)
+        return load_balancer
+
+    def create_lb_cookie_stickiness_policy(self, load_balancer_name, policy):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.policies.lb_cookie_stickiness_policies.append(policy)
+        return load_balancer
+
+    def set_load_balancer_policies_of_backend_server(self, load_balancer_name, instance_port, policies):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        backend = [b for b in load_balancer.backends if int(b.instance_port) == instance_port][0]
+        backend_idx = load_balancer.backends.index(backend)
+        backend.policy_names = policies
+        load_balancer.backends[backend_idx] = backend
+        return load_balancer
+
+    def set_load_balancer_policies_of_listener(self, load_balancer_name, load_balancer_port, policies):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        listener = [l for l in load_balancer.listeners if int(l.load_balancer_port) == load_balancer_port][0]
+        listener_idx = load_balancer.listeners.index(listener)
+        listener.policy_names = policies
+        load_balancer.listeners[listener_idx] = listener
         return load_balancer
 
 

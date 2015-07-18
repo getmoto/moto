@@ -5,6 +5,12 @@ from boto.ec2.elb.attributes import (
     AccessLogAttribute,
     CrossZoneLoadBalancingAttribute,
 )
+from boto.ec2.elb.policies import (
+    Policies,
+    AppCookieStickinessPolicy,
+    LBCookieStickinessPolicy,
+    OtherPolicy,
+)
 
 from moto.core.responses import BaseResponse
 from .models import elb_backends
@@ -177,6 +183,101 @@ class ELBResponse(BaseResponse):
         template = self.response_template(MODIFY_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=load_balancer.attributes)
 
+    def create_load_balancer_policy(self):
+        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        load_balancer = self.elb_backend.describe_load_balancers(load_balancer_name)[0]
+
+        other_policy = OtherPolicy()
+        policy_name = [value[0] for key, value in self.querystring.items() if "PolicyName" in key][0]
+        other_policy.policy_name = policy_name
+
+        self.elb_backend.create_lb_other_policy(load_balancer_name, other_policy)
+
+        template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
+        return template.render()
+
+    def create_app_cookie_stickiness_policy(self):
+        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        load_balancer = self.elb_backend.describe_load_balancers(load_balancer_name)[0]
+
+        policy = AppCookieStickinessPolicy()
+        policy_name = [value[0] for key, value in self.querystring.items() if "PolicyName" in key][0]
+        policy.policy_name = policy_name
+        cookie_name = [value[0] for key, value in self.querystring.items() if "CookieName" in key][0]
+        policy.cookie_name = cookie_name
+
+        self.elb_backend.create_app_cookie_stickiness_policy(load_balancer_name, policy)
+
+        template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
+        return template.render()
+
+    def create_lbcookie_stickiness_policy(self):
+        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        load_balancer = self.elb_backend.describe_load_balancers(load_balancer_name)[0]
+
+        policy = AppCookieStickinessPolicy()
+        policy_name = [value[0] for key, value in self.querystring.items() if "PolicyName" in key][0]
+        policy.policy_name = policy_name
+        cookie_expirations = [value[0] for key, value in self.querystring.items() if "CookieExpirationPeriod" in key]
+        if cookie_expirations:
+            policy.cookie_expiration_period = int(cookie_expirations[0])
+        else:
+            policy.cookie_expiration_period = None
+
+        self.elb_backend.create_lb_cookie_stickiness_policy(load_balancer_name, policy)
+
+        template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
+        return template.render()
+
+    def set_load_balancer_policies_of_listener(self):
+        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        load_balancer = self.elb_backend.describe_load_balancers(load_balancer_name)[0]
+        load_balancer_port = int(self.querystring.get('LoadBalancerPort')[0])
+
+        mb_listener = [l for l in load_balancer.listeners if int(l.load_balancer_port) == load_balancer_port]
+        if mb_listener:
+            policies = []
+            policy_index = 1
+            while True:
+                try:
+                    policy = self.querystring['PolicyNames.member.{0}'.format(policy_index)][0]
+                except KeyError:
+                    break
+
+                policy_index += 1
+                policies.append(str(policy))
+
+            self.elb_backend.set_load_balancer_policies_of_listener(load_balancer_name, load_balancer_port, policies)
+        # else: explode?
+
+        template = self.response_template(SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE)
+        return template.render()
+    
+    def set_load_balancer_policies_for_backend_server(self):
+        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        load_balancer = self.elb_backend.describe_load_balancers(load_balancer_name)[0]
+        instance_port = int(self.querystring.get('InstancePort')[0])
+
+        mb_backend = [b for b in load_balancer.backends if int(b.instance_port) == instance_port]
+        if mb_backend:
+            policies = []
+            policy_index = 1
+            while True:
+                try:
+                    policy = self.querystring['PolicyNames.member.{0}'.format(policy_index)][0]
+                except KeyError:
+                    break
+
+                policy_index += 1
+                policies.append(str(policy))
+
+            self.elb_backend.set_load_balancer_policies_of_backend_server(load_balancer_name, instance_port, policies)
+        
+        # else: explode?
+
+        template = self.response_template(SET_LOAD_BALANCER_POLICIES_FOR_BACKEND_SERVER_TEMPLATE)
+        return template.render()
+
     def describe_instance_health(self):
         load_balancer_name = self.querystring.get('LoadBalancerName')[0]
         instance_ids = [value[0] for key, value in self.querystring.items() if "Instances.member" in key]
@@ -223,7 +324,9 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
             {% for listener in load_balancer.listeners %}
               <member>
                 <PolicyNames>
-                  <member>AWSConsolePolicy-1</member>
+                  {% for policy_name in listener.policy_names %}
+                    <member>{{ policy_name }}</member>
+                  {% endfor %}
                 </PolicyNames>
                 <Listener>
                   <Protocol>{{ listener.protocol }}</Protocol>
@@ -243,14 +346,35 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
             {% endfor %}
           </Instances>
           <Policies>
-            <AppCookieStickinessPolicies/>
-            <OtherPolicies/>
+            <AppCookieStickinessPolicies>
+            {% if load_balancer.policies.app_cookie_stickiness_policies %}
+                {% for policy in load_balancer.policies.app_cookie_stickiness_policies %}
+                    <member>
+                        <CookieName>{{ policy.cookie_name }}</CookieName>
+                        <PolicyName>{{ policy.policy_name }}</PolicyName>
+                    </member>
+                {% endfor %}
+            {% endif %}
+            </AppCookieStickinessPolicies>
             <LBCookieStickinessPolicies>
-              <member>
-                <PolicyName>AWSConsolePolicy-1</PolicyName>
-                <CookieExpirationPeriod>30</CookieExpirationPeriod>
-              </member>
+            {% if load_balancer.policies.lb_cookie_stickiness_policies %}
+                {% for policy in load_balancer.policies.lb_cookie_stickiness_policies %}
+                    <member>
+                        {% if policy.cookie_expiration_period %}
+                        <CookieExpirationPeriod>{{ policy.cookie_expiration_period }}</CookieExpirationPeriod>
+                        {% endif %}
+                        <PolicyName>{{ policy.policy_name }}</PolicyName>
+                    </member>
+                {% endfor %}
+            {% endif %}
             </LBCookieStickinessPolicies>
+            <OtherPolicies>
+            {% if load_balancer.policies.other_policies %}
+                {% for policy in load_balancer.policies.other_policies %}
+                    <member>{{ policy.policy_name }}</member>
+                {% endfor %}
+            {% endif %}
+            </OtherPolicies>
           </Policies>
           <AvailabilityZones>
             {% for zone in load_balancer.zones %}
@@ -261,7 +385,22 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           <CanonicalHostedZoneNameID>Z3ZONEID</CanonicalHostedZoneNameID>
           <Scheme>internet-facing</Scheme>
           <DNSName>tests.us-east-1.elb.amazonaws.com</DNSName>
-          <BackendServerDescriptions/>
+          <BackendServerDescriptions>
+          {% for backend in load_balancer.backends %}
+            <member>
+                {% if backend.instance_port %}
+                <InstancePort>{{ backend.instance_port }}</InstancePort>
+                {% endif %}
+                {% if backend.policy_names %}
+                    <PolicyNames>
+                        {% for policy in backend.policy_names %}
+                            <member>{{ policy }}</member>
+                        {% endfor %}
+                    </PolicyNames>
+                    {% endif %}
+            </member>
+          {% endfor %}
+          </BackendServerDescriptions>
           <Subnets>
           </Subnets>
         </member>
@@ -379,6 +518,30 @@ MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="htt
     <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
   </ResponseMetadata>
 </ModifyLoadBalancerAttributesResponse>
+"""
+
+CREATE_LOAD_BALANCER_POLICY_TEMPLATE = """<CreateLoadBalancerPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <CreateLoadBalancerPolicyResult/>
+  <ResponseMetadata>
+      <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateLoadBalancerPolicyResponse>
+"""
+
+SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE = """<SetLoadBalancerPoliciesOfListenerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+    <SetLoadBalancerPoliciesOfListenerResult/>
+    <ResponseMetadata>
+        <RequestId>07b1ecbc-1100-11e3-acaf-dd7edEXAMPLE</RequestId>
+    </ResponseMetadata>
+</SetLoadBalancerPoliciesOfListenerResponse>
+"""
+
+SET_LOAD_BALANCER_POLICIES_FOR_BACKEND_SERVER_TEMPLATE = """<SetLoadBalancerPoliciesForBackendServerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+    <SetLoadBalancerPoliciesForBackendServerResult/>
+    <ResponseMetadata>
+        <RequestId>0eb9b381-dde0-11e2-8d78-6ddbaEXAMPLE</RequestId>
+    </ResponseMetadata>
+</SetLoadBalancerPoliciesForBackendServerResponse>
 """
 
 DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">

@@ -7,6 +7,12 @@ from boto.ec2.elb.attributes import (
     ConnectionDrainingAttribute,
     AccessLogAttribute,
 )
+from boto.ec2.elb.policies import (
+    Policies,
+    AppCookieStickinessPolicy,
+    LBCookieStickinessPolicy,
+    OtherPolicy,
+)
 import sure  # noqa
 
 from moto import mock_elb, mock_ec2
@@ -315,6 +321,105 @@ def test_connection_settings_attribute():
     attributes = lb.get_attributes(force=True)
     attributes.connecting_settings.idle_timeout.should.equal(60)
 
+@mock_elb
+def test_create_lb_cookie_stickiness_policy():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+    cookie_expiration_period = 60
+    policy_name = "LBCookieStickinessPolicy"
+
+    lb.create_cookie_stickiness_policy(cookie_expiration_period, policy_name)
+
+    lb = conn.get_all_load_balancers()[0]
+    # There appears to be a quirk about boto, whereby it returns a unicode
+    # string for cookie_expiration_period, despite being stated in
+    # documentation to be a long numeric.
+    #
+    # To work around that, this value is converted to an int and checked.
+    cookie_expiration_period_response_str = lb.policies.lb_cookie_stickiness_policies[0].cookie_expiration_period
+    int(cookie_expiration_period_response_str).should.equal(cookie_expiration_period)
+    lb.policies.lb_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
+
+@mock_elb
+def test_create_lb_cookie_stickiness_policy_no_expiry():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+    policy_name = "LBCookieStickinessPolicy"
+
+    lb.create_cookie_stickiness_policy(None, policy_name)
+
+    lb = conn.get_all_load_balancers()[0]
+    lb.policies.lb_cookie_stickiness_policies[0].cookie_expiration_period.should.be.none
+    lb.policies.lb_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
+
+@mock_elb
+def test_create_app_cookie_stickiness_policy():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+    cookie_name = "my-stickiness-policy"
+    policy_name = "AppCookieStickinessPolicy"
+
+    lb.create_app_cookie_stickiness_policy(cookie_name, policy_name)
+
+    lb = conn.get_all_load_balancers()[0]
+    lb.policies.app_cookie_stickiness_policies[0].cookie_name.should.equal(cookie_name)
+    lb.policies.app_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
+
+@mock_elb
+def test_create_lb_policy():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+    policy_name = "ProxyPolicy"
+
+    lb.create_lb_policy(policy_name, 'ProxyProtocolPolicyType', {'ProxyProtocol': True})
+
+    lb = conn.get_all_load_balancers()[0]
+    lb.policies.other_policies[0].policy_name.should.equal(policy_name)
+
+@mock_elb
+def test_set_policies_of_listener():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+    listener_port = 80
+    policy_name = "my-stickiness-policy"
+
+    # boto docs currently state that zero or one policy may be associated
+    # with a given listener
+
+    # in a real flow, it is necessary first to create a policy,
+    # then to set that policy to the listener
+    lb.create_cookie_stickiness_policy(None, policy_name)
+    lb.set_policies_of_listener(listener_port, [policy_name])
+
+    lb = conn.get_all_load_balancers()[0]
+    listener = lb.listeners[0]
+    listener.load_balancer_port.should.equal(listener_port)
+    # by contrast to a backend, a listener stores only policy name strings
+    listener.policy_names[0].should.equal(policy_name)
+
+@mock_elb
+def test_set_policies_of_backend_server():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = conn.create_load_balancer('my-lb', [], ports)
+    instance_port = 8080
+    policy_name = "ProxyPolicy"
+
+    # in a real flow, it is necessary first to create a policy,
+    # then to set that policy to the backend
+    lb.create_lb_policy(policy_name, 'ProxyProtocolPolicyType', {'ProxyProtocol': True}) 
+    lb.set_policies_of_backend_server(instance_port, [policy_name])
+
+    lb = conn.get_all_load_balancers()[0]
+    backend = lb.backends[0]
+    backend.instance_port.should.equal(instance_port)
+    # by contrast to a listener, a backend stores OtherPolicy objects
+    backend.policies[0].policy_name.should.equal(policy_name)
 
 @mock_ec2
 @mock_elb
