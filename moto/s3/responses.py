@@ -103,6 +103,12 @@ class ResponseObject(_TemplateEnvironmentMixin):
             versioning = self.backend.get_bucket_versioning(bucket_name)
             template = self.response_template(S3_BUCKET_GET_VERSIONING)
             return 200, headers, template.render(status=versioning)
+        elif 'policy' in querystring:
+            policy = self.backend.get_bucket_policy(bucket_name)
+            if not policy:
+                template = self.response_template(S3_NO_POLICY)
+                return 404, headers, template.render(bucket_name=bucket_name)
+            return 200, headers, policy
         elif 'versions' in querystring:
             delimiter = querystring.get('delimiter', [None])[0]
             encoding_type = querystring.get('encoding-type', [None])[0]
@@ -167,6 +173,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 rules = [rules]
             self.backend.set_bucket_lifecycle(bucket_name, rules)
             return ""
+        elif 'policy' in querystring:
+            self.backend.set_bucket_policy(bucket_name, body)
+            return 'True'
         else:
             try:
                 new_bucket = self.backend.create_bucket(bucket_name, region_name)
@@ -705,4 +714,14 @@ S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
   </Upload>
   {% endfor %}
 </ListMultipartUploadsResult>
+"""
+
+S3_NO_POLICY = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>NoSuchBucketPolicy</Code>
+  <Message>The bucket policy does not exist</Message>
+  <BucketName>{{ bucket_name }}</BucketName>
+  <RequestId>0D68A23BB2E2215B</RequestId>
+  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
+</Error>
 """

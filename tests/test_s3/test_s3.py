@@ -6,6 +6,7 @@ from six.moves.urllib.error import HTTPError
 from functools import wraps
 from io import BytesIO
 
+import json
 import boto
 from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.connection import S3Connection
@@ -823,3 +824,48 @@ def test_ranged_get():
     key.get_contents_as_string(headers={'Range': 'bytes=-700'}).should.equal(rep * 10)
 
     key.size.should.equal(100)
+
+
+@mock_s3
+def test_policy():
+    conn = boto.connect_s3()
+    bucket_name = 'mybucket'
+    bucket = conn.create_bucket(bucket_name)
+
+    policy = json.dumps({
+        "Version": "2012-10-17",
+        "Id": "PutObjPolicy",
+        "Statement": [
+            {
+                "Sid": "DenyUnEncryptedObjectUploads",
+                "Effect": "Deny",
+                "Principal": "*",
+                "Action": "s3:PutObject",
+                "Resource": "arn:aws:s3:::{bucket_name}/*".format(bucket_name=bucket_name),
+                "Condition": {
+                    "StringNotEquals": {
+                        "s3:x-amz-server-side-encryption": "aws:kms"
+                    }
+                }
+            }
+        ]
+    })
+
+    with assert_raises(S3ResponseError) as err:
+        bucket.get_policy()
+
+    ex = err.exception
+    ex.box_usage.should.be.none
+    ex.error_code.should.equal('NoSuchBucketPolicy')
+    ex.message.should.equal('The bucket policy does not exist')
+    ex.reason.should.equal('Not Found')
+    ex.resource.should.be.none
+    ex.status.should.equal(404)
+    ex.body.should.contain(bucket_name)
+    ex.request_id.should_not.be.none
+
+    bucket.set_policy(policy).should.be.true
+
+    bucket = conn.get_bucket(bucket_name)
+
+    bucket.get_policy().decode('utf-8').should.equal(policy)
