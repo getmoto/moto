@@ -1,5 +1,6 @@
 from moto.core.responses import BaseResponse
 from .models import cloudwatch_backend
+import logging
 
 
 class CloudWatchResponse(BaseResponse):
@@ -28,7 +29,22 @@ class CloudWatchResponse(BaseResponse):
         return template.render(alarm=alarm)
 
     def describe_alarms(self):
-        alarms = cloudwatch_backend.get_all_alarms()
+        action_prefix = self._get_param('ActionPrefix')
+        alarm_name_prefix = self._get_param('AlarmNamePrefix')
+        alarm_names = self._get_multi_param('AlarmNames.member')
+        state_value = self._get_param('StateValue')
+
+        if action_prefix:
+            alarms = cloudwatch_backend.get_alarms_by_action_prefix(action_prefix)
+        elif alarm_name_prefix:
+            alarms = cloudwatch_backend.get_alarms_by_alarm_name_prefix(alarm_name_prefix)
+        elif alarm_names:
+            alarms = cloudwatch_backend.get_alarms_by_alarm_names(alarm_names)
+        elif state_value:
+            alarms = cloudwatch_backend.get_alarms_by_state_value(state_value)
+        else :
+            alarms = cloudwatch_backend.get_all_alarms()
+
         template = self.response_template(DESCRIBE_ALARMS_TEMPLATE)
         return template.render(alarms=alarms)
 
