@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import boto.kms
 from moto.core import BaseBackend
 from .utils import generate_key_id
+from collections import defaultdict
 
 
 class Key(object):
@@ -37,6 +38,7 @@ class KmsBackend(BaseBackend):
 
     def __init__(self):
         self.keys = {}
+        self.key_to_aliases = defaultdict(set)
 
     def create_key(self, policy, key_usage, description, region):
         key = Key(policy, key_usage, description, region)
@@ -48,6 +50,23 @@ class KmsBackend(BaseBackend):
 
     def list_keys(self):
         return self.keys.values()
+
+    def alias_exists(self, alias_name):
+        for aliases in self.key_to_aliases.values():
+            if alias_name in aliases:
+                return True
+
+        return False
+
+    def add_alias(self, target_key_id, alias_name):
+        self.key_to_aliases[target_key_id].add(alias_name)
+
+    def delete_alias(self, alias_name):
+        for aliases in self.key_to_aliases.values():
+            aliases.remove(alias_name)
+
+    def get_all_aliases(self):
+        return self.key_to_aliases
 
 kms_backends = {}
 for region in boto.kms.regions():
