@@ -53,7 +53,7 @@ def test_instance_launch_and_terminate():
     instances.should.have.length_of(1)
     instances[0].id.should.equal(instance.id)
     instances[0].state.should.equal('running')
-    instances[0].launch_time.should.equal("2014-01-01T05:00:00")
+    instances[0].launch_time.should.equal("2014-01-01T05:00:00Z")
     instances[0].vpc_id.should.equal(None)
 
     root_device_name = instances[0].root_device_name
@@ -65,6 +65,35 @@ def test_instance_launch_and_terminate():
     reservations = conn.get_all_instances()
     instance = reservations[0].instances[0]
     instance.state.should.equal('terminated')
+
+@freeze_time("2014-01-01 05:00:00")
+@mock_ec2
+def test_instance_attach_volume():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+
+    vol1 = conn.create_volume(size=36, zone=conn.region.name)
+    vol1.attach(instance.id, "/dev/sda1")
+    vol1.update()
+    vol2 = conn.create_volume(size=65, zone=conn.region.name)
+    vol2.attach(instance.id, "/dev/sdb1")
+    vol2.update()
+    vol3 = conn.create_volume(size=130, zone=conn.region.name)
+    vol3.attach(instance.id, "/dev/sdc1")
+    vol3.update()
+
+    reservations = conn.get_all_instances()
+    instance = reservations[0].instances[0]
+
+    instance.block_device_mapping.should.have.length_of(3)
+
+    for v in conn.get_all_volumes(volume_ids=[instance.block_device_mapping['/dev/sdc1'].volume_id]):
+        v.attach_data.instance_id.should.equal(instance.id)
+        v.attach_data.attach_time.should.equal(instance.launch_time)    # can do due to freeze_time decorator.
+        v.create_time.should.equal(instance.launch_time)                # can do due to freeze_time decorator.
+        v.region.name.should.equal(instance.region.name)
+        v.status.should.equal('in-use')
 
 
 @mock_ec2
