@@ -1,18 +1,17 @@
 from __future__ import unicode_literals
 
-from collections import defaultdict
+import boto
 import copy
-from datetime import datetime
-
 import itertools
 import re
+import six
 
-import boto
+from collections import defaultdict
+from datetime import datetime
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
-import six
 
 from moto.core import BaseBackend
 from moto.core.models import Model
