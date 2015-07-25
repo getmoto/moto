@@ -184,6 +184,7 @@ class FakeBucket(object):
         self.multiparts = {}
         self.versioning_status = None
         self.rules = []
+        self.policy = None
 
     @property
     def location(self):
@@ -268,6 +269,12 @@ class S3Backend(BaseBackend):
                 "Called get_bucket_versions with some of delimiter, encoding_type, key_marker, version_id_marker")
 
         return itertools.chain(*(l for _, l in bucket.keys.iterlists()))
+
+    def get_bucket_policy(self, bucket_name):
+        return self.get_bucket(bucket_name).policy
+
+    def set_bucket_policy(self, bucket_name, policy):
+        self.get_bucket(bucket_name).policy = policy
 
     def set_bucket_lifecycle(self, bucket_name, rules):
         bucket = self.get_bucket(bucket_name)
