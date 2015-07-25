@@ -206,7 +206,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>{{ instance.launch_time }}</launchTime>
           <placement>
-            <availabilityZone>us-east-1b</availabilityZone>
+            <availabilityZone>{{ instance.placement}}</availabilityZone>
             <groupName/>
             <tenancy>default</tenancy>
           </placement>
@@ -331,7 +331,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <instanceType>{{ instance.instance_type }}</instanceType>
                     <launchTime>{{ instance.launch_time }}</launchTime>
                     <placement>
-                      <availabilityZone>us-west-2a</availabilityZone>
+                      <availabilityZone>{{ instance.placement }}</availabilityZone>
                       <groupName/>
                       <tenancy>default</tenancy>
                     </placement>
@@ -369,15 +369,18 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
                     <rootDeviceType>ebs</rootDeviceType>
                     <rootDeviceName>/dev/sda1</rootDeviceName>
                     <blockDeviceMapping>
+                        {% for device_name,deviceobject in instance.get_block_device_mapping %}
                       <item>
-                        <deviceName>/dev/sda1</deviceName>
+                         <deviceName>{{ device_name }}</deviceName>
                           <ebs>
-                            <volumeId>{{ instance.block_device_mapping['/dev/sda1'].volume_id }}</volumeId>
-                            <status>attached</status>
-                            <attachTime>2015-01-01T00:00:00.000Z</attachTime>
-                            <deleteOnTermination>true</deleteOnTermination>
+                             <volumeId>{{ deviceobject.volume_id }}</volumeId>
+                             <status>{{ deviceobject.status }}</status>
+                             <attachTime>{{ deviceobject.attach_time }}</attachTime>
+                             <deleteOnTermination>{{ deviceobject.delete_on_termination }}</deleteOnTermination>
+                             <size>{{deviceobject.size}}</size>
                         </ebs>
                       </item>
+			            {% endfor %}
                     </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
@@ -547,7 +550,7 @@ EC2_INSTANCE_STATUS = """<?xml version="1.0" encoding="UTF-8"?>
       {% for instance in instances %}
         <item>
             <instanceId>{{ instance.id }}</instanceId>
-            <availabilityZone>us-east-1d</availabilityZone>
+            <availabilityZone>{{ instance.placement }}</availabilityZone>
             <instanceState>
                 <code>{{ instance.state_code }}</code>
                 <name>{{ instance.state }}</name>

@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from collections import defaultdict
 import copy
 from datetime import datetime
+
 import itertools
 import re
 
@@ -96,6 +97,9 @@ from .utils import (
     is_tag_filter,
 )
 
+
+def utc_date_and_time():
+    return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
 def validate_resource_ids(resource_ids):
     for resource_id in resource_ids:
@@ -309,14 +313,17 @@ class Instance(BotoInstance, TaggedEC2Resource):
         in_ec2_classic = not bool(self.subnet_id)
         self.key_name = kwargs.get("key_name")
         self.source_dest_check = "true"
-        self.launch_time = datetime.utcnow().isoformat()
+        self.launch_time = utc_date_and_time()
         associate_public_ip = kwargs.get("associate_public_ip", False)
         if in_ec2_classic:
             # If we are in EC2-Classic, autoassign a public IP
             associate_public_ip = True
 
         self.block_device_mapping = BlockDeviceMapping()
-        self.block_device_mapping['/dev/sda1'] = BlockDeviceType(volume_id=random_volume_id())
+        # Default have an instance with root volume should you not wish to override with attach volume cmd.
+        # However this is a ghost volume and wont show up in get_all_volumes or snapshot-able.
+        self.block_device_mapping['/dev/sda1'] = BlockDeviceType(volume_id=random_volume_id(), status='attached',
+                                                                 attach_time=utc_date_and_time())
 
         amis = self.ec2_backend.describe_images(filters={'image-id': image_id})
         ami = amis[0] if amis else None
@@ -342,6 +349,10 @@ class Instance(BotoInstance, TaggedEC2Resource):
                        subnet_id=self.subnet_id,
                        private_ip=kwargs.get("private_ip"),
                        associate_public_ip=associate_public_ip)
+
+    @property
+    def get_block_device_mapping(self):
+        return self.block_device_mapping.items()
 
     @property
     def private_ip(self):
@@ -1349,6 +1360,7 @@ class SecurityGroupIngress(object):
 class VolumeAttachment(object):
     def __init__(self, volume, instance, device):
         self.volume = volume
+        self.attach_time = utc_date_and_time()
         self.instance = instance
         self.device = device
 
@@ -1373,6 +1385,7 @@ class Volume(TaggedEC2Resource):
         self.id = volume_id
         self.size = size
         self.zone = zone
+        self.create_time = utc_date_and_time()
         self.attachment = None
         self.ec2_backend = ec2_backend
 
@@ -1404,6 +1417,7 @@ class Snapshot(TaggedEC2Resource):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
+        self.start_time = utc_date_and_time()
         self.create_volume_permission_groups = set()
         self.ec2_backend = ec2_backend
 
@@ -1444,6 +1458,13 @@ class EBSBackend(object):
             return False
 
         volume.attachment = VolumeAttachment(volume, instance, device_path)
+        # Modify instance to capture mount of block device.
+        bdt = BlockDeviceType(volume_id=volume_id, status=volume.status, size=volume.size,
+                              attach_time=utc_date_and_time())
+        try:
+            instance.block_device_mapping[device_path] = bdt
+        except:
+            instance.block_device_mapping.setdefault(device_path, bdt)
         return volume.attachment
 
     def detach_volume(self, volume_id, instance_id, device_path):
