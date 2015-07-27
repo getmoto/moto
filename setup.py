@@ -25,7 +25,7 @@ setup(
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',
-    author_email='spulec@gmail',
+    author_email='spulec@gmail.com',
     url='https://github.com/spulec/moto',
     entry_points={
         'console_scripts': [

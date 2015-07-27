@@ -1,0 +1,209 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Getting Started with Moto &mdash; Moto 0.4.10 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.4.10',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Moto 0.4.10 documentation" href="index.html" />
+    <link rel="prev" title="Moto: A Mock library for boto" href="index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="getting-started-with-moto">
+<h1>Getting Started with Moto<a class="headerlink" href="#getting-started-with-moto" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="installing-moto">
+<h2>Installing Moto<a class="headerlink" href="#installing-moto" title="Permalink to this headline">¶</a></h2>
+<p>You can use <code class="docutils literal"><span class="pre">pip</span></code> to install the latest released version of <code class="docutils literal"><span class="pre">moto</span></code>:</p>
+<div class="highlight-python"><div class="highlight"><pre>pip install moto
+</pre></div>
+</div>
+<p>If you want to install <code class="docutils literal"><span class="pre">moto</span></code> from source:</p>
+<div class="highlight-python"><div class="highlight"><pre>git clone git://github.com/spulec/moto.git
+cd moto
+python setup.py install
+</pre></div>
+</div>
+</div>
+<div class="section" id="moto-usage">
+<h2>Moto usage<a class="headerlink" href="#moto-usage" title="Permalink to this headline">¶</a></h2>
+<p>For example we have the following code we want to test:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">boto</span>
+<span class="kn">from</span> <span class="nn">boto.s3.key</span> <span class="kn">import</span> <span class="n">Key</span>
+
+<span class="k">class</span> <span class="nc">MyModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">connect_s3</span><span class="p">()</span>
+        <span class="n">bucket</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s">&#39;mybucket&#39;</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">Key</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+        <span class="n">k</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">k</span><span class="o">.</span><span class="n">set_contents_from_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>There are several method to do this, just keep in mind Moto creates a full blank environment.</p>
+<div class="section" id="decorator">
+<h3>Decorator<a class="headerlink" href="#decorator" title="Permalink to this headline">¶</a></h3>
+<p>With a decorator wrapping all the calls to S3 are automatically mocked out.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">boto</span>
+<span class="kn">from</span> <span class="nn">moto</span> <span class="kn">import</span> <span class="n">mock_s3</span>
+<span class="kn">from</span> <span class="nn">mymodule</span> <span class="kn">import</span> <span class="n">MyModel</span>
+
+<span class="nd">@mock_s3</span>
+<span class="k">def</span> <span class="nf">test_my_model_save</span><span class="p">():</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">connect_s3</span><span class="p">()</span>
+    <span class="c"># We need to create the bucket since this is all in Moto&#39;s &#39;virtual&#39; AWS account</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="s">&#39;mybucket&#39;</span><span class="p">)</span>
+
+    <span class="n">model_instance</span> <span class="o">=</span> <span class="n">MyModel</span><span class="p">(</span><span class="s">&#39;steve&#39;</span><span class="p">,</span> <span class="s">&#39;is awesome&#39;</span><span class="p">)</span>
+    <span class="n">model_instance</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="k">assert</span> <span class="n">conn</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s">&#39;mybucket&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_key</span><span class="p">(</span><span class="s">&#39;steve&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_contents_as_string</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;is awesome&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="context-manager">
+<h3>Context manager<a class="headerlink" href="#context-manager" title="Permalink to this headline">¶</a></h3>
+<p>Same as decorator, every call inside <code class="docutils literal"><span class="pre">with</span></code> statement are mocked out.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">test_my_model_save</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">mock_s3</span><span class="p">():</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">connect_s3</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="s">&#39;mybucket&#39;</span><span class="p">)</span>
+
+        <span class="n">model_instance</span> <span class="o">=</span> <span class="n">MyModel</span><span class="p">(</span><span class="s">&#39;steve&#39;</span><span class="p">,</span> <span class="s">&#39;is awesome&#39;</span><span class="p">)</span>
+        <span class="n">model_instance</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="k">assert</span> <span class="n">conn</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s">&#39;mybucket&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_key</span><span class="p">(</span><span class="s">&#39;steve&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_contents_as_string</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;is awesome&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="raw">
+<h3>Raw<a class="headerlink" href="#raw" title="Permalink to this headline">¶</a></h3>
+<p>You can also start and stop manually the mocking.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">test_my_model_save</span><span class="p">():</span>
+    <span class="n">mock</span> <span class="o">=</span> <span class="n">mock_s3</span><span class="p">()</span>
+    <span class="n">mock</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">connect_s3</span><span class="p">()</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="s">&#39;mybucket&#39;</span><span class="p">)</span>
+
+    <span class="n">model_instance</span> <span class="o">=</span> <span class="n">MyModel</span><span class="p">(</span><span class="s">&#39;steve&#39;</span><span class="p">,</span> <span class="s">&#39;is awesome&#39;</span><span class="p">)</span>
+    <span class="n">model_instance</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="k">assert</span> <span class="n">conn</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s">&#39;mybucket&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_key</span><span class="p">(</span><span class="s">&#39;steve&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_contents_as_string</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;is awesome&#39;</span>
+
+    <span class="n">mock</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="stand-alone-server-mode">
+<h3>Stand-alone server mode<a class="headerlink" href="#stand-alone-server-mode" title="Permalink to this headline">¶</a></h3>
+<p>Moto comes with a stand-alone server allowing you to mock out an AWS HTTP endpoint. It is very useful to test even if you don&#8217;t use Python.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>moto_server ec2 -p3000
+ * Running on http://0.0.0.0:3000/
+</pre></div>
+</div>
+<p>This method isn&#8217;t encouraged if you&#8217;re using <code class="docutils literal"><span class="pre">boto</span></code>, best is to use decorator method.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Getting Started with Moto</a><ul>
+<li><a class="reference internal" href="#installing-moto">Installing Moto</a></li>
+<li><a class="reference internal" href="#moto-usage">Moto usage</a><ul>
+<li><a class="reference internal" href="#decorator">Decorator</a></li>
+<li><a class="reference internal" href="#context-manager">Context manager</a></li>
+<li><a class="reference internal" href="#raw">Raw</a></li>
+<li><a class="reference internal" href="#stand-alone-server-mode">Stand-alone server mode</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Moto: A Mock library for boto</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/getting_started.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Steve Pulec.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+      |
+      <a href="_sources/getting_started.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
