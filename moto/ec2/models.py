@@ -100,6 +100,7 @@ from .utils import (
 def utc_date_and_time():
     return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
+
 def validate_resource_ids(resource_ids):
     for resource_id in resource_ids:
         if not is_valid_resource_id(resource_id):
@@ -1460,10 +1461,7 @@ class EBSBackend(object):
         # Modify instance to capture mount of block device.
         bdt = BlockDeviceType(volume_id=volume_id, status=volume.status, size=volume.size,
                               attach_time=utc_date_and_time())
-        try:
-            instance.block_device_mapping[device_path] = bdt
-        except:
-            instance.block_device_mapping.setdefault(device_path, bdt)
+        instance.block_device_mapping[device_path] = bdt
         return volume.attachment
 
     def detach_volume(self, volume_id, instance_id, device_path):
