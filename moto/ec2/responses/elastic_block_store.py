@@ -42,12 +42,22 @@ class ElasticBlockStore(BaseResponse):
         return DELETE_VOLUME_RESPONSE
 
     def describe_snapshots(self):
+        # querystring for multiple snapshotids results in SnapshotId.1, SnapshotId.2 etc
+        snapshot_ids = ','.join([','.join(s[1]) for s in self.querystring.items() if 'SnapshotId' in s[0]])
         snapshots = self.ec2_backend.describe_snapshots()
+        # Describe snapshots to handle filter on snapshot_ids
+        snapshots = [s for s in snapshots if s.id in snapshot_ids] if snapshot_ids else snapshots
+        # snapshots = self.ec2_backend.describe_snapshots()
         template = self.response_template(DESCRIBE_SNAPSHOTS_RESPONSE)
         return template.render(snapshots=snapshots)
 
     def describe_volumes(self):
+        # querystring for multiple volumeids results in VolumeId.1, VolumeId.2 etc
+        volume_ids = ','.join([','.join(v[1]) for v in self.querystring.items() if 'VolumeId' in v[0]])
         volumes = self.ec2_backend.describe_volumes()
+        # Describe volumes to handle filter on volume_ids
+        volumes = [v for v in volumes if v.id in volume_ids] if volume_ids else volumes
+        # volumes = self.ec2_backend.describe_volumes()
         template = self.response_template(DESCRIBE_VOLUMES_RESPONSE)
         return template.render(volumes=volumes)
 
@@ -103,7 +113,7 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   <snapshotId/>
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
-  <createTime>2013-10-04T17:38:53.000Z</createTime>
+  <createTime>{{ volume.create_time}}</createTime>
   <volumeType>standard</volumeType>
 </CreateVolumeResponse>"""
 
@@ -117,7 +127,7 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
              <snapshotId/>
              <availabilityZone>{{ volume.zone.name }}</availabilityZone>
              <status>{{ volume.status }}</status>
-             <createTime>2013-10-04T17:38:53.000Z</createTime>
+             <createTime>{{ volume.create_time}}</createTime>
              <attachmentSet>
                 {% if volume.attachment %}
                     <item>
@@ -125,7 +135,7 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
                        <instanceId>{{ volume.attachment.instance.id }}</instanceId>
                        <device>{{ volume.attachment.device }}</device>
                        <status>attached</status>
-                       <attachTime>2013-10-04T17:38:53.000Z</attachTime>
+                       <attachTime>{{volume.attachment.attach_time}}</attachTime>
                        <deleteOnTermination>false</deleteOnTermination>
                     </item>
                 {% endif %}
@@ -157,7 +167,7 @@ ATTACHED_VOLUME_RESPONSE = """<AttachVolumeResponse xmlns="http://ec2.amazonaws.
   <instanceId>{{ attachment.instance.id }}</instanceId>
   <device>{{ attachment.device }}</device>
   <status>attaching</status>
-  <attachTime>2013-10-04T17:38:53.000Z</attachTime>
+  <attachTime>{{attachment.attach_time}}</attachTime>
 </AttachVolumeResponse>"""
 
 DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
@@ -174,7 +184,7 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   <snapshotId>{{ snapshot.id }}</snapshotId>
   <volumeId>{{ snapshot.volume.id }}</volumeId>
   <status>pending</status>
-  <startTime>2013-10-04T17:38:53.000Z</startTime>
+  <startTime>{{ snapshot.start_time}}</startTime>
   <progress>60%</progress>
   <ownerId>111122223333</ownerId>
   <volumeSize>{{ snapshot.volume.size }}</volumeSize>
@@ -189,7 +199,7 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
              <snapshotId>{{ snapshot.id }}</snapshotId>
              <volumeId>{{ snapshot.volume.id }}</volumeId>
              <status>pending</status>
-             <startTime>2013-10-04T17:38:53.000Z</startTime>
+             <startTime>{{ snapshot.start_time}}</startTime>
              <progress>30%</progress>
              <ownerId>111122223333</ownerId>
              <volumeSize>{{ snapshot.volume.size }}</volumeSize>
