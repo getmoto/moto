@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 
 import boto
+import boto3
+from boto3.dynamodb.conditions import Key
 import sure  # noqa
 from freezegun import freeze_time
 from boto.exception import JSONResponseError
@@ -133,14 +135,6 @@ def test_item_put_without_table():
             'SentBy': 'User A',
         }
     ).should.throw(JSONResponseError)
-
-
-@requires_boto_gte("2.9")
-@mock_dynamodb2
-def test_get_missing_item():
-    table = create_table()
-
-    table.get_item.when.called_with(test_hash=3241526475).should.throw(JSONResponseError)
 
 
 @requires_boto_gte("2.9")
@@ -449,7 +443,6 @@ def test_update_item_set():
 
 @mock_dynamodb2
 def test_failed_overwrite():
-    from decimal import Decimal
     table = Table.create('messages', schema=[
         HashKey('id'),
     ], throughput={
@@ -457,19 +450,19 @@ def test_failed_overwrite():
         'write': 3,
     })
 
-    data1 = {'id': '123', 'data':'678'}
+    data1 = {'id': '123', 'data': '678'}
     table.put_item(data=data1)
 
-    data2 = {'id': '123', 'data':'345'}
-    table.put_item(data=data2, overwrite = True)
+    data2 = {'id': '123', 'data': '345'}
+    table.put_item(data=data2, overwrite=True)
 
-    data3 = {'id': '123', 'data':'812'}
+    data3 = {'id': '123', 'data': '812'}
     table.put_item.when.called_with(data=data3).should.throw(ConditionalCheckFailedException)
 
     returned_item = table.lookup('123')
     dict(returned_item).should.equal(data2)
 
-    data4 = {'id': '124', 'data':812}
+    data4 = {'id': '124', 'data': 812}
     table.put_item(data=data4)
 
     returned_item = table.lookup('124')
@@ -482,7 +475,7 @@ def test_conflicting_writes():
         HashKey('id'),
     ])
 
-    item_data = {'id': '123', 'data':'678'}
+    item_data = {'id': '123', 'data': '678'}
     item1 = Item(table, item_data)
     item2 = Item(table, item_data)
     item1.save()
@@ -492,3 +485,45 @@ def test_conflicting_writes():
 
     item1.save()
     item2.save.when.called_with().should.throw(ConditionalCheckFailedException)
+
+
+"""
+boto3
+"""
+
+
+@mock_dynamodb2
+def test_boto3_conditions():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'username',
+                'KeyType': 'HASH'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'username',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={'username': 'johndoe'})
+    table.put_item(Item={'username': 'janedoe'})
+
+    response = table.query(
+        KeyConditionExpression=Key('username').eq('johndoe')
+    )
+    response['Count'].should.equal(1)
+    response['Items'].should.have.length_of(1)
+    response['Items'][0].should.equal({"username": "johndoe"})

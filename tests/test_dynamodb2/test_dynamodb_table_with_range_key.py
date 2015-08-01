@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 
 import boto
+import boto3
+from boto3.dynamodb.conditions import Key
 import sure  # noqa
 from freezegun import freeze_time
 from moto import mock_dynamodb2
@@ -253,31 +255,31 @@ def test_query():
 
     table.count().should.equal(4)
 
-    results = table.query(forum_name__eq='the-key', subject__gt='1', consistent=True)
+    results = table.query_2(forum_name__eq='the-key', subject__gt='1', consistent=True)
     expected = ["123", "456", "789"]
     for index, item in enumerate(results):
         item["subject"].should.equal(expected[index])
 
-    results = table.query(forum_name__eq="the-key", subject__gt='1', reverse=True)
+    results = table.query_2(forum_name__eq="the-key", subject__gt='1', reverse=True)
     for index, item in enumerate(results):
         item["subject"].should.equal(expected[len(expected) - 1 - index])
 
-    results = table.query(forum_name__eq='the-key', subject__gt='1', consistent=True)
+    results = table.query_2(forum_name__eq='the-key', subject__gt='1', consistent=True)
     sum(1 for _ in results).should.equal(3)
 
-    results = table.query(forum_name__eq='the-key', subject__gt='234', consistent=True)
+    results = table.query_2(forum_name__eq='the-key', subject__gt='234', consistent=True)
     sum(1 for _ in results).should.equal(2)
 
-    results = table.query(forum_name__eq='the-key', subject__gt='9999')
+    results = table.query_2(forum_name__eq='the-key', subject__gt='9999')
     sum(1 for _ in results).should.equal(0)
 
-    results = table.query(forum_name__eq='the-key', subject__beginswith='12')
+    results = table.query_2(forum_name__eq='the-key', subject__beginswith='12')
     sum(1 for _ in results).should.equal(1)
 
-    results = table.query(forum_name__eq='the-key', subject__beginswith='7')
+    results = table.query_2(forum_name__eq='the-key', subject__beginswith='7')
     sum(1 for _ in results).should.equal(1)
 
-    results = table.query(forum_name__eq='the-key', subject__between=['567', '890'])
+    results = table.query_2(forum_name__eq='the-key', subject__between=['567', '890'])
     sum(1 for _ in results).should.equal(1)
 
 
@@ -558,7 +560,6 @@ def test_lookup():
 
 @mock_dynamodb2
 def test_failed_overwrite():
-    from decimal import Decimal
     table = Table.create('messages', schema=[
         HashKey('id'),
         RangeKey('range'),
@@ -567,19 +568,19 @@ def test_failed_overwrite():
         'write': 3,
     })
 
-    data1 = {'id': '123', 'range': 'abc', 'data':'678'}
+    data1 = {'id': '123', 'range': 'abc', 'data': '678'}
     table.put_item(data=data1)
 
-    data2 = {'id': '123', 'range': 'abc', 'data':'345'}
-    table.put_item(data=data2, overwrite = True)
+    data2 = {'id': '123', 'range': 'abc', 'data': '345'}
+    table.put_item(data=data2, overwrite=True)
 
-    data3 = {'id': '123', 'range': 'abc', 'data':'812'}
+    data3 = {'id': '123', 'range': 'abc', 'data': '812'}
     table.put_item.when.called_with(data=data3).should.throw(ConditionalCheckFailedException)
 
     returned_item = table.lookup('123', 'abc')
     dict(returned_item).should.equal(data2)
 
-    data4 = {'id': '123', 'range': 'ghi', 'data':812}
+    data4 = {'id': '123', 'range': 'ghi', 'data': 812}
     table.put_item(data=data4)
 
     returned_item = table.lookup('123', 'ghi')
@@ -593,7 +594,7 @@ def test_conflicting_writes():
         RangeKey('range'),
     ])
 
-    item_data = {'id': '123', 'range':'abc', 'data':'678'}
+    item_data = {'id': '123', 'range': 'abc', 'data': '678'}
     item1 = Item(table, item_data)
     item2 = Item(table, item_data)
     item1.save()
@@ -603,3 +604,100 @@ def test_conflicting_writes():
 
     item1.save()
     item2.save.when.called_with().should.throw(ConditionalCheckFailedException)
+
+"""
+boto3
+"""
+
+
+@mock_dynamodb2
+def test_boto3_conditions():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123'
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '456'
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '789'
+    })
+
+    # Test a query returning all items
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('1'),
+        ScanIndexForward=True,
+    )
+    expected = ["123", "456", "789"]
+    for index, item in enumerate(results['Items']):
+        item["subject"].should.equal(expected[index])
+
+    # Return all items again, but in reverse
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('1'),
+        ScanIndexForward=False,
+    )
+    for index, item in enumerate(reversed(results['Items'])):
+        item["subject"].should.equal(expected[index])
+
+    # Filter the subjects to only return some of the results
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('234'),
+        ConsistentRead=True,
+    )
+    results['Count'].should.equal(2)
+
+    # Filter to return no results
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('9999')
+    )
+    results['Count'].should.equal(0)
+
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").begins_with('12')
+    )
+    results['Count'].should.equal(1)
+
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").begins_with('7')
+    )
+    results['Count'].should.equal(1)
+
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").between('567', '890')
+    )
+    results['Count'].should.equal(1)
