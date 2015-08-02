@@ -884,4 +884,4 @@ def test_boto3_bucket_create():
 
     s3.Object('blah', 'hello.txt').put(Body="some text")
 
-    s3.Object('blah', 'hello.txt').get()['Body'].read().should.equal("some text")
+    s3.Object('blah', 'hello.txt').get()['Body'].read().decode("utf-8").should.equal("some text")
