@@ -559,8 +559,7 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
          <Path>{{ user.path }}</Path>
          <UserName>{{ user.name }}</UserName>
          <UserId>{{ user.id }}</UserId>
-         <Arn>arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name }}
-         </Arn>
+         <Arn>arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name }}</Arn>
      </User>
    </{{ action }}UserResult>
    <ResponseMetadata>
