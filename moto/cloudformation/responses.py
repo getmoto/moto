@@ -161,7 +161,7 @@ LIST_STACKS_RESPONSE = """<ListStacksResponse>
   <StackSummaries>
     {% for stack in stacks %}
     <member>
-        <StackId>{{ stack.id }}</StackId>
+        <StackId>{{ stack.stack_id }}</StackId>
         <StackStatus>{{ stack.status }}</StackStatus>
         <StackName>{{ stack.name }}</StackName>
         <CreationTime>2011-05-23T15:47:44Z</CreationTime>
