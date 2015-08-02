@@ -3,7 +3,7 @@ import logging
 logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = 'moto'
-__version__ = '0.4.7'
+__version__ = '0.4.8'
 
 from .autoscaling import mock_autoscaling  # flake8: noqa
 from .cloudformation import mock_cloudformation  # flake8: noqa
