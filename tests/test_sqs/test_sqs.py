@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage, Message
 
@@ -462,3 +463,17 @@ def test_delete_message_after_visibility_timeout():
     m1_retrieved.delete()
 
     assert new_queue.count() == 0
+
+"""
+boto3
+"""
+
+
+@mock_sqs
+def test_boto3_message_send():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="blah")
+    queue.send_message(MessageBody="derp")
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)

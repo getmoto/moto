@@ -79,10 +79,17 @@ def create_backend_app(service):
         else:
             endpoint = None
 
-        backend_app.route(
+        if endpoint in backend_app.view_functions:
+            # HACK: Sometimes we map the same view to multiple url_paths. Flask
+            # requries us to have different names.
+            endpoint += "2"
+
+        backend_app.add_url_rule(
             url_path,
             endpoint=endpoint,
-            methods=HTTP_METHODS)(convert_flask_to_httpretty_response(handler))
+            methods=HTTP_METHODS,
+            view_func=convert_flask_to_httpretty_response(handler),
+        )
 
     return backend_app
 

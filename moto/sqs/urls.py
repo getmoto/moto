@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
-from .responses import QueueResponse, QueuesResponse
+from .responses import SQSResponse
 
 url_bases = [
     "https?://(.*?)(queue|sqs)(.*?).amazonaws.com"
 ]
 
+dispatch = SQSResponse().dispatch
+
 url_paths = {
-    '{0}/$': QueuesResponse.dispatch,
-    '{0}/(?P<account_id>\d+)/(?P<queue_name>[a-zA-Z0-9\-_]+)': QueueResponse.dispatch,
+    '{0}/$': dispatch,
+    '{0}/(?P<account_id>\d+)/(?P<queue_name>[a-zA-Z0-9\-_]+)': dispatch,
 }
