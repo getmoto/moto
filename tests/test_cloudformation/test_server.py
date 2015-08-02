@@ -1,15 +1,16 @@
 from __future__ import unicode_literals
 
 import json
-import urllib
+from six.moves.urllib.parse import urlencode
 import re
-import sure # noqa
+import sure  # noqa
 
 import moto.server as server
 
 '''
 Test the different server responses
 '''
+
 
 def test_cloudformation_server_get():
     backend = server.create_backend_app("cloudformation")
@@ -20,18 +21,19 @@ def test_cloudformation_server_get():
     }
     res = test_client.get(
         '/?{0}'.format(
-        urllib.urlencode({
-            "Action": "CreateStack",
-            "StackName": stack_name,
-            "TemplateBody": json.dumps(template_body)
-        })),
-        headers={"Host":"cloudformation.us-east-1.amazonaws.com"}
+            urlencode({
+                "Action": "CreateStack",
+                "StackName": stack_name,
+                "TemplateBody": json.dumps(template_body)
+            })
+        ),
+        headers={"Host": "cloudformation.us-east-1.amazonaws.com"}
     )
-    stack_id = json.loads(res.data)["CreateStackResponse"]["CreateStackResult"]["StackId"]
+    stack_id = json.loads(res.data.decode("utf-8"))["CreateStackResponse"]["CreateStackResult"]["StackId"]
 
     res = test_client.get(
         '/?Action=ListStacks',
-        headers={"Host":"cloudformation.us-east-1.amazonaws.com"}
+        headers={"Host": "cloudformation.us-east-1.amazonaws.com"}
     )
     stacks = re.search("<StackId>(.*)</StackId>", res.data.decode('utf-8'))
 
