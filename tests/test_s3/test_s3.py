@@ -8,6 +8,7 @@ from io import BytesIO
 
 import json
 import boto
+import boto3
 from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
@@ -869,3 +870,18 @@ def test_policy():
     bucket = conn.get_bucket(bucket_name)
 
     bucket.get_policy().decode('utf-8').should.equal(policy)
+
+
+"""
+boto3
+"""
+
+
+@mock_s3
+def test_boto3_bucket_create():
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket="blah")
+
+    s3.Object('blah', 'hello.txt').put(Body="some text")
+
+    s3.Object('blah', 'hello.txt').get()['Body'].read().should.equal("some text")
