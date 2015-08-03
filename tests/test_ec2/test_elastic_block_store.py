@@ -126,13 +126,13 @@ def test_filter_snapshot_by_id():
     snapshots1 = conn.get_all_snapshots(snapshot_ids=snap2.id)
     snapshots1.should.have.length_of(1)
     snapshots1[0].volume_id.should.equal(volume2.id)
-    snapshots1[0].region.name.should.equal('us-east-1')
+    snapshots1[0].region.name.should.equal(conn.region.name)
     snapshots2 = conn.get_all_snapshots(snapshot_ids=[snap2.id, snap3.id])
     snapshots2.should.have.length_of(2)
     for s in snapshots2:
         s.start_time.should_not.be.none
         s.volume_id.should.be.within([volume2.id, volume3.id])
-        s.region.name.should.equal('us-east-1')
+        s.region.name.should.equal(conn.region.name)
 
 @mock_ec2
 def test_snapshot_attribute():
