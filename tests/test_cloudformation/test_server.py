@@ -15,7 +15,7 @@ Test the different server responses
 def test_cloudformation_server_get():
     backend = server.create_backend_app("cloudformation")
     stack_name = 'test stack'
-    test_client = backend.test_client(service="cloudformation")
+    test_client = backend.test_client()
     template_body = {
         "Resources": {},
     }
