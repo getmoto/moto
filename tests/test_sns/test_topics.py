@@ -17,7 +17,10 @@ def test_create_and_delete_topic():
     topics_json = conn.get_all_topics()
     topics = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
     topics.should.have.length_of(1)
-    topics[0]['TopicArn'].should.equal("arn:aws:sns:us-east-1:123456789012:some-topic")
+    topics[0]['TopicArn'].should.equal(
+        "arn:aws:sns:{0}:123456789012:some-topic"
+        .format(conn.region.name)
+    )
 
     # Delete the topic
     conn.delete_topic(topics[0]['TopicArn'])
@@ -36,15 +39,19 @@ def test_get_missing_topic():
 
 @mock_sns
 def test_create_topic_in_multiple_regions():
-    west1_conn = boto.sns.connect_to_region("us-west-1")
-    west1_conn.create_topic("some-topic")
+    for region in ['us-west-1', 'us-west-2']:
+        conn = boto.sns.connect_to_region(region)
+        conn.create_topic("some-topic")
+        list(conn.get_all_topics()["ListTopicsResponse"]["ListTopicsResult"]["Topics"]).should.have.length_of(1)
 
-    west2_conn = boto.sns.connect_to_region("us-west-2")
-    west2_conn.create_topic("some-topic")
-
-    list(west1_conn.get_all_topics()["ListTopicsResponse"]["ListTopicsResult"]["Topics"]).should.have.length_of(1)
-    list(west2_conn.get_all_topics()["ListTopicsResponse"]["ListTopicsResult"]["Topics"]).should.have.length_of(1)
-
+@mock_sns
+def test_topic_corresponds_to_region():
+    for region in ['us-east-1', 'us-west-2']:
+        conn = boto.sns.connect_to_region(region)
+        conn.create_topic("some-topic")
+        topics_json = conn.get_all_topics()
+        topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0]['TopicArn']
+        topic_arn.should.equal("arn:aws:sns:{0}:123456789012:some-topic".format(region))
 
 @mock_sns
 def test_topic_attributes():
@@ -55,7 +62,10 @@ def test_topic_attributes():
     topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0]['TopicArn']
 
     attributes = conn.get_topic_attributes(topic_arn)['GetTopicAttributesResponse']['GetTopicAttributesResult']['Attributes']
-    attributes["TopicArn"].should.equal("arn:aws:sns:us-east-1:123456789012:some-topic")
+    attributes["TopicArn"].should.equal(
+        "arn:aws:sns:{0}:123456789012:some-topic"
+        .format(conn.region.name)
+    )
     attributes["Owner"].should.equal(123456789012)
     attributes["Policy"].should.equal(DEFAULT_TOPIC_POLICY)
     attributes["DisplayName"].should.equal("")
@@ -84,7 +94,6 @@ def test_topic_attributes():
     attributes["Policy"].should.equal("{'foo': 'bar'}")
     attributes["DisplayName"].should.equal("My display name")
     attributes["DeliveryPolicy"].should.equal("{'http': {'defaultHealthyRetryPolicy': {'numRetries': 5}}}")
-
 
 @mock_sns
 def test_topic_paging():
