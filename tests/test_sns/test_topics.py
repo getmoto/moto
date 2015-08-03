@@ -18,7 +18,7 @@ def test_create_and_delete_topic():
     topics = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
     topics.should.have.length_of(1)
     topics[0]['TopicArn'].should.equal(
-        "arn:aws:sns:{}:123456789012:some-topic"
+        "arn:aws:sns:{0}:123456789012:some-topic"
         .format(conn.region.name)
     )
 
