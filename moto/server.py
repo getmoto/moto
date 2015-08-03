@@ -1,11 +1,15 @@
 from __future__ import unicode_literals
+import json
 import re
 import sys
 import argparse
 
+from six.moves.urllib.parse import urlencode
+
 from threading import Lock
 
 from flask import Flask
+from flask.testing import FlaskClient
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
@@ -60,18 +64,38 @@ class RegexConverter(BaseConverter):
         self.regex = items[0]
 
 
+class AWSTestHelper(FlaskClient):
+
+    def action_data(self, action_name, **kwargs):
+        """
+        Method calls resource with action_name and returns data of response.
+        """
+        opts = {"Action": action_name}
+        opts.update(kwargs)
+        res = self.get("/?{0}".format(urlencode(opts)),
+                headers={"Host": "{0}.us-east-1.amazonaws.com".format(self.application.service)})
+        return res.data.decode("utf-8")
+
+    def action_json(self, action_name, **kwargs):
+        """
+        Method calls resource with action_name and returns object obtained via
+        deserialization of output.
+        """
+        return json.loads(self.action_data(action_name, **kwargs))
+
+
 def create_backend_app(service):
     from werkzeug.routing import Map
 
     # Create the backend_app
     backend_app = Flask(__name__)
     backend_app.debug = True
+    backend_app.service = service
 
     # Reset view functions to reset the app
     backend_app.view_functions = {}
     backend_app.url_map = Map()
     backend_app.url_map.converters['regex'] = RegexConverter
-
     backend = BACKENDS[service]
     for url_path, handler in backend.flask_paths.items():
         if handler.__name__ == 'dispatch':
@@ -91,6 +115,7 @@ def create_backend_app(service):
             view_func=convert_flask_to_httpretty_response(handler),
         )
 
+    backend_app.test_client_class = AWSTestHelper
     return backend_app
 
 
