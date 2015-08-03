@@ -228,28 +228,64 @@ class DynamoHandler(BaseResponse):
 
     def query(self):
         name = self.body['TableName']
-        key_conditions = self.body['KeyConditions']
-        hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name, key_conditions.keys())
-        # hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name)
-        if hash_key_name is None:
-            er = "'com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
-            return self.error(er)
-        hash_key = key_conditions[hash_key_name]['AttributeValueList'][0]
-        if len(key_conditions) == 1:
-            range_comparison = None
-            range_values = []
-        else:
-            if range_key_name is None:
-                er = "com.amazon.coral.validate#ValidationException"
-                return self.error(er)
-            else:
-                range_condition = key_conditions[range_key_name]
-                if range_condition:
-                    range_comparison = range_condition['ComparisonOperator']
-                    range_values = range_condition['AttributeValueList']
+
+        # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
+        key_condition_expression = self.body.get('KeyConditionExpression')
+        if key_condition_expression:
+            value_alias_map = self.body['ExpressionAttributeValues']
+
+            if " AND " in key_condition_expression:
+                expressions = key_condition_expression.split(" AND ", 1)
+                hash_key_expression = expressions[0]
+                # TODO implement more than one range expression and OR operators
+                range_key_expression = expressions[1].replace(")", "")
+                range_key_expression_components = range_key_expression.split()
+                range_comparison = range_key_expression_components[1]
+                if 'AND' in range_key_expression:
+                    range_comparison = 'BETWEEN'
+                    range_values = [
+                        value_alias_map[range_key_expression_components[2]],
+                        value_alias_map[range_key_expression_components[4]],
+                    ]
+                elif 'begins_with' in range_key_expression:
+                    range_comparison = 'BEGINS_WITH'
+                    range_values = [
+                        value_alias_map[range_key_expression_components[1]],
+                    ]
                 else:
+                    range_values = [value_alias_map[range_key_expression_components[2]]]
+            else:
+                hash_key_expression = key_condition_expression
+                range_comparison = None
+                range_values = []
+
+            hash_key_value_alias = hash_key_expression.split("=")[1].strip()
+            hash_key = value_alias_map[hash_key_value_alias]
+        else:
+            # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
+            key_conditions = self.body.get('KeyConditions')
+            if key_conditions:
+                hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name, key_conditions.keys())
+                if hash_key_name is None:
+                    er = "'com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
+                    return self.error(er)
+                hash_key = key_conditions[hash_key_name]['AttributeValueList'][0]
+                if len(key_conditions) == 1:
                     range_comparison = None
                     range_values = []
+                else:
+                    if range_key_name is None:
+                        er = "com.amazon.coral.validate#ValidationException"
+                        return self.error(er)
+                    else:
+                        range_condition = key_conditions[range_key_name]
+                        if range_condition:
+                            range_comparison = range_condition['ComparisonOperator']
+                            range_values = range_condition['AttributeValueList']
+                        else:
+                            range_comparison = None
+                            range_values = []
+
         items, last_page = dynamodb_backend2.query(name, hash_key, range_comparison, range_values)
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
@@ -260,7 +296,7 @@ class DynamoHandler(BaseResponse):
             items = items[:limit]
 
         reversed = self.body.get("ScanIndexForward")
-        if reversed is not False:
+        if reversed is False:
             items.reverse()
 
         result = {

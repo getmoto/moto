@@ -1,12 +1,32 @@
 from __future__ import unicode_literals
 # TODO add tests for all of these
+
+EQ_FUNCTION = lambda item_value, test_value: item_value == test_value
+NE_FUNCTION = lambda item_value, test_value: item_value != test_value
+LE_FUNCTION = lambda item_value, test_value: item_value <= test_value
+LT_FUNCTION = lambda item_value, test_value: item_value < test_value
+GE_FUNCTION = lambda item_value, test_value: item_value >= test_value
+GT_FUNCTION = lambda item_value, test_value: item_value > test_value
+
 COMPARISON_FUNCS = {
-    'EQ': lambda item_value, test_value: item_value == test_value,
-    'NE': lambda item_value, test_value: item_value != test_value,
-    'LE': lambda item_value, test_value: item_value <= test_value,
-    'LT': lambda item_value, test_value: item_value < test_value,
-    'GE': lambda item_value, test_value: item_value >= test_value,
-    'GT': lambda item_value, test_value: item_value > test_value,
+    'EQ': EQ_FUNCTION,
+    '=': EQ_FUNCTION,
+
+    'NE': NE_FUNCTION,
+    '!=': NE_FUNCTION,
+
+    'LE': LE_FUNCTION,
+    '<=': LE_FUNCTION,
+
+    'LT': LT_FUNCTION,
+    '<': LT_FUNCTION,
+
+    'GE': GE_FUNCTION,
+    '>=': GE_FUNCTION,
+
+    'GT': GT_FUNCTION,
+    '>': GT_FUNCTION,
+
     'NULL': lambda item_value: item_value is None,
     'NOT_NULL': lambda item_value: item_value is not None,
     'CONTAINS': lambda item_value, test_value: test_value in item_value,

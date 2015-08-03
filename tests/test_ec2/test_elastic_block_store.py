@@ -33,6 +33,19 @@ def test_create_and_delete_volume():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+@mock_ec2
+def test_filter_volume_by_id():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    volume1 = conn.create_volume(80, "us-east-1a")
+    volume2 = conn.create_volume(36, "us-east-1b")
+    volume3 = conn.create_volume(20, "us-east-1c")
+    vol1 = conn.get_all_volumes(volume_ids=volume3.id)
+    vol1.should.have.length_of(1)
+    vol1[0].size.should.equal(20)
+    vol1[0].zone.should.equal('us-east-1c')
+    vol2 = conn.get_all_volumes(volume_ids=[volume1.id, volume2.id])
+    vol2.should.have.length_of(2)
+
 
 @mock_ec2
 def test_volume_attach_and_detach():
@@ -85,6 +98,7 @@ def test_create_snapshot():
     snapshots = conn.get_all_snapshots()
     snapshots.should.have.length_of(1)
     snapshots[0].description.should.equal('a test snapshot')
+    snapshots[0].start_time.should_not.be.none
 
     # Create snapshot without description
     snapshot = volume.create_snapshot()
@@ -100,6 +114,25 @@ def test_create_snapshot():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+@mock_ec2
+def test_filter_snapshot_by_id():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    volume1 = conn.create_volume(36, "us-east-1a")
+    snap1 = volume1.create_snapshot('a test snapshot 1')
+    volume2 = conn.create_volume(42, 'us-east-1a')
+    snap2 = volume2.create_snapshot('a test snapshot 2')
+    volume3 = conn.create_volume(84, 'us-east-1a')
+    snap3 = volume3.create_snapshot('a test snapshot 3')
+    snapshots1 = conn.get_all_snapshots(snapshot_ids=snap2.id)
+    snapshots1.should.have.length_of(1)
+    snapshots1[0].volume_id.should.equal(volume2.id)
+    snapshots1[0].region.name.should.equal('us-east-1')
+    snapshots2 = conn.get_all_snapshots(snapshot_ids=[snap2.id, snap3.id])
+    snapshots2.should.have.length_of(2)
+    for s in snapshots2:
+        s.start_time.should_not.be.none
+        s.volume_id.should.be.within([volume2.id, volume3.id])
+        s.region.name.should.equal('us-east-1')
 
 @mock_ec2
 def test_snapshot_attribute():

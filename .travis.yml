@@ -12,6 +12,7 @@ matrix:
         env: BOTO_VERSION=2.36.0
 install:
   - travis_retry pip install boto==$BOTO_VERSION
+  - travis_retry pip install boto3
   - travis_retry pip install .
   - travis_retry pip install -r requirements-dev.txt
   - travis_retry pip install coveralls

@@ -11,16 +11,25 @@ from .exceptions import (
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
+DEFAULT_RECEIVED_MESSAGES = 1
 SQS_REGION_REGEX = r'://(.+?)\.queue\.amazonaws\.com'
 
 
-class QueuesResponse(BaseResponse):
+class SQSResponse(BaseResponse):
 
     region_regex = SQS_REGION_REGEX
 
     @property
     def sqs_backend(self):
         return sqs_backends[self.region]
+
+    def _get_queue_name(self):
+        try:
+            queue_name = self.querystring.get('QueueUrl')[0].split("/")[-1]
+        except TypeError:
+            # Fallback to reading from the URL
+            queue_name = self.path.split("/")[-1]
+        return queue_name
 
     def create_queue(self):
         visibility_timeout = None
@@ -47,17 +56,8 @@ class QueuesResponse(BaseResponse):
         template = self.response_template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues)
 
-
-class QueueResponse(BaseResponse):
-
-    region_regex = SQS_REGION_REGEX
-
-    @property
-    def sqs_backend(self):
-        return sqs_backends[self.region]
-
     def change_message_visibility(self):
-        queue_name = self.path.split("/")[-1]
+        queue_name = self._get_queue_name()
         receipt_handle = self.querystring.get("ReceiptHandle")[0]
         visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
 
@@ -79,20 +79,20 @@ class QueueResponse(BaseResponse):
         return template.render()
 
     def get_queue_attributes(self):
-        queue_name = self.path.split("/")[-1]
+        queue_name = self._get_queue_name()
         queue = self.sqs_backend.get_queue(queue_name)
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
 
     def set_queue_attributes(self):
-        queue_name = self.path.split("/")[-1]
+        queue_name = self._get_queue_name()
         key = camelcase_to_underscores(self.querystring.get('Attribute.Name')[0])
         value = self.querystring.get('Attribute.Value')[0]
         self.sqs_backend.set_queue_attribute(queue_name, key, value)
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
-        queue_name = self.path.split("/")[-1]
+        queue_name = self._get_queue_name()
         queue = self.sqs_backend.delete_queue(queue_name)
         if not queue:
             return "A queue with name {0} does not exist".format(queue_name), dict(status=404)
@@ -113,7 +113,8 @@ class QueueResponse(BaseResponse):
         except MessageAttributesInvalid as e:
             return e.description, dict(status=e.status_code)
 
-        queue_name = self.path.split("/")[-1]
+        queue_name = self._get_queue_name()
+
         message = self.sqs_backend.send_message(
             queue_name,
             message,
@@ -135,7 +136,7 @@ class QueueResponse(BaseResponse):
         'SendMessageBatchRequestEntry.2.DelaySeconds': ['0'],
         """
 
-        queue_name = self.path.split("/")[-1]
+        queue_name = self._get_queue_name()
 
         messages = []
         for index in range(1, 11):
@@ -164,7 +165,7 @@ class QueueResponse(BaseResponse):
         return template.render(messages=messages)
 
     def delete_message(self):
-        queue_name = self.path.split("/")[-1]
+        queue_name = self._get_queue_name()
         receipt_handle = self.querystring.get("ReceiptHandle")[0]
         self.sqs_backend.delete_message(queue_name, receipt_handle)
         template = self.response_template(DELETE_MESSAGE_RESPONSE)
@@ -180,7 +181,7 @@ class QueueResponse(BaseResponse):
         'DeleteMessageBatchRequestEntry.2.ReceiptHandle': ['zxcvfda...'],
         ...
         """
-        queue_name = self.path.split("/")[-1]
+        queue_name = self._get_queue_name()
 
         message_ids = []
         for index in range(1, 11):
@@ -201,14 +202,17 @@ class QueueResponse(BaseResponse):
         return template.render(message_ids=message_ids)
 
     def purge_queue(self):
-        queue_name = self.path.split("/")[-1]
+        queue_name = self._get_queue_name()
         self.sqs_backend.purge_queue(queue_name)
         template = self.response_template(PURGE_QUEUE_RESPONSE)
         return template.render()
 
     def receive_message(self):
-        queue_name = self.path.split("/")[-1]
-        message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
+        queue_name = self._get_queue_name()
+        try:
+            message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
+        except TypeError:
+            message_count = DEFAULT_RECEIVED_MESSAGES
         messages = self.sqs_backend.receive_messages(queue_name, message_count)
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         output = template.render(messages=messages)
