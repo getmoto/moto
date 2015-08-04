@@ -164,7 +164,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
           {% else %}
             <UserData/>
           {% endif %}
-          <InstanceType>m1.small</InstanceType>
+          <InstanceType>{{ launch_configuration.instance_type }}</InstanceType>
           <LaunchConfigurationARN>arn:aws:autoscaling:us-east-1:803981987763:launchConfiguration:
           9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/my-test-lc</LaunchConfigurationARN>
           {% if launch_configuration.block_device_mappings %}
