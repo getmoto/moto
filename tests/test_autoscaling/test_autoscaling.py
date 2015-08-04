@@ -14,7 +14,7 @@ def test_create_autoscaling_group():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
 
@@ -60,7 +60,7 @@ def test_create_autoscaling_groups_defaults():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
 
@@ -96,7 +96,7 @@ def test_autoscaling_group_describe_filter():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
 
@@ -122,7 +122,7 @@ def test_autoscaling_update():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
 
@@ -153,7 +153,7 @@ def test_autoscaling_group_delete():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
 
@@ -178,7 +178,7 @@ def test_autoscaling_group_describe_instances():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
 
@@ -201,6 +201,7 @@ def test_autoscaling_group_describe_instances():
     instances.should.have.length_of(2)
     instance_ids = [instance.id for instance in instances]
     set(autoscale_instance_ids).should.equal(set(instance_ids))
+    instances[0].instance_type.should.equal("t2.medium")
 
 
 @requires_boto_gte("2.8")
@@ -210,7 +211,7 @@ def test_set_desired_capacity_up():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
 
@@ -245,7 +246,7 @@ def test_set_desired_capacity_down():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
 
@@ -280,7 +281,7 @@ def test_set_desired_capacity_the_same():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
 

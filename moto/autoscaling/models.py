@@ -198,6 +198,7 @@ class FakeAutoScalingGroup(object):
                 count_needed,
                 self.launch_config.user_data,
                 self.launch_config.security_groups,
+                instance_type=self.launch_config.instance_type,
             )
             for instance in reservation.instances:
                 instance.autoscaling_group = self
