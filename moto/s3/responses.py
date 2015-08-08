@@ -59,14 +59,22 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # If no bucket specified, list all buckets
             return self.all_buckets()
 
+        if hasattr(request, 'body'):
+            # Boto
+            body = request.body
+        else:
+            # Flask server
+            body = request.data
+        body = body.decode('utf-8')
+
         if method == 'HEAD':
             return self._bucket_response_head(bucket_name, headers)
         elif method == 'GET':
             return self._bucket_response_get(bucket_name, querystring, headers)
         elif method == 'PUT':
-            return self._bucket_response_put(request, region_name, bucket_name, querystring, headers)
+            return self._bucket_response_put(body, region_name, bucket_name, querystring, headers)
         elif method == 'DELETE':
-            return self._bucket_response_delete(bucket_name, querystring, headers)
+            return self._bucket_response_delete(body, bucket_name, querystring, headers)
         elif method == 'POST':
             return self._bucket_response_post(request, bucket_name, headers)
         else:
@@ -149,15 +157,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             result_folders=result_folders
         )
 
-    def _bucket_response_put(self, request, region_name, bucket_name, querystring, headers):
-        if hasattr(request, 'body'):
-            # Boto
-            body = request.body
-        else:
-            # Flask server
-            body = request.data
-        body = body.decode('utf-8')
-
+    def _bucket_response_put(self, body, region_name, bucket_name, querystring, headers):
         if 'versioning' in querystring:
             ver = re.search('<Status>([A-Za-z]+)</Status>', body)
             if ver:
@@ -188,8 +188,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, headers, template.render(bucket=new_bucket)
 
-    def _bucket_response_delete(self, bucket_name, querystring, headers):
-        if 'lifecycle' in querystring:
+    def _bucket_response_delete(self, body, bucket_name, querystring, headers):
+        if 'policy' in querystring:
+            self.backend.delete_bucket_policy(bucket_name, body)
+            return 204, headers, ""
+        elif 'lifecycle' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             bucket.delete_lifecycle()
             return 204, headers, ""

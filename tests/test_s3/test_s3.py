@@ -871,6 +871,11 @@ def test_policy():
 
     bucket.get_policy().decode('utf-8').should.equal(policy)
 
+    bucket.delete_policy()
+
+    with assert_raises(S3ResponseError) as err:
+        bucket.get_policy()
+
 
 """
 boto3

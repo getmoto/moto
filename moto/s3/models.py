@@ -276,6 +276,10 @@ class S3Backend(BaseBackend):
     def set_bucket_policy(self, bucket_name, policy):
         self.get_bucket(bucket_name).policy = policy
 
+    def delete_bucket_policy(self, bucket_name, body):
+        bucket = self.get_bucket(bucket_name)
+        bucket.policy = None
+
     def set_bucket_lifecycle(self, bucket_name, rules):
         bucket = self.get_bucket(bucket_name)
         bucket.set_lifecycle(rules)
