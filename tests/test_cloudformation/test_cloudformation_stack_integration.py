@@ -8,6 +8,7 @@ import boto.ec2.autoscale
 import boto.ec2.elb
 from boto.exception import BotoServerError
 import boto.iam
+import boto.redshift
 import boto.sns
 import boto.sqs
 import boto.vpc
@@ -20,6 +21,7 @@ from moto import (
     mock_elb,
     mock_iam,
     mock_rds,
+    mock_redshift,
     mock_route53,
     mock_sns,
     mock_sqs,
@@ -29,6 +31,7 @@ from .fixtures import (
     ec2_classic_eip,
     fn_join,
     rds_mysql_with_read_replica,
+    redshift,
     route53_ec2_instance_with_public_ip,
     route53_health_check,
     route53_roundrobin,
@@ -288,20 +291,50 @@ def test_stack_elb_integration_with_attached_ec2_instances():
 
     load_balancer.instances[0].id.should.equal(ec2_instance.id)
     list(load_balancer.availability_zones).should.equal(['us-east1'])
-    load_balancer_name = load_balancer.name
 
-    stack = conn.describe_stacks()[0]
-    stack_resources = stack.describe_resources()
-    stack_resources.should.have.length_of(2)
-    for resource in stack_resources:
-        if resource.resource_type == 'AWS::ElasticLoadBalancing::LoadBalancer':
-            load_balancer = resource
-        else:
-            ec2_instance = resource
 
-    load_balancer.logical_resource_id.should.equal("MyELB")
-    load_balancer.physical_resource_id.should.equal(load_balancer_name)
-    ec2_instance.physical_resource_id.should.equal(instance_id)
+@mock_ec2()
+@mock_redshift()
+@mock_cloudformation()
+def test_redshift_stack():
+    redshift_template_json = json.dumps(redshift.template)
+
+    vpc_conn = boto.vpc.connect_to_region("us-west-2")
+    conn = boto.cloudformation.connect_to_region("us-west-2")
+    conn.create_stack(
+        "redshift_stack",
+        template_body=redshift_template_json,
+        parameters=[
+            ("DatabaseName", "mydb"),
+            ("ClusterType", "multi-node"),
+            ("NumberOfNodes", 2),
+            ("NodeType", "dw1.xlarge"),
+            ("MasterUsername", "myuser"),
+            ("MasterUserPassword", "mypass"),
+            ("InboundTraffic", "10.0.0.1/16"),
+            ("PortNumber", 5439),
+        ]
+    )
+
+    redshift_conn = boto.redshift.connect_to_region("us-west-2")
+
+    cluster_res = redshift_conn.describe_clusters()
+    clusters = cluster_res['DescribeClustersResponse']['DescribeClustersResult']['Clusters']
+    clusters.should.have.length_of(1)
+    cluster = clusters[0]
+    cluster['DBName'].should.equal("mydb")
+    cluster['NumberOfNodes'].should.equal(2)
+    cluster['NodeType'].should.equal("dw1.xlarge")
+    cluster['MasterUsername'].should.equal("myuser")
+    cluster['Port'].should.equal(5439)
+    cluster['VpcSecurityGroups'].should.have.length_of(1)
+    security_group_id = cluster['VpcSecurityGroups'][0]['VpcSecurityGroupId']
+
+    groups = vpc_conn.get_all_security_groups(group_ids=[security_group_id])
+    groups.should.have.length_of(1)
+    group = groups[0]
+    group.rules.should.have.length_of(1)
+    group.rules[0].grants[0].cidr_ip.should.equal("10.0.0.1/16")
 
 
 @mock_ec2()
