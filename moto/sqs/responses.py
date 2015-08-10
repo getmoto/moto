@@ -23,6 +23,12 @@ class SQSResponse(BaseResponse):
     def sqs_backend(self):
         return sqs_backends[self.region]
 
+    @property
+    def attribute(self):
+        if not hasattr(self, '_attribute'):
+            self._attribute = dict([(a['name'], a['value']) for a in self._get_list_prefix('Attribute')])
+        return self._attribute
+
     def _get_queue_name(self):
         try:
             queue_name = self.querystring.get('QueueUrl')[0].split("/")[-1]
@@ -32,12 +38,9 @@ class SQSResponse(BaseResponse):
         return queue_name
 
     def create_queue(self):
-        visibility_timeout = None
-        if 'Attribute.1.Name' in self.querystring and self.querystring.get('Attribute.1.Name')[0] == 'VisibilityTimeout':
-            visibility_timeout = self.querystring.get("Attribute.1.Value")[0]
-
         queue_name = self.querystring.get("QueueName")[0]
-        queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=visibility_timeout)
+        queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=self.attribute.get('VisibilityTimeout'),
+            wait_time_seconds=self.attribute.get('WaitTimeSeconds'))
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 
@@ -209,11 +212,19 @@ class SQSResponse(BaseResponse):
 
     def receive_message(self):
         queue_name = self._get_queue_name()
+        queue = self.sqs_backend.get_queue(queue_name)
+
         try:
             message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
         except TypeError:
             message_count = DEFAULT_RECEIVED_MESSAGES
-        messages = self.sqs_backend.receive_messages(queue_name, message_count)
+
+        try:
+            wait_time = int(self.querystring.get("WaitTimeSeconds")[0])
+        except TypeError:
+            wait_time = queue.wait_time_seconds
+
+        messages = self.sqs_backend.receive_messages(queue_name, message_count, wait_time)
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         output = template.render(messages=messages)
         return output
