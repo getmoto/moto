@@ -13,11 +13,10 @@ install_requires = [
     "werkzeug",
 ]
 
-import sys
-
-if sys.version_info < (2, 7):
-    # No buildint OrderedDict before 2.7
-    install_requires.append('ordereddict')
+extras_require = {
+    # No builtin OrderedDict before 2.7
+    ':python_version=="2.6"': ['ordereddict'],
+}
 
 setup(
     name='moto',
@@ -34,6 +33,7 @@ setup(
     },
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
+    extras_require=extras_require,
     license="Apache",
     test_suite="tests",
     classifiers=[
