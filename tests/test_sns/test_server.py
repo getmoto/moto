@@ -1,8 +1,5 @@
 from __future__ import unicode_literals
 
-import json
-
-import re
 import sure  # noqa
 
 import moto.server as server
@@ -16,9 +13,10 @@ def test_sns_server_get():
     backend = server.create_backend_app("sns")
     test_client = backend.test_client()
 
-    topic_data = test_client.action_json("CreateTopic", Name="test topic")
-    topic_arn = topic_data["CreateTopicResponse"]["CreateTopicResult"]["TopicArn"]
-    topics_data = test_client.action_json("ListTopics")
-    topics_arns = [t["TopicArn"] for t in topics_data["ListTopicsResponse"]["ListTopicsResult"]["Topics"]]
+    topic_data = test_client.action_data("CreateTopic", Name="test topic")
+    topic_data.should.contain("CreateTopicResult")
+    topic_data.should.contain("<TopicArn>arn:aws:sns:us-east-1:123456789012:test topic</TopicArn>")
 
-    assert topic_arn in topics_arns
+    topics_data = test_client.action_data("ListTopics")
+    topics_data.should.contain("ListTopicsResult")
+    topic_data.should.contain("<TopicArn>arn:aws:sns:us-east-1:123456789012:test topic</TopicArn>")
