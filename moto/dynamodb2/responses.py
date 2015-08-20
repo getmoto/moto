@@ -358,7 +358,7 @@ class DynamoHandler(BaseResponse):
             if return_values == 'ALL_OLD':
                 item_dict = item.to_json()
             else:
-                item_dict = {'Attributes': []}
+                item_dict = {'Attributes': {}}
             item_dict['ConsumedCapacityUnits'] = 0.5
             return dynamo_json_dump(item_dict)
         else:
