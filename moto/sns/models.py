@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 import uuid
+import json
 
 import boto.sns
 import requests
@@ -257,7 +258,7 @@ for region in boto.sns.regions():
     sns_backends[region.name] = SNSBackend(region.name)
 
 
-DEFAULT_TOPIC_POLICY = {
+DEFAULT_TOPIC_POLICY = json.dumps({
     "Version": "2008-10-17",
     "Id": "us-east-1/698519295917/test__default_policy_ID",
     "Statement": [{
@@ -284,9 +285,9 @@ DEFAULT_TOPIC_POLICY = {
             }
         }
     }]
-}
+})
 
-DEFAULT_EFFECTIVE_DELIVERY_POLICY = {
+DEFAULT_EFFECTIVE_DELIVERY_POLICY = json.dumps({
     'http': {
         'disableSubscriptionOverrides': False,
         'defaultHealthyRetryPolicy': {
@@ -299,4 +300,4 @@ DEFAULT_EFFECTIVE_DELIVERY_POLICY = {
             'backoffFunction': 'linear'
         }
     }
-}
+})
