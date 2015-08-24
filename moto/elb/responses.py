@@ -220,9 +220,14 @@ class ELBResponse(BaseResponse):
         return template.render(instance_ids=instance_ids)
 
 
-CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResult xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <CreateLoadBalancerResult>
     <DNSName>tests.us-east-1.elb.amazonaws.com</DNSName>
-</CreateLoadBalancerResult>"""
+  </CreateLoadBalancerResult>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateLoadBalancerResponse>"""
 
 CREATE_LOAD_BALANCER_LISTENERS_TEMPLATE = """<CreateLoadBalancerListenersResponse xmlns="http://elasticloadbalancing.amazon aws.com/doc/2012-06-01/">
   <CreateLoadBalancerListenersResult/>
@@ -231,8 +236,12 @@ CREATE_LOAD_BALANCER_LISTENERS_TEMPLATE = """<CreateLoadBalancerListenersRespons
   </ResponseMetadata>
 </CreateLoadBalancerListenersResponse>"""
 
-DELETE_LOAD_BALANCER_TEMPLATE = """<DeleteLoadBalancerResult xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-</DeleteLoadBalancerResult>"""
+DELETE_LOAD_BALANCER_TEMPLATE = """<DeleteLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <DeleteLoadBalancerResult/>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteLoadBalancerResponse>"""
 
 DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <DescribeLoadBalancersResult>
@@ -345,35 +354,50 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
   </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
-CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResult xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <HealthCheck>
-    <Interval>{{ check.interval }}</Interval>
-    <Target>{{ check.target }}</Target>
-    <HealthyThreshold>{{ check.healthy_threshold }}</HealthyThreshold>
-    <Timeout>{{ check.timeout }}</Timeout>
-    <UnhealthyThreshold>{{ check.unhealthy_threshold }}</UnhealthyThreshold>
-  </HealthCheck>
-</ConfigureHealthCheckResult>"""
+CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <ConfigureHealthCheckResult>
+    <HealthCheck>
+      <Interval>{{ check.interval }}</Interval>
+      <Target>{{ check.target }}</Target>
+      <HealthyThreshold>{{ check.healthy_threshold }}</HealthyThreshold>
+      <Timeout>{{ check.timeout }}</Timeout>
+      <UnhealthyThreshold>{{ check.unhealthy_threshold }}</UnhealthyThreshold>
+    </HealthCheck>
+  </ConfigureHealthCheckResult>
+  <ResponseMetadata>
+    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+  </ResponseMetadata>
+</ConfigureHealthCheckResponse>"""
 
-REGISTER_INSTANCES_TEMPLATE = """<RegisterInstancesWithLoadBalancerResult xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <Instances>
-    {% for instance_id in load_balancer.instance_ids %}
-      <member>
-        <InstanceId>{{ instance_id }}</InstanceId>
-      </member>
-    {% endfor %}
-  </Instances>
-</RegisterInstancesWithLoadBalancerResult>"""
+REGISTER_INSTANCES_TEMPLATE = """<RegisterInstancesWithLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <RegisterInstancesWithLoadBalancerResult>
+    <Instances>
+      {% for instance_id in load_balancer.instance_ids %}
+        <member>
+          <InstanceId>{{ instance_id }}</InstanceId>
+        </member>
+      {% endfor %}
+    </Instances>
+  </RegisterInstancesWithLoadBalancerResult>
+  <ResponseMetadata>
+    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+  </ResponseMetadata>
+</RegisterInstancesWithLoadBalancerResponse>"""
 
-DEREGISTER_INSTANCES_TEMPLATE = """<DeregisterInstancesWithLoadBalancerResult xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <Instances>
-    {% for instance_id in load_balancer.instance_ids %}
-      <member>
-        <InstanceId>{{ instance_id }}</InstanceId>
-      </member>
-    {% endfor %}
-  </Instances>
-</DeregisterInstancesWithLoadBalancerResult>"""
+DEREGISTER_INSTANCES_TEMPLATE = """<DeregisterInstancesFromLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <DeregisterInstancesFromLoadBalancerResult>
+    <Instances>
+      {% for instance_id in load_balancer.instance_ids %}
+        <member>
+          <InstanceId>{{ instance_id }}</InstanceId>
+        </member>
+      {% endfor %}
+    </Instances>
+  </DeregisterInstancesFromLoadBalancerResult>
+  <ResponseMetadata>
+    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+  </ResponseMetadata>
+</DeregisterInstancesFromLoadBalancerResponse>"""
 
 SET_LOAD_BALANCER_SSL_CERTIFICATE = """<SetLoadBalancerListenerSSLCertificateResponse xmlns="http://elasticloadbalan cing.amazonaws.com/doc/2012-06-01/">
  <SetLoadBalancerListenerSSLCertificateResult/>

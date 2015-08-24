@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import boto3
 import boto
 import boto.ec2.elb
 from boto.ec2.elb import HealthCheck
@@ -74,6 +75,22 @@ def test_create_load_balancer_with_certificate():
 
 
 @mock_elb
+def test_create_and_delete_boto3_support():
+    client = boto3.client('elb', region_name='us-east-1')
+
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+    list(client.describe_load_balancers()['LoadBalancerDescriptions']).should.have.length_of(1)
+
+    client.delete_load_balancer(
+        LoadBalancerName='my-lb'
+    )
+    list(client.describe_load_balancers()['LoadBalancerDescriptions']).should.have.length_of(0)
+
+@mock_elb
 def test_add_listener():
     conn = boto.connect_elb()
     zones = ['us-east-1a', 'us-east-1b']
@@ -108,6 +125,31 @@ def test_delete_listener():
     listener1.instance_port.should.equal(8080)
     listener1.protocol.should.equal("HTTP")
     balancer.listeners.should.have.length_of(1)
+
+
+@mock_elb
+def test_create_and_delete_listener_boto3_support():
+    client = boto3.client('elb', region_name='us-east-1')
+
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'http', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+    list(client.describe_load_balancers()['LoadBalancerDescriptions']).should.have.length_of(1)
+
+    client.create_load_balancer_listeners(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':443, 'InstancePort':8443}]
+    )
+    balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
+    list(balancer['ListenerDescriptions']).should.have.length_of(2)
+    balancer['ListenerDescriptions'][0]['Listener']['Protocol'].should.equal('HTTP')
+    balancer['ListenerDescriptions'][0]['Listener']['LoadBalancerPort'].should.equal(80)
+    balancer['ListenerDescriptions'][0]['Listener']['InstancePort'].should.equal(8080)
+    balancer['ListenerDescriptions'][1]['Listener']['Protocol'].should.equal('TCP')
+    balancer['ListenerDescriptions'][1]['Listener']['LoadBalancerPort'].should.equal(443)
+    balancer['ListenerDescriptions'][1]['Listener']['InstancePort'].should.equal(8443)
 
 
 @mock_elb
@@ -183,6 +225,34 @@ def test_create_health_check():
     health_check.timeout.should.equal(23)
 
 
+@mock_elb
+def test_create_health_check_boto3():
+    client = boto3.client('elb', region_name='us-east-1')
+
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'http', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+    client.configure_health_check(
+        LoadBalancerName='my-lb',
+        HealthCheck={
+            'Target': 'HTTP:8080/health',
+            'Interval': 20,
+            'Timeout': 23,
+            'HealthyThreshold': 3,
+            'UnhealthyThreshold': 5
+        }
+    )
+
+    balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
+    balancer['HealthCheck']['Target'].should.equal('HTTP:8080/health')
+    balancer['HealthCheck']['Interval'].should.equal(20)
+    balancer['HealthCheck']['Timeout'].should.equal(23)
+    balancer['HealthCheck']['HealthyThreshold'].should.equal(3)
+    balancer['HealthCheck']['UnhealthyThreshold'].should.equal(5)
+
+
 @mock_ec2
 @mock_elb
 def test_register_instances():
@@ -199,6 +269,32 @@ def test_register_instances():
 
     balancer = conn.get_all_load_balancers()[0]
     instance_ids = [instance.id for instance in balancer.instances]
+    set(instance_ids).should.equal(set([instance_id1, instance_id2]))
+
+
+@mock_ec2
+@mock_elb
+def test_register_instances_boto3():
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    response = ec2.create_instances(ImageId='ami-1234abcd', MinCount=2, MaxCount=2)
+    instance_id1 = response[0].id
+    instance_id2 = response[1].id
+
+    client = boto3.client('elb', region_name='us-east-1')
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'http', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+    client.register_instances_with_load_balancer(
+        LoadBalancerName='my-lb',
+        Instances=[
+            {'InstanceId': instance_id1},
+            {'InstanceId': instance_id2}
+        ]
+    )
+    balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
+    instance_ids = [instance['InstanceId'] for instance in balancer['Instances']]
     set(instance_ids).should.equal(set([instance_id1, instance_id2]))
 
 
@@ -222,6 +318,42 @@ def test_deregister_instances():
 
     balancer.instances.should.have.length_of(1)
     balancer.instances[0].id.should.equal(instance_id2)
+
+@mock_ec2
+@mock_elb
+def test_deregister_instances_boto3():
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    response = ec2.create_instances(ImageId='ami-1234abcd', MinCount=2, MaxCount=2)
+    instance_id1 = response[0].id
+    instance_id2 = response[1].id
+
+    client = boto3.client('elb', region_name='us-east-1')
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'http', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+    client.register_instances_with_load_balancer(
+        LoadBalancerName='my-lb',
+        Instances=[
+            {'InstanceId': instance_id1},
+            {'InstanceId': instance_id2}
+        ]
+    )
+
+    balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
+    balancer['Instances'].should.have.length_of(2)
+
+    client.deregister_instances_from_load_balancer(
+        LoadBalancerName='my-lb',
+        Instances=[
+            {'InstanceId': instance_id1}
+        ]
+    )
+
+    balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
+    balancer['Instances'].should.have.length_of(1)
+    balancer['Instances'][0]['InstanceId'].should.equal(instance_id2)
 
 
 @mock_elb
