@@ -27,6 +27,7 @@ class CloudFormationResponse(BaseResponse):
         stack_body = self._get_param('TemplateBody')
         template_url = self._get_param('TemplateURL')
         parameters_list = self._get_list_prefix("Parameters.member")
+        tags = dict((item['key'], item['value']) for item in self._get_list_prefix("Tags.member"))
 
         # Hack dict-comprehension
         parameters = dict([
@@ -43,7 +44,8 @@ class CloudFormationResponse(BaseResponse):
             template=stack_body,
             parameters=parameters,
             region_name=self.region,
-            notification_arns=stack_notification_arns
+            notification_arns=stack_notification_arns,
+            tags=tags,
         )
         stack_body = {
             'CreateStackResponse': {
@@ -150,6 +152,14 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResult>
         </member>
       {% endfor %}
       </Parameters>
+      <Tags>
+        {% for tag_key, tag_value in stack.tags.items() %}
+          <member>
+            <Key>{{ tag_key }}</Key>
+            <Value>{{ tag_value }}</Value>
+          </member>
+        {% endfor %}
+      </Tags>
     </member>
     {% endfor %}
   </Stacks>

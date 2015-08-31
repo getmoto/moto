@@ -219,6 +219,19 @@ def test_cloudformation_params():
     param.value.should.equal('testing123')
 
 
+@mock_cloudformation
+def test_stack_tags():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+        tags={"foo": "bar", "baz": "bleh"},
+    )
+
+    stack = conn.describe_stacks()[0]
+    dict(stack.tags).should.equal({"foo": "bar", "baz": "bleh"})
+
+
 # @mock_cloudformation
 # def test_update_stack():
 #     conn = boto.connect_cloudformation()
