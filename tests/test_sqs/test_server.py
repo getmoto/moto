@@ -53,10 +53,14 @@ def test_messages_polling():
             time.sleep(.5)
 
     def get_messages():
-        msg_res = test_client.get(
-            '/123/testqueue?Action=ReceiveMessage&MaxNumberOfMessages=1&WaitTimeSeconds=5'
-        )
-        [messages.append(m) for m in re.findall("<Body>(.*?)</Body>", msg_res.data.decode('utf-8'))]
+        count = 0
+        while count < 5:
+            msg_res = test_client.get(
+                '/123/testqueue?Action=ReceiveMessage&MaxNumberOfMessages=1&WaitTimeSeconds=5'
+            )
+            new_msgs = re.findall("<Body>(.*?)</Body>", msg_res.data.decode('utf-8'))
+            count += len(new_msgs)
+            messages.append(new_msgs)
 
     get_messages_thread = threading.Thread(target=get_messages)
     insert_messages_thread = threading.Thread(target=insert_messages)
@@ -67,4 +71,5 @@ def test_messages_polling():
     get_messages_thread.join()
     insert_messages_thread.join()
 
+    # got each message in a separate call to ReceiveMessage, despite the long WaitTimeSeconds
     assert len(messages) == 5
