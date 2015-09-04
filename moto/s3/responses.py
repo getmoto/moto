@@ -22,10 +22,17 @@ def parse_key_name(pth):
 
 
 class ResponseObject(_TemplateEnvironmentMixin):
-    def __init__(self, backend, bucket_name_from_url, parse_key_name):
+    def __init__(self, backend, bucket_name_from_url, parse_key_name,
+                 is_delete_keys=None):
         self.backend = backend
         self.bucket_name_from_url = bucket_name_from_url
         self.parse_key_name = parse_key_name
+        if is_delete_keys:
+            self.is_delete_keys = is_delete_keys
+
+    @staticmethod
+    def is_delete_keys(path, bucket_name):
+        return path == u'/?delete'
 
     def all_buckets(self):
         # No bucket specified. Listing all buckets
@@ -209,7 +216,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 409, headers, template.render(bucket=removed_bucket)
 
     def _bucket_response_post(self, request, bucket_name, headers):
-        if request.path == u'/?delete':
+        if self.is_delete_keys(request.path, bucket_name):
             return self._bucket_response_delete_keys(request, bucket_name, headers)
 
         # POST to bucket-url should create file from form
