@@ -336,6 +336,8 @@ class DynamoDBBackend(BaseBackend):
         self.tables = OrderedDict()
 
     def create_table(self, name, **params):
+        if name in self.tables:
+            return None
         table = Table(name, **params)
         self.tables[name] = table
         return table
