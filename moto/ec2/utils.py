@@ -453,27 +453,22 @@ def simple_aws_filter_to_re(filter_string):
     return tmp_filter
 
 
-# not really random ( http://xkcd.com/221/ )
 def random_key_pair():
+    def random_hex():
+        return chr(random.choice(list(range(48, 58)) + list(range(97, 102))))
+    def random_fingerprint():
+        return ':'.join([random_hex()+random_hex() for i in range(20)])
+    def random_material():
+        return ''.join([
+            chr(random.choice(list(range(65, 91)) + list(range(48, 58)) +
+                              list(range(97, 102))))
+            for i in range(1000)
+        ])
+    material = "---- BEGIN RSA PRIVATE KEY ----" + random_material() + \
+            "-----END RSA PRIVATE KEY-----"
     return {
-        'fingerprint': ('1f:51:ae:28:bf:89:e9:d8:1f:25:5d:37:2d:'
-                        '7d:b8:ca:9f:f5:f1:6f'),
-        'material': """---- BEGIN RSA PRIVATE KEY ----
-MIICiTCCAfICCQD6m7oRw0uXOjANBgkqhkiG9w0BAQUFADCBiDELMAkGA1UEBhMC
-VVMxCzAJBgNVBAgTAldBMRAwDgYDVQQHEwdTZWF0dGxlMQ8wDQYDVQQKEwZBbWF6
-b24xFDASBgNVBAsTC0lBTSBDb25zb2xlMRIwEAYDVQQDEwlUZXN0Q2lsYWMxHzAd
-BgkqhkiG9w0BCQEWEG5vb25lQGFtYXpvbi5jb20wHhcNMTEwNDI1MjA0NTIxWhcN
-MTIwNDI0MjA0NTIxWjCBiDELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAldBMRAwDgYD
-VQQHEwdTZWF0dGxlMQ8wDQYDVQQKEwZBbWF6b24xFDASBgNVBAsTC0lBTSBDb25z
-b2xlMRIwEAYDVQQDEwlUZXN0Q2lsYWMxHzAdBgkqhkiG9w0BCQEWEG5vb25lQGFt
-YXpvbi5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMaK0dn+a4GmWIWJ
-21uUSfwfEvySWtC2XADZ4nB+BLYgVIk60CpiwsZ3G93vUEIO3IyNoH/f0wYK8m9T
-rDHudUZg3qX4waLG5M43q7Wgc/MbQITxOUSQv7c7ugFFDzQGBzZswY6786m86gpE
-Ibb3OhjZnzcvQAaRHhdlQWIMm2nrAgMBAAEwDQYJKoZIhvcNAQEFBQADgYEAtCu4
-nUhVVxYUntneD9+h8Mg9q6q+auNKyExzyLwaxlAoo7TJHidbtS4J5iNmZgXL0Fkb
-FFBjvSfpJIlJ00zbhNYS5f6GuoEDmFJl0ZxBHjJnyp378OD8uTs7fLvjx79LjSTb
-NYiytVbZPQUQ5Yaxu2jXnimvw3rrszlaEXAMPLE
------END RSA PRIVATE KEY-----"""
+        'fingerprint': random_fingerprint(),
+        'material': material
     }
 
 
