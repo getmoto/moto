@@ -34,7 +34,7 @@ class DataPipelineResponse(BaseResponse):
             "HasMoreResults": False,
             "Marker": None,
             "PipelineIdList": [
-                {"Id": pipeline.pipeline_id, "Name": pipeline.name} for pipeline in pipelines
+                pipeline.to_meta_json() for pipeline in pipelines
             ]
         })
 

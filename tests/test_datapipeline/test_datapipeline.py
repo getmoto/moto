@@ -24,9 +24,9 @@ def test_create_pipeline():
     pipeline_descriptions.should.have.length_of(1)
 
     pipeline_description = pipeline_descriptions[0]
-    pipeline_description['Name'].should.equal("mypipeline")
-    pipeline_description["PipelineId"].should.equal(pipeline_id)
-    fields = pipeline_description['Fields']
+    pipeline_description['name'].should.equal("mypipeline")
+    pipeline_description["pipelineId"].should.equal(pipeline_id)
+    fields = pipeline_description['fields']
 
     get_value_from_fields('@pipelineState', fields).should.equal("PENDING")
     get_value_from_fields('uniqueId', fields).should.equal("some-unique-id")
@@ -89,9 +89,9 @@ def test_creating_pipeline_definition():
     pipeline_definition = conn.get_pipeline_definition(pipeline_id)
     pipeline_definition['pipelineObjects'].should.have.length_of(3)
     default_object = pipeline_definition['pipelineObjects'][0]
-    default_object['Name'].should.equal("Default")
-    default_object['Id'].should.equal("Default")
-    default_object['Fields'].should.equal([{
+    default_object['name'].should.equal("Default")
+    default_object['id'].should.equal("Default")
+    default_object['fields'].should.equal([{
         "key": "workerGroup",
         "stringValue": "workerGroup"
     }])
@@ -108,9 +108,9 @@ def test_describing_pipeline_objects():
     objects = conn.describe_objects(["Schedule", "Default"], pipeline_id)['PipelineObjects']
 
     objects.should.have.length_of(2)
-    default_object = [x for x in objects if x['Id'] == 'Default'][0]
-    default_object['Name'].should.equal("Default")
-    default_object['Fields'].should.equal([{
+    default_object = [x for x in objects if x['id'] == 'Default'][0]
+    default_object['name'].should.equal("Default")
+    default_object['fields'].should.equal([{
         "key": "workerGroup",
         "stringValue": "workerGroup"
     }])
@@ -128,7 +128,7 @@ def test_activate_pipeline():
     pipeline_descriptions = conn.describe_pipelines([pipeline_id])["PipelineDescriptionList"]
     pipeline_descriptions.should.have.length_of(1)
     pipeline_description = pipeline_descriptions[0]
-    fields = pipeline_description['Fields']
+    fields = pipeline_description['fields']
 
     get_value_from_fields('@pipelineState', fields).should.equal("SCHEDULED")
 
@@ -138,8 +138,6 @@ def test_listing_pipelines():
     conn = boto.datapipeline.connect_to_region("us-west-2")
     res1 = conn.create_pipeline("mypipeline1", "some-unique-id1")
     res2 = conn.create_pipeline("mypipeline2", "some-unique-id2")
-    pipeline_id1 = res1["pipelineId"]
-    pipeline_id2 = res2["pipelineId"]
 
     response = conn.list_pipelines()
 
@@ -147,12 +145,12 @@ def test_listing_pipelines():
     response["Marker"].should.be.none
     response["PipelineIdList"].should.have.length_of(2)
     response["PipelineIdList"].should.contain({
-        "Id": res1["pipelineId"],
-        "Name": "mypipeline1",
+        "id": res1["pipelineId"],
+        "name": "mypipeline1",
     })
     response["PipelineIdList"].should.contain({
-        "Id": res2["pipelineId"],
-        "Name": "mypipeline2"
+        "id": res2["pipelineId"],
+        "name": "mypipeline2"
     })
 
 

@@ -14,9 +14,9 @@ class PipelineObject(object):
 
     def to_json(self):
         return {
-            "Fields": self.fields,
-            "Id": self.object_id,
-            "Name": self.name,
+            "fields": self.fields,
+            "id": self.object_id,
+            "name": self.name,
         }
 
 
@@ -30,10 +30,16 @@ class Pipeline(object):
         self.objects = []
         self.status = "PENDING"
 
+    def to_meta_json(self):
+        return {
+            "id": self.pipeline_id,
+            "name": self.name,
+        }
+
     def to_json(self):
         return {
-            "Description": self.description,
-            "Fields": [{
+            "description": self.description,
+            "fields": [{
                 "key": "@pipelineState",
                 "stringValue": self.status,
             }, {
@@ -64,9 +70,9 @@ class Pipeline(object):
                 "key": "uniqueId",
                 "stringValue": self.unique_id
             }],
-            "Name": self.name,
-            "PipelineId": self.pipeline_id,
-            "Tags": [
+            "name": self.name,
+            "pipelineId": self.pipeline_id,
+            "tags": [
             ]
         }
 
