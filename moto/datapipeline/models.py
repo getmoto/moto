@@ -90,6 +90,9 @@ class DataPipelineBackend(BaseBackend):
         self.pipelines[pipeline.pipeline_id] = pipeline
         return pipeline
 
+    def list_pipelines(self):
+        return self.pipelines.values()
+
     def describe_pipelines(self, pipeline_ids):
         pipelines = [pipeline for pipeline in self.pipelines.values() if pipeline.pipeline_id in pipeline_ids]
         return pipelines

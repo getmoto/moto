@@ -130,3 +130,27 @@ def test_activate_pipeline():
     fields = pipeline_description['Fields']
 
     get_value_from_fields('@pipelineState', fields).should.equal("SCHEDULED")
+
+
+@mock_datapipeline
+def test_listing_pipelines():
+    conn = boto.datapipeline.connect_to_region("us-west-2")
+    res1 = conn.create_pipeline("mypipeline1", "some-unique-id1")
+    res2 = conn.create_pipeline("mypipeline2", "some-unique-id2")
+    pipeline_id1 = res1["pipelineId"]
+    pipeline_id2 = res2["pipelineId"]
+
+    response = conn.list_pipelines()
+
+    response["HasMoreResults"].should.be(False)
+    response["Marker"].should.be.none
+    response["PipelineIdList"].should.equal([
+        {
+            "Id": res1["pipelineId"],
+            "Name": "mypipeline1",
+        },
+        {
+            "Id": res2["pipelineId"],
+            "Name": "mypipeline2"
+        }
+    ])
