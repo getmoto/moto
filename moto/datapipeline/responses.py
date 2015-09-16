@@ -28,6 +28,16 @@ class DataPipelineResponse(BaseResponse):
             "pipelineId": pipeline.pipeline_id,
         })
 
+    def list_pipelines(self):
+        pipelines = self.datapipeline_backend.list_pipelines()
+        return json.dumps({
+            "HasMoreResults": False,
+            "Marker": None,
+            "PipelineIdList": [
+                {"Id": pipeline.pipeline_id, "Name": pipeline.name} for pipeline in pipelines
+            ]
+        })
+
     def describe_pipelines(self):
         pipeline_ids = self.parameters["pipelineIds"]
         pipelines = self.datapipeline_backend.describe_pipelines(pipeline_ids)

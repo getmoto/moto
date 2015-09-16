@@ -4,6 +4,7 @@ import functools
 import logging
 
 from moto.autoscaling import models as autoscaling_models
+from moto.datapipeline import models as datapipeline_models
 from moto.ec2 import models as ec2_models
 from moto.elb import models as elb_models
 from moto.iam import models as iam_models
@@ -36,6 +37,7 @@ MODEL_MAP = {
     "AWS::EC2::VPCGatewayAttachment": ec2_models.VPCGatewayAttachment,
     "AWS::EC2::VPCPeeringConnection": ec2_models.VPCPeeringConnection,
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
+    "AWS::DataPipeline::Pipeline": datapipeline_models.Pipeline,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,
     "AWS::RDS::DBInstance": rds_models.Database,
