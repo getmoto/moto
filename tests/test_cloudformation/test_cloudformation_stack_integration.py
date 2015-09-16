@@ -3,6 +3,7 @@ import json
 
 import boto
 import boto.cloudformation
+import boto.datapipeline
 import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
@@ -17,6 +18,7 @@ import sure  # noqa
 from moto import (
     mock_autoscaling,
     mock_cloudformation,
+    mock_datapipeline,
     mock_ec2,
     mock_elb,
     mock_iam,
@@ -1395,3 +1397,79 @@ def test_subnets_should_be_created_with_availability_zone():
     )
     subnet = vpc_conn.get_all_subnets(filters={'cidrBlock': '10.0.0.0/24'})[0]
     subnet.availability_zone.should.equal('us-west-1b')
+
+
+@mock_cloudformation
+@mock_datapipeline
+def test_datapipeline():
+    dp_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "dataPipeline": {
+                "Properties": {
+                    "Activate": "true",
+                    "Name": "testDataPipeline",
+                    "PipelineObjects": [
+                        {
+                            "Fields": [
+                                {
+                                    "Key": "failureAndRerunMode",
+                                    "StringValue": "CASCADE"
+                                },
+                                {
+                                    "Key": "scheduleType",
+                                    "StringValue": "cron"
+                                },
+                                {
+                                    "Key": "schedule",
+                                    "RefValue": "DefaultSchedule"
+                                },
+                                {
+                                    "Key": "pipelineLogUri",
+                                    "StringValue": "s3://bucket/logs"
+                                },
+                                {
+                                    "Key": "type",
+                                    "StringValue": "Default"
+                                },
+                            ],
+                            "Id": "Default",
+                            "Name": "Default"
+                        },
+                        {
+                            "Fields": [
+                                {
+                                    "Key": "startDateTime",
+                                    "StringValue": "1970-01-01T01:00:00"
+                                },
+                                {
+                                    "Key": "period",
+                                    "StringValue": "1 Day"
+                                },
+                                {
+                                    "Key": "type",
+                                    "StringValue": "Schedule"
+                                }
+                            ],
+                            "Id": "DefaultSchedule",
+                            "Name": "RunOnce"
+                        }
+                    ],
+                    "PipelineTags": []
+                },
+                "Type": "AWS::DataPipeline::Pipeline"
+            }
+        }
+    }
+    cf_conn = boto.cloudformation.connect_to_region("us-east-1")
+    template_json = json.dumps(dp_template)
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    dp_conn = boto.datapipeline.connect_to_region('us-east-1')
+    data_pipelines = dp_conn.list_pipelines()
+
+    data_pipelines['PipelineIdList'].should.have.length_of(1)
+    data_pipelines['PipelineIdList'][0]['Name'].should.equal('testDataPipeline')

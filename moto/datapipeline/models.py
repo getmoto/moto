@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import datetime
 import boto.datapipeline
 from moto.core import BaseBackend
-from .utils import get_random_pipeline_id
+from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 
 
 class PipelineObject(object):
@@ -73,11 +73,24 @@ class Pipeline(object):
     def set_pipeline_objects(self, pipeline_objects):
         self.objects = [
             PipelineObject(pipeline_object['id'], pipeline_object['name'], pipeline_object['fields'])
-            for pipeline_object in pipeline_objects
+            for pipeline_object in remove_capitalization_of_dict_keys(pipeline_objects)
         ]
 
     def activate(self):
         self.status = "SCHEDULED"
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        datapipeline_backend = datapipeline_backends[region_name]
+        properties = cloudformation_json["Properties"]
+
+        cloudformation_unique_id = "cf-" + properties["Name"]
+        pipeline = datapipeline_backend.create_pipeline(properties["Name"], cloudformation_unique_id)
+        datapipeline_backend.put_pipeline_definition(pipeline.pipeline_id, properties["PipelineObjects"])
+
+        if properties["Activate"]:
+            pipeline.activate()
+        return pipeline
 
 
 class DataPipelineBackend(BaseBackend):
