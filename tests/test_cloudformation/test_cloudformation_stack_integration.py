@@ -289,7 +289,6 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
-    instance_id = ec2_instance.id
 
     load_balancer.instances[0].id.should.equal(ec2_instance.id)
     list(load_balancer.availability_zones).should.equal(['us-east1'])
@@ -1472,4 +1471,4 @@ def test_datapipeline():
     data_pipelines = dp_conn.list_pipelines()
 
     data_pipelines['PipelineIdList'].should.have.length_of(1)
-    data_pipelines['PipelineIdList'][0]['Name'].should.equal('testDataPipeline')
+    data_pipelines['PipelineIdList'][0]['name'].should.equal('testDataPipeline')
