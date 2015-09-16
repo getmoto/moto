@@ -1,18 +1,26 @@
-from __future__ import unicode_literals
-import boto
-from boto.exception import EC2ResponseError
-import sure  # noqa
-import unittest
-
-import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
-
-from moto import mock_ec2, mock_s3
-
 '''
 Test the different ways that the decorator can be used
 '''
+from __future__ import unicode_literals
+import unittest
+import mock
 
+import boto
+from boto.exception import EC2ResponseError
+import sure  # noqa
+from nose.tools import assert_raises
+
+from moto import mock_ec2, mock_s3
+import tests.backport_assert_raises  # noqa
+
+
+class MockHttpResponse(mock.Mock):
+    status = 42
+    body = """<?xml version="1.0" encoding="UTF-8"?>
+<Response><Errors><Error><Code>AuthFailure</Code><Message>AWS was not able to validate the provided access credentials</Message></Error></Errors><RequestID>817844cd-ee50-4abc-ae2a-79118981df3c</RequestID></Response>"""
+
+    def read(self):
+        return self.body
 
 @mock_ec2
 def test_basic_connect():
@@ -25,33 +33,37 @@ def test_basic_decorator():
     list(conn.get_all_instances()).should.equal([])
 
 
-def test_context_manager():
+def test_context_manager(*args):
     conn = boto.connect_ec2('the_key', 'the_secret')
-    with assert_raises(EC2ResponseError):
-        conn.get_all_instances()
+    with mock.patch('boto.connection.AWSQueryConnection.make_request', return_value=MockHttpResponse()):
+        with assert_raises(EC2ResponseError):
+            conn.get_all_instances()
 
     with mock_ec2():
         conn = boto.connect_ec2('the_key', 'the_secret')
         list(conn.get_all_instances()).should.equal([])
 
-    with assert_raises(EC2ResponseError):
-        conn = boto.connect_ec2('the_key', 'the_secret')
-        conn.get_all_instances()
+    with mock.patch('boto.connection.AWSQueryConnection.make_request', return_value=MockHttpResponse()):
+        with assert_raises(EC2ResponseError):
+            conn = boto.connect_ec2('the_key', 'the_secret')
+            conn.get_all_instances()
 
 
-def test_decorator_start_and_stop():
+def test_decorator_start_and_stop(*args):
     conn = boto.connect_ec2('the_key', 'the_secret')
-    with assert_raises(EC2ResponseError):
-        conn.get_all_instances()
+    with mock.patch('boto.connection.AWSQueryConnection.make_request', return_value=MockHttpResponse()):
+        with assert_raises(EC2ResponseError):
+            conn.get_all_instances()
 
-    mock = mock_ec2()
-    mock.start()
+    mock_obj = mock_ec2()
+    mock_obj.start()
     conn = boto.connect_ec2('the_key', 'the_secret')
     list(conn.get_all_instances()).should.equal([])
-    mock.stop()
+    mock_obj.stop()
 
-    with assert_raises(EC2ResponseError):
-        conn.get_all_instances()
+    with mock.patch('boto.connection.AWSQueryConnection.make_request', return_value=MockHttpResponse()):
+        with assert_raises(EC2ResponseError):
+            conn.get_all_instances()
 
 
 @mock_ec2
