@@ -6,6 +6,12 @@ import sure  # noqa
 from moto import mock_datapipeline
 
 
+def get_value_from_fields(key, fields):
+    for field in fields:
+        if field['key'] == key:
+            return field['stringValue']
+
+
 @mock_datapipeline
 def test_create_pipeline():
     conn = boto.datapipeline.connect_to_region("us-west-2")
@@ -21,12 +27,7 @@ def test_create_pipeline():
     pipeline_description["PipelineId"].should.equal(pipeline_id)
     fields = pipeline_description['Fields']
 
-    def get_value_from_fields(key, fields):
-        for field in fields:
-            if field['key'] == key:
-                return field['stringValue']
-
-    get_value_from_fields('@pipelineState', fields).should.equal("SCHEDULED")
+    get_value_from_fields('@pipelineState', fields).should.equal("PENDING")
     get_value_from_fields('uniqueId', fields).should.equal("some-unique-id")
 
 
@@ -123,4 +124,9 @@ def test_activate_pipeline():
     pipeline_id = res["pipelineId"]
     conn.activate_pipeline(pipeline_id)
 
-    # TODO what do we need to assert here. Change in pipeline status?
+    pipeline_descriptions = conn.describe_pipelines([pipeline_id])["PipelineDescriptionList"]
+    pipeline_descriptions.should.have.length_of(1)
+    pipeline_description = pipeline_descriptions[0]
+    fields = pipeline_description['Fields']
+
+    get_value_from_fields('@pipelineState', fields).should.equal("SCHEDULED")

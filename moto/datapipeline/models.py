@@ -28,13 +28,14 @@ class Pipeline(object):
         self.pipeline_id = get_random_pipeline_id()
         self.creation_time = datetime.datetime.utcnow()
         self.objects = []
+        self.status = "PENDING"
 
     def to_json(self):
         return {
             "Description": self.description,
             "Fields": [{
                 "key": "@pipelineState",
-                "stringValue": "SCHEDULED"
+                "stringValue": self.status,
             }, {
                 "key": "description",
                 "stringValue": self.description
@@ -76,7 +77,7 @@ class Pipeline(object):
         ]
 
     def activate(self):
-        pass
+        self.status = "SCHEDULED"
 
 
 class DataPipelineBackend(BaseBackend):
