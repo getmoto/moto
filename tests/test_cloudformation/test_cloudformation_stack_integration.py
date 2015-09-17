@@ -1462,7 +1462,7 @@ def test_datapipeline():
     }
     cf_conn = boto.cloudformation.connect_to_region("us-east-1")
     template_json = json.dumps(dp_template)
-    cf_conn.create_stack(
+    stack_id = cf_conn.create_stack(
         "test_stack",
         template_body=template_json,
     )
@@ -1470,5 +1470,9 @@ def test_datapipeline():
     dp_conn = boto.datapipeline.connect_to_region('us-east-1')
     data_pipelines = dp_conn.list_pipelines()
 
-    data_pipelines['PipelineIdList'].should.have.length_of(1)
-    data_pipelines['PipelineIdList'][0]['name'].should.equal('testDataPipeline')
+    data_pipelines['pipelineIdList'].should.have.length_of(1)
+    data_pipelines['pipelineIdList'][0]['name'].should.equal('testDataPipeline')
+
+    stack_resources = cf_conn.list_stack_resources(stack_id)
+    stack_resources.should.have.length_of(1)
+    stack_resources[0].physical_resource_id.should.equal(data_pipelines['pipelineIdList'][0]['id'])

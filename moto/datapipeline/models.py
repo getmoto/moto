@@ -30,6 +30,10 @@ class Pipeline(object):
         self.objects = []
         self.status = "PENDING"
 
+    @property
+    def physical_resource_id(self):
+        return self.pipeline_id
+
     def to_meta_json(self):
         return {
             "id": self.pipeline_id,
