@@ -23,5 +23,5 @@ def test_list_streams():
 
     json_data = json.loads(res.data.decode("utf-8"))
     json_data.should.equal({
-        'PipelineDescriptionList': []
+        'pipelineDescriptionList': []
     })
