@@ -100,12 +100,17 @@ class DynamoHandler(BaseResponse):
         attr = body["AttributeDefinitions"]
         # getting the indexes
         global_indexes = body.get("GlobalSecondaryIndexes", [])
+
         table = dynamodb_backend2.create_table(table_name,
                    schema=key_schema,
                    throughput=throughput,
                    attr=attr,
                    global_indexes=global_indexes)
-        return dynamo_json_dump(table.describe)
+        if table is not None:
+            return dynamo_json_dump(table.describe)
+        else:
+            er = 'com.amazonaws.dynamodb.v20111205#ResourceInUseException'
+            return self.error(er)
 
     def delete_table(self):
         name = self.body['TableName']
