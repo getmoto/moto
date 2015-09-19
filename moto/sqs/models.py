@@ -106,9 +106,10 @@ class Queue(object):
                             'VisibilityTimeout',
                             'WaitTimeSeconds']
 
-    def __init__(self, name, visibility_timeout, wait_time_seconds):
+    def __init__(self, name, visibility_timeout, wait_time_seconds, region):
         self.name = name
         self.visibility_timeout = visibility_timeout or 30
+        self.region = region
 
         # wait_time_seconds will be set to immediate return messages
         self.wait_time_seconds = wait_time_seconds or 0
@@ -180,6 +181,10 @@ class Queue(object):
         return result
 
     @property
+    def url(self):
+        return "http://sqs.{0}.amazonaws.com/123456789012/{1}".format(self.region, self.name)
+
+    @property
     def messages(self):
         return [message for message in self._messages if message.visible and not message.delayed]
 
@@ -196,14 +201,20 @@ class Queue(object):
 
 
 class SQSBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name):
+        self.region_name = region_name
         self.queues = {}
         super(SQSBackend, self).__init__()
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def create_queue(self, name, visibility_timeout, wait_time_seconds):
         queue = self.queues.get(name)
         if queue is None:
-            queue = Queue(name, visibility_timeout, wait_time_seconds)
+            queue = Queue(name, visibility_timeout, wait_time_seconds, self.region_name)
             self.queues[name] = queue
         return queue
 
@@ -314,4 +325,4 @@ class SQSBackend(BaseBackend):
 
 sqs_backends = {}
 for region in boto.sqs.regions():
-    sqs_backends[region.name] = SQSBackend()
+    sqs_backends[region.name] = SQSBackend(region.name)

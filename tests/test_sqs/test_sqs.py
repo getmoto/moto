@@ -34,6 +34,8 @@ def test_create_queues_in_multiple_region():
     list(west1_conn.get_all_queues()).should.have.length_of(1)
     list(west2_conn.get_all_queues()).should.have.length_of(1)
 
+    west1_conn.get_all_queues()[0].url.should.equal('http://sqs.us-west-1.amazonaws.com/123456789012/test-queue')
+
 
 @mock_sqs
 def test_get_queue():

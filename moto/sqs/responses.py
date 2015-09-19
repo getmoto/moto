@@ -232,7 +232,7 @@ class SQSResponse(BaseResponse):
 
 CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
     <CreateQueueResult>
-        <QueueUrl>http://sqs.us-east-1.amazonaws.com/123456789012/{{ queue.name }}</QueueUrl>
+        <QueueUrl>{{ queue.url }}</QueueUrl>
         <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
     </CreateQueueResult>
     <ResponseMetadata>
@@ -244,7 +244,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
 
 GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
     <GetQueueUrlResult>
-        <QueueUrl>http://sqs.us-east-1.amazonaws.com/123456789012/{{ queue.name }}</QueueUrl>
+        <QueueUrl>{{ queue.url }}</QueueUrl>
     </GetQueueUrlResult>
     <ResponseMetadata>
         <RequestId>470a6f13-2ed9-4181-ad8a-2fdea142988e</RequestId>
@@ -254,7 +254,7 @@ GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
 LIST_QUEUES_RESPONSE = """<ListQueuesResponse>
     <ListQueuesResult>
         {% for queue in queues %}
-            <QueueUrl>http://sqs.us-east-1.amazonaws.com/123456789012/{{ queue.name }}</QueueUrl>
+            <QueueUrl>{{ queue.url }}</QueueUrl>
         {% endfor %}
     </ListQueuesResult>
     <ResponseMetadata>
