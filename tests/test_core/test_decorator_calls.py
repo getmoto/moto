@@ -61,6 +61,16 @@ def test_decorater_wrapped_gets_set():
     """
     test_decorater_wrapped_gets_set.__wrapped__.__name__.should.equal('test_decorater_wrapped_gets_set')
 
+FIXTURES = {'us-east-1': {'images': [{'ami_id': 'foo_id', 'name': 'foo_name'}]}}
+
+
+@mock_ec2(fixtures=FIXTURES)
+def test_inject_image_fixtures():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    images = conn.get_all_images()
+    assert len(images) == 1
+    assert images[0].id == 'foo_id'
+
 
 @mock_ec2
 class Tester(object):

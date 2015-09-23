@@ -12,11 +12,27 @@ from .utils import convert_regex_to_flask_path
 class MockAWS(object):
     nested_count = 0
 
-    def __init__(self, backends):
+    def __init__(self, backends, fixtures={}):
         self.backends = backends
 
         if self.__class__.nested_count == 0:
             HTTPretty.reset()
+        self.fixtures = fixtures
+
+    def inject_fixtures(self):
+        """
+        Create data in specified regions, example:
+
+            {'us-east-1': {'images': [{'ami_id': 'foo_id', 'name': 'foo_name'}]}}
+
+        Propreties are those used for instanciate a model instance.
+        """
+        from moto.ec2.models import Ami
+        for backend_name, backend in self.backends.items():
+            backend_fixtures = self.fixtures.get(backend_name, {})
+            for image in backend_fixtures.get('images', []):
+                ami = Ami(backend, **image)
+                backend.amis[ami.id] = ami
 
     def __call__(self, func, reset=True):
         if inspect.isclass(func):
@@ -53,6 +69,8 @@ class MockAWS(object):
                 uri=re.compile('http://169.254.169.254/latest/meta-data/.*'),
                 body=metadata_response
             )
+        if self.fixtures:
+            self.inject_fixtures()
 
     def stop(self):
         self.__class__.nested_count -= 1
