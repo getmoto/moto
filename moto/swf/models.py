@@ -26,46 +26,31 @@ class Domain(object):
     def __repr__(self):
         return "Domain(name: %(name)s, status: %(status)s)" % self.__dict__
 
-    def get_activity_type(self, name, version, ignore_empty=False):
+    def get_type(self, kind, name, version, ignore_empty=False):
         try:
-            return self.activity_types[name][version]
+            _types = getattr(self, "{}_types".format(kind))
+            return _types[name][version]
         except KeyError:
             if not ignore_empty:
                 raise SWFUnknownResourceFault(
                     "type",
-                    "ActivityType=[name={}, version={}]".format(name, version)
+                    "{}Type=[name={}, version={}]".format(
+                        kind.capitalize(), name, version
+                    )
                 )
 
-    def add_activity_type(self, _type):
-        self.activity_types[_type.name][_type.version] = _type
+    def add_type(self, _type):
+        if isinstance(_type, ActivityType):
+            self.activity_types[_type.name][_type.version] = _type
+        elif isinstance(_type, WorkflowType):
+            self.workflow_types[_type.name][_type.version] = _type
+        else:
+            raise ValueError("Unknown SWF type: {}".format(_type))
 
-    def find_activity_types(self, status):
+    def find_types(self, kind, status):
         _all = []
-        for _, family in self.activity_types.iteritems():
-            for _, _type in family.iteritems():
-                if _type.status == status:
-                    _all.append(_type)
-        return _all
-
-    # TODO: refactor it with get_activity_type()
-    def get_workflow_type(self, name, version, ignore_empty=False):
-        try:
-            return self.workflow_types[name][version]
-        except KeyError:
-            if not ignore_empty:
-                raise SWFUnknownResourceFault(
-                    "type",
-                    "WorkflowType=[name={}, version={}]".format(name, version)
-                )
-
-    # TODO: refactor it with add_activity_type()
-    def add_workflow_type(self, _type):
-        self.workflow_types[_type.name][_type.version] = _type
-
-    # TODO: refactor it with find_activity_types()
-    def find_workflow_types(self, status):
-        _all = []
-        for _, family in self.workflow_types.iteritems():
+        _types = getattr(self, "{}_types".format(kind))
+        for _, family in _types.iteritems():
             for _, _type in family.iteritems():
                 if _type.status == status:
                     _all.append(_type)
@@ -151,17 +136,17 @@ class SWFBackend(BaseBackend):
         self._check_string(name)
         return self._get_domain(name)
 
-    def list_activity_types(self, domain_name, status, reverse_order=None):
+    def list_types(self, kind, domain_name, status, reverse_order=None):
         self._check_string(domain_name)
         self._check_string(status)
         domain = self._get_domain(domain_name)
-        _types = domain.find_activity_types(status)
+        _types = domain.find_types(kind, status)
         _types = sorted(_types, key=lambda domain: domain.name)
         if reverse_order:
             _types = reversed(_types)
         return _types
 
-    def register_activity_type(self, domain_name, name, version, **kwargs):
+    def register_type(self, kind, domain_name, name, version, **kwargs):
         self._check_string(domain_name)
         self._check_string(name)
         self._check_string(version)
@@ -171,71 +156,30 @@ class SWFBackend(BaseBackend):
             if value is not None:
                 self._check_string(value)
         domain = self._get_domain(domain_name)
-        _type = domain.get_activity_type(name, version, ignore_empty=True)
+        _type = domain.get_type(kind, name, version, ignore_empty=True)
         if _type:
             raise SWFTypeAlreadyExistsFault(_type)
-        activity_type = ActivityType(name, version, **kwargs)
-        domain.add_activity_type(activity_type)
+        _class = globals()["{}Type".format(kind.capitalize())]
+        _type = _class(name, version, **kwargs)
+        domain.add_type(_type)
 
-    def deprecate_activity_type(self, domain_name, name, version):
+    def deprecate_type(self, kind, domain_name, name, version):
         self._check_string(domain_name)
         self._check_string(name)
         self._check_string(version)
         domain = self._get_domain(domain_name)
-        _type = domain.get_activity_type(name, version)
+        _type = domain.get_type(kind, name, version)
         if _type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(_type)
         _type.status = "DEPRECATED"
 
-    def describe_activity_type(self, domain_name, name, version):
+    def describe_type(self, kind, domain_name, name, version):
         self._check_string(domain_name)
         self._check_string(name)
         self._check_string(version)
         domain = self._get_domain(domain_name)
-        return domain.get_activity_type(name, version)
+        return domain.get_type(kind, name, version)
 
-    def list_workflow_types(self, domain_name, status, reverse_order=None):
-        self._check_string(domain_name)
-        self._check_string(status)
-        domain = self._get_domain(domain_name)
-        _types = domain.find_workflow_types(status)
-        _types = sorted(_types, key=lambda domain: domain.name)
-        if reverse_order:
-            _types = reversed(_types)
-        return _types
-
-    def register_workflow_type(self, domain_name, name, version, **kwargs):
-        self._check_string(domain_name)
-        self._check_string(name)
-        self._check_string(version)
-        for _, value in kwargs.iteritems():
-            if value == (None,):
-                print _
-            if value is not None:
-                self._check_string(value)
-        domain = self._get_domain(domain_name)
-        _type = domain.get_workflow_type(name, version, ignore_empty=True)
-        if _type:
-            raise SWFTypeAlreadyExistsFault(_type)
-        workflow_type = WorkflowType(name, version, **kwargs)
-        domain.add_workflow_type(workflow_type)
-
-    def deprecate_workflow_type(self, domain_name, name, version):
-        self._check_string(domain_name)
-        self._check_string(name)
-        self._check_string(version)
-        domain = self._get_domain(domain_name)
-        _type = domain.get_workflow_type(name, version)
-        if _type.status == "DEPRECATED":
-            raise SWFTypeDeprecatedFault(_type)
-        _type.status = "DEPRECATED"
-
-    def describe_workflow_type(self, domain_name, name, version):
-        self._check_string(domain_name)
-        self._check_string(name)
-        self._check_string(version)
-        domain = self._get_domain(domain_name)
-        return domain.get_workflow_type(name, version)
 
 swf_backends = {}
 for region in boto.swf.regions():

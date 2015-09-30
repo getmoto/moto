@@ -51,6 +51,33 @@ class SWFResponse(BaseResponse):
     def _params(self):
         return json.loads(self.body)
 
+    def _list_types(self, kind, template_str):
+        domain_name = self._params.get("domain")
+        status = self._params.get("registrationStatus")
+        reverse_order = self._params.get("reverseOrder", None)
+        types = self.swf_backend.list_types(kind, domain_name, status, reverse_order=reverse_order)
+        template = self.response_template(template_str)
+        return template.render(types=types)
+
+    def _describe_type(self, kind, template_str):
+        domain = self._params.get("domain")
+        _type = self._params.get("{}Type".format(kind))
+
+        name = _type["name"]
+        version = _type["version"]
+        _type = self.swf_backend.describe_type(kind, domain, name, version)
+        template = self.response_template(template_str)
+        return template.render(_type=_type)
+
+    def _deprecate_type(self, kind):
+        domain = self._params.get("domain")
+        _type = self._params.get("{}Type".format(kind))
+        name = _type["name"]
+        version = _type["version"]
+        self.swf_backend.deprecate_type(kind, domain, name, version)
+        template = self.response_template("")
+        return template.render()
+
     # TODO: implement pagination
     def list_domains(self):
         status = self._params.get("registrationStatus")
@@ -82,12 +109,7 @@ class SWFResponse(BaseResponse):
 
     # TODO: implement pagination
     def list_activity_types(self):
-        domain_name = self._params.get("domain")
-        status = self._params.get("registrationStatus")
-        reverse_order = self._params.get("reverseOrder", None)
-        types = self.swf_backend.list_activity_types(domain_name, status, reverse_order=reverse_order)
-        template = self.response_template(LIST_ACTIVITY_TYPES_TEMPLATE)
-        return template.render(types=types)
+        return self._list_types("activity", LIST_ACTIVITY_TYPES_TEMPLATE)
 
     def register_activity_type(self):
         domain = self._params.get("domain")
@@ -104,8 +126,8 @@ class SWFResponse(BaseResponse):
         default_task_start_to_close_timeout = self._params.get("defaultTaskStartToCloseTimeout")
         description = self._params.get("description")
         # TODO: add defaultTaskPriority when boto gets to support it
-        activity_type = self.swf_backend.register_activity_type(
-            domain, name, version, task_list=task_list,
+        activity_type = self.swf_backend.register_type(
+            "activity", domain, name, version, task_list=task_list,
             default_task_heartbeat_timeout=default_task_heartbeat_timeout,
             default_task_schedule_to_close_timeout=default_task_schedule_to_close_timeout,
             default_task_schedule_to_start_timeout=default_task_schedule_to_start_timeout,
@@ -116,33 +138,14 @@ class SWFResponse(BaseResponse):
         return template.render()
 
     def deprecate_activity_type(self):
-        domain = self._params.get("domain")
-        _type = self._params.get("activityType")
-        name = _type["name"]
-        version = _type["version"]
-        domain = self.swf_backend.deprecate_activity_type(domain, name, version)
-        template = self.response_template("")
-        return template.render()
+        return self._deprecate_type("activity")
 
     def describe_activity_type(self):
-        domain = self._params.get("domain")
-        _type = self._params.get("activityType")
+        return self._describe_type("activity", DESCRIBE_ACTIVITY_TYPE_TEMPLATE)
 
-        name = _type["name"]
-        version = _type["version"]
-        _type = self.swf_backend.describe_activity_type(domain, name, version)
-        template = self.response_template(DESCRIBE_ACTIVITY_TYPE_TEMPLATE)
-        return template.render(_type=_type)
-
-    # TODO: implement pagination
     # TODO: refactor with list_activity_types()
     def list_workflow_types(self):
-        domain_name = self._params.get("domain")
-        status = self._params.get("registrationStatus")
-        reverse_order = self._params.get("reverseOrder", None)
-        types = self.swf_backend.list_workflow_types(domain_name, status, reverse_order=reverse_order)
-        template = self.response_template(LIST_WORKFLOW_TYPES_TEMPLATE)
-        return template.render(types=types)
+        return self._list_types("workflow", LIST_WORKFLOW_TYPES_TEMPLATE)
 
     def register_workflow_type(self):
         domain = self._params.get("domain")
@@ -159,8 +162,8 @@ class SWFResponse(BaseResponse):
         description = self._params.get("description")
         # TODO: add defaultTaskPriority when boto gets to support it
         # TODO: add defaultLambdaRole when boto gets to support it
-        workflow_type = self.swf_backend.register_workflow_type(
-            domain, name, version, task_list=task_list,
+        workflow_type = self.swf_backend.register_type(
+            "workflow", domain, name, version, task_list=task_list,
             default_child_policy=default_child_policy,
             default_task_start_to_close_timeout=default_task_start_to_close_timeout,
             default_execution_start_to_close_timeout=default_execution_start_to_close_timeout,
@@ -169,26 +172,11 @@ class SWFResponse(BaseResponse):
         template = self.response_template("")
         return template.render()
 
-    # TODO: refactor with deprecate_activity_type()
     def deprecate_workflow_type(self):
-        domain = self._params.get("domain")
-        _type = self._params.get("workflowType")
-        name = _type["name"]
-        version = _type["version"]
-        domain = self.swf_backend.deprecate_workflow_type(domain, name, version)
-        template = self.response_template("")
-        return template.render()
+        return self._deprecate_type("workflow")
 
-    # TODO: refactor with describe_activity_type()
     def describe_workflow_type(self):
-        domain = self._params.get("domain")
-        _type = self._params.get("workflowType")
-
-        name = _type["name"]
-        version = _type["version"]
-        _type = self.swf_backend.describe_workflow_type(domain, name, version)
-        template = self.response_template(DESCRIBE_WORKFLOW_TYPE_TEMPLATE)
-        return template.render(_type=_type)
+        return self._describe_type("workflow", DESCRIBE_WORKFLOW_TYPE_TEMPLATE)
 
 
 LIST_DOMAINS_TEMPLATE = """{
