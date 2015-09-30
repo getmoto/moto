@@ -83,13 +83,13 @@ class SWFResponse(BaseResponse):
 
 LIST_DOMAINS_TEMPLATE = """{
     "domainInfos": [
-        {% for domain in domains %}
+        {%- for domain in domains %}
         {
             "description": "{{ domain.description }}",
             "name": "{{ domain.name }}",
             "status": "{{ domain.status }}"
-        }
-        {% endfor %}
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
     ]
 }"""
 
