@@ -44,15 +44,15 @@ class SWFSerializationException(JSONResponseError):
 
 
 class SWFTypeAlreadyExistsFault(SWFClientError):
-    def __init__(self, name, version):
+    def __init__(self, _type):
         super(SWFTypeAlreadyExistsFault, self).__init__(
-            "ActivityType=[name={}, version={}]".format(name, version),
+            "{}=[name={}, version={}]".format(_type.__class__.__name__, _type.name, _type.version),
             "com.amazonaws.swf.base.model#TypeAlreadyExistsFault")
 
 
 class SWFTypeDeprecatedFault(SWFClientError):
-    def __init__(self, name, version):
+    def __init__(self, _type):
         super(SWFTypeDeprecatedFault, self).__init__(
-            "ActivityType=[name={}, version={}]".format(name, version),
+            "{}=[name={}, version={}]".format(_type.__class__.__name__, _type.name, _type.version),
             "com.amazonaws.swf.base.model#TypeDeprecatedFault")
 
