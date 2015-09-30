@@ -45,10 +45,14 @@ class SWFBackend(BaseBackend):
         if not isinstance(parameter, basestring):
             raise SWFSerializationException()
 
-    def list_domains(self, status):
+    def list_domains(self, status, reverse_order=None):
         self._check_string(status)
-        return [domain for domain in self.domains
-                if domain.status == status]
+        domains = [domain for domain in self.domains
+                   if domain.status == status]
+        domains = sorted(domains, key=lambda domain: domain.name)
+        if reverse_order:
+            domains = reversed(domains)
+        return domains
 
     def register_domain(self, name, workflow_execution_retention_period_in_days,
                         description=None):

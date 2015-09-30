@@ -12,7 +12,6 @@ from moto.swf.exceptions import (
 
 
 # RegisterDomain endpoint
-# ListDomain endpoint
 @mock_swf
 def test_register_domain():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -55,6 +54,30 @@ def test_register_with_wrong_parameter_type():
         "__type": "com.amazonaws.swf.base.model#SerializationException",
         "Message": "class java.lang.Foo can not be converted to an String (not a real SWF exception)"
     })
+
+
+# ListDomain endpoint
+@mock_swf
+def test_list_domains_order():
+    conn = boto.connect_swf("the_key", "the_secret")
+    conn.register_domain("b-test-domain", "60")
+    conn.register_domain("a-test-domain", "60")
+    conn.register_domain("c-test-domain", "60")
+
+    all_domains = conn.list_domains("REGISTERED")
+    names = [domain["name"] for domain in all_domains["domainInfos"]]
+    names.should.equal(["a-test-domain", "b-test-domain", "c-test-domain"])
+
+@mock_swf
+def test_list_domains_reverse_order():
+    conn = boto.connect_swf("the_key", "the_secret")
+    conn.register_domain("b-test-domain", "60")
+    conn.register_domain("a-test-domain", "60")
+    conn.register_domain("c-test-domain", "60")
+
+    all_domains = conn.list_domains("REGISTERED", reverse_order=True)
+    names = [domain["name"] for domain in all_domains["domainInfos"]]
+    names.should.equal(["c-test-domain", "b-test-domain", "a-test-domain"])
 
 
 # DeprecateDomain endpoint
