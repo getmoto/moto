@@ -7,6 +7,7 @@ from moto.swf.exceptions import (
     SWFUnknownResourceFault,
     SWFDomainAlreadyExistsFault,
     SWFDomainDeprecatedFault,
+    SWFSerializationException,
 )
 
 
@@ -15,7 +16,7 @@ from moto.swf.exceptions import (
 @mock_swf
 def test_register_domain():
     conn = boto.connect_swf("the_key", "the_secret")
-    conn.register_domain("test-domain", 60, description="A test domain")
+    conn.register_domain("test-domain", "60", description="A test domain")
 
     all_domains = conn.list_domains("REGISTERED")
     domain = all_domains["domainInfos"][0]
@@ -27,10 +28,10 @@ def test_register_domain():
 @mock_swf
 def test_register_already_existing_domain():
     conn = boto.connect_swf("the_key", "the_secret")
-    conn.register_domain("test-domain", 60, description="A test domain")
+    conn.register_domain("test-domain", "60", description="A test domain")
 
     with assert_raises(SWFDomainAlreadyExistsFault) as err:
-        conn.register_domain("test-domain", 60, description="A test domain")
+        conn.register_domain("test-domain", "60", description="A test domain")
 
     ex = err.exception
     ex.status.should.equal(400)
@@ -40,12 +41,27 @@ def test_register_already_existing_domain():
         "message": "test-domain"
     })
 
+@mock_swf
+def test_register_with_wrong_parameter_type():
+    conn = boto.connect_swf("the_key", "the_secret")
+
+    with assert_raises(SWFSerializationException) as err:
+        conn.register_domain("test-domain", 60, description="A test domain")
+
+    ex = err.exception
+    ex.status.should.equal(400)
+    ex.error_code.should.equal("SerializationException")
+    ex.body.should.equal({
+        "__type": "com.amazonaws.swf.base.model#SerializationException",
+        "Message": "class java.lang.Foo can not be converted to an String (not a real SWF exception)"
+    })
+
 
 # DeprecateDomain endpoint
 @mock_swf
 def test_deprecate_domain():
     conn = boto.connect_swf("the_key", "the_secret")
-    conn.register_domain("test-domain", 60, description="A test domain")
+    conn.register_domain("test-domain", "60", description="A test domain")
     conn.deprecate_domain("test-domain")
 
     all_domains = conn.list_domains("DEPRECATED")
@@ -56,7 +72,7 @@ def test_deprecate_domain():
 @mock_swf
 def test_deprecate_already_deprecated_domain():
     conn = boto.connect_swf("the_key", "the_secret")
-    conn.register_domain("test-domain", 60, description="A test domain")
+    conn.register_domain("test-domain", "60", description="A test domain")
     conn.deprecate_domain("test-domain")
 
     with assert_raises(SWFDomainDeprecatedFault) as err:
@@ -89,7 +105,7 @@ def test_deprecate_non_existent_domain():
 @mock_swf
 def test_describe_domain():
     conn = boto.connect_swf("the_key", "the_secret")
-    conn.register_domain("test-domain", 60, description="A test domain")
+    conn.register_domain("test-domain", "60", description="A test domain")
 
     domain = conn.describe_domain("test-domain")
     domain["configuration"]["workflowExecutionRetentionPeriodInDays"].should.equal("60")

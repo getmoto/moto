@@ -7,6 +7,7 @@ from .exceptions import (
     SWFUnknownResourceFault,
     SWFDomainAlreadyExistsFault,
     SWFDomainDeprecatedFault,
+    SWFSerializationException,
 )
 
 
@@ -40,12 +41,21 @@ class SWFBackend(BaseBackend):
             return matching[0]
         return None
 
+    def _check_string(self, parameter):
+        if not isinstance(parameter, basestring):
+            raise SWFSerializationException()
+
     def list_domains(self, status):
+        self._check_string(status)
         return [domain for domain in self.domains
                 if domain.status == status]
 
     def register_domain(self, name, workflow_execution_retention_period_in_days,
                         description=None):
+        self._check_string(name)
+        self._check_string(workflow_execution_retention_period_in_days)
+        if description:
+            self._check_string(description)
         if self._get_domain(name, ignore_empty=True):
             raise SWFDomainAlreadyExistsFault(name)
         domain = Domain(name, workflow_execution_retention_period_in_days,
@@ -53,12 +63,14 @@ class SWFBackend(BaseBackend):
         self.domains.append(domain)
 
     def deprecate_domain(self, name):
+        self._check_string(name)
         domain = self._get_domain(name)
         if domain.status == "DEPRECATED":
             raise SWFDomainDeprecatedFault(name)
         domain.status = "DEPRECATED"
 
     def describe_domain(self, name):
+        self._check_string(name)
         return self._get_domain(name)
 
 
