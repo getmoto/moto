@@ -19,7 +19,7 @@ class Domain(object):
         self.status = "REGISTERED"
 
     def __repr__(self):
-        return "Domain(name: %s, retention: %s, description: %s)" % (self.name, self.retention, self.description)
+        return "Domain(name: %(name)s, status: %(status)s)" % self.__dict__
 
 
 class SWFBackend(BaseBackend):
