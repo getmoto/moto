@@ -80,6 +80,60 @@ class SWFResponse(BaseResponse):
         template = self.response_template(DESCRIBE_DOMAIN_TEMPLATE)
         return template.render(domain=domain)
 
+    # TODO: implement pagination
+    def list_activity_types(self):
+        domain_name = self._params.get("domain")
+        status = self._params.get("registrationStatus")
+        reverse_order = self._params.get("reverseOrder", None)
+        actypes = self.swf_backend.list_activity_types(domain_name, status, reverse_order=reverse_order)
+        template = self.response_template(LIST_ACTIVITY_TYPES_TEMPLATE)
+        return template.render(actypes=actypes)
+
+    def register_activity_type(self):
+        domain = self._params.get("domain")
+        name = self._params.get("name")
+        version = self._params.get("version")
+        default_task_list = self._params.get("defaultTaskList")
+        if default_task_list:
+            task_list = default_task_list.get("name")
+        else:
+            task_list = None
+        default_task_heartbeat_timeout = self._params.get("defaultTaskHeartbeatTimeout")
+        default_task_schedule_to_close_timeout = self._params.get("defaultTaskScheduleToCloseTimeout")
+        default_task_schedule_to_start_timeout = self._params.get("defaultTaskScheduleToStartTimeout")
+        default_task_start_to_close_timeout = self._params.get("defaultTaskStartToCloseTimeout")
+        description = self._params.get("description")
+        # TODO: add defaultTaskPriority when boto gets to support it
+        activity_type = self.swf_backend.register_activity_type(
+            domain, name, version, task_list=task_list,
+            default_task_heartbeat_timeout=default_task_heartbeat_timeout,
+            default_task_schedule_to_close_timeout=default_task_schedule_to_close_timeout,
+            default_task_schedule_to_start_timeout=default_task_schedule_to_start_timeout,
+            default_task_start_to_close_timeout=default_task_start_to_close_timeout,
+            description=description,
+        )
+        template = self.response_template("")
+        return template.render()
+
+    def deprecate_activity_type(self):
+        domain = self._params.get("domain")
+        actype = self._params.get("activityType")
+        name = actype["name"]
+        version = actype["version"]
+        domain = self.swf_backend.deprecate_activity_type(domain, name, version)
+        template = self.response_template("")
+        return template.render()
+
+    def describe_activity_type(self):
+        domain = self._params.get("domain")
+        actype = self._params.get("activityType")
+
+        name = actype["name"]
+        version = actype["version"]
+        actype = self.swf_backend.describe_activity_type(domain, name, version)
+        template = self.response_template(DESCRIBE_ACTIVITY_TYPE_TEMPLATE)
+        return template.render(actype=actype)
+
 
 LIST_DOMAINS_TEMPLATE = """{
     "domainInfos": [
@@ -103,3 +157,42 @@ DESCRIBE_DOMAIN_TEMPLATE = """{
         "status": "{{ domain.status }}"
     }
 }"""
+
+LIST_ACTIVITY_TYPES_TEMPLATE = """{
+    "typeInfos": [
+        {%- for actype in actypes %}
+        {
+            "activityType": {
+                "name": "{{ actype.name }}",
+                "version": "{{ actype.version }}"
+            },
+            "creationDate": 1420066800,
+            {% if actype.status == "DEPRECATED" %}"deprecationDate": 1422745200,{% endif %}
+            {% if actype.description %}"description": "{{ actype.description }}",{% endif %}
+            "status": "{{ actype.status }}"
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
+    ]
+}"""
+
+DESCRIBE_ACTIVITY_TYPE_TEMPLATE = """{
+   "configuration": {
+        {% if actype.default_task_heartbeat_timeout %}"defaultTaskHeartbeatTimeout": "{{ actype.default_task_heartbeat_timeout }}",{% endif %}
+        {% if actype.task_list %}"defaultTaskList": { "name": "{{ actype.task_list }}" },{% endif %}
+        {% if actype.default_task_schedule_to_close_timeout %}"defaultTaskScheduleToCloseTimeout": "{{ actype.default_task_schedule_to_close_timeout }}",{% endif %}
+        {% if actype.default_task_schedule_to_start_timeout %}"defaultTaskScheduleToStartTimeout": "{{ actype.default_task_schedule_to_start_timeout }}",{% endif %}
+        {% if actype.default_task_start_to_close_timeout %}"defaultTaskStartToCloseTimeout": "{{ actype.default_task_start_to_close_timeout }}",{% endif %}
+        "__moto_placeholder": "(avoid dealing with coma in json)"
+    },
+    "typeInfo": {
+        "activityType": {
+            "name": "{{ actype.name }}",
+            "version": "{{ actype.version }}"
+        },
+        "creationDate": 1420066800,
+        {% if actype.status == "DEPRECATED" %}"deprecationDate": 1422745200,{% endif %}
+        {% if actype.description %}"description": "{{ actype.description }}",{% endif %}
+        "status": "{{ actype.status }}"
+    }
+}"""
+

@@ -33,10 +33,26 @@ class SWFDomainDeprecatedFault(SWFClientError):
 
 
 class SWFSerializationException(JSONResponseError):
-    def __init__(self):
-        message = "class java.lang.Foo can not be converted to an String (not a real SWF exception)"
+    def __init__(self, value):
+        message = "class java.lang.Foo can not be converted to an String "
+        message += " (not a real SWF exception ; happened on: {})".format(value)
         __type = "com.amazonaws.swf.base.model#SerializationException"
         super(SWFSerializationException, self).__init__(
             400, "Bad Request",
             body={"Message": message, "__type": __type}
         )
+
+
+class SWFTypeAlreadyExistsFault(SWFClientError):
+    def __init__(self, name, version):
+        super(SWFTypeAlreadyExistsFault, self).__init__(
+            "ActivityType=[name={}, version={}]".format(name, version),
+            "com.amazonaws.swf.base.model#TypeAlreadyExistsFault")
+
+
+class SWFTypeDeprecatedFault(SWFClientError):
+    def __init__(self, name, version):
+        super(SWFTypeDeprecatedFault, self).__init__(
+            "ActivityType=[name={}, version={}]".format(name, version),
+            "com.amazonaws.swf.base.model#TypeDeprecatedFault")
+

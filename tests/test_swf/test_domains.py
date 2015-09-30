@@ -50,10 +50,7 @@ def test_register_with_wrong_parameter_type():
     ex = err.exception
     ex.status.should.equal(400)
     ex.error_code.should.equal("SerializationException")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#SerializationException",
-        "Message": "class java.lang.Foo can not be converted to an String (not a real SWF exception)"
-    })
+    ex.body["__type"].should.equal("com.amazonaws.swf.base.model#SerializationException")
 
 
 # ListDomain endpoint
