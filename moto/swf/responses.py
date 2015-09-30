@@ -51,6 +51,8 @@ class SWFResponse(BaseResponse):
     def _params(self):
         return json.loads(self.body)
 
+    # TODO: implement "reverseOrder" option
+    # TODO: implement pagination
     def list_domains(self):
         status = self._params.get("registrationStatus")
         domains = self.swf_backend.list_domains(status)
