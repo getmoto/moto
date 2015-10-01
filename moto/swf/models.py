@@ -68,7 +68,7 @@ class Domain(object):
         return _all
 
 
-class ActivityType(object):
+class GenericType(object):
     def __init__(self, name, version, **kwargs):
         self.name = name
         self.version = version
@@ -78,17 +78,13 @@ class ActivityType(object):
         for key, value in kwargs.iteritems():
             self.__setattr__(key, value)
 
-    def __repr__(self):
-        return "ActivityType(name: %(name)s, version: %(version)s)" % self.__dict__
+    @property
+    def kind(self):
+        raise NotImplementedError()
 
     @property
     def _configuration_keys(self):
-        return [
-            "defaultTaskHeartbeatTimeout",
-            "defaultTaskScheduleToCloseTimeout",
-            "defaultTaskScheduleToStartTimeout",
-            "defaultTaskStartToCloseTimeout",
-        ]
+        raise NotImplementedError()
 
     def to_short_dict(self):
         return {
@@ -98,7 +94,7 @@ class ActivityType(object):
 
     def to_medium_dict(self):
         hsh = {
-            "activityType": self.to_short_dict(),
+            "{}Type".format(self.kind): self.to_short_dict(),
             "creationDate": 1420066800,
             "status": self.status,
         }
@@ -124,15 +120,25 @@ class ActivityType(object):
             hsh["configuration"][key] = getattr(self, attr)
         return hsh
 
+class ActivityType(GenericType):
+    def __repr__(self):
+        return "ActivityType(name: %(name)s, version: %(version)s)" % self.__dict__
 
-class WorkflowType(object):
-    def __init__(self, name, version, **kwargs):
-        self.name = name
-        self.version = version
-        self.status = "REGISTERED"
-        for key, value in kwargs.iteritems():
-            self.__setattr__(key, value)
+    @property
+    def _configuration_keys(self):
+        return [
+            "defaultTaskHeartbeatTimeout",
+            "defaultTaskScheduleToCloseTimeout",
+            "defaultTaskScheduleToStartTimeout",
+            "defaultTaskStartToCloseTimeout",
+        ]
 
+    @property
+    def kind(self):
+        return "activity"
+
+
+class WorkflowType(GenericType):
     def __repr__(self):
         return "WorkflowType(name: %(name)s, version: %(version)s)" % self.__dict__
 
@@ -144,39 +150,9 @@ class WorkflowType(object):
             "defaultTaskStartToCloseTimeout",
         ]
 
-    def to_short_dict(self):
-        return {
-            "name": self.name,
-            "version": self.version,
-        }
-
-    def to_medium_dict(self):
-        hsh = {
-            "workflowType": self.to_short_dict(),
-            "creationDate": 1420066800,
-            "status": self.status,
-        }
-        if self.status == "DEPRECATED":
-            hsh["deprecationDate"] = 1422745200
-        if hasattr(self, "description"):
-            hsh["description"] = self.description
-        return hsh
-
-    def to_full_dict(self):
-        hsh = {
-            "typeInfo": self.to_medium_dict(),
-            "configuration": {}
-        }
-        if hasattr(self, "task_list"):
-            hsh["configuration"]["defaultTaskList"] = {"name": self.task_list}
-        for key in self._configuration_keys:
-            attr = camelcase_to_underscores(key)
-            if not hasattr(self, attr):
-                continue
-            if getattr(self, attr) is None:
-                continue
-            hsh["configuration"][key] = getattr(self, attr)
-        return hsh
+    @property
+    def kind(self):
+        return "workflow"
 
 
 class SWFBackend(BaseBackend):
