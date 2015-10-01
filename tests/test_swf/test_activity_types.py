@@ -3,12 +3,44 @@ from nose.tools import assert_raises
 from sure import expect
 
 from moto import mock_swf
+from moto.swf.models import ActivityType
 from moto.swf.exceptions import (
     SWFUnknownResourceFault,
     SWFTypeAlreadyExistsFault,
     SWFTypeDeprecatedFault,
     SWFSerializationException,
 )
+
+
+# Models
+def test_short_dict_representation():
+    _type = ActivityType("test-activity", "v1.0")
+    _type.to_short_dict().should.equal({"name": "test-activity", "version": "v1.0"})
+
+def test_medium_dict_representation():
+    _type = ActivityType("test-activity", "v1.0")
+    _type.to_medium_dict()["activityType"].should.equal(_type.to_short_dict())
+    _type.to_medium_dict()["status"].should.equal("REGISTERED")
+    _type.to_medium_dict().should.contain("creationDate")
+    _type.to_medium_dict().should_not.contain("deprecationDate")
+    _type.to_medium_dict().should_not.contain("description")
+
+    _type.description = "foo bar"
+    _type.to_medium_dict()["description"].should.equal("foo bar")
+
+    _type.status = "DEPRECATED"
+    _type.to_medium_dict().should.contain("deprecationDate")
+
+def test_full_dict_representation():
+    _type = ActivityType("test-activity", "v1.0")
+    _type.to_full_dict()["typeInfo"].should.equal(_type.to_medium_dict())
+    _type.to_full_dict()["configuration"].should.equal({})
+
+    _type.task_list = "foo"
+    _type.to_full_dict()["configuration"]["defaultTaskList"].should.equal({"name":"foo"})
+
+    _type.default_task_heartbeat_timeout = "60"
+    _type.to_full_dict()["configuration"]["defaultTaskHeartbeatTimeout"].should.equal("60")
 
 
 # RegisterActivityType endpoint
@@ -138,7 +170,6 @@ def test_describe_activity_type():
 
     actype = conn.describe_activity_type("test-domain", "test-activity", "v1.0")
     actype["configuration"]["defaultTaskList"]["name"].should.equal("foo")
-    actype["configuration"].keys().should_not.contain("defaultTaskScheduleToClose")
     infos = actype["typeInfo"]
     infos["activityType"]["name"].should.equal("test-activity")
     infos["activityType"]["version"].should.equal("v1.0")

@@ -4,6 +4,8 @@ from collections import defaultdict
 import boto.swf
 
 from moto.core import BaseBackend
+from moto.core.utils import camelcase_to_underscores
+
 from .exceptions import (
     SWFUnknownResourceFault,
     SWFDomainAlreadyExistsFault,
@@ -25,6 +27,15 @@ class Domain(object):
 
     def __repr__(self):
         return "Domain(name: %(name)s, status: %(status)s)" % self.__dict__
+
+    def to_dict(self):
+        hsh = {
+            "name": self.name,
+            "status": self.status,
+        }
+        if self.description:
+            hsh["description"] = self.description
+        return hsh
 
     def get_type(self, kind, name, version, ignore_empty=False):
         try:
@@ -62,11 +73,56 @@ class ActivityType(object):
         self.name = name
         self.version = version
         self.status = "REGISTERED"
+        if "description" in kwargs:
+            self.description = kwargs.pop("description")
         for key, value in kwargs.iteritems():
             self.__setattr__(key, value)
 
     def __repr__(self):
         return "ActivityType(name: %(name)s, version: %(version)s)" % self.__dict__
+
+    @property
+    def _configuration_keys(self):
+        return [
+            "defaultTaskHeartbeatTimeout",
+            "defaultTaskScheduleToCloseTimeout",
+            "defaultTaskScheduleToStartTimeout",
+            "defaultTaskStartToCloseTimeout",
+        ]
+
+    def to_short_dict(self):
+        return {
+            "name": self.name,
+            "version": self.version,
+        }
+
+    def to_medium_dict(self):
+        hsh = {
+            "activityType": self.to_short_dict(),
+            "creationDate": 1420066800,
+            "status": self.status,
+        }
+        if self.status == "DEPRECATED":
+            hsh["deprecationDate"] = 1422745200
+        if hasattr(self, "description"):
+            hsh["description"] = self.description
+        return hsh
+
+    def to_full_dict(self):
+        hsh = {
+            "typeInfo": self.to_medium_dict(),
+            "configuration": {}
+        }
+        if hasattr(self, "task_list"):
+            hsh["configuration"]["defaultTaskList"] = {"name": self.task_list}
+        for key in self._configuration_keys:
+            attr = camelcase_to_underscores(key)
+            if not hasattr(self, attr):
+                continue
+            if not getattr(self, attr):
+                continue
+            hsh["configuration"][key] = getattr(self, attr)
+        return hsh
 
 
 class WorkflowType(object):
@@ -79,6 +135,48 @@ class WorkflowType(object):
 
     def __repr__(self):
         return "WorkflowType(name: %(name)s, version: %(version)s)" % self.__dict__
+
+    @property
+    def _configuration_keys(self):
+        return [
+            "defaultChildPolicy",
+            "defaultExecutionStartToCloseTimeout",
+            "defaultTaskStartToCloseTimeout",
+        ]
+
+    def to_short_dict(self):
+        return {
+            "name": self.name,
+            "version": self.version,
+        }
+
+    def to_medium_dict(self):
+        hsh = {
+            "workflowType": self.to_short_dict(),
+            "creationDate": 1420066800,
+            "status": self.status,
+        }
+        if self.status == "DEPRECATED":
+            hsh["deprecationDate"] = 1422745200
+        if hasattr(self, "description"):
+            hsh["description"] = self.description
+        return hsh
+
+    def to_full_dict(self):
+        hsh = {
+            "typeInfo": self.to_medium_dict(),
+            "configuration": {}
+        }
+        if hasattr(self, "task_list"):
+            hsh["configuration"]["defaultTaskList"] = {"name": self.task_list}
+        for key in self._configuration_keys:
+            attr = camelcase_to_underscores(key)
+            if not hasattr(self, attr):
+                continue
+            if getattr(self, attr) is None:
+                continue
+            hsh["configuration"][key] = getattr(self, attr)
+        return hsh
 
 
 class SWFBackend(BaseBackend):

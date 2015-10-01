@@ -51,23 +51,24 @@ class SWFResponse(BaseResponse):
     def _params(self):
         return json.loads(self.body)
 
-    def _list_types(self, kind, template_str):
+    def _list_types(self, kind):
         domain_name = self._params.get("domain")
         status = self._params.get("registrationStatus")
         reverse_order = self._params.get("reverseOrder", None)
         types = self.swf_backend.list_types(kind, domain_name, status, reverse_order=reverse_order)
-        template = self.response_template(template_str)
-        return template.render(types=types)
+        return json.dumps({
+            "typeInfos": [_type.to_medium_dict() for _type in types]
+        })
 
-    def _describe_type(self, kind, template_str):
+    def _describe_type(self, kind):
         domain = self._params.get("domain")
-        _type = self._params.get("{}Type".format(kind))
+        _type_args = self._params.get("{}Type".format(kind))
 
-        name = _type["name"]
-        version = _type["version"]
+        name = _type_args["name"]
+        version = _type_args["version"]
         _type = self.swf_backend.describe_type(kind, domain, name, version)
-        template = self.response_template(template_str)
-        return template.render(_type=_type)
+
+        return json.dumps(_type.to_full_dict())
 
     def _deprecate_type(self, kind):
         domain = self._params.get("domain")
@@ -83,8 +84,9 @@ class SWFResponse(BaseResponse):
         status = self._params.get("registrationStatus")
         reverse_order = self._params.get("reverseOrder", None)
         domains = self.swf_backend.list_domains(status, reverse_order=reverse_order)
-        template = self.response_template(LIST_DOMAINS_TEMPLATE)
-        return template.render(domains=domains)
+        return json.dumps({
+            "domainInfos": [domain.to_dict() for domain in domains]
+        })
 
     def register_domain(self):
         name = self._params.get("name")
@@ -92,24 +94,24 @@ class SWFResponse(BaseResponse):
         retention = self._params.get("workflowExecutionRetentionPeriodInDays")
         domain = self.swf_backend.register_domain(name, retention,
                                                   description=description)
-        template = self.response_template("")
-        return template.render()
+        return ""
 
     def deprecate_domain(self):
         name = self._params.get("name")
         domain = self.swf_backend.deprecate_domain(name)
-        template = self.response_template("")
-        return template.render()
+        return ""
 
     def describe_domain(self):
         name = self._params.get("name")
         domain = self.swf_backend.describe_domain(name)
-        template = self.response_template(DESCRIBE_DOMAIN_TEMPLATE)
-        return template.render(domain=domain)
+        return json.dumps({
+            "configuration": { "workflowExecutionRetentionPeriodInDays": domain.retention },
+            "domainInfo": domain.to_dict()
+        })
 
     # TODO: implement pagination
     def list_activity_types(self):
-        return self._list_types("activity", LIST_ACTIVITY_TYPES_TEMPLATE)
+        return self._list_types("activity")
 
     def register_activity_type(self):
         domain = self._params.get("domain")
@@ -141,11 +143,11 @@ class SWFResponse(BaseResponse):
         return self._deprecate_type("activity")
 
     def describe_activity_type(self):
-        return self._describe_type("activity", DESCRIBE_ACTIVITY_TYPE_TEMPLATE)
+        return self._describe_type("activity")
 
     # TODO: refactor with list_activity_types()
     def list_workflow_types(self):
-        return self._list_types("workflow", LIST_WORKFLOW_TYPES_TEMPLATE)
+        return self._list_types("workflow")
 
     def register_workflow_type(self):
         domain = self._params.get("domain")
@@ -176,88 +178,4 @@ class SWFResponse(BaseResponse):
         return self._deprecate_type("workflow")
 
     def describe_workflow_type(self):
-        return self._describe_type("workflow", DESCRIBE_WORKFLOW_TYPE_TEMPLATE)
-
-
-LIST_DOMAINS_TEMPLATE = """{
-    "domainInfos": [
-        {%- for domain in domains %}
-        {
-            "description": "{{ domain.description }}",
-            "name": "{{ domain.name }}",
-            "status": "{{ domain.status }}"
-        }{% if not loop.last %},{% endif %}
-        {%- endfor %}
-    ]
-}"""
-
-DESCRIBE_DOMAIN_TEMPLATE = """{
-    "configuration": {
-        "workflowExecutionRetentionPeriodInDays": "{{ domain.retention }}"
-    },
-    "domainInfo": {
-        "description": "{{ domain.description }}",
-        "name": "{{ domain.name }}",
-        "status": "{{ domain.status }}"
-    }
-}"""
-
-LIST_ACTIVITY_TYPES_TEMPLATE = """{
-    "typeInfos": [
-        {%- for _type in types %}
-        {
-            "activityType": {
-                "name": "{{ _type.name }}",
-                "version": "{{ _type.version }}"
-            },
-            "creationDate": 1420066800,
-            {% if _type.status == "DEPRECATED" %}"deprecationDate": 1422745200,{% endif %}
-            {% if _type.description %}"description": "{{ _type.description }}",{% endif %}
-            "status": "{{ _type.status }}"
-        }{% if not loop.last %},{% endif %}
-        {%- endfor %}
-    ]
-}"""
-
-DESCRIBE_ACTIVITY_TYPE_TEMPLATE = """{
-   "configuration": {
-        {% if _type.default_task_heartbeat_timeout %}"defaultTaskHeartbeatTimeout": "{{ _type.default_task_heartbeat_timeout }}",{% endif %}
-        {% if _type.task_list %}"defaultTaskList": { "name": "{{ _type.task_list }}" },{% endif %}
-        {% if _type.default_task_schedule_to_close_timeout %}"defaultTaskScheduleToCloseTimeout": "{{ _type.default_task_schedule_to_close_timeout }}",{% endif %}
-        {% if _type.default_task_schedule_to_start_timeout %}"defaultTaskScheduleToStartTimeout": "{{ _type.default_task_schedule_to_start_timeout }}",{% endif %}
-        {% if _type.default_task_start_to_close_timeout %}"defaultTaskStartToCloseTimeout": "{{ _type.default_task_start_to_close_timeout }}",{% endif %}
-        "__moto_placeholder": "(avoid dealing with coma in json)"
-    },
-    "typeInfo": {
-        "activityType": {
-            "name": "{{ _type.name }}",
-            "version": "{{ _type.version }}"
-        },
-        "creationDate": 1420066800,
-        {% if _type.status == "DEPRECATED" %}"deprecationDate": 1422745200,{% endif %}
-        {% if _type.description %}"description": "{{ _type.description }}",{% endif %}
-        "status": "{{ _type.status }}"
-    }
-}"""
-
-LIST_WORKFLOW_TYPES_TEMPLATE = LIST_ACTIVITY_TYPES_TEMPLATE.replace("activityType", "workflowType")
-
-DESCRIBE_WORKFLOW_TYPE_TEMPLATE = """{
-   "configuration": {
-        {% if _type.default_child_policy %}"defaultChildPolicy": "{{ _type.default_child_policy }}",{% endif %}
-        {% if _type.default_execution_start_to_close_timeout %}"defaultExecutionStartToCloseTimeout": "{{ _type.default_execution_start_to_close_timeout }}",{% endif %}
-        {% if _type.task_list %}"defaultTaskList": { "name": "{{ _type.task_list }}" },{% endif %}
-        {% if _type.default_task_start_to_close_timeout %}"defaultTaskStartToCloseTimeout": "{{ _type.default_task_start_to_close_timeout }}",{% endif %}
-        "__moto_placeholder": "(avoid dealing with coma in json)"
-    },
-    "typeInfo": {
-        "workflowType": {
-            "name": "{{ _type.name }}",
-            "version": "{{ _type.version }}"
-        },
-        "creationDate": 1420066800,
-        {% if _type.status == "DEPRECATED" %}"deprecationDate": 1422745200,{% endif %}
-        {% if _type.description %}"description": "{{ _type.description }}",{% endif %}
-        "status": "{{ _type.status }}"
-    }
-}"""
+        return self._describe_type("workflow")

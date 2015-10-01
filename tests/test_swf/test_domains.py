@@ -3,12 +3,22 @@ from nose.tools import assert_raises
 from sure import expect
 
 from moto import mock_swf
+from moto.swf.models import Domain
 from moto.swf.exceptions import (
     SWFUnknownResourceFault,
     SWFDomainAlreadyExistsFault,
     SWFDomainDeprecatedFault,
     SWFSerializationException,
 )
+
+
+# Models
+def test_dict_representation():
+    domain = Domain("foo", "52")
+    domain.to_dict().should.equal({"name":"foo", "status":"REGISTERED"})
+
+    domain.description = "foo bar"
+    domain.to_dict()["description"].should.equal("foo bar")
 
 
 # RegisterDomain endpoint
@@ -53,7 +63,7 @@ def test_register_with_wrong_parameter_type():
     ex.body["__type"].should.equal("com.amazonaws.swf.base.model#SerializationException")
 
 
-# ListDomain endpoint
+# ListDomains endpoint
 @mock_swf
 def test_list_domains_order():
     conn = boto.connect_swf("the_key", "the_secret")
