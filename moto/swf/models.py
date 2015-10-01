@@ -22,8 +22,10 @@ class Domain(object):
         self.retention = retention
         self.description = description
         self.status = "REGISTERED"
-        self.activity_types = defaultdict(dict)
-        self.workflow_types = defaultdict(dict)
+        self.types = {
+            "activity": defaultdict(dict),
+            "workflow": defaultdict(dict),
+        }
 
     def __repr__(self):
         return "Domain(name: %(name)s, status: %(status)s)" % self.__dict__
@@ -39,8 +41,7 @@ class Domain(object):
 
     def get_type(self, kind, name, version, ignore_empty=False):
         try:
-            _types = getattr(self, "{}_types".format(kind))
-            return _types[name][version]
+            return self.types[kind][name][version]
         except KeyError:
             if not ignore_empty:
                 raise SWFUnknownResourceFault(
@@ -51,17 +52,11 @@ class Domain(object):
                 )
 
     def add_type(self, _type):
-        if isinstance(_type, ActivityType):
-            self.activity_types[_type.name][_type.version] = _type
-        elif isinstance(_type, WorkflowType):
-            self.workflow_types[_type.name][_type.version] = _type
-        else:
-            raise ValueError("Unknown SWF type: {}".format(_type))
+        self.types[_type.kind][_type.name][_type.version] = _type
 
     def find_types(self, kind, status):
         _all = []
-        _types = getattr(self, "{}_types".format(kind))
-        for _, family in _types.iteritems():
+        for _, family in self.types[kind].iteritems():
             for _, _type in family.iteritems():
                 if _type.status == status:
                     _all.append(_type)
