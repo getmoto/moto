@@ -52,8 +52,8 @@ class SWFResponse(BaseResponse):
         return json.loads(self.body)
 
     def _list_types(self, kind):
-        domain_name = self._params.get("domain")
-        status = self._params.get("registrationStatus")
+        domain_name = self._params["domain"]
+        status = self._params["registrationStatus"]
         reverse_order = self._params.get("reverseOrder", None)
         types = self.swf_backend.list_types(kind, domain_name, status, reverse_order=reverse_order)
         return json.dumps({
@@ -61,9 +61,8 @@ class SWFResponse(BaseResponse):
         })
 
     def _describe_type(self, kind):
-        domain = self._params.get("domain")
-        _type_args = self._params.get("{}Type".format(kind))
-
+        domain = self._params["domain"]
+        _type_args = self._params["{}Type".format(kind)]
         name = _type_args["name"]
         version = _type_args["version"]
         _type = self.swf_backend.describe_type(kind, domain, name, version)
@@ -71,16 +70,16 @@ class SWFResponse(BaseResponse):
         return json.dumps(_type.to_full_dict())
 
     def _deprecate_type(self, kind):
-        domain = self._params.get("domain")
-        _type = self._params.get("{}Type".format(kind))
-        name = _type["name"]
-        version = _type["version"]
+        domain = self._params["domain"]
+        _type_args = self._params["{}Type".format(kind)]
+        name = _type_args["name"]
+        version = _type_args["version"]
         self.swf_backend.deprecate_type(kind, domain, name, version)
         return ""
 
     # TODO: implement pagination
     def list_domains(self):
-        status = self._params.get("registrationStatus")
+        status = self._params["registrationStatus"]
         reverse_order = self._params.get("reverseOrder", None)
         domains = self.swf_backend.list_domains(status, reverse_order=reverse_order)
         return json.dumps({
@@ -88,20 +87,20 @@ class SWFResponse(BaseResponse):
         })
 
     def register_domain(self):
-        name = self._params.get("name")
+        name = self._params["name"]
+        retention = self._params["workflowExecutionRetentionPeriodInDays"]
         description = self._params.get("description")
-        retention = self._params.get("workflowExecutionRetentionPeriodInDays")
         domain = self.swf_backend.register_domain(name, retention,
                                                   description=description)
         return ""
 
     def deprecate_domain(self):
-        name = self._params.get("name")
+        name = self._params["name"]
         domain = self.swf_backend.deprecate_domain(name)
         return ""
 
     def describe_domain(self):
-        name = self._params.get("name")
+        name = self._params["name"]
         domain = self.swf_backend.describe_domain(name)
         return json.dumps({
             "configuration": { "workflowExecutionRetentionPeriodInDays": domain.retention },
@@ -113,9 +112,9 @@ class SWFResponse(BaseResponse):
         return self._list_types("activity")
 
     def register_activity_type(self):
-        domain = self._params.get("domain")
-        name = self._params.get("name")
-        version = self._params.get("version")
+        domain = self._params["domain"]
+        name = self._params["name"]
+        version = self._params["version"]
         default_task_list = self._params.get("defaultTaskList")
         if default_task_list:
             task_list = default_task_list.get("name")
@@ -148,9 +147,9 @@ class SWFResponse(BaseResponse):
         return self._list_types("workflow")
 
     def register_workflow_type(self):
-        domain = self._params.get("domain")
-        name = self._params.get("name")
-        version = self._params.get("version")
+        domain = self._params["domain"]
+        name = self._params["name"]
+        version = self._params["version"]
         default_task_list = self._params.get("defaultTaskList")
         if default_task_list:
             task_list = default_task_list.get("name")
