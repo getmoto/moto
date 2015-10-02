@@ -1,8 +1,25 @@
 from sure import expect
 
-from moto.swf.models import GenericType
+from moto.swf.models import (
+    Domain,
+    GenericType,
+)
 
 
+# Domain
+def test_domain_dict_representation():
+    domain = Domain("foo", "52")
+    domain.to_dict().should.equal({"name":"foo", "status":"REGISTERED"})
+
+    domain.description = "foo bar"
+    domain.to_dict()["description"].should.equal("foo bar")
+
+def test_domain_string_representation():
+    domain = Domain("my-domain", "60")
+    str(domain).should.equal("Domain(name: my-domain, status: REGISTERED)")
+
+
+# GenericType (ActivityType, WorkflowType)
 class FooType(GenericType):
     @property
     def kind(self):
@@ -13,11 +30,11 @@ class FooType(GenericType):
         return ["justAnExampleTimeout"]
 
 
-def test_short_dict_representation():
+def test_type_short_dict_representation():
     _type = FooType("test-foo", "v1.0")
     _type.to_short_dict().should.equal({"name": "test-foo", "version": "v1.0"})
 
-def test_medium_dict_representation():
+def test_type_medium_dict_representation():
     _type = FooType("test-foo", "v1.0")
     _type.to_medium_dict()["fooType"].should.equal(_type.to_short_dict())
     _type.to_medium_dict()["status"].should.equal("REGISTERED")
@@ -31,7 +48,7 @@ def test_medium_dict_representation():
     _type.status = "DEPRECATED"
     _type.to_medium_dict().should.contain("deprecationDate")
 
-def test_full_dict_representation():
+def test_type_full_dict_representation():
     _type = FooType("test-foo", "v1.0")
     _type.to_full_dict()["typeInfo"].should.equal(_type.to_medium_dict())
     _type.to_full_dict()["configuration"].should.equal({})
@@ -45,6 +62,6 @@ def test_full_dict_representation():
     _type.non_whitelisted_property = "34"
     _type.to_full_dict()["configuration"].keys().should.equal(["defaultTaskList", "justAnExampleTimeout"])
 
-def test_string_representation():
+def test_type_string_representation():
     _type = FooType("test-foo", "v1.0")
     str(_type).should.equal("FooType(name: test-foo, version: v1.0, status: REGISTERED)")

@@ -3,22 +3,12 @@ from nose.tools import assert_raises
 from sure import expect
 
 from moto import mock_swf
-from moto.swf.models import Domain
 from moto.swf.exceptions import (
     SWFUnknownResourceFault,
     SWFDomainAlreadyExistsFault,
     SWFDomainDeprecatedFault,
     SWFSerializationException,
 )
-
-
-# Models
-def test_dict_representation():
-    domain = Domain("foo", "52")
-    domain.to_dict().should.equal({"name":"foo", "status":"REGISTERED"})
-
-    domain.description = "foo bar"
-    domain.to_dict()["description"].should.equal("foo bar")
 
 
 # RegisterDomain endpoint
