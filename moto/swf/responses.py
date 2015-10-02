@@ -76,8 +76,7 @@ class SWFResponse(BaseResponse):
         name = _type["name"]
         version = _type["version"]
         self.swf_backend.deprecate_type(kind, domain, name, version)
-        template = self.response_template("")
-        return template.render()
+        return ""
 
     # TODO: implement pagination
     def list_domains(self):
@@ -136,8 +135,7 @@ class SWFResponse(BaseResponse):
             default_task_start_to_close_timeout=default_task_start_to_close_timeout,
             description=description,
         )
-        template = self.response_template("")
-        return template.render()
+        return ""
 
     def deprecate_activity_type(self):
         return self._deprecate_type("activity")
@@ -171,8 +169,7 @@ class SWFResponse(BaseResponse):
             default_execution_start_to_close_timeout=default_execution_start_to_close_timeout,
             description=description,
         )
-        template = self.response_template("")
-        return template.render()
+        return ""
 
     def deprecate_workflow_type(self):
         return self._deprecate_type("workflow")
