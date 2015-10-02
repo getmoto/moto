@@ -175,3 +175,32 @@ class SWFResponse(BaseResponse):
 
     def describe_workflow_type(self):
         return self._describe_type("workflow")
+
+    def start_workflow_execution(self):
+        domain = self._params["domain"]
+        workflow_id = self._params["workflowId"]
+        _workflow_type = self._params["workflowType"]
+        workflow_name = _workflow_type["name"]
+        workflow_version = _workflow_type["version"]
+        _default_task_list = self._params.get("defaultTaskList")
+        if _default_task_list:
+            task_list = _default_task_list.get("name")
+        else:
+            task_list = None
+        child_policy = self._params.get("childPolicy")
+        execution_start_to_close_timeout = self._params.get("executionStartToCloseTimeout")
+        input_ = self._params.get("input")
+        tag_list = self._params.get("tagList")
+        task_start_to_close_timeout = self._params.get("taskStartToCloseTimeout")
+
+        wfe = self.swf_backend.start_workflow_execution(
+            domain, workflow_id, workflow_name, workflow_version,
+            task_list=task_list, child_policy=child_policy,
+            execution_start_to_close_timeout=execution_start_to_close_timeout,
+            input=input_, tag_list=tag_list,
+            task_start_to_close_timeout=task_start_to_close_timeout
+        )
+
+        return json.dumps({
+            "runId": wfe.run_id
+        })

@@ -56,3 +56,10 @@ class SWFTypeDeprecatedFault(SWFClientError):
             "{}=[name={}, version={}]".format(_type.__class__.__name__, _type.name, _type.version),
             "com.amazonaws.swf.base.model#TypeDeprecatedFault")
 
+
+class SWFWorkflowExecutionAlreadyStartedFault(JSONResponseError):
+    def __init__(self):
+        super(SWFWorkflowExecutionAlreadyStartedFault, self).__init__(
+            400, "Bad Request",
+            body={"__type": "com.amazonaws.swf.base.model#WorkflowExecutionAlreadyStartedFault"}
+        )
