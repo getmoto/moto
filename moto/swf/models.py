@@ -73,6 +73,11 @@ class GenericType(object):
         for key, value in kwargs.iteritems():
             self.__setattr__(key, value)
 
+    def __repr__(self):
+        cls = self.__class__.__name__
+        attrs = "name: %(name)s, version: %(version)s" % self.__dict__
+        return "{}({})".format(cls, attrs)
+
     @property
     def kind(self):
         raise NotImplementedError()
@@ -116,9 +121,6 @@ class GenericType(object):
         return hsh
 
 class ActivityType(GenericType):
-    def __repr__(self):
-        return "ActivityType(name: %(name)s, version: %(version)s)" % self.__dict__
-
     @property
     def _configuration_keys(self):
         return [
@@ -134,9 +136,6 @@ class ActivityType(GenericType):
 
 
 class WorkflowType(GenericType):
-    def __repr__(self):
-        return "WorkflowType(name: %(name)s, version: %(version)s)" % self.__dict__
-
     @property
     def _configuration_keys(self):
         return [
