@@ -3,6 +3,7 @@ from sure import expect
 from moto.swf.models import (
     Domain,
     GenericType,
+    WorkflowType,
     WorkflowExecution,
 )
 
@@ -89,3 +90,44 @@ def test_workflow_execution_generates_a_random_run_id():
     wfe1 = WorkflowExecution("workflow_type_whatever", "ab1234")
     wfe2 = WorkflowExecution("workflow_type_whatever", "ab1235")
     wfe1.run_id.should_not.equal(wfe2.run_id)
+
+def test_workflow_execution_short_dict_representation():
+    wf_type = WorkflowType("test-workflow", "v1.0")
+    wfe = WorkflowExecution(wf_type, "ab1234")
+
+    sd = wfe.to_short_dict()
+    sd["workflowId"].should.equal("ab1234")
+    sd.should.contain("runId")
+
+def test_workflow_execution_medium_dict_representation():
+    wf_type = WorkflowType("test-workflow", "v1.0")
+    wfe = WorkflowExecution(wf_type, "ab1234")
+
+    md = wfe.to_medium_dict()
+    md["execution"].should.equal(wfe.to_short_dict())
+    md["workflowType"].should.equal(wf_type.to_short_dict())
+    md["startTimestamp"].should.be.a('float')
+    md["executionStatus"].should.equal("OPEN")
+    md["cancelRequested"].should.equal(False)
+    md.should_not.contain("tagList")
+
+    wfe.tag_list = ["foo", "bar", "baz"]
+    md = wfe.to_medium_dict()
+    md["tagList"].should.equal(["foo", "bar", "baz"])
+
+def test_workflow_execution_full_dict_representation():
+    wf_type = WorkflowType("test-workflow", "v1.0")
+    wfe = WorkflowExecution(wf_type, "ab1234")
+
+    fd = wfe.to_full_dict()
+    fd["executionInfo"].should.equal(wfe.to_medium_dict())
+    fd["openCounts"]["openTimers"].should.equal(0)
+    fd["openCounts"]["openDecisionTasks"].should.equal(0)
+    fd["openCounts"]["openActivityTasks"].should.equal(0)
+    fd["executionConfiguration"].should.equal({})
+
+    wfe.task_list = "special"
+    wfe.task_start_to_close_timeout = "45"
+    fd = wfe.to_full_dict()
+    fd["executionConfiguration"]["taskList"]["name"].should.equal("special")
+    fd["executionConfiguration"]["taskStartToCloseTimeout"].should.equal("45")

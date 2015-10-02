@@ -139,7 +139,6 @@ class SWFResponse(BaseResponse):
     def describe_activity_type(self):
         return self._describe_type("activity")
 
-    # TODO: refactor with list_activity_types()
     def list_workflow_types(self):
         return self._list_types("workflow")
 
@@ -201,3 +200,12 @@ class SWFResponse(BaseResponse):
         return json.dumps({
             "runId": wfe.run_id
         })
+
+    def describe_workflow_execution(self):
+        domain_name = self._params["domain"]
+        _workflow_execution = self._params["execution"]
+        run_id = _workflow_execution["runId"]
+        workflow_id = _workflow_execution["workflowId"]
+
+        wfe = self.swf_backend.describe_workflow_execution(domain_name, run_id, workflow_id)
+        return json.dumps(wfe.to_full_dict())

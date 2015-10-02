@@ -6,6 +6,7 @@ from moto import mock_swf
 from moto.swf.exceptions import (
     SWFWorkflowExecutionAlreadyStartedFault,
     SWFTypeDeprecatedFault,
+    SWFUnknownResourceFault,
 )
 
 
@@ -56,4 +57,31 @@ def test_start_workflow_execution_on_deprecated_type():
     ex.body.should.equal({
         "__type": "com.amazonaws.swf.base.model#TypeDeprecatedFault",
         "message": "WorkflowType=[name=test-workflow, version=v1.0]"
+    })
+
+
+# DescribeWorkflowExecution endpoint
+@mock_swf
+def test_describe_workflow_execution():
+    conn = setup_swf_environment()
+    hsh = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
+    run_id = hsh["runId"]
+
+    wfe = conn.describe_workflow_execution("test-domain", run_id, "uid-abcd1234")
+    wfe["executionInfo"]["execution"]["workflowId"].should.equal("uid-abcd1234")
+    wfe["executionInfo"]["executionStatus"].should.equal("OPEN")
+
+@mock_swf
+def test_describe_non_existent_workflow_execution():
+    conn = setup_swf_environment()
+
+    with assert_raises(SWFUnknownResourceFault) as err:
+        conn.describe_workflow_execution("test-domain", "wrong-run-id", "wrong-workflow-id")
+
+    ex = err.exception
+    ex.status.should.equal(400)
+    ex.error_code.should.equal("UnknownResourceFault")
+    ex.body.should.equal({
+        "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
+        "message": "Unknown execution: WorkflowExecution=[workflowId=wrong-workflow-id, runId=wrong-run-id]"
     })
