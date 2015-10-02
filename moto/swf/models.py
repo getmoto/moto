@@ -38,7 +38,7 @@ class Domain(object):
     def __repr__(self):
         return "Domain(name: %(name)s, status: %(status)s)" % self.__dict__
 
-    def to_dict(self):
+    def to_short_dict(self):
         hsh = {
             "name": self.name,
             "status": self.status,
@@ -46,6 +46,14 @@ class Domain(object):
         if self.description:
             hsh["description"] = self.description
         return hsh
+
+    def to_full_dict(self):
+        return {
+            "domainInfo": self.to_short_dict(),
+            "configuration": {
+                "workflowExecutionRetentionPeriodInDays": self.retention,
+            }
+        }
 
     def get_type(self, kind, name, version, ignore_empty=False):
         try:

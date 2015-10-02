@@ -8,12 +8,19 @@ from moto.swf.models import (
 
 
 # Domain
-def test_domain_dict_representation():
+def test_domain_short_dict_representation():
     domain = Domain("foo", "52")
-    domain.to_dict().should.equal({"name":"foo", "status":"REGISTERED"})
+    domain.to_short_dict().should.equal({"name":"foo", "status":"REGISTERED"})
 
     domain.description = "foo bar"
-    domain.to_dict()["description"].should.equal("foo bar")
+    domain.to_short_dict()["description"].should.equal("foo bar")
+
+def test_domain_full_dict_representation():
+    domain = Domain("foo", "52")
+
+    domain.to_full_dict()["domainInfo"].should.equal(domain.to_short_dict())
+    _config = domain.to_full_dict()["configuration"]
+    _config["workflowExecutionRetentionPeriodInDays"].should.equal("52")
 
 def test_domain_string_representation():
     domain = Domain("my-domain", "60")

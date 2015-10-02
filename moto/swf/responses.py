@@ -83,7 +83,7 @@ class SWFResponse(BaseResponse):
         reverse_order = self._params.get("reverseOrder", None)
         domains = self.swf_backend.list_domains(status, reverse_order=reverse_order)
         return json.dumps({
-            "domainInfos": [domain.to_dict() for domain in domains]
+            "domainInfos": [domain.to_short_dict() for domain in domains]
         })
 
     def register_domain(self):
@@ -102,10 +102,7 @@ class SWFResponse(BaseResponse):
     def describe_domain(self):
         name = self._params["name"]
         domain = self.swf_backend.describe_domain(name)
-        return json.dumps({
-            "configuration": { "workflowExecutionRetentionPeriodInDays": domain.retention },
-            "domainInfo": domain.to_dict()
-        })
+        return json.dumps(domain.to_full_dict())
 
     # TODO: implement pagination
     def list_activity_types(self):
