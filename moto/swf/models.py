@@ -78,10 +78,11 @@ class Domain(object):
                     _all.append(_type)
         return _all
 
-    def add_workflow_execution(self, workflow_execution_id, workflow_execution):
-        if self.workflow_executions.get(workflow_execution_id):
+    def add_workflow_execution(self, workflow_execution):
+        _id = workflow_execution.workflow_id
+        if self.workflow_executions.get(_id):
             raise SWFWorkflowExecutionAlreadyStartedFault()
-        self.workflow_executions[workflow_execution_id] = workflow_execution
+        self.workflow_executions[_id] = workflow_execution
 
 
 class GenericType(object):
@@ -172,8 +173,9 @@ class WorkflowType(GenericType):
 
 
 class WorkflowExecution(object):
-    def __init__(self, workflow_type, **kwargs):
+    def __init__(self, workflow_type, workflow_id, **kwargs):
         self.workflow_type = workflow_type
+        self.workflow_id = workflow_id
         self.run_id = uuid.uuid4().hex
         for key, value in kwargs.iteritems():
             self.__setattr__(key, value)
@@ -295,11 +297,11 @@ class SWFBackend(BaseBackend):
     # TODO: find what triggers a "DefaultUndefinedFault" and implement it
     # (didn't found in boto source code, nor in the docs, nor on a Google search)
     # (will try to reach support)
-    def start_workflow_execution(self, domain_name, workflow_execution_id,
+    def start_workflow_execution(self, domain_name, workflow_id,
                                  workflow_name, workflow_version,
                                  tag_list=None, **kwargs):
         self._check_string(domain_name)
-        self._check_string(workflow_execution_id)
+        self._check_string(workflow_id)
         self._check_string(workflow_name)
         self._check_string(workflow_version)
         self._check_none_or_list_of_strings(tag_list)
@@ -310,8 +312,9 @@ class SWFBackend(BaseBackend):
         wf_type = domain.get_type("workflow", workflow_name, workflow_version)
         if wf_type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(wf_type)
-        wfe = WorkflowExecution(wf_type, tag_list=tag_list, **kwargs)
-        domain.add_workflow_execution(workflow_execution_id, wfe)
+        wfe = WorkflowExecution(wf_type, workflow_id,
+                                tag_list=tag_list, **kwargs)
+        domain.add_workflow_execution(wfe)
 
         return wfe
 

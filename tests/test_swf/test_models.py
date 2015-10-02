@@ -77,15 +77,15 @@ def test_type_string_representation():
 
 # WorkflowExecution
 def test_workflow_execution_creation():
-    wfe = WorkflowExecution("workflow_type_whatever", child_policy="TERMINATE")
+    wfe = WorkflowExecution("workflow_type_whatever", "ab1234", child_policy="TERMINATE")
     wfe.workflow_type.should.equal("workflow_type_whatever")
     wfe.child_policy.should.equal("TERMINATE")
 
 def test_workflow_execution_string_representation():
-    wfe = WorkflowExecution("workflow_type_whatever", child_policy="TERMINATE")
+    wfe = WorkflowExecution("workflow_type_whatever", "ab1234", child_policy="TERMINATE")
     str(wfe).should.match(r"^WorkflowExecution\(run_id: .*\)")
 
 def test_workflow_execution_generates_a_random_run_id():
-    wfe1 = WorkflowExecution("workflow_type_whatever")
-    wfe2 = WorkflowExecution("workflow_type_whatever")
+    wfe1 = WorkflowExecution("workflow_type_whatever", "ab1234")
+    wfe2 = WorkflowExecution("workflow_type_whatever", "ab1235")
     wfe1.run_id.should_not.equal(wfe2.run_id)
