@@ -75,7 +75,7 @@ class GenericType(object):
 
     def __repr__(self):
         cls = self.__class__.__name__
-        attrs = "name: %(name)s, version: %(version)s" % self.__dict__
+        attrs = "name: %(name)s, version: %(version)s, status: %(status)s" % self.__dict__
         return "{}({})".format(cls, attrs)
 
     @property

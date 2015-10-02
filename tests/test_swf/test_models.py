@@ -47,4 +47,4 @@ def test_full_dict_representation():
 
 def test_string_representation():
     _type = FooType("test-foo", "v1.0")
-    str(_type).should.equal("FooType(name: test-foo, version: v1.0)")
+    str(_type).should.equal("FooType(name: test-foo, version: v1.0, status: REGISTERED)")
