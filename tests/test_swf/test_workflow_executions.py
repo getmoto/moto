@@ -90,3 +90,26 @@ def test_describe_non_existent_workflow_execution():
         "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
         "message": "Unknown execution: WorkflowExecution=[workflowId=wrong-workflow-id, runId=wrong-run-id]"
     })
+
+
+# GetWorkflowExecutionHistory endpoint
+@mock_swf
+def test_get_workflow_execution_history():
+    conn = setup_swf_environment()
+    hsh = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
+    run_id = hsh["runId"]
+
+    resp = conn.get_workflow_execution_history("test-domain", run_id, "uid-abcd1234")
+    resp["events"].should.be.a("list")
+    evt = resp["events"][0]
+    evt["eventType"].should.equal("WorkflowExecutionStarted")
+
+
+@mock_swf
+def test_get_workflow_execution_history_on_non_existent_workflow_execution():
+    conn = setup_swf_environment()
+
+    with assert_raises(SWFUnknownResourceFault) as err:
+        conn.get_workflow_execution_history("test-domain", "wrong-run-id", "wrong-workflow-id")
+
+    # (the rest is already tested above)

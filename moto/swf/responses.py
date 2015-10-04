@@ -209,3 +209,15 @@ class SWFResponse(BaseResponse):
 
         wfe = self.swf_backend.describe_workflow_execution(domain_name, run_id, workflow_id)
         return json.dumps(wfe.to_full_dict())
+
+    def get_workflow_execution_history(self):
+        domain_name = self._params["domain"]
+        _workflow_execution = self._params["execution"]
+        run_id = _workflow_execution["runId"]
+        workflow_id = _workflow_execution["workflowId"]
+        # TODO: implement reverseOrder
+
+        wfe = self.swf_backend.describe_workflow_execution(domain_name, run_id, workflow_id)
+        return json.dumps({
+            "events": [evt.to_dict() for evt in wfe.events]
+        })

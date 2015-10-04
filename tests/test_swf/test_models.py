@@ -1,9 +1,11 @@
 from sure import expect
 from nose.tools import assert_raises
+from freezegun import freeze_time
 
 from moto.swf.models import (
     Domain,
     GenericType,
+    HistoryEvent,
     WorkflowType,
     WorkflowExecution,
 )
@@ -11,15 +13,8 @@ from moto.swf.exceptions import (
     SWFDefaultUndefinedFault,
 )
 
+from .utils import get_basic_workflow_type
 
-# utils
-def test_workflow_type():
-    return WorkflowType(
-        "test-workflow", "v1.0",
-        task_list="queue", default_child_policy="ABANDON",
-        default_execution_start_to_close_timeout="300",
-        default_task_start_to_close_timeout="300",
-    )
 
 # Domain
 def test_domain_short_dict_representation():
@@ -91,7 +86,7 @@ def test_type_string_representation():
 
 # WorkflowExecution
 def test_workflow_execution_creation():
-    wft = test_workflow_type()
+    wft = get_basic_workflow_type()
     wfe = WorkflowExecution(wft, "ab1234", child_policy="TERMINATE")
     wfe.workflow_type.should.equal(wft)
     wfe.child_policy.should.equal("TERMINATE")
@@ -130,12 +125,12 @@ def test_workflow_execution_creation_child_policy_logic():
 
 
 def test_workflow_execution_string_representation():
-    wft = test_workflow_type()
+    wft = get_basic_workflow_type()
     wfe = WorkflowExecution(wft, "ab1234", child_policy="TERMINATE")
     str(wfe).should.match(r"^WorkflowExecution\(run_id: .*\)")
 
 def test_workflow_execution_generates_a_random_run_id():
-    wft = test_workflow_type()
+    wft = get_basic_workflow_type()
     wfe1 = WorkflowExecution(wft, "ab1234", child_policy="TERMINATE")
     wfe2 = WorkflowExecution(wft, "ab1235", child_policy="TERMINATE")
     wfe1.run_id.should_not.equal(wfe2.run_id)
@@ -194,3 +189,29 @@ def test_workflow_execution_full_dict_representation():
         "taskList": {"name": "queue"},
         "taskStartToCloseTimeout": "300",
     })
+
+
+# HistoryEvent
+@freeze_time("2015-01-01 12:00:00")
+def test_history_event_creation():
+    he = HistoryEvent(123, "DecisionTaskStarted", scheduled_event_id=2)
+    he.event_id.should.equal(123)
+    he.event_type.should.equal("DecisionTaskStarted")
+    he.event_timestamp.should.equal(1420110000.0)
+
+@freeze_time("2015-01-01 12:00:00")
+def test_history_event_to_dict_representation():
+    he = HistoryEvent(123, "DecisionTaskStarted", scheduled_event_id=2)
+    he.to_dict().should.equal({
+        "eventId": 123,
+        "eventType": "DecisionTaskStarted",
+        "eventTimestamp": 1420110000.0,
+        "decisionTaskStartedEventAttributes": {
+            "scheduledEventId": 2
+        }
+    })
+
+def test_history_event_breaks_on_initialization_if_not_implemented():
+    HistoryEvent.when.called_with(
+        123, "UnknownHistoryEvent"
+    ).should.throw(NotImplementedError)

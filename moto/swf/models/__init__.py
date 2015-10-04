@@ -15,6 +15,7 @@ from ..exceptions import (
 from .activity_type import ActivityType
 from .domain import Domain
 from .generic_type import GenericType
+from .history_event import HistoryEvent
 from .workflow_type import WorkflowType
 from .workflow_execution import WorkflowExecution
 
@@ -150,6 +151,7 @@ class SWFBackend(BaseBackend):
         wfe = WorkflowExecution(wf_type, workflow_id,
                                 tag_list=tag_list, **kwargs)
         domain.add_workflow_execution(wfe)
+        wfe.start()
 
         return wfe
 

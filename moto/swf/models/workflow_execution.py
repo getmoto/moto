@@ -4,6 +4,7 @@ import uuid
 from moto.core.utils import camelcase_to_underscores
 
 from ..exceptions import SWFDefaultUndefinedFault
+from .history_event import HistoryEvent
 
 
 class WorkflowExecution(object):
@@ -29,6 +30,8 @@ class WorkflowExecution(object):
             "openActivityTasks": 0,
             "openChildWorkflowExecutions": 0,
         }
+        # events
+        self.events = []
 
     def __repr__(self):
         return "WorkflowExecution(run_id: {})".format(self.run_id)
@@ -88,3 +91,21 @@ class WorkflowExecution(object):
         #counters
         hsh["openCounts"] = self.open_counts
         return hsh
+
+    def next_event_id(self):
+        event_ids = [evt.event_id for evt in self.events]
+        return max(event_ids or [0])
+
+    def _add_event(self, *args, **kwargs):
+        evt = HistoryEvent(self.next_event_id(), *args, **kwargs)
+        self.events.append(evt)
+
+    def start(self):
+        self._add_event(
+            "WorkflowExecutionStarted",
+            workflow_execution=self,
+        )
+        self._add_event(
+            "DecisionTaskScheduled",
+            workflow_execution=self,
+        )
