@@ -63,3 +63,15 @@ class SWFWorkflowExecutionAlreadyStartedFault(JSONResponseError):
             400, "Bad Request",
             body={"__type": "com.amazonaws.swf.base.model#WorkflowExecutionAlreadyStartedFault"}
         )
+
+
+class SWFDefaultUndefinedFault(SWFClientError):
+    def __init__(self, key):
+        # TODO: move that into moto.core.utils maybe?
+        words = key.split("_")
+        key_camel_case = words.pop(0)
+        for word in words:
+            key_camel_case += word.capitalize()
+        super(SWFDefaultUndefinedFault, self).__init__(
+            key_camel_case, "com.amazonaws.swf.base.model#DefaultUndefinedFault"
+        )

@@ -1,4 +1,5 @@
 from sure import expect
+from nose.tools import assert_raises
 
 from moto.swf.models import (
     Domain,
@@ -6,7 +7,19 @@ from moto.swf.models import (
     WorkflowType,
     WorkflowExecution,
 )
+from moto.swf.exceptions import (
+    SWFDefaultUndefinedFault,
+)
 
+
+# utils
+def test_workflow_type():
+    return WorkflowType(
+        "test-workflow", "v1.0",
+        task_list="queue", default_child_policy="ABANDON",
+        default_execution_start_to_close_timeout="300",
+        default_task_start_to_close_timeout="300",
+    )
 
 # Domain
 def test_domain_short_dict_representation():
@@ -78,21 +91,62 @@ def test_type_string_representation():
 
 # WorkflowExecution
 def test_workflow_execution_creation():
-    wfe = WorkflowExecution("workflow_type_whatever", "ab1234", child_policy="TERMINATE")
-    wfe.workflow_type.should.equal("workflow_type_whatever")
+    wft = test_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234", child_policy="TERMINATE")
+    wfe.workflow_type.should.equal(wft)
     wfe.child_policy.should.equal("TERMINATE")
 
+def test_workflow_execution_creation_child_policy_logic():
+    WorkflowExecution(
+        WorkflowType(
+            "test-workflow", "v1.0",
+            task_list="queue", default_child_policy="ABANDON",
+            default_execution_start_to_close_timeout="300",
+            default_task_start_to_close_timeout="300",
+        ),
+        "ab1234"
+    ).child_policy.should.equal("ABANDON")
+
+    WorkflowExecution(
+        WorkflowType(
+            "test-workflow", "v1.0", task_list="queue",
+            default_execution_start_to_close_timeout="300",
+            default_task_start_to_close_timeout="300",
+        ),
+        "ab1234",
+        child_policy="REQUEST_CANCEL"
+    ).child_policy.should.equal("REQUEST_CANCEL")
+
+    with assert_raises(SWFDefaultUndefinedFault) as err:
+        WorkflowExecution(WorkflowType("test-workflow", "v1.0"), "ab1234")
+
+    ex = err.exception
+    ex.status.should.equal(400)
+    ex.error_code.should.equal("DefaultUndefinedFault")
+    ex.body.should.equal({
+        "__type": "com.amazonaws.swf.base.model#DefaultUndefinedFault",
+        "message": "executionStartToCloseTimeout"
+    })
+
+
 def test_workflow_execution_string_representation():
-    wfe = WorkflowExecution("workflow_type_whatever", "ab1234", child_policy="TERMINATE")
+    wft = test_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234", child_policy="TERMINATE")
     str(wfe).should.match(r"^WorkflowExecution\(run_id: .*\)")
 
 def test_workflow_execution_generates_a_random_run_id():
-    wfe1 = WorkflowExecution("workflow_type_whatever", "ab1234")
-    wfe2 = WorkflowExecution("workflow_type_whatever", "ab1235")
+    wft = test_workflow_type()
+    wfe1 = WorkflowExecution(wft, "ab1234", child_policy="TERMINATE")
+    wfe2 = WorkflowExecution(wft, "ab1235", child_policy="TERMINATE")
     wfe1.run_id.should_not.equal(wfe2.run_id)
 
 def test_workflow_execution_short_dict_representation():
-    wf_type = WorkflowType("test-workflow", "v1.0")
+    wf_type = WorkflowType(
+        "test-workflow", "v1.0",
+        task_list="queue", default_child_policy="ABANDON",
+        default_execution_start_to_close_timeout="300",
+        default_task_start_to_close_timeout="300",
+    )
     wfe = WorkflowExecution(wf_type, "ab1234")
 
     sd = wfe.to_short_dict()
@@ -100,7 +154,12 @@ def test_workflow_execution_short_dict_representation():
     sd.should.contain("runId")
 
 def test_workflow_execution_medium_dict_representation():
-    wf_type = WorkflowType("test-workflow", "v1.0")
+    wf_type = WorkflowType(
+        "test-workflow", "v1.0",
+        task_list="queue", default_child_policy="ABANDON",
+        default_execution_start_to_close_timeout="300",
+        default_task_start_to_close_timeout="300",
+    )
     wfe = WorkflowExecution(wf_type, "ab1234")
 
     md = wfe.to_medium_dict()
@@ -116,7 +175,12 @@ def test_workflow_execution_medium_dict_representation():
     md["tagList"].should.equal(["foo", "bar", "baz"])
 
 def test_workflow_execution_full_dict_representation():
-    wf_type = WorkflowType("test-workflow", "v1.0")
+    wf_type = WorkflowType(
+        "test-workflow", "v1.0",
+        task_list="queue", default_child_policy="ABANDON",
+        default_execution_start_to_close_timeout="300",
+        default_task_start_to_close_timeout="300",
+    )
     wfe = WorkflowExecution(wf_type, "ab1234")
 
     fd = wfe.to_full_dict()
@@ -124,10 +188,9 @@ def test_workflow_execution_full_dict_representation():
     fd["openCounts"]["openTimers"].should.equal(0)
     fd["openCounts"]["openDecisionTasks"].should.equal(0)
     fd["openCounts"]["openActivityTasks"].should.equal(0)
-    fd["executionConfiguration"].should.equal({})
-
-    wfe.task_list = "special"
-    wfe.task_start_to_close_timeout = "45"
-    fd = wfe.to_full_dict()
-    fd["executionConfiguration"]["taskList"]["name"].should.equal("special")
-    fd["executionConfiguration"]["taskStartToCloseTimeout"].should.equal("45")
+    fd["executionConfiguration"].should.equal({
+        "childPolicy": "ABANDON",
+        "executionStartToCloseTimeout": "300",
+        "taskList": {"name": "queue"},
+        "taskStartToCloseTimeout": "300",
+    })

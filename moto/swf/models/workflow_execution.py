@@ -3,6 +3,8 @@ import uuid
 
 from moto.core.utils import camelcase_to_underscores
 
+from ..exceptions import SWFDefaultUndefinedFault
+
 
 class WorkflowExecution(object):
     def __init__(self, workflow_type, workflow_id, **kwargs):
@@ -11,10 +13,16 @@ class WorkflowExecution(object):
         self.run_id = uuid.uuid4().hex
         self.execution_status = "OPEN"
         self.cancel_requested = False
-        #config
-        for key, value in kwargs.iteritems():
-            self.__setattr__(key, value)
-        #counters
+        # args processing
+        # NB: the order follows boto/SWF order of exceptions appearance (if no
+        # param is set, # SWF will raise DefaultUndefinedFault errors in the
+        # same order as the few lines that follow)
+        self._set_from_kwargs_or_workflow_type(kwargs, "execution_start_to_close_timeout")
+        self._set_from_kwargs_or_workflow_type(kwargs, "task_list", "task_list")
+        self._set_from_kwargs_or_workflow_type(kwargs, "task_start_to_close_timeout")
+        self._set_from_kwargs_or_workflow_type(kwargs, "child_policy")
+        self.input = kwargs.get("input")
+        # counters
         self.open_counts = {
             "openTimers": 0,
             "openDecisionTasks": 0,
@@ -24,6 +32,16 @@ class WorkflowExecution(object):
 
     def __repr__(self):
         return "WorkflowExecution(run_id: {})".format(self.run_id)
+
+    def _set_from_kwargs_or_workflow_type(self, kwargs, local_key, workflow_type_key=None):
+        if workflow_type_key is None:
+            workflow_type_key = "default_"+local_key
+        value = kwargs.get(local_key)
+        if not value and hasattr(self.workflow_type, workflow_type_key):
+            value = getattr(self.workflow_type, workflow_type_key)
+        if not value:
+            raise SWFDefaultUndefinedFault(local_key)
+        setattr(self, local_key, value)
 
     @property
     def _configuration_keys(self):

@@ -153,7 +153,7 @@ class SWFResponse(BaseResponse):
             task_list = None
         default_child_policy = self._params.get("defaultChildPolicy")
         default_task_start_to_close_timeout = self._params.get("defaultTaskStartToCloseTimeout")
-        default_execution_start_to_close_timeout = self._params.get("defaultTaskExecutionStartToCloseTimeout")
+        default_execution_start_to_close_timeout = self._params.get("defaultExecutionStartToCloseTimeout")
         description = self._params.get("description")
         # TODO: add defaultTaskPriority when boto gets to support it
         # TODO: add defaultLambdaRole when boto gets to support it

@@ -15,7 +15,12 @@ from moto.swf.exceptions import (
 def setup_swf_environment():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")
-    conn.register_workflow_type("test-domain", "test-workflow", "v1.0")
+    conn.register_workflow_type(
+        "test-domain", "test-workflow", "v1.0",
+        task_list="queue", default_child_policy="TERMINATE",
+        default_execution_start_to_close_timeout="300",
+        default_task_start_to_close_timeout="300",
+    )
     conn.register_activity_type("test-domain", "test-activity", "v1.1")
     return conn
 
