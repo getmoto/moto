@@ -3,7 +3,6 @@ from nose.tools import assert_raises
 from sure import expect
 
 from moto import mock_swf
-from moto.swf.models import ActivityType
 from moto.swf.exceptions import (
     SWFUnknownResourceFault,
     SWFTypeAlreadyExistsFault,
