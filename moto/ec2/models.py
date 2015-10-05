@@ -710,6 +710,13 @@ class KeyPairBackend(object):
 
         return results
 
+    def import_key_pair(self, key_name, public_key_material):
+        if key_name in self.keypairs:
+            raise InvalidKeyPairDuplicateError(key_name)
+        self.keypairs[key_name] = keypair = random_key_pair()
+        keypair['name'] = key_name
+        return keypair
+
 
 class TagBackend(object):
 
