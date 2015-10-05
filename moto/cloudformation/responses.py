@@ -86,9 +86,19 @@ class CloudFormationResponse(BaseResponse):
 
     def get_template(self):
         name_or_stack_id = self.querystring.get('StackName')[0]
-
         stack = self.cloudformation_backend.get_stack(name_or_stack_id)
-        return stack.template
+
+        response = {
+            "GetTemplateResponse": {
+            "GetTemplateResult": {
+                "TemplateBody": stack.template,
+                "ResponseMetadata": {
+                    "RequestId": "2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE"
+                }
+            }
+          }
+        }
+        return json.dumps(response)
 
     def update_stack(self):
         stack_name = self._get_param('StackName')
