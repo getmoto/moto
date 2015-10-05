@@ -1,5 +1,4 @@
 import boto
-from nose.tools import assert_raises
 from sure import expect
 
 from moto import mock_swf
@@ -29,28 +28,17 @@ def test_register_already_existing_domain():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")
 
-    with assert_raises(SWFDomainAlreadyExistsFault) as err:
-        conn.register_domain("test-domain", "60", description="A test domain")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("DomainAlreadyExistsFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#DomainAlreadyExistsFault",
-        "message": "test-domain"
-    })
+    conn.register_domain.when.called_with(
+        "test-domain", "60", description="A test domain"
+    ).should.throw(SWFDomainAlreadyExistsFault)
 
 @mock_swf
 def test_register_with_wrong_parameter_type():
     conn = boto.connect_swf("the_key", "the_secret")
 
-    with assert_raises(SWFSerializationException) as err:
-        conn.register_domain("test-domain", 60, description="A test domain")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("SerializationException")
-    ex.body["__type"].should.equal("com.amazonaws.swf.base.model#SerializationException")
+    conn.register_domain.when.called_with(
+        "test-domain", 60, description="A test domain"
+    ).should.throw(SWFSerializationException)
 
 
 # ListDomains endpoint
@@ -95,31 +83,18 @@ def test_deprecate_already_deprecated_domain():
     conn.register_domain("test-domain", "60", description="A test domain")
     conn.deprecate_domain("test-domain")
 
-    with assert_raises(SWFDomainDeprecatedFault) as err:
-        conn.deprecate_domain("test-domain")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("DomainDeprecatedFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#DomainDeprecatedFault",
-        "message": "test-domain"
-    })
+    conn.deprecate_domain.when.called_with(
+        "test-domain"
+    ).should.throw(SWFDomainDeprecatedFault)
 
 @mock_swf
 def test_deprecate_non_existent_domain():
     conn = boto.connect_swf("the_key", "the_secret")
 
-    with assert_raises(SWFUnknownResourceFault) as err:
-        conn.deprecate_domain("non-existent")
+    conn.deprecate_domain.when.called_with(
+        "non-existent"
+    ).should.throw(SWFUnknownResourceFault)
 
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("UnknownResourceFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
-        "message": "Unknown domain: non-existent"
-    })
 
 # DescribeDomain endpoint
 @mock_swf
@@ -137,13 +112,6 @@ def test_describe_domain():
 def test_describe_non_existent_domain():
     conn = boto.connect_swf("the_key", "the_secret")
 
-    with assert_raises(SWFUnknownResourceFault) as err:
-        conn.describe_domain("non-existent")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("UnknownResourceFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
-        "message": "Unknown domain: non-existent"
-    })
+    conn.describe_domain.when.called_with(
+        "non-existent"
+    ).should.throw(SWFUnknownResourceFault)

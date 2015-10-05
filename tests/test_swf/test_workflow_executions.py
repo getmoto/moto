@@ -1,5 +1,4 @@
 import boto
-from nose.tools import assert_raises
 from sure import expect
 
 from moto import mock_swf
@@ -38,31 +37,18 @@ def test_start_already_started_workflow_execution():
     conn = setup_swf_environment()
     conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
 
-    with assert_raises(SWFWorkflowExecutionAlreadyStartedFault) as err:
-        conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("WorkflowExecutionAlreadyStartedFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#WorkflowExecutionAlreadyStartedFault",
-    })
+    conn.start_workflow_execution.when.called_with(
+        "test-domain", "uid-abcd1234", "test-workflow", "v1.0"
+    ).should.throw(SWFWorkflowExecutionAlreadyStartedFault)
 
 @mock_swf
 def test_start_workflow_execution_on_deprecated_type():
     conn = setup_swf_environment()
     conn.deprecate_workflow_type("test-domain", "test-workflow", "v1.0")
 
-    with assert_raises(SWFTypeDeprecatedFault) as err:
-        conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("TypeDeprecatedFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#TypeDeprecatedFault",
-        "message": "WorkflowType=[name=test-workflow, version=v1.0]"
-    })
+    conn.start_workflow_execution.when.called_with(
+        "test-domain", "uid-abcd1234", "test-workflow", "v1.0"
+    ).should.throw(SWFTypeDeprecatedFault)
 
 
 # DescribeWorkflowExecution endpoint
@@ -80,16 +66,9 @@ def test_describe_workflow_execution():
 def test_describe_non_existent_workflow_execution():
     conn = setup_swf_environment()
 
-    with assert_raises(SWFUnknownResourceFault) as err:
-        conn.describe_workflow_execution("test-domain", "wrong-run-id", "wrong-workflow-id")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("UnknownResourceFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
-        "message": "Unknown execution: WorkflowExecution=[workflowId=wrong-workflow-id, runId=wrong-run-id]"
-    })
+    conn.describe_workflow_execution.when.called_with(
+        "test-domain", "wrong-run-id", "wrong-workflow-id"
+    ).should.throw(SWFUnknownResourceFault)
 
 
 # GetWorkflowExecutionHistory endpoint
@@ -109,7 +88,6 @@ def test_get_workflow_execution_history():
 def test_get_workflow_execution_history_on_non_existent_workflow_execution():
     conn = setup_swf_environment()
 
-    with assert_raises(SWFUnknownResourceFault) as err:
-        conn.get_workflow_execution_history("test-domain", "wrong-run-id", "wrong-workflow-id")
-
-    # (the rest is already tested above)
+    conn.get_workflow_execution_history.when.called_with(
+        "test-domain", "wrong-run-id", "wrong-workflow-id"
+    ).should.throw(SWFUnknownResourceFault)

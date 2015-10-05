@@ -1,5 +1,4 @@
 from sure import expect
-from nose.tools import assert_raises
 from freezegun import freeze_time
 
 from moto.swf.models import (
@@ -112,16 +111,9 @@ def test_workflow_execution_creation_child_policy_logic():
         child_policy="REQUEST_CANCEL"
     ).child_policy.should.equal("REQUEST_CANCEL")
 
-    with assert_raises(SWFDefaultUndefinedFault) as err:
-        WorkflowExecution(WorkflowType("test-workflow", "v1.0"), "ab1234")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("DefaultUndefinedFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#DefaultUndefinedFault",
-        "message": "executionStartToCloseTimeout"
-    })
+    WorkflowExecution.when.called_with(
+        WorkflowType("test-workflow", "v1.0"), "ab1234"
+    ).should.throw(SWFDefaultUndefinedFault)
 
 
 def test_workflow_execution_string_representation():

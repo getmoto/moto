@@ -1,5 +1,4 @@
 import boto
-from nose.tools import assert_raises
 from sure import expect
 
 from moto import mock_swf
@@ -29,29 +28,18 @@ def test_register_already_existing_workflow_type():
     conn.register_domain("test-domain", "60")
     conn.register_workflow_type("test-domain", "test-workflow", "v1.0")
 
-    with assert_raises(SWFTypeAlreadyExistsFault) as err:
-        conn.register_workflow_type("test-domain", "test-workflow", "v1.0")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("TypeAlreadyExistsFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#TypeAlreadyExistsFault",
-        "message": "WorkflowType=[name=test-workflow, version=v1.0]"
-    })
+    conn.register_workflow_type.when.called_with(
+        "test-domain", "test-workflow", "v1.0"
+    ).should.throw(SWFTypeAlreadyExistsFault)
 
 @mock_swf
 def test_register_with_wrong_parameter_type():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60")
 
-    with assert_raises(SWFSerializationException) as err:
-        conn.register_workflow_type("test-domain", "test-workflow", 12)
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("SerializationException")
-    ex.body["__type"].should.equal("com.amazonaws.swf.base.model#SerializationException")
+    conn.register_workflow_type.when.called_with(
+        "test-domain", "test-workflow", 12
+    ).should.throw(SWFSerializationException)
 
 
 # ListWorkflowTypes endpoint
@@ -101,32 +89,19 @@ def test_deprecate_already_deprecated_workflow_type():
     conn.register_workflow_type("test-domain", "test-workflow", "v1.0")
     conn.deprecate_workflow_type("test-domain", "test-workflow", "v1.0")
 
-    with assert_raises(SWFTypeDeprecatedFault) as err:
-        conn.deprecate_workflow_type("test-domain", "test-workflow", "v1.0")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("TypeDeprecatedFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#TypeDeprecatedFault",
-        "message": "WorkflowType=[name=test-workflow, version=v1.0]"
-    })
+    conn.deprecate_workflow_type.when.called_with(
+        "test-domain", "test-workflow", "v1.0"
+    ).should.throw(SWFTypeDeprecatedFault)
 
 @mock_swf
 def test_deprecate_non_existent_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60")
 
-    with assert_raises(SWFUnknownResourceFault) as err:
-        conn.deprecate_workflow_type("test-domain", "non-existent", "v1.0")
+    conn.deprecate_workflow_type.when.called_with(
+        "test-domain", "non-existent", "v1.0"
+    ).should.throw(SWFUnknownResourceFault)
 
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("UnknownResourceFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
-        "message": "Unknown type: WorkflowType=[name=non-existent, version=v1.0]"
-    })
 
 # DescribeWorkflowType endpoint
 @mock_swf
@@ -150,13 +125,6 @@ def test_describe_non_existent_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60")
 
-    with assert_raises(SWFUnknownResourceFault) as err:
-        conn.describe_workflow_type("test-domain", "non-existent", "v1.0")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("UnknownResourceFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
-        "message": "Unknown type: WorkflowType=[name=non-existent, version=v1.0]"
-    })
+    conn.describe_workflow_type.when.called_with(
+        "test-domain", "non-existent", "v1.0"
+    ).should.throw(SWFUnknownResourceFault)

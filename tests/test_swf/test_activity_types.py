@@ -1,5 +1,4 @@
 import boto
-from nose.tools import assert_raises
 from sure import expect
 
 from moto import mock_swf
@@ -29,30 +28,18 @@ def test_register_already_existing_activity_type():
     conn.register_domain("test-domain", "60")
     conn.register_activity_type("test-domain", "test-activity", "v1.0")
 
-    with assert_raises(SWFTypeAlreadyExistsFault) as err:
-        conn.register_activity_type("test-domain", "test-activity", "v1.0")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("TypeAlreadyExistsFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#TypeAlreadyExistsFault",
-        "message": "ActivityType=[name=test-activity, version=v1.0]"
-    })
+    conn.register_activity_type.when.called_with(
+        "test-domain", "test-activity", "v1.0"
+    ).should.throw(SWFTypeAlreadyExistsFault)
 
 @mock_swf
 def test_register_with_wrong_parameter_type():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60")
 
-    with assert_raises(SWFSerializationException) as err:
-        conn.register_activity_type("test-domain", "test-activity", 12)
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("SerializationException")
-    ex.body["__type"].should.equal("com.amazonaws.swf.base.model#SerializationException")
-
+    conn.register_activity_type.when.called_with(
+        "test-domain", "test-activity", 12
+    ).should.throw(SWFSerializationException)
 
 # ListActivityTypes endpoint
 @mock_swf
@@ -101,32 +88,18 @@ def test_deprecate_already_deprecated_activity_type():
     conn.register_activity_type("test-domain", "test-activity", "v1.0")
     conn.deprecate_activity_type("test-domain", "test-activity", "v1.0")
 
-    with assert_raises(SWFTypeDeprecatedFault) as err:
-        conn.deprecate_activity_type("test-domain", "test-activity", "v1.0")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("TypeDeprecatedFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#TypeDeprecatedFault",
-        "message": "ActivityType=[name=test-activity, version=v1.0]"
-    })
+    conn.deprecate_activity_type.when.called_with(
+        "test-domain", "test-activity", "v1.0"
+    ).should.throw(SWFTypeDeprecatedFault)
 
 @mock_swf
 def test_deprecate_non_existent_activity_type():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60")
 
-    with assert_raises(SWFUnknownResourceFault) as err:
-        conn.deprecate_activity_type("test-domain", "non-existent", "v1.0")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("UnknownResourceFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
-        "message": "Unknown type: ActivityType=[name=non-existent, version=v1.0]"
-    })
+    conn.deprecate_activity_type.when.called_with(
+        "test-domain", "non-existent", "v1.0"
+    ).should.throw(SWFUnknownResourceFault)
 
 # DescribeActivityType endpoint
 @mock_swf
@@ -148,13 +121,6 @@ def test_describe_non_existent_activity_type():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60")
 
-    with assert_raises(SWFUnknownResourceFault) as err:
-        conn.describe_activity_type("test-domain", "non-existent", "v1.0")
-
-    ex = err.exception
-    ex.status.should.equal(400)
-    ex.error_code.should.equal("UnknownResourceFault")
-    ex.body.should.equal({
-        "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
-        "message": "Unknown type: ActivityType=[name=non-existent, version=v1.0]"
-    })
+    conn.describe_activity_type.when.called_with(
+        "test-domain", "non-existent", "v1.0"
+    ).should.throw(SWFUnknownResourceFault)
