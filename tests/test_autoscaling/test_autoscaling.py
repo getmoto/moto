@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import boto
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.autoscale.group import AutoScalingGroup
+from boto.ec2.autoscale import Tag
 import sure  # noqa
 
 from moto import mock_autoscaling, mock_ec2
@@ -18,6 +19,7 @@ def test_create_autoscaling_group():
     )
     conn.create_launch_configuration(config)
 
+
     group = AutoScalingGroup(
         name='tester_group',
         availability_zones=['us-east-1c', 'us-east-1b'],
@@ -32,13 +34,13 @@ def test_create_autoscaling_group():
         placement_group="test_placement",
         vpc_zone_identifier='subnet-1234abcd',
         termination_policies=["OldestInstance", "NewestInstance"],
-        tags=[{
-            'ResourceId': 'tester_group',
-            'ResourceType': 'auto-scaling-group',
-            'Key': 'test_key',
-            'Value': 'test_value',
-            'PropagateAtLaunch': True,
-        }],
+        tags=[Tag(
+            resource_id='tester_group',
+            key='test_key',
+            value='test_value',
+            propagate_at_launch=True
+            )
+        ],
     )
     conn.create_auto_scaling_group(group)
 
@@ -57,13 +59,12 @@ def test_create_autoscaling_group():
     list(group.load_balancers).should.equal(["test_lb"])
     group.placement_group.should.equal("test_placement")
     list(group.termination_policies).should.equal(["OldestInstance", "NewestInstance"])
-    list(group.tags).should.equal([{
-        'ResourceId': 'tester_group',
-        'ResourceType': 'auto-scaling-group',
-        'Key': 'test_key',
-        'Value': 'test_value',
-        'PropagateAtLaunch': True,
-    }])
+    len(list(group.tags)).should.equal(1)
+    tag = list(group.tags)[0]
+    tag.resource_id.should.equal('tester_group')
+    tag.key.should.equal('test_key')
+    tag.value.should.equal('test_value')
+    tag.propagate_at_launch.should.equal(True)
 
 
 @mock_autoscaling
