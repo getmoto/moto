@@ -60,6 +60,7 @@ class AutoScalingResponse(BaseResponse):
             load_balancers=self._get_multi_param('LoadBalancerNames.member'),
             placement_group=self._get_param('PlacementGroup'),
             termination_policies=self._get_multi_param('TerminationPolicies.member'),
+            tags=self._get_multi_param('Tags.member'),
         )
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
@@ -85,6 +86,7 @@ class AutoScalingResponse(BaseResponse):
             load_balancers=self._get_multi_param('LoadBalancerNames.member'),
             placement_group=self._get_param('PlacementGroup'),
             termination_policies=self._get_multi_param('TerminationPolicies.member'),
+            tags=self._get_multi_param('Tags.member'),
         )
         template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()

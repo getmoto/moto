@@ -32,6 +32,13 @@ def test_create_autoscaling_group():
         placement_group="test_placement",
         vpc_zone_identifier='subnet-1234abcd',
         termination_policies=["OldestInstance", "NewestInstance"],
+        tags=[{
+            'ResourceId': 'tester_group',
+            'ResourceType': 'auto-scaling-group',
+            'Key': 'test_key',
+            'Value': 'test_value',
+            'PropagateAtLaunch': True,
+        }],
     )
     conn.create_auto_scaling_group(group)
 
@@ -50,6 +57,13 @@ def test_create_autoscaling_group():
     list(group.load_balancers).should.equal(["test_lb"])
     group.placement_group.should.equal("test_placement")
     list(group.termination_policies).should.equal(["OldestInstance", "NewestInstance"])
+    list(group.tags).should.equal([{
+        'ResourceId': 'tester_group',
+        'ResourceType': 'auto-scaling-group',
+        'Key': 'test_key',
+        'Value': 'test_value',
+        'PropagateAtLaunch': True,
+    }])
 
 
 @mock_autoscaling
@@ -88,6 +102,7 @@ def test_create_autoscaling_groups_defaults():
     list(group.load_balancers).should.equal([])
     group.placement_group.should.equal(None)
     list(group.termination_policies).should.equal([])
+    list(group.tags).should.equal([])
 
 
 @mock_autoscaling

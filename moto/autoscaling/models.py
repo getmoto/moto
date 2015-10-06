@@ -113,7 +113,8 @@ class FakeAutoScalingGroup(object):
     def __init__(self, name, availability_zones, desired_capacity, max_size,
                  min_size, launch_config_name, vpc_zone_identifier,
                  default_cooldown, health_check_period, health_check_type,
-                 load_balancers, placement_group, termination_policies, autoscaling_backend):
+                 load_balancers, placement_group, termination_policies, 
+                 autoscaling_backend, tags):
         self.autoscaling_backend = autoscaling_backend
         self.name = name
         self.availability_zones = availability_zones
@@ -133,6 +134,7 @@ class FakeAutoScalingGroup(object):
 
         self.instance_states = []
         self.set_desired_capacity(desired_capacity)
+        self.tags = tags if tags else []
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
