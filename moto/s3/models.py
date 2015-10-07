@@ -24,6 +24,7 @@ class FakeKey(object):
         self.name = name
         self.value = value
         self.last_modified = datetime.datetime.utcnow()
+        self.acl = get_canned_acl('private')
         self._storage_class = storage
         self._metadata = {}
         self._expiry = None
@@ -44,6 +45,9 @@ class FakeKey(object):
 
     def set_storage_class(self, storage_class):
         self._storage_class = storage_class
+
+    def set_acl(self, acl):
+        self.acl = acl
 
     def append_to_value(self, value):
         self.value += value
@@ -159,6 +163,61 @@ class FakeMultipart(object):
     def list_parts(self):
         for part_id in self.partlist:
             yield self.parts[part_id]
+
+
+class FakeGrantee(object):
+    def __init__(self, id='', uri='', display_name=''):
+        self.id = id
+        self.uri = uri
+        self.display_name = display_name
+
+    @property
+    def type(self):
+        return 'Group' if self.uri else 'CanonicalUser'
+
+
+ALL_USERS_GRANTEE = FakeGrantee(uri='http://acs.amazonaws.com/groups/global/AllUsers')
+AUTHENTICATED_USERS_GRANTEE = FakeGrantee(uri='http://acs.amazonaws.com/groups/global/AuthenticatedUsers')
+LOG_DELIVERY_GRANTEE = FakeGrantee(uri='http://acs.amazonaws.com/groups/s3/LogDelivery')
+
+PERMISSION_FULL_CONTROL = 'FULL_CONTROL'
+PERMISSION_WRITE = 'WRITE'
+PERMISSION_READ = 'READ'
+PERMISSION_WRITE_ACP = 'WRITE_ACP'
+PERMISSION_READ_ACP = 'READ_ACP'
+
+
+class FakeGrant(object):
+    def __init__(self, grantees, permissions):
+        self.grantees = grantees
+        self.permissions = permissions
+
+
+class FakeAcl(object):
+    def __init__(self, grants=[]):
+        self.grants = grants
+
+
+def get_canned_acl(acl):
+    owner_grantee = FakeGrantee(id='75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a')
+    grants = [FakeGrant([owner_grantee], [PERMISSION_FULL_CONTROL])]
+    if acl == 'private':
+        pass  # no other permissions
+    elif acl == 'public-read':
+        grants.append(FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_READ]))
+    elif acl == 'public-read-write':
+        grants.append(FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_READ, PERMISSION_WRITE]))
+    elif acl == 'authenticated-read':
+        grants.append(FakeGrant([AUTHENTICATED_USERS_GRANTEE], [PERMISSION_READ]))
+    elif acl == 'bucket-owner-read':
+        pass  # TODO: bucket owner ACL
+    elif acl == 'bucket-owner-full-control':
+        pass  # TODO: bucket owner ACL
+    elif acl == 'log-delivery-write':
+        grants.append(FakeGrant([LOG_DELIVERY_GRANTEE], [PERMISSION_READ_ACP, PERMISSION_WRITE]))
+    else:
+        assert False, 'Unknown canned acl: %s' % (acl,)
+    return FakeAcl(grants=grants)
 
 
 class LifecycleRule(object):
@@ -399,7 +458,7 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         return bucket.keys.pop(key_name)
 
-    def copy_key(self, src_bucket_name, src_key_name, dest_bucket_name, dest_key_name, storage=None):
+    def copy_key(self, src_bucket_name, src_key_name, dest_bucket_name, dest_key_name, storage=None, acl=None):
         src_key_name = clean_key_name(src_key_name)
         dest_key_name = clean_key_name(dest_key_name)
         src_bucket = self.get_bucket(src_bucket_name)
@@ -409,6 +468,8 @@ class S3Backend(BaseBackend):
             key = key.copy(dest_key_name)
         dest_bucket.keys[dest_key_name] = key
         if storage is not None:
-            dest_bucket.keys[dest_key_name].set_storage_class(storage)
+            key.set_storage_class(storage)
+        if acl is not None:
+            key.set_acl(acl)
 
 s3_backend = S3Backend()
