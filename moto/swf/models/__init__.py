@@ -179,8 +179,9 @@ class SWFBackend(BaseBackend):
         #
         # TODO: handle long polling (case 2) for decision tasks
         decision_candidates = []
-        for wf_id, wf_execution in domain.workflow_executions.iteritems():
-            decision_candidates += wf_execution.scheduled_decision_tasks
+        for _, wfe in domain.workflow_executions.iteritems():
+            if wfe.task_list == task_list:
+                decision_candidates += wfe.scheduled_decision_tasks
         if any(decision_candidates):
             # TODO: handle task priorities (but not supported by boto for now)
             decision = min(decision_candidates, key=lambda d: d.scheduled_at)

@@ -46,6 +46,12 @@ def test_poll_for_decision_task_when_none():
     resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
 
 @mock_swf
+def test_poll_for_decision_task_on_non_existent_queue():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "non-existent-queue")
+    resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
+
+@mock_swf
 def test_poll_for_decision_task_with_reverse_order():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue", reverse_order=True)
