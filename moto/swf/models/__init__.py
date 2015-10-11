@@ -131,9 +131,6 @@ class SWFBackend(BaseBackend):
         domain = self._get_domain(domain_name)
         return domain.get_type(kind, name, version)
 
-    # TODO: find what triggers a "DefaultUndefinedFault" and implement it
-    # (didn't found in boto source code, nor in the docs, nor on a Google search)
-    # (will try to reach support)
     def start_workflow_execution(self, domain_name, workflow_id,
                                  workflow_name, workflow_version,
                                  tag_list=None, **kwargs):
