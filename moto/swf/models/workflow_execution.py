@@ -81,11 +81,11 @@ class WorkflowExecution(object):
     def to_full_dict(self):
         hsh = {
             "executionInfo": self.to_medium_dict(),
-            "executionConfiguration": {}
+            "executionConfiguration": {
+                "taskList": {"name": self.task_list}
+            }
         }
         #configuration
-        if hasattr(self, "task_list"):
-            hsh["executionConfiguration"]["taskList"] = {"name": self.task_list}
         for key in self._configuration_keys:
             attr = camelcase_to_underscores(key)
             if not hasattr(self, attr):
