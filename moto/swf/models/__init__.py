@@ -13,6 +13,7 @@ from ..exceptions import (
     SWFTypeDeprecatedFault,
 )
 from .activity_type import ActivityType
+from .decision_task import DecisionTask
 from .domain import Domain
 from .generic_type import GenericType
 from .history_event import HistoryEvent
@@ -161,6 +162,36 @@ class SWFBackend(BaseBackend):
         self._check_string(workflow_id)
         domain = self._get_domain(domain_name)
         return domain.get_workflow_execution(run_id, workflow_id)
+
+    def poll_for_decision_task(self, domain_name, task_list, identity=None):
+        self._check_string(domain_name)
+        self._check_string(task_list)
+        domain = self._get_domain(domain_name)
+        # Real SWF cases:
+        # - case 1: there's a decision task to return, return it
+        # - case 2: there's no decision task to return, so wait for timeout
+        #           and if a new decision is schedule, start and return it
+        # - case 3: timeout reached, no decision, return an empty decision
+        #           (e.g. a decision with an empty "taskToken")
+        #
+        # For the sake of simplicity, we forget case 2 for now, so either
+        # there's a DecisionTask to return, either we return a blank one.
+        #
+        # SWF client libraries should cope with that easily as long as tests
+        # aren't distributed.
+        #
+        # TODO: handle long polling (case 2) for decision tasks
+        decision_candidates = []
+        for wf_id, wf_execution in domain.workflow_executions.iteritems():
+            decision_candidates += wf_execution.scheduled_decision_tasks
+        if any(decision_candidates):
+            # TODO: handle task priorities (but not supported by boto for now)
+            decision = min(decision_candidates, key=lambda d: d.scheduled_at)
+            wfe = decision.workflow_execution
+            wfe.start_decision_task(decision.task_token, identity=identity)
+            return decision
+        else:
+            return None
 
 
 swf_backends = {}

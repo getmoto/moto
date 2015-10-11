@@ -4,6 +4,7 @@ import uuid
 from moto.core.utils import camelcase_to_underscores
 
 from ..exceptions import SWFDefaultUndefinedFault
+from .decision_task import DecisionTask
 from .history_event import HistoryEvent
 
 
@@ -32,6 +33,10 @@ class WorkflowExecution(object):
         }
         # events
         self.events = []
+        # tasks
+        self.decision_tasks = []
+        self.activity_tasks = []
+        self.child_workflow_executions = []
 
     def __repr__(self):
         return "WorkflowExecution(run_id: {})".format(self.run_id)
@@ -99,13 +104,44 @@ class WorkflowExecution(object):
     def _add_event(self, *args, **kwargs):
         evt = HistoryEvent(self.next_event_id(), *args, **kwargs)
         self.events.append(evt)
+        return evt
 
     def start(self):
         self._add_event(
             "WorkflowExecutionStarted",
             workflow_execution=self,
         )
-        self._add_event(
+        self.schedule_decision_task()
+
+    def schedule_decision_task(self):
+        self.open_counts["openDecisionTasks"] += 1
+        evt = self._add_event(
             "DecisionTaskScheduled",
             workflow_execution=self,
         )
+        self.decision_tasks.append(DecisionTask(self, evt.event_id))
+
+    @property
+    def scheduled_decision_tasks(self):
+        return filter(
+            lambda t: t.state == "SCHEDULED",
+            self.decision_tasks
+        )
+
+    def _find_decision_task(self, task_token):
+        for dt in self.decision_tasks:
+            if dt.task_token == task_token:
+                return dt
+        raise ValueError(
+            "No decision task with token: {}".format(task_token)
+        )
+
+    def start_decision_task(self, task_token, identity=None):
+        dt = self._find_decision_task(task_token)
+        evt = self._add_event(
+            "DecisionTaskStarted",
+            workflow_execution=self,
+            scheduled_event_id=dt.scheduled_event_id,
+            identity=identity
+        )
+        dt.start(evt.event_id)

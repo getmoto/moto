@@ -221,3 +221,16 @@ class SWFResponse(BaseResponse):
         return json.dumps({
             "events": [evt.to_dict() for evt in wfe.events]
         })
+
+    def poll_for_decision_task(self):
+        domain_name = self._params["domain"]
+        task_list = self._params["taskList"]["name"]
+        identity = self._params.get("identity")
+        # TODO: implement reverseOrder
+        decision = self.swf_backend.poll_for_decision_task(
+            domain_name, task_list, identity=identity
+        )
+        if decision:
+            return json.dumps(decision.to_full_dict())
+        else:
+            return json.dumps({"previousStartedEventId": 0, "startedEventId": 0})

@@ -2,6 +2,7 @@ from sure import expect
 from freezegun import freeze_time
 
 from moto.swf.models import (
+    DecisionTask,
     Domain,
     GenericType,
     HistoryEvent,
@@ -115,7 +116,6 @@ def test_workflow_execution_creation_child_policy_logic():
         WorkflowType("test-workflow", "v1.0"), "ab1234"
     ).should.throw(SWFDefaultUndefinedFault)
 
-
 def test_workflow_execution_string_representation():
     wft = get_basic_workflow_type()
     wfe = WorkflowExecution(wft, "ab1234", child_policy="TERMINATE")
@@ -182,6 +182,24 @@ def test_workflow_execution_full_dict_representation():
         "taskStartToCloseTimeout": "300",
     })
 
+def test_workflow_execution_schedule_decision_task():
+    wft = get_basic_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234")
+    wfe.open_counts["openDecisionTasks"].should.equal(0)
+    wfe.schedule_decision_task()
+    wfe.open_counts["openDecisionTasks"].should.equal(1)
+
+def test_workflow_execution_start_decision_task():
+    wft = get_basic_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234")
+    wfe.schedule_decision_task()
+    dt = wfe.decision_tasks[0]
+    wfe.start_decision_task(dt.task_token, identity="srv01")
+    dt = wfe.decision_tasks[0]
+    dt.state.should.equal("STARTED")
+    wfe.events[-1].event_type.should.equal("DecisionTaskStarted")
+    wfe.events[-1].identity.should.equal("srv01")
+
 
 # HistoryEvent
 @freeze_time("2015-01-01 12:00:00")
@@ -207,3 +225,31 @@ def test_history_event_breaks_on_initialization_if_not_implemented():
     HistoryEvent.when.called_with(
         123, "UnknownHistoryEvent"
     ).should.throw(NotImplementedError)
+
+
+# DecisionTask
+def test_decision_task_creation():
+    wft = get_basic_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234")
+    dt = DecisionTask(wfe, 123)
+    dt.workflow_execution.should.equal(wfe)
+    dt.state.should.equal("SCHEDULED")
+    dt.task_token.should_not.be.empty
+    dt.started_event_id.should.be.none
+
+def test_decision_task_full_dict_representation():
+    wft = get_basic_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234")
+    dt = DecisionTask(wfe, 123)
+
+    fd = dt.to_full_dict()
+    fd["events"].should.be.a("list")
+    fd["previousStartedEventId"].should.equal(0)
+    fd.should_not.contain("startedEventId")
+    fd.should.contain("taskToken")
+    fd["workflowExecution"].should.equal(wfe.to_short_dict())
+    fd["workflowType"].should.equal(wft.to_short_dict())
+
+    dt.start(1234)
+    fd = dt.to_full_dict()
+    fd["startedEventId"].should.equal(1234)

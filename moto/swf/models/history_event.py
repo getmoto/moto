@@ -50,9 +50,12 @@ class HistoryEvent(object):
                 "taskList": {"name": wfe.task_list}
             }
         elif self.event_type == "DecisionTaskStarted":
-            return {
+            hsh = {
                 "scheduledEventId": self.scheduled_event_id
             }
+            if hasattr(self, "identity") and self.identity:
+                hsh["identity"] = self.identity
+            return hsh
         else:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{}'".format(self.event_type)
