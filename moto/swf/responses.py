@@ -215,22 +215,24 @@ class SWFResponse(BaseResponse):
         _workflow_execution = self._params["execution"]
         run_id = _workflow_execution["runId"]
         workflow_id = _workflow_execution["workflowId"]
-        # TODO: implement reverseOrder
-
+        reverse_order = self._params.get("reverseOrder", None)
         wfe = self.swf_backend.describe_workflow_execution(domain_name, run_id, workflow_id)
+        events = wfe.events(reverse_order=reverse_order)
         return json.dumps({
-            "events": [evt.to_dict() for evt in wfe.events]
+            "events": [evt.to_dict() for evt in events]
         })
 
     def poll_for_decision_task(self):
         domain_name = self._params["domain"]
         task_list = self._params["taskList"]["name"]
         identity = self._params.get("identity")
-        # TODO: implement reverseOrder
+        reverse_order = self._params.get("reverseOrder", None)
         decision = self.swf_backend.poll_for_decision_task(
             domain_name, task_list, identity=identity
         )
         if decision:
-            return json.dumps(decision.to_full_dict())
+            return json.dumps(
+                decision.to_full_dict(reverse_order=reverse_order)
+            )
         else:
             return json.dumps({"previousStartedEventId": 0, "startedEventId": 0})

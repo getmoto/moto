@@ -44,3 +44,10 @@ def test_poll_for_decision_task_when_none():
     # this is the DecisionTask representation you get from the real SWF
     # after waiting 60s when there's no decision to be taken
     resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
+
+@mock_swf
+def test_poll_for_decision_task_with_reverse_order():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue", reverse_order=True)
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(["DecisionTaskStarted", "DecisionTaskScheduled", "WorkflowExecutionStarted"])

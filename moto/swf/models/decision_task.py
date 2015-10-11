@@ -16,10 +16,11 @@ class DecisionTask(object):
         # but that shouldn't be a problem for tests
         self.scheduled_at = datetime.now()
 
-    def to_full_dict(self):
+    def to_full_dict(self, reverse_order=False):
+        events = self.workflow_execution.events(reverse_order=reverse_order)
         hsh = {
             "events": [
-                evt.to_dict() for evt in self.workflow_execution.events
+                evt.to_dict() for evt in events
             ],
             "taskToken": self.task_token,
             "previousStartedEventId": self.previous_started_event_id,

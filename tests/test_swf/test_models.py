@@ -197,8 +197,8 @@ def test_workflow_execution_start_decision_task():
     wfe.start_decision_task(dt.task_token, identity="srv01")
     dt = wfe.decision_tasks[0]
     dt.state.should.equal("STARTED")
-    wfe.events[-1].event_type.should.equal("DecisionTaskStarted")
-    wfe.events[-1].identity.should.equal("srv01")
+    wfe.events()[-1].event_type.should.equal("DecisionTaskStarted")
+    wfe.events()[-1].identity.should.equal("srv01")
 
 
 # HistoryEvent

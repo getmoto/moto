@@ -79,10 +79,19 @@ def test_get_workflow_execution_history():
     run_id = hsh["runId"]
 
     resp = conn.get_workflow_execution_history("test-domain", run_id, "uid-abcd1234")
-    resp["events"].should.be.a("list")
-    evt = resp["events"][0]
-    evt["eventType"].should.equal("WorkflowExecutionStarted")
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
 
+@mock_swf
+def test_get_workflow_execution_history_with_reverse_order():
+    conn = setup_swf_environment()
+    hsh = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
+    run_id = hsh["runId"]
+
+    resp = conn.get_workflow_execution_history("test-domain", run_id, "uid-abcd1234",
+                                               reverse_order=True)
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(["DecisionTaskScheduled", "WorkflowExecutionStarted"])
 
 @mock_swf
 def test_get_workflow_execution_history_on_non_existent_workflow_execution():

@@ -32,7 +32,7 @@ class WorkflowExecution(object):
             "openChildWorkflowExecutions": 0,
         }
         # events
-        self.events = []
+        self._events = []
         # tasks
         self.decision_tasks = []
         self.activity_tasks = []
@@ -97,13 +97,19 @@ class WorkflowExecution(object):
         hsh["openCounts"] = self.open_counts
         return hsh
 
+    def events(self, reverse_order=False):
+        if reverse_order:
+            return reversed(self._events)
+        else:
+            return self._events
+
     def next_event_id(self):
-        event_ids = [evt.event_id for evt in self.events]
+        event_ids = [evt.event_id for evt in self._events]
         return max(event_ids or [0])
 
     def _add_event(self, *args, **kwargs):
         evt = HistoryEvent(self.next_event_id(), *args, **kwargs)
-        self.events.append(evt)
+        self._events.append(evt)
         return evt
 
     def start(self):
