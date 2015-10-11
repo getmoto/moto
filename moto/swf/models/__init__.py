@@ -191,6 +191,16 @@ class SWFBackend(BaseBackend):
         else:
             return None
 
+    def count_pending_decision_tasks(self, domain_name, task_list):
+        self._check_string(domain_name)
+        self._check_string(task_list)
+        domain = self._get_domain(domain_name)
+        count = 0
+        for _, wfe in domain.workflow_executions.iteritems():
+            if wfe.task_list == task_list:
+                count += wfe.open_counts["openDecisionTasks"]
+        return count
+
 
 swf_backends = {}
 for region in boto.swf.regions():

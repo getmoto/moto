@@ -236,3 +236,9 @@ class SWFResponse(BaseResponse):
             )
         else:
             return json.dumps({"previousStartedEventId": 0, "startedEventId": 0})
+
+    def count_pending_decision_tasks(self):
+        domain_name = self._params["domain"]
+        task_list = self._params["taskList"]["name"]
+        count = self.swf_backend.count_pending_decision_tasks(domain_name, task_list)
+        return json.dumps({"count": count, "truncated": False})

@@ -57,3 +57,18 @@ def test_poll_for_decision_task_with_reverse_order():
     resp = conn.poll_for_decision_task("test-domain", "queue", reverse_order=True)
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal(["DecisionTaskStarted", "DecisionTaskScheduled", "WorkflowExecutionStarted"])
+
+
+# CountPendingDecisionTasks endpoint
+@mock_swf
+def test_count_pending_decision_tasks():
+    conn = setup_workflow()
+    conn.poll_for_decision_task("test-domain", "queue")
+    resp = conn.count_pending_decision_tasks("test-domain", "queue")
+    resp.should.equal({"count": 1, "truncated": False})
+
+@mock_swf
+def test_count_pending_decision_tasks_on_non_existent_task_list():
+    conn = setup_workflow()
+    resp = conn.count_pending_decision_tasks("test-domain", "non-existent")
+    resp.should.equal({"count": 0, "truncated": False})
