@@ -200,6 +200,15 @@ def test_workflow_execution_start_decision_task():
     wfe.events()[-1].event_type.should.equal("DecisionTaskStarted")
     wfe.events()[-1].identity.should.equal("srv01")
 
+def test_workflow_execution_history_events_ids():
+    wft = get_basic_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234")
+    wfe._add_event("WorkflowExecutionStarted", workflow_execution=wfe)
+    wfe._add_event("DecisionTaskScheduled", workflow_execution=wfe)
+    wfe._add_event("DecisionTaskStarted", workflow_execution=wfe, scheduled_event_id=2)
+    ids = [evt.event_id for evt in wfe.events()]
+    ids.should.equal([1, 2, 3])
+
 
 # HistoryEvent
 @freeze_time("2015-01-01 12:00:00")

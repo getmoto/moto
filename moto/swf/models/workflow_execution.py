@@ -105,7 +105,7 @@ class WorkflowExecution(object):
 
     def next_event_id(self):
         event_ids = [evt.event_id for evt in self._events]
-        return max(event_ids or [0])
+        return max(event_ids or [0]) + 1
 
     def _add_event(self, *args, **kwargs):
         evt = HistoryEvent(self.next_event_id(), *args, **kwargs)
