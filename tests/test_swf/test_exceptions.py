@@ -10,6 +10,7 @@ from moto.swf.exceptions import (
     SWFTypeDeprecatedFault,
     SWFWorkflowExecutionAlreadyStartedFault,
     SWFDefaultUndefinedFault,
+    SWFValidationException,
 )
 from moto.swf.models import (
     WorkflowType,
@@ -33,6 +34,16 @@ def test_swf_unknown_resource_fault():
     ex.body.should.equal({
         "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
         "message": "Unknown type: detail"
+    })
+
+def test_swf_unknown_resource_fault_with_only_one_parameter():
+    ex = SWFUnknownResourceFault("foo bar baz")
+
+    ex.status.should.equal(400)
+    ex.error_code.should.equal("UnknownResourceFault")
+    ex.body.should.equal({
+        "__type": "com.amazonaws.swf.base.model#UnknownResourceFault",
+        "message": "Unknown foo bar baz"
     })
 
 def test_swf_domain_already_exists_fault():
@@ -102,4 +113,14 @@ def test_swf_default_undefined_fault():
     ex.body.should.equal({
         "__type": "com.amazonaws.swf.base.model#DefaultUndefinedFault",
         "message": "executionStartToCloseTimeout",
+    })
+
+def test_swf_validation_exception():
+    ex = SWFValidationException("Invalid token")
+
+    ex.status.should.equal(400)
+    ex.error_code.should.equal("ValidationException")
+    ex.body.should.equal({
+        "__type": "com.amazon.coral.validate#ValidationException",
+        "message": "Invalid token",
     })

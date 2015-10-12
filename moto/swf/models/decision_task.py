@@ -34,3 +34,6 @@ class DecisionTask(object):
     def start(self, started_event_id):
         self.state = "STARTED"
         self.started_event_id = started_event_id
+
+    def complete(self):
+        self.state = "COMPLETED"

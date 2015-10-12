@@ -151,3 +151,42 @@ class WorkflowExecution(object):
             identity=identity
         )
         dt.start(evt.event_id)
+
+    def complete_decision_task(self, task_token, decisions=None, execution_context=None):
+        # TODO: check if decision can really complete in case of malformed "decisions"
+        dt = self._find_decision_task(task_token)
+        evt = self._add_event(
+            "DecisionTaskCompleted",
+            scheduled_event_id=dt.scheduled_event_id,
+            started_event_id=dt.started_event_id,
+            execution_context=execution_context,
+        )
+        dt.complete()
+        self.handle_decisions(decisions)
+
+    def handle_decisions(self, decisions):
+        """
+        Handles a Decision according to SWF docs.
+        See: http://docs.aws.amazon.com/amazonswf/latest/apireference/API_Decision.html
+        """
+        # 'decisions' can be None per boto.swf defaults, so better exiting
+        # directly for falsy values
+        if not decisions:
+            return
+        # handle each decision separately, in order
+        for decision in decisions:
+            decision_type = decision["decisionType"]
+            # TODO: implement Decision type: CancelTimer
+            # TODO: implement Decision type: CancelWorkflowExecution
+            # TODO: implement Decision type: CompleteWorkflowExecution
+            # TODO: implement Decision type: ContinueAsNewWorkflowExecution
+            # TODO: implement Decision type: FailWorkflowExecution
+            # TODO: implement Decision type: RecordMarker
+            # TODO: implement Decision type: RequestCancelActivityTask
+            # TODO: implement Decision type: RequestCancelExternalWorkflowExecution
+            # TODO: implement Decision type: ScheduleActivityTask
+            # TODO: implement Decision type: ScheduleLambdaFunction
+            # TODO: implement Decision type: SignalExternalWorkflowExecution
+            # TODO: implement Decision type: StartChildWorkflowExecution
+            # TODO: implement Decision type: StartTimer
+            raise NotImplementedError("Cannot handle decision: {}".format(decision_type))

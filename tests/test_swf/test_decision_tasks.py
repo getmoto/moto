@@ -2,8 +2,10 @@ import boto
 from sure import expect
 
 from moto import mock_swf
+from moto.swf import swf_backend
 from moto.swf.exceptions import (
     SWFUnknownResourceFault,
+    SWFValidationException,
 )
 
 from .utils import mock_basic_workflow_type
@@ -72,3 +74,63 @@ def test_count_pending_decision_tasks_on_non_existent_task_list():
     conn = setup_workflow()
     resp = conn.count_pending_decision_tasks("test-domain", "non-existent")
     resp.should.equal({"count": 0, "truncated": False})
+
+
+# RespondDecisionTaskCompleted endpoint
+@mock_swf
+def test_respond_decision_task_completed_with_no_decision():
+    conn = setup_workflow()
+
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+
+    resp = conn.respond_decision_task_completed(task_token)
+    resp.should.be.none
+
+    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal([
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+    ])
+    evt = resp["events"][-1]
+    evt["decisionTaskCompletedEventAttributes"].should.equal({
+        "scheduledEventId": 2,
+        "startedEventId": 3,
+    })
+
+@mock_swf
+def test_respond_decision_task_completed_with_wrong_token():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    conn.respond_decision_task_completed.when.called_with(
+        "not-a-correct-token"
+    ).should.throw(SWFValidationException)
+
+@mock_swf
+def test_respond_decision_task_completed_on_close_workflow_execution():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+
+    # bad: we're closing workflow execution manually, but endpoints are not coded for now..
+    wfe = swf_backend.domains[0].workflow_executions.values()[0]
+    wfe.execution_status = "CLOSED"
+    # /bad
+
+    conn.respond_decision_task_completed.when.called_with(
+        task_token
+    ).should.throw(SWFUnknownResourceFault)
+
+@mock_swf
+def test_respond_decision_task_completed_with_task_already_completed():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+    conn.respond_decision_task_completed(task_token)
+
+    conn.respond_decision_task_completed.when.called_with(
+        task_token
+    ).should.throw(SWFUnknownResourceFault)

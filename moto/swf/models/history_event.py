@@ -56,6 +56,14 @@ class HistoryEvent(object):
             if hasattr(self, "identity") and self.identity:
                 hsh["identity"] = self.identity
             return hsh
+        elif self.event_type == "DecisionTaskCompleted":
+            hsh = {
+                "scheduledEventId": self.scheduled_event_id,
+                "startedEventId": self.started_event_id,
+            }
+            if hasattr(self, "execution_context") and self.execution_context:
+                hsh["executionContext"] = self.execution_context
+            return hsh
         else:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{}'".format(self.event_type)

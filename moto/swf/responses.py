@@ -242,3 +242,13 @@ class SWFResponse(BaseResponse):
         task_list = self._params["taskList"]["name"]
         count = self.swf_backend.count_pending_decision_tasks(domain_name, task_list)
         return json.dumps({"count": count, "truncated": False})
+
+
+    def respond_decision_task_completed(self):
+        task_token = self._params["taskToken"]
+        execution_context = self._params.get("executionContext")
+        decisions = self._params.get("decisions")
+        self.swf_backend.respond_decision_task_completed(
+            task_token, decisions=decisions, execution_context=execution_context
+        )
+        return ""

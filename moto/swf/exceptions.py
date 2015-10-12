@@ -12,9 +12,13 @@ class SWFClientError(JSONResponseError):
 
 
 class SWFUnknownResourceFault(SWFClientError):
-    def __init__(self, resource_type, resource_name):
+    def __init__(self, resource_type, resource_name=None):
+        if resource_name:
+            message = "Unknown {}: {}".format(resource_type, resource_name)
+        else:
+            message = "Unknown {}".format(resource_type)
         super(SWFUnknownResourceFault, self).__init__(
-            "Unknown {}: {}".format(resource_type, resource_name),
+            message,
             "com.amazonaws.swf.base.model#UnknownResourceFault")
 
 
@@ -74,4 +78,12 @@ class SWFDefaultUndefinedFault(SWFClientError):
             key_camel_case += word.capitalize()
         super(SWFDefaultUndefinedFault, self).__init__(
             key_camel_case, "com.amazonaws.swf.base.model#DefaultUndefinedFault"
+        )
+
+
+class SWFValidationException(SWFClientError):
+    def __init__(self, message):
+        super(SWFValidationException, self).__init__(
+            message,
+            "com.amazon.coral.validate#ValidationException"
         )

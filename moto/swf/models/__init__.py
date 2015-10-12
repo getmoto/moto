@@ -11,6 +11,7 @@ from ..exceptions import (
     SWFSerializationException,
     SWFTypeAlreadyExistsFault,
     SWFTypeDeprecatedFault,
+    SWFValidationException,
 )
 from .activity_type import ActivityType
 from .decision_task import DecisionTask
@@ -200,6 +201,59 @@ class SWFBackend(BaseBackend):
             if wfe.task_list == task_list:
                 count += wfe.open_counts["openDecisionTasks"]
         return count
+
+    def respond_decision_task_completed(self, task_token,
+                                        decisions=None,
+                                        execution_context=None):
+        self._check_string(task_token)
+        self._check_none_or_string(execution_context)
+        # let's find decision task
+        decision_task = None
+        for domain in self.domains:
+            for _, wfe in domain.workflow_executions.iteritems():
+                for dt in wfe.decision_tasks:
+                    if dt.task_token == task_token:
+                        decision_task = dt
+        # no decision task found
+        if not decision_task:
+            # In the real world, SWF distinguishes an obviously invalid token and a
+            # token that has no corresponding decision task. For the latter it seems
+            # to wait until a task with that token comes up (which looks like a smart
+            # choice in an eventually-consistent system). The call doesn't seem to
+            # timeout shortly, it takes 3 or 4 minutes to result in:
+            #    BotoServerError: 500 Internal Server Error
+            #    {"__type":"com.amazon.coral.service#InternalFailure"}
+            # This behavior is not documented clearly in SWF docs and we'll ignore it
+            # in moto, as there is no obvious reason to rely on it in tests.
+            raise SWFValidationException("Invalid token")
+        # decision task found, but WorflowExecution is CLOSED
+        wfe = decision_task.workflow_execution
+        if wfe.execution_status != "OPEN":
+            raise SWFUnknownResourceFault(
+                "execution",
+                "WorkflowExecution=[workflowId={}, runId={}]".format(
+                    wfe.workflow_id, wfe.run_id
+                )
+            )
+        # decision task found, but already completed
+        if decision_task.state != "STARTED":
+            if decision_task.state == "COMPLETED":
+                raise SWFUnknownResourceFault(
+                    "decision task, scheduledEventId = {}".format(decision_task.scheduled_event_id)
+                )
+            else:
+                raise ValueError(
+                    "This shouldn't happen: you have to PollForDecisionTask to get a token, "
+                    "which changes DecisionTask status to 'STARTED' ; then it can only change "
+                    "to 'COMPLETED'. If you didn't hack moto/swf internals, this is probably "
+                    "a bug in moto, please report it, thanks!"
+                )
+        # everything's good
+        if decision_task:
+            wfe = decision_task.workflow_execution
+            wfe.complete_decision_task(decision_task.task_token,
+                                       decisions=decisions,
+                                       execution_context=execution_context)
 
 
 swf_backends = {}
