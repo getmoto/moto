@@ -64,6 +64,13 @@ class HistoryEvent(object):
             if hasattr(self, "execution_context") and self.execution_context:
                 hsh["executionContext"] = self.execution_context
             return hsh
+        elif self.event_type == "WorkflowExecutionCompleted":
+            hsh = {
+                "decisionTaskCompletedEventId": self.decision_task_completed_event_id,
+            }
+            if hasattr(self, "result") and self.result:
+                hsh["result"] = self.result
+            return hsh
         else:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{}'".format(self.event_type)

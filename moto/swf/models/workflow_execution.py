@@ -162,9 +162,9 @@ class WorkflowExecution(object):
             execution_context=execution_context,
         )
         dt.complete()
-        self.handle_decisions(decisions)
+        self.handle_decisions(evt.event_id, decisions)
 
-    def handle_decisions(self, decisions):
+    def handle_decisions(self, event_id, decisions):
         """
         Handles a Decision according to SWF docs.
         See: http://docs.aws.amazon.com/amazonswf/latest/apireference/API_Decision.html
@@ -176,17 +176,31 @@ class WorkflowExecution(object):
         # handle each decision separately, in order
         for decision in decisions:
             decision_type = decision["decisionType"]
-            # TODO: implement Decision type: CancelTimer
-            # TODO: implement Decision type: CancelWorkflowExecution
-            # TODO: implement Decision type: CompleteWorkflowExecution
-            # TODO: implement Decision type: ContinueAsNewWorkflowExecution
-            # TODO: implement Decision type: FailWorkflowExecution
-            # TODO: implement Decision type: RecordMarker
-            # TODO: implement Decision type: RequestCancelActivityTask
-            # TODO: implement Decision type: RequestCancelExternalWorkflowExecution
-            # TODO: implement Decision type: ScheduleActivityTask
-            # TODO: implement Decision type: ScheduleLambdaFunction
-            # TODO: implement Decision type: SignalExternalWorkflowExecution
-            # TODO: implement Decision type: StartChildWorkflowExecution
-            # TODO: implement Decision type: StartTimer
-            raise NotImplementedError("Cannot handle decision: {}".format(decision_type))
+            attributes_key = "{}{}EventAttributes".format(
+                decision_type[0].lower(), decision_type[1:]
+            )
+            attributes = decision.get(attributes_key, {})
+            if decision_type == "CompleteWorkflowExecution":
+                self.complete(event_id, attributes.get("result"))
+            else:
+                # TODO: implement Decision type: CancelTimer
+                # TODO: implement Decision type: CancelWorkflowExecution
+                # TODO: implement Decision type: ContinueAsNewWorkflowExecution
+                # TODO: implement Decision type: FailWorkflowExecution
+                # TODO: implement Decision type: RecordMarker
+                # TODO: implement Decision type: RequestCancelActivityTask
+                # TODO: implement Decision type: RequestCancelExternalWorkflowExecution
+                # TODO: implement Decision type: ScheduleActivityTask
+                # TODO: implement Decision type: ScheduleLambdaFunction
+                # TODO: implement Decision type: SignalExternalWorkflowExecution
+                # TODO: implement Decision type: StartChildWorkflowExecution
+                # TODO: implement Decision type: StartTimer
+                raise NotImplementedError("Cannot handle decision: {}".format(decision_type))
+
+    def complete(self, event_id, result=None):
+        self.execution_status = "CLOSED"
+        evt = self._add_event(
+            "WorkflowExecutionCompleted",
+            decision_task_completed_event_id=event_id,
+            result=result,
+        )

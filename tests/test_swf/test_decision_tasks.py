@@ -134,3 +134,26 @@ def test_respond_decision_task_completed_with_task_already_completed():
     conn.respond_decision_task_completed.when.called_with(
         task_token
     ).should.throw(SWFUnknownResourceFault)
+
+@mock_swf
+def test_respond_decision_task_completed_with_complete_workflow_execution():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+
+    decisions = [{
+        "decisionType": "CompleteWorkflowExecution",
+        "completeWorkflowExecutionEventAttributes": {}
+    }]
+    resp = conn.respond_decision_task_completed(task_token, decisions=decisions)
+    resp.should.be.none
+
+    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal([
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+        "WorkflowExecutionCompleted",
+    ])

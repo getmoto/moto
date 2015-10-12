@@ -209,6 +209,16 @@ def test_workflow_execution_history_events_ids():
     ids = [evt.event_id for evt in wfe.events()]
     ids.should.equal([1, 2, 3])
 
+def test_workflow_execution_complete():
+    wft = get_basic_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234")
+    wfe.complete(123, result="foo")
+
+    wfe.execution_status.should.equal("CLOSED")
+    wfe.events()[-1].event_type.should.equal("WorkflowExecutionCompleted")
+    wfe.events()[-1].decision_task_completed_event_id.should.equal(123)
+    wfe.events()[-1].result.should.equal("foo")
+
 
 # HistoryEvent
 @freeze_time("2015-01-01 12:00:00")
