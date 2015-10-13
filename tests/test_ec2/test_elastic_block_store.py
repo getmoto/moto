@@ -93,7 +93,9 @@ def test_create_snapshot():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a")
 
-    volume.create_snapshot('a test snapshot')
+    snapshot = volume.create_snapshot('a test snapshot')
+    snapshot.update()
+    snapshot.status.should.equal('completed')
 
     snapshots = conn.get_all_snapshots()
     snapshots.should.have.length_of(1)
