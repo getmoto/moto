@@ -87,3 +87,35 @@ class SWFValidationException(SWFClientError):
             message,
             "com.amazon.coral.validate#ValidationException"
         )
+
+
+class SWFDecisionValidationException(SWFClientError):
+    def __init__(self, problems):
+        # messages
+        messages = []
+        for pb in problems:
+            if pb["type"] == "null_value":
+                messages.append(
+                    "Value null at '%(where)s' failed to satisfy constraint: "\
+                    "Member must not be null" % pb
+                )
+            elif pb["type"] == "bad_decision_type":
+                messages.append(
+                    "Value '%(value)s' at '%(where)s' failed to satisfy constraint: " \
+                    "Member must satisfy enum value set: " \
+                    "[%(possible_values)s]" % pb
+                )
+            else:
+                raise ValueError(
+                    "Unhandled decision constraint type: {}".format(pb["type"])
+                )
+        # prefix
+        count = len(problems)
+        if count < 2:
+            prefix = "{} validation error detected:"
+        else:
+            prefix = "{} validation errors detected:"
+        super(SWFDecisionValidationException, self).__init__(
+            prefix.format(count) + "; ".join(messages),
+            "com.amazon.coral.validate#ValidationException"
+        )

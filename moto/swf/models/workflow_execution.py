@@ -3,12 +3,36 @@ import uuid
 
 from moto.core.utils import camelcase_to_underscores
 
-from ..exceptions import SWFDefaultUndefinedFault
+from ..exceptions import (
+    SWFDefaultUndefinedFault,
+    SWFValidationException,
+    SWFDecisionValidationException,
+)
 from .decision_task import DecisionTask
 from .history_event import HistoryEvent
 
 
+# TODO: extract decision related logic into a Decision class
 class WorkflowExecution(object):
+
+    # NB: the list is ordered exactly as in SWF validation exceptions so we can
+    # mimic error messages closely ; don't reorder it without checking SWF.
+    KNOWN_DECISION_TYPES = [
+        "CompleteWorkflowExecution",
+        "StartTimer",
+        "RequestCancelExternalWorkflowExecution",
+        "SignalExternalWorkflowExecution",
+        "CancelTimer",
+        "RecordMarker",
+        "ScheduleActivityTask",
+        "ContinueAsNewWorkflowExecution",
+        "ScheduleLambdaFunction",
+        "FailWorkflowExecution",
+        "RequestCancelActivityTask",
+        "StartChildWorkflowExecution",
+        "CancelWorkflowExecution"
+    ]
+
     def __init__(self, workflow_type, workflow_id, **kwargs):
         self.workflow_type = workflow_type
         self.workflow_id = workflow_id
@@ -154,6 +178,7 @@ class WorkflowExecution(object):
 
     def complete_decision_task(self, task_token, decisions=None, execution_context=None):
         # TODO: check if decision can really complete in case of malformed "decisions"
+        self.validate_decisions(decisions)
         dt = self._find_decision_task(task_token)
         evt = self._add_event(
             "DecisionTaskCompleted",
@@ -163,6 +188,48 @@ class WorkflowExecution(object):
         )
         dt.complete()
         self.handle_decisions(evt.event_id, decisions)
+
+    def validate_decisions(self, decisions):
+        """
+        Performs some basic validations on decisions. The real SWF service
+        seems to break early and *not* process any decision if there's a
+        validation problem, such as a malformed decision for instance. I didn't
+        find an explicit documentation for that though, so criticisms welcome.
+        """
+        if not decisions:
+            return
+
+        problems = []
+
+        # check close decision is last
+        # TODO: see what happens on real SWF service if we ask for 2 close decisions
+        for dcs in decisions[:-1]:
+            close_decision_types = [
+                "CompleteWorkflowExecution",
+                "FailWorkflowExecution",
+                "CancelWorkflowExecution",
+            ]
+            if dcs["decisionType"] in close_decision_types:
+                raise SWFValidationException(
+                    "Close must be last decision in list"
+                )
+
+        decision_number = 0
+        for dcs in decisions:
+            decision_number += 1
+            # TODO: check decision types mandatory attributes
+            # check decision type is correct
+            if dcs["decisionType"] not in self.KNOWN_DECISION_TYPES:
+                problems.append({
+                    "type": "bad_decision_type",
+                    "value": dcs["decisionType"],
+                    "where": "decisions.{}.member.decisionType".format(decision_number),
+                    "possible_values": ", ".join(self.KNOWN_DECISION_TYPES),
+                })
+
+        # raise if any problem
+        if any(problems):
+            raise SWFDecisionValidationException(problems)
 
     def handle_decisions(self, event_id, decisions):
         """

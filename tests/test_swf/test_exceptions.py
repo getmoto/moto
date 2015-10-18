@@ -11,6 +11,7 @@ from moto.swf.exceptions import (
     SWFWorkflowExecutionAlreadyStartedFault,
     SWFDefaultUndefinedFault,
     SWFValidationException,
+    SWFDecisionValidationException,
 )
 from moto.swf.models import (
     WorkflowType,
@@ -124,3 +125,28 @@ def test_swf_validation_exception():
         "__type": "com.amazon.coral.validate#ValidationException",
         "message": "Invalid token",
     })
+
+def test_swf_decision_validation_error():
+    ex = SWFDecisionValidationException([
+        { "type": "null_value",
+          "where": "decisions.1.member.startTimerDecisionAttributes.startToFireTimeout" },
+        { "type": "bad_decision_type",
+          "value": "FooBar",
+          "where": "decisions.1.member.decisionType",
+          "possible_values": "Foo, Bar, Baz"},
+    ])
+
+    ex.status.should.equal(400)
+    ex.error_code.should.equal("ValidationException")
+    ex.body["__type"].should.equal("com.amazon.coral.validate#ValidationException")
+
+    msg = ex.body["message"]
+    msg.should.match(r"^2 validation errors detected:")
+    msg.should.match(
+        r"Value null at 'decisions.1.member.startTimerDecisionAttributes.startToFireTimeout' "\
+        r"failed to satisfy constraint: Member must not be null;"
+    )
+    msg.should.match(
+        r"Value 'FooBar' at 'decisions.1.member.decisionType' failed to satisfy constraint: " \
+        r"Member must satisfy enum value set: \[Foo, Bar, Baz\]"
+    )

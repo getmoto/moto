@@ -6,6 +6,7 @@ from moto.swf import swf_backend
 from moto.swf.exceptions import (
     SWFUnknownResourceFault,
     SWFValidationException,
+    SWFDecisionValidationException,
 )
 
 from .utils import mock_basic_workflow_type
@@ -157,3 +158,36 @@ def test_respond_decision_task_completed_with_complete_workflow_execution():
         "DecisionTaskCompleted",
         "WorkflowExecutionCompleted",
     ])
+
+@mock_swf
+def test_respond_decision_task_completed_with_close_decision_not_last():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+
+    decisions = [
+        { "decisionType": "CompleteWorkflowExecution" },
+        { "decisionType": "WeDontCare" },
+    ]
+
+    conn.respond_decision_task_completed.when.called_with(
+        task_token, decisions=decisions
+    ).should.throw(SWFValidationException, r"Close must be last decision in list")
+
+@mock_swf
+def test_respond_decision_task_completed_with_invalid_decision_type():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+
+    decisions = [
+        { "decisionType": "BadDecisionType" },
+        { "decisionType": "CompleteWorkflowExecution" },
+    ]
+
+    conn.respond_decision_task_completed.when.called_with(
+        task_token, decisions=decisions
+        ).should.throw(
+            SWFDecisionValidationException,
+            r"Value 'BadDecisionType' at 'decisions.1.member.decisionType'"
+        )
