@@ -198,9 +198,9 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
           <item>
              <snapshotId>{{ snapshot.id }}</snapshotId>
              <volumeId>{{ snapshot.volume.id }}</volumeId>
-             <status>pending</status>
+             <status>completed</status>
              <startTime>{{ snapshot.start_time}}</startTime>
-             <progress>30%</progress>
+             <progress>100%</progress>
              <ownerId>111122223333</ownerId>
              <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
