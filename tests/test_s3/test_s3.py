@@ -726,7 +726,7 @@ def test_list_versions():
 
 
 @mock_s3
-def test_acl_is_ignored_for_now():
+def test_acl_setting():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('foobar')
     content = b'imafile'
@@ -740,6 +740,49 @@ def test_acl_is_ignored_for_now():
     key = bucket.get_key(keyname)
 
     assert key.get_contents_as_string() == content
+
+    grants = key.get_acl().acl.grants
+    assert any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+               g.permission == 'READ' for g in grants), grants
+
+
+@mock_s3
+def test_acl_setting_via_headers():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('foobar')
+    content = b'imafile'
+    keyname = 'test.txt'
+
+    key = Key(bucket, name=keyname)
+    key.content_type = 'text/plain'
+    key.set_contents_from_string(content, headers={
+        'x-amz-grant-full-control': 'uri="http://acs.amazonaws.com/groups/global/AllUsers"'
+    })
+
+    key = bucket.get_key(keyname)
+
+    assert key.get_contents_as_string() == content
+
+    grants = key.get_acl().acl.grants
+    assert any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+               g.permission == 'FULL_CONTROL' for g in grants), grants
+
+
+@mock_s3
+def test_acl_switching():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('foobar')
+    content = b'imafile'
+    keyname = 'test.txt'
+
+    key = Key(bucket, name=keyname)
+    key.content_type = 'text/plain'
+    key.set_contents_from_string(content, policy='public-read')
+    key.set_acl('private')
+
+    grants = key.get_acl().acl.grants
+    assert not any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+                   g.permission == 'READ' for g in grants), grants
 
 
 @mock_s3
