@@ -112,9 +112,9 @@ class SWFDecisionValidationException(SWFClientError):
         # prefix
         count = len(problems)
         if count < 2:
-            prefix = "{} validation error detected:"
+            prefix = "{} validation error detected: "
         else:
-            prefix = "{} validation errors detected:"
+            prefix = "{} validation errors detected: "
         super(SWFDecisionValidationException, self).__init__(
             prefix.format(count) + "; ".join(messages),
             "com.amazon.coral.validate#ValidationException"
