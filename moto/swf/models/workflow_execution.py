@@ -3,11 +3,15 @@ import uuid
 
 from moto.core.utils import camelcase_to_underscores
 
+from ..constants import (
+    DECISIONS_FIELDS,
+)
 from ..exceptions import (
     SWFDefaultUndefinedFault,
     SWFValidationException,
     SWFDecisionValidationException,
 )
+from ..utils import decapitalize
 from .decision_task import DecisionTask
 from .history_event import HistoryEvent
 
@@ -189,6 +193,19 @@ class WorkflowExecution(object):
         dt.complete()
         self.handle_decisions(evt.event_id, decisions)
 
+    def _check_decision_attributes(self, kind, value, decision_id):
+        problems = []
+        constraints = DECISIONS_FIELDS.get(kind, {})
+        for key, constraint in constraints.iteritems():
+            if constraint["required"] and not value.get(key):
+                problems.append({
+                    "type": "null_value",
+                    "where": "decisions.{}.member.{}.{}".format(
+                        decision_id, kind, key
+                    )
+                })
+        return problems
+
     def validate_decisions(self, decisions):
         """
         Performs some basic validations on decisions. The real SWF service
@@ -202,7 +219,7 @@ class WorkflowExecution(object):
         problems = []
 
         # check close decision is last
-        # TODO: see what happens on real SWF service if we ask for 2 close decisions
+        # (the real SWF service also works that way if you provide 2 close decision tasks)
         for dcs in decisions[:-1]:
             close_decision_types = [
                 "CompleteWorkflowExecution",
@@ -217,7 +234,16 @@ class WorkflowExecution(object):
         decision_number = 0
         for dcs in decisions:
             decision_number += 1
-            # TODO: check decision types mandatory attributes
+            # check decision types mandatory attributes
+            # NB: the real SWF service seems to check attributes even for attributes list
+            # that are not in line with the decisionType, so we do the same
+            attrs_to_check = filter(lambda x: x.endswith("DecisionAttributes"), dcs.keys())
+            if dcs["decisionType"] in self.KNOWN_DECISION_TYPES:
+                decision_type = dcs["decisionType"]
+                decision_attr = "{}DecisionAttributes".format(decapitalize(decision_type))
+                attrs_to_check.append(decision_attr)
+            for attr in attrs_to_check:
+                problems += self._check_decision_attributes(attr, dcs.get(attr, {}), decision_number)
             # check decision type is correct
             if dcs["decisionType"] not in self.KNOWN_DECISION_TYPES:
                 problems.append({
@@ -243,9 +269,7 @@ class WorkflowExecution(object):
         # handle each decision separately, in order
         for decision in decisions:
             decision_type = decision["decisionType"]
-            attributes_key = "{}{}EventAttributes".format(
-                decision_type[0].lower(), decision_type[1:]
-            )
+            attributes_key = "{}EventAttributes".format(decapitalize(decision_type))
             attributes = decision.get(attributes_key, {})
             if decision_type == "CompleteWorkflowExecution":
                 self.complete(event_id, attributes.get("result"))

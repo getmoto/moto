@@ -191,3 +191,42 @@ def test_respond_decision_task_completed_with_invalid_decision_type():
             SWFDecisionValidationException,
             r"Value 'BadDecisionType' at 'decisions.1.member.decisionType'"
         )
+
+@mock_swf
+def test_respond_decision_task_completed_with_missing_attributes():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+
+    decisions = [
+        {
+            "decisionType": "should trigger even with incorrect decision type",
+            "startTimerDecisionAttributes": {}
+        },
+    ]
+
+    conn.respond_decision_task_completed.when.called_with(
+        task_token, decisions=decisions
+        ).should.throw(
+            SWFDecisionValidationException,
+            r"Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' " \
+            r"failed to satisfy constraint: Member must not be null"
+        )
+
+@mock_swf
+def test_respond_decision_task_completed_with_missing_attributes_totally():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+
+    decisions = [
+        { "decisionType": "StartTimer" },
+    ]
+
+    conn.respond_decision_task_completed.when.called_with(
+        task_token, decisions=decisions
+        ).should.throw(
+            SWFDecisionValidationException,
+            r"Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' " \
+            r"failed to satisfy constraint: Member must not be null"
+        )

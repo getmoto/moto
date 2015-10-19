@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 from datetime import datetime
 from time import mktime
 
+from ..utils import decapitalize
+
 
 class HistoryEvent(object):
     def __init__(self, event_id, event_type, **kwargs):
@@ -23,8 +25,7 @@ class HistoryEvent(object):
 
     def _attributes_key(self):
         key = "{}EventAttributes".format(self.event_type)
-        key = key[0].lower() + key[1:]
-        return key
+        return decapitalize(key)
 
     def event_attributes(self):
         if self.event_type == "WorkflowExecutionStarted":
