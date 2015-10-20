@@ -135,7 +135,7 @@ class Database(object):
             "engine": properties.get("Engine"),
             "engine_version": properties.get("EngineVersion"),
             "iops": properties.get("Iops"),
-            "master_password": properties.get('MasterUserPassword'),
+            "master_user_password": properties.get('MasterUserPassword'),
             "master_username": properties.get('MasterUsername'),
             "multi_az": properties.get("MultiAZ"),
             "port": properties.get('Port', 3306),
