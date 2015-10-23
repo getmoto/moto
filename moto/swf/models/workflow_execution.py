@@ -181,7 +181,8 @@ class WorkflowExecution(object):
         dt.start(evt.event_id)
 
     def complete_decision_task(self, task_token, decisions=None, execution_context=None):
-        # TODO: check if decision can really complete in case of malformed "decisions"
+        # In case of a malformed or invalid decision task, SWF will raise an error and
+        # it won't perform any of the decisions in the decision set.
         self.validate_decisions(decisions)
         dt = self._find_decision_task(task_token)
         evt = self._add_event(
