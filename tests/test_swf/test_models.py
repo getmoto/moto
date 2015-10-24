@@ -209,15 +209,44 @@ def test_workflow_execution_history_events_ids():
     ids = [evt.event_id for evt in wfe.events()]
     ids.should.equal([1, 2, 3])
 
+@freeze_time("2015-01-01 12:00:00")
+def test_workflow_execution_start():
+    wft = get_basic_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234")
+    wfe.events().should.equal([])
+
+    wfe.start()
+    wfe.start_timestamp.should.equal(1420110000.0)
+    wfe.events().should.have.length_of(2)
+    wfe.events()[0].event_type.should.equal("WorkflowExecutionStarted")
+    wfe.events()[1].event_type.should.equal("DecisionTaskScheduled")
+
+@freeze_time("2015-01-02 12:00:00")
 def test_workflow_execution_complete():
     wft = get_basic_workflow_type()
     wfe = WorkflowExecution(wft, "ab1234")
     wfe.complete(123, result="foo")
 
     wfe.execution_status.should.equal("CLOSED")
+    wfe.close_status.should.equal("COMPLETED")
+    wfe.close_timestamp.should.equal(1420196400.0)
     wfe.events()[-1].event_type.should.equal("WorkflowExecutionCompleted")
     wfe.events()[-1].decision_task_completed_event_id.should.equal(123)
     wfe.events()[-1].result.should.equal("foo")
+
+@freeze_time("2015-01-02 12:00:00")
+def test_workflow_execution_fail():
+    wft = get_basic_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234")
+    wfe.fail(123, details="some details", reason="my rules")
+
+    wfe.execution_status.should.equal("CLOSED")
+    wfe.close_status.should.equal("FAILED")
+    wfe.close_timestamp.should.equal(1420196400.0)
+    wfe.events()[-1].event_type.should.equal("WorkflowExecutionFailed")
+    wfe.events()[-1].decision_task_completed_event_id.should.equal(123)
+    wfe.events()[-1].details.should.equal("some details")
+    wfe.events()[-1].reason.should.equal("my rules")
 
 
 # HistoryEvent

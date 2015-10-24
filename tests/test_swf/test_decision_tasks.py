@@ -144,7 +144,7 @@ def test_respond_decision_task_completed_with_complete_workflow_execution():
 
     decisions = [{
         "decisionType": "CompleteWorkflowExecution",
-        "completeWorkflowExecutionEventAttributes": {}
+        "completeWorkflowExecutionEventAttributes": {"result": "foo bar"}
     }]
     resp = conn.respond_decision_task_completed(task_token, decisions=decisions)
     resp.should.be.none
@@ -158,6 +158,7 @@ def test_respond_decision_task_completed_with_complete_workflow_execution():
         "DecisionTaskCompleted",
         "WorkflowExecutionCompleted",
     ])
+    resp["events"][-1]["workflowExecutionCompletedEventAttributes"]["result"].should.equal("foo bar")
 
 @mock_swf
 def test_respond_decision_task_completed_with_close_decision_not_last():
@@ -230,3 +231,29 @@ def test_respond_decision_task_completed_with_missing_attributes_totally():
             r"Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' " \
             r"failed to satisfy constraint: Member must not be null"
         )
+
+@mock_swf
+def test_respond_decision_task_completed_with_fail_workflow_execution():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+
+    decisions = [{
+        "decisionType": "FailWorkflowExecution",
+        "failWorkflowExecutionEventAttributes": {"reason": "my rules", "details": "foo"}
+    }]
+    resp = conn.respond_decision_task_completed(task_token, decisions=decisions)
+    resp.should.be.none
+
+    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal([
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+        "WorkflowExecutionFailed",
+    ])
+    attrs = resp["events"][-1]["workflowExecutionFailedEventAttributes"]
+    attrs["reason"].should.equal("my rules")
+    attrs["details"].should.equal("foo")

@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+from datetime import datetime
+from time import mktime
 import uuid
 
 from moto.core.utils import camelcase_to_underscores
@@ -38,11 +40,20 @@ class WorkflowExecution(object):
     ]
 
     def __init__(self, workflow_type, workflow_id, **kwargs):
-        self.workflow_type = workflow_type
         self.workflow_id = workflow_id
         self.run_id = uuid.uuid4().hex
-        self.execution_status = "OPEN"
+        # WorkflowExecutionInfo
         self.cancel_requested = False
+        # TODO: check valid values among:
+        # COMPLETED | FAILED | CANCELED | TERMINATED | CONTINUED_AS_NEW | TIMED_OUT
+        # TODO: implement them all
+        self.close_status = None
+        self.close_timestamp = None
+        self.execution_status = "OPEN"
+        self.parent = None
+        self.start_timestamp = None
+        self.tag_list = [] # TODO
+        self.workflow_type = workflow_type
         # args processing
         # NB: the order follows boto/SWF order of exceptions appearance (if no
         # param is set, # SWF will raise DefaultUndefinedFault errors in the
@@ -102,7 +113,7 @@ class WorkflowExecution(object):
             "executionStatus": self.execution_status,
             "cancelRequested": self.cancel_requested,
         }
-        if hasattr(self, "tag_list"):
+        if hasattr(self, "tag_list") and self.tag_list:
             hsh["tagList"] = self.tag_list
         return hsh
 
@@ -140,7 +151,12 @@ class WorkflowExecution(object):
         self._events.append(evt)
         return evt
 
+    # TODO: move it in utils
+    def _now_timestamp(self):
+        return float(mktime(datetime.now().timetuple()))
+
     def start(self):
+        self.start_timestamp = self._now_timestamp()
         self._add_event(
             "WorkflowExecutionStarted",
             workflow_execution=self,
@@ -274,11 +290,12 @@ class WorkflowExecution(object):
             attributes = decision.get(attributes_key, {})
             if decision_type == "CompleteWorkflowExecution":
                 self.complete(event_id, attributes.get("result"))
+            elif decision_type == "FailWorkflowExecution":
+                self.fail(event_id, attributes.get("details"), attributes.get("reason"))
             else:
                 # TODO: implement Decision type: CancelTimer
                 # TODO: implement Decision type: CancelWorkflowExecution
                 # TODO: implement Decision type: ContinueAsNewWorkflowExecution
-                # TODO: implement Decision type: FailWorkflowExecution
                 # TODO: implement Decision type: RecordMarker
                 # TODO: implement Decision type: RequestCancelActivityTask
                 # TODO: implement Decision type: RequestCancelExternalWorkflowExecution
@@ -291,8 +308,22 @@ class WorkflowExecution(object):
 
     def complete(self, event_id, result=None):
         self.execution_status = "CLOSED"
+        self.close_status = "COMPLETED"
+        self.close_timestamp = self._now_timestamp()
         evt = self._add_event(
             "WorkflowExecutionCompleted",
             decision_task_completed_event_id=event_id,
             result=result,
+        )
+
+    def fail(self, event_id, details=None, reason=None):
+        # TODO: implement lenght constraints on details/reason
+        self.execution_status = "CLOSED"
+        self.close_status = "FAILED"
+        self.close_timestamp = self._now_timestamp()
+        evt = self._add_event(
+            "WorkflowExecutionFailed",
+            decision_task_completed_event_id=event_id,
+            details=details,
+            reason=reason,
         )

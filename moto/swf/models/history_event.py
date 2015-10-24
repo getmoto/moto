@@ -72,6 +72,15 @@ class HistoryEvent(object):
             if hasattr(self, "result") and self.result:
                 hsh["result"] = self.result
             return hsh
+        elif self.event_type == "WorkflowExecutionFailed":
+            hsh = {
+                "decisionTaskCompletedEventId": self.decision_task_completed_event_id,
+            }
+            if hasattr(self, "details") and self.details:
+                hsh["details"] = self.details
+            if hasattr(self, "reason") and self.reason:
+                hsh["reason"] = self.reason
+            return hsh
         else:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{}'".format(self.event_type)
