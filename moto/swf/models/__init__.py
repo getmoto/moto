@@ -13,6 +13,7 @@ from ..exceptions import (
     SWFTypeDeprecatedFault,
     SWFValidationException,
 )
+from .activity_task import ActivityTask
 from .activity_type import ActivityType
 from .decision_task import DecisionTask
 from .domain import Domain

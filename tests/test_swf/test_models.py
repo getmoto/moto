@@ -2,6 +2,7 @@ from sure import expect
 from freezegun import freeze_time
 
 from moto.swf.models import (
+    ActivityTask,
     DecisionTask,
     Domain,
     GenericType,
@@ -301,3 +302,26 @@ def test_decision_task_full_dict_representation():
     dt.start(1234)
     fd = dt.to_full_dict()
     fd["startedEventId"].should.equal(1234)
+
+
+# ActivityTask
+def test_activity_task_creation():
+    wft = get_basic_workflow_type()
+    wfe = WorkflowExecution(wft, "ab1234")
+    task = ActivityTask(
+        activity_id="my-activity-123",
+        activity_type="foo",
+        input="optional",
+        workflow_execution=wfe,
+    )
+    task.workflow_execution.should.equal(wfe)
+    task.state.should.equal("SCHEDULED")
+    task.task_token.should_not.be.empty
+    task.started_event_id.should.be.none
+
+    task.start(123)
+    task.state.should.equal("STARTED")
+    task.started_event_id.should.equal(123)
+
+    task.complete()
+    task.state.should.equal("COMPLETED")
