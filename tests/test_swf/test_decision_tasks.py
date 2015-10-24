@@ -76,6 +76,15 @@ def test_count_pending_decision_tasks_on_non_existent_task_list():
     resp = conn.count_pending_decision_tasks("test-domain", "non-existent")
     resp.should.equal({"count": 0, "truncated": False})
 
+@mock_swf
+def test_count_pending_decision_tasks_after_decision_completes():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    conn.respond_decision_task_completed(resp["taskToken"])
+
+    resp = conn.count_pending_decision_tasks("test-domain", "queue")
+    resp.should.equal({"count": 0, "truncated": False})
+
 
 # RespondDecisionTaskCompleted endpoint
 @mock_swf

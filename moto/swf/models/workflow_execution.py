@@ -279,10 +279,10 @@ class WorkflowExecution(object):
         Handles a Decision according to SWF docs.
         See: http://docs.aws.amazon.com/amazonswf/latest/apireference/API_Decision.html
         """
-        # 'decisions' can be None per boto.swf defaults, so better exiting
-        # directly for falsy values
+        # 'decisions' can be None per boto.swf defaults, so replace it with something iterable
         if not decisions:
-            return
+            decisions = []
+
         # handle each decision separately, in order
         for decision in decisions:
             decision_type = decision["decisionType"]
@@ -305,6 +305,9 @@ class WorkflowExecution(object):
                 # TODO: implement Decision type: StartChildWorkflowExecution
                 # TODO: implement Decision type: StartTimer
                 raise NotImplementedError("Cannot handle decision: {}".format(decision_type))
+
+        # finally decrement counter if and only if everything went well
+        self.open_counts["openDecisionTasks"] -= 1
 
     def complete(self, event_id, result=None):
         self.execution_status = "CLOSED"
