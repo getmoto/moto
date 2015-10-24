@@ -144,7 +144,7 @@ def test_respond_decision_task_completed_with_complete_workflow_execution():
 
     decisions = [{
         "decisionType": "CompleteWorkflowExecution",
-        "completeWorkflowExecutionEventAttributes": {"result": "foo bar"}
+        "completeWorkflowExecutionDecisionAttributes": {"result": "foo bar"}
     }]
     resp = conn.respond_decision_task_completed(task_token, decisions=decisions)
     resp.should.be.none
@@ -240,7 +240,7 @@ def test_respond_decision_task_completed_with_fail_workflow_execution():
 
     decisions = [{
         "decisionType": "FailWorkflowExecution",
-        "failWorkflowExecutionEventAttributes": {"reason": "my rules", "details": "foo"}
+        "failWorkflowExecutionDecisionAttributes": {"reason": "my rules", "details": "foo"}
     }]
     resp = conn.respond_decision_task_completed(task_token, decisions=decisions)
     resp.should.be.none

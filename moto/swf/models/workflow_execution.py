@@ -286,7 +286,7 @@ class WorkflowExecution(object):
         # handle each decision separately, in order
         for decision in decisions:
             decision_type = decision["decisionType"]
-            attributes_key = "{}EventAttributes".format(decapitalize(decision_type))
+            attributes_key = "{}DecisionAttributes".format(decapitalize(decision_type))
             attributes = decision.get(attributes_key, {})
             if decision_type == "CompleteWorkflowExecution":
                 self.complete(event_id, attributes.get("result"))
