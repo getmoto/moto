@@ -23,6 +23,7 @@ class Domain(object):
         # of "workflow_id (client determined)" => WorkflowExecution()
         # here.
         self.workflow_executions = {}
+        self.task_lists = defaultdict(list)
 
     def __repr__(self):
         return "Domain(name: %(name)s, status: %(status)s)" % self.__dict__
@@ -83,3 +84,6 @@ class Domain(object):
                 )
             )
         return wfe
+
+    def add_to_task_list(self, task_list, obj):
+        self.task_lists[task_list].append(obj)

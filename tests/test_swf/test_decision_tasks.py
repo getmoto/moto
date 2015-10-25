@@ -17,7 +17,13 @@ def setup_workflow():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")
     conn = mock_basic_workflow_type("test-domain", conn)
-    conn.register_activity_type("test-domain", "test-activity", "v1.1")
+    conn.register_activity_type(
+        "test-domain", "test-activity", "v1.1",
+        default_task_heartbeat_timeout="600",
+        default_task_schedule_to_close_timeout="600",
+        default_task_schedule_to_start_timeout="600",
+        default_task_start_to_close_timeout="600",
+    )
     wfe = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
     conn.run_id = wfe["runId"]
     return conn
@@ -266,3 +272,50 @@ def test_respond_decision_task_completed_with_fail_workflow_execution():
     attrs = resp["events"][-1]["workflowExecutionFailedEventAttributes"]
     attrs["reason"].should.equal("my rules")
     attrs["details"].should.equal("foo")
+
+@mock_swf
+def test_respond_decision_task_completed_with_schedule_activity_task():
+    conn = setup_workflow()
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    task_token = resp["taskToken"]
+
+    decisions = [{
+        "decisionType": "ScheduleActivityTask",
+        "scheduleActivityTaskDecisionAttributes": {
+            "activityId": "my-activity-001",
+            "activityType": {
+                "name": "test-activity",
+                "version": "v1.1"
+            },
+            "heartbeatTimeout": "60",
+            "input": "123",
+            "taskList": {
+                "name": "my-task-list"
+            },
+        }
+    }]
+    resp = conn.respond_decision_task_completed(task_token, decisions=decisions)
+    resp.should.be.none
+
+    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal([
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+        "ActivityTaskScheduled",
+    ])
+    resp["events"][-1]["activityTaskScheduledEventAttributes"].should.equal({
+        "decisionTaskCompletedEventId": 4,
+        "activityId": "my-activity-001",
+        "activityType": {
+            "name": "test-activity",
+            "version": "v1.1",
+        },
+        "heartbeatTimeout": "60",
+        "input": "123",
+        "taskList": {
+            "name": "my-task-list"
+        },
+    })

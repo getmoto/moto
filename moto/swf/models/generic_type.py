@@ -12,6 +12,13 @@ class GenericType(object):
             self.description = kwargs.pop("description")
         for key, value in kwargs.iteritems():
             self.__setattr__(key, value)
+        # default values set to none
+        for key in self._configuration_keys:
+            attr = camelcase_to_underscores(key)
+            if not hasattr(self, attr):
+                self.__setattr__(attr, None)
+        if not hasattr(self, "task_list"):
+            self.task_list = None
 
     def __repr__(self):
         cls = self.__class__.__name__
@@ -49,12 +56,10 @@ class GenericType(object):
             "typeInfo": self.to_medium_dict(),
             "configuration": {}
         }
-        if hasattr(self, "task_list"):
+        if self.task_list:
             hsh["configuration"]["defaultTaskList"] = {"name": self.task_list}
         for key in self._configuration_keys:
             attr = camelcase_to_underscores(key)
-            if not hasattr(self, attr):
-                continue
             if not getattr(self, attr):
                 continue
             hsh["configuration"][key] = getattr(self, attr)

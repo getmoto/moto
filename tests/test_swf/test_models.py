@@ -3,6 +3,7 @@ from freezegun import freeze_time
 
 from moto.swf.models import (
     ActivityTask,
+    ActivityType,
     DecisionTask,
     Domain,
     GenericType,
@@ -24,6 +25,7 @@ from .utils import (
 # TODO: move them in utils
 def make_workflow_execution(**kwargs):
     domain = get_basic_domain()
+    domain.add_type(ActivityType("test-activity", "v1.1"))
     wft = get_basic_workflow_type()
     return WorkflowExecution(domain, wft, "ab1234", **kwargs)
 
@@ -46,6 +48,13 @@ def test_domain_full_dict_representation():
 def test_domain_string_representation():
     domain = Domain("my-domain", "60")
     str(domain).should.equal("Domain(name: my-domain, status: REGISTERED)")
+
+def test_domain_add_to_task_list():
+    domain = Domain("my-domain", "60")
+    domain.add_to_task_list("foo", "bar")
+    dict(domain.task_lists).should.equal({
+        "foo": ["bar"]
+    })
 
 
 # GenericType (ActivityType, WorkflowType)
@@ -264,6 +273,178 @@ def test_workflow_execution_fail():
     wfe.events()[-1].decision_task_completed_event_id.should.equal(123)
     wfe.events()[-1].details.should.equal("some details")
     wfe.events()[-1].reason.should.equal("my rules")
+
+def test_workflow_execution_schedule_activity_task():
+    wfe = make_workflow_execution()
+    wfe.schedule_activity_task(123, {
+        "activityId": "my-activity-001",
+        "activityType": { "name": "test-activity", "version": "v1.1" },
+        "taskList": { "name": "task-list-name" },
+        "scheduleToStartTimeout": "600",
+        "scheduleToCloseTimeout": "600",
+        "startToCloseTimeout": "600",
+        "heartbeatTimeout": "300",
+    })
+
+    wfe.open_counts["openActivityTasks"].should.equal(1)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ActivityTaskScheduled")
+    last_event.decision_task_completed_event_id.should.equal(123)
+    last_event.task_list.should.equal("task-list-name")
+
+    wfe.activity_tasks.should.have.length_of(1)
+    task = wfe.activity_tasks[0]
+    task.activity_id.should.equal("my-activity-001")
+    task.activity_type.name.should.equal("test-activity")
+    wfe.domain.task_lists["task-list-name"].should.contain(task)
+
+def test_workflow_execution_schedule_activity_task_without_task_list_should_take_default():
+    wfe = make_workflow_execution()
+    wfe.domain.add_type(
+        ActivityType("test-activity", "v1.2", task_list="foobar")
+    )
+    wfe.schedule_activity_task(123, {
+        "activityId": "my-activity-001",
+        "activityType": { "name": "test-activity", "version": "v1.2" },
+        "scheduleToStartTimeout": "600",
+        "scheduleToCloseTimeout": "600",
+        "startToCloseTimeout": "600",
+        "heartbeatTimeout": "300",
+    })
+
+    wfe.open_counts["openActivityTasks"].should.equal(1)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ActivityTaskScheduled")
+    last_event.task_list.should.equal("foobar")
+
+    task = wfe.activity_tasks[0]
+    wfe.domain.task_lists["foobar"].should.contain(task)
+
+def test_workflow_execution_schedule_activity_task_should_fail_if_wrong_attributes():
+    wfe = make_workflow_execution()
+    at = ActivityType("test-activity", "v1.1")
+    at.status = "DEPRECATED"
+    wfe.domain.add_type(at)
+    wfe.domain.add_type(ActivityType("test-activity", "v1.2"))
+
+    hsh = {
+        "activityId": "my-activity-001",
+        "activityType": { "name": "test-activity-does-not-exists", "version": "v1.1" },
+    }
+
+    wfe.schedule_activity_task(123, hsh)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ScheduleActivityTaskFailed")
+    last_event.cause.should.equal("ACTIVITY_TYPE_DOES_NOT_EXIST")
+
+    hsh["activityType"]["name"] = "test-activity"
+    wfe.schedule_activity_task(123, hsh)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ScheduleActivityTaskFailed")
+    last_event.cause.should.equal("ACTIVITY_TYPE_DEPRECATED")
+
+    hsh["activityType"]["version"] = "v1.2"
+    wfe.schedule_activity_task(123, hsh)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ScheduleActivityTaskFailed")
+    last_event.cause.should.equal("DEFAULT_TASK_LIST_UNDEFINED")
+
+    hsh["taskList"] = { "name": "foobar" }
+    wfe.schedule_activity_task(123, hsh)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ScheduleActivityTaskFailed")
+    last_event.cause.should.equal("DEFAULT_SCHEDULE_TO_START_TIMEOUT_UNDEFINED")
+
+    hsh["scheduleToStartTimeout"] = "600"
+    wfe.schedule_activity_task(123, hsh)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ScheduleActivityTaskFailed")
+    last_event.cause.should.equal("DEFAULT_SCHEDULE_TO_CLOSE_TIMEOUT_UNDEFINED")
+
+    hsh["scheduleToCloseTimeout"] = "600"
+    wfe.schedule_activity_task(123, hsh)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ScheduleActivityTaskFailed")
+    last_event.cause.should.equal("DEFAULT_START_TO_CLOSE_TIMEOUT_UNDEFINED")
+
+    hsh["startToCloseTimeout"] = "600"
+    wfe.schedule_activity_task(123, hsh)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ScheduleActivityTaskFailed")
+    last_event.cause.should.equal("DEFAULT_HEARTBEAT_TIMEOUT_UNDEFINED")
+
+    wfe.open_counts["openActivityTasks"].should.equal(0)
+    wfe.activity_tasks.should.have.length_of(0)
+    wfe.domain.task_lists.should.have.length_of(0)
+
+    hsh["heartbeatTimeout"] = "300"
+    wfe.schedule_activity_task(123, hsh)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ActivityTaskScheduled")
+
+    task = wfe.activity_tasks[0]
+    wfe.domain.task_lists["foobar"].should.contain(task)
+    wfe.open_counts["openDecisionTasks"].should.equal(0)
+    wfe.open_counts["openActivityTasks"].should.equal(1)
+
+def test_workflow_execution_schedule_activity_task_failure_triggers_new_decision():
+    wfe = make_workflow_execution()
+    wfe.start()
+    task_token = wfe.decision_tasks[-1].task_token
+    wfe.start_decision_task(task_token)
+    wfe.complete_decision_task(task_token, decisions=[
+        {
+            "decisionType": "ScheduleActivityTask",
+            "scheduleActivityTaskDecisionAttributes": {
+                "activityId": "my-activity-001",
+                "activityType": { "name": "test-activity-does-not-exist", "version": "v1.2" },
+            }
+        },
+        {
+            "decisionType": "ScheduleActivityTask",
+            "scheduleActivityTaskDecisionAttributes": {
+                "activityId": "my-activity-001",
+                "activityType": { "name": "test-activity-does-not-exist", "version": "v1.2" },
+            }
+        },
+    ])
+
+    wfe.open_counts["openActivityTasks"].should.equal(0)
+    wfe.open_counts["openDecisionTasks"].should.equal(1)
+    last_events = wfe.events()[-3:]
+    last_events[0].event_type.should.equal("ScheduleActivityTaskFailed")
+    last_events[1].event_type.should.equal("ScheduleActivityTaskFailed")
+    last_events[2].event_type.should.equal("DecisionTaskScheduled")
+
+def test_workflow_execution_schedule_activity_task_with_same_activity_id():
+    wfe = make_workflow_execution()
+
+    wfe.schedule_activity_task(123, {
+        "activityId": "my-activity-001",
+        "activityType": { "name": "test-activity", "version": "v1.1" },
+        "taskList": { "name": "task-list-name" },
+        "scheduleToStartTimeout": "600",
+        "scheduleToCloseTimeout": "600",
+        "startToCloseTimeout": "600",
+        "heartbeatTimeout": "300",
+    })
+    wfe.open_counts["openActivityTasks"].should.equal(1)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ActivityTaskScheduled")
+
+    wfe.schedule_activity_task(123, {
+        "activityId": "my-activity-001",
+        "activityType": { "name": "test-activity", "version": "v1.1" },
+        "taskList": { "name": "task-list-name" },
+        "scheduleToStartTimeout": "600",
+        "scheduleToCloseTimeout": "600",
+        "startToCloseTimeout": "600",
+        "heartbeatTimeout": "300",
+    })
+    wfe.open_counts["openActivityTasks"].should.equal(1)
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("ScheduleActivityTaskFailed")
+    last_event.cause.should.equal("ACTIVITY_ID_ALREADY_IN_USE")
 
 
 # HistoryEvent

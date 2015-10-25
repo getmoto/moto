@@ -14,6 +14,8 @@ from ..exceptions import (
     SWFDecisionValidationException,
 )
 from ..utils import decapitalize
+from .activity_task import ActivityTask
+from .activity_type import ActivityType
 from .decision_task import DecisionTask
 from .history_event import HistoryEvent
 
@@ -209,7 +211,10 @@ class WorkflowExecution(object):
             execution_context=execution_context,
         )
         dt.complete()
+        self.should_schedule_decision_next = False
         self.handle_decisions(evt.event_id, decisions)
+        if self.should_schedule_decision_next:
+            self.schedule_decision_task()
 
     def _check_decision_attributes(self, kind, value, decision_id):
         problems = []
@@ -293,6 +298,8 @@ class WorkflowExecution(object):
                 self.complete(event_id, attributes.get("result"))
             elif decision_type == "FailWorkflowExecution":
                 self.fail(event_id, attributes.get("details"), attributes.get("reason"))
+            elif decision_type == "ScheduleActivityTask":
+                self.schedule_activity_task(event_id, attributes)
             else:
                 # TODO: implement Decision type: CancelTimer
                 # TODO: implement Decision type: CancelWorkflowExecution
@@ -300,7 +307,6 @@ class WorkflowExecution(object):
                 # TODO: implement Decision type: RecordMarker
                 # TODO: implement Decision type: RequestCancelActivityTask
                 # TODO: implement Decision type: RequestCancelExternalWorkflowExecution
-                # TODO: implement Decision type: ScheduleActivityTask
                 # TODO: implement Decision type: ScheduleLambdaFunction
                 # TODO: implement Decision type: SignalExternalWorkflowExecution
                 # TODO: implement Decision type: StartChildWorkflowExecution
@@ -331,3 +337,96 @@ class WorkflowExecution(object):
             details=details,
             reason=reason,
         )
+
+    def schedule_activity_task(self, event_id, attributes):
+        activity_type = self.domain.get_type(
+            "activity",
+            attributes["activityType"]["name"],
+            attributes["activityType"]["version"],
+            ignore_empty=True,
+        )
+        if not activity_type:
+            fake_type = ActivityType(attributes["activityType"]["name"],
+                                     attributes["activityType"]["version"])
+            self._add_event(
+                "ScheduleActivityTaskFailed",
+                activity_id=attributes["activityId"],
+                activity_type=fake_type,
+                cause="ACTIVITY_TYPE_DOES_NOT_EXIST",
+                decision_task_completed_event_id=event_id,
+            )
+            self.should_schedule_decision_next = True
+            return
+        if activity_type.status == "DEPRECATED":
+            self._add_event(
+                "ScheduleActivityTaskFailed",
+                activity_id=attributes["activityId"],
+                activity_type=activity_type,
+                cause="ACTIVITY_TYPE_DEPRECATED",
+                decision_task_completed_event_id=event_id,
+            )
+            self.should_schedule_decision_next = True
+            return
+        if any(at for at in self.activity_tasks
+               if at.activity_id == attributes["activityId"]):
+            self._add_event(
+                "ScheduleActivityTaskFailed",
+                activity_id=attributes["activityId"],
+                activity_type=activity_type,
+                cause="ACTIVITY_ID_ALREADY_IN_USE",
+                decision_task_completed_event_id=event_id,
+            )
+            self.should_schedule_decision_next = True
+            return
+
+        # find task list or default task list, else fail
+        task_list = attributes.get("taskList", {}).get("name")
+        if not task_list and activity_type.task_list:
+            task_list = activity_type.task_list
+        if not task_list:
+            self._add_event(
+                "ScheduleActivityTaskFailed",
+                activity_id=attributes["activityId"],
+                activity_type=activity_type,
+                cause="DEFAULT_TASK_LIST_UNDEFINED",
+                decision_task_completed_event_id=event_id,
+            )
+            self.should_schedule_decision_next = True
+            return
+
+        # find timeouts or default timeout, else fail
+        timeouts = {}
+        for _type in ["scheduleToStartTimeout", "scheduleToCloseTimeout", "startToCloseTimeout", "heartbeatTimeout"]:
+            default_key = "default_task_"+camelcase_to_underscores(_type)
+            default_value = getattr(activity_type, default_key)
+            timeouts[_type] = attributes.get(_type, default_value)
+            if not timeouts[_type]:
+                error_key = default_key.replace("default_task_", "default_")
+                self._add_event(
+                    "ScheduleActivityTaskFailed",
+                    activity_id=attributes["activityId"],
+                    activity_type=activity_type,
+                    cause="{}_UNDEFINED".format(error_key.upper()),
+                    decision_task_completed_event_id=event_id,
+                )
+                self.should_schedule_decision_next = True
+                return
+
+        task = ActivityTask(
+            activity_id=attributes["activityId"],
+            activity_type=activity_type,
+            input=attributes.get("input"),
+            workflow_execution=self,
+        )
+        # Only add event and increment counters if nothing went wrong
+        # TODO: don't store activity tasks in 2 places...
+        self.activity_tasks.append(task)
+        self.domain.add_to_task_list(task_list, task)
+        self._add_event(
+            "ActivityTaskScheduled",
+            decision_task_completed_event_id=event_id,
+            activity_type=activity_type,
+            attributes=attributes,
+            task_list=task_list,
+        )
+        self.open_counts["openActivityTasks"] += 1

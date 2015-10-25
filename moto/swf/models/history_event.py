@@ -81,6 +81,30 @@ class HistoryEvent(object):
             if hasattr(self, "reason") and self.reason:
                 hsh["reason"] = self.reason
             return hsh
+        elif self.event_type == "ActivityTaskScheduled":
+            hsh = {
+                "activityId": self.attributes["activityId"],
+                "activityType": self.activity_type.to_short_dict(),
+                "decisionTaskCompletedEventId": self.decision_task_completed_event_id,
+                "taskList": {
+                    "name": self.task_list,
+                },
+            }
+            for attr in ["control", "heartbeatTimeout", "input", "scheduleToCloseTimeout",
+                         "scheduleToStartTimeout", "startToCloseTimeout", "taskPriority"]:
+                if self.attributes.get(attr):
+                    hsh[attr] = self.attributes[attr]
+            return hsh
+        elif self.event_type == "ScheduleActivityTaskFailed":
+            # TODO: implement other possible failure mode: OPEN_ACTIVITIES_LIMIT_EXCEEDED
+            # NB: some failure modes are not implemented and probably won't be implemented in the
+            # future, such as ACTIVITY_CREATION_RATE_EXCEEDED or OPERATION_NOT_PERMITTED
+            return {
+                "activityId": self.activity_id,
+                "activityType": self.activity_type.to_short_dict(),
+                "cause": self.cause,
+                "decisionTaskCompletedEventId": self.decision_task_completed_event_id,
+            }
         else:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{}'".format(self.event_type)
