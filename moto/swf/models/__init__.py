@@ -148,7 +148,7 @@ class SWFBackend(BaseBackend):
         wf_type = domain.get_type("workflow", workflow_name, workflow_version)
         if wf_type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(wf_type)
-        wfe = WorkflowExecution(wf_type, workflow_id,
+        wfe = WorkflowExecution(domain, wf_type, workflow_id,
                                 tag_list=tag_list, **kwargs)
         domain.add_workflow_execution(wfe)
         wfe.start()

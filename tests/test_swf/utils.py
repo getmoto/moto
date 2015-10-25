@@ -1,6 +1,12 @@
 from moto.swf.models import (
+    Domain,
     WorkflowType,
 )
+
+
+# A test Domain
+def get_basic_domain():
+    return Domain("test-domain", "90")
 
 
 # A generic test WorkflowType

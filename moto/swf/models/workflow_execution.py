@@ -39,7 +39,8 @@ class WorkflowExecution(object):
         "CancelWorkflowExecution"
     ]
 
-    def __init__(self, workflow_type, workflow_id, **kwargs):
+    def __init__(self, domain, workflow_type, workflow_id, **kwargs):
+        self.domain = domain
         self.workflow_id = workflow_id
         self.run_id = uuid.uuid4().hex
         # WorkflowExecutionInfo
