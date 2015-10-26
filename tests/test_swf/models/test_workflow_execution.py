@@ -2,12 +2,7 @@ from sure import expect
 from freezegun import freeze_time
 
 from moto.swf.models import (
-    ActivityTask,
     ActivityType,
-    DecisionTask,
-    Domain,
-    GenericType,
-    HistoryEvent,
     WorkflowType,
     WorkflowExecution,
 )
@@ -15,97 +10,13 @@ from moto.swf.exceptions import (
     SWFDefaultUndefinedFault,
 )
 
-from .utils import (
+from ..utils import (
     get_basic_domain,
     get_basic_workflow_type,
+    make_workflow_execution,
 )
 
 
-# Some utility methods
-# TODO: move them in utils
-def make_workflow_execution(**kwargs):
-    domain = get_basic_domain()
-    domain.add_type(ActivityType("test-activity", "v1.1"))
-    wft = get_basic_workflow_type()
-    return WorkflowExecution(domain, wft, "ab1234", **kwargs)
-
-
-# Domain
-def test_domain_short_dict_representation():
-    domain = Domain("foo", "52")
-    domain.to_short_dict().should.equal({"name":"foo", "status":"REGISTERED"})
-
-    domain.description = "foo bar"
-    domain.to_short_dict()["description"].should.equal("foo bar")
-
-def test_domain_full_dict_representation():
-    domain = Domain("foo", "52")
-
-    domain.to_full_dict()["domainInfo"].should.equal(domain.to_short_dict())
-    _config = domain.to_full_dict()["configuration"]
-    _config["workflowExecutionRetentionPeriodInDays"].should.equal("52")
-
-def test_domain_string_representation():
-    domain = Domain("my-domain", "60")
-    str(domain).should.equal("Domain(name: my-domain, status: REGISTERED)")
-
-def test_domain_add_to_task_list():
-    domain = Domain("my-domain", "60")
-    domain.add_to_task_list("foo", "bar")
-    dict(domain.task_lists).should.equal({
-        "foo": ["bar"]
-    })
-
-
-# GenericType (ActivityType, WorkflowType)
-class FooType(GenericType):
-    @property
-    def kind(self):
-        return "foo"
-
-    @property
-    def _configuration_keys(self):
-        return ["justAnExampleTimeout"]
-
-
-def test_type_short_dict_representation():
-    _type = FooType("test-foo", "v1.0")
-    _type.to_short_dict().should.equal({"name": "test-foo", "version": "v1.0"})
-
-def test_type_medium_dict_representation():
-    _type = FooType("test-foo", "v1.0")
-    _type.to_medium_dict()["fooType"].should.equal(_type.to_short_dict())
-    _type.to_medium_dict()["status"].should.equal("REGISTERED")
-    _type.to_medium_dict().should.contain("creationDate")
-    _type.to_medium_dict().should_not.contain("deprecationDate")
-    _type.to_medium_dict().should_not.contain("description")
-
-    _type.description = "foo bar"
-    _type.to_medium_dict()["description"].should.equal("foo bar")
-
-    _type.status = "DEPRECATED"
-    _type.to_medium_dict().should.contain("deprecationDate")
-
-def test_type_full_dict_representation():
-    _type = FooType("test-foo", "v1.0")
-    _type.to_full_dict()["typeInfo"].should.equal(_type.to_medium_dict())
-    _type.to_full_dict()["configuration"].should.equal({})
-
-    _type.task_list = "foo"
-    _type.to_full_dict()["configuration"]["defaultTaskList"].should.equal({"name":"foo"})
-
-    _type.just_an_example_timeout = "60"
-    _type.to_full_dict()["configuration"]["justAnExampleTimeout"].should.equal("60")
-
-    _type.non_whitelisted_property = "34"
-    _type.to_full_dict()["configuration"].keys().should.equal(["defaultTaskList", "justAnExampleTimeout"])
-
-def test_type_string_representation():
-    _type = FooType("test-foo", "v1.0")
-    str(_type).should.equal("FooType(name: test-foo, version: v1.0, status: REGISTERED)")
-
-
-# WorkflowExecution
 def test_workflow_execution_creation():
     domain = get_basic_domain()
     wft = get_basic_workflow_type()
@@ -445,78 +356,3 @@ def test_workflow_execution_schedule_activity_task_with_same_activity_id():
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
     last_event.cause.should.equal("ACTIVITY_ID_ALREADY_IN_USE")
-
-
-# HistoryEvent
-@freeze_time("2015-01-01 12:00:00")
-def test_history_event_creation():
-    he = HistoryEvent(123, "DecisionTaskStarted", scheduled_event_id=2)
-    he.event_id.should.equal(123)
-    he.event_type.should.equal("DecisionTaskStarted")
-    he.event_timestamp.should.equal(1420110000.0)
-
-@freeze_time("2015-01-01 12:00:00")
-def test_history_event_to_dict_representation():
-    he = HistoryEvent(123, "DecisionTaskStarted", scheduled_event_id=2)
-    he.to_dict().should.equal({
-        "eventId": 123,
-        "eventType": "DecisionTaskStarted",
-        "eventTimestamp": 1420110000.0,
-        "decisionTaskStartedEventAttributes": {
-            "scheduledEventId": 2
-        }
-    })
-
-def test_history_event_breaks_on_initialization_if_not_implemented():
-    HistoryEvent.when.called_with(
-        123, "UnknownHistoryEvent"
-    ).should.throw(NotImplementedError)
-
-
-# DecisionTask
-def test_decision_task_creation():
-    wfe = make_workflow_execution()
-    dt = DecisionTask(wfe, 123)
-    dt.workflow_execution.should.equal(wfe)
-    dt.state.should.equal("SCHEDULED")
-    dt.task_token.should_not.be.empty
-    dt.started_event_id.should.be.none
-
-def test_decision_task_full_dict_representation():
-    wfe = make_workflow_execution()
-    wft = wfe.workflow_type
-    dt = DecisionTask(wfe, 123)
-
-    fd = dt.to_full_dict()
-    fd["events"].should.be.a("list")
-    fd["previousStartedEventId"].should.equal(0)
-    fd.should_not.contain("startedEventId")
-    fd.should.contain("taskToken")
-    fd["workflowExecution"].should.equal(wfe.to_short_dict())
-    fd["workflowType"].should.equal(wft.to_short_dict())
-
-    dt.start(1234)
-    fd = dt.to_full_dict()
-    fd["startedEventId"].should.equal(1234)
-
-
-# ActivityTask
-def test_activity_task_creation():
-    wfe = make_workflow_execution()
-    task = ActivityTask(
-        activity_id="my-activity-123",
-        activity_type="foo",
-        input="optional",
-        workflow_execution=wfe,
-    )
-    task.workflow_execution.should.equal(wfe)
-    task.state.should.equal("SCHEDULED")
-    task.task_token.should_not.be.empty
-    task.started_event_id.should.be.none
-
-    task.start(123)
-    task.state.should.equal("STARTED")
-    task.started_event_id.should.equal(123)
-
-    task.complete()
-    task.state.should.equal("COMPLETED")

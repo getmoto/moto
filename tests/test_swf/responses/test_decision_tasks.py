@@ -9,7 +9,7 @@ from moto.swf.exceptions import (
     SWFDecisionValidationException,
 )
 
-from .utils import mock_basic_workflow_type
+from ..utils import mock_basic_workflow_type
 
 
 @mock_swf
