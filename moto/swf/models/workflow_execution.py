@@ -183,13 +183,6 @@ class WorkflowExecution(object):
         )
 
     @property
-    def scheduled_decision_tasks(self):
-        return filter(
-            lambda t: t.state == "SCHEDULED",
-            self.decision_tasks
-        )
-
-    @property
     def activity_tasks(self):
         return filter(
             lambda t: t.workflow_execution == self,
