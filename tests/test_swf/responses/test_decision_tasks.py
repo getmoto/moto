@@ -9,24 +9,7 @@ from moto.swf.exceptions import (
     SWFDecisionValidationException,
 )
 
-from ..utils import mock_basic_workflow_type
-
-
-@mock_swf
-def setup_workflow():
-    conn = boto.connect_swf("the_key", "the_secret")
-    conn.register_domain("test-domain", "60", description="A test domain")
-    conn = mock_basic_workflow_type("test-domain", conn)
-    conn.register_activity_type(
-        "test-domain", "test-activity", "v1.1",
-        default_task_heartbeat_timeout="600",
-        default_task_schedule_to_close_timeout="600",
-        default_task_schedule_to_start_timeout="600",
-        default_task_start_to_close_timeout="600",
-    )
-    wfe = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
-    conn.run_id = wfe["runId"]
-    return conn
+from ..utils import setup_workflow
 
 
 # PollForDecisionTask endpoint
