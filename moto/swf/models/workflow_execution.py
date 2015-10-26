@@ -396,19 +396,37 @@ class WorkflowExecution(object):
                                             "{}_UNDEFINED".format(error_key.upper()))
                 return
 
-        task = ActivityTask(
-            activity_id=attributes["activityId"],
-            activity_type=activity_type,
-            input=attributes.get("input"),
-            workflow_execution=self,
-        )
-        # Only add event and increment counters if nothing went wrong
-        self.domain.add_to_activity_task_list(task_list, task)
-        self._add_event(
+        # Only add event and increment counters now that nothing went wrong
+        evt = self._add_event(
             "ActivityTaskScheduled",
             decision_task_completed_event_id=event_id,
             activity_type=activity_type,
             attributes=attributes,
             task_list=task_list,
         )
+        task = ActivityTask(
+            activity_id=attributes["activityId"],
+            activity_type=activity_type,
+            input=attributes.get("input"),
+            scheduled_event_id=evt.event_id,
+            workflow_execution=self,
+        )
+        self.domain.add_to_activity_task_list(task_list, task)
         self.open_counts["openActivityTasks"] += 1
+
+    def _find_activity_task(self, task_token):
+        for task in self.activity_tasks:
+            if task.task_token == task_token:
+                return task
+        raise ValueError(
+            "No activity task with token: {}".format(task_token)
+        )
+
+    def start_activity_task(self, task_token, identity=None):
+        task = self._find_activity_task(task_token)
+        evt = self._add_event(
+            "ActivityTaskStarted",
+            scheduled_event_id=task.scheduled_event_id,
+            identity=identity
+        )
+        task.start(evt.event_id)

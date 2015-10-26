@@ -17,6 +17,16 @@ from ..utils import (
 )
 
 
+VALID_ACTIVITY_TASK_ATTRIBUTES = {
+    "activityId": "my-activity-001",
+    "activityType": { "name": "test-activity", "version": "v1.1" },
+    "taskList": { "name": "task-list-name" },
+    "scheduleToStartTimeout": "600",
+    "scheduleToCloseTimeout": "600",
+    "startToCloseTimeout": "600",
+    "heartbeatTimeout": "300",
+}
+
 def test_workflow_execution_creation():
     domain = get_basic_domain()
     wft = get_basic_workflow_type()
@@ -187,15 +197,7 @@ def test_workflow_execution_fail():
 
 def test_workflow_execution_schedule_activity_task():
     wfe = make_workflow_execution()
-    wfe.schedule_activity_task(123, {
-        "activityId": "my-activity-001",
-        "activityType": { "name": "test-activity", "version": "v1.1" },
-        "taskList": { "name": "task-list-name" },
-        "scheduleToStartTimeout": "600",
-        "scheduleToCloseTimeout": "600",
-        "startToCloseTimeout": "600",
-        "heartbeatTimeout": "300",
-    })
+    wfe.schedule_activity_task(123, VALID_ACTIVITY_TASK_ATTRIBUTES)
 
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
@@ -330,29 +332,23 @@ def test_workflow_execution_schedule_activity_task_failure_triggers_new_decision
 def test_workflow_execution_schedule_activity_task_with_same_activity_id():
     wfe = make_workflow_execution()
 
-    wfe.schedule_activity_task(123, {
-        "activityId": "my-activity-001",
-        "activityType": { "name": "test-activity", "version": "v1.1" },
-        "taskList": { "name": "task-list-name" },
-        "scheduleToStartTimeout": "600",
-        "scheduleToCloseTimeout": "600",
-        "startToCloseTimeout": "600",
-        "heartbeatTimeout": "300",
-    })
+    wfe.schedule_activity_task(123, VALID_ACTIVITY_TASK_ATTRIBUTES)
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ActivityTaskScheduled")
 
-    wfe.schedule_activity_task(123, {
-        "activityId": "my-activity-001",
-        "activityType": { "name": "test-activity", "version": "v1.1" },
-        "taskList": { "name": "task-list-name" },
-        "scheduleToStartTimeout": "600",
-        "scheduleToCloseTimeout": "600",
-        "startToCloseTimeout": "600",
-        "heartbeatTimeout": "300",
-    })
+    wfe.schedule_activity_task(123, VALID_ACTIVITY_TASK_ATTRIBUTES)
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
     last_event.cause.should.equal("ACTIVITY_ID_ALREADY_IN_USE")
+
+def test_workflow_execution_start_activity_task():
+    wfe = make_workflow_execution()
+    wfe.schedule_activity_task(123, VALID_ACTIVITY_TASK_ATTRIBUTES)
+    task_token = wfe.activity_tasks[-1].task_token
+    wfe.start_activity_task(task_token, identity="worker01")
+    task = wfe.activity_tasks[-1]
+    task.state.should.equal("STARTED")
+    wfe.events()[-1].event_type.should.equal("ActivityTaskStarted")
+    wfe.events()[-1].identity.should.equal("worker01")

@@ -105,6 +105,14 @@ class HistoryEvent(object):
                 "cause": self.cause,
                 "decisionTaskCompletedEventId": self.decision_task_completed_event_id,
             }
+        elif self.event_type == "ActivityTaskStarted":
+            # TODO: merge it with DecisionTaskStarted
+            hsh = {
+                "scheduledEventId": self.scheduled_event_id
+            }
+            if hasattr(self, "identity") and self.identity:
+                hsh["identity"] = self.identity
+            return hsh
         else:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{}'".format(self.event_type)

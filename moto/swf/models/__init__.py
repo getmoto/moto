@@ -256,6 +256,37 @@ class SWFBackend(BaseBackend):
                                        decisions=decisions,
                                        execution_context=execution_context)
 
+    def poll_for_activity_task(self, domain_name, task_list, identity=None):
+        self._check_string(domain_name)
+        self._check_string(task_list)
+        domain = self._get_domain(domain_name)
+        # Real SWF cases:
+        # - case 1: there's an activity task to return, return it
+        # - case 2: there's no activity task to return, so wait for timeout
+        #           and if a new activity is scheduled, return it
+        # - case 3: timeout reached, no activity task, return an empty response
+        #           (e.g. a response with an empty "taskToken")
+        #
+        # For the sake of simplicity, we forget case 2 for now, so either
+        # there's an ActivityTask to return, either we return a blank one.
+        #
+        # SWF client libraries should cope with that easily as long as tests
+        # aren't distributed.
+        #
+        # TODO: handle long polling (case 2) for activity tasks
+        candidates = []
+        for _task_list, tasks in domain.activity_task_lists.iteritems():
+            if _task_list == task_list:
+                candidates += filter(lambda t: t.state == "SCHEDULED", tasks)
+        if any(candidates):
+            # TODO: handle task priorities (but not supported by boto for now)
+            task = min(candidates, key=lambda d: d.scheduled_at)
+            wfe = task.workflow_execution
+            wfe.start_activity_task(task.task_token, identity=identity)
+            return task
+        else:
+            return None
+
 
 swf_backends = {}
 for region in boto.swf.regions():

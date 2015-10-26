@@ -251,3 +251,17 @@ class SWFResponse(BaseResponse):
             task_token, decisions=decisions, execution_context=execution_context
         )
         return ""
+
+    def poll_for_activity_task(self):
+        domain_name = self._params["domain"]
+        task_list = self._params["taskList"]["name"]
+        identity = self._params.get("identity")
+        activity_task = self.swf_backend.poll_for_activity_task(
+            domain_name, task_list, identity=identity
+        )
+        if activity_task:
+            return json.dumps(
+                activity_task.to_full_dict()
+            )
+        else:
+            return json.dumps({"startedEventId": 0})
