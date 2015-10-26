@@ -242,7 +242,6 @@ class SWFResponse(BaseResponse):
         count = self.swf_backend.count_pending_decision_tasks(domain_name, task_list)
         return json.dumps({"count": count, "truncated": False})
 
-
     def respond_decision_task_completed(self):
         task_token = self._params["taskToken"]
         execution_context = self._params.get("executionContext")
@@ -265,3 +264,9 @@ class SWFResponse(BaseResponse):
             )
         else:
             return json.dumps({"startedEventId": 0})
+
+    def count_pending_activity_tasks(self):
+        domain_name = self._params["domain"]
+        task_list = self._params["taskList"]["name"]
+        count = self.swf_backend.count_pending_activity_tasks(domain_name, task_list)
+        return json.dumps({"count": count, "truncated": False})

@@ -287,6 +287,17 @@ class SWFBackend(BaseBackend):
         else:
             return None
 
+    def count_pending_activity_tasks(self, domain_name, task_list):
+        self._check_string(domain_name)
+        self._check_string(task_list)
+        domain = self._get_domain(domain_name)
+        count = 0
+        for _task_list, tasks in domain.activity_task_lists.iteritems():
+            if _task_list == task_list:
+                pending = [t for t in tasks if t.state in ["SCHEDULED", "STARTED"]]
+                count += len(pending)
+        return count
+
 
 swf_backends = {}
 for region in boto.swf.regions():
