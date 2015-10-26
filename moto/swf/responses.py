@@ -1,5 +1,4 @@
 import json
-import logging
 import six
 
 from moto.core.responses import BaseResponse
