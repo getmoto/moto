@@ -75,9 +75,7 @@ class WorkflowExecution(object):
         }
         # events
         self._events = []
-        # tasks
-        self.decision_tasks = []
-        self.activity_tasks = []
+        # child workflows
         self.child_workflow_executions = []
 
     def __repr__(self):
@@ -167,18 +165,35 @@ class WorkflowExecution(object):
         self.schedule_decision_task()
 
     def schedule_decision_task(self):
-        self.open_counts["openDecisionTasks"] += 1
         evt = self._add_event(
             "DecisionTaskScheduled",
             workflow_execution=self,
         )
-        self.decision_tasks.append(DecisionTask(self, evt.event_id))
+        self.domain.add_to_decision_task_list(
+            self.task_list,
+            DecisionTask(self, evt.event_id),
+        )
+        self.open_counts["openDecisionTasks"] += 1
+
+    @property
+    def decision_tasks(self):
+        return filter(
+            lambda t: t.workflow_execution == self,
+            self.domain.decision_tasks
+        )
 
     @property
     def scheduled_decision_tasks(self):
         return filter(
             lambda t: t.state == "SCHEDULED",
             self.decision_tasks
+        )
+
+    @property
+    def activity_tasks(self):
+        return filter(
+            lambda t: t.workflow_execution == self,
+            self.domain.activity_tasks
         )
 
     def _find_decision_task(self, task_token):
@@ -395,9 +410,7 @@ class WorkflowExecution(object):
             workflow_execution=self,
         )
         # Only add event and increment counters if nothing went wrong
-        # TODO: don't store activity tasks in 2 places...
-        self.activity_tasks.append(task)
-        self.domain.add_to_task_list(task_list, task)
+        self.domain.add_to_activity_task_list(task_list, task)
         self._add_event(
             "ActivityTaskScheduled",
             decision_task_completed_event_id=event_id,

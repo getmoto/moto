@@ -23,7 +23,8 @@ class Domain(object):
         # of "workflow_id (client determined)" => WorkflowExecution()
         # here.
         self.workflow_executions = {}
-        self.task_lists = defaultdict(list)
+        self.activity_task_lists = {}
+        self.decision_task_lists = {}
 
     def __repr__(self):
         return "Domain(name: %(name)s, status: %(status)s)" % self.__dict__
@@ -85,5 +86,26 @@ class Domain(object):
             )
         return wfe
 
-    def add_to_task_list(self, task_list, obj):
-        self.task_lists[task_list].append(obj)
+    def add_to_activity_task_list(self, task_list, obj):
+        if not task_list in self.activity_task_lists:
+            self.activity_task_lists[task_list] = []
+        self.activity_task_lists[task_list].append(obj)
+
+    @property
+    def activity_tasks(self):
+        _all = []
+        for _, tasks in self.activity_task_lists.iteritems():
+            _all += tasks
+        return _all
+
+    def add_to_decision_task_list(self, task_list, obj):
+        if not task_list in self.decision_task_lists:
+            self.decision_task_lists[task_list] = []
+        self.decision_task_lists[task_list].append(obj)
+
+    @property
+    def decision_tasks(self):
+        _all = []
+        for _, tasks in self.decision_task_lists.iteritems():
+            _all += tasks
+        return _all

@@ -207,7 +207,7 @@ def test_workflow_execution_schedule_activity_task():
     task = wfe.activity_tasks[0]
     task.activity_id.should.equal("my-activity-001")
     task.activity_type.name.should.equal("test-activity")
-    wfe.domain.task_lists["task-list-name"].should.contain(task)
+    wfe.domain.activity_task_lists["task-list-name"].should.contain(task)
 
 def test_workflow_execution_schedule_activity_task_without_task_list_should_take_default():
     wfe = make_workflow_execution()
@@ -229,7 +229,7 @@ def test_workflow_execution_schedule_activity_task_without_task_list_should_take
     last_event.task_list.should.equal("foobar")
 
     task = wfe.activity_tasks[0]
-    wfe.domain.task_lists["foobar"].should.contain(task)
+    wfe.domain.activity_task_lists["foobar"].should.contain(task)
 
 def test_workflow_execution_schedule_activity_task_should_fail_if_wrong_attributes():
     wfe = make_workflow_execution()
@@ -286,7 +286,7 @@ def test_workflow_execution_schedule_activity_task_should_fail_if_wrong_attribut
 
     wfe.open_counts["openActivityTasks"].should.equal(0)
     wfe.activity_tasks.should.have.length_of(0)
-    wfe.domain.task_lists.should.have.length_of(0)
+    wfe.domain.activity_task_lists.should.have.length_of(0)
 
     hsh["heartbeatTimeout"] = "300"
     wfe.schedule_activity_task(123, hsh)
@@ -294,7 +294,7 @@ def test_workflow_execution_schedule_activity_task_should_fail_if_wrong_attribut
     last_event.event_type.should.equal("ActivityTaskScheduled")
 
     task = wfe.activity_tasks[0]
-    wfe.domain.task_lists["foobar"].should.contain(task)
+    wfe.domain.activity_task_lists["foobar"].should.contain(task)
     wfe.open_counts["openDecisionTasks"].should.equal(0)
     wfe.open_counts["openActivityTasks"].should.equal(1)
 
