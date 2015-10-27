@@ -352,3 +352,22 @@ def test_workflow_execution_start_activity_task():
     task.state.should.equal("STARTED")
     wfe.events()[-1].event_type.should.equal("ActivityTaskStarted")
     wfe.events()[-1].identity.should.equal("worker01")
+
+def test_complete_activity_task():
+    wfe = make_workflow_execution()
+    wfe.schedule_activity_task(123, VALID_ACTIVITY_TASK_ATTRIBUTES)
+    task_token = wfe.activity_tasks[-1].task_token
+
+    wfe.open_counts["openActivityTasks"].should.equal(1)
+    wfe.open_counts["openDecisionTasks"].should.equal(0)
+
+    wfe.start_activity_task(task_token, identity="worker01")
+    wfe.complete_activity_task(task_token, result="a superb result")
+
+    task = wfe.activity_tasks[-1]
+    task.state.should.equal("COMPLETED")
+    wfe.events()[-2].event_type.should.equal("ActivityTaskCompleted")
+    wfe.events()[-1].event_type.should.equal("DecisionTaskScheduled")
+
+    wfe.open_counts["openActivityTasks"].should.equal(0)
+    wfe.open_counts["openDecisionTasks"].should.equal(1)

@@ -270,3 +270,11 @@ class SWFResponse(BaseResponse):
         task_list = self._params["taskList"]["name"]
         count = self.swf_backend.count_pending_activity_tasks(domain_name, task_list)
         return json.dumps({"count": count, "truncated": False})
+
+    def respond_activity_task_completed(self):
+        task_token = self._params["taskToken"]
+        result = self._params.get("result")
+        self.swf_backend.respond_activity_task_completed(
+            task_token, result=result
+        )
+        return ""

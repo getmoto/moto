@@ -298,6 +298,49 @@ class SWFBackend(BaseBackend):
                 count += len(pending)
         return count
 
+    def respond_activity_task_completed(self, task_token, result=None):
+        self._check_string(task_token)
+        self._check_none_or_string(result)
+        # let's find the activity task
+        activity_task = None
+        for domain in self.domains:
+            for _, wfe in domain.workflow_executions.iteritems():
+                for task in wfe.activity_tasks:
+                    if task.task_token == task_token:
+                        activity_task = task
+        # no task found
+        if not activity_task:
+            # Same as for decision tasks, we raise an invalid token BOTH for clearly
+            # wrong SWF tokens and OK tokens but not used correctly. This should not
+            # be a problem in moto.
+            raise SWFValidationException("Invalid token")
+        # activity task found, but WorflowExecution is CLOSED
+        wfe = activity_task.workflow_execution
+        if wfe.execution_status != "OPEN":
+            raise SWFUnknownResourceFault(
+                "execution",
+                "WorkflowExecution=[workflowId={}, runId={}]".format(
+                    wfe.workflow_id, wfe.run_id
+                )
+            )
+        # activity task found, but already completed
+        if activity_task.state != "STARTED":
+            if activity_task.state == "COMPLETED":
+                raise SWFUnknownResourceFault(
+                    "activity, scheduledEventId = {}".format(activity_task.scheduled_event_id)
+                )
+            else:
+                raise ValueError(
+                    "This shouldn't happen: you have to PollForActivityTask to get a token, "
+                    "which changes ActivityTask status to 'STARTED' ; then it can only change "
+                    "to 'COMPLETED'. If you didn't hack moto/swf internals, this is probably "
+                    "a bug in moto, please report it, thanks!"
+                )
+        # everything's good
+        if activity_task:
+            wfe = activity_task.workflow_execution
+            wfe.complete_activity_task(activity_task.task_token, result=result)
+
 
 swf_backends = {}
 for region in boto.swf.regions():

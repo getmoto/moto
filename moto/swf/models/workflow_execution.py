@@ -430,3 +430,16 @@ class WorkflowExecution(object):
             identity=identity
         )
         task.start(evt.event_id)
+
+    def complete_activity_task(self, task_token, result=None):
+        task = self._find_activity_task(task_token)
+        evt = self._add_event(
+            "ActivityTaskCompleted",
+            scheduled_event_id=task.scheduled_event_id,
+            started_event_id=task.started_event_id,
+            result=result,
+        )
+        task.complete()
+        self.open_counts["openActivityTasks"] -= 1
+        # TODO: ensure we don't schedule multiple decisions at the same time!
+        self.schedule_decision_task()
