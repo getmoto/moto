@@ -298,10 +298,7 @@ class SWFBackend(BaseBackend):
                 count += len(pending)
         return count
 
-    def respond_activity_task_completed(self, task_token, result=None):
-        self._check_string(task_token)
-        self._check_none_or_string(result)
-        # let's find the activity task
+    def _find_activity_task_from_token(self, task_token):
         activity_task = None
         for domain in self.domains:
             for _, wfe in domain.workflow_executions.iteritems():
@@ -337,9 +334,23 @@ class SWFBackend(BaseBackend):
                     "a bug in moto, please report it, thanks!"
                 )
         # everything's good
-        if activity_task:
-            wfe = activity_task.workflow_execution
-            wfe.complete_activity_task(activity_task.task_token, result=result)
+        return activity_task
+
+    def respond_activity_task_completed(self, task_token, result=None):
+        self._check_string(task_token)
+        self._check_none_or_string(result)
+        activity_task = self._find_activity_task_from_token(task_token)
+        wfe = activity_task.workflow_execution
+        wfe.complete_activity_task(activity_task.task_token, result=result)
+
+    def respond_activity_task_failed(self, task_token, reason=None, details=None):
+        self._check_string(task_token)
+        # TODO: implement length limits on reason and details (common pb with client libs)
+        self._check_none_or_string(reason)
+        self._check_none_or_string(details)
+        activity_task = self._find_activity_task_from_token(task_token)
+        wfe = activity_task.workflow_execution
+        wfe.fail_activity_task(activity_task.task_token, reason=reason, details=details)
 
 
 swf_backends = {}

@@ -72,7 +72,7 @@ def test_count_pending_decision_tasks_on_non_existent_task_list():
 
 # RespondActivityTaskCompleted endpoint
 @mock_swf
-def test_poll_for_activity_task_when_one():
+def test_respond_activity_task_completed():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
     conn.respond_decision_task_completed(decision_token, decisions=[
@@ -133,3 +133,41 @@ def test_respond_activity_task_completed_with_task_already_completed():
     conn.respond_activity_task_completed.when.called_with(
         activity_token
     ).should.throw(SWFUnknownResourceFault, "Unknown activity, scheduledEventId = 5")
+
+
+# RespondActivityTaskFailed endpoint
+@mock_swf
+def test_respond_activity_task_failed():
+    conn = setup_workflow()
+    decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
+    conn.respond_decision_task_completed(decision_token, decisions=[
+        SCHEDULE_ACTIVITY_TASK_DECISION
+    ])
+    activity_token = conn.poll_for_activity_task("test-domain", "activity-task-list")["taskToken"]
+
+    resp = conn.respond_activity_task_failed(activity_token,
+                                             reason="short reason",
+                                             details="long details")
+    resp.should.be.none
+
+    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    resp["events"][-2]["eventType"].should.equal("ActivityTaskFailed")
+    resp["events"][-2]["activityTaskFailedEventAttributes"].should.equal(
+        { "reason": "short reason", "details": "long details",
+          "scheduledEventId": 5, "startedEventId": 6 }
+    )
+
+@mock_swf
+def test_respond_activity_task_completed_with_wrong_token():
+    # NB: we just test ONE failure case for RespondActivityTaskFailed
+    # because the safeguards are shared with RespondActivityTaskCompleted, so
+    # no need to retest everything end-to-end.
+    conn = setup_workflow()
+    decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
+    conn.respond_decision_task_completed(decision_token, decisions=[
+        SCHEDULE_ACTIVITY_TASK_DECISION
+    ])
+    conn.poll_for_activity_task("test-domain", "activity-task-list")
+    conn.respond_activity_task_failed.when.called_with(
+        "not-a-correct-token"
+    ).should.throw(SWFValidationException, "Invalid token")

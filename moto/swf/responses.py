@@ -278,3 +278,12 @@ class SWFResponse(BaseResponse):
             task_token, result=result
         )
         return ""
+
+    def respond_activity_task_failed(self):
+        task_token = self._params["taskToken"]
+        reason = self._params.get("reason")
+        details = self._params.get("details")
+        self.swf_backend.respond_activity_task_failed(
+            task_token, reason=reason, details=details
+        )
+        return ""

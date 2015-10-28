@@ -36,3 +36,6 @@ class ActivityTask(object):
 
     def complete(self):
         self.state = "COMPLETED"
+
+    def fail(self):
+        self.state = "FAILED"

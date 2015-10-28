@@ -29,6 +29,12 @@ def test_activity_task_creation():
     task.complete()
     task.state.should.equal("COMPLETED")
 
+    # NB: this doesn't make any sense for SWF, a task shouldn't go from a
+    # "COMPLETED" state to a "FAILED" one, but this is an internal state on our
+    # side and we don't care about invalid state transitions for now.
+    task.fail()
+    task.state.should.equal("FAILED")
+
 def test_activity_task_full_dict_representation():
     wfe = make_workflow_execution()
     wft = wfe.workflow_type
