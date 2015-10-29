@@ -9,9 +9,9 @@ def process_rules_from_querystring(querystring):
     except:
         group_name_or_id = querystring.get('GroupId')[0]
 
-    ip_protocol = querystring.get('IpPermissions.1.IpProtocol')[0]
-    from_port = querystring.get('IpPermissions.1.FromPort')[0]
-    to_port = querystring.get('IpPermissions.1.ToPort')[0]
+    ip_protocol = querystring.get('IpPermissions.1.IpProtocol', [None])[0]
+    from_port = querystring.get('IpPermissions.1.FromPort', [None])[0]
+    to_port = querystring.get('IpPermissions.1.ToPort', [None])[0]
     ip_ranges = []
     for key, value in querystring.items():
         if 'IpPermissions.1.IpRanges' in key:
