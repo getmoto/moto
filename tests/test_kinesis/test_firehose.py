@@ -94,11 +94,11 @@ def test_list_and_delete_stream():
     create_stream(client, 'stream1')
     create_stream(client, 'stream2')
 
-    set(client.list_delivery_streams()['DeliveryStreamNames']).should.equal({'stream1', 'stream2'})
+    set(client.list_delivery_streams()['DeliveryStreamNames']).should.equal(set(['stream1', 'stream2']))
 
     client.delete_delivery_stream(DeliveryStreamName='stream1')
 
-    set(client.list_delivery_streams()['DeliveryStreamNames']).should.equal({'stream2'})
+    set(client.list_delivery_streams()['DeliveryStreamNames']).should.equal(set(['stream2']))
 
 
 @mock_kinesis
