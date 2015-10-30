@@ -18,7 +18,7 @@ class KinesisResponse(BaseResponse):
 
     @property
     def is_firehose(self):
-        host = self.headers.get('hose', self.headers['Host'])
+        host = self.headers.get('host', self.headers['Host'])
         return host.startswith('firehose')
 
     def create_stream(self):
