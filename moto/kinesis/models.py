@@ -145,7 +145,7 @@ class DeliveryStream(object):
         self.redshift_s3_role_arn = stream_kwargs['redshift_s3_role_arn']
         self.redshift_s3_bucket_arn = stream_kwargs['redshift_s3_bucket_arn']
         self.redshift_s3_prefix = stream_kwargs['redshift_s3_prefix']
-        self.redshift_s3_compression_format = stream_kwargs['redshift_s3_compression_format']
+        self.redshift_s3_compression_format = stream_kwargs.get('redshift_s3_compression_format', 'UNCOMPRESSED')
         self.redshift_s3_buffering_hings = stream_kwargs['redshift_s3_buffering_hings']
 
         self.records = []

@@ -106,7 +106,7 @@ class KinesisResponse(BaseResponse):
                 'redshift_s3_role_arn': redshift_s3_config['RoleARN'],
                 'redshift_s3_bucket_arn': redshift_s3_config['BucketARN'],
                 'redshift_s3_prefix': redshift_s3_config['Prefix'],
-                'redshift_s3_compression_format': redshift_s3_config['CompressionFormat'],
+                'redshift_s3_compression_format': redshift_s3_config.get('CompressionFormat'),
                 'redshift_s3_buffering_hings': redshift_s3_config['BufferingHints'],
             }
         stream = self.kinesis_backend.create_delivery_stream(stream_name, **stream_kwargs)
