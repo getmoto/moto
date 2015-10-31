@@ -1,4 +1,5 @@
 import boto
+from freezegun import freeze_time
 from sure import expect
 
 from moto import mock_swf
@@ -83,7 +84,10 @@ def test_respond_decision_task_completed_with_no_decision():
     resp = conn.poll_for_decision_task("test-domain", "queue")
     task_token = resp["taskToken"]
 
-    resp = conn.respond_decision_task_completed(task_token)
+    resp = conn.respond_decision_task_completed(
+        task_token,
+        execution_context="free-form context",
+    )
     resp.should.be.none
 
     resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
@@ -96,9 +100,13 @@ def test_respond_decision_task_completed_with_no_decision():
     ])
     evt = resp["events"][-1]
     evt["decisionTaskCompletedEventAttributes"].should.equal({
+        "executionContext": "free-form context",
         "scheduledEventId": 2,
         "startedEventId": 3,
     })
+
+    resp = conn.describe_workflow_execution("test-domain", conn.run_id, "uid-abcd1234")
+    resp["latestExecutionContext"].should.equal("free-form context")
 
 @mock_swf
 def test_respond_decision_task_completed_with_wrong_token():
@@ -257,6 +265,7 @@ def test_respond_decision_task_completed_with_fail_workflow_execution():
     attrs["details"].should.equal("foo")
 
 @mock_swf
+@freeze_time("2015-01-01 12:00:00")
 def test_respond_decision_task_completed_with_schedule_activity_task():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -302,3 +311,6 @@ def test_respond_decision_task_completed_with_schedule_activity_task():
             "name": "my-task-list"
         },
     })
+
+    resp = conn.describe_workflow_execution("test-domain", conn.run_id, "uid-abcd1234")
+    resp["latestActivityTaskTimestamp"].should.equal(1420110000.0)

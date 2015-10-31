@@ -53,6 +53,8 @@ class WorkflowExecution(object):
         self.close_status = None
         self.close_timestamp = None
         self.execution_status = "OPEN"
+        self.latest_activity_task_timestamp = None
+        self.latest_execution_context = None
         self.parent = None
         self.start_timestamp = None
         self.tag_list = [] # TODO
@@ -72,6 +74,7 @@ class WorkflowExecution(object):
             "openDecisionTasks": 0,
             "openActivityTasks": 0,
             "openChildWorkflowExecutions": 0,
+            "openLambdaFunctions": 0,
         }
         # events
         self._events = []
@@ -135,6 +138,11 @@ class WorkflowExecution(object):
             hsh["executionConfiguration"][key] = getattr(self, attr)
         #counters
         hsh["openCounts"] = self.open_counts
+        #latest things
+        if self.latest_execution_context:
+            hsh["latestExecutionContext"] = self.latest_execution_context
+        if self.latest_activity_task_timestamp:
+            hsh["latestActivityTaskTimestamp"] = self.latest_activity_task_timestamp
         return hsh
 
     def events(self, reverse_order=False):
@@ -226,6 +234,7 @@ class WorkflowExecution(object):
         self.handle_decisions(evt.event_id, decisions)
         if self.should_schedule_decision_next:
             self.schedule_decision_task()
+        self.latest_execution_context = execution_context
 
     def _check_decision_attributes(self, kind, value, decision_id):
         problems = []
@@ -413,6 +422,7 @@ class WorkflowExecution(object):
         )
         self.domain.add_to_activity_task_list(task_list, task)
         self.open_counts["openActivityTasks"] += 1
+        self.latest_activity_task_timestamp = self._now_timestamp()
 
     def _find_activity_task(self, task_token):
         for task in self.activity_tasks:

@@ -195,9 +195,14 @@ def test_workflow_execution_fail():
     wfe.events()[-1].details.should.equal("some details")
     wfe.events()[-1].reason.should.equal("my rules")
 
+@freeze_time("2015-01-01 12:00:00")
 def test_workflow_execution_schedule_activity_task():
     wfe = make_workflow_execution()
+    wfe.latest_activity_task_timestamp.should.be.none
+
     wfe.schedule_activity_task(123, VALID_ACTIVITY_TASK_ATTRIBUTES)
+
+    wfe.latest_activity_task_timestamp.should.equal(1420110000.0)
 
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
@@ -305,7 +310,9 @@ def test_workflow_execution_schedule_activity_task_failure_triggers_new_decision
     wfe.start()
     task_token = wfe.decision_tasks[-1].task_token
     wfe.start_decision_task(task_token)
-    wfe.complete_decision_task(task_token, decisions=[
+    wfe.complete_decision_task(task_token,
+                               execution_context="free-form execution context",
+                               decisions=[
         {
             "decisionType": "ScheduleActivityTask",
             "scheduleActivityTaskDecisionAttributes": {
@@ -322,6 +329,7 @@ def test_workflow_execution_schedule_activity_task_failure_triggers_new_decision
         },
     ])
 
+    wfe.latest_execution_context.should.equal("free-form execution context")
     wfe.open_counts["openActivityTasks"].should.equal(0)
     wfe.open_counts["openDecisionTasks"].should.equal(1)
     last_events = wfe.events()[-3:]
