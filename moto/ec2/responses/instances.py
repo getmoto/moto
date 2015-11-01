@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from boto.ec2.instancetype import InstanceType
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, \
@@ -77,6 +78,11 @@ class InstanceResponse(BaseResponse):
 
         template = self.response_template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
+
+    def describe_instance_types(self):
+        instance_types = [InstanceType(name='t1.micro', cores=1, memory=644874240, disk=0)]
+        template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
+        return template.render(instance_types=instance_types)
 
     def describe_instance_attribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if
@@ -586,3 +592,21 @@ EC2_INSTANCE_STATUS = """<?xml version="1.0" encoding="UTF-8"?>
       {% endfor %}
     </instanceStatusSet>
 </DescribeInstanceStatusResponse>"""
+
+EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
+<DescribeInstanceTypesResponse xmlns="http://api.outscale.com/wsdl/fcuext/2014-04-15/">
+    <requestId>f8b86168-d034-4e65-b48d-3b84c78e64af</requestId>
+    <instanceTypeSet>
+    {% for instance_type in instance_types %}
+        <item>
+            <name>{{ instance_type.name }}</name>
+            <vcpu>{{ instance_type.cores }}</vcpu>
+            <memory>{{ instance_type.memory }}</memory>
+            <storageSize>{{ instance_type.disk }}</storageSize>
+            <storageCount>{{ instance_type.storageCount }}</storageCount>
+            <maxIpAddresses>{{ instance_type.maxIpAddresses }}</maxIpAddresses>
+            <ebsOptimizedAvailable>{{ instance_type.ebsOptimizedAvailable }}</ebsOptimizedAvailable>
+        </item>
+    {% endfor %}
+    </instanceTypeSet>
+</DescribeInstanceTypesResponse>"""
