@@ -97,3 +97,6 @@ def test_domain_get_workflow_execution():
         SWFUnknownResourceFault,
         "Unknown execution: WorkflowExecution=[workflowId=wf-id-3, runId=run-id-4]"
     )
+
+    # raise_if_none attribute
+    domain.get_workflow_execution("foo", raise_if_none=False).should.be.none

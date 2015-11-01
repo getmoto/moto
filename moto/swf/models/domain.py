@@ -71,33 +71,32 @@ class Domain(object):
 
     def add_workflow_execution(self, workflow_execution):
         _id = workflow_execution.workflow_id
-        # TODO: handle this better: this should raise ONLY if there's an OPEN wfe with this ID
-        if any(wfe.workflow_id == _id for wfe in self.workflow_executions):
+        if self.get_workflow_execution(_id, raise_if_none=False):
             raise SWFWorkflowExecutionAlreadyStartedFault()
         self.workflow_executions.append(workflow_execution)
 
-    def get_workflow_execution(self, workflow_id, run_id=None, raise_if_closed=False):
+    def get_workflow_execution(self, workflow_id, run_id=None,
+                               raise_if_none=True, raise_if_closed=False):
+        # query
         if run_id:
             _all = [w for w in self.workflow_executions
                     if w.workflow_id == workflow_id and w.run_id == run_id]
         else:
             _all = [w for w in self.workflow_executions
                     if w.workflow_id == workflow_id and w.execution_status == "OPEN"]
+        # reduce
         wfe = _all[0] if _all else None
+        # raise if closed / none
         if raise_if_closed and wfe and wfe.execution_status == "CLOSED":
             wfe = None
-        if run_id:
-            if not wfe or wfe.run_id != run_id:
-                raise SWFUnknownResourceFault(
-                    "execution",
-                    "WorkflowExecution=[workflowId={}, runId={}]".format(
-                        workflow_id, run_id
-                    )
-                )
-        elif not wfe:
-            raise SWFUnknownResourceFault(
-                "execution, workflowId = {}".format(workflow_id)
-            )
+        if not wfe and raise_if_none:
+            if run_id:
+                args = ["execution", "WorkflowExecution=[workflowId={}, runId={}]".format(
+                            workflow_id, run_id)]
+            else:
+                args = ["execution, workflowId = {}".format(workflow_id)]
+            raise SWFUnknownResourceFault(*args)
+        # at last return workflow execution
         return wfe
 
     def add_to_activity_task_list(self, task_list, obj):
