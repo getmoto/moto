@@ -132,6 +132,17 @@ class HistoryEvent(object):
             if hasattr(self, "details") and self.details is not None:
                 hsh["details"] = self.details
             return hsh
+        elif self.event_type == "WorkflowExecutionTerminated":
+            hsh = {
+                "childPolicy": self.child_policy,
+            }
+            if self.cause:
+                hsh["cause"] = self.cause
+            if self.details:
+                hsh["details"] = self.details
+            if self.reason:
+                hsh["reason"] = self.reason
+            return hsh
         else:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{}'".format(self.event_type)

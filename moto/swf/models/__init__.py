@@ -160,7 +160,7 @@ class SWFBackend(BaseBackend):
         self._check_string(run_id)
         self._check_string(workflow_id)
         domain = self._get_domain(domain_name)
-        return domain.get_workflow_execution(run_id, workflow_id)
+        return domain.get_workflow_execution(workflow_id, run_id=run_id)
 
     def poll_for_decision_task(self, domain_name, task_list, identity=None):
         self._check_string(domain_name)
@@ -198,7 +198,7 @@ class SWFBackend(BaseBackend):
         self._check_string(task_list)
         domain = self._get_domain(domain_name)
         count = 0
-        for _, wfe in domain.workflow_executions.iteritems():
+        for wfe in domain.workflow_executions:
             if wfe.task_list == task_list:
                 count += wfe.open_counts["openDecisionTasks"]
         return count
@@ -211,7 +211,7 @@ class SWFBackend(BaseBackend):
         # let's find decision task
         decision_task = None
         for domain in self.domains:
-            for _, wfe in domain.workflow_executions.iteritems():
+            for wfe in domain.workflow_executions:
                 for dt in wfe.decision_tasks:
                     if dt.task_token == task_token:
                         decision_task = dt
@@ -301,7 +301,7 @@ class SWFBackend(BaseBackend):
     def _find_activity_task_from_token(self, task_token):
         activity_task = None
         for domain in self.domains:
-            for _, wfe in domain.workflow_executions.iteritems():
+            for wfe in domain.workflow_executions:
                 for task in wfe.activity_tasks:
                     if task.task_token == task_token:
                         activity_task = task
@@ -351,6 +351,18 @@ class SWFBackend(BaseBackend):
         activity_task = self._find_activity_task_from_token(task_token)
         wfe = activity_task.workflow_execution
         wfe.fail_activity_task(activity_task.task_token, reason=reason, details=details)
+
+    def terminate_workflow_execution(self, domain_name, workflow_id, child_policy=None,
+                                     details=None, reason=None, run_id=None):
+        self._check_string(domain_name)
+        self._check_string(workflow_id)
+        self._check_none_or_string(child_policy)
+        self._check_none_or_string(details)
+        self._check_none_or_string(reason)
+        self._check_none_or_string(run_id)
+        domain = self._get_domain(domain_name)
+        wfe = domain.get_workflow_execution(workflow_id, run_id=run_id, raise_if_closed=True)
+        wfe.terminate(child_policy=child_policy, details=details, reason=reason)
 
 
 swf_backends = {}

@@ -287,3 +287,16 @@ class SWFResponse(BaseResponse):
             task_token, reason=reason, details=details
         )
         return ""
+
+    def terminate_workflow_execution(self):
+        domain_name = self._params["domain"]
+        workflow_id = self._params["workflowId"]
+        child_policy = self._params.get("childPolicy")
+        details = self._params.get("details")
+        reason = self._params.get("reason")
+        run_id = self._params.get("runId")
+        self.swf_backend.terminate_workflow_execution(
+            domain_name, workflow_id, child_policy=child_policy,
+            details=details, reason=reason, run_id=run_id
+        )
+        return ""

@@ -379,3 +379,18 @@ def test_complete_activity_task():
 
     wfe.open_counts["openActivityTasks"].should.equal(0)
     wfe.open_counts["openDecisionTasks"].should.equal(1)
+
+def test_terminate():
+    wfe = make_workflow_execution()
+    wfe.schedule_decision_task()
+    wfe.terminate()
+
+    wfe.execution_status.should.equal("CLOSED")
+    wfe.close_status.should.equal("TERMINATED")
+    wfe.close_cause.should.equal("OPERATOR_INITIATED")
+    wfe.open_counts["openDecisionTasks"].should.equal(1)
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("WorkflowExecutionTerminated")
+    # take default child_policy if not provided (as here)
+    last_event.child_policy.should.equal("ABANDON")

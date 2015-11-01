@@ -123,7 +123,7 @@ def test_respond_decision_task_completed_on_close_workflow_execution():
     task_token = resp["taskToken"]
 
     # bad: we're closing workflow execution manually, but endpoints are not coded for now..
-    wfe = swf_backend.domains[0].workflow_executions.values()[0]
+    wfe = swf_backend.domains[0].workflow_executions[-1]
     wfe.execution_status = "CLOSED"
     # /bad
 

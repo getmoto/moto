@@ -22,7 +22,7 @@ class Domain(object):
         # that against SWF API) ; hence the storage method as a dict
         # of "workflow_id (client determined)" => WorkflowExecution()
         # here.
-        self.workflow_executions = {}
+        self.workflow_executions = []
         self.activity_task_lists = {}
         self.decision_task_lists = {}
 
@@ -71,18 +71,32 @@ class Domain(object):
 
     def add_workflow_execution(self, workflow_execution):
         _id = workflow_execution.workflow_id
-        if self.workflow_executions.get(_id):
+        # TODO: handle this better: this should raise ONLY if there's an OPEN wfe with this ID
+        if any(wfe.workflow_id == _id for wfe in self.workflow_executions):
             raise SWFWorkflowExecutionAlreadyStartedFault()
-        self.workflow_executions[_id] = workflow_execution
+        self.workflow_executions.append(workflow_execution)
 
-    def get_workflow_execution(self, run_id, workflow_id):
-        wfe = self.workflow_executions.get(workflow_id)
-        if not wfe or wfe.run_id != run_id:
-            raise SWFUnknownResourceFault(
-                "execution",
-                "WorkflowExecution=[workflowId={}, runId={}]".format(
-                    workflow_id, run_id
+    def get_workflow_execution(self, workflow_id, run_id=None, raise_if_closed=False):
+        if run_id:
+            _all = [w for w in self.workflow_executions
+                    if w.workflow_id == workflow_id and w.run_id == run_id]
+        else:
+            _all = [w for w in self.workflow_executions
+                    if w.workflow_id == workflow_id and w.execution_status == "OPEN"]
+        wfe = _all[0] if _all else None
+        if raise_if_closed and wfe and wfe.execution_status == "CLOSED":
+            wfe = None
+        if run_id:
+            if not wfe or wfe.run_id != run_id:
+                raise SWFUnknownResourceFault(
+                    "execution",
+                    "WorkflowExecution=[workflowId={}, runId={}]".format(
+                        workflow_id, run_id
+                    )
                 )
+        elif not wfe:
+            raise SWFUnknownResourceFault(
+                "execution, workflowId = {}".format(workflow_id)
             )
         return wfe
 

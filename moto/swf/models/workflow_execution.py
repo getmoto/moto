@@ -50,6 +50,7 @@ class WorkflowExecution(object):
         # TODO: check valid values among:
         # COMPLETED | FAILED | CANCELED | TERMINATED | CONTINUED_AS_NEW | TIMED_OUT
         # TODO: implement them all
+        self.close_cause = None
         self.close_status = None
         self.close_timestamp = None
         self.execution_status = "OPEN"
@@ -467,3 +468,21 @@ class WorkflowExecution(object):
         self.open_counts["openActivityTasks"] -= 1
         # TODO: ensure we don't schedule multiple decisions at the same time!
         self.schedule_decision_task()
+
+    def terminate(self, child_policy=None, details=None, reason=None):
+        # TODO: handle child policy for child workflows here
+        # TODO: handle cause="CHILD_POLICY_APPLIED"
+        # Until this, we set cause manually to "OPERATOR_INITIATED"
+        cause = "OPERATOR_INITIATED"
+        if not child_policy:
+            child_policy = self.child_policy
+        self._add_event(
+            "WorkflowExecutionTerminated",
+            cause=cause,
+            child_policy=child_policy,
+            details=details,
+            reason=reason,
+        )
+        self.execution_status = "CLOSED"
+        self.close_status = "TERMINATED"
+        self.close_cause = "OPERATOR_INITIATED"
