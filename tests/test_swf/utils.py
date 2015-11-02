@@ -9,6 +9,29 @@ from moto.swf.models import (
 )
 
 
+# Some useful constants
+# Here are some activity timeouts we use in moto/swf tests ; they're extracted
+# from semi-real world example, the goal is mostly to have predictible and
+# intuitive behaviour in moto/swf own tests...
+ACTIVITY_TASK_TIMEOUTS = {
+    "heartbeatTimeout": "300",        # 5 mins
+    "scheduleToStartTimeout": "1800", # 30 mins
+    "startToCloseTimeout": "1800",    # 30 mins
+    "scheduleToCloseTimeout": "2700", # 45 mins
+}
+
+# Some useful decisions
+SCHEDULE_ACTIVITY_TASK_DECISION = {
+    "decisionType": "ScheduleActivityTask",
+    "scheduleActivityTaskDecisionAttributes": {
+        "activityId": "my-activity-001",
+        "activityType": { "name": "test-activity", "version": "v1.1" },
+        "taskList": { "name": "activity-task-list" },
+    }
+}
+for key, value in ACTIVITY_TASK_TIMEOUTS.iteritems():
+    SCHEDULE_ACTIVITY_TASK_DECISION["scheduleActivityTaskDecisionAttributes"][key] = value
+
 # A test Domain
 def get_basic_domain():
     return Domain("test-domain", "90")

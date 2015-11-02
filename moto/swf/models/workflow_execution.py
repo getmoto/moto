@@ -146,6 +146,26 @@ class WorkflowExecution(object):
             hsh["latestActivityTaskTimestamp"] = self.latest_activity_task_timestamp
         return hsh
 
+    def _process_timeouts(self):
+        self.should_schedule_decision_next = False
+        # TODO: process timeouts on workflow itself
+        # TODO: process timeouts on decision tasks
+        # activity tasks timeouts
+        for task in self.activity_tasks:
+            if task.open and task.has_timedout():
+                self.should_schedule_decision_next = True
+                task.process_timeouts()
+                self._add_event(
+                    "ActivityTaskTimedOut",
+                    details=task.details,
+                    scheduled_event_id=task.scheduled_event_id,
+                    started_event_id=task.started_event_id,
+                    timeout_type=task.timeout_type,
+                )
+        # schedule decision task if needed
+        if self.should_schedule_decision_next:
+            self.schedule_decision_task()
+
     def events(self, reverse_order=False):
         if reverse_order:
             return reversed(self._events)
@@ -416,6 +436,7 @@ class WorkflowExecution(object):
             input=attributes.get("input"),
             scheduled_event_id=evt.event_id,
             workflow_execution=self,
+            timeouts=timeouts,
         )
         self.domain.add_to_activity_task_list(task_list, task)
         self.open_counts["openActivityTasks"] += 1

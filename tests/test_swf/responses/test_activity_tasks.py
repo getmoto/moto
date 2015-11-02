@@ -1,4 +1,5 @@
 import boto
+from freezegun import freeze_time
 from sure import expect
 
 from moto import mock_swf
@@ -8,17 +9,8 @@ from moto.swf.exceptions import (
     SWFUnknownResourceFault,
 )
 
-from ..utils import setup_workflow
+from ..utils import setup_workflow, SCHEDULE_ACTIVITY_TASK_DECISION
 
-
-SCHEDULE_ACTIVITY_TASK_DECISION = {
-    "decisionType": "ScheduleActivityTask",
-    "scheduleActivityTaskDecisionAttributes": {
-        "activityId": "my-activity-001",
-        "activityType": { "name": "test-activity", "version": "v1.1" },
-        "taskList": { "name": "activity-task-list" },
-    }
-}
 
 # PollForActivityTask endpoint
 @mock_swf
@@ -183,8 +175,7 @@ def test_record_activity_task_heartbeat():
     ])
     activity_token = conn.poll_for_activity_task("test-domain", "activity-task-list")["taskToken"]
 
-    resp = conn.record_activity_task_heartbeat(activity_token, details="some progress details")
-    # TODO: check that "details" are reflected in ActivityTaskTimedOut event when a timeout occurs
+    resp = conn.record_activity_task_heartbeat(activity_token)
     resp.should.equal({"cancelRequested": False})
 
 @mock_swf
@@ -199,3 +190,21 @@ def test_record_activity_task_heartbeat_with_wrong_token():
     conn.record_activity_task_heartbeat.when.called_with(
         "bad-token", details="some progress details"
     ).should.throw(SWFValidationException)
+
+@mock_swf
+def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout():
+    conn = setup_workflow()
+    decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
+    conn.respond_decision_task_completed(decision_token, decisions=[
+        SCHEDULE_ACTIVITY_TASK_DECISION
+    ])
+    with freeze_time("2015-01-01 12:00:00"):
+        activity_token = conn.poll_for_activity_task("test-domain", "activity-task-list")["taskToken"]
+        conn.record_activity_task_heartbeat(activity_token, details="some progress details")
+
+    with freeze_time("2015-01-01 12:05:30"):
+        # => Activity Task Heartbeat timeout reached!!
+        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+        resp["events"][-2]["eventType"].should.equal("ActivityTaskTimedOut")
+        attrs = resp["events"][-2]["activityTaskTimedOutEventAttributes"]
+        attrs["details"].should.equal("some progress details")

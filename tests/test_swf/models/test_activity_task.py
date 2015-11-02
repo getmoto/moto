@@ -6,7 +6,7 @@ from moto.swf.models import (
     ActivityType,
 )
 
-from ..utils import make_workflow_execution
+from ..utils import make_workflow_execution, ACTIVITY_TASK_TIMEOUTS
 
 
 def test_activity_task_creation():
@@ -17,6 +17,7 @@ def test_activity_task_creation():
         input="optional",
         scheduled_event_id=117,
         workflow_execution=wfe,
+        timeouts=ACTIVITY_TASK_TIMEOUTS,
     )
     task.workflow_execution.should.equal(wfe)
     task.state.should.equal("SCHEDULED")
@@ -44,6 +45,7 @@ def test_activity_task_full_dict_representation():
         activity_type=ActivityType("foo", "v1.0"),
         input="optional",
         scheduled_event_id=117,
+        timeouts=ACTIVITY_TASK_TIMEOUTS,
         workflow_execution=wfe,
     )
     at.start(1234)
@@ -69,6 +71,7 @@ def test_activity_task_reset_heartbeat_clock():
             activity_type="foo",
             input="optional",
             scheduled_event_id=117,
+            timeouts=ACTIVITY_TASK_TIMEOUTS,
             workflow_execution=wfe,
         )
 
@@ -78,3 +81,24 @@ def test_activity_task_reset_heartbeat_clock():
         task.reset_heartbeat_clock()
 
     task.last_heartbeat_timestamp.should.equal(1420113600.0)
+
+def test_activity_task_has_timedout():
+    wfe = make_workflow_execution()
+
+    with freeze_time("2015-01-01 12:00:00"):
+        task = ActivityTask(
+            activity_id="my-activity-123",
+            activity_type="foo",
+            input="optional",
+            scheduled_event_id=117,
+            timeouts=ACTIVITY_TASK_TIMEOUTS,
+            workflow_execution=wfe,
+        )
+        task.has_timedout().should.equal(False)
+
+    # activity task timeout is 300s == 5mins
+    with freeze_time("2015-01-01 12:06:00"):
+        task.has_timedout().should.equal(True)
+        task.process_timeouts()
+        task.state.should.equal("TIMED_OUT")
+        task.timeout_type.should.equal("HEARTBEAT")

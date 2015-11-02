@@ -61,6 +61,11 @@ class SWFBackend(BaseBackend):
             if not isinstance(i, basestring):
                 raise SWFSerializationException(parameter)
 
+    def _process_timeouts(self):
+        for domain in self.domains:
+            for wfe in domain.workflow_executions:
+                wfe._process_timeouts()
+
     def list_domains(self, status, reverse_order=None):
         self._check_string(status)
         domains = [domain for domain in self.domains
@@ -159,12 +164,16 @@ class SWFBackend(BaseBackend):
         self._check_string(domain_name)
         self._check_string(run_id)
         self._check_string(workflow_id)
+        # process timeouts on all objects
+        self._process_timeouts()
         domain = self._get_domain(domain_name)
         return domain.get_workflow_execution(workflow_id, run_id=run_id)
 
     def poll_for_decision_task(self, domain_name, task_list, identity=None):
         self._check_string(domain_name)
         self._check_string(task_list)
+        # process timeouts on all objects
+        self._process_timeouts()
         domain = self._get_domain(domain_name)
         # Real SWF cases:
         # - case 1: there's a decision task to return, return it
@@ -196,6 +205,8 @@ class SWFBackend(BaseBackend):
     def count_pending_decision_tasks(self, domain_name, task_list):
         self._check_string(domain_name)
         self._check_string(task_list)
+        # process timeouts on all objects
+        self._process_timeouts()
         domain = self._get_domain(domain_name)
         count = 0
         for wfe in domain.workflow_executions:
@@ -208,6 +219,8 @@ class SWFBackend(BaseBackend):
                                         execution_context=None):
         self._check_string(task_token)
         self._check_none_or_string(execution_context)
+        # process timeouts on all objects
+        self._process_timeouts()
         # let's find decision task
         decision_task = None
         for domain in self.domains:
@@ -259,6 +272,8 @@ class SWFBackend(BaseBackend):
     def poll_for_activity_task(self, domain_name, task_list, identity=None):
         self._check_string(domain_name)
         self._check_string(task_list)
+        # process timeouts on all objects
+        self._process_timeouts()
         domain = self._get_domain(domain_name)
         # Real SWF cases:
         # - case 1: there's an activity task to return, return it
@@ -290,6 +305,8 @@ class SWFBackend(BaseBackend):
     def count_pending_activity_tasks(self, domain_name, task_list):
         self._check_string(domain_name)
         self._check_string(task_list)
+        # process timeouts on all objects
+        self._process_timeouts()
         domain = self._get_domain(domain_name)
         count = 0
         for _task_list, tasks in domain.activity_task_lists.iteritems():
@@ -339,6 +356,8 @@ class SWFBackend(BaseBackend):
     def respond_activity_task_completed(self, task_token, result=None):
         self._check_string(task_token)
         self._check_none_or_string(result)
+        # process timeouts on all objects
+        self._process_timeouts()
         activity_task = self._find_activity_task_from_token(task_token)
         wfe = activity_task.workflow_execution
         wfe.complete_activity_task(activity_task.task_token, result=result)
@@ -348,6 +367,8 @@ class SWFBackend(BaseBackend):
         # TODO: implement length limits on reason and details (common pb with client libs)
         self._check_none_or_string(reason)
         self._check_none_or_string(details)
+        # process timeouts on all objects
+        self._process_timeouts()
         activity_task = self._find_activity_task_from_token(task_token)
         wfe = activity_task.workflow_execution
         wfe.fail_activity_task(activity_task.task_token, reason=reason, details=details)
@@ -360,6 +381,8 @@ class SWFBackend(BaseBackend):
         self._check_none_or_string(details)
         self._check_none_or_string(reason)
         self._check_none_or_string(run_id)
+        # process timeouts on all objects
+        self._process_timeouts()
         domain = self._get_domain(domain_name)
         wfe = domain.get_workflow_execution(workflow_id, run_id=run_id, raise_if_closed=True)
         wfe.terminate(child_policy=child_policy, details=details, reason=reason)
@@ -367,8 +390,12 @@ class SWFBackend(BaseBackend):
     def record_activity_task_heartbeat(self, task_token, details=None):
         self._check_string(task_token)
         self._check_none_or_string(details)
+        # process timeouts on all objects
+        self._process_timeouts()
         activity_task = self._find_activity_task_from_token(task_token)
         activity_task.reset_heartbeat_clock()
+        if details:
+            activity_task.details = details
 
 
 swf_backends = {}
