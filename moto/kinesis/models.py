@@ -258,7 +258,10 @@ class KinesisBackend(BaseBackend):
         return stream
 
     def get_delivery_stream(self, stream_name):
-        return self.delivery_streams[stream_name]
+        if stream_name in self.delivery_streams:
+            return self.delivery_streams[stream_name]
+        else:
+            raise StreamNotFoundError(stream_name)
 
     def list_delivery_streams(self):
         return self.delivery_streams.values()

@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 
+from botocore.exceptions import ClientError
 import boto3
 from freezegun import freeze_time
 import sure  # noqa
@@ -84,6 +85,14 @@ def test_create_stream():
         ],
         "HasMoreDestinations": False,
     })
+
+
+@mock_kinesis
+@freeze_time("2015-03-01")
+def test_deescribe_non_existant_stream():
+    client = boto3.client('firehose', region_name='us-east-1')
+
+    client.describe_delivery_stream.when.called_with(DeliveryStreamName='not-a-stream').should.throw(ClientError)
 
 
 @mock_kinesis
