@@ -13,7 +13,7 @@ from ..exceptions import (
     SWFValidationException,
     SWFDecisionValidationException,
 )
-from ..utils import decapitalize
+from ..utils import decapitalize, now_timestamp
 from .activity_task import ActivityTask
 from .activity_type import ActivityType
 from .decision_task import DecisionTask
@@ -161,12 +161,8 @@ class WorkflowExecution(object):
         self._events.append(evt)
         return evt
 
-    # TODO: move it in utils
-    def _now_timestamp(self):
-        return float(mktime(datetime.now().timetuple()))
-
     def start(self):
-        self.start_timestamp = self._now_timestamp()
+        self.start_timestamp = now_timestamp()
         self._add_event(
             "WorkflowExecutionStarted",
             workflow_execution=self,
@@ -333,7 +329,7 @@ class WorkflowExecution(object):
     def complete(self, event_id, result=None):
         self.execution_status = "CLOSED"
         self.close_status = "COMPLETED"
-        self.close_timestamp = self._now_timestamp()
+        self.close_timestamp = now_timestamp()
         evt = self._add_event(
             "WorkflowExecutionCompleted",
             decision_task_completed_event_id=event_id,
@@ -344,7 +340,7 @@ class WorkflowExecution(object):
         # TODO: implement lenght constraints on details/reason
         self.execution_status = "CLOSED"
         self.close_status = "FAILED"
-        self.close_timestamp = self._now_timestamp()
+        self.close_timestamp = now_timestamp()
         evt = self._add_event(
             "WorkflowExecutionFailed",
             decision_task_completed_event_id=event_id,
@@ -423,7 +419,7 @@ class WorkflowExecution(object):
         )
         self.domain.add_to_activity_task_list(task_list, task)
         self.open_counts["openActivityTasks"] += 1
-        self.latest_activity_task_timestamp = self._now_timestamp()
+        self.latest_activity_task_timestamp = now_timestamp()
 
     def _find_activity_task(self, task_token):
         for task in self.activity_tasks:

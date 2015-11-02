@@ -1,5 +1,11 @@
+from freezegun import freeze_time
 from sure import expect
-from moto.swf.utils import decapitalize
+
+from moto.swf.utils import (
+    decapitalize,
+    now_timestamp,
+)
+
 
 def test_decapitalize():
     cases = {
@@ -9,3 +15,7 @@ def test_decapitalize():
     }
     for before, after in cases.iteritems():
         decapitalize(before).should.equal(after)
+
+@freeze_time("2015-01-01 12:00:00")
+def test_now_timestamp():
+        now_timestamp().should.equal(1420110000.0)

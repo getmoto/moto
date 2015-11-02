@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 from datetime import datetime
 import uuid
 
+from ..utils import now_timestamp
+
 
 class ActivityTask(object):
     def __init__(self, activity_id, activity_type, scheduled_event_id,
@@ -9,6 +11,7 @@ class ActivityTask(object):
         self.activity_id = activity_id
         self.activity_type = activity_type
         self.input = input
+        self.last_heartbeat_timestamp = now_timestamp()
         self.scheduled_event_id = scheduled_event_id
         self.started_event_id = None
         self.state = "SCHEDULED"
@@ -39,3 +42,6 @@ class ActivityTask(object):
 
     def fail(self):
         self.state = "FAILED"
+
+    def reset_heartbeat_clock(self):
+        self.last_heartbeat_timestamp = now_timestamp()

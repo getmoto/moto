@@ -300,3 +300,12 @@ class SWFResponse(BaseResponse):
             details=details, reason=reason, run_id=run_id
         )
         return ""
+
+    def record_activity_task_heartbeat(self):
+        task_token = self._params["taskToken"]
+        details = self._params.get("details")
+        self.swf_backend.record_activity_task_heartbeat(
+            task_token, details=details
+        )
+        # TODO: make it dynamic when we implement activity tasks cancellation
+        return json.dumps({"cancelRequested": False})

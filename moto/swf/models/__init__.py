@@ -364,6 +364,12 @@ class SWFBackend(BaseBackend):
         wfe = domain.get_workflow_execution(workflow_id, run_id=run_id, raise_if_closed=True)
         wfe.terminate(child_policy=child_policy, details=details, reason=reason)
 
+    def record_activity_task_heartbeat(self, task_token, details=None):
+        self._check_string(task_token)
+        self._check_none_or_string(details)
+        activity_task = self._find_activity_task_from_token(task_token)
+        activity_task.reset_heartbeat_clock()
+
 
 swf_backends = {}
 for region in boto.swf.regions():

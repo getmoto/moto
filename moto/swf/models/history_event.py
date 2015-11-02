@@ -2,14 +2,14 @@ from __future__ import unicode_literals
 from datetime import datetime
 from time import mktime
 
-from ..utils import decapitalize
+from ..utils import decapitalize, now_timestamp
 
 
 class HistoryEvent(object):
     def __init__(self, event_id, event_type, **kwargs):
         self.event_id = event_id
         self.event_type = event_type
-        self.event_timestamp = float(mktime(datetime.now().timetuple()))
+        self.event_timestamp = now_timestamp()
         for key, value in kwargs.iteritems():
             self.__setattr__(key, value)
         # break soon if attributes are not valid

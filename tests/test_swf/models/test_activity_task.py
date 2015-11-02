@@ -1,3 +1,4 @@
+from freezegun import freeze_time
 from sure import expect
 
 from moto.swf.models import (
@@ -58,3 +59,22 @@ def test_activity_task_full_dict_representation():
     at.start(1234)
     fd = at.to_full_dict()
     fd["startedEventId"].should.equal(1234)
+
+def test_activity_task_reset_heartbeat_clock():
+    wfe = make_workflow_execution()
+
+    with freeze_time("2015-01-01 12:00:00"):
+        task = ActivityTask(
+            activity_id="my-activity-123",
+            activity_type="foo",
+            input="optional",
+            scheduled_event_id=117,
+            workflow_execution=wfe,
+        )
+
+    task.last_heartbeat_timestamp.should.equal(1420110000.0)
+
+    with freeze_time("2015-01-01 13:00:00"):
+        task.reset_heartbeat_clock()
+
+    task.last_heartbeat_timestamp.should.equal(1420113600.0)

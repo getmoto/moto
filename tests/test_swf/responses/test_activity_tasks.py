@@ -171,3 +171,31 @@ def test_respond_activity_task_completed_with_wrong_token():
     conn.respond_activity_task_failed.when.called_with(
         "not-a-correct-token"
     ).should.throw(SWFValidationException, "Invalid token")
+
+
+# RecordActivityTaskHeartbeat endpoint
+@mock_swf
+def test_record_activity_task_heartbeat():
+    conn = setup_workflow()
+    decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
+    conn.respond_decision_task_completed(decision_token, decisions=[
+        SCHEDULE_ACTIVITY_TASK_DECISION
+    ])
+    activity_token = conn.poll_for_activity_task("test-domain", "activity-task-list")["taskToken"]
+
+    resp = conn.record_activity_task_heartbeat(activity_token, details="some progress details")
+    # TODO: check that "details" are reflected in ActivityTaskTimedOut event when a timeout occurs
+    resp.should.equal({"cancelRequested": False})
+
+@mock_swf
+def test_record_activity_task_heartbeat_with_wrong_token():
+    conn = setup_workflow()
+    decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
+    conn.respond_decision_task_completed(decision_token, decisions=[
+        SCHEDULE_ACTIVITY_TASK_DECISION
+    ])
+    conn.poll_for_activity_task("test-domain", "activity-task-list")["taskToken"]
+
+    conn.record_activity_task_heartbeat.when.called_with(
+        "bad-token", details="some progress details"
+    ).should.throw(SWFValidationException)
