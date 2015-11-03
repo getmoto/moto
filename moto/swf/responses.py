@@ -48,7 +48,7 @@ class SWFResponse(BaseResponse):
     # SWF parameters are passed through a JSON body, so let's ease retrieval
     @property
     def _params(self):
-        return json.loads(self.body)
+        return json.loads(self.body.decode("utf-8"))
 
     def _list_types(self, kind):
         domain_name = self._params["domain"]
