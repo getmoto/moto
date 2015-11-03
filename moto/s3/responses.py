@@ -24,6 +24,7 @@ def parse_key_name(pth):
 class ResponseObject(_TemplateEnvironmentMixin):
     def __init__(self, backend, bucket_name_from_url, parse_key_name,
                  is_delete_keys=None):
+        super(ResponseObject, self).__init__()
         self.backend = backend
         self.bucket_name_from_url = bucket_name_from_url
         self.parse_key_name = parse_key_name

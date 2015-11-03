@@ -236,3 +236,13 @@ def test_modify_attribute_blockDeviceMapping():
     instance = ec2_backends[conn.region.name].get_instance(instance.id)
     instance.block_device_mapping.should.have.key('/dev/sda1')
     instance.block_device_mapping['/dev/sda1'].delete_on_termination.should.be(True)
+
+
+@mock_ec2
+def test_volume_tag_escaping():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    vol = conn.create_volume(10, 'us-east-1a')
+    snapshot = conn.create_snapshot(vol.id, 'Desc')
+    snapshot.add_tags({'key': '</closed>'})
+
+    dict(conn.get_all_snapshots()[0].tags).should.equal({'key': '</closed>'})

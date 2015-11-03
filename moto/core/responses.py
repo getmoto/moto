@@ -63,8 +63,16 @@ class DynamicDictLoader(DictLoader):
 
 
 class _TemplateEnvironmentMixin(object):
-    loader = DynamicDictLoader({})
-    environment = Environment(loader=loader)
+
+    def __init__(self):
+        super(_TemplateEnvironmentMixin, self).__init__()
+        self.loader = DynamicDictLoader({})
+        self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape)
+
+    @property
+    def should_autoescape(self):
+        # Allow for subclass to overwrite
+        return False
 
     def contains_template(self, template_id):
         return self.loader.contains(template_id)
@@ -73,7 +81,7 @@ class _TemplateEnvironmentMixin(object):
         template_id = id(source)
         if not self.contains_template(template_id):
             self.loader.update({template_id: source})
-            self.environment = Environment(loader=self.loader)
+            self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape)
         return self.environment.get_template(template_id)
 
 
