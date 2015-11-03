@@ -44,7 +44,8 @@ def test_type_full_dict_representation():
     _type.to_full_dict()["configuration"]["justAnExampleTimeout"].should.equal("60")
 
     _type.non_whitelisted_property = "34"
-    _type.to_full_dict()["configuration"].keys().should.equal(["defaultTaskList", "justAnExampleTimeout"])
+    keys = _type.to_full_dict()["configuration"].keys()
+    sorted(keys).should.equal(["defaultTaskList", "justAnExampleTimeout"])
 
 def test_type_string_representation():
     _type = FooType("test-foo", "v1.0")

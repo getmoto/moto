@@ -41,7 +41,7 @@ def test_domain_activity_tasks():
     domain = Domain("my-domain", "60")
     domain.add_to_activity_task_list("foo", "bar")
     domain.add_to_activity_task_list("other", "baz")
-    domain.activity_tasks.should.equal(["bar", "baz"])
+    sorted(domain.activity_tasks).should.equal(["bar", "baz"])
 
 def test_domain_add_to_decision_task_list():
     domain = Domain("my-domain", "60")
@@ -54,7 +54,7 @@ def test_domain_decision_tasks():
     domain = Domain("my-domain", "60")
     domain.add_to_decision_task_list("foo", "bar")
     domain.add_to_decision_task_list("other", "baz")
-    domain.decision_tasks.should.equal(["bar", "baz"])
+    sorted(domain.decision_tasks).should.equal(["bar", "baz"])
 
 def test_domain_get_workflow_execution():
     domain = Domain("my-domain", "60")
