@@ -256,7 +256,7 @@ class WorkflowExecution(object):
     def _check_decision_attributes(self, kind, value, decision_id):
         problems = []
         constraints = DECISIONS_FIELDS.get(kind, {})
-        for key, constraint in constraints.iteritems():
+        for key, constraint in constraints.items():
             if constraint["required"] and not value.get(key):
                 problems.append({
                     "type": "null_value",

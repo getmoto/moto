@@ -10,7 +10,7 @@ class HistoryEvent(object):
         self.event_id = event_id
         self.event_type = event_type
         self.event_timestamp = now_timestamp()
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             self.__setattr__(key, value)
         # break soon if attributes are not valid
         self.event_attributes()

@@ -29,7 +29,7 @@ SCHEDULE_ACTIVITY_TASK_DECISION = {
         "taskList": { "name": "activity-task-list" },
     }
 }
-for key, value in ACTIVITY_TASK_TIMEOUTS.iteritems():
+for key, value in ACTIVITY_TASK_TIMEOUTS.items():
     SCHEDULE_ACTIVITY_TASK_DECISION["scheduleActivityTaskDecisionAttributes"][key] = value
 
 # A test Domain

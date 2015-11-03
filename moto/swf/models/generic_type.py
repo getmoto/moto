@@ -10,7 +10,7 @@ class GenericType(object):
         self.status = "REGISTERED"
         if "description" in kwargs:
             self.description = kwargs.pop("description")
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             self.__setattr__(key, value)
         # default values set to none
         for key in self._configuration_keys:

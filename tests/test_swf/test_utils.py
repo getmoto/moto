@@ -13,7 +13,7 @@ def test_decapitalize():
         "FooBar": "fooBar",
         "FOO BAR": "fOO BAR",
     }
-    for before, after in cases.iteritems():
+    for before, after in cases.items():
         decapitalize(before).should.equal(after)
 
 @freeze_time("2015-01-01 12:00:00")

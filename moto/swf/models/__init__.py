@@ -111,7 +111,7 @@ class SWFBackend(BaseBackend):
         self._check_string(domain_name)
         self._check_string(name)
         self._check_string(version)
-        for _, value in kwargs.iteritems():
+        for _, value in kwargs.items():
             self._check_none_or_string(value)
         domain = self._get_domain(domain_name)
         _type = domain.get_type(kind, name, version, ignore_empty=True)
@@ -146,7 +146,7 @@ class SWFBackend(BaseBackend):
         self._check_string(workflow_name)
         self._check_string(workflow_version)
         self._check_none_or_list_of_strings(tag_list)
-        for _, value in kwargs.iteritems():
+        for _, value in kwargs.items():
             self._check_none_or_string(value)
 
         domain = self._get_domain(domain_name)
@@ -190,7 +190,7 @@ class SWFBackend(BaseBackend):
         #
         # TODO: handle long polling (case 2) for decision tasks
         candidates = []
-        for _task_list, tasks in domain.decision_task_lists.iteritems():
+        for _task_list, tasks in domain.decision_task_lists.items():
             if _task_list == task_list:
                 candidates += filter(lambda t: t.state == "SCHEDULED", tasks)
         if any(candidates):
@@ -290,7 +290,7 @@ class SWFBackend(BaseBackend):
         #
         # TODO: handle long polling (case 2) for activity tasks
         candidates = []
-        for _task_list, tasks in domain.activity_task_lists.iteritems():
+        for _task_list, tasks in domain.activity_task_lists.items():
             if _task_list == task_list:
                 candidates += filter(lambda t: t.state == "SCHEDULED", tasks)
         if any(candidates):
@@ -309,7 +309,7 @@ class SWFBackend(BaseBackend):
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         count = 0
-        for _task_list, tasks in domain.activity_task_lists.iteritems():
+        for _task_list, tasks in domain.activity_task_lists.items():
             if _task_list == task_list:
                 pending = [t for t in tasks if t.state in ["SCHEDULED", "STARTED"]]
                 count += len(pending)
