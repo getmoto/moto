@@ -75,12 +75,12 @@ def test_activity_task_reset_heartbeat_clock():
             workflow_execution=wfe,
         )
 
-    task.last_heartbeat_timestamp.should.equal(1420110000.0)
+    task.last_heartbeat_timestamp.should.equal(1420113600.0)
 
     with freeze_time("2015-01-01 13:00:00"):
         task.reset_heartbeat_clock()
 
-    task.last_heartbeat_timestamp.should.equal(1420113600.0)
+    task.last_heartbeat_timestamp.should.equal(1420117200.0)
 
 def test_activity_task_has_timedout():
     wfe = make_workflow_execution()

@@ -9,7 +9,7 @@ def test_history_event_creation():
     he = HistoryEvent(123, "DecisionTaskStarted", scheduled_event_id=2)
     he.event_id.should.equal(123)
     he.event_type.should.equal("DecisionTaskStarted")
-    he.event_timestamp.should.equal(1420110000.0)
+    he.event_timestamp.should.equal(1420113600.0)
 
 @freeze_time("2015-01-01 12:00:00")
 def test_history_event_to_dict_representation():
@@ -17,7 +17,7 @@ def test_history_event_to_dict_representation():
     he.to_dict().should.equal({
         "eventId": 123,
         "eventType": "DecisionTaskStarted",
-        "eventTimestamp": 1420110000.0,
+        "eventTimestamp": 1420113600.0,
         "decisionTaskStartedEventAttributes": {
             "scheduledEventId": 2
         }

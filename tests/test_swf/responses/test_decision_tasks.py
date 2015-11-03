@@ -313,4 +313,4 @@ def test_respond_decision_task_completed_with_schedule_activity_task():
     })
 
     resp = conn.describe_workflow_execution("test-domain", conn.run_id, "uid-abcd1234")
-    resp["latestActivityTaskTimestamp"].should.equal(1420110000.0)
+    resp["latestActivityTaskTimestamp"].should.equal(1420113600.0)

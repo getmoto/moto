@@ -165,7 +165,7 @@ def test_workflow_execution_start():
     wfe.events().should.equal([])
 
     wfe.start()
-    wfe.start_timestamp.should.equal(1420110000.0)
+    wfe.start_timestamp.should.equal(1420113600.0)
     wfe.events().should.have.length_of(2)
     wfe.events()[0].event_type.should.equal("WorkflowExecutionStarted")
     wfe.events()[1].event_type.should.equal("DecisionTaskScheduled")
@@ -177,7 +177,7 @@ def test_workflow_execution_complete():
 
     wfe.execution_status.should.equal("CLOSED")
     wfe.close_status.should.equal("COMPLETED")
-    wfe.close_timestamp.should.equal(1420196400.0)
+    wfe.close_timestamp.should.equal(1420200000.0)
     wfe.events()[-1].event_type.should.equal("WorkflowExecutionCompleted")
     wfe.events()[-1].decision_task_completed_event_id.should.equal(123)
     wfe.events()[-1].result.should.equal("foo")
@@ -189,7 +189,7 @@ def test_workflow_execution_fail():
 
     wfe.execution_status.should.equal("CLOSED")
     wfe.close_status.should.equal("FAILED")
-    wfe.close_timestamp.should.equal(1420196400.0)
+    wfe.close_timestamp.should.equal(1420200000.0)
     wfe.events()[-1].event_type.should.equal("WorkflowExecutionFailed")
     wfe.events()[-1].decision_task_completed_event_id.should.equal(123)
     wfe.events()[-1].details.should.equal("some details")
@@ -202,7 +202,7 @@ def test_workflow_execution_schedule_activity_task():
 
     wfe.schedule_activity_task(123, VALID_ACTIVITY_TASK_ATTRIBUTES)
 
-    wfe.latest_activity_task_timestamp.should.equal(1420110000.0)
+    wfe.latest_activity_task_timestamp.should.equal(1420113600.0)
 
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]

@@ -18,4 +18,4 @@ def test_decapitalize():
 
 @freeze_time("2015-01-01 12:00:00")
 def test_now_timestamp():
-        now_timestamp().should.equal(1420110000.0)
+    now_timestamp().should.equal(1420113600.0)
