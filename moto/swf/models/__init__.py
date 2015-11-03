@@ -193,7 +193,7 @@ class SWFBackend(BaseBackend):
         candidates = []
         for _task_list, tasks in domain.decision_task_lists.items():
             if _task_list == task_list:
-                candidates += filter(lambda t: t.state == "SCHEDULED", tasks)
+                candidates += [t for t in tasks if t.state == "SCHEDULED"]
         if any(candidates):
             # TODO: handle task priorities (but not supported by boto for now)
             task = min(candidates, key=lambda d: d.scheduled_at)
@@ -293,7 +293,7 @@ class SWFBackend(BaseBackend):
         candidates = []
         for _task_list, tasks in domain.activity_task_lists.items():
             if _task_list == task_list:
-                candidates += filter(lambda t: t.state == "SCHEDULED", tasks)
+                candidates += [t for t in tasks if t.state == "SCHEDULED"]
         if any(candidates):
             # TODO: handle task priorities (but not supported by boto for now)
             task = min(candidates, key=lambda d: d.scheduled_at)

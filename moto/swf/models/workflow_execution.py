@@ -202,17 +202,13 @@ class WorkflowExecution(object):
 
     @property
     def decision_tasks(self):
-        return filter(
-            lambda t: t.workflow_execution == self,
-            self.domain.decision_tasks
-        )
+        return [t for t in self.domain.decision_tasks
+                if t.workflow_execution == self]
 
     @property
     def activity_tasks(self):
-        return filter(
-            lambda t: t.workflow_execution == self,
-            self.domain.activity_tasks
-        )
+        return [t for t in self.domain.activity_tasks
+                if t.workflow_execution == self]
 
     def _find_decision_task(self, task_token):
         for dt in self.decision_tasks:
@@ -294,7 +290,7 @@ class WorkflowExecution(object):
             # check decision types mandatory attributes
             # NB: the real SWF service seems to check attributes even for attributes list
             # that are not in line with the decisionType, so we do the same
-            attrs_to_check = filter(lambda x: x.endswith("DecisionAttributes"), dcs.keys())
+            attrs_to_check = [d for d in dcs.keys() if d.endswith("DecisionAttributes")]
             if dcs["decisionType"] in self.KNOWN_DECISION_TYPES:
                 decision_type = dcs["decisionType"]
                 decision_attr = "{0}DecisionAttributes".format(decapitalize(decision_type))
