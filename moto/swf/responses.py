@@ -61,7 +61,7 @@ class SWFResponse(BaseResponse):
 
     def _describe_type(self, kind):
         domain = self._params["domain"]
-        _type_args = self._params["{}Type".format(kind)]
+        _type_args = self._params["{0}Type".format(kind)]
         name = _type_args["name"]
         version = _type_args["version"]
         _type = self.swf_backend.describe_type(kind, domain, name, version)
@@ -70,7 +70,7 @@ class SWFResponse(BaseResponse):
 
     def _deprecate_type(self, kind):
         domain = self._params["domain"]
-        _type_args = self._params["{}Type".format(kind)]
+        _type_args = self._params["{0}Type".format(kind)]
         name = _type_args["name"]
         version = _type_args["version"]
         self.swf_backend.deprecate_type(kind, domain, name, version)

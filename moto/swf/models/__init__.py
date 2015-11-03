@@ -117,7 +117,7 @@ class SWFBackend(BaseBackend):
         _type = domain.get_type(kind, name, version, ignore_empty=True)
         if _type:
             raise SWFTypeAlreadyExistsFault(_type)
-        _class = globals()["{}Type".format(kind.capitalize())]
+        _class = globals()["{0}Type".format(kind.capitalize())]
         _type = _class(name, version, **kwargs)
         domain.add_type(_type)
 
@@ -245,7 +245,7 @@ class SWFBackend(BaseBackend):
         if wfe.execution_status != "OPEN":
             raise SWFUnknownResourceFault(
                 "execution",
-                "WorkflowExecution=[workflowId={}, runId={}]".format(
+                "WorkflowExecution=[workflowId={0}, runId={1}]".format(
                     wfe.workflow_id, wfe.run_id
                 )
             )
@@ -253,7 +253,7 @@ class SWFBackend(BaseBackend):
         if decision_task.state != "STARTED":
             if decision_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
-                    "decision task, scheduledEventId = {}".format(decision_task.scheduled_event_id)
+                    "decision task, scheduledEventId = {0}".format(decision_task.scheduled_event_id)
                 )
             else:
                 raise ValueError(
@@ -333,7 +333,7 @@ class SWFBackend(BaseBackend):
         if wfe.execution_status != "OPEN":
             raise SWFUnknownResourceFault(
                 "execution",
-                "WorkflowExecution=[workflowId={}, runId={}]".format(
+                "WorkflowExecution=[workflowId={0}, runId={1}]".format(
                     wfe.workflow_id, wfe.run_id
                 )
             )
@@ -341,7 +341,7 @@ class SWFBackend(BaseBackend):
         if activity_task.state != "STARTED":
             if activity_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
-                    "activity, scheduledEventId = {}".format(activity_task.scheduled_event_id)
+                    "activity, scheduledEventId = {0}".format(activity_task.scheduled_event_id)
                 )
             else:
                 raise ValueError(

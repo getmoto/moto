@@ -53,7 +53,7 @@ class Domain(object):
             if not ignore_empty:
                 raise SWFUnknownResourceFault(
                     "type",
-                    "{}Type=[name={}, version={}]".format(
+                    "{0}Type=[name={1}, version={2}]".format(
                         kind.capitalize(), name, version
                     )
                 )
@@ -91,10 +91,10 @@ class Domain(object):
             wfe = None
         if not wfe and raise_if_none:
             if run_id:
-                args = ["execution", "WorkflowExecution=[workflowId={}, runId={}]".format(
+                args = ["execution", "WorkflowExecution=[workflowId={0}, runId={1}]".format(
                             workflow_id, run_id)]
             else:
-                args = ["execution, workflowId = {}".format(workflow_id)]
+                args = ["execution, workflowId = {0}".format(workflow_id)]
             raise SWFUnknownResourceFault(*args)
         # at last return workflow execution
         return wfe

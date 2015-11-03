@@ -24,7 +24,7 @@ class HistoryEvent(object):
         }
 
     def _attributes_key(self):
-        key = "{}EventAttributes".format(self.event_type)
+        key = "{0}EventAttributes".format(self.event_type)
         return decapitalize(key)
 
     def event_attributes(self):
@@ -154,5 +154,5 @@ class HistoryEvent(object):
             return hsh
         else:
             raise NotImplementedError(
-                "HistoryEvent does not implement attributes for type '{}'".format(self.event_type)
+                "HistoryEvent does not implement attributes for type '{0}'".format(self.event_type)
             )

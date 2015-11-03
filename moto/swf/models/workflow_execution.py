@@ -83,7 +83,7 @@ class WorkflowExecution(object):
         self.child_workflow_executions = []
 
     def __repr__(self):
-        return "WorkflowExecution(run_id: {})".format(self.run_id)
+        return "WorkflowExecution(run_id: {0})".format(self.run_id)
 
     def _set_from_kwargs_or_workflow_type(self, kwargs, local_key, workflow_type_key=None):
         if workflow_type_key is None:
@@ -219,7 +219,7 @@ class WorkflowExecution(object):
             if dt.task_token == task_token:
                 return dt
         raise ValueError(
-            "No decision task with token: {}".format(task_token)
+            "No decision task with token: {0}".format(task_token)
         )
 
     def start_decision_task(self, task_token, identity=None):
@@ -260,7 +260,7 @@ class WorkflowExecution(object):
             if constraint["required"] and not value.get(key):
                 problems.append({
                     "type": "null_value",
-                    "where": "decisions.{}.member.{}.{}".format(
+                    "where": "decisions.{0}.member.{1}.{2}".format(
                         decision_id, kind, key
                     )
                 })
@@ -297,7 +297,7 @@ class WorkflowExecution(object):
             attrs_to_check = filter(lambda x: x.endswith("DecisionAttributes"), dcs.keys())
             if dcs["decisionType"] in self.KNOWN_DECISION_TYPES:
                 decision_type = dcs["decisionType"]
-                decision_attr = "{}DecisionAttributes".format(decapitalize(decision_type))
+                decision_attr = "{0}DecisionAttributes".format(decapitalize(decision_type))
                 attrs_to_check.append(decision_attr)
             for attr in attrs_to_check:
                 problems += self._check_decision_attributes(attr, dcs.get(attr, {}), decision_number)
@@ -306,7 +306,7 @@ class WorkflowExecution(object):
                 problems.append({
                     "type": "bad_decision_type",
                     "value": dcs["decisionType"],
-                    "where": "decisions.{}.member.decisionType".format(decision_number),
+                    "where": "decisions.{0}.member.decisionType".format(decision_number),
                     "possible_values": ", ".join(self.KNOWN_DECISION_TYPES),
                 })
 
@@ -322,7 +322,7 @@ class WorkflowExecution(object):
         # handle each decision separately, in order
         for decision in decisions:
             decision_type = decision["decisionType"]
-            attributes_key = "{}DecisionAttributes".format(decapitalize(decision_type))
+            attributes_key = "{0}DecisionAttributes".format(decapitalize(decision_type))
             attributes = decision.get(attributes_key, {})
             if decision_type == "CompleteWorkflowExecution":
                 self.complete(event_id, attributes.get("result"))
@@ -341,7 +341,7 @@ class WorkflowExecution(object):
                 # TODO: implement Decision type: SignalExternalWorkflowExecution
                 # TODO: implement Decision type: StartChildWorkflowExecution
                 # TODO: implement Decision type: StartTimer
-                raise NotImplementedError("Cannot handle decision: {}".format(decision_type))
+                raise NotImplementedError("Cannot handle decision: {0}".format(decision_type))
 
         # finally decrement counter if and only if everything went well
         self.open_counts["openDecisionTasks"] -= 1
@@ -419,7 +419,7 @@ class WorkflowExecution(object):
             if not timeouts[_type]:
                 error_key = default_key.replace("default_task_", "default_")
                 fail_schedule_activity_task(activity_type,
-                                            "{}_UNDEFINED".format(error_key.upper()))
+                                            "{0}_UNDEFINED".format(error_key.upper()))
                 return
 
         # Only add event and increment counters now that nothing went wrong
@@ -447,7 +447,7 @@ class WorkflowExecution(object):
             if task.task_token == task_token:
                 return task
         raise ValueError(
-            "No activity task with token: {}".format(task_token)
+            "No activity task with token: {0}".format(task_token)
         )
 
     def start_activity_task(self, task_token, identity=None):
