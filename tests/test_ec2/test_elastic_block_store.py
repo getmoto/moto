@@ -33,6 +33,7 @@ def test_create_and_delete_volume():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
 @mock_ec2
 def test_filter_volume_by_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -116,6 +117,7 @@ def test_create_snapshot():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
 @mock_ec2
 def test_filter_snapshot_by_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -135,6 +137,7 @@ def test_filter_snapshot_by_id():
         s.start_time.should_not.be.none
         s.volume_id.should.be.within([volume2.id, volume3.id])
         s.region.name.should.equal(conn.region.name)
+
 
 @mock_ec2
 def test_snapshot_attribute():
@@ -215,6 +218,20 @@ def test_snapshot_attribute():
                                                     attribute='createVolumePermission',
                                                     operation='remove',
                                                     user_ids=['user']).should.throw(NotImplementedError)
+
+
+@mock_ec2
+def test_create_volume_from_snapshot():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    volume = conn.create_volume(80, "us-east-1a")
+
+    snapshot = volume.create_snapshot('a test snapshot')
+    snapshot.update()
+    snapshot.status.should.equal('completed')
+
+    new_volume = snapshot.create_volume('us-east-1a')
+    new_volume.size.should.equal(80)
+    new_volume.snapshot_id.should.equal(snapshot.id)
 
 
 @mock_ec2
