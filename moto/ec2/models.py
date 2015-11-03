@@ -98,7 +98,7 @@ from .utils import (
 
 
 def utc_date_and_time():
-    return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
 
 def validate_resource_ids(resource_ids):
