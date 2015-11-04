@@ -8,7 +8,7 @@ from moto.swf.models import Domain
 # Fake WorkflowExecution for tests purposes
 WorkflowExecution = namedtuple(
     "WorkflowExecution",
-    ["workflow_id", "run_id", "execution_status"]
+    ["workflow_id", "run_id", "execution_status", "open"]
 )
 
 
@@ -59,10 +59,10 @@ def test_domain_decision_tasks():
 def test_domain_get_workflow_execution():
     domain = Domain("my-domain", "60")
 
-    wfe1 = WorkflowExecution(workflow_id="wf-id-1", run_id="run-id-1", execution_status="OPEN")
-    wfe2 = WorkflowExecution(workflow_id="wf-id-1", run_id="run-id-2", execution_status="CLOSED")
-    wfe3 = WorkflowExecution(workflow_id="wf-id-2", run_id="run-id-3", execution_status="OPEN")
-    wfe4 = WorkflowExecution(workflow_id="wf-id-3", run_id="run-id-4", execution_status="CLOSED")
+    wfe1 = WorkflowExecution(workflow_id="wf-id-1", run_id="run-id-1", execution_status="OPEN", open=True)
+    wfe2 = WorkflowExecution(workflow_id="wf-id-1", run_id="run-id-2", execution_status="CLOSED", open=False)
+    wfe3 = WorkflowExecution(workflow_id="wf-id-2", run_id="run-id-3", execution_status="OPEN", open=True)
+    wfe4 = WorkflowExecution(workflow_id="wf-id-3", run_id="run-id-4", execution_status="CLOSED", open=False)
     domain.workflow_executions = [wfe1, wfe2, wfe3, wfe4]
 
     # get workflow execution through workflow_id and run_id

@@ -45,7 +45,7 @@ class DecisionTask(object):
         self.state = "COMPLETED"
 
     def has_timedout(self):
-        if self.state != "STARTED":
+        if self.state != "STARTED" or not self.workflow_execution.open:
             return False
         # TODO: handle the "NONE" case
         start_to_close_timeout = self.started_timestamp + \

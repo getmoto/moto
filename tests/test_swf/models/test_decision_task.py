@@ -33,7 +33,6 @@ def test_decision_task_full_dict_representation():
 
 def test_decision_task_has_timedout():
     wfe = make_workflow_execution()
-    wft = wfe.workflow_type
     dt = DecisionTask(wfe, 123)
     dt.has_timedout().should.equal(False)
 
@@ -47,3 +46,18 @@ def test_decision_task_has_timedout():
 
     dt.complete()
     dt.has_timedout().should.equal(False)
+
+def test_decision_task_cannot_timeout_on_closed_workflow_execution():
+    with freeze_time("2015-01-01 12:00:00"):
+        wfe = make_workflow_execution()
+        wfe.start()
+
+    with freeze_time("2015-01-01 13:55:00"):
+        dt = DecisionTask(wfe, 123)
+        dt.start(1234)
+
+    with freeze_time("2015-01-01 14:10:00"):
+        dt.has_timedout().should.equal(True)
+        wfe.has_timedout().should.equal(True)
+        wfe.process_timeouts()
+        dt.has_timedout().should.equal(False)
