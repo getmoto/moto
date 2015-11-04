@@ -44,7 +44,7 @@ def _generic_workflow_type_attributes():
     ], {
         "task_list": "queue",
         "default_child_policy": "ABANDON",
-        "default_execution_start_to_close_timeout": "300",
+        "default_execution_start_to_close_timeout": "7200",
         "default_task_start_to_close_timeout": "300",
     }
 

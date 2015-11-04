@@ -158,6 +158,11 @@ class HistoryEvent(object):
                 "startedEventId": self.started_event_id,
                 "timeoutType": self.timeout_type,
             }
+        elif self.event_type == "WorkflowExecutionTimedOut":
+            return {
+                "childPolicy": self.child_policy,
+                "timeoutType": self.timeout_type,
+            }
         else:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{0}'".format(self.event_type)

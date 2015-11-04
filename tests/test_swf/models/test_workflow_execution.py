@@ -394,3 +394,15 @@ def test_terminate():
     last_event.event_type.should.equal("WorkflowExecutionTerminated")
     # take default child_policy if not provided (as here)
     last_event.child_policy.should.equal("ABANDON")
+
+def test_has_timedout():
+    wfe = make_workflow_execution()
+    wfe.has_timedout().should.equal(False)
+
+    with freeze_time("2015-01-01 12:00:00"):
+        wfe.start()
+        wfe.has_timedout().should.equal(False)
+
+    with freeze_time("2015-01-01 14:01"):
+        # 2 hours timeout reached
+        wfe.has_timedout().should.equal(True)

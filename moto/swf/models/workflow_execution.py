@@ -59,6 +59,7 @@ class WorkflowExecution(object):
         self.parent = None
         self.start_timestamp = None
         self.tag_list = [] # TODO
+        self.timeout_type = None
         self.workflow_type = workflow_type
         # args processing
         # NB: the order follows boto/SWF order of exceptions appearance (if no
@@ -149,7 +150,15 @@ class WorkflowExecution(object):
     def _process_timeouts(self):
         self.should_schedule_decision_next = False
 
-        # TODO: process timeouts on workflow itself
+        # workflow execution timeout
+        if self.has_timedout():
+            self.process_timeouts()
+            # TODO: process child policy on child workflows here or in process_timeouts()
+            self._add_event(
+                "WorkflowExecutionTimedOut",
+                child_policy=self.child_policy,
+                timeout_type=self.timeout_type,
+            )
 
         # decision tasks timeouts
         for task in self.decision_tasks:
@@ -512,3 +521,17 @@ class WorkflowExecution(object):
         self.execution_status = "CLOSED"
         self.close_status = "TERMINATED"
         self.close_cause = "OPERATOR_INITIATED"
+
+    def has_timedout(self):
+        if self.execution_status != "OPEN" or not self.start_timestamp:
+            return False
+        # TODO: handle the "NONE" case
+        start_to_close_timeout = self.start_timestamp + \
+                                    int(self.execution_start_to_close_timeout)
+        return start_to_close_timeout < now_timestamp()
+
+    def process_timeouts(self):
+        if self.has_timedout():
+            self.execution_status = "CLOSED"
+            self.close_status = "TIMED_OUT"
+            self.timeout_type = "START_TO_CLOSE"

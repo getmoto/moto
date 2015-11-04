@@ -63,3 +63,32 @@ def test_decision_task_start_to_close_timeout():
         attrs.should.equal({
             "scheduledEventId": 2, "startedEventId": 3, "timeoutType": "START_TO_CLOSE"
         })
+
+# Workflow Execution Start to Close timeout
+# Default value in workflow helpers: 2 hours
+@mock_swf
+def test_workflow_execution_start_to_close_timeout():
+    pass
+    with freeze_time("2015-01-01 12:00:00"):
+        conn = setup_workflow()
+
+    with freeze_time("2015-01-01 13:59:30"):
+        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+
+        event_types = [evt["eventType"] for evt in resp["events"]]
+        event_types.should.equal(
+            ["WorkflowExecutionStarted", "DecisionTaskScheduled"]
+        )
+
+    with freeze_time("2015-01-01 14:00:30"):
+        # => Workflow Execution Start to Close timeout reached!!
+        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+
+        event_types = [evt["eventType"] for evt in resp["events"]]
+        event_types.should.equal(
+            ["WorkflowExecutionStarted", "DecisionTaskScheduled", "WorkflowExecutionTimedOut"]
+        )
+        attrs = resp["events"][-1]["workflowExecutionTimedOutEventAttributes"]
+        attrs.should.equal({
+            "childPolicy": "ABANDON", "timeoutType": "START_TO_CLOSE"
+        })
