@@ -148,8 +148,21 @@ class WorkflowExecution(object):
 
     def _process_timeouts(self):
         self.should_schedule_decision_next = False
+
         # TODO: process timeouts on workflow itself
-        # TODO: process timeouts on decision tasks
+
+        # decision tasks timeouts
+        for task in self.decision_tasks:
+            if task.state == "STARTED" and task.has_timedout():
+                self.should_schedule_decision_next = True
+                task.process_timeouts()
+                self._add_event(
+                    "DecisionTaskTimedOut",
+                    scheduled_event_id=task.scheduled_event_id,
+                    started_event_id=task.started_event_id,
+                    timeout_type=task.timeout_type,
+                )
+
         # activity tasks timeouts
         for task in self.activity_tasks:
             if task.open and task.has_timedout():

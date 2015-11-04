@@ -32,3 +32,34 @@ def test_activity_task_heartbeat_timeout():
         attrs["timeoutType"].should.equal("HEARTBEAT")
 
         resp["events"][-1]["eventType"].should.equal("DecisionTaskScheduled")
+
+# Decision Task Start to Close timeout
+# Default value in workflow helpers: 5 mins
+@mock_swf
+def test_decision_task_start_to_close_timeout():
+    pass
+    with freeze_time("2015-01-01 12:00:00"):
+        conn = setup_workflow()
+        conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
+
+    with freeze_time("2015-01-01 12:04:30"):
+        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+
+        event_types = [evt["eventType"] for evt in resp["events"]]
+        event_types.should.equal(
+            ["WorkflowExecutionStarted", "DecisionTaskScheduled", "DecisionTaskStarted"]
+        )
+
+    with freeze_time("2015-01-01 12:05:30"):
+        # => Decision Task Start to Close timeout reached!!
+        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+
+        event_types = [evt["eventType"] for evt in resp["events"]]
+        event_types.should.equal(
+            ["WorkflowExecutionStarted", "DecisionTaskScheduled", "DecisionTaskStarted",
+             "DecisionTaskTimedOut", "DecisionTaskScheduled"]
+        )
+        attrs = resp["events"][-2]["decisionTaskTimedOutEventAttributes"]
+        attrs.should.equal({
+            "scheduledEventId": 2, "startedEventId": 3, "timeoutType": "START_TO_CLOSE"
+        })

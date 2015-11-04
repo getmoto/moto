@@ -152,6 +152,12 @@ class HistoryEvent(object):
             if self.details:
                 hsh["details"] = self.details
             return hsh
+        elif self.event_type == "DecisionTaskTimedOut":
+            return {
+                "scheduledEventId": self.scheduled_event_id,
+                "startedEventId": self.started_event_id,
+                "timeoutType": self.timeout_type,
+            }
         else:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{0}'".format(self.event_type)

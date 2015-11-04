@@ -1,3 +1,4 @@
+from freezegun import freeze_time
 from sure import expect
 
 from moto.swf.models import DecisionTask
@@ -29,3 +30,20 @@ def test_decision_task_full_dict_representation():
     dt.start(1234)
     fd = dt.to_full_dict()
     fd["startedEventId"].should.equal(1234)
+
+def test_decision_task_has_timedout():
+    wfe = make_workflow_execution()
+    wft = wfe.workflow_type
+    dt = DecisionTask(wfe, 123)
+    dt.has_timedout().should.equal(False)
+
+    with freeze_time("2015-01-01 12:00:00"):
+        dt.start(1234)
+        dt.has_timedout().should.equal(False)
+
+    # activity task timeout is 300s == 5mins
+    with freeze_time("2015-01-01 12:06:00"):
+        dt.has_timedout().should.equal(True)
+
+    dt.complete()
+    dt.has_timedout().should.equal(False)

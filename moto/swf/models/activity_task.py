@@ -54,6 +54,7 @@ class ActivityTask(object):
         self.last_heartbeat_timestamp = now_timestamp()
 
     def has_timedout(self):
+        # TODO: handle the "NONE" case
         heartbeat_timeout_at = self.last_heartbeat_timestamp + \
                                 int(self.timeouts["heartbeatTimeout"])
         return heartbeat_timeout_at < now_timestamp()
