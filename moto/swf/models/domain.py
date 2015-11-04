@@ -83,7 +83,7 @@ class Domain(object):
                     if w.workflow_id == workflow_id and w.run_id == run_id]
         else:
             _all = [w for w in self.workflow_executions
-                    if w.workflow_id == workflow_id and w.execution_status == "OPEN"]
+                    if w.workflow_id == workflow_id and w.open]
         # reduce
         wfe = _all[0] if _all else None
         # raise if closed / none

@@ -523,7 +523,7 @@ class WorkflowExecution(object):
         self.close_cause = "OPERATOR_INITIATED"
 
     def has_timedout(self):
-        if self.execution_status != "OPEN" or not self.start_timestamp:
+        if not self.open or not self.start_timestamp:
             return False
         # TODO: handle the "NONE" case
         start_to_close_timeout = self.start_timestamp + \
@@ -535,3 +535,7 @@ class WorkflowExecution(object):
             self.execution_status = "CLOSED"
             self.close_status = "TIMED_OUT"
             self.timeout_type = "START_TO_CLOSE"
+
+    @property
+    def open(self):
+        return self.execution_status == "OPEN"

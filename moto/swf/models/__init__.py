@@ -243,7 +243,7 @@ class SWFBackend(BaseBackend):
             raise SWFValidationException("Invalid token")
         # decision task found, but WorflowExecution is CLOSED
         wfe = decision_task.workflow_execution
-        if wfe.execution_status != "OPEN":
+        if not wfe.open:
             raise SWFUnknownResourceFault(
                 "execution",
                 "WorkflowExecution=[workflowId={0}, runId={1}]".format(
@@ -331,7 +331,7 @@ class SWFBackend(BaseBackend):
             raise SWFValidationException("Invalid token")
         # activity task found, but WorflowExecution is CLOSED
         wfe = activity_task.workflow_execution
-        if wfe.execution_status != "OPEN":
+        if not wfe.open:
             raise SWFUnknownResourceFault(
                 "execution",
                 "WorkflowExecution=[workflowId={0}, runId={1}]".format(
