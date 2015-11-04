@@ -102,29 +102,32 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 prefix = querystring.get('prefix', [None])[0]
                 multiparts = [upload for upload in multiparts if upload.key_name.startswith(prefix)]
             template = self.response_template(S3_ALL_MULTIPARTS)
-            return 200, headers, template.render(
+            return template.render(
                 bucket_name=bucket_name,
                 uploads=multiparts)
         elif 'location' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             template = self.response_template(S3_BUCKET_LOCATION)
-            return 200, headers, template.render(location=bucket.location)
+            return template.render(location=bucket.location)
         elif 'lifecycle' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if not bucket.rules:
                 return 404, headers, "NoSuchLifecycleConfiguration"
             template = self.response_template(S3_BUCKET_LIFECYCLE_CONFIGURATION)
-            return 200, headers, template.render(rules=bucket.rules)
+            return template.render(rules=bucket.rules)
         elif 'versioning' in querystring:
             versioning = self.backend.get_bucket_versioning(bucket_name)
             template = self.response_template(S3_BUCKET_GET_VERSIONING)
-            return 200, headers, template.render(status=versioning)
+            return template.render(status=versioning)
         elif 'policy' in querystring:
             policy = self.backend.get_bucket_policy(bucket_name)
             if not policy:
                 template = self.response_template(S3_NO_POLICY)
                 return 404, headers, template.render(bucket_name=bucket_name)
             return 200, headers, policy
+        elif 'website' in querystring:
+            website_configuration = self.backend.get_bucket_website_configuration(bucket_name)
+            return website_configuration
         elif 'versions' in querystring:
             delimiter = querystring.get('delimiter', [None])[0]
             encoding_type = querystring.get('encoding-type', [None])[0]
@@ -184,6 +187,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif 'policy' in querystring:
             self.backend.set_bucket_policy(bucket_name, body)
             return 'True'
+        elif 'website' in querystring:
+            self.backend.set_bucket_website_configuration(bucket_name, body)
+            return ""
         else:
             try:
                 new_bucket = self.backend.create_bucket(bucket_name, region_name)

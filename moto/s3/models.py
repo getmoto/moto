@@ -244,6 +244,7 @@ class FakeBucket(object):
         self.versioning_status = None
         self.rules = []
         self.policy = None
+        self.website_configuration = None
 
     @property
     def location(self):
@@ -271,6 +272,9 @@ class FakeBucket(object):
 
     def delete_lifecycle(self):
         self.rules = []
+
+    def set_website_configuration(self, website_configuration):
+        self.website_configuration = website_configuration
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -342,6 +346,14 @@ class S3Backend(BaseBackend):
     def set_bucket_lifecycle(self, bucket_name, rules):
         bucket = self.get_bucket(bucket_name)
         bucket.set_lifecycle(rules)
+
+    def set_bucket_website_configuration(self, bucket_name, website_configuration):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_website_configuration(website_configuration)
+
+    def get_bucket_website_configuration(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return bucket.website_configuration
 
     def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)

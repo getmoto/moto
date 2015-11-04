@@ -945,5 +945,33 @@ def test_boto3_head_object():
 
     s3.Object('blah', 'hello.txt').meta.client.head_object(Bucket='blah', Key='hello.txt')
 
-    with assert_raises(ClientError) as err:
+    with assert_raises(ClientError):
         s3.Object('blah', 'hello2.txt').meta.client.head_object(Bucket='blah', Key='hello_bad.txt')
+
+
+TEST_XML = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<ns0:WebsiteConfiguration xmlns:ns0="http://s3.amazonaws.com/doc/2006-03-01/">
+    <ns0:IndexDocument>
+        <ns0:Suffix>index.html</ns0:Suffix>
+    </ns0:IndexDocument>
+    <ns0:RoutingRules>
+        <ns0:RoutingRule>
+            <ns0:Condition>
+                <ns0:KeyPrefixEquals>test/testing</ns0:KeyPrefixEquals>
+            </ns0:Condition>
+            <ns0:Redirect>
+                <ns0:ReplaceKeyWith>test.txt</ns0:ReplaceKeyWith>
+            </ns0:Redirect>
+        </ns0:RoutingRule>
+    </ns0:RoutingRules>
+</ns0:WebsiteConfiguration>
+"""
+
+
+@mock_s3
+def test_website_configuration_xml():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test-bucket')
+    bucket.set_website_configuration_xml(TEST_XML)
+    bucket.get_website_configuration_xml().should.equal(TEST_XML)
