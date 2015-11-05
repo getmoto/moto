@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 import uuid
 
+from ..exceptions import SWFWorkflowExecutionClosedError
 from ..utils import now_timestamp
 
 
@@ -24,6 +25,10 @@ class ActivityTask(object):
         # but that shouldn't be a problem for tests
         self.scheduled_at = datetime.now()
 
+    def _check_workflow_execution_open(self):
+        if not self.workflow_execution.open:
+            raise SWFWorkflowExecutionClosedError()
+
     @property
     def open(self):
         return self.state in ["SCHEDULED", "STARTED"]
@@ -45,9 +50,11 @@ class ActivityTask(object):
         self.started_event_id = started_event_id
 
     def complete(self):
+        self._check_workflow_execution_open()
         self.state = "COMPLETED"
 
     def fail(self):
+        self._check_workflow_execution_open()
         self.state = "FAILED"
 
     def reset_heartbeat_clock(self):
@@ -63,5 +70,9 @@ class ActivityTask(object):
 
     def process_timeouts(self):
         if self.has_timedout():
-            self.state = "TIMED_OUT"
-            self.timeout_type = "HEARTBEAT"
+            self.timeout()
+
+    def timeout(self):
+        self._check_workflow_execution_open()
+        self.state = "TIMED_OUT"
+        self.timeout_type = "HEARTBEAT"

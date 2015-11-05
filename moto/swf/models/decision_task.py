@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 import uuid
 
+from ..exceptions import SWFWorkflowExecutionClosedError
 from ..utils import now_timestamp
 
 
@@ -20,6 +21,10 @@ class DecisionTask(object):
         # but that shouldn't be a problem for tests
         self.scheduled_at = datetime.now()
         self.timeout_type = None
+
+    def _check_workflow_execution_open(self):
+        if not self.workflow_execution.open:
+            raise SWFWorkflowExecutionClosedError()
 
     def to_full_dict(self, reverse_order=False):
         events = self.workflow_execution.events(reverse_order=reverse_order)
@@ -42,6 +47,7 @@ class DecisionTask(object):
         self.started_event_id = started_event_id
 
     def complete(self):
+        self._check_workflow_execution_open()
         self.state = "COMPLETED"
 
     def has_timedout(self):
@@ -54,5 +60,9 @@ class DecisionTask(object):
 
     def process_timeouts(self):
         if self.has_timedout():
-            self.state = "TIMED_OUT"
-            self.timeout_type = "START_TO_CLOSE"
+            self.timeout()
+
+    def timeout(self):
+        self._check_workflow_execution_open()
+        self.state = "TIMED_OUT"
+        self.timeout_type = "START_TO_CLOSE"

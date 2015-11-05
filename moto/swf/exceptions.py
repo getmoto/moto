@@ -119,3 +119,8 @@ class SWFDecisionValidationException(SWFClientError):
             prefix.format(count) + "; ".join(messages),
             "com.amazon.coral.validate#ValidationException"
         )
+
+
+class SWFWorkflowExecutionClosedError(Exception):
+    def __str__(self):
+        return repr("Cannot change this object because the WorkflowExecution is closed")
