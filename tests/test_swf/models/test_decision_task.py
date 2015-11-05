@@ -4,7 +4,7 @@ from sure import expect
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
 from moto.swf.models import DecisionTask, Timeout
 
-from ..utils import make_workflow_execution
+from ..utils import make_workflow_execution, process_first_timeout
 
 
 def test_decision_task_creation():
@@ -60,7 +60,7 @@ def test_decision_task_cannot_timeout_on_closed_workflow_execution():
     with freeze_time("2015-01-01 14:10:00"):
         dt.first_timeout().should.be.a(Timeout)
         wfe.first_timeout().should.be.a(Timeout)
-        wfe.process_timeouts()
+        process_first_timeout(wfe)
         dt.first_timeout().should.be.none
 
 def test_decision_task_cannot_change_state_on_closed_workflow_execution():

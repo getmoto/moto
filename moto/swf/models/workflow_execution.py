@@ -154,8 +154,8 @@ class WorkflowExecution(object):
         # workflow execution timeout
         _timeout = self.first_timeout()
         if _timeout:
-            self.execute_timeout(_timeout)
-            # TODO: process child policy on child workflows here or in process_timeouts()
+            self.timeout(_timeout)
+            # TODO: process child policy on child workflows here or in timeout()
             self._add_event(
                 "WorkflowExecutionTimedOut",
                 child_policy=self.child_policy,
@@ -168,7 +168,7 @@ class WorkflowExecution(object):
             _timeout = task.first_timeout()
             if task.state == "STARTED" and _timeout:
                 self.should_schedule_decision_next = True
-                task.process_timeouts()
+                task.timeout(_timeout)
                 self._add_event(
                     "DecisionTaskTimedOut",
                     event_timestamp=_timeout.timestamp,
@@ -182,7 +182,7 @@ class WorkflowExecution(object):
             _timeout = task.first_timeout()
             if task.open and _timeout:
                 self.should_schedule_decision_next = True
-                task.process_timeouts()
+                task.timeout(_timeout)
                 self._add_event(
                     "ActivityTaskTimedOut",
                     details=task.details,
@@ -538,15 +538,10 @@ class WorkflowExecution(object):
         if _timeout.reached:
             return _timeout
 
-    def execute_timeout(self, timeout):
+    def timeout(self, timeout):
         self.execution_status = "CLOSED"
         self.close_status = "TIMED_OUT"
         self.timeout_type = timeout.kind
-
-    def process_timeouts(self):
-        _timeout = self.first_timeout()
-        if _timeout:
-            self.execute_timeout(_timeout)
 
     @property
     def open(self):

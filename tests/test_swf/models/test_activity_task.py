@@ -8,7 +8,11 @@ from moto.swf.models import (
     Timeout,
 )
 
-from ..utils import make_workflow_execution, ACTIVITY_TASK_TIMEOUTS
+from ..utils import (
+    ACTIVITY_TASK_TIMEOUTS,
+    make_workflow_execution,
+    process_first_timeout,
+)
 
 
 def test_activity_task_creation():
@@ -101,7 +105,7 @@ def test_activity_task_first_timeout():
     # activity task timeout is 300s == 5mins
     with freeze_time("2015-01-01 12:06:00"):
         task.first_timeout().should.be.a(Timeout)
-        task.process_timeouts()
+        process_first_timeout(task)
         task.state.should.equal("TIMED_OUT")
         task.timeout_type.should.equal("HEARTBEAT")
 
@@ -123,7 +127,7 @@ def test_activity_task_cannot_timeout_on_closed_workflow_execution():
     with freeze_time("2015-01-01 14:10:00"):
         task.first_timeout().should.be.a(Timeout)
         wfe.first_timeout().should.be.a(Timeout)
-        wfe.process_timeouts()
+        process_first_timeout(wfe)
         task.first_timeout().should.be.none
 
 def test_activity_task_cannot_change_state_on_closed_workflow_execution():

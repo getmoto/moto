@@ -82,3 +82,10 @@ def setup_workflow():
     wfe = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
     conn.run_id = wfe["runId"]
     return conn
+
+
+# A helper for processing the first timeout on a given object
+def process_first_timeout(obj):
+    _timeout = obj.first_timeout()
+    if _timeout:
+        obj.timeout(_timeout)
