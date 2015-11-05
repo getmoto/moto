@@ -166,7 +166,7 @@ class WorkflowExecution(object):
         # decision tasks timeouts
         for task in self.decision_tasks:
             _timeout = task.first_timeout()
-            if task.state == "STARTED" and _timeout:
+            if _timeout:
                 self.should_schedule_decision_next = True
                 task.timeout(_timeout)
                 self._add_event(
@@ -180,7 +180,7 @@ class WorkflowExecution(object):
         # activity tasks timeouts
         for task in self.activity_tasks:
             _timeout = task.first_timeout()
-            if task.open and _timeout:
+            if _timeout:
                 self.should_schedule_decision_next = True
                 task.timeout(_timeout)
                 self._add_event(

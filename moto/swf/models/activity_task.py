@@ -63,7 +63,7 @@ class ActivityTask(object):
         self.last_heartbeat_timestamp = now_timestamp()
 
     def first_timeout(self):
-        if not self.workflow_execution.open:
+        if not self.open or not self.workflow_execution.open:
             return None
         # TODO: handle the "NONE" case
         heartbeat_timeout_at = self.last_heartbeat_timestamp + \

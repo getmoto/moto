@@ -24,6 +24,10 @@ class DecisionTask(object):
         self.scheduled_at = datetime.now()
         self.timeout_type = None
 
+    @property
+    def started(self):
+        return self.state == "STARTED"
+
     def _check_workflow_execution_open(self):
         if not self.workflow_execution.open:
             raise SWFWorkflowExecutionClosedError()
@@ -53,7 +57,7 @@ class DecisionTask(object):
         self.state = "COMPLETED"
 
     def first_timeout(self):
-        if self.state != "STARTED" or not self.workflow_execution.open:
+        if not self.started or not self.workflow_execution.open:
             return None
         # TODO: handle the "NONE" case
         start_to_close_at = self.started_timestamp + int(self.start_to_close_timeout)
