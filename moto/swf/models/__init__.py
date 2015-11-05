@@ -20,6 +20,7 @@ from .decision_task import DecisionTask
 from .domain import Domain
 from .generic_type import GenericType
 from .history_event import HistoryEvent
+from .timeout import Timeout
 from .workflow_type import WorkflowType
 from .workflow_execution import WorkflowExecution
 

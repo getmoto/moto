@@ -5,6 +5,8 @@ import uuid
 from ..exceptions import SWFWorkflowExecutionClosedError
 from ..utils import now_timestamp
 
+from .timeout import Timeout
+
 
 class DecisionTask(object):
     def __init__(self, workflow_execution, scheduled_event_id):
@@ -50,19 +52,21 @@ class DecisionTask(object):
         self._check_workflow_execution_open()
         self.state = "COMPLETED"
 
-    def has_timedout(self):
+    def first_timeout(self):
         if self.state != "STARTED" or not self.workflow_execution.open:
-            return False
+            return None
         # TODO: handle the "NONE" case
-        start_to_close_timeout = self.started_timestamp + \
-                                    int(self.start_to_close_timeout)
-        return start_to_close_timeout < now_timestamp()
+        start_to_close_at = self.started_timestamp + int(self.start_to_close_timeout)
+        _timeout = Timeout(self, start_to_close_at, "START_TO_CLOSE")
+        if _timeout.reached:
+            return _timeout
 
     def process_timeouts(self):
-        if self.has_timedout():
-            self.timeout()
+        _timeout = self.first_timeout()
+        if _timeout:
+            self.timeout(_timeout)
 
-    def timeout(self):
+    def timeout(self, _timeout):
         self._check_workflow_execution_open()
         self.state = "TIMED_OUT"
-        self.timeout_type = "START_TO_CLOSE"
+        self.timeout_type = _timeout.kind

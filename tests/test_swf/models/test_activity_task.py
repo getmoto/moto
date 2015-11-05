@@ -5,6 +5,7 @@ from moto.swf.exceptions import SWFWorkflowExecutionClosedError
 from moto.swf.models import (
     ActivityTask,
     ActivityType,
+    Timeout,
 )
 
 from ..utils import make_workflow_execution, ACTIVITY_TASK_TIMEOUTS
@@ -83,7 +84,7 @@ def test_activity_task_reset_heartbeat_clock():
 
     task.last_heartbeat_timestamp.should.equal(1420117200.0)
 
-def test_activity_task_has_timedout():
+def test_activity_task_first_timeout():
     wfe = make_workflow_execution()
 
     with freeze_time("2015-01-01 12:00:00"):
@@ -95,11 +96,11 @@ def test_activity_task_has_timedout():
             timeouts=ACTIVITY_TASK_TIMEOUTS,
             workflow_execution=wfe,
         )
-        task.has_timedout().should.equal(False)
+        task.first_timeout().should.be.none
 
     # activity task timeout is 300s == 5mins
     with freeze_time("2015-01-01 12:06:00"):
-        task.has_timedout().should.equal(True)
+        task.first_timeout().should.be.a(Timeout)
         task.process_timeouts()
         task.state.should.equal("TIMED_OUT")
         task.timeout_type.should.equal("HEARTBEAT")
@@ -120,10 +121,10 @@ def test_activity_task_cannot_timeout_on_closed_workflow_execution():
         )
 
     with freeze_time("2015-01-01 14:10:00"):
-        task.has_timedout().should.equal(True)
-        wfe.has_timedout().should.equal(True)
+        task.first_timeout().should.be.a(Timeout)
+        wfe.first_timeout().should.be.a(Timeout)
         wfe.process_timeouts()
-        task.has_timedout().should.equal(False)
+        task.first_timeout().should.be.none
 
 def test_activity_task_cannot_change_state_on_closed_workflow_execution():
     wfe = make_workflow_execution()
@@ -139,6 +140,6 @@ def test_activity_task_cannot_change_state_on_closed_workflow_execution():
     )
     wfe.complete(123)
 
-    task.timeout.when.called_with().should.throw(SWFWorkflowExecutionClosedError)
+    task.timeout.when.called_with(Timeout(task, 0, "foo")).should.throw(SWFWorkflowExecutionClosedError)
     task.complete.when.called_with().should.throw(SWFWorkflowExecutionClosedError)
     task.fail.when.called_with().should.throw(SWFWorkflowExecutionClosedError)

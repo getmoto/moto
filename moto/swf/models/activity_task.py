@@ -5,6 +5,8 @@ import uuid
 from ..exceptions import SWFWorkflowExecutionClosedError
 from ..utils import now_timestamp
 
+from .timeout import Timeout
+
 
 class ActivityTask(object):
     def __init__(self, activity_id, activity_type, scheduled_event_id,
@@ -60,19 +62,23 @@ class ActivityTask(object):
     def reset_heartbeat_clock(self):
         self.last_heartbeat_timestamp = now_timestamp()
 
-    def has_timedout(self):
+    def first_timeout(self):
         if not self.workflow_execution.open:
-            return False
+            return None
         # TODO: handle the "NONE" case
         heartbeat_timeout_at = self.last_heartbeat_timestamp + \
                                 int(self.timeouts["heartbeatTimeout"])
-        return heartbeat_timeout_at < now_timestamp()
+        _timeout = Timeout(self, heartbeat_timeout_at, "HEARTBEAT")
+        if _timeout.reached:
+            return _timeout
+
 
     def process_timeouts(self):
-        if self.has_timedout():
-            self.timeout()
+        _timeout = self.first_timeout()
+        if _timeout:
+            self.timeout(_timeout)
 
-    def timeout(self):
+    def timeout(self, _timeout):
         self._check_workflow_execution_open()
         self.state = "TIMED_OUT"
-        self.timeout_type = "HEARTBEAT"
+        self.timeout_type = _timeout.kind

@@ -3,6 +3,7 @@ from freezegun import freeze_time
 
 from moto.swf.models import (
     ActivityType,
+    Timeout,
     WorkflowType,
     WorkflowExecution,
 )
@@ -106,7 +107,7 @@ def test_workflow_execution_medium_dict_representation():
     md["workflowType"].should.equal(wf_type.to_short_dict())
     md["startTimestamp"].should.be.a('float')
     md["executionStatus"].should.equal("OPEN")
-    md["cancelRequested"].should.equal(False)
+    md["cancelRequested"].should.be.falsy
     md.should_not.contain("tagList")
 
     wfe.tag_list = ["foo", "bar", "baz"]
@@ -395,14 +396,14 @@ def test_terminate():
     # take default child_policy if not provided (as here)
     last_event.child_policy.should.equal("ABANDON")
 
-def test_has_timedout():
+def test_first_timeout():
     wfe = make_workflow_execution()
-    wfe.has_timedout().should.equal(False)
+    wfe.first_timeout().should.be.none
 
     with freeze_time("2015-01-01 12:00:00"):
         wfe.start()
-        wfe.has_timedout().should.equal(False)
+        wfe.first_timeout().should.be.none
 
     with freeze_time("2015-01-01 14:01"):
         # 2 hours timeout reached
-        wfe.has_timedout().should.equal(True)
+        wfe.first_timeout().should.be.a(Timeout)

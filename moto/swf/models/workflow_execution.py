@@ -18,6 +18,7 @@ from .activity_task import ActivityTask
 from .activity_type import ActivityType
 from .decision_task import DecisionTask
 from .history_event import HistoryEvent
+from .timeout import Timeout
 
 
 # TODO: extract decision related logic into a Decision class
@@ -151,8 +152,9 @@ class WorkflowExecution(object):
         self.should_schedule_decision_next = False
 
         # workflow execution timeout
-        if self.has_timedout():
-            self.process_timeouts()
+        _timeout = self.first_timeout()
+        if _timeout:
+            self.execute_timeout(_timeout)
             # TODO: process child policy on child workflows here or in process_timeouts()
             self._add_event(
                 "WorkflowExecutionTimedOut",
@@ -162,7 +164,7 @@ class WorkflowExecution(object):
 
         # decision tasks timeouts
         for task in self.decision_tasks:
-            if task.state == "STARTED" and task.has_timedout():
+            if task.state == "STARTED" and task.first_timeout():
                 self.should_schedule_decision_next = True
                 task.process_timeouts()
                 self._add_event(
@@ -174,7 +176,7 @@ class WorkflowExecution(object):
 
         # activity tasks timeouts
         for task in self.activity_tasks:
-            if task.open and task.has_timedout():
+            if task.open and task.first_timeout():
                 self.should_schedule_decision_next = True
                 task.process_timeouts()
                 self._add_event(
@@ -522,19 +524,23 @@ class WorkflowExecution(object):
         self.close_status = "TERMINATED"
         self.close_cause = "OPERATOR_INITIATED"
 
-    def has_timedout(self):
+    def first_timeout(self):
         if not self.open or not self.start_timestamp:
-            return False
-        # TODO: handle the "NONE" case
-        start_to_close_timeout = self.start_timestamp + \
-                                    int(self.execution_start_to_close_timeout)
-        return start_to_close_timeout < now_timestamp()
+            return None
+        start_to_close_at = self.start_timestamp + int(self.execution_start_to_close_timeout)
+        _timeout = Timeout(self, start_to_close_at, "START_TO_CLOSE")
+        if _timeout.reached:
+            return _timeout
+
+    def execute_timeout(self, timeout):
+        self.execution_status = "CLOSED"
+        self.close_status = "TIMED_OUT"
+        self.timeout_type = timeout.kind
 
     def process_timeouts(self):
-        if self.has_timedout():
-            self.execution_status = "CLOSED"
-            self.close_status = "TIMED_OUT"
-            self.timeout_type = "START_TO_CLOSE"
+        _timeout = self.first_timeout()
+        if _timeout:
+            self.execute_timeout(_timeout)
 
     @property
     def open(self):
