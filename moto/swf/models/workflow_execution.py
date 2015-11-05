@@ -159,16 +159,19 @@ class WorkflowExecution(object):
             self._add_event(
                 "WorkflowExecutionTimedOut",
                 child_policy=self.child_policy,
+                event_timestamp=_timeout.timestamp,
                 timeout_type=self.timeout_type,
             )
 
         # decision tasks timeouts
         for task in self.decision_tasks:
-            if task.state == "STARTED" and task.first_timeout():
+            _timeout = task.first_timeout()
+            if task.state == "STARTED" and _timeout:
                 self.should_schedule_decision_next = True
                 task.process_timeouts()
                 self._add_event(
                     "DecisionTaskTimedOut",
+                    event_timestamp=_timeout.timestamp,
                     scheduled_event_id=task.scheduled_event_id,
                     started_event_id=task.started_event_id,
                     timeout_type=task.timeout_type,
@@ -176,17 +179,20 @@ class WorkflowExecution(object):
 
         # activity tasks timeouts
         for task in self.activity_tasks:
-            if task.open and task.first_timeout():
+            _timeout = task.first_timeout()
+            if task.open and _timeout:
                 self.should_schedule_decision_next = True
                 task.process_timeouts()
                 self._add_event(
                     "ActivityTaskTimedOut",
                     details=task.details,
+                    event_timestamp=_timeout.timestamp,
                     scheduled_event_id=task.scheduled_event_id,
                     started_event_id=task.started_event_id,
                     timeout_type=task.timeout_type,
                 )
         # schedule decision task if needed
+        # TODO: make decision appear as if it has been scheduled immediately after the timeout
         if self.should_schedule_decision_next:
             self.schedule_decision_task()
 
