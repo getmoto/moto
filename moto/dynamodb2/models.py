@@ -124,7 +124,7 @@ class Item(object):
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
             action = update_action['Action']
-            new_value = update_action['Value'].values()[0]
+            new_value = list(update_action['Value'].values())[0]
             if action == 'PUT':
                 # TODO deal with other types
                 self.attrs[attribute_name] = DynamoType({"S": new_value})
