@@ -12,6 +12,7 @@ from moto.swf.exceptions import (
 )
 
 from ..utils import (
+    auto_start_decision_tasks,
     get_basic_domain,
     get_basic_workflow_type,
     make_workflow_execution,
@@ -407,3 +408,36 @@ def test_first_timeout():
     with freeze_time("2015-01-01 14:01"):
         # 2 hours timeout reached
         wfe.first_timeout().should.be.a(Timeout)
+
+# See moto/swf/models/workflow_execution.py "_process_timeouts()" for more details
+def test_timeouts_are_processed_in_order_and_reevaluated():
+    # Let's make a Workflow Execution with the following properties:
+    # - execution start to close timeout of 8 mins
+    # - (decision) task start to close timeout of 5 mins
+    #
+    # Now start the workflow execution, and look at the history 15 mins later:
+    # - a first decision task is fired just after workflow execution start
+    # - the first decision task should have timed out after 5 mins
+    # - that fires a new decision task (which we hack to start automatically)
+    # - then the workflow timeouts after 8 mins (shows gradual reevaluation)
+    # - but the last scheduled decision task should *not* timeout (workflow closed)
+    with freeze_time("2015-01-01 12:00:00"):
+        wfe = make_workflow_execution(
+            execution_start_to_close_timeout=8*60,
+            task_start_to_close_timeout=5*60,
+        )
+        # decision will automatically start
+        wfe = auto_start_decision_tasks(wfe)
+        wfe.start()
+        event_idx = len(wfe.events())
+
+    with freeze_time("2015-01-01 12:08:00"):
+        wfe._process_timeouts()
+
+        event_types = [e.event_type for e in wfe.events()[event_idx:]]
+        event_types.should.equal([
+            "DecisionTaskTimedOut",
+            "DecisionTaskScheduled",
+            "DecisionTaskStarted",
+            "WorkflowExecutionTimedOut",
+        ])

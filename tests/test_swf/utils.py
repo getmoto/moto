@@ -66,6 +66,12 @@ def make_workflow_execution(**kwargs):
     return WorkflowExecution(domain, wft, "ab1234", **kwargs)
 
 
+# Makes decision tasks start automatically on a given workflow
+def auto_start_decision_tasks(wfe):
+    wfe.schedule_decision_task = wfe.schedule_and_start_decision_task
+    return wfe
+
+
 # Setup a complete example workflow and return the connection object
 @mock_swf
 def setup_workflow():

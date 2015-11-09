@@ -149,29 +149,65 @@ class WorkflowExecution(object):
         return hsh
 
     def _process_timeouts(self):
-        self.should_schedule_decision_next = False
+        """
+        SWF timeouts can happen on different objects (workflow executions,
+        activity tasks, decision tasks) and should be processed in order.
+
+        A specific timeout can change the workflow execution state and have an
+        impact on other timeouts: for instance, if the workflow execution
+        timeouts, subsequent timeouts on activity or decision tasks are
+        irrelevant ; if an activity task timeouts, other timeouts on this task
+        are irrelevant, and a new decision is fired, which could well timeout
+        before the end of the workflow.
+
+        So the idea here is to find the earliest timeout that would have been
+        triggered, process it, then make the workflow state progress and repeat
+        the whole process.
+        """
+        timeout_candidates = []
 
         # workflow execution timeout
-        _timeout = self.first_timeout()
-        if _timeout:
-            self.timeout(_timeout)
+        timeout_candidates.append(self.first_timeout())
 
         # decision tasks timeouts
         for task in self.decision_tasks:
-            _timeout = task.first_timeout()
-            if _timeout:
-                self.timeout_decision_task(_timeout)
+            timeout_candidates.append(task.first_timeout())
 
         # activity tasks timeouts
         for task in self.activity_tasks:
-            _timeout = task.first_timeout()
-            if _timeout:
-                self.timeout_activity_task(_timeout)
+            timeout_candidates.append(task.first_timeout())
 
-        # schedule decision task if needed
-        # TODO: make decision appear as if it has been scheduled immediately after the timeout
-        if self.should_schedule_decision_next:
-            self.schedule_decision_task()
+        # remove blank values (foo.first_timeout() is a Timeout or None)
+        timeout_candidates = filter(None, timeout_candidates)
+
+        # now find the first timeout to process
+        first_timeout = None
+        if timeout_candidates:
+            first_timeout = min(
+                timeout_candidates,
+                key=lambda t: t.timestamp
+            )
+
+        if first_timeout:
+            should_schedule_decision_next = False
+            if isinstance(first_timeout.obj, WorkflowExecution):
+                self.timeout(first_timeout)
+            elif isinstance(first_timeout.obj, DecisionTask):
+                self.timeout_decision_task(first_timeout)
+                should_schedule_decision_next = True
+            elif isinstance(first_timeout.obj, ActivityTask):
+                self.timeout_activity_task(first_timeout)
+                should_schedule_decision_next = True
+            else:
+                raise NotImplementedError("Unhandled timeout object")
+
+            # schedule decision task if needed
+            if should_schedule_decision_next:
+                self.schedule_decision_task()
+
+            # the workflow execution progressed, let's see if another
+            # timeout should be processed
+            self._process_timeouts()
 
     def events(self, reverse_order=False):
         if reverse_order:
@@ -196,7 +232,7 @@ class WorkflowExecution(object):
         )
         self.schedule_decision_task()
 
-    def schedule_decision_task(self):
+    def _schedule_decision_task(self):
         evt = self._add_event(
             "DecisionTaskScheduled",
             workflow_execution=self,
@@ -206,6 +242,15 @@ class WorkflowExecution(object):
             DecisionTask(self, evt.event_id),
         )
         self.open_counts["openDecisionTasks"] += 1
+
+    def schedule_decision_task(self):
+        self._schedule_decision_task()
+
+    # Shortcut for tests: helps having auto-starting decision tasks when needed
+    def schedule_and_start_decision_task(self, identity=None):
+        self._schedule_decision_task()
+        decision_task = self.decision_tasks[-1]
+        self.start_decision_task(decision_task.task_token, identity=identity)
 
     @property
     def decision_tasks(self):
@@ -528,7 +573,6 @@ class WorkflowExecution(object):
         )
 
     def timeout_decision_task(self, _timeout):
-        self.should_schedule_decision_next = True
         task = _timeout.obj
         task.timeout(_timeout)
         self._add_event(
@@ -540,7 +584,6 @@ class WorkflowExecution(object):
         )
 
     def timeout_activity_task(self, _timeout):
-        self.should_schedule_decision_next = True
         task = _timeout.obj
         task.timeout(_timeout)
         self._add_event(
