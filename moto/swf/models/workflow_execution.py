@@ -178,7 +178,7 @@ class WorkflowExecution(object):
             timeout_candidates.append(task.first_timeout())
 
         # remove blank values (foo.first_timeout() is a Timeout or None)
-        timeout_candidates = filter(None, timeout_candidates)
+        timeout_candidates = list(filter(None, timeout_candidates))
 
         # now find the first timeout to process
         first_timeout = None
