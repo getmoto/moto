@@ -190,7 +190,7 @@ class Queue(object):
         return [message for message in self._messages if message.visible and not message.delayed]
 
     def add_message(self, message):
-        if len(message) > self.maximum_message_size:
+        if len(message.body) > self.maximum_message_size:
             raise InvalidParameterValue()
 
         self._messages.append(message)
