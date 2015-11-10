@@ -190,6 +190,9 @@ class Queue(object):
         return [message for message in self._messages if message.visible and not message.delayed]
 
     def add_message(self, message):
+        if len(message) > self.maximum_message_size:
+            raise InvalidParameterValue()
+
         self._messages.append(message)
 
     def get_cfn_attribute(self, attribute_name):
@@ -251,9 +254,6 @@ class SQSBackend(BaseBackend):
             delay_seconds = int(delay_seconds)
         else:
             delay_seconds = queue.delay_seconds
-
-        if len(message_body) > self.maximum_message_size:
-            raise InvalidParameterValue
 
         message_id = get_random_message_id()
         message = Message(message_id, message_body)
