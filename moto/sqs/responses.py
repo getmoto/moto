@@ -11,6 +11,7 @@ from .exceptions import (
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
+MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 DEFAULT_RECEIVED_MESSAGES = 1
 SQS_REGION_REGEX = r'://(.+?)\.queue\.amazonaws\.com'
 
@@ -105,6 +106,9 @@ class SQSResponse(BaseResponse):
     def send_message(self):
         message = self.querystring.get("MessageBody")[0]
         delay_seconds = self.querystring.get('DelaySeconds')
+
+        if len(message) > MAXIMUM_MESSAGE_LENGTH:
+            return ERROR_TOO_LONG_RESPONSE, dict(status=400)
 
         if delay_seconds:
             delay_seconds = int(delay_seconds[0])
@@ -417,3 +421,13 @@ PURGE_QUEUE_RESPONSE = """<PurgeQueueResponse>
         </RequestId>
     </ResponseMetadata>
 </PurgeQueueResponse>"""
+
+ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
+    <Error>
+        <Type>Sender</Type>
+        <Code>InvalidParameterValue</Code>
+        <Message>One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.</Message>
+        <Detail/>
+    </Error>
+    <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
+</ErrorResponse>"""

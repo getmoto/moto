@@ -171,6 +171,18 @@ def test_send_message_with_delay():
 
 
 @mock_sqs
+def test_send_large_message_fails():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue.set_message_class(RawMessage)
+
+    body_one = 'test message' * 200000
+    huge_message = queue.new_message(body_one)
+
+    queue.write.when.called_with(huge_message).should.throw(SQSError)
+
+
+@mock_sqs
 def test_message_becomes_inflight_when_received():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=2)
