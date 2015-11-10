@@ -176,7 +176,7 @@ def test_send_large_message_fails():
     queue = conn.create_queue("test-queue", visibility_timeout=60)
     queue.set_message_class(RawMessage)
 
-    body_one = 'test message' * 20000
+    body_one = 'test message' * 200000
     huge_message = queue.new_message(body_one)
 
     queue.write.when.called_with(huge_message).should.throw(SQSError)
