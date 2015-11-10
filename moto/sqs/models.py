@@ -12,8 +12,7 @@ from moto.core.utils import camelcase_to_underscores, get_random_message_id
 from .utils import generate_receipt_handle, unix_time_millis
 from .exceptions import (
     ReceiptHandleIsInvalid,
-    MessageNotInflight,
-    InvalidParameterValue,
+    MessageNotInflight
 )
 
 DEFAULT_ACCOUNT_ID = 123456789012
@@ -121,6 +120,7 @@ class Queue(object):
         self.created_timestamp = now
         self.delay_seconds = 0
         self.last_modified_timestamp = now
+        self.maximum_message_size = 64 << 10
         self.message_retention_period = 86400 * 4  # four days
         self.queue_arn = 'arn:aws:sqs:sqs.us-east-1:123456789012:%s' % self.name
         self.receive_message_wait_time_seconds = 0
