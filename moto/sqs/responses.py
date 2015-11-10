@@ -11,6 +11,7 @@ from .exceptions import (
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
+MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 DEFAULT_RECEIVED_MESSAGES = 1
 SQS_REGION_REGEX = r'://(.+?)\.queue\.amazonaws\.com'
 
@@ -105,6 +106,9 @@ class SQSResponse(BaseResponse):
     def send_message(self):
         message = self.querystring.get("MessageBody")[0]
         delay_seconds = self.querystring.get('DelaySeconds')
+
+        if len(message) > MAXIMUM_MESSAGE_LENGTH:
+            return "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.", dict(status=400)
 
         if delay_seconds:
             delay_seconds = int(delay_seconds[0])

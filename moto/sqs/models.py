@@ -121,7 +121,6 @@ class Queue(object):
         self.created_timestamp = now
         self.delay_seconds = 0
         self.last_modified_timestamp = now
-        self.maximum_message_size = 64 << 10
         self.message_retention_period = 86400 * 4  # four days
         self.queue_arn = 'arn:aws:sqs:sqs.us-east-1:123456789012:%s' % self.name
         self.receive_message_wait_time_seconds = 0
@@ -190,9 +189,6 @@ class Queue(object):
         return [message for message in self._messages if message.visible and not message.delayed]
 
     def add_message(self, message):
-        if len(message.body) > self.maximum_message_size:
-            raise InvalidParameterValue()
-
         self._messages.append(message)
 
     def get_cfn_attribute(self, attribute_name):
