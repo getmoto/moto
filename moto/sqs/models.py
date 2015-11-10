@@ -12,7 +12,8 @@ from moto.core.utils import camelcase_to_underscores, get_random_message_id
 from .utils import generate_receipt_handle, unix_time_millis
 from .exceptions import (
     ReceiptHandleIsInvalid,
-    MessageNotInflight
+    MessageNotInflight,
+    InvalidParameterValue,
 )
 
 DEFAULT_ACCOUNT_ID = 123456789012
@@ -250,6 +251,9 @@ class SQSBackend(BaseBackend):
             delay_seconds = int(delay_seconds)
         else:
             delay_seconds = queue.delay_seconds
+
+        if len(message_body) > self.maximum_message_size:
+            raise InvalidParameterValue
 
         message_id = get_random_message_id()
         message = Message(message_id, message_body)
