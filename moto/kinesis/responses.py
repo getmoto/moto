@@ -89,6 +89,18 @@ class KinesisResponse(BaseResponse):
             "ShardId": shard_id,
         })
 
+    def put_records(self):
+        if self.is_firehose:
+            return self.firehose_put_record()
+        stream_name = self.parameters.get("StreamName")
+        records = self.parameters.get("Records")
+
+        response = self.kinesis_backend.put_records(
+            stream_name, records
+        )
+
+        return json.dumps(response)
+
     ''' Firehose '''
     def create_delivery_stream(self):
         stream_name = self.parameters['DeliveryStreamName']

@@ -6,7 +6,7 @@ import time
 import boto.kinesis
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
-from .exceptions import StreamNotFoundError, ShardNotFoundError
+from .exceptions import StreamNotFoundError, ShardNotFoundError, ResourceInUseError
 from .utils import compose_shard_iterator, compose_new_shard_iterator, decompose_shard_iterator
 
 
@@ -201,6 +201,8 @@ class KinesisBackend(BaseBackend):
         self.delivery_streams = {}
 
     def create_stream(self, stream_name, shard_count, region):
+        if stream_name in self.streams:
+           return ResourceInUseError(stream_name)
         stream = Stream(stream_name, shard_count, region)
         self.streams[stream_name] = stream
         return stream
@@ -250,6 +252,29 @@ class KinesisBackend(BaseBackend):
         )
 
         return sequence_number, shard_id
+
+    def put_records(self, stream_name, records):
+        stream = self.describe_stream(stream_name)
+
+        response = {
+            "FailedRecordCount": 0,
+            "Records" : []
+        }
+
+        for record in records:
+            partition_key = record.get("PartitionKey")
+            explicit_hash_key = record.get("ExplicitHashKey")
+            data = record.get("data")
+
+            sequence_number, shard_id = stream.put_record(
+                partition_key, explicit_hash_key, None, data
+            )
+            response['Records'].append({
+                "SequenceNumber": sequence_number,
+                "ShardId": shard_id
+            })
+
+        return response
 
     ''' Firehose '''
     def create_delivery_stream(self, stream_name, **stream_kwargs):
