@@ -245,6 +245,7 @@ class FakeBucket(object):
         self.rules = []
         self.policy = None
         self.website_configuration = None
+        self.acl = get_canned_acl('private')
 
     @property
     def location(self):
@@ -283,6 +284,9 @@ class FakeBucket(object):
         elif attribute_name == 'WebsiteURL':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "WebsiteURL" ]"')
         raise UnformattedGetAttTemplateException()
+
+    def set_acl(self, acl):
+        self.acl = acl
 
 
 class S3Backend(BaseBackend):
@@ -483,5 +487,14 @@ class S3Backend(BaseBackend):
             key.set_storage_class(storage)
         if acl is not None:
             key.set_acl(acl)
+
+    def set_bucket_acl(self, bucket_name, acl):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_acl(acl)
+
+    def get_bucket_acl(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return bucket.acl
+
 
 s3_backend = S3Backend()

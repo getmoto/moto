@@ -80,7 +80,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif method == 'GET':
             return self._bucket_response_get(bucket_name, querystring, headers)
         elif method == 'PUT':
-            return self._bucket_response_put(body, region_name, bucket_name, querystring, headers)
+            return self._bucket_response_put(request, body, region_name, bucket_name, querystring, headers)
         elif method == 'DELETE':
             return self._bucket_response_delete(body, bucket_name, querystring, headers)
         elif method == 'POST':
@@ -128,6 +128,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif 'website' in querystring:
             website_configuration = self.backend.get_bucket_website_configuration(bucket_name)
             return website_configuration
+        elif 'acl' in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            template = self.response_template(S3_OBJECT_ACL_RESPONSE)
+            return template.render(obj=bucket)
         elif 'versions' in querystring:
             delimiter = querystring.get('delimiter', [None])[0]
             encoding_type = querystring.get('encoding-type', [None])[0]
@@ -168,7 +172,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             result_folders=result_folders
         )
 
-    def _bucket_response_put(self, body, region_name, bucket_name, querystring, headers):
+    def _bucket_response_put(self, request, body, region_name, bucket_name, querystring, headers):
         if 'versioning' in querystring:
             ver = re.search('<Status>([A-Za-z]+)</Status>', body)
             if ver:
@@ -187,6 +191,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif 'policy' in querystring:
             self.backend.set_bucket_policy(bucket_name, body)
             return 'True'
+        elif 'acl' in querystring:
+            acl = self._acl_from_headers(request.headers)
+            # TODO: Support the XML-based ACL format
+            self.backend.set_bucket_acl(bucket_name, acl)
+            return ""
         elif 'website' in querystring:
             self.backend.set_bucket_website_configuration(bucket_name, body)
             return ""
@@ -351,7 +360,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             bucket_name, key_name, version_id=version_id)
         if 'acl' in query:
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
-            return 200, headers, template.render(key=key)
+            return 200, headers, template.render(obj=key)
 
         if key:
             headers.update(key.metadata)
@@ -696,7 +705,7 @@ S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
         <DisplayName>webfile</DisplayName>
       </Owner>
       <AccessControlList>
-        {% for grant in key.acl.grants %}
+        {% for grant in obj.acl.grants %}
         <Grant>
           {% for grantee in grant.grantees %}
           <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

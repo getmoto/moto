@@ -786,6 +786,31 @@ def test_acl_switching():
 
 
 @mock_s3
+def test_bucket_acl_setting():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('foobar')
+
+    bucket.make_public()
+
+    grants = bucket.get_acl().acl.grants
+    assert any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+               g.permission == 'READ' for g in grants), grants
+
+
+@mock_s3
+def test_bucket_acl_switching():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('foobar')
+    bucket.make_public()
+
+    bucket.set_acl('private')
+
+    grants = bucket.get_acl().acl.grants
+    assert not any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+                   g.permission == 'READ' for g in grants), grants
+
+
+@mock_s3
 def test_unicode_key():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('mybucket')
