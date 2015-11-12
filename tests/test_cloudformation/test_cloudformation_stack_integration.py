@@ -3,6 +3,7 @@ import json
 
 import boto
 import boto.cloudformation
+import boto.datapipeline
 import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
@@ -17,6 +18,7 @@ import sure  # noqa
 from moto import (
     mock_autoscaling,
     mock_cloudformation,
+    mock_datapipeline,
     mock_ec2,
     mock_elb,
     mock_iam,
@@ -287,7 +289,6 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
-    instance_id = ec2_instance.id
 
     load_balancer.instances[0].id.should.equal(ec2_instance.id)
     list(load_balancer.availability_zones).should.equal(['us-east1'])
@@ -1395,3 +1396,83 @@ def test_subnets_should_be_created_with_availability_zone():
     )
     subnet = vpc_conn.get_all_subnets(filters={'cidrBlock': '10.0.0.0/24'})[0]
     subnet.availability_zone.should.equal('us-west-1b')
+
+
+@mock_cloudformation
+@mock_datapipeline
+def test_datapipeline():
+    dp_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "dataPipeline": {
+                "Properties": {
+                    "Activate": "true",
+                    "Name": "testDataPipeline",
+                    "PipelineObjects": [
+                        {
+                            "Fields": [
+                                {
+                                    "Key": "failureAndRerunMode",
+                                    "StringValue": "CASCADE"
+                                },
+                                {
+                                    "Key": "scheduleType",
+                                    "StringValue": "cron"
+                                },
+                                {
+                                    "Key": "schedule",
+                                    "RefValue": "DefaultSchedule"
+                                },
+                                {
+                                    "Key": "pipelineLogUri",
+                                    "StringValue": "s3://bucket/logs"
+                                },
+                                {
+                                    "Key": "type",
+                                    "StringValue": "Default"
+                                },
+                            ],
+                            "Id": "Default",
+                            "Name": "Default"
+                        },
+                        {
+                            "Fields": [
+                                {
+                                    "Key": "startDateTime",
+                                    "StringValue": "1970-01-01T01:00:00"
+                                },
+                                {
+                                    "Key": "period",
+                                    "StringValue": "1 Day"
+                                },
+                                {
+                                    "Key": "type",
+                                    "StringValue": "Schedule"
+                                }
+                            ],
+                            "Id": "DefaultSchedule",
+                            "Name": "RunOnce"
+                        }
+                    ],
+                    "PipelineTags": []
+                },
+                "Type": "AWS::DataPipeline::Pipeline"
+            }
+        }
+    }
+    cf_conn = boto.cloudformation.connect_to_region("us-east-1")
+    template_json = json.dumps(dp_template)
+    stack_id = cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    dp_conn = boto.datapipeline.connect_to_region('us-east-1')
+    data_pipelines = dp_conn.list_pipelines()
+
+    data_pipelines['pipelineIdList'].should.have.length_of(1)
+    data_pipelines['pipelineIdList'][0]['name'].should.equal('testDataPipeline')
+
+    stack_resources = cf_conn.list_stack_resources(stack_id)
+    stack_resources.should.have.length_of(1)
+    stack_resources[0].physical_resource_id.should.equal(data_pipelines['pipelineIdList'][0]['id'])

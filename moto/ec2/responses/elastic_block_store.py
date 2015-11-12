@@ -25,9 +25,10 @@ class ElasticBlockStore(BaseResponse):
         return template.render(snapshot=snapshot)
 
     def create_volume(self):
-        size = self.querystring.get('Size')[0]
-        zone = self.querystring.get('AvailabilityZone')[0]
-        volume = self.ec2_backend.create_volume(size, zone)
+        size = self._get_param('Size')
+        zone = self._get_param('AvailabilityZone')
+        snapshot_id = self._get_param('SnapshotId')
+        volume = self.ec2_backend.create_volume(size, zone, snapshot_id)
         template = self.response_template(CREATE_VOLUME_RESPONSE)
         return template.render(volume=volume)
 
@@ -110,7 +111,11 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <volumeId>{{ volume.id }}</volumeId>
   <size>{{ volume.size }}</size>
-  <snapshotId/>
+  {% if volume.snapshot_id %}
+    <snapshotId>{{ volume.snapshot_id }}</snapshotId>
+  {% else %}
+    <snapshotId/>
+  {% endif %}
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
   <createTime>{{ volume.create_time}}</createTime>
@@ -124,7 +129,11 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
           <item>
              <volumeId>{{ volume.id }}</volumeId>
              <size>{{ volume.size }}</size>
-             <snapshotId/>
+             {% if volume.snapshot_id %}
+               <snapshotId>{{ volume.snapshot_id }}</snapshotId>
+             {% else %}
+               <snapshotId/>
+             {% endif %}
              <availabilityZone>{{ volume.zone.name }}</availabilityZone>
              <status>{{ volume.status }}</status>
              <createTime>{{ volume.create_time}}</createTime>
@@ -198,9 +207,9 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
           <item>
              <snapshotId>{{ snapshot.id }}</snapshotId>
              <volumeId>{{ snapshot.volume.id }}</volumeId>
-             <status>pending</status>
+             <status>completed</status>
              <startTime>{{ snapshot.start_time}}</startTime>
-             <progress>30%</progress>
+             <progress>100%</progress>
              <ownerId>111122223333</ownerId>
              <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>

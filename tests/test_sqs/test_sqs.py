@@ -34,6 +34,8 @@ def test_create_queues_in_multiple_region():
     list(west1_conn.get_all_queues()).should.have.length_of(1)
     list(west2_conn.get_all_queues()).should.have.length_of(1)
 
+    west1_conn.get_all_queues()[0].url.should.equal('http://sqs.us-west-1.amazonaws.com/123456789012/test-queue')
+
 
 @mock_sqs
 def test_get_queue():
@@ -166,6 +168,18 @@ def test_send_message_with_delay():
     message = messages[0]
     assert message.get_body().should.equal(body_two)
     queue.count().should.equal(0)
+
+
+@mock_sqs
+def test_send_large_message_fails():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue.set_message_class(RawMessage)
+
+    body_one = 'test message' * 200000
+    huge_message = queue.new_message(body_one)
+
+    queue.write.when.called_with(huge_message).should.throw(SQSError)
 
 
 @mock_sqs

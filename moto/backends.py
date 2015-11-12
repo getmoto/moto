@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from moto.autoscaling import autoscaling_backend
 from moto.cloudwatch import cloudwatch_backend
 from moto.cloudformation import cloudformation_backend
+from moto.datapipeline import datapipeline_backend
 from moto.dynamodb import dynamodb_backend
 from moto.dynamodb2 import dynamodb_backend2
 from moto.ec2 import ec2_backend
@@ -25,6 +26,7 @@ BACKENDS = {
     'autoscaling': autoscaling_backend,
     'cloudformation': cloudformation_backend,
     'cloudwatch': cloudwatch_backend,
+    'datapipeline': datapipeline_backend,
     'dynamodb': dynamodb_backend,
     'dynamodb2': dynamodb_backend2,
     'ec2': ec2_backend,

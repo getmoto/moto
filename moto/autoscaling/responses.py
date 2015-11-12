@@ -60,6 +60,7 @@ class AutoScalingResponse(BaseResponse):
             load_balancers=self._get_multi_param('LoadBalancerNames.member'),
             placement_group=self._get_param('PlacementGroup'),
             termination_policies=self._get_multi_param('TerminationPolicies.member'),
+            tags=self._get_list_prefix('Tags.member'),
         )
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
@@ -235,7 +236,17 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
     <AutoScalingGroups>
       {% for group in groups %}
       <member>
-        <Tags/>
+        <Tags>
+          {% for tag in group.tags %}
+          <member>
+            <ResourceType>{{ tag.resource_type }}</ResourceType>
+            <ResourceId>{{ tag.resource_id }}</ResourceId>
+            <PropagateAtLaunch>{{ tag.propagate_at_launch }}</PropagateAtLaunch>
+            <Key>{{ tag.key }}</Key>
+            <Value>{{ tag.value }}</Value>
+          </member>
+          {% endfor %}
+        </Tags>
         <SuspendedProcesses/>
         <AutoScalingGroupName>{{ group.name }}</AutoScalingGroupName>
         <HealthCheckType>{{ group.health_check_type }}</HealthCheckType>

@@ -3,11 +3,12 @@ import logging
 logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = 'moto'
-__version__ = '0.4.12'
+__version__ = '0.4.18'
 
 from .autoscaling import mock_autoscaling  # flake8: noqa
 from .cloudformation import mock_cloudformation  # flake8: noqa
 from .cloudwatch import mock_cloudwatch  # flake8: noqa
+from .datapipeline import mock_datapipeline  # flake8: noqa
 from .dynamodb import mock_dynamodb  # flake8: noqa
 from .dynamodb2 import mock_dynamodb2  # flake8: noqa
 from .ec2 import mock_ec2  # flake8: noqa

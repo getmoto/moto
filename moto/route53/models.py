@@ -68,6 +68,7 @@ class RecordSet(object):
         self.records = kwargs.get('ResourceRecords', [])
         self.set_identifier = kwargs.get('SetIdentifier')
         self.weight = kwargs.get('Weight')
+        self.region = kwargs.get('Region')
         self.health_check = kwargs.get('HealthCheckId')
 
     @classmethod
@@ -88,6 +89,9 @@ class RecordSet(object):
                 {% endif %}
                 {% if record_set.weight %}
                     <Weight>{{ record_set.weight }}</Weight>
+                {% endif %}
+                {% if record_set.region %}
+                    <Region>{{ record_set.region }}</Region>
                 {% endif %}
                 <TTL>{{ record_set.ttl }}</TTL>
                 <ResourceRecords>

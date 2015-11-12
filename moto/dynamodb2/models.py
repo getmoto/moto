@@ -121,6 +121,17 @@ class Item(object):
                 # TODO deal with other types
                 self.attrs[key] = DynamoType({"S": value})
 
+    def update_with_attribute_updates(self, attribute_updates):
+        for attribute_name, update_action in attribute_updates.items():
+            action = update_action['Action']
+            new_value = list(update_action['Value'].values())[0]
+            if action == 'PUT':
+                # TODO deal with other types
+                if isinstance(new_value, list) or isinstance(new_value, set):
+                    self.attrs[attribute_name] = DynamoType({"SS": new_value})
+                else:
+                    self.attrs[attribute_name] = DynamoType({"S": new_value})
+
 
 class Table(object):
 
@@ -411,12 +422,19 @@ class DynamoDBBackend(BaseBackend):
 
         return table.scan(scan_filters)
 
-    def update_item(self, table_name, key, update_expression):
+    def update_item(self, table_name, key, update_expression, attribute_updates):
         table = self.get_table(table_name)
+
+        if table.hash_key_attr in key:
+            # Sometimes the key is wrapped in a dict with the key name
+            key = key[table.hash_key_attr]
 
         hash_value = DynamoType(key)
         item = table.get_item(hash_value)
-        item.update(update_expression)
+        if update_expression:
+            item.update(update_expression)
+        else:
+            item.update_with_attribute_updates(attribute_updates)
         return item
 
     def delete_item(self, table_name, keys):

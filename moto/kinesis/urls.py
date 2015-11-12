@@ -3,6 +3,7 @@ from .responses import KinesisResponse
 
 url_bases = [
     "https?://kinesis.(.+).amazonaws.com",
+    "https?://firehose.(.+).amazonaws.com",
 ]
 
 url_paths = {

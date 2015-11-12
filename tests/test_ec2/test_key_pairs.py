@@ -85,3 +85,27 @@ def test_key_pairs_delete_exist():
     r = conn.delete_key_pair('foo')
     r.should.be.ok
     assert len(conn.get_all_key_pairs()) == 0
+
+
+@mock_ec2
+def test_key_pairs_import():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    kp = conn.import_key_pair('foo', b'content')
+    assert kp.name == 'foo'
+    kps = conn.get_all_key_pairs()
+    assert len(kps) == 1
+    assert kps[0].name == 'foo'
+
+
+@mock_ec2
+def test_key_pairs_import_exist():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    kp = conn.import_key_pair('foo', b'content')
+    assert kp.name == 'foo'
+    assert len(conn.get_all_key_pairs()) == 1
+
+    with assert_raises(EC2ResponseError) as cm:
+        conn.create_key_pair('foo')
+    cm.exception.code.should.equal('InvalidKeyPair.Duplicate')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none

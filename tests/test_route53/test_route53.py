@@ -239,3 +239,25 @@ def test_deleting_weighted_route():
     cname = zone.get_cname('cname.testdns.aws.com.', all=True)
     # When get_cname only had one result, it returns just that result instead of a list.
     cname.identifier.should.equal('success-test-bar')
+
+
+@mock_route53
+def test_deleting_latency_route():
+    conn = boto.connect_route53()
+
+    conn.create_hosted_zone("testdns.aws.com.")
+    zone = conn.get_zone("testdns.aws.com.")
+
+    zone.add_cname("cname.testdns.aws.com", "example.com", identifier=('success-test-foo', 'us-west-2'))
+    zone.add_cname("cname.testdns.aws.com", "example.com", identifier=('success-test-bar', 'us-west-1'))
+
+    cnames = zone.get_cname('cname.testdns.aws.com.', all=True)
+    cnames.should.have.length_of(2)
+    foo_cname = [cname for cname in cnames if cname.identifier == 'success-test-foo'][0]
+    foo_cname.region.should.equal('us-west-2')
+
+    zone.delete_record(foo_cname)
+    cname = zone.get_cname('cname.testdns.aws.com.', all=True)
+    # When get_cname only had one result, it returns just that result instead of a list.
+    cname.identifier.should.equal('success-test-bar')
+    cname.region.should.equal('us-west-1')

@@ -66,3 +66,7 @@ class EC2Response(
     def ec2_backend(self):
         from moto.ec2.models import ec2_backends
         return ec2_backends[self.region]
+
+    @property
+    def should_autoescape(self):
+        return True

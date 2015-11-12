@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
 
+import datetime
+import time
+
 import boto.kinesis
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
-from .exceptions import StreamNotFoundError, ShardNotFoundError
+from .exceptions import StreamNotFoundError, ShardNotFoundError, ResourceInUseError
 from .utils import compose_shard_iterator, compose_new_shard_iterator, decompose_shard_iterator
 
 
@@ -124,12 +127,82 @@ class Stream(object):
         }
 
 
+class FirehoseRecord(object):
+    def __init__(self, record_data):
+        self.record_id = 12345678
+        self.record_data = record_data
+
+
+class DeliveryStream(object):
+    def __init__(self, stream_name, **stream_kwargs):
+        self.name = stream_name
+        self.redshift_username = stream_kwargs['redshift_username']
+        self.redshift_password = stream_kwargs['redshift_password']
+        self.redshift_jdbc_url = stream_kwargs['redshift_jdbc_url']
+        self.redshift_role_arn = stream_kwargs['redshift_role_arn']
+        self.redshift_copy_command = stream_kwargs['redshift_copy_command']
+
+        self.redshift_s3_role_arn = stream_kwargs['redshift_s3_role_arn']
+        self.redshift_s3_bucket_arn = stream_kwargs['redshift_s3_bucket_arn']
+        self.redshift_s3_prefix = stream_kwargs['redshift_s3_prefix']
+        self.redshift_s3_compression_format = stream_kwargs.get('redshift_s3_compression_format', 'UNCOMPRESSED')
+        self.redshift_s3_buffering_hings = stream_kwargs['redshift_s3_buffering_hings']
+
+        self.records = []
+        self.status = 'ACTIVE'
+        self.create_at = datetime.datetime.utcnow()
+        self.last_updated = datetime.datetime.utcnow()
+
+    @property
+    def arn(self):
+        return 'arn:aws:firehose:us-east-1:123456789012:deliverystream/{0}'.format(self.name)
+
+    def to_dict(self):
+        return {
+            "DeliveryStreamDescription": {
+                "CreateTimestamp": time.mktime(self.create_at.timetuple()),
+                "DeliveryStreamARN": self.arn,
+                "DeliveryStreamName": self.name,
+                "DeliveryStreamStatus": self.status,
+                "Destinations": [
+                    {
+                        "DestinationId": "string",
+                        "RedshiftDestinationDescription": {
+                            "ClusterJDBCURL": self.redshift_jdbc_url,
+                            "CopyCommand": self.redshift_copy_command,
+                            "RoleARN": self.redshift_role_arn,
+                            "S3DestinationDescription": {
+                                "BucketARN": self.redshift_s3_bucket_arn,
+                                "BufferingHints": self.redshift_s3_buffering_hings,
+                                "CompressionFormat": self.redshift_s3_compression_format,
+                                "Prefix": self.redshift_s3_prefix,
+                                "RoleARN": self.redshift_s3_role_arn
+                            },
+                            "Username": self.redshift_username,
+                        },
+                    }
+                ],
+                "HasMoreDestinations": False,
+                "LastUpdateTimestamp": time.mktime(self.last_updated.timetuple()),
+                "VersionId": "string",
+            }
+        }
+
+    def put_record(self, record_data):
+        record = FirehoseRecord(record_data)
+        self.records.append(record)
+        return record
+
+
 class KinesisBackend(BaseBackend):
 
     def __init__(self):
         self.streams = {}
+        self.delivery_streams = {}
 
     def create_stream(self, stream_name, shard_count, region):
+        if stream_name in self.streams:
+           return ResourceInUseError(stream_name)
         stream = Stream(stream_name, shard_count, region)
         self.streams[stream_name] = stream
         return stream
@@ -179,6 +252,52 @@ class KinesisBackend(BaseBackend):
         )
 
         return sequence_number, shard_id
+
+    def put_records(self, stream_name, records):
+        stream = self.describe_stream(stream_name)
+
+        response = {
+            "FailedRecordCount": 0,
+            "Records" : []
+        }
+
+        for record in records:
+            partition_key = record.get("PartitionKey")
+            explicit_hash_key = record.get("ExplicitHashKey")
+            data = record.get("data")
+
+            sequence_number, shard_id = stream.put_record(
+                partition_key, explicit_hash_key, None, data
+            )
+            response['Records'].append({
+                "SequenceNumber": sequence_number,
+                "ShardId": shard_id
+            })
+
+        return response
+
+    ''' Firehose '''
+    def create_delivery_stream(self, stream_name, **stream_kwargs):
+        stream = DeliveryStream(stream_name, **stream_kwargs)
+        self.delivery_streams[stream_name] = stream
+        return stream
+
+    def get_delivery_stream(self, stream_name):
+        if stream_name in self.delivery_streams:
+            return self.delivery_streams[stream_name]
+        else:
+            raise StreamNotFoundError(stream_name)
+
+    def list_delivery_streams(self):
+        return self.delivery_streams.values()
+
+    def delete_delivery_stream(self, stream_name):
+        self.delivery_streams.pop(stream_name)
+
+    def put_firehose_record(self, stream_name, record_data):
+        stream = self.get_delivery_stream(stream_name)
+        record = stream.put_record(record_data)
+        return record
 
 kinesis_backends = {}
 for region in boto.kinesis.regions():

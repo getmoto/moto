@@ -98,7 +98,7 @@ from .utils import (
 
 
 def utc_date_and_time():
-    return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
 
 def validate_resource_ids(resource_ids):
@@ -709,6 +709,13 @@ class KeyPairBackend(object):
             raise InvalidKeyPairNameError(filter_names)
 
         return results
+
+    def import_key_pair(self, key_name, public_key_material):
+        if key_name in self.keypairs:
+            raise InvalidKeyPairDuplicateError(key_name)
+        self.keypairs[key_name] = keypair = random_key_pair()
+        keypair['name'] = key_name
+        return keypair
 
 
 class TagBackend(object):
@@ -1381,12 +1388,13 @@ class VolumeAttachment(object):
 
 
 class Volume(TaggedEC2Resource):
-    def __init__(self, ec2_backend, volume_id, size, zone):
+    def __init__(self, ec2_backend, volume_id, size, zone, snapshot_id=None):
         self.id = volume_id
         self.size = size
         self.zone = zone
         self.create_time = utc_date_and_time()
         self.attachment = None
+        self.snapshot_id = snapshot_id
         self.ec2_backend = ec2_backend
 
     @classmethod
@@ -1429,10 +1437,14 @@ class EBSBackend(object):
         self.snapshots = {}
         super(EBSBackend, self).__init__()
 
-    def create_volume(self, size, zone_name):
+    def create_volume(self, size, zone_name, snapshot_id=None):
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)
-        volume = Volume(self, volume_id, size, zone)
+        if snapshot_id:
+            snapshot = self.get_snapshot(snapshot_id)
+            if size is None:
+                size = snapshot.volume.size
+        volume = Volume(self, volume_id, size, zone, snapshot_id)
         self.volumes[volume_id] = volume
         return volume
 

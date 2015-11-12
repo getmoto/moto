@@ -373,8 +373,9 @@ class DynamoHandler(BaseResponse):
     def update_item(self):
         name = self.body['TableName']
         key = self.body['Key']
-        update_expression = self.body['UpdateExpression']
-        item = dynamodb_backend2.update_item(name, key, update_expression)
+        update_expression = self.body.get('UpdateExpression')
+        attribute_updates = self.body.get('AttributeUpdates')
+        item = dynamodb_backend2.update_item(name, key, update_expression, attribute_updates)
 
         item_dict = item.to_json()
         item_dict['ConsumedCapacityUnits'] = 0.5

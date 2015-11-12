@@ -33,6 +33,7 @@ def test_create_and_delete_volume():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
 @mock_ec2
 def test_filter_volume_by_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -93,7 +94,9 @@ def test_create_snapshot():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a")
 
-    volume.create_snapshot('a test snapshot')
+    snapshot = volume.create_snapshot('a test snapshot')
+    snapshot.update()
+    snapshot.status.should.equal('completed')
 
     snapshots = conn.get_all_snapshots()
     snapshots.should.have.length_of(1)
@@ -114,6 +117,7 @@ def test_create_snapshot():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
 @mock_ec2
 def test_filter_snapshot_by_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -133,6 +137,7 @@ def test_filter_snapshot_by_id():
         s.start_time.should_not.be.none
         s.volume_id.should.be.within([volume2.id, volume3.id])
         s.region.name.should.equal(conn.region.name)
+
 
 @mock_ec2
 def test_snapshot_attribute():
@@ -216,6 +221,20 @@ def test_snapshot_attribute():
 
 
 @mock_ec2
+def test_create_volume_from_snapshot():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    volume = conn.create_volume(80, "us-east-1a")
+
+    snapshot = volume.create_snapshot('a test snapshot')
+    snapshot.update()
+    snapshot.status.should.equal('completed')
+
+    new_volume = snapshot.create_volume('us-east-1a')
+    new_volume.size.should.equal(80)
+    new_volume.snapshot_id.should.equal(snapshot.id)
+
+
+@mock_ec2
 def test_modify_attribute_blockDeviceMapping():
     """
     Reproduces the missing feature explained at [0], where we want to mock a
@@ -234,3 +253,13 @@ def test_modify_attribute_blockDeviceMapping():
     instance = ec2_backends[conn.region.name].get_instance(instance.id)
     instance.block_device_mapping.should.have.key('/dev/sda1')
     instance.block_device_mapping['/dev/sda1'].delete_on_termination.should.be(True)
+
+
+@mock_ec2
+def test_volume_tag_escaping():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    vol = conn.create_volume(10, 'us-east-1a')
+    snapshot = conn.create_snapshot(vol.id, 'Desc')
+    snapshot.add_tags({'key': '</closed>'})
+
+    dict(conn.get_all_snapshots()[0].tags).should.equal({'key': '</closed>'})
