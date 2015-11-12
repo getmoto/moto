@@ -127,7 +127,10 @@ class Item(object):
             new_value = list(update_action['Value'].values())[0]
             if action == 'PUT':
                 # TODO deal with other types
-                self.attrs[attribute_name] = DynamoType({"S": new_value})
+                if isinstance(new_value, list) or isinstance(new_value, set):
+                    self.attrs[attribute_name] = DynamoType({"SS": new_value})
+                else:
+                    self.attrs[attribute_name] = DynamoType({"S": new_value})
 
 
 class Table(object):
