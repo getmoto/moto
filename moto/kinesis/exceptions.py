@@ -13,6 +13,15 @@ class ResourceNotFoundError(BadRequest):
         })
 
 
+class ResourceInUseError(BadRequest):
+    def __init__(self, message):
+        super(ResourceNotFoundError, self).__init__()
+        self.description = json.dumps({
+            "message": message,
+            '__type': 'ResourceInUseException',
+        })
+
+
 class StreamNotFoundError(ResourceNotFoundError):
     def __init__(self, stream_name):
         super(StreamNotFoundError, self).__init__(
