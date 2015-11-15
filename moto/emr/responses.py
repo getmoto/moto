@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import json
 
 from moto.core.responses import BaseResponse
 from .models import emr_backends
@@ -10,6 +11,10 @@ class ElasticMapReduceResponse(BaseResponse):
     @property
     def backend(self):
         return emr_backends[self.region]
+
+    @property
+    def boto3_request(self):
+        return 'Boto3' in self.headers.get('User-Agent', [])
 
     def add_job_flow_steps(self):
         job_flow_id = self._get_param('JobFlowId')
@@ -34,6 +39,11 @@ class ElasticMapReduceResponse(BaseResponse):
         instance_groups = self._get_list_prefix('Instances.InstanceGroups.member')
         if instance_groups:
             self.backend.add_instance_groups(job_flow.id, instance_groups)
+
+        if self.boto3_request:
+            return json.dumps({
+                "JobFlowId": job_flow.id
+            })
 
         template = self.response_template(RUN_JOB_FLOW_TEMPLATE)
         return template.render(job_flow=job_flow)
@@ -79,6 +89,24 @@ class ElasticMapReduceResponse(BaseResponse):
 
     def list_clusters(self):
         clusters = self.backend.list_clusters()
+
+        if self.boto3_request:
+            return json.dumps({
+                "Clusters": [
+                    {
+                        "Id": cluster.id,
+                        "Name": cluster.name,
+                        "Status": {
+                            "State": cluster.state,
+                            "StatusChangeReason": {},
+                            "TimeLine": {},
+                        },
+                        "NormalizedInstanceHours": cluster.normalized_instance_hours,
+                    } for cluster in clusters
+                ],
+                "Marker": ""
+            })
+
         template = self.response_template(LIST_CLUSTERS_TEMPLATE)
         return template.render(clusters=clusters)
 
