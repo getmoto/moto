@@ -115,7 +115,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
         if not querystring:
             querystring.update(parse_qs(urlparse(full_url).query, keep_blank_values=True))
         if not querystring:
-            querystring.update(parse_qs(self.body, keep_blank_values=True))
+            body = self.body
+            if isinstance(body, six.binary_type):
+                body = body.decode('utf-8')
+            querystring.update(parse_qs(body, keep_blank_values=True))
         if not querystring:
             querystring.update(headers)
 
@@ -156,12 +159,12 @@ class BaseResponse(_TemplateEnvironmentMixin):
             except HTTPException as http_error:
                 response = http_error.description, dict(status=http_error.code)
             if isinstance(response, six.string_types):
-                return 200, headers, response
+                return 200, headers, response.encode("utf-8")
             else:
                 body, new_headers = response
                 status = new_headers.get('status', 200)
                 headers.update(new_headers)
-                return status, headers, body
+                return status, headers, body.encode("utf-8")
         raise NotImplementedError("The {0} action has not been implemented".format(action))
 
     def _get_param(self, param_name):
