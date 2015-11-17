@@ -4,6 +4,7 @@ import json
 
 from moto.core.responses import BaseResponse
 from .models import kinesis_backends
+from werkzeug.exceptions import BadRequest
 
 
 class KinesisResponse(BaseResponse):
@@ -24,7 +25,9 @@ class KinesisResponse(BaseResponse):
     def create_stream(self):
         stream_name = self.parameters.get('StreamName')
         shard_count = self.parameters.get('ShardCount')
-        self.kinesis_backend.create_stream(stream_name, shard_count, self.region)
+        stream = self.kinesis_backend.create_stream(stream_name, shard_count, self.region)
+        if isinstance(stream, BadRequest):
+              return stream.description
         return ""
 
     def describe_stream(self):
@@ -43,7 +46,6 @@ class KinesisResponse(BaseResponse):
     def delete_stream(self):
         stream_name = self.parameters.get("StreamName")
         self.kinesis_backend.delete_stream(stream_name)
-
         return ""
 
     def get_shard_iterator(self):
@@ -91,7 +93,7 @@ class KinesisResponse(BaseResponse):
 
     def put_records(self):
         if self.is_firehose:
-            return self.firehose_put_record()
+            return self.put_record_batch()
         stream_name = self.parameters.get("StreamName")
         records = self.parameters.get("Records")
 
