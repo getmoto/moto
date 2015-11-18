@@ -264,7 +264,7 @@ class KinesisBackend(BaseBackend):
         for record in records:
             partition_key = record.get("PartitionKey")
             explicit_hash_key = record.get("ExplicitHashKey")
-            data = record.get("data")
+            data = record.get("Data")
 
             sequence_number, shard_id = stream.put_record(
                 partition_key, explicit_hash_key, None, data
