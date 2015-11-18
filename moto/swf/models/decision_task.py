@@ -21,7 +21,7 @@ class DecisionTask(object):
         self.state = "SCHEDULED"
         # this is *not* necessarily coherent with workflow execution history,
         # but that shouldn't be a problem for tests
-        self.scheduled_at = datetime.now()
+        self.scheduled_at = datetime.utcnow()
         self.timeout_type = None
 
     @property

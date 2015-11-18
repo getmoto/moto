@@ -6,4 +6,4 @@ def decapitalize(key):
     return key[0].lower() + key[1:]
 
 def now_timestamp():
-    return float(mktime(datetime.now().timetuple()))
+    return float(mktime(datetime.utcnow().timetuple()))

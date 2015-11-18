@@ -25,7 +25,7 @@ class ActivityTask(object):
         self.workflow_execution = workflow_execution
         # this is *not* necessarily coherent with workflow execution history,
         # but that shouldn't be a problem for tests
-        self.scheduled_at = datetime.now()
+        self.scheduled_at = datetime.utcnow()
 
     def _check_workflow_execution_open(self):
         if not self.workflow_execution.open:
