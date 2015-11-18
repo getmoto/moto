@@ -63,8 +63,8 @@ class Domain(object):
 
     def find_types(self, kind, status):
         _all = []
-        for _, family in self.types[kind].items():
-            for _, _type in family.items():
+        for family in self.types[kind].values():
+            for _type in family.values():
                 if _type.status == status:
                     _all.append(_type)
         return _all
@@ -107,7 +107,7 @@ class Domain(object):
     @property
     def activity_tasks(self):
         _all = []
-        for _, tasks in self.activity_task_lists.items():
+        for tasks in self.activity_task_lists.values():
             _all += tasks
         return _all
 
@@ -119,6 +119,6 @@ class Domain(object):
     @property
     def decision_tasks(self):
         _all = []
-        for _, tasks in self.decision_task_lists.items():
+        for tasks in self.decision_task_lists.values():
             _all += tasks
         return _all

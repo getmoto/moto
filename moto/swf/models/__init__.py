@@ -113,7 +113,7 @@ class SWFBackend(BaseBackend):
         self._check_string(domain_name)
         self._check_string(name)
         self._check_string(version)
-        for _, value in kwargs.items():
+        for value in kwargs.values():
             self._check_none_or_string(value)
         domain = self._get_domain(domain_name)
         _type = domain.get_type(kind, name, version, ignore_empty=True)
@@ -148,7 +148,7 @@ class SWFBackend(BaseBackend):
         self._check_string(workflow_name)
         self._check_string(workflow_version)
         self._check_none_or_list_of_strings(tag_list)
-        for _, value in kwargs.items():
+        for value in kwargs.values():
             self._check_none_or_string(value)
 
         domain = self._get_domain(domain_name)
