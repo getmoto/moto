@@ -25,6 +25,12 @@ from .workflow_type import WorkflowType
 from .workflow_execution import WorkflowExecution
 
 
+KNOWN_SWF_TYPES = {
+    "activity": ActivityType,
+    "workflow": WorkflowType,
+}
+
+
 class SWFBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
@@ -119,7 +125,7 @@ class SWFBackend(BaseBackend):
         _type = domain.get_type(kind, name, version, ignore_empty=True)
         if _type:
             raise SWFTypeAlreadyExistsFault(_type)
-        _class = globals()["{0}Type".format(kind.capitalize())]
+        _class = KNOWN_SWF_TYPES[kind]
         _type = _class(name, version, **kwargs)
         domain.add_type(_type)
 
