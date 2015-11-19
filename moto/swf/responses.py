@@ -14,37 +14,6 @@ class SWFResponse(BaseResponse):
     def swf_backend(self):
         return swf_backends[self.region]
 
-    # SWF actions are not dispatched via URLs but via a specific header called
-    # "x-amz-target", in the form of com.amazonaws.swf.service.model.SimpleWorkflowService.<action>
-    # This is not supported directly in BaseResponse sor for now we override
-    # the call_action() method
-    # See: http://docs.aws.amazon.com/amazonswf/latest/developerguide/UsingJSON-swf.html
-    def call_action(self):
-        headers = self.response_headers
-        # Headers are case-insensitive. Probably a better way to do this.
-        match = self.headers.get('x-amz-target') or self.headers.get('X-Amz-Target')
-        if match:
-            # TODO: see if we can call "[-1]" in BaseResponse, which would
-            # allow to remove that
-            action = match.split(".")[-1]
-
-        action = camelcase_to_underscores(action)
-        method_names = method_names_from_class(self.__class__)
-        if action in method_names:
-            method = getattr(self, action)
-            try:
-                response = method()
-            except HTTPException as http_error:
-                response = http_error.description, dict(status=http_error.code)
-            if isinstance(response, six.string_types):
-                return 200, headers, response
-            else:
-                body, new_headers = response
-                status = new_headers.get('status', 200)
-                headers.update(new_headers)
-                return status, headers, body
-        raise NotImplementedError("The {0} action has not been implemented".format(action))
-
     # SWF parameters are passed through a JSON body, so let's ease retrieval
     @property
     def _params(self):
