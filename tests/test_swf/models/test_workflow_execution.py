@@ -151,13 +151,13 @@ def test_workflow_execution_start_decision_task():
     dt = wfe.decision_tasks[0]
     dt.state.should.equal("STARTED")
     wfe.events()[-1].event_type.should.equal("DecisionTaskStarted")
-    wfe.events()[-1].identity.should.equal("srv01")
+    wfe.events()[-1].event_attributes["identity"].should.equal("srv01")
 
 def test_workflow_execution_history_events_ids():
     wfe = make_workflow_execution()
-    wfe._add_event("WorkflowExecutionStarted", workflow_execution=wfe)
-    wfe._add_event("DecisionTaskScheduled", workflow_execution=wfe)
-    wfe._add_event("DecisionTaskStarted", workflow_execution=wfe, scheduled_event_id=2)
+    wfe._add_event("WorkflowExecutionStarted")
+    wfe._add_event("DecisionTaskScheduled")
+    wfe._add_event("DecisionTaskStarted")
     ids = [evt.event_id for evt in wfe.events()]
     ids.should.equal([1, 2, 3])
 
@@ -181,8 +181,8 @@ def test_workflow_execution_complete():
     wfe.close_status.should.equal("COMPLETED")
     wfe.close_timestamp.should.equal(1420200000.0)
     wfe.events()[-1].event_type.should.equal("WorkflowExecutionCompleted")
-    wfe.events()[-1].decision_task_completed_event_id.should.equal(123)
-    wfe.events()[-1].result.should.equal("foo")
+    wfe.events()[-1].event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+    wfe.events()[-1].event_attributes["result"].should.equal("foo")
 
 @freeze_time("2015-01-02 12:00:00")
 def test_workflow_execution_fail():
@@ -193,9 +193,9 @@ def test_workflow_execution_fail():
     wfe.close_status.should.equal("FAILED")
     wfe.close_timestamp.should.equal(1420200000.0)
     wfe.events()[-1].event_type.should.equal("WorkflowExecutionFailed")
-    wfe.events()[-1].decision_task_completed_event_id.should.equal(123)
-    wfe.events()[-1].details.should.equal("some details")
-    wfe.events()[-1].reason.should.equal("my rules")
+    wfe.events()[-1].event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+    wfe.events()[-1].event_attributes["details"].should.equal("some details")
+    wfe.events()[-1].event_attributes["reason"].should.equal("my rules")
 
 @freeze_time("2015-01-01 12:00:00")
 def test_workflow_execution_schedule_activity_task():
@@ -209,8 +209,8 @@ def test_workflow_execution_schedule_activity_task():
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ActivityTaskScheduled")
-    last_event.decision_task_completed_event_id.should.equal(123)
-    last_event.task_list.should.equal("task-list-name")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+    last_event.event_attributes["taskList"]["name"].should.equal("task-list-name")
 
     wfe.activity_tasks.should.have.length_of(1)
     task = wfe.activity_tasks[0]
@@ -235,7 +235,7 @@ def test_workflow_execution_schedule_activity_task_without_task_list_should_take
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ActivityTaskScheduled")
-    last_event.task_list.should.equal("foobar")
+    last_event.event_attributes["taskList"]["name"].should.equal("foobar")
 
     task = wfe.activity_tasks[0]
     wfe.domain.activity_task_lists["foobar"].should.contain(task)
@@ -255,43 +255,43 @@ def test_workflow_execution_schedule_activity_task_should_fail_if_wrong_attribut
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.cause.should.equal("ACTIVITY_TYPE_DOES_NOT_EXIST")
+    last_event.event_attributes["cause"].should.equal("ACTIVITY_TYPE_DOES_NOT_EXIST")
 
     hsh["activityType"]["name"] = "test-activity"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.cause.should.equal("ACTIVITY_TYPE_DEPRECATED")
+    last_event.event_attributes["cause"].should.equal("ACTIVITY_TYPE_DEPRECATED")
 
     hsh["activityType"]["version"] = "v1.2"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.cause.should.equal("DEFAULT_TASK_LIST_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal("DEFAULT_TASK_LIST_UNDEFINED")
 
     hsh["taskList"] = { "name": "foobar" }
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.cause.should.equal("DEFAULT_SCHEDULE_TO_START_TIMEOUT_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal("DEFAULT_SCHEDULE_TO_START_TIMEOUT_UNDEFINED")
 
     hsh["scheduleToStartTimeout"] = "600"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.cause.should.equal("DEFAULT_SCHEDULE_TO_CLOSE_TIMEOUT_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal("DEFAULT_SCHEDULE_TO_CLOSE_TIMEOUT_UNDEFINED")
 
     hsh["scheduleToCloseTimeout"] = "600"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.cause.should.equal("DEFAULT_START_TO_CLOSE_TIMEOUT_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal("DEFAULT_START_TO_CLOSE_TIMEOUT_UNDEFINED")
 
     hsh["startToCloseTimeout"] = "600"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.cause.should.equal("DEFAULT_HEARTBEAT_TIMEOUT_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal("DEFAULT_HEARTBEAT_TIMEOUT_UNDEFINED")
 
     wfe.open_counts["openActivityTasks"].should.equal(0)
     wfe.activity_tasks.should.have.length_of(0)
@@ -351,7 +351,7 @@ def test_workflow_execution_schedule_activity_task_with_same_activity_id():
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.cause.should.equal("ACTIVITY_ID_ALREADY_IN_USE")
+    last_event.event_attributes["cause"].should.equal("ACTIVITY_ID_ALREADY_IN_USE")
 
 def test_workflow_execution_start_activity_task():
     wfe = make_workflow_execution()
@@ -361,7 +361,7 @@ def test_workflow_execution_start_activity_task():
     task = wfe.activity_tasks[-1]
     task.state.should.equal("STARTED")
     wfe.events()[-1].event_type.should.equal("ActivityTaskStarted")
-    wfe.events()[-1].identity.should.equal("worker01")
+    wfe.events()[-1].event_attributes["identity"].should.equal("worker01")
 
 def test_complete_activity_task():
     wfe = make_workflow_execution()
@@ -395,7 +395,7 @@ def test_terminate():
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("WorkflowExecutionTerminated")
     # take default child_policy if not provided (as here)
-    last_event.child_policy.should.equal("ABANDON")
+    last_event.event_attributes["childPolicy"].should.equal("ABANDON")
 
 def test_first_timeout():
     wfe = make_workflow_execution()

@@ -228,14 +228,21 @@ class WorkflowExecution(object):
         self.start_timestamp = now_timestamp()
         self._add_event(
             "WorkflowExecutionStarted",
-            workflow_execution=self,
+            child_policy=self.child_policy,
+            execution_start_to_close_timeout=self.execution_start_to_close_timeout,
+            # TODO: fix this hardcoded value
+            parent_initiated_event_id=0,
+            task_list=self.task_list,
+            task_start_to_close_timeout=self.task_start_to_close_timeout,
+            workflow_type=self.workflow_type,
         )
         self.schedule_decision_task()
 
     def _schedule_decision_task(self):
         evt = self._add_event(
             "DecisionTaskScheduled",
-            workflow_execution=self,
+            start_to_close_timeout=self.task_start_to_close_timeout,
+            task_list=self.task_list,
         )
         self.domain.add_to_decision_task_list(
             self.task_list,
@@ -274,7 +281,6 @@ class WorkflowExecution(object):
         dt = self._find_decision_task(task_token)
         evt = self._add_event(
             "DecisionTaskStarted",
-            workflow_execution=self,
             scheduled_event_id=dt.scheduled_event_id,
             identity=identity
         )
@@ -419,6 +425,9 @@ class WorkflowExecution(object):
     def schedule_activity_task(self, event_id, attributes):
         # Helper function to avoid repeating ourselves in the next sections
         def fail_schedule_activity_task(_type, _cause):
+            # TODO: implement other possible failure mode: OPEN_ACTIVITIES_LIMIT_EXCEEDED
+            # NB: some failure modes are not implemented and probably won't be implemented in
+            # the future, such as ACTIVITY_CREATION_RATE_EXCEEDED or OPERATION_NOT_PERMITTED
             self._add_event(
                 "ScheduleActivityTaskFailed",
                 activity_id=attributes["activityId"],
@@ -473,10 +482,17 @@ class WorkflowExecution(object):
         # Only add event and increment counters now that nothing went wrong
         evt = self._add_event(
             "ActivityTaskScheduled",
-            decision_task_completed_event_id=event_id,
+            activity_id=attributes["activityId"],
             activity_type=activity_type,
-            attributes=attributes,
+            control=attributes.get("control"),
+            decision_task_completed_event_id=event_id,
+            heartbeat_timeout=attributes.get("heartbeatTimeout"),
+            input=attributes.get("input"),
+            schedule_to_close_timeout=attributes.get("scheduleToCloseTimeout"),
+            schedule_to_start_timeout=attributes.get("scheduleToStartTimeout"),
+            start_to_close_timeout=attributes.get("startToCloseTimeout"),
             task_list=task_list,
+            task_priority=attributes.get("taskPriority"),
         )
         task = ActivityTask(
             activity_id=attributes["activityId"],
