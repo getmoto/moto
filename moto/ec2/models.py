@@ -2511,6 +2511,17 @@ class DHCPOptionsSetBackend(object):
             raise InvalidDHCPOptionsIdError(options_id)
         return True
 
+    def get_all_dhcp_options(self, dhcp_options_ids=None, filters=None):
+        dhcp_options_sets = self.dhcp_options_sets.values()
+
+        if dhcp_options_ids:
+            dhcp_options_sets = [dhcp_options_set for dhcp_options_set in dhcp_options_sets if dhcp_options_set.id in dhcp_options_ids]
+            if len(dhcp_options_sets) != len(dhcp_options_ids):
+                invalid_id = list(set(dhcp_options_ids).difference(set([dhcp_options_set.id for dhcp_options_set in dhcp_options_sets])))[0]
+                raise InvalidDHCPOptionsIdError(invalid_id)
+
+        return generic_filter(filters, dhcp_options_sets)
+
 
 class NetworkAclBackend(object):
     def __init__(self):
