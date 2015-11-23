@@ -2511,6 +2511,17 @@ class DHCPOptionsSetBackend(object):
             raise InvalidDHCPOptionsIdError(options_id)
         return True
 
+    def get_all_dhcp_options(self, dhcp_options_ids=None, filters=None):
+        dhcp_options_sets = self.dhcp_options_sets.values()
+
+        if dhcp_options_ids:
+            dhcp_options_sets = [dhcp_options_set for dhcp_options_set in dhcp_options_sets if dhcp_options_set.id in dhcp_options_ids]
+            if len(dhcp_options_sets) != len(dhcp_options_ids):
+                invalid_id = list(set(dhcp_options_ids).difference(set([dhcp_options_set.id for dhcp_options_set in dhcp_options_sets])))[0]
+                raise InvalidDHCPOptionsIdError(invalid_id)
+
+        return generic_filter(filters, dhcp_options_sets)
+
 
 class NetworkAclBackend(object):
     def __init__(self):
@@ -2597,6 +2608,7 @@ class NetworkAclAssociation(object):
                  subnet_id, network_acl_id):
         self.ec2_backend = ec2_backend
         self.id = new_association_id
+        self.new_association_id = new_association_id
         self.subnet_id = subnet_id
         self.network_acl_id = network_acl_id
         super(NetworkAclAssociation, self).__init__()
@@ -2609,10 +2621,12 @@ class NetworkAcl(TaggedEC2Resource):
         self.vpc_id = vpc_id
         self.network_acl_entries = []
         self.associations = {}
-        self.default = default
+        self.default = 'true' if default is True else 'false'
 
     def get_filter_value(self, filter_name):
-        if filter_name == "vpc-id":
+        if filter_name == "default":
+            return self.default
+        elif filter_name == "vpc-id":
             return self.vpc_id
         elif filter_name == "association.network-acl-id":
             return self.id
