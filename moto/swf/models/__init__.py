@@ -9,7 +9,6 @@ from ..exceptions import (
     SWFUnknownResourceFault,
     SWFDomainAlreadyExistsFault,
     SWFDomainDeprecatedFault,
-    SWFSerializationException,
     SWFTypeAlreadyExistsFault,
     SWFTypeDeprecatedFault,
     SWFValidationException,
@@ -50,32 +49,12 @@ class SWFBackend(BaseBackend):
             return matching[0]
         return None
 
-    def _check_none_or_string(self, parameter):
-        if parameter is not None:
-            self._check_string(parameter)
-
-    def _check_string(self, parameter):
-        if not isinstance(parameter, six.string_types):
-            raise SWFSerializationException(parameter)
-
-    def _check_none_or_list_of_strings(self, parameter):
-        if parameter is not None:
-            self._check_list_of_strings(parameter)
-
-    def _check_list_of_strings(self, parameter):
-        if not isinstance(parameter, list):
-            raise SWFSerializationException(parameter)
-        for i in parameter:
-            if not isinstance(i, six.string_types):
-                raise SWFSerializationException(parameter)
-
     def _process_timeouts(self):
         for domain in self.domains:
             for wfe in domain.workflow_executions:
                 wfe._process_timeouts()
 
     def list_domains(self, status, reverse_order=None):
-        self._check_string(status)
         domains = [domain for domain in self.domains
                    if domain.status == status]
         domains = sorted(domains, key=lambda domain: domain.name)
@@ -85,9 +64,6 @@ class SWFBackend(BaseBackend):
 
     def register_domain(self, name, workflow_execution_retention_period_in_days,
                         description=None):
-        self._check_string(name)
-        self._check_string(workflow_execution_retention_period_in_days)
-        self._check_none_or_string(description)
         if self._get_domain(name, ignore_empty=True):
             raise SWFDomainAlreadyExistsFault(name)
         domain = Domain(name, workflow_execution_retention_period_in_days,
@@ -95,19 +71,15 @@ class SWFBackend(BaseBackend):
         self.domains.append(domain)
 
     def deprecate_domain(self, name):
-        self._check_string(name)
         domain = self._get_domain(name)
         if domain.status == "DEPRECATED":
             raise SWFDomainDeprecatedFault(name)
         domain.status = "DEPRECATED"
 
     def describe_domain(self, name):
-        self._check_string(name)
         return self._get_domain(name)
 
     def list_types(self, kind, domain_name, status, reverse_order=None):
-        self._check_string(domain_name)
-        self._check_string(status)
         domain = self._get_domain(domain_name)
         _types = domain.find_types(kind, status)
         _types = sorted(_types, key=lambda domain: domain.name)
@@ -116,11 +88,6 @@ class SWFBackend(BaseBackend):
         return _types
 
     def register_type(self, kind, domain_name, name, version, **kwargs):
-        self._check_string(domain_name)
-        self._check_string(name)
-        self._check_string(version)
-        for value in kwargs.values():
-            self._check_none_or_string(value)
         domain = self._get_domain(domain_name)
         _type = domain.get_type(kind, name, version, ignore_empty=True)
         if _type:
@@ -130,9 +97,6 @@ class SWFBackend(BaseBackend):
         domain.add_type(_type)
 
     def deprecate_type(self, kind, domain_name, name, version):
-        self._check_string(domain_name)
-        self._check_string(name)
-        self._check_string(version)
         domain = self._get_domain(domain_name)
         _type = domain.get_type(kind, name, version)
         if _type.status == "DEPRECATED":
@@ -140,23 +104,12 @@ class SWFBackend(BaseBackend):
         _type.status = "DEPRECATED"
 
     def describe_type(self, kind, domain_name, name, version):
-        self._check_string(domain_name)
-        self._check_string(name)
-        self._check_string(version)
         domain = self._get_domain(domain_name)
         return domain.get_type(kind, name, version)
 
     def start_workflow_execution(self, domain_name, workflow_id,
                                  workflow_name, workflow_version,
                                  tag_list=None, **kwargs):
-        self._check_string(domain_name)
-        self._check_string(workflow_id)
-        self._check_string(workflow_name)
-        self._check_string(workflow_version)
-        self._check_none_or_list_of_strings(tag_list)
-        for value in kwargs.values():
-            self._check_none_or_string(value)
-
         domain = self._get_domain(domain_name)
         wf_type = domain.get_type("workflow", workflow_name, workflow_version)
         if wf_type.status == "DEPRECATED":
@@ -169,17 +122,12 @@ class SWFBackend(BaseBackend):
         return wfe
 
     def describe_workflow_execution(self, domain_name, run_id, workflow_id):
-        self._check_string(domain_name)
-        self._check_string(run_id)
-        self._check_string(workflow_id)
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         return domain.get_workflow_execution(workflow_id, run_id=run_id)
 
     def poll_for_decision_task(self, domain_name, task_list, identity=None):
-        self._check_string(domain_name)
-        self._check_string(task_list)
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -211,8 +159,6 @@ class SWFBackend(BaseBackend):
             return None
 
     def count_pending_decision_tasks(self, domain_name, task_list):
-        self._check_string(domain_name)
-        self._check_string(task_list)
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -225,8 +171,6 @@ class SWFBackend(BaseBackend):
     def respond_decision_task_completed(self, task_token,
                                         decisions=None,
                                         execution_context=None):
-        self._check_string(task_token)
-        self._check_none_or_string(execution_context)
         # process timeouts on all objects
         self._process_timeouts()
         # let's find decision task
@@ -278,8 +222,6 @@ class SWFBackend(BaseBackend):
                                        execution_context=execution_context)
 
     def poll_for_activity_task(self, domain_name, task_list, identity=None):
-        self._check_string(domain_name)
-        self._check_string(task_list)
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -311,8 +253,6 @@ class SWFBackend(BaseBackend):
             return None
 
     def count_pending_activity_tasks(self, domain_name, task_list):
-        self._check_string(domain_name)
-        self._check_string(task_list)
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -362,8 +302,6 @@ class SWFBackend(BaseBackend):
         return activity_task
 
     def respond_activity_task_completed(self, task_token, result=None):
-        self._check_string(task_token)
-        self._check_none_or_string(result)
         # process timeouts on all objects
         self._process_timeouts()
         activity_task = self._find_activity_task_from_token(task_token)
@@ -371,10 +309,6 @@ class SWFBackend(BaseBackend):
         wfe.complete_activity_task(activity_task.task_token, result=result)
 
     def respond_activity_task_failed(self, task_token, reason=None, details=None):
-        self._check_string(task_token)
-        # TODO: implement length limits on reason and details (common pb with client libs)
-        self._check_none_or_string(reason)
-        self._check_none_or_string(details)
         # process timeouts on all objects
         self._process_timeouts()
         activity_task = self._find_activity_task_from_token(task_token)
@@ -383,12 +317,6 @@ class SWFBackend(BaseBackend):
 
     def terminate_workflow_execution(self, domain_name, workflow_id, child_policy=None,
                                      details=None, reason=None, run_id=None):
-        self._check_string(domain_name)
-        self._check_string(workflow_id)
-        self._check_none_or_string(child_policy)
-        self._check_none_or_string(details)
-        self._check_none_or_string(reason)
-        self._check_none_or_string(run_id)
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -396,8 +324,6 @@ class SWFBackend(BaseBackend):
         wfe.terminate(child_policy=child_policy, details=details, reason=reason)
 
     def record_activity_task_heartbeat(self, task_token, details=None):
-        self._check_string(task_token)
-        self._check_none_or_string(details)
         # process timeouts on all objects
         self._process_timeouts()
         activity_task = self._find_activity_task_from_token(task_token)
