@@ -2597,6 +2597,7 @@ class NetworkAclAssociation(object):
                  subnet_id, network_acl_id):
         self.ec2_backend = ec2_backend
         self.id = new_association_id
+        self.new_association_id = new_association_id
         self.subnet_id = subnet_id
         self.network_acl_id = network_acl_id
         super(NetworkAclAssociation, self).__init__()
