@@ -48,6 +48,70 @@ def test_list_keys():
 
 
 @mock_kms
+def test_enable_key_rotation():
+    conn = boto.kms.connect_to_region("us-west-2")
+
+    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key_id = key['KeyMetadata']['KeyId']
+
+    conn.enable_key_rotation(key_id)
+
+    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(True)
+
+
+@mock_kms
+def test_enable_key_rotation_with_missing_key():
+    conn = boto.kms.connect_to_region("us-west-2")
+    conn.enable_key_rotation.when.called_with("not-a-key").should.throw(JSONResponseError)
+
+
+@mock_kms
+def test_disable_key_rotation():
+    conn = boto.kms.connect_to_region("us-west-2")
+
+    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key_id = key['KeyMetadata']['KeyId']
+
+    conn.enable_key_rotation(key_id)
+    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(True)
+
+    conn.disable_key_rotation(key_id)
+    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
+
+
+@mock_kms
+def test_disable_key_rotation_with_missing_key():
+    conn = boto.kms.connect_to_region("us-west-2")
+    conn.disable_key_rotation.when.called_with("not-a-key").should.throw(JSONResponseError)
+
+
+@mock_kms
+def test_get_key_rotation_status_with_missing_key():
+    conn = boto.kms.connect_to_region("us-west-2")
+    conn.get_key_rotation_status.when.called_with("not-a-key").should.throw(JSONResponseError)
+
+
+@mock_kms
+def test_get_key_rotation_status():
+    conn = boto.kms.connect_to_region("us-west-2")
+
+    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key_id = key['KeyMetadata']['KeyId']
+
+    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
+
+
+@mock_kms
+def test_create_key_defaults_key_rotation():
+    conn = boto.kms.connect_to_region("us-west-2")
+
+    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key_id = key['KeyMetadata']['KeyId']
+
+    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
+
+
+@mock_kms
 def test__create_alias__returns_none_if_correct():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -313,3 +377,12 @@ def test__list_aliases():
     len([alias for alias in aliases if 'TargetKeyId' in alias and key_id == alias['TargetKeyId']]).should.equal(3)
 
     len(aliases).should.equal(7)
+
+
+@mock_kms
+def test__assert_valid_key_id():
+    from moto.kms.responses import _assert_valid_key_id
+    import uuid
+
+    _assert_valid_key_id.when.called_with("not-a-key").should.throw(JSONResponseError)
+    _assert_valid_key_id.when.called_with(str(uuid.uuid4())).should_not.throw(JSONResponseError)
