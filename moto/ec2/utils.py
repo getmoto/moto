@@ -85,6 +85,10 @@ def random_vpn_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpn-gateway'])
 
 
+def random_vpn_connection_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpn-connection'])
+
+
 def random_volume_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['volume'])
 
@@ -191,6 +195,14 @@ def vpc_ids_from_querystring(querystring_dict):
         if 'VpcId' in key:
             vpc_ids.append(value[0])
     return vpc_ids
+
+
+def vpn_connection_ids_from_query_string(querystring_dict):
+    vpn_connection_ids = []
+    for key, value in querystring_dict.items():
+        if 'VpnConnectionId' in key:
+            vpn_connection_ids.append(value[0])
+    return vpn_connection_ids
 
 
 def sequence_from_querystring(parameter, querystring_dict):
