@@ -112,6 +112,40 @@ def test_create_key_defaults_key_rotation():
 
 
 @mock_kms
+def test_get_key_policy():
+    conn = boto.kms.connect_to_region('us-west-2')
+
+    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key_id = key['KeyMetadata']['KeyId']
+
+    policy = conn.get_key_policy(key_id, 'default')
+    policy['Policy'].should.equal('my policy')
+
+
+@mock_kms
+def test_put_key_policy():
+    conn = boto.kms.connect_to_region('us-west-2')
+
+    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key_id = key['KeyMetadata']['KeyId']
+
+    conn.put_key_policy(key_id, 'default', 'new policy')
+    policy = conn.get_key_policy(key_id, 'default')
+    policy['Policy'].should.equal('new policy')
+
+
+@mock_kms
+def test_list_key_policies():
+    conn = boto.kms.connect_to_region('us-west-2')
+
+    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key_id = key['KeyMetadata']['KeyId']
+
+    policies = conn.list_key_policies(key_id)
+    policies['PolicyNames'].should.equal(['default'])
+
+
+@mock_kms
 def test__create_alias__returns_none_if_correct():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -386,3 +420,11 @@ def test__assert_valid_key_id():
 
     _assert_valid_key_id.when.called_with("not-a-key").should.throw(JSONResponseError)
     _assert_valid_key_id.when.called_with(str(uuid.uuid4())).should_not.throw(JSONResponseError)
+
+
+@mock_kms
+def test__assert_default_policy():
+    from moto.kms.responses import _assert_default_policy
+
+    _assert_default_policy.when.called_with("not-default").should.throw(JSONResponseError)
+    _assert_default_policy.when.called_with("default").should_not.throw(JSONResponseError)
