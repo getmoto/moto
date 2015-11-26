@@ -23,6 +23,22 @@ def camelcase_to_underscores(argument):
     return result
 
 
+def underscores_to_camelcase(argument):
+    ''' Converts a camelcase param like the_new_attribute to the equivalent
+    camelcase version like theNewAttribute. Note that the first letter is
+    NOT capitalized by this function '''
+    result = ''
+    previous_was_underscore = False
+    for char in argument:
+        if char != '_':
+            if previous_was_underscore:
+                result += char.upper()
+            else:
+                result += char
+        previous_was_underscore = char == '_'
+    return result
+
+
 def method_names_from_class(clazz):
     # On Python 2, methods are different from functions, and the `inspect`
     # predicates distinguish between them. On Python 3, methods are just

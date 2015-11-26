@@ -28,3 +28,4 @@ from .sns import mock_sns  # flake8: noqa
 from .sqs import mock_sqs  # flake8: noqa
 from .sts import mock_sts  # flake8: noqa
 from .route53 import mock_route53  # flake8: noqa
+from .swf import mock_swf  # flake8: noqa
