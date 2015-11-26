@@ -2597,6 +2597,7 @@ class NetworkAclAssociation(object):
                  subnet_id, network_acl_id):
         self.ec2_backend = ec2_backend
         self.id = new_association_id
+        self.new_association_id = new_association_id
         self.subnet_id = subnet_id
         self.network_acl_id = network_acl_id
         super(NetworkAclAssociation, self).__init__()
@@ -2609,10 +2610,12 @@ class NetworkAcl(TaggedEC2Resource):
         self.vpc_id = vpc_id
         self.network_acl_entries = []
         self.associations = {}
-        self.default = default
+        self.default = 'true' if default is True else 'false'
 
     def get_filter_value(self, filter_name):
-        if filter_name == "vpc-id":
+        if filter_name == "default":
+            return self.default
+        elif filter_name == "vpc-id":
             return self.vpc_id
         elif filter_name == "association.network-acl-id":
             return self.id
