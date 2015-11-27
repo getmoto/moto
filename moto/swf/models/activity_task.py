@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 from datetime import datetime
 import uuid
 
+from moto.core.utils import unix_time
 from ..exceptions import SWFWorkflowExecutionClosedError
-from ..utils import now_timestamp
 
 from .timeout import Timeout
 
@@ -15,7 +15,7 @@ class ActivityTask(object):
         self.activity_type = activity_type
         self.details = None
         self.input = input
-        self.last_heartbeat_timestamp = now_timestamp()
+        self.last_heartbeat_timestamp = unix_time()
         self.scheduled_event_id = scheduled_event_id
         self.started_event_id = None
         self.state = "SCHEDULED"
@@ -60,18 +60,17 @@ class ActivityTask(object):
         self.state = "FAILED"
 
     def reset_heartbeat_clock(self):
-        self.last_heartbeat_timestamp = now_timestamp()
+        self.last_heartbeat_timestamp = unix_time()
 
     def first_timeout(self):
         if not self.open or not self.workflow_execution.open:
             return None
         # TODO: handle the "NONE" case
-        heartbeat_timeout_at = self.last_heartbeat_timestamp + \
-                                int(self.timeouts["heartbeatTimeout"])
+        heartbeat_timeout_at = (self.last_heartbeat_timestamp +
+                                int(self.timeouts["heartbeatTimeout"]))
         _timeout = Timeout(self, heartbeat_timeout_at, "HEARTBEAT")
         if _timeout.reached:
             return _timeout
-
 
     def process_timeouts(self):
         _timeout = self.first_timeout()

@@ -1,4 +1,4 @@
-from ..utils import now_timestamp
+from moto.core.utils import unix_time
 
 
 class Timeout(object):
@@ -9,4 +9,4 @@ class Timeout(object):
 
     @property
     def reached(self):
-        return now_timestamp() >= self.timestamp
+        return unix_time() >= self.timestamp

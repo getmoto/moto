@@ -5,8 +5,8 @@ import json
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
+from moto.core.utils import unix_time
 from .comparisons import get_comparison_func
-from .utils import unix_time
 
 
 class DynamoJsonEncoder(json.JSONEncoder):

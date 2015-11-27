@@ -8,8 +8,8 @@ from xml.sax.saxutils import escape
 import boto.sqs
 
 from moto.core import BaseBackend
-from moto.core.utils import camelcase_to_underscores, get_random_message_id
-from .utils import generate_receipt_handle, unix_time_millis
+from moto.core.utils import camelcase_to_underscores, get_random_message_id, unix_time_millis
+from .utils import generate_receipt_handle
 from .exceptions import (
     ReceiptHandleIsInvalid,
     MessageNotInflight

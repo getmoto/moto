@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+import datetime
 import inspect
 import random
 import re
@@ -103,3 +105,14 @@ def iso_8601_datetime_with_milliseconds(datetime):
 def rfc_1123_datetime(datetime):
     RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
     return datetime.strftime(RFC1123)
+
+
+def unix_time(dt=None):
+    dt = dt or datetime.datetime.utcnow()
+    epoch = datetime.datetime.utcfromtimestamp(0)
+    delta = dt - epoch
+    return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
+
+
+def unix_time_millis(dt=None):
+    return unix_time(dt) * 1000.0

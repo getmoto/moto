@@ -1,9 +1,7 @@
 from __future__ import unicode_literals
-from datetime import datetime
-from time import mktime
 import uuid
 
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, unix_time
 
 from ..constants import (
     DECISIONS_FIELDS,
@@ -13,7 +11,7 @@ from ..exceptions import (
     SWFValidationException,
     SWFDecisionValidationException,
 )
-from ..utils import decapitalize, now_timestamp
+from ..utils import decapitalize
 from .activity_task import ActivityTask
 from .activity_type import ActivityType
 from .decision_task import DecisionTask
@@ -59,7 +57,7 @@ class WorkflowExecution(object):
         self.latest_execution_context = None
         self.parent = None
         self.start_timestamp = None
-        self.tag_list = [] # TODO
+        self.tag_list = []  # TODO
         self.timeout_type = None
         self.workflow_type = workflow_type
         # args processing
@@ -89,7 +87,7 @@ class WorkflowExecution(object):
 
     def _set_from_kwargs_or_workflow_type(self, kwargs, local_key, workflow_type_key=None):
         if workflow_type_key is None:
-            workflow_type_key = "default_"+local_key
+            workflow_type_key = "default_" + local_key
         value = kwargs.get(local_key)
         if not value and hasattr(self.workflow_type, workflow_type_key):
             value = getattr(self.workflow_type, workflow_type_key)
@@ -131,7 +129,7 @@ class WorkflowExecution(object):
                 "taskList": {"name": self.task_list}
             }
         }
-        #configuration
+        # configuration
         for key in self._configuration_keys:
             attr = camelcase_to_underscores(key)
             if not hasattr(self, attr):
@@ -139,9 +137,9 @@ class WorkflowExecution(object):
             if not getattr(self, attr):
                 continue
             hsh["executionConfiguration"][key] = getattr(self, attr)
-        #counters
+        # counters
         hsh["openCounts"] = self.open_counts
-        #latest things
+        # latest things
         if self.latest_execution_context:
             hsh["latestExecutionContext"] = self.latest_execution_context
         if self.latest_activity_task_timestamp:
@@ -225,7 +223,7 @@ class WorkflowExecution(object):
         return evt
 
     def start(self):
-        self.start_timestamp = now_timestamp()
+        self.start_timestamp = unix_time()
         self._add_event(
             "WorkflowExecutionStarted",
             child_policy=self.child_policy,
@@ -403,7 +401,7 @@ class WorkflowExecution(object):
     def complete(self, event_id, result=None):
         self.execution_status = "CLOSED"
         self.close_status = "COMPLETED"
-        self.close_timestamp = now_timestamp()
+        self.close_timestamp = unix_time()
         self._add_event(
             "WorkflowExecutionCompleted",
             decision_task_completed_event_id=event_id,
@@ -414,7 +412,7 @@ class WorkflowExecution(object):
         # TODO: implement lenght constraints on details/reason
         self.execution_status = "CLOSED"
         self.close_status = "FAILED"
-        self.close_timestamp = now_timestamp()
+        self.close_timestamp = unix_time()
         self._add_event(
             "WorkflowExecutionFailed",
             decision_task_completed_event_id=event_id,
@@ -470,7 +468,7 @@ class WorkflowExecution(object):
         # find timeouts or default timeout, else fail
         timeouts = {}
         for _type in ["scheduleToStartTimeout", "scheduleToCloseTimeout", "startToCloseTimeout", "heartbeatTimeout"]:
-            default_key = "default_task_"+camelcase_to_underscores(_type)
+            default_key = "default_task_" + camelcase_to_underscores(_type)
             default_value = getattr(activity_type, default_key)
             timeouts[_type] = attributes.get(_type, default_value)
             if not timeouts[_type]:
@@ -504,7 +502,7 @@ class WorkflowExecution(object):
         )
         self.domain.add_to_activity_task_list(task_list, task)
         self.open_counts["openActivityTasks"] += 1
-        self.latest_activity_task_timestamp = now_timestamp()
+        self.latest_activity_task_timestamp = unix_time()
 
     def _find_activity_task(self, task_token):
         for task in self.activity_tasks:

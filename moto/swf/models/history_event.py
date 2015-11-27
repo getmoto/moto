@@ -1,10 +1,8 @@
 from __future__ import unicode_literals
-from datetime import datetime
-from time import mktime
 
-from moto.core.utils import underscores_to_camelcase
+from moto.core.utils import underscores_to_camelcase, unix_time
 
-from ..utils import decapitalize, now_timestamp
+from ..utils import decapitalize
 
 
 # We keep track of which history event types we support
@@ -28,6 +26,7 @@ SUPPORTED_HISTORY_EVENT_TYPES = (
     "WorkflowExecutionTimedOut",
 )
 
+
 class HistoryEvent(object):
     def __init__(self, event_id, event_type, event_timestamp=None, **kwargs):
         if event_type not in SUPPORTED_HISTORY_EVENT_TYPES:
@@ -39,16 +38,16 @@ class HistoryEvent(object):
         if event_timestamp:
             self.event_timestamp = event_timestamp
         else:
-            self.event_timestamp = now_timestamp()
+            self.event_timestamp = unix_time()
         # pre-populate a dict: {"camelCaseKey": value}
         self.event_attributes = {}
         for key, value in kwargs.items():
             if value:
                 camel_key = underscores_to_camelcase(key)
                 if key == "task_list":
-                    value = { "name": value }
+                    value = {"name": value}
                 elif key == "workflow_type":
-                    value = { "name": value.name, "version": value.version }
+                    value = {"name": value.name, "version": value.version}
                 elif key == "activity_type":
                     value = value.to_short_dict()
                 self.event_attributes[camel_key] = value

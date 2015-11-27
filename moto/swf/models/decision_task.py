@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 from datetime import datetime
 import uuid
 
+from moto.core.utils import unix_time
 from ..exceptions import SWFWorkflowExecutionClosedError
-from ..utils import now_timestamp
 
 from .timeout import Timeout
 
@@ -49,7 +49,7 @@ class DecisionTask(object):
 
     def start(self, started_event_id):
         self.state = "STARTED"
-        self.started_timestamp = now_timestamp()
+        self.started_timestamp = unix_time()
         self.started_event_id = started_event_id
 
     def complete(self):
