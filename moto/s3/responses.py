@@ -29,20 +29,9 @@ def is_delete_keys(path, bucket_name):
 
 
 class ResponseObject(_TemplateEnvironmentMixin):
-    def __init__(self, backend, parse_key_name, bucket_name_from_url,
-                 is_delete_keys=None):
+    def __init__(self, backend):
         super(ResponseObject, self).__init__()
         self.backend = backend
-        # self.bucket_name_from_url = bucket_name_from_url
-        # self.parse_key_name = parse_key_name
-        # if is_delete_keys:
-        #     self.is_delete_keys = is_delete_keys
-
-    def is_delete_keys(self, request, path, bucket_name):
-        if self.is_path_based_buckets(request):
-            return bucketpath_is_delete_keys(path, bucket_name)
-        else:
-            return is_delete_keys(path, bucket_name)
 
     def all_buckets(self):
         # No bucket specified. Listing all buckets
@@ -50,29 +39,39 @@ class ResponseObject(_TemplateEnvironmentMixin):
         template = self.response_template(S3_ALL_BUCKETS)
         return template.render(buckets=all_buckets)
 
-    def is_path_based_buckets(self, request):
-        return request.headers['host'] == 's3.amazonaws.com'
+    def subdomain_based_buckets(self, request):
+        host = request.headers['host']
+        if host.startswith("localhost"):
+            # For localhost, default to path-based buckets
+            return False
+        return host != 's3.amazonaws.com' and not re.match("s3.(.*).amazonaws.com", host)
+
+    def is_delete_keys(self, request, path, bucket_name):
+        if self.subdomain_based_buckets(request):
+            return is_delete_keys(path, bucket_name)
+        else:
+            return bucketpath_is_delete_keys(path, bucket_name)
 
     def parse_bucket_name_from_url(self, request, url):
-        if self.is_path_based_buckets(request):
-            return bucketpath_bucket_name_from_url(url)
-        else:
+        if self.subdomain_based_buckets(request):
             return bucket_name_from_url(url)
+        else:
+            return bucketpath_bucket_name_from_url(url)
 
     def parse_key_name(self, request, url):
-        if self.is_path_based_buckets(request):
-            return bucketpath_parse_key_name(url)
-        else:
+        if self.subdomain_based_buckets(request):
             return parse_key_name(url)
+        else:
+            return bucketpath_parse_key_name(url)
 
-    def response(self, request, full_url, headers):
+    def ambiguous_response(self, request, full_url, headers):
         # Depending on which calling format the client is using, we don't know
         # if this is a bucket or key request so we have to check
-        if self.is_path_based_buckets(request):
+        if self.subdomain_based_buckets(request):
+            return self.key_response(request, full_url, headers)
+        else:
             # Using path-based buckets
             return self.bucket_response(request, full_url, headers)
-        else:
-            return self.key_response(request, full_url, headers)
 
     def bucket_response(self, request, full_url, headers):
         try:
@@ -559,7 +558,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         else:
             raise NotImplementedError("Method POST had only been implemented for multipart uploads and restore operations, so far")
 
-S3ResponseInstance = ResponseObject(s3_backend, bucket_name_from_url, parse_key_name)
+S3ResponseInstance = ResponseObject(s3_backend)
 
 S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
   <Owner>
