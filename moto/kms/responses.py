@@ -39,8 +39,9 @@ class KmsResponse(BaseResponse):
         try:
             key = self.kms_backend.describe_key(key_id)
         except KeyError:
-            self.headers['status'] = 404
-            return "{}", self.headers
+            headers = dict(self.headers)
+            headers['status'] = 404
+            return "{}", headers
         return json.dumps(key.to_dict())
 
     def list_keys(self):
