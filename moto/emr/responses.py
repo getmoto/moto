@@ -14,7 +14,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     @property
     def boto3_request(self):
-        return 'Boto3' in self.headers.get('User-Agent', [])
+        return 'json' in self.headers.get('Content-Type', [])
 
     def add_job_flow_steps(self):
         job_flow_id = self._get_param('JobFlowId')
