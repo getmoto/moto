@@ -136,3 +136,41 @@ class KmsResponse(BaseResponse):
             'Truncated': False,
             'Aliases': response_aliases,
         })
+
+    def enable_key_rotation(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(key_id)
+        try:
+            self.kms_backend.enable_key_rotation(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                '__type': 'NotFoundException'})
+
+        return json.dumps(None)
+
+    def disable_key_rotation(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(key_id)
+        try:
+            self.kms_backend.disable_key_rotation(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                '__type': 'NotFoundException'})
+        return json.dumps(None)
+
+    def get_key_rotation_status(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(key_id)
+        try:
+            rotation_enabled = self.kms_backend.get_key_rotation_status(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                '__type': 'NotFoundException'})
+        return json.dumps({'KeyRotationEnabled': rotation_enabled})
+
+def _assert_valid_key_id(key_id):
+    if not re.match(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$', key_id, re.IGNORECASE):
+        raise JSONResponseError(404, 'Not Found', body={'message': ' Invalid keyId', '__type': 'NotFoundException'})

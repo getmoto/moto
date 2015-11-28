@@ -5,8 +5,8 @@ import json
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
+from moto.core.utils import unix_time
 from .comparisons import get_comparison_func
-from .utils import unix_time
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -82,7 +82,7 @@ class Item(object):
         attributes = {}
         for attribute_key, attribute in self.attrs.items():
             attributes[attribute_key] = {
-                attribute.type : attribute.value
+                attribute.type: attribute.value
             }
 
         return {
@@ -204,7 +204,7 @@ class Table(object):
                     keys.append(key['AttributeName'])
         return keys
 
-    def put_item(self, item_attrs, expected = None, overwrite = False):
+    def put_item(self, item_attrs, expected=None, overwrite=False):
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))
         if self.has_range_key:
             range_value = DynamoType(item_attrs.get(self.range_key_attr))
@@ -228,13 +228,13 @@ class Table(object):
 
             if current is None:
                 current_attr = {}
-            elif hasattr(current,'attrs'):
+            elif hasattr(current, 'attrs'):
                 current_attr = current.attrs
             else:
                 current_attr = current
 
             for key, val in expected.items():
-                if 'Exists' in val and val['Exists'] == False:
+                if 'Exists' in val and val['Exists'] is False:
                     if key in current_attr:
                         raise ValueError("The conditional request failed")
                 elif key not in current_attr:
@@ -361,7 +361,7 @@ class DynamoDBBackend(BaseBackend):
         table.throughput = throughput
         return table
 
-    def put_item(self, table_name, item_attrs, expected = None, overwrite = False):
+    def put_item(self, table_name, item_attrs, expected=None, overwrite=False):
         table = self.tables.get(table_name)
         if not table:
             return None
