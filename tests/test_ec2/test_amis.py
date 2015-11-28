@@ -28,6 +28,7 @@ def test_ami_create_and_delete():
     image.architecture.should.equal(instance.architecture)
     image.kernel_id.should.equal(instance.kernel)
     image.platform.should.equal(instance.platform)
+    instance.terminate()
 
     # Validate auto-created volume and snapshot
     volumes = conn.get_all_volumes()
@@ -61,6 +62,7 @@ def test_ami_copy():
     instance = reservation.instances[0]
 
     source_image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
+    instance.terminate()
     source_image = conn.get_all_images(image_ids=[source_image_id])[0]
 
     # Boto returns a 'CopyImage' object with an image_id attribute here. Use the image_id to fetch the full info.
@@ -481,4 +483,3 @@ def test_ami_attribute_error_cases():
     cm.exception.code.should.equal('InvalidAMIID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
-
