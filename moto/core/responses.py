@@ -131,7 +131,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         else:
             self.region = self.default_region
 
-        self.headers = dict(request.headers)
+        self.headers = request.headers
         self.response_headers = headers
         return self.call_action()
 
