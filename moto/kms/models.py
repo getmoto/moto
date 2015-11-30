@@ -78,6 +78,12 @@ class KmsBackend(BaseBackend):
     def get_key_rotation_status(self, key_id):
         return self.keys[key_id].key_rotation_status
 
+    def put_key_policy(self, key_id, policy):
+        self.keys[key_id].policy = policy
+
+    def get_key_policy(self, key_id):
+        return self.keys[key_id].policy
+
 
 kms_backends = {}
 for region in boto.kms.regions():
