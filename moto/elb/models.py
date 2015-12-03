@@ -137,8 +137,6 @@ class ELBBackend(BaseBackend):
         self.load_balancers = {}
 
     def create_load_balancer(self, name, zones, ports, scheme='internet-facing'):
-        print scheme
-
         new_load_balancer = FakeLoadBalancer(name=name, zones=zones, ports=ports, scheme=scheme)
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
