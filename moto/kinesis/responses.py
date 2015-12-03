@@ -170,3 +170,22 @@ class KinesisResponse(BaseResponse):
             "FailedPutCount": 0,
             "RequestResponses": request_responses,
         })
+
+    def add_tags_to_stream(self):
+        stream_name = self.parameters.get('StreamName')
+        tags = self.parameters.get('Tags')
+        self.kinesis_backend.add_tags_to_stream(stream_name, tags)
+        return json.dumps({})
+
+    def list_tags_for_stream(self):
+        stream_name = self.parameters.get('StreamName')
+        exclusive_start_tag_key = self.parameters.get('ExclusiveStartTagKey')
+        limit = self.parameters.get('Limit')
+        response =  self.kinesis_backend.list_tags_for_stream(stream_name, exclusive_start_tag_key, limit)
+        return json.dumps(response)
+
+    def remove_tags_from_stream(self):
+        stream_name = self.parameters.get('StreamName')
+        tag_keys = self.parameters.get('TagKeys')
+        self.kinesis_backend.remove_tags_from_stream(stream_name, tag_keys)
+        return json.dumps({})

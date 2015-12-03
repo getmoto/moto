@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 
 import datetime
 import time
-
 import boto.kinesis
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from .exceptions import StreamNotFoundError, ShardNotFoundError, ResourceInUseError
@@ -84,6 +84,7 @@ class Stream(object):
         self.region = region
         self.account_number = "123456789012"
         self.shards = {}
+        self.tags = {}
 
         for index in range(shard_count):
             shard_id = "shardId-{0}".format(str(index).zfill(12))
@@ -298,6 +299,39 @@ class KinesisBackend(BaseBackend):
         stream = self.get_delivery_stream(stream_name)
         record = stream.put_record(record_data)
         return record
+
+    def list_tags_for_stream(self, stream_name, exclusive_start_tag_key=None, limit=None):
+        stream =  self.describe_stream(stream_name)
+
+        tags = []
+        result = {
+            'HasMoreTags': False,
+            'Tags': tags
+        }
+        for key, val in sorted(stream.tags.items(), key=lambda x:x[0]):
+            if limit and len(res) >= limit:
+               result['HasMoreTags'] = True
+               break
+            if exclusive_start_tag_key and key < exexclusive_start_tag_key:
+               continue
+
+            tags.append({
+                'Key': key,
+                'Value': val
+            })
+
+        return result
+
+    def add_tags_to_stream(self, stream_name, tags):
+        stream =  self.describe_stream(stream_name)
+        stream.tags.update(tags)
+
+    def remove_tags_from_stream(self, stream_name, tag_keys):
+        stream =  self.describe_stream(stream_name)
+        for key in tag_keys:
+            if key in stream.tags:
+               del stream.tags[key]
+
 
 kinesis_backends = {}
 for region in boto.kinesis.regions():
