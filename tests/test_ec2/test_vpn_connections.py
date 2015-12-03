@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import boto
-from nose.tools import assert_raises, assert_in
+from nose.tools import assert_raises
 import sure  # noqa
 from boto.exception import EC2ResponseError
 
@@ -28,7 +28,7 @@ def test_delete_vpn_connections():
 @mock_ec2
 def test_delete_vpn_connections_bad_id():
     conn = boto.connect_vpc('the_key', 'the_secret')
-    with assert_raises(EC2ResponseError) as message:
+    with assert_raises(EC2ResponseError):
         conn.delete_vpn_connection('vpn-0123abcd')
 
 @mock_ec2
