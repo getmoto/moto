@@ -131,7 +131,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         else:
             self.region = self.default_region
 
-        self.headers = dict(request.headers)
+        self.headers = request.headers
         self.response_headers = headers
         return self.call_action()
 
@@ -142,7 +142,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
             # Headers are case-insensitive. Probably a better way to do this.
             match = self.headers.get('x-amz-target') or self.headers.get('X-Amz-Target')
             if match:
-                action = match.split(".")[1]
+                action = match.split(".")[-1]
 
         action = camelcase_to_underscores(action)
         method_names = method_names_from_class(self.__class__)

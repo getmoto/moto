@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     "Jinja2",
-    "boto>=2.20.0",
+    "boto>=2.26.0",
     "flask",
     "httpretty>=0.6.1",
     "requests",
@@ -20,7 +20,7 @@ extras_require = {
 
 setup(
     name='moto',
-    version='0.4.18',
+    version='0.4.19',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',

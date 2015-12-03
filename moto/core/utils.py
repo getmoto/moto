@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+import datetime
 import inspect
 import random
 import re
@@ -20,6 +22,22 @@ def camelcase_to_underscores(argument):
         prev_char_title = char.istitle()
         if not char.isspace():  # Only add non-whitespace
             result += char.lower()
+    return result
+
+
+def underscores_to_camelcase(argument):
+    ''' Converts a camelcase param like the_new_attribute to the equivalent
+    camelcase version like theNewAttribute. Note that the first letter is
+    NOT capitalized by this function '''
+    result = ''
+    previous_was_underscore = False
+    for char in argument:
+        if char != '_':
+            if previous_was_underscore:
+                result += char.upper()
+            else:
+                result += char
+        previous_was_underscore = char == '_'
     return result
 
 
@@ -87,3 +105,14 @@ def iso_8601_datetime_with_milliseconds(datetime):
 def rfc_1123_datetime(datetime):
     RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
     return datetime.strftime(RFC1123)
+
+
+def unix_time(dt=None):
+    dt = dt or datetime.datetime.utcnow()
+    epoch = datetime.datetime.utcfromtimestamp(0)
+    delta = dt - epoch
+    return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
+
+
+def unix_time_millis(dt=None):
+    return unix_time(dt) * 1000.0

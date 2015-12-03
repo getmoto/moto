@@ -15,6 +15,7 @@ class Key(object):
         self.enabled = True
         self.region = region
         self.account_id = "0123456789012"
+        self.key_rotation_status = False
 
     @property
     def arn(self):
@@ -67,6 +68,22 @@ class KmsBackend(BaseBackend):
 
     def get_all_aliases(self):
         return self.key_to_aliases
+
+    def enable_key_rotation(self, key_id):
+        self.keys[key_id].key_rotation_status = True
+
+    def disable_key_rotation(self, key_id):
+        self.keys[key_id].key_rotation_status = False
+
+    def get_key_rotation_status(self, key_id):
+        return self.keys[key_id].key_rotation_status
+
+    def put_key_policy(self, key_id, policy):
+        self.keys[key_id].policy = policy
+
+    def get_key_policy(self, key_id):
+        return self.keys[key_id].policy
+
 
 kms_backends = {}
 for region in boto.kms.regions():

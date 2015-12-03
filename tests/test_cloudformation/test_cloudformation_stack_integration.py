@@ -737,14 +737,16 @@ def test_single_instance_with_ebs_volume():
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
 
-    volume = ec2_conn.get_all_volumes()[0]
+    volumes = ec2_conn.get_all_volumes()
+    # Grab the mounted drive
+    volume = [volume for volume in volumes if volume.attach_data.device == '/dev/sdh'][0]
     volume.volume_state().should.equal('in-use')
     volume.attach_data.instance_id.should.equal(ec2_instance.id)
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    ebs_volume = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Volume'][0]
-    ebs_volume.physical_resource_id.should.equal(volume.id)
+    ebs_volumes = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Volume']
+    ebs_volumes[0].physical_resource_id.should.equal(volume.id)
 
 
 @mock_cloudformation()

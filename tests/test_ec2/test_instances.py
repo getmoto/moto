@@ -57,8 +57,13 @@ def test_instance_launch_and_terminate():
     instances[0].vpc_id.should.equal(None)
 
     root_device_name = instances[0].root_device_name
-    instances[0].block_device_mapping[root_device_name].status.should.equal('attached')
-    instances[0].block_device_mapping[root_device_name].volume_id.should.match(r'vol-\w+')
+    instances[0].block_device_mapping[root_device_name].status.should.equal('in-use')
+    volume_id = instances[0].block_device_mapping[root_device_name].volume_id
+    volume_id.should.match(r'vol-\w+')
+
+    volume = conn.get_all_volumes(volume_ids=[volume_id])[0]
+    volume.attach_data.instance_id.should.equal(instance.id)
+    volume.status.should.equal('in-use')
 
     conn.terminate_instances([instances[0].id])
 

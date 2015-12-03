@@ -3,7 +3,7 @@ import logging
 logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = 'moto'
-__version__ = '0.4.18'
+__version__ = '0.4.19'
 
 from .autoscaling import mock_autoscaling  # flake8: noqa
 from .cloudformation import mock_cloudformation  # flake8: noqa
@@ -28,3 +28,4 @@ from .sns import mock_sns  # flake8: noqa
 from .sqs import mock_sqs  # flake8: noqa
 from .sts import mock_sts  # flake8: noqa
 from .route53 import mock_route53  # flake8: noqa
+from .swf import mock_swf  # flake8: noqa

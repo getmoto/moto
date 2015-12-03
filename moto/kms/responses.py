@@ -39,8 +39,9 @@ class KmsResponse(BaseResponse):
         try:
             key = self.kms_backend.describe_key(key_id)
         except KeyError:
-            self.headers['status'] = 404
-            return "{}", self.headers
+            headers = dict(self.headers)
+            headers['status'] = 404
+            return "{}", headers
         return json.dumps(key.to_dict())
 
     def list_keys(self):
@@ -136,3 +137,88 @@ class KmsResponse(BaseResponse):
             'Truncated': False,
             'Aliases': response_aliases,
         })
+
+    def enable_key_rotation(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(key_id)
+        try:
+            self.kms_backend.enable_key_rotation(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                '__type': 'NotFoundException'})
+
+        return json.dumps(None)
+
+    def disable_key_rotation(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(key_id)
+        try:
+            self.kms_backend.disable_key_rotation(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                '__type': 'NotFoundException'})
+        return json.dumps(None)
+
+    def get_key_rotation_status(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(key_id)
+        try:
+            rotation_enabled = self.kms_backend.get_key_rotation_status(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                '__type': 'NotFoundException'})
+        return json.dumps({'KeyRotationEnabled': rotation_enabled})
+
+    def put_key_policy(self):
+        key_id = self.parameters.get('KeyId')
+        policy_name = self.parameters.get('PolicyName')
+        policy = self.parameters.get('Policy')
+        _assert_valid_key_id(key_id)
+        _assert_default_policy(policy_name)
+
+        try:
+            self.kms_backend.put_key_policy(key_id, policy)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                '__type': 'NotFoundException'})
+
+        return json.dumps(None)
+
+    def get_key_policy(self):
+        key_id = self.parameters.get('KeyId')
+        policy_name = self.parameters.get('PolicyName')
+        _assert_valid_key_id(key_id)
+        _assert_default_policy(policy_name)
+
+        try:
+            return json.dumps({'Policy': self.kms_backend.get_key_policy(key_id)})
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                '__type': 'NotFoundException'})
+
+    def list_key_policies(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(key_id)
+        try:
+            self.kms_backend.describe_key(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                '__type': 'NotFoundException'})
+
+        return json.dumps({'Truncated': False, 'PolicyNames': ['default']})
+
+def _assert_valid_key_id(key_id):
+    if not re.match(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$', key_id, re.IGNORECASE):
+        raise JSONResponseError(404, 'Not Found', body={'message': ' Invalid keyId', '__type': 'NotFoundException'})
+
+def _assert_default_policy(policy_name):
+    if policy_name != 'default':
+        raise JSONResponseError(404, 'Not Found', body={
+            'message': "No such policy exists",
+            '__type': 'NotFoundException'})
