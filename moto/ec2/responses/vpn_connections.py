@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, vpn_connection_ids_from_query_string
+from moto.ec2.utils import filters_from_querystring, sequence_from_querystring
 
 
 class VPNConnections(BaseResponse):
@@ -20,7 +20,7 @@ class VPNConnections(BaseResponse):
         return template.render(vpn_connection=vpn_connection)
 
     def describe_vpn_connections(self):
-        vpn_connection_ids = vpn_connection_ids_from_query_string(self.querystring)
+        vpn_connection_ids = sequence_from_querystring('VpnConnectionId', self.querystring)
         filters = filters_from_querystring(self.querystring)
         vpn_connections = self.ec2_backend.get_all_vpn_connections(
             vpn_connection_ids=vpn_connection_ids, filters=filters)

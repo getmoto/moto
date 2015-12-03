@@ -197,14 +197,6 @@ def vpc_ids_from_querystring(querystring_dict):
     return vpc_ids
 
 
-def vpn_connection_ids_from_query_string(querystring_dict):
-    vpn_connection_ids = []
-    for key, value in querystring_dict.items():
-        if 'VpnConnectionId' in key:
-            vpn_connection_ids.append(value[0])
-    return vpn_connection_ids
-
-
 def sequence_from_querystring(parameter, querystring_dict):
     parameter_values = []
     for key, value in querystring_dict.items():
