@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import (
     filters_from_querystring,
-    dhcp_opt_ids_from_querystring,
+    sequence_from_querystring,
     dhcp_configuration_from_querystring)
 
 
@@ -48,7 +48,7 @@ class DHCPOptions(BaseResponse):
         return template.render(delete_status=delete_status)
 
     def describe_dhcp_options(self):
-        dhcp_opt_ids = dhcp_opt_ids_from_querystring(self.querystring)
+        dhcp_opt_ids = sequence_from_querystring("DhcpOptionsId", self.querystring)
         if filters_from_querystring(self.querystring):
             raise NotImplementedError("Filtering not supported in describe_dhcp_options.")
         dhcp_opts = self.ec2_backend.get_all_dhcp_options(dhcp_opt_ids, None)

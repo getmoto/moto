@@ -185,14 +185,6 @@ def network_acl_ids_from_querystring(querystring_dict):
     return network_acl_ids
 
 
-def dhcp_opt_ids_from_querystring(querystring_dict):
-    dhcp_opt_ids = []
-    for key, value in querystring_dict.items():
-        if 'DhcpOptionsId' in key:
-            dhcp_opt_ids.append(value[0])
-    return dhcp_opt_ids
-
-
 def vpc_ids_from_querystring(querystring_dict):
     vpc_ids = []
     for key, value in querystring_dict.items():
