@@ -25,11 +25,12 @@ def test_create_load_balancer():
 
     zones = ['us-east-1a', 'us-east-1b']
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
-    conn.create_load_balancer('my-lb', zones, ports)
+    conn.create_load_balancer('my-lb', zones, ports, scheme='internal')
 
     balancers = conn.get_all_load_balancers()
     balancer = balancers[0]
     balancer.name.should.equal("my-lb")
+    balancer.scheme.should.equal("internal")
     set(balancer.availability_zones).should.equal(set(['us-east-1a', 'us-east-1b']))
     listener1 = balancer.listeners[0]
     listener1.load_balancer_port.should.equal(80)
@@ -66,6 +67,7 @@ def test_create_load_balancer_with_certificate():
     balancers = conn.get_all_load_balancers()
     balancer = balancers[0]
     balancer.name.should.equal("my-lb")
+    balancer.scheme.should.equal("internet-facing")
     set(balancer.availability_zones).should.equal(set(['us-east-1a']))
     listener = balancer.listeners[0]
     listener.load_balancer_port.should.equal(443)
@@ -544,7 +546,7 @@ def test_set_policies_of_backend_server():
 
     # in a real flow, it is necessary first to create a policy,
     # then to set that policy to the backend
-    lb.create_lb_policy(policy_name, 'ProxyProtocolPolicyType', {'ProxyProtocol': True}) 
+    lb.create_lb_policy(policy_name, 'ProxyProtocolPolicyType', {'ProxyProtocol': True})
     lb.set_policies_of_backend_server(instance_port, [policy_name])
 
     lb = conn.get_all_load_balancers()[0]
