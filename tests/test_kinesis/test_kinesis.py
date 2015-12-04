@@ -148,7 +148,7 @@ def test_get_records_at_sequence_number():
     response = conn.get_shard_iterator(stream_name, shard_id, 'TRIM_HORIZON')
     shard_iterator = response['ShardIterator']
 
-    # Get the second record
+    # Get the second record7
     response = conn.get_records(shard_iterator, limit=2)
     second_sequence_id = response['Records'][1]['SequenceNumber']
 
@@ -237,3 +237,59 @@ def test_invalid_shard_iterator_type():
     shard_id = response['StreamDescription']['Shards'][0]['ShardId']
     response = conn.get_shard_iterator.when.called_with(
         stream_name, shard_id, 'invalid-type').should.throw(InvalidArgumentException)
+
+
+@mock_kinesis
+def test_add_tags():
+    conn = boto.kinesis.connect_to_region("us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(stream_name, 1)
+
+    conn.describe_stream(stream_name)
+    conn.add_tags_to_stream(stream_name, {'tag1':'val1'})
+    conn.add_tags_to_stream(stream_name, {'tag2':'val2'})
+    conn.add_tags_to_stream(stream_name, {'tag1':'val3'})
+    conn.add_tags_to_stream(stream_name, {'tag2':'val4'})
+
+
+@mock_kinesis
+def test_list_tags():
+    conn = boto.kinesis.connect_to_region("us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(stream_name, 1)
+
+    conn.describe_stream(stream_name)
+    conn.add_tags_to_stream(stream_name, {'tag1':'val1'})
+    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    assert tags.get('tag1') == 'val1'
+    conn.add_tags_to_stream(stream_name, {'tag2':'val2'})
+    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    assert tags.get('tag2') == 'val2'
+    conn.add_tags_to_stream(stream_name, {'tag1':'val3'})
+    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    assert tags.get('tag1') == 'val3'
+    conn.add_tags_to_stream(stream_name, {'tag2':'val4'})
+    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    assert tags.get('tag2') == 'val4'
+
+
+@mock_kinesis
+def test_remove_tags():
+    conn = boto.kinesis.connect_to_region("us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(stream_name, 1)
+
+    conn.describe_stream(stream_name)
+    conn.add_tags_to_stream(stream_name, {'tag1':'val1'})
+    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    assert tags.get('tag1') == 'val1'
+    conn.remove_tags_from_stream(stream_name, ['tag1'])
+    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    assert tags.get('tag1') is None
+
+    conn.add_tags_to_stream(stream_name, {'tag2':'val2'})
+    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    assert tags.get('tag2') == 'val2'
+    conn.remove_tags_from_stream(stream_name, ['tag2'])
+    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    assert tags.get('tag2') is None
