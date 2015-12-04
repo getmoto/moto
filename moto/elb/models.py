@@ -44,13 +44,14 @@ class FakeBackend(object):
 
 
 class FakeLoadBalancer(object):
-    def __init__(self, name, zones, ports):
+    def __init__(self, name, zones, ports, scheme='internet-facing',):
         self.name = name
         self.health_check = None
         self.instance_ids = []
         self.zones = zones
         self.listeners = []
         self.backends = []
+        self.scheme = scheme
         self.attributes = FakeLoadBalancer.get_default_attributes()
         self.policies = Policies()
         self.policies.other_policies = []
@@ -135,8 +136,8 @@ class ELBBackend(BaseBackend):
     def __init__(self):
         self.load_balancers = {}
 
-    def create_load_balancer(self, name, zones, ports):
-        new_load_balancer = FakeLoadBalancer(name=name, zones=zones, ports=ports)
+    def create_load_balancer(self, name, zones, ports, scheme='internet-facing'):
+        new_load_balancer = FakeLoadBalancer(name=name, zones=zones, ports=ports, scheme=scheme)
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
 

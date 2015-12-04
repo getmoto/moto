@@ -21,17 +21,16 @@ class ELBResponse(BaseResponse):
         return elb_backends[self.region]
 
     def create_load_balancer(self):
-        """
-        u'Scheme': [u'internet-facing'],
-        """
         load_balancer_name = self._get_param('LoadBalancerName')
         availability_zones = self._get_multi_param("AvailabilityZones.member")
         ports = self._get_list_prefix("Listeners.member")
+        scheme = self._get_param('Scheme')
 
         self.elb_backend.create_load_balancer(
             name=load_balancer_name,
             zones=availability_zones,
             ports=ports,
+            scheme=scheme
         )
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
         return template.render()
@@ -325,7 +324,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           </AvailabilityZones>
           <CanonicalHostedZoneName>tests.us-east-1.elb.amazonaws.com</CanonicalHostedZoneName>
           <CanonicalHostedZoneNameID>Z3ZONEID</CanonicalHostedZoneNameID>
-          <Scheme>internet-facing</Scheme>
+          <Scheme>{{ load_balancer.scheme }}</Scheme>
           <DNSName>tests.us-east-1.elb.amazonaws.com</DNSName>
           <BackendServerDescriptions>
           {% for backend in load_balancer.backends %}
