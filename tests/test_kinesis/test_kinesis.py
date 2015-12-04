@@ -148,7 +148,7 @@ def test_get_records_at_sequence_number():
     response = conn.get_shard_iterator(stream_name, shard_id, 'TRIM_HORIZON')
     shard_iterator = response['ShardIterator']
 
-    # Get the second record7
+    # Get the second record
     response = conn.get_records(shard_iterator, limit=2)
     second_sequence_id = response['Records'][1]['SequenceNumber']
 
