@@ -25,9 +25,7 @@ class KinesisResponse(BaseResponse):
     def create_stream(self):
         stream_name = self.parameters.get('StreamName')
         shard_count = self.parameters.get('ShardCount')
-        stream = self.kinesis_backend.create_stream(stream_name, shard_count, self.region)
-        if isinstance(stream, BadRequest):
-              return stream.description
+        self.kinesis_backend.create_stream(stream_name, shard_count, self.region)
         return ""
 
     def describe_stream(self):

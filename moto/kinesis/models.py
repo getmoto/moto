@@ -203,7 +203,7 @@ class KinesisBackend(BaseBackend):
 
     def create_stream(self, stream_name, shard_count, region):
         if stream_name in self.streams:
-           return ResourceInUseError(stream_name)
+           raise ResourceInUseError(stream_name)
         stream = Stream(stream_name, shard_count, region)
         self.streams[stream_name] = stream
         return stream
