@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
-from boto.exception import BotoServerError
 from moto.core import BaseBackend
+from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
 from .utils import random_access_key, random_alphanumeric, random_resource_id
 from datetime import datetime
 import base64
@@ -145,8 +145,8 @@ class User(object):
         policy_json = None
         try:
             policy_json = self.policies[policy_name]
-        except:
-            raise BotoServerError(404, 'Not Found')
+        except KeyError:
+            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
 
         return {
             'policy_name': policy_name,
@@ -159,7 +159,7 @@ class User(object):
 
     def delete_policy(self, policy_name):
         if policy_name not in self.policies:
-            raise BotoServerError(404, 'Not Found')
+            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
 
         del self.policies[policy_name]
 
@@ -177,7 +177,7 @@ class User(object):
                 self.access_keys.remove(key)
                 break
         else:
-            raise BotoServerError(404, 'Not Found')
+            raise IAMNotFoundException("Key {0} not found".format(access_key_id))
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -249,7 +249,7 @@ class IAMBackend(BaseBackend):
         for role in self.get_roles():
             if role.name == role_name:
                 return role
-        raise BotoServerError(404, 'Not Found')
+        raise IAMNotFoundException("Role {0} not found".format(role_name))
 
     def get_roles(self):
         return self.roles.values()
@@ -315,7 +315,7 @@ class IAMBackend(BaseBackend):
 
     def create_group(self, group_name, path='/'):
         if group_name in self.groups:
-            raise BotoServerError(409, 'Conflict')
+            raise IAMConflictException("Group {0} already exists".format(group_name))
 
         group = Group(group_name, path)
         self.groups[group_name] = group
@@ -326,7 +326,7 @@ class IAMBackend(BaseBackend):
         try:
             group = self.groups[group_name]
         except KeyError:
-            raise BotoServerError(404, 'Not Found')
+            raise IAMNotFoundException("Group {0} not found".format(group_name))
 
         return group
 
@@ -344,7 +344,7 @@ class IAMBackend(BaseBackend):
 
     def create_user(self, user_name, path='/'):
         if user_name in self.users:
-            raise BotoServerError(409, 'Conflict')
+            raise IAMConflictException("User {0} already exists".format(user_name))
 
         user = User(user_name, path)
         self.users[user_name] = user
@@ -355,99 +355,62 @@ class IAMBackend(BaseBackend):
         try:
             user = self.users[user_name]
         except KeyError:
-            raise BotoServerError(404, 'Not Found')
+            raise IAMNotFoundException("User {0} not found".format(user_name))
 
         return user
 
     def create_login_profile(self, user_name, password):
-        if user_name not in self.users:
-            raise BotoServerError(404, 'Not Found')
-
         # This does not currently deal with PasswordPolicyViolation.
-        user = self.users[user_name]
+        user = self.get_user(user_name)
         if user.password:
-            raise BotoServerError(409, 'Conflict')
+            raise IAMConflictException("User {0} already has password".format(user_name))
         user.password = password
 
     def add_user_to_group(self, group_name, user_name):
-        group = None
-        user = None
-
-        try:
-            group = self.groups[group_name]
-            user = self.users[user_name]
-        except KeyError:
-            raise BotoServerError(404, 'Not Found')
-
+        user = self.get_user(user_name)
+        group = self.get_group(group_name)
         group.users.append(user)
 
     def remove_user_from_group(self, group_name, user_name):
-        group = None
-        user = None
-
+        group = self.get_group(group_name)
+        user = self.get_user(user_name)
         try:
-            group = self.groups[group_name]
-            user = self.users[user_name]
             group.users.remove(user)
-        except (KeyError, ValueError):
-            raise BotoServerError(404, 'Not Found')
+        except ValueError:
+            raise IAMNotFoundException("User {0} not in group {1}".format(user_name, group_name))
 
     def get_user_policy(self, user_name, policy_name):
-        policy = None
-        try:
-            user = self.users[user_name]
-            policy = user.get_policy(policy_name)
-        except KeyError:
-            raise BotoServerError(404, 'Not Found')
-
+        user = self.get_user(user_name)
+        policy = user.get_policy(policy_name)
         return policy
 
     def put_user_policy(self, user_name, policy_name, policy_json):
-        try:
-            user = self.users[user_name]
-            user.put_policy(policy_name, policy_json)
-        except KeyError:
-            raise BotoServerError(404, 'Not Found')
+        user = self.get_user(user_name)
+        user.put_policy(policy_name, policy_json)
 
     def delete_user_policy(self, user_name, policy_name):
-        try:
-            user = self.users[user_name]
-            user.delete_policy(policy_name)
-        except KeyError:
-            raise BotoServerError(404, 'Not Found')
+        user = self.get_user(user_name)
+        user.delete_policy(policy_name)
 
     def create_access_key(self, user_name=None):
-        key = None
-        try:
-            user = self.users[user_name]
-            key = user.create_access_key()
-        except KeyError:
-            raise BotoServerError(404, 'Not Found')
-
+        user = self.get_user(user_name)
+        key = user.create_access_key()
         return key
 
     def get_all_access_keys(self, user_name, marker=None, max_items=None):
-        keys = None
-        try:
-            user = self.users[user_name]
-            keys = user.get_all_access_keys()
-        except KeyError:
-            raise BotoServerError(404, 'Not Found')
-
+        user = self.get_user(user_name)
+        keys = user.get_all_access_keys()
         return keys
 
     def delete_access_key(self, access_key_id, user_name):
-        try:
-            user = self.users[user_name]
-            user.delete_access_key(access_key_id)
-        except KeyError:
-            raise BotoServerError(404, 'Not Found')
+        user = self.get_user(user_name)
+        user.delete_access_key(access_key_id)
 
     def delete_user(self, user_name):
         try:
             del self.users[user_name]
         except KeyError:
-            raise BotoServerError(404, 'Not Found')
+            raise IAMNotFoundException("User {0} not found".format(user_name))
 
     def report_generated(self):
         return self.credential_report
@@ -457,7 +420,7 @@ class IAMBackend(BaseBackend):
 
     def get_credential_report(self):
         if not self.credential_report:
-            raise BotoServerError(410, 'ReportNotPresent')
+            raise IAMReportNotPresentException("Credential report not present")
         report = 'user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_2_active,access_key_2_last_rotated,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated\n'
         for user in self.users:
             report += self.users[user].to_csv()
