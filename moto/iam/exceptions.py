@@ -13,9 +13,9 @@ class IAMNotFoundException(RESTError):
 class IAMConflictException(RESTError):
     code = 409
 
-    def __init__(self, message):
+    def __init__(self, code='Conflict', message=""):
         super(IAMConflictException, self).__init__(
-            "Conflict", message)
+            code, message)
 
 
 class IAMReportNotPresentException(RESTError):

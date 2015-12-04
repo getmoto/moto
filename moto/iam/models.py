@@ -344,7 +344,7 @@ class IAMBackend(BaseBackend):
 
     def create_user(self, user_name, path='/'):
         if user_name in self.users:
-            raise IAMConflictException("User {0} already exists".format(user_name))
+            raise IAMConflictException("EntityAlreadyExists", "User {0} already exists".format(user_name))
 
         user = User(user_name, path)
         self.users[user_name] = user
