@@ -143,7 +143,7 @@ class Stream(object):
                 raise InvalidArgumentError("explicit_hash_key")
 
         else:
-            key = int(md5(partition_key).hexdigest(), 16)
+            key = int(md5(partition_key.encode('utf-8')).hexdigest(), 16)
 
         for shard in self.shards.values():
             if shard.starting_hash <= key < shard.ending_hash:
