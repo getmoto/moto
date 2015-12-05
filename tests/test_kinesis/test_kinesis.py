@@ -319,7 +319,7 @@ def test_split_shard():
     sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
 
     shard_range = shards[0]['HashKeyRange']
-    new_starting_hash = (int(shard_range['EndingHashKey'])+int(shard_range['StartingHashKey'])) / 2
+    new_starting_hash = (int(shard_range['EndingHashKey'])+int(shard_range['StartingHashKey'])) // 2
     conn.split_shard("my_stream", shards[0]['ShardId'], str(new_starting_hash))
 
     stream_response = conn.describe_stream(stream_name)
@@ -330,7 +330,7 @@ def test_split_shard():
     sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
 
     shard_range = shards[2]['HashKeyRange']
-    new_starting_hash = (int(shard_range['EndingHashKey'])+int(shard_range['StartingHashKey'])) / 2
+    new_starting_hash = (int(shard_range['EndingHashKey'])+int(shard_range['StartingHashKey'])) // 2
     conn.split_shard("my_stream", shards[2]['ShardId'], str(new_starting_hash))
 
     stream_response = conn.describe_stream(stream_name)
