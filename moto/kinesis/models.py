@@ -128,13 +128,13 @@ class Stream(object):
             raise ShardNotFoundError(shard_id)
 
     def get_shard_for_key(self, partition_key, explicit_hash_key):
-        if not isinstance(partition_key, basestring):
+        if not isinstance(partition_key, six.string_types):
             raise InvalidArgumentError("partition_key")
         if len(partition_key) > 256:
             raise InvalidArgumentError("partition_key")
 
         if explicit_hash_key:
-            if not isinstance(explicit_hash_key, basestring):
+            if not isinstance(explicit_hash_key, six.string_types):
                 raise InvalidArgumentError("explicit_hash_key")
 
             key = int(explicit_hash_key)
