@@ -4,10 +4,11 @@ import datetime
 import time
 import boto.kinesis
 import re
+import six
+import itertools
 
 from operator import attrgetter
 from hashlib import md5
-from itertools import izip_longest
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
@@ -99,6 +100,11 @@ class Stream(object):
         self.account_number = "123456789012"
         self.shards = {}
         self.tags = {}
+
+        if six.PY3:
+            izip_longest = itertools.zip_longest
+        else:
+            izip_longest = itertools.izip_longest
 
         for index, start, end in izip_longest(range(shard_count),
                                               range(0,2**128,2**128/shard_count),
