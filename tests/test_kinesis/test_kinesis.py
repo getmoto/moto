@@ -85,6 +85,10 @@ def test_put_records():
 
     data = "hello world"
     partition_key = "1234"
+
+    conn.put_record.when.called_with(
+        stream_name, data, 1234).should.throw(InvalidArgumentException)
+
     conn.put_record(stream_name, data, partition_key)
 
     response = conn.describe_stream(stream_name)
@@ -112,8 +116,9 @@ def test_get_records_limit():
 
     # Create some data
     data = "hello world"
+
     for index in range(5):
-        conn.put_record(stream_name, data, index)
+        conn.put_record(stream_name, data, str(index))
 
     # Get a shard iterator
     response = conn.describe_stream(stream_name)
@@ -140,7 +145,7 @@ def test_get_records_at_sequence_number():
 
     # Create some data
     for index in range(1, 5):
-        conn.put_record(stream_name, str(index), index)
+        conn.put_record(stream_name, str(index), str(index))
 
     # Get a shard iterator
     response = conn.describe_stream(stream_name)
@@ -171,7 +176,7 @@ def test_get_records_after_sequence_number():
 
     # Create some data
     for index in range(1, 5):
-        conn.put_record(stream_name, str(index), index)
+        conn.put_record(stream_name, str(index), str(index))
 
     # Get a shard iterator
     response = conn.describe_stream(stream_name)
@@ -201,7 +206,7 @@ def test_get_records_latest():
 
     # Create some data
     for index in range(1, 5):
-        conn.put_record(stream_name, str(index), index)
+        conn.put_record(stream_name, str(index), str(index))
 
     # Get a shard iterator
     response = conn.describe_stream(stream_name)
@@ -261,16 +266,16 @@ def test_list_tags():
     conn.describe_stream(stream_name)
     conn.add_tags_to_stream(stream_name, {'tag1':'val1'})
     tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
-    assert tags.get('tag1') == 'val1'
+    tags.get('tag1').should.equal('val1')
     conn.add_tags_to_stream(stream_name, {'tag2':'val2'})
     tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
-    assert tags.get('tag2') == 'val2'
+    tags.get('tag2').should.equal('val2')
     conn.add_tags_to_stream(stream_name, {'tag1':'val3'})
     tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
-    assert tags.get('tag1') == 'val3'
+    tags.get('tag1').should.equal('val3')
     conn.add_tags_to_stream(stream_name, {'tag2':'val4'})
     tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
-    assert tags.get('tag2') == 'val4'
+    tags.get('tag2').should.equal('val4')
 
 
 @mock_kinesis
@@ -282,14 +287,99 @@ def test_remove_tags():
     conn.describe_stream(stream_name)
     conn.add_tags_to_stream(stream_name, {'tag1':'val1'})
     tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
-    assert tags.get('tag1') == 'val1'
+    tags.get('tag1').should.equal('val1')
     conn.remove_tags_from_stream(stream_name, ['tag1'])
     tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
-    assert tags.get('tag1') is None
+    tags.get('tag1').should.equal(None)
 
     conn.add_tags_to_stream(stream_name, {'tag2':'val2'})
     tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
-    assert tags.get('tag2') == 'val2'
+    tags.get('tag2').should.equal('val2')
     conn.remove_tags_from_stream(stream_name, ['tag2'])
     tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
-    assert tags.get('tag2') is None
+    tags.get('tag2').should.equal(None)
+
+
+@mock_kinesis
+def test_split_shard():
+    conn = boto.kinesis.connect_to_region("us-west-2")
+    stream_name = 'my_stream'
+
+    conn.create_stream(stream_name, 2)
+
+    # Create some data
+    for index in range(1, 100):
+        conn.put_record(stream_name, str(index), str(index))
+
+    stream_response = conn.describe_stream(stream_name)
+
+    stream = stream_response["StreamDescription"]
+    shards = stream['Shards']
+    shards.should.have.length_of(2)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+
+    shard_range = shards[0]['HashKeyRange']
+    new_starting_hash = (int(shard_range['EndingHashKey'])+int(shard_range['StartingHashKey'])) / 2
+    conn.split_shard("my_stream", shards[0]['ShardId'], str(new_starting_hash))
+
+    stream_response = conn.describe_stream(stream_name)
+
+    stream = stream_response["StreamDescription"]
+    shards = stream['Shards']
+    shards.should.have.length_of(3)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+
+    shard_range = shards[2]['HashKeyRange']
+    new_starting_hash = (int(shard_range['EndingHashKey'])+int(shard_range['StartingHashKey'])) / 2
+    conn.split_shard("my_stream", shards[2]['ShardId'], str(new_starting_hash))
+
+    stream_response = conn.describe_stream(stream_name)
+
+    stream = stream_response["StreamDescription"]
+    shards = stream['Shards']
+    shards.should.have.length_of(4)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+
+
+@mock_kinesis
+def test_merge_shards():
+    conn = boto.kinesis.connect_to_region("us-west-2")
+    stream_name = 'my_stream'
+
+    conn.create_stream(stream_name, 4)
+
+    # Create some data
+    for index in range(1, 100):
+        conn.put_record(stream_name, str(index), str(index))
+
+    stream_response = conn.describe_stream(stream_name)
+
+    stream = stream_response["StreamDescription"]
+    shards = stream['Shards']
+    shards.should.have.length_of(4)
+
+    conn.merge_shards.when.called_with(stream_name, 'shardId-000000000000', 'shardId-000000000002').should.throw(InvalidArgumentException)
+
+    stream_response = conn.describe_stream(stream_name)
+
+    stream = stream_response["StreamDescription"]
+    shards = stream['Shards']
+    shards.should.have.length_of(4)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+
+    conn.merge_shards(stream_name, 'shardId-000000000000', 'shardId-000000000001')
+
+    stream_response = conn.describe_stream(stream_name)
+
+    stream = stream_response["StreamDescription"]
+    shards = stream['Shards']
+    shards.should.have.length_of(3)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+    conn.merge_shards(stream_name, 'shardId-000000000002', 'shardId-000000000000')
+
+    stream_response = conn.describe_stream(stream_name)
+
+    stream = stream_response["StreamDescription"]
+    shards = stream['Shards']
+    shards.should.have.length_of(2)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)

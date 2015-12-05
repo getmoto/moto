@@ -101,6 +101,24 @@ class KinesisResponse(BaseResponse):
 
         return json.dumps(response)
 
+    def split_shard(self):
+        stream_name = self.parameters.get("StreamName")
+        shard_to_split = self.parameters.get("ShardToSplit")
+        new_starting_hash_key = self.parameters.get("NewStartingHashKey")
+        response = self.kinesis_backend.split_shard(
+            stream_name, shard_to_split, new_starting_hash_key
+        )
+        return ""
+
+    def merge_shards(self):
+        stream_name = self.parameters.get("StreamName")
+        shard_to_merge = self.parameters.get("ShardToMerge")
+        adjacent_shard_to_merge = self.parameters.get("AdjacentShardToMerge")
+        response = self.kinesis_backend.merge_shards(
+            stream_name, shard_to_merge, adjacent_shard_to_merge
+        )
+        return ""
+
     ''' Firehose '''
     def create_delivery_stream(self):
         stream_name = self.parameters['DeliveryStreamName']
