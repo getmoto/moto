@@ -107,8 +107,8 @@ class Stream(object):
             izip_longest = itertools.izip_longest
 
         for index, start, end in izip_longest(range(shard_count),
-                                              range(0,2**128,2**128/shard_count),
-                                              range(2**128/shard_count,2**128,2**128/shard_count),
+                                              range(0,2**128,2**128//shard_count),
+                                              range(2**128//shard_count,2**128,2**128//shard_count),
                                               fillvalue=2**128):
             shard = Shard(index, start, end)
             self.shards[shard.shard_id] = shard
