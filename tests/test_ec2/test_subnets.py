@@ -115,6 +115,11 @@ def test_get_subnets_filtering():
     subnets_by_az.should.have.length_of(1)
     set([subnet.id for subnet in subnets_by_az]).should.equal(set([subnetB1.id]))
 
+    # Filter by defaultForAz
+    subnets_by_az = conn.get_all_subnets(filters={'defaultForAz': "true"})
+    subnets_by_az.should.have.length_of(1)
+    set([subnet.id for subnet in subnets_by_az]).should.equal(set([subnetA.id]))
+
     # Unsupported filter
     conn.get_all_subnets.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
 

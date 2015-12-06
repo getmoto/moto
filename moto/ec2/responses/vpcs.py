@@ -57,6 +57,7 @@ DESCRIBE_VPCS_RESPONSE = """
         <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
         <dhcpOptionsId>dopt-7a8b9c2d</dhcpOptionsId>
         <instanceTenancy>default</instanceTenancy>
+        <isDefault>{{ vpc.is_default }}</isDefault>
         <tagSet>
           {% for tag in vpc.get_tags() %}
             <item>
