@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
+from moto.elb import elb_backends
 
 # http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AS_Concepts.html#Cooldown
 DEFAULT_COOLDOWN = 300
@@ -217,16 +218,18 @@ class FakeAutoScalingGroup(object):
 
 class AutoScalingBackend(BaseBackend):
 
-    def __init__(self, ec2_backend):
+    def __init__(self, ec2_backend, elb_backend):
         self.autoscaling_groups = {}
         self.launch_configurations = {}
         self.policies = {}
         self.ec2_backend = ec2_backend
+        self.elb_backend = elb_backend
 
     def reset(self):
         ec2_backend = self.ec2_backend
+        elb_backend = self.elb_backend
         self.__dict__ = {}
-        self.__init__(ec2_backend)
+        self.__init__(ec2_backend, elb_backend)
 
     def create_launch_configuration(self, name, image_id, key_name,
                                     security_groups, user_data, instance_type,
@@ -291,7 +294,9 @@ class AutoScalingBackend(BaseBackend):
             autoscaling_backend=self,
             tags=tags,
         )
+
         self.autoscaling_groups[name] = group
+        self.update_attached_elbs(group.name)
         return group
 
     def update_autoscaling_group(self, name, availability_zones,
@@ -315,6 +320,7 @@ class AutoScalingBackend(BaseBackend):
             return list(groups)
 
     def delete_autoscaling_group(self, group_name):
+        self.set_desired_capacity(group_name, 0)
         self.autoscaling_groups.pop(group_name, None)
 
     def describe_autoscaling_instances(self):
@@ -326,6 +332,7 @@ class AutoScalingBackend(BaseBackend):
     def set_desired_capacity(self, group_name, desired_capacity):
         group = self.autoscaling_groups[group_name]
         group.set_desired_capacity(desired_capacity)
+        self.update_attached_elbs(group_name)
 
     def change_capacity(self, group_name, scaling_adjustment):
         group = self.autoscaling_groups[group_name]
@@ -366,7 +373,16 @@ class AutoScalingBackend(BaseBackend):
         policy = self.policies[group_name]
         policy.execute()
 
+    def update_attached_elbs(self, group_name):
+        group = self.autoscaling_groups[group_name]
+        group_instance_ids = set(state.instance.id for state in group.instance_states)
+        for elb in self.elb_backend.describe_load_balancers(names=group.load_balancers):
+            elb_instace_ids = set(elb.instance_ids)
+            self.elb_backend.register_instances(elb.name, group_instance_ids - elb_instace_ids)
+            self.elb_backend.deregister_instances(elb.name, elb_instace_ids - group_instance_ids)
+
 
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():
-    autoscaling_backends[region] = AutoScalingBackend(ec2_backend)
+    autoscaling_backends[region] = AutoScalingBackend(ec2_backend, elb_backends[region])
+

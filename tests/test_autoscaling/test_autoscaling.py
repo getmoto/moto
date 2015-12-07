@@ -5,7 +5,7 @@ from boto.ec2.autoscale.group import AutoScalingGroup
 from boto.ec2.autoscale import Tag
 import sure  # noqa
 
-from moto import mock_autoscaling, mock_ec2
+from moto import mock_autoscaling, mock_ec2, mock_elb
 from tests.helpers import requires_boto_gte
 
 
@@ -323,3 +323,53 @@ def test_set_desired_capacity_the_same():
 
     instances = list(conn.get_all_autoscaling_instances())
     instances.should.have.length_of(2)
+
+@mock_autoscaling
+@mock_elb
+def test_autoscaling_group_with_elb():
+    elb_conn = boto.connect_elb()
+    zones = ['us-east-1a', 'us-east-1b']
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    lb = elb_conn.create_load_balancer('my-lb', zones, ports)
+    instances_health = elb_conn.describe_instance_health('my-lb')
+    instances_health.should.be.empty
+
+    conn = boto.connect_autoscale()
+    config = LaunchConfiguration(
+        name='tester',
+        image_id='ami-abcd1234',
+        instance_type='t2.medium',
+    )
+    conn.create_launch_configuration(config)
+    group = AutoScalingGroup(
+        name='tester_group',
+        max_size=2,
+        min_size=2,
+        launch_config=config,
+        load_balancers=["my-lb"],
+    )
+    conn.create_auto_scaling_group(group)
+    group = conn.get_all_groups()[0]
+    elb = elb_conn.get_all_load_balancers()[0]
+    group.desired_capacity.should.equal(2)
+    elb.instances.should.have.length_of(2)
+
+    autoscale_instance_ids = set(instance.instance_id for instance in group.instances)
+    elb_instace_ids = set(instance.id for instance in elb.instances)
+    autoscale_instance_ids.should.equal(elb_instace_ids)
+
+    conn.set_desired_capacity("tester_group", 3)
+    group = conn.get_all_groups()[0]
+    elb = elb_conn.get_all_load_balancers()[0]
+    group.desired_capacity.should.equal(3)
+    elb.instances.should.have.length_of(3)
+
+    autoscale_instance_ids = set(instance.instance_id for instance in group.instances)
+    elb_instace_ids = set(instance.id for instance in elb.instances)
+    autoscale_instance_ids.should.equal(elb_instace_ids)
+
+    conn.delete_auto_scaling_group('tester_group')
+    conn.get_all_groups().should.have.length_of(0)
+    elb = elb_conn.get_all_load_balancers()[0]
+    elb.instances.should.have.length_of(0)
+
