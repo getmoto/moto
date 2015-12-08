@@ -1543,12 +1543,13 @@ class EBSBackend(object):
 
 
 class VPC(TaggedEC2Resource):
-    def __init__(self, ec2_backend, vpc_id, cidr_block):
+    def __init__(self, ec2_backend, vpc_id, cidr_block, is_default):
         self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
         self.dhcp_options = None
         self.state = 'available'
+        self.is_default = is_default
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1590,7 +1591,7 @@ class VPCBackend(object):
 
     def create_vpc(self, cidr_block):
         vpc_id = random_vpc_id()
-        vpc = VPC(self, vpc_id, cidr_block)
+        vpc = VPC(self, vpc_id, cidr_block, len(self.vpcs) == 0)
         self.vpcs[vpc_id] = vpc
 
         # AWS creates a default main route table and security group.
@@ -1734,12 +1735,13 @@ class VPCPeeringConnectionBackend(object):
 
 
 class Subnet(TaggedEC2Resource):
-    def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone):
+    def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone, defaultForAz):
         self.ec2_backend = ec2_backend
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
         self._availability_zone = availability_zone
+        self.defaultForAz = defaultForAz
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1799,6 +1801,8 @@ class Subnet(TaggedEC2Resource):
             return self.id
         elif filter_name == 'availabilityZone':
             return self.availability_zone
+        elif filter_name == 'defaultForAz':
+            return self.defaultForAz
 
         filter_value = super(Subnet, self).get_filter_value(filter_name)
 
@@ -1827,8 +1831,9 @@ class SubnetBackend(object):
 
     def create_subnet(self, vpc_id, cidr_block, availability_zone=None):
         subnet_id = random_subnet_id()
-        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone)
-        self.get_vpc(vpc_id)  # Validate VPC exists
+        vpc = self.get_vpc(vpc_id)  # Validate VPC exists
+        defaultForAz = "true" if vpc.is_default else "false"
+        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone, defaultForAz)
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id)
