@@ -31,7 +31,7 @@ def test_activity_task_heartbeat_timeout():
         attrs = resp["events"][-2]["activityTaskTimedOutEventAttributes"]
         attrs["timeoutType"].should.equal("HEARTBEAT")
         # checks that event has been emitted at 12:05:00, not 12:05:30
-        resp["events"][-2]["eventTimestamp"].should.equal(1420113900)
+        resp["events"][-2]["eventTimestamp"].should.equal(1420113900.0)
 
         resp["events"][-1]["eventType"].should.equal("DecisionTaskScheduled")
 
@@ -66,7 +66,7 @@ def test_decision_task_start_to_close_timeout():
             "scheduledEventId": 2, "startedEventId": 3, "timeoutType": "START_TO_CLOSE"
         })
         # checks that event has been emitted at 12:05:00, not 12:05:30
-        resp["events"][-2]["eventTimestamp"].should.equal(1420113900)
+        resp["events"][-2]["eventTimestamp"].should.equal(1420113900.0)
 
 # Workflow Execution Start to Close timeout
 # Default value in workflow helpers: 2 hours
@@ -97,4 +97,4 @@ def test_workflow_execution_start_to_close_timeout():
             "childPolicy": "ABANDON", "timeoutType": "START_TO_CLOSE"
         })
         # checks that event has been emitted at 14:00:00, not 14:00:30
-        resp["events"][-1]["eventTimestamp"].should.equal(1420120800)
+        resp["events"][-1]["eventTimestamp"].should.equal(1420120800.0)
