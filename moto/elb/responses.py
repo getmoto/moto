@@ -15,8 +15,6 @@ from .models import elb_backends
 from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError, \
     TooManyTagsError
 
-from collections import Counter
-
 
 class ELBResponse(BaseResponse):
 
@@ -243,7 +241,8 @@ class ELBResponse(BaseResponse):
                         elif t_key.split('.')[3] == 'Value':
                             tag_values.extend(t_val)
 
-                counts = Counter(tag_keys).most_common(1)
+                counts = sorted({i:tag_keys.count(i) for i in tag_keys}.items(),
+                                key=lambda i:i[1], reverse=True) 
 
                 if counts and counts[0][1] > 1:
                     # We have dupes...
