@@ -10,6 +10,7 @@ from boto.ec2.elb.attributes import (
 )
 from boto.ec2.elb.policies import Policies
 from moto.core import BaseBackend
+from .exceptions import TooManyTagsError
 
 
 class FakeHealthCheck(object):
@@ -57,6 +58,7 @@ class FakeLoadBalancer(object):
         self.policies.other_policies = []
         self.policies.app_cookie_stickiness_policies = []
         self.policies.lb_cookie_stickiness_policies = []
+        self.tags = {}
 
         for port in ports:
             listener = FakeListener(
@@ -129,6 +131,18 @@ class FakeLoadBalancer(object):
         attributes.connecting_settings = connection_settings
 
         return attributes
+
+    def add_tag(self, key, value):
+        if len(self.tags) >= 10 and key not in self.tags:
+            raise TooManyTagsError()
+        self.tags[key] = value
+
+    def list_tags(self):
+        return self.tags
+ 
+    def remove_tag(self, key):
+        if key in self.tags:
+            del self.tags[key]
 
 
 class ELBBackend(BaseBackend):
