@@ -229,8 +229,8 @@ class ELBResponse(BaseResponse):
                 if not elb:
                     raise LoadBalancerNotFoundError(load_balancer_name)
 
-                value = 'Tags.member.{}.Value'.format(number)
-                key = 'Tags.member.{}.Key'.format(number)
+                value = 'Tags.member.{0}.Value'.format(number)
+                key = 'Tags.member.{0}.Key'.format(number)
                 tag_values = []
                 tag_keys = []
 
@@ -262,12 +262,12 @@ class ELBResponse(BaseResponse):
         for key, value in self.querystring.items():
             if "LoadBalancerNames.member" in key:
                 number = key.split('.')[2]
-                load_balancer_name = self._get_param('LoadBalancerNames.member.{}'.format(number))
+                load_balancer_name = self._get_param('LoadBalancerNames.member.{0}'.format(number))
                 elb = self.elb_backend.get_load_balancer(load_balancer_name)
                 if not elb:
                     raise LoadBalancerNotFound(load_balancer_name)
 
-                key = 'Tag.member.{}.Key'.format(number)
+                key = 'Tag.member.{0}.Key'.format(number)
                 for t_key, t_val in self.querystring.items():
                     if t_key.startswith('Tags.member.'):
                         if t_key.split('.')[3] == 'Key':
@@ -280,7 +280,7 @@ class ELBResponse(BaseResponse):
         for key, value in self.querystring.items():
             if "LoadBalancerNames.member" in key:
                 number = key.split('.')[2]
-                load_balancer_name = self._get_param('LoadBalancerNames.member.{}'.format(number))
+                load_balancer_name = self._get_param('LoadBalancerNames.member.{0}'.format(number))
                 elb = self.elb_backend.get_load_balancer(load_balancer_name)
                 if not elb:
                     raise LoadBalancerNotFound(load_balancer_name)
