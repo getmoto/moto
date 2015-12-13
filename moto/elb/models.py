@@ -8,6 +8,7 @@ from boto.ec2.elb.attributes import (
     AccessLogAttribute,
     CrossZoneLoadBalancingAttribute,
 )
+from boto.exception import BotoServerError
 from boto.ec2.elb.policies import Policies
 from moto.core import BaseBackend
 
@@ -160,7 +161,20 @@ class ELBBackend(BaseBackend):
     def describe_load_balancers(self, names):
         balancers = self.load_balancers.values()
         if names:
-            return [balancer for balancer in balancers if balancer.name in names]
+            elbs = [balancer for balancer in balancers if balancer.name in names]
+            if elbs:
+                return elbs
+            else:
+                e = 'BotoServerError: 400 Bad Request'
+                '<ErrorResponse xmlns=\"http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/\">'
+                '<Error>'
+                '<Type>Sender</Type>'
+                '<Code>LoadBalancerNotFound</Code>'
+                '<Message>Cannot find Load Balancer {0}</Message>'
+                '</Error>'
+                '<RequestId>fakeRequestId</RequestId>'
+                '</ErrorResponse>'
+                raise BotoServerError(status="failed", reason=e.format(names))
         else:
             return balancers
 
