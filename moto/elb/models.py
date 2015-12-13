@@ -160,9 +160,20 @@ class ELBBackend(BaseBackend):
     def describe_load_balancers(self, names):
         balancers = self.load_balancers.values()
         if names:
-            return [balancer for balancer in balancers if balancer.name in names]
-        else:
-            return balancers
+            response = [balancer for balancer in balancers if balancer.name in names]
+            if response:
+                return response
+            else:
+                e = "BotoServerError: 400 Bad Request\n"
+                    "<ErrorResponse xmlns=\"http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/\">"
+                    "<Error>"
+                    "<Type>Sender</Type>"
+                    "<Code>LoadBalancerNotFound</Code>"
+                    "<Message>Cannot find Load Balancer {0}</Message>"
+                    "</Error>"
+                    "<RequestId>cc37bffd-a196-11e5-9499-9bc8bd07b212</RequestId>"
+                    "</ErrorResponse>"
+                raise boto.exception.BotoServerError(e.format(names))
 
     def delete_load_balancer_listeners(self, name, ports):
         balancer = self.load_balancers.get(name, None)
