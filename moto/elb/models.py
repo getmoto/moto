@@ -172,7 +172,7 @@ class ELBBackend(BaseBackend):
                 '<Code>LoadBalancerNotFound</Code>'
                 '<Message>Cannot find Load Balancer {0}</Message>'
                 '</Error>'
-                '<RequestId>cc37bffd-a196-11e5-9499-9bc8bd07b212</RequestId>'
+                '<RequestId>fakeRequestId</RequestId>'
                 '</ErrorResponse>'
                 raise BotoServerError(status="failed", reason=e.format(names))
         else:
