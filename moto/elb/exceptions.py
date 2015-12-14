@@ -27,3 +27,11 @@ class TooManyTagsError(ELBClientError):
         super(TooManyTagsError, self).__init__(
             "LoadBalancerNotFound",
             "The quota for the number of tags that can be assigned to a load balancer has been reached")
+
+
+class BadHealthCheckDefinition(ELBClientError):
+    def __init__(self):
+        super(BadHealthCheckDefinition, self).__init__(
+            "ValidationError",
+            "HealthCheck Target must begin with one of HTTP, TCP, HTTPS, SSL")
+
