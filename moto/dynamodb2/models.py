@@ -404,6 +404,38 @@ class DynamoDBBackend(BaseBackend):
         table.throughput = throughput
         return table
 
+    def update_table_global_indexes(self, name, global_index_updates):
+        table = self.tables[name]
+        gsis_by_name = dict((i['IndexName'], i) for i in table.global_indexes)
+        for gsi_update in global_index_updates:
+            gsi_to_create = gsi_update.get('Create')
+            gsi_to_update = gsi_update.get('Update')
+            gsi_to_delete = gsi_update.get('Delete')
+
+            if gsi_to_delete:
+                index_name = gsi_to_delete['IndexName']
+                if index_name not in gsis_by_name:
+                    raise ValueError('Global Secondary Index does not exist, but tried to delete: %s' %
+                                     gsi_to_delete['IndexName'])
+
+                del gsis_by_name[index_name]
+
+            if gsi_to_update:
+                index_name = gsi_to_update['IndexName']
+                if index_name not in gsis_by_name:
+                    raise ValueError('Global Secondary Index does not exist, but tried to update: %s' %
+                                     gsi_to_update['IndexName'])
+                gsis_by_name[index_name].update(gsi_to_update)
+
+            if gsi_to_create:
+                if gsi_to_create['IndexName'] in gsis_by_name:
+                    raise ValueError('Global Secondary Index already exists: %s' % gsi_to_create['IndexName'])
+
+                gsis_by_name[gsi_to_create['IndexName']] = gsi_to_create
+
+        table.global_indexes = gsis_by_name.values()
+        return table
+
     def put_item(self, table_name, item_attrs, expected=None, overwrite=False):
         table = self.tables.get(table_name)
         if not table:
