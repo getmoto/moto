@@ -278,20 +278,63 @@ class Table(object):
         except KeyError:
             return None
 
-    def query(self, hash_key, range_comparison, range_objs):
+    def query(self, hash_key, range_comparison, range_objs, index_name=None):
         results = []
         last_page = True  # Once pagination is implemented, change this
 
-        possible_results = [item for item in list(self.all_items()) if isinstance(item, Item) and item.hash_key == hash_key]
+        if index_name:
+            all_indexes = (self.global_indexes or []) + (self.indexes or [])
+            indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
+            if index_name not in indexes_by_name:
+                raise ValueError('Invalid index: %s for table: %s. Available indexes are: %s' % (
+                    index_name, self.name, ', '.join(indexes_by_name.keys())
+                ))
+
+            index = indexes_by_name[index_name]
+            try:
+                index_hash_key = [key for key in index['KeySchema'] if key['KeyType'] == 'HASH'][0]
+            except IndexError:
+                raise ValueError('Missing Hash Key. KeySchema: %s' % index['KeySchema'])
+
+            possible_results = []
+            for item in self.all_items():
+                if not isinstance(item, Item):
+                    continue
+                item_hash_key = item.attrs.get(index_hash_key['AttributeName'])
+                if item_hash_key and item_hash_key == hash_key:
+                    possible_results.append(item)
+        else:
+            possible_results = [item for item in list(self.all_items()) if isinstance(item, Item) and item.hash_key == hash_key]
+
+        if index_name:
+            try:
+                index_range_key = [key for key in index['KeySchema'] if key['KeyType'] == 'RANGE'][0]
+            except IndexError:
+                index_range_key = None
+
         if range_comparison:
-            for result in possible_results:
-                if result.range_key.compare(range_comparison, range_objs):
-                    results.append(result)
+            if index_name and not index_range_key:
+                raise ValueError('Range Key comparison but no range key found for index: %s' % index_name)
+
+            elif index_name:
+                for result in possible_results:
+                    if result.attrs.get(index_range_key['AttributeName']).compare(range_comparison, range_objs):
+                        results.append(result)
+            else:
+                for result in possible_results:
+                    if result.range_key.compare(range_comparison, range_objs):
+                        results.append(result)
         else:
             # If we're not filtering on range key, return all values
             results = possible_results
 
-        results.sort(key=lambda item: item.range_key)
+        if index_name:
+
+            if index_range_key:
+                results.sort(key=lambda item: item.attrs[index_range_key['AttributeName']].value
+                                                if item.attrs.get(index_range_key['AttributeName']) else None)
+        else:
+            results.sort(key=lambda item: item.range_key)
         return results, last_page
 
     def all_items(self):
@@ -400,7 +443,7 @@ class DynamoDBBackend(BaseBackend):
         hash_key, range_key = self.get_keys_value(table, keys)
         return table.get_item(hash_key, range_key)
 
-    def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts):
+    def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts, index_name=None):
         table = self.tables.get(table_name)
         if not table:
             return None, None
@@ -408,7 +451,7 @@ class DynamoDBBackend(BaseBackend):
         hash_key = DynamoType(hash_key_dict)
         range_values = [DynamoType(range_value) for range_value in range_value_dicts]
 
-        return table.query(hash_key, range_comparison, range_values)
+        return table.query(hash_key, range_comparison, range_values, index_name)
 
     def scan(self, table_name, filters):
         table = self.tables.get(table_name)

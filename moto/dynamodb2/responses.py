@@ -291,7 +291,8 @@ class DynamoHandler(BaseResponse):
                             range_comparison = None
                             range_values = []
 
-        items, last_page = dynamodb_backend2.query(name, hash_key, range_comparison, range_values)
+        index_name = self.body.get('IndexName')
+        items, last_page = dynamodb_backend2.query(name, hash_key, range_comparison, range_values, index_name=index_name)
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
