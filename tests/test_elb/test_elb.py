@@ -698,3 +698,23 @@ def test_add_remove_tags():
     tags.should.have.key('i').which.should.equal('b')
     tags.should.have.key('j').which.should.equal('c')
 
+
+    client.create_load_balancer(
+        LoadBalancerName='other-lb',
+        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':433, 'InstancePort':8433}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    client.add_tags(LoadBalancerNames=['other-lb'],
+                    Tags=[{
+                       'Key': 'other',
+                       'Value': 'something'
+                    }])
+
+    lb_tags = { l['LoadBalancerName']: { d['Key']: d['Value'] for d in l['Tags'] } for l in client.describe_tags(LoadBalancerNames=['my-lb', 'other-lb'])['TagDescriptions'] }
+
+    lb_tags.should.have.key('my-lb')
+    lb_tags.should.have.key('other-lb')
+
+    lb_tags['my-lb'].shouldnt.have.key('other')
+    lb_tags['other-lb'].should.have.key('other').which.should.equal('something')
