@@ -711,7 +711,8 @@ def test_add_remove_tags():
                        'Value': 'something'
                     }])
 
-    lb_tags = { l['LoadBalancerName']: { d['Key']: d['Value'] for d in l['Tags'] } for l in client.describe_tags(LoadBalancerNames=['my-lb', 'other-lb'])['TagDescriptions'] }
+    lb_tags = dict([(l['LoadBalancerName'], dict([(d['Key'], d['Value']) for d in l['Tags']]))
+                    for l in client.describe_tags(LoadBalancerNames=['my-lb', 'other-lb'])['TagDescriptions']])
 
     lb_tags.should.have.key('my-lb')
     lb_tags.should.have.key('other-lb')
