@@ -15,6 +15,7 @@ from boto.ec2.elb.policies import (
     LBCookieStickinessPolicy,
     OtherPolicy,
 )
+from boto.exception import BotoServerError
 import sure  # noqa
 
 from moto import mock_elb, mock_ec2
@@ -40,6 +41,12 @@ def test_create_load_balancer():
     listener2.load_balancer_port.should.equal(443)
     listener2.instance_port.should.equal(8443)
     listener2.protocol.should.equal("TCP")
+
+
+@mock_elb
+def test_getting_missing_elb():
+    conn = boto.connect_elb()
+    conn.get_all_load_balancers.when.called_with(load_balancer_names='aaa').should.throw(BotoServerError)
 
 
 @mock_elb

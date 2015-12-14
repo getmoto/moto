@@ -10,7 +10,7 @@ from boto.ec2.elb.attributes import (
 )
 from boto.ec2.elb.policies import Policies
 from moto.core import BaseBackend
-from .exceptions import TooManyTagsError
+from .exceptions import LoadBalancerNotFoundError, TooManyTagsError
 
 
 class FakeHealthCheck(object):
@@ -139,7 +139,7 @@ class FakeLoadBalancer(object):
 
     def list_tags(self):
         return self.tags
- 
+
     def remove_tag(self, key):
         if key in self.tags:
             del self.tags[key]
@@ -174,7 +174,11 @@ class ELBBackend(BaseBackend):
     def describe_load_balancers(self, names):
         balancers = self.load_balancers.values()
         if names:
-            return [balancer for balancer in balancers if balancer.name in names]
+            matched_balancers = [balancer for balancer in balancers if balancer.name in names]
+            if len(names) != len(matched_balancers):
+                missing_elb = list(set(names) - set(matched_balancers))[0]
+                raise LoadBalancerNotFoundError(missing_elb)
+            return matched_balancers
         else:
             return balancers
 

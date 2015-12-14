@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 import boto
+import boto.ec2.autoscale
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.autoscale.group import AutoScalingGroup
 from boto.ec2.autoscale import Tag
+import boto.ec2.elb
 import sure  # noqa
 
 from moto import mock_autoscaling, mock_ec2, mock_elb
@@ -10,15 +12,18 @@ from tests.helpers import requires_boto_gte
 
 
 @mock_autoscaling
+@mock_elb
 def test_create_autoscaling_group():
-    conn = boto.connect_autoscale()
+    elb_conn = boto.ec2.elb.connect_to_region('us-east-1')
+    elb_conn.create_load_balancer('test_lb', zones=[], listeners=[(80, 8080, 'http')])
+
+    conn = boto.ec2.autoscale.connect_to_region('us-east-1')
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
         instance_type='t2.medium',
     )
     conn.create_launch_configuration(config)
-
 
     group = AutoScalingGroup(
         name='tester_group',

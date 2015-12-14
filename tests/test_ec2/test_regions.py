@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 import boto.ec2
 import boto.ec2.autoscale
+import boto.ec2.elb
 import sure
-from moto import mock_ec2, mock_autoscaling
+from moto import mock_ec2, mock_autoscaling, mock_elb
 
 
 def add_servers_to_region(ami_id, count, region):
@@ -46,7 +47,13 @@ def test_add_servers_to_multiple_regions():
 
 
 @mock_autoscaling
+@mock_elb
 def test_create_autoscaling_group():
+    elb_conn = boto.ec2.elb.connect_to_region('us-east-1')
+    elb_conn.create_load_balancer('us_test_lb', zones=[], listeners=[(80, 8080, 'http')])
+    elb_conn = boto.ec2.elb.connect_to_region('ap-northeast-1')
+    elb_conn.create_load_balancer('ap_test_lb', zones=[], listeners=[(80, 8080, 'http')])
+
     us_conn = boto.ec2.autoscale.connect_to_region('us-east-1')
     config = boto.ec2.autoscale.LaunchConfiguration(
         name='us_tester',

@@ -245,7 +245,7 @@ class ELBResponse(BaseResponse):
                 for i in tag_keys:
                     counts[i] = tag_keys.count(i)
 
-                counts = sorted(counts.items(), key=lambda i:i[1], reverse=True) 
+                counts = sorted(counts.items(), key=lambda i:i[1], reverse=True)
 
                 if counts and counts[0][1] > 1:
                     # We have dupes...
