@@ -12,6 +12,8 @@ from boto.ec2.elb.policies import (
 
 from moto.core.responses import BaseResponse
 from .models import elb_backends
+from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError, \
+    TooManyTagsError
 
 
 class ELBResponse(BaseResponse):
@@ -217,6 +219,108 @@ class ELBResponse(BaseResponse):
             instance_ids = self.elb_backend.get_load_balancer(load_balancer_name).instance_ids
         template = self.response_template(DESCRIBE_INSTANCE_HEALTH_TEMPLATE)
         return template.render(instance_ids=instance_ids)
+
+    def add_tags(self):
+        for key, value in self.querystring.items():
+            if "LoadBalancerNames.member" in key:
+                number = key.split('.')[2]
+                load_balancer_name = value[0]
+                elb = self.elb_backend.get_load_balancer(load_balancer_name)
+                if not elb:
+                    raise LoadBalancerNotFoundError(load_balancer_name)
+
+                value = 'Tags.member.{0}.Value'.format(number)
+                key = 'Tags.member.{0}.Key'.format(number)
+                tag_values = []
+                tag_keys = []
+
+                for t_key, t_val in self.querystring.items():
+                    if t_key.startswith('Tags.member.'):
+                        if t_key.split('.')[3] == 'Key':
+                            tag_keys.extend(t_val)
+                        elif t_key.split('.')[3] == 'Value':
+                            tag_values.extend(t_val)
+
+                counts = {}
+                for i in tag_keys:
+                    counts[i] = tag_keys.count(i)
+
+                counts = sorted(counts.items(), key=lambda i:i[1], reverse=True) 
+
+                if counts and counts[0][1] > 1:
+                    # We have dupes...
+                    raise DuplicateTagKeysError(counts[0])
+
+                for tag_key, tag_value in zip(tag_keys, tag_values):
+                    elb.add_tag(tag_key, tag_value)
+
+
+        template = self.response_template(ADD_TAGS_TEMPLATE)
+        return template.render()
+
+    def remove_tags(self):
+        for key, value in self.querystring.items():
+            if "LoadBalancerNames.member" in key:
+                number = key.split('.')[2]
+                load_balancer_name = self._get_param('LoadBalancerNames.member.{0}'.format(number))
+                elb = self.elb_backend.get_load_balancer(load_balancer_name)
+                if not elb:
+                    raise LoadBalancerNotFound(load_balancer_name)
+
+                key = 'Tag.member.{0}.Key'.format(number)
+                for t_key, t_val in self.querystring.items():
+                    if t_key.startswith('Tags.member.'):
+                        if t_key.split('.')[3] == 'Key':
+                            elb.remove_tag(t_val[0])
+
+        template = self.response_template(REMOVE_TAGS_TEMPLATE)
+        return template.render()
+
+    def describe_tags(self):
+        for key, value in self.querystring.items():
+            if "LoadBalancerNames.member" in key:
+                number = key.split('.')[2]
+                load_balancer_name = self._get_param('LoadBalancerNames.member.{0}'.format(number))
+                elb = self.elb_backend.get_load_balancer(load_balancer_name)
+                if not elb:
+                    raise LoadBalancerNotFound(load_balancer_name)
+
+        template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
+        return template.render(tags=elb.tags)
+
+ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <AddTagsResult/>
+  <ResponseMetadata>
+    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
+  </ResponseMetadata>
+</AddTagsResponse>"""
+
+REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <RemoveTagsResult/>
+  <ResponseMetadata>
+    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
+  </ResponseMetadata>
+</RemoveTagsResponse>"""
+
+DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <DescribeTagsResult>
+    <TagDescriptions>
+      <member>
+        <Tags>
+          {% for key, value in tags.items() %}
+          <member>
+            <Value>{{ value }}</Value>
+            <Key>{{ key }}</Key>
+          </member>
+          {% endfor %}
+        </Tags>
+      </member>
+    </TagDescriptions>
+  </DescribeTagsResult>
+  <ResponseMetadata>
+    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
+  </ResponseMetadata>
+</DescribeTagsResponse>"""
 
 
 CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
