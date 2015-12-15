@@ -8,7 +8,7 @@ from moto import mock_autoscaling
 
 @mock_autoscaling
 def test_create_launch_configuration():
-    client = boto3.client('autoscaling')
+    client = boto3.client('autoscaling', region_name='us-east-1')
     response = client.create_launch_configuration(
         LaunchConfigurationName='tester',
         ImageId='ami-abcd1234',
