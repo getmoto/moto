@@ -14,7 +14,7 @@ class EC2ContainerServiceResponse(BaseResponse):
     @property
     def request_params(self):
         try:
-            return json.loads(self.body)
+            return json.loads(self.body.decode())
         except ValueError:
             return {}
 

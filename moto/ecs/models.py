@@ -17,7 +17,7 @@ class BaseObject(object):
 
     def gen_response_object(self):
         response_object = self.__dict__.copy()
-        for key, value in response_object.iteritems():
+        for key, value in response_object.items():
             if '_' in key:
                 response_object[self.camelCase(key)] = value
                 del response_object[key]
@@ -169,7 +169,7 @@ class EC2ContainerServiceBackend(BaseBackend):
     def list_services(self, cluster_str):
         cluster_name = cluster_str.split('/')[-1]
         service_arns = []
-        for key, value in self.services.iteritems():
+        for key, value in self.services.items():
             if cluster_name + ':' in key:
                 service_arns.append(self.services[key].arn)
         return sorted(service_arns)
