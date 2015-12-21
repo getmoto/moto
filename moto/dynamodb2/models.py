@@ -502,10 +502,22 @@ class DynamoDBBackend(BaseBackend):
 
         if table.hash_key_attr in key:
             # Sometimes the key is wrapped in a dict with the key name
-            key = key[table.hash_key_attr]
+            hash_key = key[table.hash_key_attr]
+        else:
+            hash_key = key
 
-        hash_value = DynamoType(key)
-        item = table.get_item(hash_value)
+        if table.range_key_attr in key:
+            range_key = key[table.range_key_attr]
+        else:
+            range_key = None
+
+        hash_value = DynamoType(hash_key)
+        if range_key:
+            range_value = DynamoType(range_key)
+            item = table.get_item(hash_value, range_key=range_value)
+        else:
+            item = table.get_item(hash_value)
+
         if update_expression:
             item.update(update_expression)
         else:
