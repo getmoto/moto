@@ -10,7 +10,7 @@ from boto.ec2.elb.attributes import (
 )
 from boto.ec2.elb.policies import Policies
 from moto.core import BaseBackend
-from .exceptions import LoadBalancerNotFoundError, TooManyTagsError
+from .exceptions import LoadBalancerNotFoundError, TooManyTagsError, BadHealthCheckDefinition
 
 
 class FakeHealthCheck(object):
@@ -21,6 +21,8 @@ class FakeHealthCheck(object):
         self.unhealthy_threshold = unhealthy_threshold
         self.interval = interval
         self.target = target
+        if not target.startswith(('HTTP', 'TCP', 'HTTPS', 'SSL')):
+            raise BadHealthCheckDefinition
 
 
 class FakeListener(object):
