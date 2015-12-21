@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from decimal import Decimal
+
 import boto
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -693,7 +695,7 @@ def test_boto3_conditions():
     results['Count'].should.equal(1)
 
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").begins_with('7')
+        KeyConditionExpression=Key("subject").begins_with('7') & Key('forum_name').eq('the-key')
     )
     results['Count'].should.equal(1)
 
@@ -701,3 +703,428 @@ def test_boto3_conditions():
         KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").between('567', '890')
     )
     results['Count'].should.equal(1)
+
+
+
+@mock_dynamodb2
+def test_boto3_query_gsi_range_comparison():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        GlobalSecondaryIndexes=[{
+            'IndexName': 'TestGSI',
+            'KeySchema': [
+                {
+                    'AttributeName': 'username',
+                    'KeyType': 'HASH',
+                },
+                {
+                    'AttributeName': 'created',
+                    'KeyType': 'RANGE',
+                }
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5
+            }
+        }],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'username': 'johndoe',
+        'created': 3,
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '456',
+        'username': 'johndoe',
+        'created': 1,
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '789',
+        'username': 'johndoe',
+        'created': 2,
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '159',
+        'username': 'janedoe',
+        'created': 2,
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '601',
+        'username': 'janedoe',
+        'created': 5,
+    })
+
+    # Test a query returning all johndoe items
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt('0'),
+        ScanIndexForward=True,
+        IndexName='TestGSI',
+    )
+    expected = ["456", "789", "123"]
+    for index, item in enumerate(results['Items']):
+        item["subject"].should.equal(expected[index])
+
+    # Return all johndoe items again, but in reverse
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt('0'),
+        ScanIndexForward=False,
+        IndexName='TestGSI',
+    )
+    for index, item in enumerate(reversed(results['Items'])):
+        item["subject"].should.equal(expected[index])
+
+    # Filter the creation to only return some of the results
+    # And reverse order of hash + range key
+    results = table.query(
+        KeyConditionExpression=Key("created").gt('1') & Key('username').eq('johndoe'),
+        ConsistentRead=True,
+        IndexName='TestGSI',
+    )
+    results['Count'].should.equal(2)
+
+    # Filter to return no results
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").gt('9'),
+        IndexName='TestGSI',
+    )
+    results['Count'].should.equal(0)
+
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").eq('5'),
+        IndexName='TestGSI',
+    )
+    results['Count'].should.equal(1)
+
+    # Test range key sorting
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt('0'),
+        IndexName='TestGSI',
+    )
+    expected = [Decimal('1'), Decimal('2'), Decimal('3')]
+    for index, item in enumerate(results['Items']):
+        item["created"].should.equal(expected[index])
+
+
+@mock_dynamodb2
+def test_update_table_throughput():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 6
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.provisioned_throughput['ReadCapacityUnits'].should.equal(5)
+    table.provisioned_throughput['WriteCapacityUnits'].should.equal(6)
+
+    table.update(ProvisionedThroughput={
+        'ReadCapacityUnits': 10,
+        'WriteCapacityUnits': 11,
+    })
+
+    table = dynamodb.Table('users')
+
+    table.provisioned_throughput['ReadCapacityUnits'].should.equal(10)
+    table.provisioned_throughput['WriteCapacityUnits'].should.equal(11)
+
+
+@mock_dynamodb2
+def test_update_table_gsi_throughput():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        GlobalSecondaryIndexes=[{
+            'IndexName': 'TestGSI',
+            'KeySchema': [
+                {
+                    'AttributeName': 'username',
+                    'KeyType': 'HASH',
+                },
+                {
+                    'AttributeName': 'created',
+                    'KeyType': 'RANGE',
+                }
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 3,
+                'WriteCapacityUnits': 4
+            }
+        }],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 6
+        }
+    )
+    table = dynamodb.Table('users')
+
+    gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
+    gsi_throughput['ReadCapacityUnits'].should.equal(3)
+    gsi_throughput['WriteCapacityUnits'].should.equal(4)
+
+    table.provisioned_throughput['ReadCapacityUnits'].should.equal(5)
+    table.provisioned_throughput['WriteCapacityUnits'].should.equal(6)
+
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Update': {
+            'IndexName': 'TestGSI',
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 10,
+                'WriteCapacityUnits': 11,
+            }
+        },
+    }])
+
+    table = dynamodb.Table('users')
+
+    # Primary throughput has not changed
+    table.provisioned_throughput['ReadCapacityUnits'].should.equal(5)
+    table.provisioned_throughput['WriteCapacityUnits'].should.equal(6)
+
+    gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
+    gsi_throughput['ReadCapacityUnits'].should.equal(10)
+    gsi_throughput['WriteCapacityUnits'].should.equal(11)
+
+
+
+@mock_dynamodb2
+def test_update_table_gsi_create():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 6
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.global_secondary_indexes.should.have.length_of(0)
+
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Create': {
+            'IndexName': 'TestGSI',
+            'KeySchema': [
+                {
+                    'AttributeName': 'username',
+                    'KeyType': 'HASH',
+                },
+                {
+                    'AttributeName': 'created',
+                    'KeyType': 'RANGE',
+                }
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 3,
+                'WriteCapacityUnits': 4
+            }
+        },
+    }])
+
+    table = dynamodb.Table('users')
+    table.global_secondary_indexes.should.have.length_of(1)
+
+    gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
+    assert gsi_throughput['ReadCapacityUnits'].should.equal(3)
+    assert gsi_throughput['WriteCapacityUnits'].should.equal(4)
+
+    # Check update works
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Update': {
+            'IndexName': 'TestGSI',
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 10,
+                'WriteCapacityUnits': 11,
+            }
+        },
+    }])
+    table = dynamodb.Table('users')
+
+    gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
+    assert gsi_throughput['ReadCapacityUnits'].should.equal(10)
+    assert gsi_throughput['WriteCapacityUnits'].should.equal(11)
+
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Delete': {
+            'IndexName': 'TestGSI',
+        },
+    }])
+
+    table = dynamodb.Table('users')
+    table.global_secondary_indexes.should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_update_table_gsi_throughput():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        GlobalSecondaryIndexes=[{
+            'IndexName': 'TestGSI',
+            'KeySchema': [
+                {
+                    'AttributeName': 'username',
+                    'KeyType': 'HASH',
+                },
+                {
+                    'AttributeName': 'created',
+                    'KeyType': 'RANGE',
+                }
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 3,
+                'WriteCapacityUnits': 4
+            }
+        }],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 6
+        }
+    )
+    table = dynamodb.Table('users')
+    table.global_secondary_indexes.should.have.length_of(1)
+
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Delete': {
+            'IndexName': 'TestGSI',
+        },
+    }])
+
+    table = dynamodb.Table('users')
+    table.global_secondary_indexes.should.have.length_of(0)
