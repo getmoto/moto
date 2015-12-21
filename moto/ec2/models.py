@@ -54,7 +54,8 @@ from .exceptions import (
     InvalidID,
     InvalidCIDRSubnetError,
     InvalidNetworkAclIdError,
-    InvalidVpnGatewayIdError
+    InvalidVpnGatewayIdError,
+    InvalidVpnConnectionIdError
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -93,6 +94,7 @@ from .utils import (
     random_network_acl_id,
     random_network_acl_subnet_association_id,
     random_vpn_gateway_id,
+    random_vpn_connection_id,
     is_tag_filter,
 )
 
@@ -2526,6 +2528,70 @@ class DHCPOptionsSetBackend(object):
         return True
 
 
+class VPNConnection(TaggedEC2Resource):
+    def __init__(self, ec2_backend, id, type,
+                 customer_gateway_id, vpn_gateway_id):
+        self.ec2_backend = ec2_backend
+        self.id = id
+        self.state = 'available'
+        self.customer_gateway_configuration = {}
+        self.type = type
+        self.customer_gateway_id = customer_gateway_id
+        self.vpn_gateway_id = vpn_gateway_id
+        self.tunnels = None
+        self.options = None
+        self.static_routes = None
+
+
+class VPNConnectionBackend(object):
+    def __init__(self):
+        self.vpn_connections = {}
+        super(VPNConnectionBackend, self).__init__()
+
+    def create_vpn_connection(self, type, customer_gateway_id,
+                              vpn_gateway_id,
+                              static_routes_only=None):
+        vpn_connection_id = random_vpn_connection_id()
+        if static_routes_only:
+            pass
+        vpn_connection = VPNConnection(
+            self, id=vpn_connection_id, type=type,
+            customer_gateway_id=customer_gateway_id,
+            vpn_gateway_id=vpn_gateway_id
+        )
+        self.vpn_connections[vpn_connection.id] = vpn_connection
+        return vpn_connection
+
+    def delete_vpn_connection(self, vpn_connection_id):
+
+        if vpn_connection_id in self.vpn_connections:
+            self.vpn_connections.pop(vpn_connection_id)
+        else:
+            raise InvalidVpnConnectionIdError(vpn_connection_id)
+        return True
+
+    def describe_vpn_connections(self, vpn_connection_ids=None):
+        vpn_connections = []
+        for vpn_connection_id in vpn_connection_ids or []:
+            if vpn_connection_id in self.vpn_connections:
+                vpn_connections.append(self.vpn_connections[vpn_connection_id])
+            else:
+                raise InvalidVpnConnectionIdError(vpn_connection_id)
+        return vpn_connections or self.vpn_connections.values()
+
+    def get_all_vpn_connections(self, vpn_connection_ids=None, filters=None):
+        vpn_connections = self.vpn_connections.values()
+
+        if vpn_connection_ids:
+            vpn_connections = [vpn_connection for vpn_connection in vpn_connections
+                               if vpn_connection.id in vpn_connection_ids]
+            if len(vpn_connections) != len(vpn_connection_ids):
+                invalid_id = list(set(vpn_connection_ids).difference(set([vpn_connection.id for vpn_connection in vpn_connections])))[0]
+                raise InvalidVpnConnectionIdError(invalid_id)
+
+        return generic_filter(filters, vpn_connections)
+
+
 class NetworkAclBackend(object):
     def __init__(self):
         self.network_acls = {}
@@ -2724,7 +2790,7 @@ class VpnGatewayBackend(object):
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
-                 NetworkInterfaceBackend,
+                 NetworkInterfaceBackend, VPNConnectionBackend,
                  VPCPeeringConnectionBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
@@ -2786,7 +2852,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['vpc-peering-connection']:
                 self.get_vpc_peering_connection(vpc_pcx_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['vpn-connection']:
-                self.raise_not_implemented_error('DescribeVpnConnections')
+                self.describe_vpn_connections(vpn_connection_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['vpn-gateway']:
                 self.get_vpn_gateway(vpn_gateway_id=resource_id)
         return True

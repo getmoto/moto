@@ -84,6 +84,14 @@ class InvalidVpnGatewayIdError(EC2ClientError):
             .format(network_acl_id))
 
 
+class InvalidVpnConnectionIdError(EC2ClientError):
+    def __init__(self, network_acl_id):
+        super(InvalidVpnConnectionIdError, self).__init__(
+            "InvalidVpnConnectionID.NotFound",
+            "The vpnConnection ID '{0}' does not exist"
+            .format(network_acl_id))
+
+
 class InvalidNetworkInterfaceIdError(EC2ClientError):
     def __init__(self, eni_id):
         super(InvalidNetworkInterfaceIdError, self).__init__(

@@ -85,6 +85,10 @@ def random_vpn_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpn-gateway'])
 
 
+def random_vpn_connection_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpn-connection'])
+
+
 def random_volume_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['volume'])
 
