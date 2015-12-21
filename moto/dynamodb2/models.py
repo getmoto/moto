@@ -129,6 +129,10 @@ class Item(object):
                 # TODO deal with other types
                 if isinstance(new_value, list) or isinstance(new_value, set):
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
+                elif isinstance(new_value, dict):
+                    self.attrs[attribute_name] = DynamoType({"M": new_value})
+                elif update_action['Value'].keys() == ['N']:
+                    self.attrs[attribute_name] = DynamoType({"N": new_value})
                 else:
                     self.attrs[attribute_name] = DynamoType({"S": new_value})
 
