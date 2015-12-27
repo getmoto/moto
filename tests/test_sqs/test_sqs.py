@@ -2,7 +2,11 @@ from __future__ import unicode_literals
 import boto
 import boto3
 from boto.exception import SQSError
+from botocore.exceptions import ClientError
 from boto.sqs.message import RawMessage, Message
+
+import tests.backport_assert_raises
+from nose.tools import assert_raises
 
 import requests
 import sure  # noqa
@@ -46,8 +50,8 @@ def test_get_queue():
     queue.name.should.equal("test-queue")
     queue.get_timeout().should.equal(60)
 
-    nonexisting_queue = conn.get_queue("nonexisting_queue")
-    nonexisting_queue.should.throw(ClientError)
+    with assert_raises(ClientError):
+        conn.get_queue("nonexisting_queue")
 
 
 @mock_sqs
