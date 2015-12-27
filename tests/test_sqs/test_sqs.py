@@ -47,7 +47,7 @@ def test_get_queue():
     queue.get_timeout().should.equal(60)
 
     nonexisting_queue = conn.get_queue("nonexisting_queue")
-    nonexisting_queue.should.be.none
+    nonexisting_queue.should.throw(ClientError)
 
 
 @mock_sqs
