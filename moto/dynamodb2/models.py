@@ -426,12 +426,15 @@ class DynamoDBBackend(BaseBackend):
         table = self.get_table(table_name)
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
+            # Covers cases where table has hash and range keys, ``key`` param will be a dict
             hash_value = DynamoType(key[table.hash_key_attr])
             range_value = DynamoType(key[table.range_key_attr])
         elif table.hash_key_attr in key:
+            # Covers tables that have a range key where ``key`` param is a dict
             hash_value = DynamoType(key[table.hash_key_attr])
             range_value = None
         else:
+            # Covers other cases
             hash_value = DynamoType(key)
             range_value = None
 
