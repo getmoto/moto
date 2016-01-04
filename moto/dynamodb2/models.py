@@ -124,6 +124,9 @@ class Item(object):
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
             action = update_action['Action']
+            if action == 'DELETE' and not 'Value' in update_action:
+                del self.attrs[attribute_name]
+                continue
             new_value = list(update_action['Value'].values())[0]
             if action == 'PUT':
                 # TODO deal with other types
@@ -133,6 +136,8 @@ class Item(object):
                     self.attrs[attribute_name] = DynamoType({"M": new_value})
                 elif update_action['Value'].keys() == ['N']:
                     self.attrs[attribute_name] = DynamoType({"N": new_value})
+                elif update_action['Value'].keys() == ['NULL']:
+                    del self.attrs[attribute_name]
                 else:
                     self.attrs[attribute_name] = DynamoType({"S": new_value})
 
