@@ -13,10 +13,8 @@ class Message(object):
 
 
 class RawMessage(object):
-    def __init__(self, message_id, source, destination, raw_data):
+    def __init__(self, message_id, raw_data):
         self.id = message_id
-        self.source = source
-        self.destination = destination
         self.raw_data = raw_data
 
 
@@ -55,12 +53,9 @@ class SESBackend(BaseBackend):
         self.sent_messages.append(message)
         return message
 
-    def send_raw_email(self, source, destination, raw_data):
-        if source not in self.addresses:
-            return False
-
+    def send_raw_email(self, raw_data):
         message_id = get_random_message_id()
-        message = RawMessage(message_id, source, destination, raw_data)
+        message = RawMessage(message_id, raw_data)
         self.sent_messages.append(message)
         return message
 

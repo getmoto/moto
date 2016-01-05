@@ -50,13 +50,12 @@ class EmailResponse(BaseResponse):
         return template.render(message=message)
 
     def send_raw_email(self):
-        source = self.querystring.get('Source')[0]
-        destination = self.querystring.get('Destinations.member.1')[0]
+        version = self.querystring.get('Version')[0]
         raw_data = self.querystring.get('RawMessage.Data')[0]
 
-        message = ses_backend.send_raw_email(source, destination, raw_data)
+        message = ses_backend.send_raw_email(raw_data)
         if not message:
-            return "Did not have authority to send from email {0}".format(source), dict(status=400)
+            return "Did not have authority to send from email", dict(status=400)
         template = self.response_template(SEND_RAW_EMAIL_RESPONSE)
         return template.render(message=message)
 
