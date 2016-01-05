@@ -90,13 +90,6 @@ def test_send_raw_email():
     part.add_header('Content-Disposition', 'attachment; filename=test.txt')
     message.attach(part)
 
-    conn.send_raw_email.when.called_with(
-        source=message['From'],
-        raw_message=message.as_string(),
-        destinations=message['To']
-    ).should.throw(BotoServerError)
-
-    conn.verify_email_identity("test@example.com")
     conn.send_raw_email(
         source=message['From'],
         raw_message=message.as_string(),
