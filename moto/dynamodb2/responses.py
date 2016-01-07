@@ -330,9 +330,10 @@ class DynamoHandler(BaseResponse):
 
         result = {
             "Count": len(items),
-            "Items": [item.attrs for item in items],
             "ConsumedCapacityUnits": 1,
         }
+        if self.body.get('Select', '').upper() != 'COUNT':
+            result["Items"] = [item.attrs for item in items]
 
         # Implement this when we do pagination
         # if not last_page:
