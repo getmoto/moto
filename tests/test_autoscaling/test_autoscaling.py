@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 import boto.ec2.autoscale
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.autoscale.group import AutoScalingGroup
@@ -103,7 +104,7 @@ def test_create_autoscaling_groups_defaults():
     group.desired_capacity.should.equal(2)
     group.vpc_zone_identifier.should.equal('')
     group.default_cooldown.should.equal(300)
-    group.health_check_period.should.equal(None)
+    group.health_check_period.should.equal(300)
     group.health_check_type.should.equal("EC2")
     list(group.load_balancers).should.equal([])
     group.placement_group.should.equal(None)
@@ -378,3 +379,43 @@ def test_autoscaling_group_with_elb():
     elb = elb_conn.get_all_load_balancers()[0]
     elb.instances.should.have.length_of(0)
 
+
+'''
+Boto3
+'''
+
+
+@mock_autoscaling
+def test_create_autoscaling_group():
+        client = boto3.client('autoscaling', region_name='us-east-1')
+        _ = client.create_launch_configuration(
+            LaunchConfigurationName='test_launch_configuration'
+        )
+        response = client.create_auto_scaling_group(
+            AutoScalingGroupName='test_asg',
+            LaunchConfigurationName='test_launch_configuration',
+            MinSize=0,
+            MaxSize=20,
+            DesiredCapacity=5
+        )
+        response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+
+@mock_autoscaling
+def test_describe_autoscaling_groups():
+        client = boto3.client('autoscaling', region_name='us-east-1')
+        _ = client.create_launch_configuration(
+            LaunchConfigurationName='test_launch_configuration'
+        )
+        _ = client.create_auto_scaling_group(
+            AutoScalingGroupName='test_asg',
+            LaunchConfigurationName='test_launch_configuration',
+            MinSize=0,
+            MaxSize=20,
+            DesiredCapacity=5
+        )
+        response = client.describe_auto_scaling_groups(
+            AutoScalingGroupNames=["test_asg"]
+        )
+        response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+        response['AutoScalingGroups'][0]['AutoScalingGroupName'].should.equal('test_asg')

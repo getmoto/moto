@@ -275,7 +275,10 @@ class AutoScalingBackend(BaseBackend):
         max_size = make_int(max_size)
         min_size = make_int(min_size)
         default_cooldown = make_int(default_cooldown)
-        health_check_period = make_int(health_check_period)
+        if health_check_period is None:
+            health_check_period = 300
+        else:
+            health_check_period = make_int(health_check_period)
 
         group = FakeAutoScalingGroup(
             name=name,
@@ -385,4 +388,3 @@ class AutoScalingBackend(BaseBackend):
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():
     autoscaling_backends[region] = AutoScalingBackend(ec2_backend, elb_backends[region])
-
