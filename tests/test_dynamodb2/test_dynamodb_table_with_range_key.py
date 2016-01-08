@@ -145,6 +145,36 @@ def test_item_add_and_describe_and_update():
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
+def test_item_partial_save():
+    table = create_table()
+
+    data = {
+        'forum_name': 'LOLCat Forum',
+        'subject': 'The LOLz',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+    }
+
+    table.put_item(data=data)
+    returned_item = table.get_item(forum_name="LOLCat Forum", subject='The LOLz')
+
+    returned_item['SentBy'] = 'User B'
+    returned_item.partial_save()
+
+    returned_item = table.get_item(
+        forum_name='LOLCat Forum',
+        subject='The LOLz'
+    )
+    dict(returned_item).should.equal({
+        'forum_name': 'LOLCat Forum',
+        'subject': 'The LOLz',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User B',
+    })
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
 def test_item_put_without_table():
     table = Table('undeclared-table')
     item_data = {
