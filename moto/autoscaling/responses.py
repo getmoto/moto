@@ -10,10 +10,6 @@ class AutoScalingResponse(BaseResponse):
     def autoscaling_backend(self):
         return autoscaling_backends[self.region]
 
-    @property
-    def boto3_request(self):
-        return 'Boto3' in self.headers.get('User-Agent', [])
-
     def create_launch_configuration(self):
         instance_monitoring_string = self._get_param('InstanceMonitoring.Enabled')
         if instance_monitoring_string == 'true':
@@ -72,11 +68,6 @@ class AutoScalingResponse(BaseResponse):
     def describe_auto_scaling_groups(self):
         names = self._get_multi_param("AutoScalingGroupNames.member")
         groups = self.autoscaling_backend.describe_autoscaling_groups(names)
-        if self.boto3_request:
-            for group in groups:
-                if group.health_check_period is None:
-                    group.health_check_period = 300
-                self.autoscaling_backend.autoscaling_groups[group.name] = group
         template = self.response_template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
         return template.render(groups=groups)
 
