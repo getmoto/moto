@@ -55,7 +55,8 @@ from .exceptions import (
     InvalidCIDRSubnetError,
     InvalidNetworkAclIdError,
     InvalidVpnGatewayIdError,
-    InvalidVpnConnectionIdError
+    InvalidVpnConnectionIdError,
+    InvalidCustomerGatewayIdError,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -95,6 +96,7 @@ from .utils import (
     random_network_acl_subnet_association_id,
     random_vpn_gateway_id,
     random_vpn_connection_id,
+    random_customer_gateway_id,
     is_tag_filter,
 )
 
@@ -2798,6 +2800,45 @@ class VpnGatewayBackend(object):
         return detached
 
 
+class CustomerGateway(TaggedEC2Resource):
+    def __init__(self, ec2_backend, id, type, ip_address, bgp_asn):
+        self.ec2_backend = ec2_backend
+        self.id = id
+        self.type = type
+        self.ip_address = ip_address
+        self.bgp_asn = bgp_asn
+        self.attachments = {}
+        super(CustomerGateway, self).__init__()
+
+
+class CustomerGatewayBackend(object):
+    def __init__(self):
+        self.customer_gateways = {}
+        super(CustomerGatewayBackend, self).__init__()
+
+    def create_customer_gateway(self, type='ipsec.1', ip_address=None, bgp_asn=None):
+        customer_gateway_id = random_customer_gateway_id()
+        customer_gateway = CustomerGateway(self, customer_gateway_id, type, ip_address, bgp_asn)
+        self.customer_gateways[customer_gateway_id] = customer_gateway
+        return customer_gateway
+
+    def get_all_customer_gateways(self, filters=None):
+        customer_gateways = self.customer_gateways.values()
+        return generic_filter(filters, customer_gateways)
+
+    def get_customer_gateway(self, customer_gateway_id):
+        customer_gateway = self.customer_gateways.get(customer_gateway_id, None)
+        if not customer_gateway:
+            raise InvalidCustomerGatewayIdError(customer_gateway_id)
+        return customer_gateway
+
+    def delete_customer_gateway(self, customer_gateway_id):
+        deleted = self.customer_gateways.pop(customer_gateway_id, None)
+        if not deleted:
+            raise InvalidCustomerGatewayIdError(customer_gateway_id)
+        return deleted
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
@@ -2806,7 +2847,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
                  ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend,
-                 NetworkAclBackend, VpnGatewayBackend):
+                 NetworkAclBackend, VpnGatewayBackend, CustomerGatewayBackend):
 
     def __init__(self, region_name):
         super(EC2Backend, self).__init__()
@@ -2831,7 +2872,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
         for resource_id in resource_ids:
             resource_prefix = get_prefix(resource_id)
             if resource_prefix == EC2_RESOURCE_TO_PREFIX['customer-gateway']:
-                self.raise_not_implemented_error('DescribeCustomerGateways')
+                self.get_customer_gateway(customer_gateway_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['dhcp-options']:
                 self.describe_dhcp_options(options_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['image']:
