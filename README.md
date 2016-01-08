@@ -73,6 +73,8 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |     - Security Groups |                  | core endpoints done               |
 |     - Tags            |                  | all  endpoints done               |
 |------------------------------------------------------------------------------|
+| ECS                   | @mock_ecs        | basic endpoints done              |
+|------------------------------------------------------------------------------|
 | ELB                   | @mock_elb        | core endpoints done               |
 |------------------------------------------------------------------------------|
 | EMR                   | @mock_emr        | core endpoints done               |
