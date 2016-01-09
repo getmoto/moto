@@ -735,9 +735,7 @@ def test_boto3_conditions():
     results['Count'].should.equal(1)
 
 
-
-@mock_dynamodb2
-def test_boto3_query_gsi_range_comparison():
+def _create_table_with_range_key():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
     # Create the DynamoDB table.
@@ -788,7 +786,42 @@ def test_boto3_query_gsi_range_comparison():
             'WriteCapacityUnits': 5
         }
     )
-    table = dynamodb.Table('users')
+    return dynamodb.Table('users')
+
+
+@mock_dynamodb2
+def test_update_item_range_key_set():
+    table = _create_table_with_range_key()
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'username': 'johndoe',
+        'created': Decimal('3'),
+    })
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    table.update_item(
+        Key=item_key,
+        AttributeUpdates={
+            'username': {
+                'Action': u'PUT',
+                'Value': 'johndoe2'
+            },
+        },
+    )
+
+    returned_item = table.get_item(Key=item_key)['Item']
+    dict(returned_item).should.equal({
+        'username': "johndoe2",
+        'forum_name': 'the-key',
+        'subject': '123',
+        'created': Decimal('3'),
+    })
+
+
+@mock_dynamodb2
+def test_boto3_query_gsi_range_comparison():
+    table = _create_table_with_range_key()
 
     table.put_item(Item={
         'forum_name': 'the-key',
