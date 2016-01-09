@@ -818,12 +818,13 @@ def test_update_item_range_key_set():
         },
     )
 
-    returned_item = table.get_item(Key=item_key)['Item']
+    returned_item = dict((k, str(v) if isinstance(v, Decimal) else v)
+                         for k, v in table.get_item(Key=item_key)['Item'].items())
     dict(returned_item).should.equal({
         'username': "johndoe2",
         'forum_name': 'the-key',
         'subject': '123',
-        'created': Decimal('4'),
+        'created': '4',
         'mapfield': {'key': 'value'},
     })
 
