@@ -320,13 +320,13 @@ class DynamoHandler(BaseResponse):
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
 
-        limit = self.body.get("Limit")
-        if limit:
-            items = items[:limit]
-
         reversed = self.body.get("ScanIndexForward")
         if reversed is False:
             items.reverse()
+
+        limit = self.body.get("Limit")
+        if limit:
+            items = items[:limit]
 
         result = {
             "Count": len(items),
