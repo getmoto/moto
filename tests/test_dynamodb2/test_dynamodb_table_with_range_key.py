@@ -571,6 +571,30 @@ def test_query_with_global_indexes():
 
 
 @mock_dynamodb2
+def test_reverse_query():
+    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+
+    table = Table.create('messages', schema=[
+        HashKey('subject'),
+        RangeKey('created_at', data_type='N')
+    ])
+
+    for i in range(10):
+        table.put_item({
+            'subject': "Hi",
+            'created_at': i
+        })
+
+    results = table.query_2(subject__eq="Hi",
+                            created_at__lt=6,
+                            limit=4,
+                            reverse=True)
+
+    expected = [Decimal(5), Decimal(4), Decimal(3), Decimal(2)]
+    [r['created_at'] for r in results].should.equal(expected)
+
+
+@mock_dynamodb2
 def test_lookup():
     from decimal import Decimal
     table = Table.create('messages', schema=[
