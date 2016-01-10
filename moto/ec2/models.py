@@ -342,6 +342,9 @@ class Instance(BotoInstance, TaggedEC2Resource):
         if self.subnet_id:
             subnet = ec2_backend.get_subnet(self.subnet_id)
             self.vpc_id = subnet.vpc_id
+            self._placement.zone = subnet.availability_zone
+        else:
+            self._placement.zone = ec2_backend.region_name + 'a'
 
         self.block_device_mapping = BlockDeviceMapping()
 
