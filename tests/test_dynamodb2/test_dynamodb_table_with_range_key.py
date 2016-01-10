@@ -590,7 +590,7 @@ def test_reverse_query():
                             limit=4,
                             reverse=True)
 
-    expected = map(Decimal, [5, 4, 3, 2])
+    expected = [Decimal(5), Decimal(4), Decimal(3), Decimal(2)]
     [r['created_at'] for r in results].should.equal(expected)
 
 
