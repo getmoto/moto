@@ -1430,6 +1430,36 @@ class Volume(TaggedEC2Resource):
         else:
             return 'available'
 
+    def get_filter_value(self, filter_name):
+
+        if filter_name.startswith('attachment') and not self.attachment:
+            return None
+        if filter_name == 'attachment.attach-time':
+            return self.attachment.attach_time
+        if filter_name == 'attachment.device':
+            return self.attachment.device
+        if filter_name == 'attachment.instance-id':
+            return self.attachment.instance.id
+
+        if filter_name == 'create-time':
+            return self.create_time
+
+        if filter_name == 'size':
+            return self.size
+
+        if filter_name == 'snapshot-id':
+            return self.snapshot_id
+
+        if filter_name == 'status':
+            return self.status
+
+        filter_value = super(Volume, self).get_filter_value(filter_name)
+
+        if filter_value is None:
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeVolumes".format(filter_name))
+
+        return filter_value
+
 
 class Snapshot(TaggedEC2Resource):
     def __init__(self, ec2_backend, snapshot_id, volume, description):
@@ -1439,6 +1469,30 @@ class Snapshot(TaggedEC2Resource):
         self.start_time = utc_date_and_time()
         self.create_volume_permission_groups = set()
         self.ec2_backend = ec2_backend
+
+    def get_filter_value(self, filter_name):
+
+        if filter_name == 'description':
+            return self.description
+
+        if filter_name == 'snapshot-id':
+            return self.id
+
+        if filter_name == 'start-time':
+            return self.start_time
+
+        if filter_name == 'volume-id':
+            return self.volume.id
+
+        if filter_name == 'volume-size':
+            return self.volume.size
+
+        filter_value = super(Snapshot, self).get_filter_value(filter_name)
+
+        if filter_value is None:
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSnapshots".format(filter_name))
+
+        return filter_value
 
 
 class EBSBackend(object):
@@ -1459,7 +1513,10 @@ class EBSBackend(object):
         self.volumes[volume_id] = volume
         return volume
 
-    def describe_volumes(self):
+    def describe_volumes(self, filters=None):
+        if filters:
+            volumes = self.volumes.values()
+            return generic_filter(filters, volumes)
         return self.volumes.values()
 
     def get_volume(self, volume_id):
@@ -1505,7 +1562,10 @@ class EBSBackend(object):
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
-    def describe_snapshots(self):
+    def describe_snapshots(self, filters=None):
+        if filters:
+            snapshots = self.snapshots.values()
+            return generic_filter(filters, snapshots)
         return self.snapshots.values()
 
     def get_snapshot(self, snapshot_id):
