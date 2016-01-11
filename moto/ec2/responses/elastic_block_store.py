@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
+from moto.ec2.utils import filters_from_querystring
 
 
 class ElasticBlockStore(BaseResponse):
@@ -43,22 +44,22 @@ class ElasticBlockStore(BaseResponse):
         return DELETE_VOLUME_RESPONSE
 
     def describe_snapshots(self):
+        filters = filters_from_querystring(self.querystring)
         # querystring for multiple snapshotids results in SnapshotId.1, SnapshotId.2 etc
         snapshot_ids = ','.join([','.join(s[1]) for s in self.querystring.items() if 'SnapshotId' in s[0]])
-        snapshots = self.ec2_backend.describe_snapshots()
+        snapshots = self.ec2_backend.describe_snapshots(filters=filters)
         # Describe snapshots to handle filter on snapshot_ids
         snapshots = [s for s in snapshots if s.id in snapshot_ids] if snapshot_ids else snapshots
-        # snapshots = self.ec2_backend.describe_snapshots()
         template = self.response_template(DESCRIBE_SNAPSHOTS_RESPONSE)
         return template.render(snapshots=snapshots)
 
     def describe_volumes(self):
+        filters = filters_from_querystring(self.querystring)
         # querystring for multiple volumeids results in VolumeId.1, VolumeId.2 etc
         volume_ids = ','.join([','.join(v[1]) for v in self.querystring.items() if 'VolumeId' in v[0]])
-        volumes = self.ec2_backend.describe_volumes()
+        volumes = self.ec2_backend.describe_volumes(filters=filters)
         # Describe volumes to handle filter on volume_ids
         volumes = [v for v in volumes if v.id in volume_ids] if volume_ids else volumes
-        # volumes = self.ec2_backend.describe_volumes()
         template = self.response_template(DESCRIBE_VOLUMES_RESPONSE)
         return template.render(volumes=volumes)
 
