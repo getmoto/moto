@@ -51,21 +51,23 @@ def test_instance_launch_and_terminate():
     reservations[0].id.should.equal(reservation.id)
     instances = reservations[0].instances
     instances.should.have.length_of(1)
-    instances[0].id.should.equal(instance.id)
-    instances[0].state.should.equal('running')
-    instances[0].launch_time.should.equal("2014-01-01T05:00:00.000Z")
-    instances[0].vpc_id.should.equal(None)
+    instance = instances[0]
+    instance.id.should.equal(instance.id)
+    instance.state.should.equal('running')
+    instance.launch_time.should.equal("2014-01-01T05:00:00.000Z")
+    instance.vpc_id.should.equal(None)
+    instance.placement.should.equal('us-east-1a')
 
-    root_device_name = instances[0].root_device_name
-    instances[0].block_device_mapping[root_device_name].status.should.equal('in-use')
-    volume_id = instances[0].block_device_mapping[root_device_name].volume_id
+    root_device_name = instance.root_device_name
+    instance.block_device_mapping[root_device_name].status.should.equal('in-use')
+    volume_id = instance.block_device_mapping[root_device_name].volume_id
     volume_id.should.match(r'vol-\w+')
 
     volume = conn.get_all_volumes(volume_ids=[volume_id])[0]
     volume.attach_data.instance_id.should.equal(instance.id)
     volume.status.should.equal('in-use')
 
-    conn.terminate_instances([instances[0].id])
+    conn.terminate_instances([instance.id])
 
     reservations = conn.get_all_instances()
     instance = reservations[0].instances[0]

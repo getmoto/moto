@@ -125,8 +125,11 @@ class DynamoHandler(BaseResponse):
 
     def update_table(self):
         name = self.body['TableName']
-        throughput = self.body["ProvisionedThroughput"]
-        table = dynamodb_backend2.update_table_throughput(name, throughput)
+        if 'GlobalSecondaryIndexUpdates' in self.body:
+            table = dynamodb_backend2.update_table_global_indexes(name, self.body['GlobalSecondaryIndexUpdates'])
+        if 'ProvisionedThroughput' in self.body:
+            throughput = self.body["ProvisionedThroughput"]
+            table = dynamodb_backend2.update_table_throughput(name, throughput)
         return dynamo_json_dump(table.describe)
 
     def describe_table(self):
@@ -241,11 +244,31 @@ class DynamoHandler(BaseResponse):
         if key_condition_expression:
             value_alias_map = self.body['ExpressionAttributeValues']
 
+            table = dynamodb_backend2.get_table(name)
+            index_name = self.body.get('IndexName')
+            if index_name:
+                all_indexes = (table.global_indexes or []) + (table.indexes or [])
+                indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
+                if index_name not in indexes_by_name:
+                    raise ValueError('Invalid index: %s for table: %s. Available indexes are: %s' % (
+                        index_name, name, ', '.join(indexes_by_name.keys())
+                    ))
+
+                index = indexes_by_name[index_name]['KeySchema']
+            else:
+                index = table.schema
+
+            key_map = [column for _, column in sorted((k, v) for k, v in self.body['ExpressionAttributeNames'].items())]
+
             if " AND " in key_condition_expression:
                 expressions = key_condition_expression.split(" AND ", 1)
-                hash_key_expression = expressions[0]
+
+                index_hash_key = [key for key in index if key['KeyType'] == 'HASH'][0]
+                hash_key_index_in_key_map = key_map.index(index_hash_key['AttributeName'])
+
+                hash_key_expression = expressions.pop(hash_key_index_in_key_map).strip('()')
                 # TODO implement more than one range expression and OR operators
-                range_key_expression = expressions[1].replace(")", "")
+                range_key_expression = expressions[0].strip('()')
                 range_key_expression_components = range_key_expression.split()
                 range_comparison = range_key_expression_components[1]
                 if 'AND' in range_key_expression:
@@ -293,24 +316,26 @@ class DynamoHandler(BaseResponse):
                             range_comparison = None
                             range_values = []
 
-        items, last_page = dynamodb_backend2.query(name, hash_key, range_comparison, range_values)
+        index_name = self.body.get('IndexName')
+        items, last_page = dynamodb_backend2.query(name, hash_key, range_comparison, range_values, index_name=index_name)
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
-
-        limit = self.body.get("Limit")
-        if limit:
-            items = items[:limit]
 
         reversed = self.body.get("ScanIndexForward")
         if reversed is False:
             items.reverse()
 
+        limit = self.body.get("Limit")
+        if limit:
+            items = items[:limit]
+
         result = {
             "Count": len(items),
-            "Items": [item.attrs for item in items],
             "ConsumedCapacityUnits": 1,
         }
+        if self.body.get('Select', '').upper() != 'COUNT':
+            result["Items"] = [item.attrs for item in items]
 
         # Implement this when we do pagination
         # if not last_page:

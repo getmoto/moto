@@ -64,7 +64,7 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 | Data Pipeline         | @mock_datapipeline| basic endpoints done             |
 |------------------------------------------------------------------------------|
 | DynamoDB              | @mock_dynamodb   | core endpoints done               |
-| DynamoDB2             | @mock_dynamodb2  | core endpoints done - no indexes  |
+| DynamoDB2             | @mock_dynamodb2  | core endpoints + partial indexes  |
 |------------------------------------------------------------------------------|
 | EC2                   | @mock_ec2        | core endpoints done               |
 |     - AMI             |                  | core endpoints done               |
@@ -72,6 +72,8 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |     - Instances       |                  | all  endpoints done               |
 |     - Security Groups |                  | core endpoints done               |
 |     - Tags            |                  | all  endpoints done               |
+|------------------------------------------------------------------------------|
+| ECS                   | @mock_ecs        | basic endpoints done              |
 |------------------------------------------------------------------------------|
 | ELB                   | @mock_elb        | core endpoints done               |
 |------------------------------------------------------------------------------|

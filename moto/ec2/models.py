@@ -55,7 +55,8 @@ from .exceptions import (
     InvalidCIDRSubnetError,
     InvalidNetworkAclIdError,
     InvalidVpnGatewayIdError,
-    InvalidVpnConnectionIdError
+    InvalidVpnConnectionIdError,
+    InvalidCustomerGatewayIdError,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -95,6 +96,7 @@ from .utils import (
     random_network_acl_subnet_association_id,
     random_vpn_gateway_id,
     random_vpn_connection_id,
+    random_customer_gateway_id,
     is_tag_filter,
 )
 
@@ -340,6 +342,9 @@ class Instance(BotoInstance, TaggedEC2Resource):
         if self.subnet_id:
             subnet = ec2_backend.get_subnet(self.subnet_id)
             self.vpc_id = subnet.vpc_id
+            self._placement.zone = subnet.availability_zone
+        else:
+            self._placement.zone = ec2_backend.region_name + 'a'
 
         self.block_device_mapping = BlockDeviceMapping()
 
@@ -1430,6 +1435,36 @@ class Volume(TaggedEC2Resource):
         else:
             return 'available'
 
+    def get_filter_value(self, filter_name):
+
+        if filter_name.startswith('attachment') and not self.attachment:
+            return None
+        if filter_name == 'attachment.attach-time':
+            return self.attachment.attach_time
+        if filter_name == 'attachment.device':
+            return self.attachment.device
+        if filter_name == 'attachment.instance-id':
+            return self.attachment.instance.id
+
+        if filter_name == 'create-time':
+            return self.create_time
+
+        if filter_name == 'size':
+            return self.size
+
+        if filter_name == 'snapshot-id':
+            return self.snapshot_id
+
+        if filter_name == 'status':
+            return self.status
+
+        filter_value = super(Volume, self).get_filter_value(filter_name)
+
+        if filter_value is None:
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeVolumes".format(filter_name))
+
+        return filter_value
+
 
 class Snapshot(TaggedEC2Resource):
     def __init__(self, ec2_backend, snapshot_id, volume, description):
@@ -1439,6 +1474,30 @@ class Snapshot(TaggedEC2Resource):
         self.start_time = utc_date_and_time()
         self.create_volume_permission_groups = set()
         self.ec2_backend = ec2_backend
+
+    def get_filter_value(self, filter_name):
+
+        if filter_name == 'description':
+            return self.description
+
+        if filter_name == 'snapshot-id':
+            return self.id
+
+        if filter_name == 'start-time':
+            return self.start_time
+
+        if filter_name == 'volume-id':
+            return self.volume.id
+
+        if filter_name == 'volume-size':
+            return self.volume.size
+
+        filter_value = super(Snapshot, self).get_filter_value(filter_name)
+
+        if filter_value is None:
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSnapshots".format(filter_name))
+
+        return filter_value
 
 
 class EBSBackend(object):
@@ -1459,7 +1518,10 @@ class EBSBackend(object):
         self.volumes[volume_id] = volume
         return volume
 
-    def describe_volumes(self):
+    def describe_volumes(self, filters=None):
+        if filters:
+            volumes = self.volumes.values()
+            return generic_filter(filters, volumes)
         return self.volumes.values()
 
     def get_volume(self, volume_id):
@@ -1505,7 +1567,10 @@ class EBSBackend(object):
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
-    def describe_snapshots(self):
+    def describe_snapshots(self, filters=None):
+        if filters:
+            snapshots = self.snapshots.values()
+            return generic_filter(filters, snapshots)
         return self.snapshots.values()
 
     def get_snapshot(self, snapshot_id):
@@ -2798,6 +2863,45 @@ class VpnGatewayBackend(object):
         return detached
 
 
+class CustomerGateway(TaggedEC2Resource):
+    def __init__(self, ec2_backend, id, type, ip_address, bgp_asn):
+        self.ec2_backend = ec2_backend
+        self.id = id
+        self.type = type
+        self.ip_address = ip_address
+        self.bgp_asn = bgp_asn
+        self.attachments = {}
+        super(CustomerGateway, self).__init__()
+
+
+class CustomerGatewayBackend(object):
+    def __init__(self):
+        self.customer_gateways = {}
+        super(CustomerGatewayBackend, self).__init__()
+
+    def create_customer_gateway(self, type='ipsec.1', ip_address=None, bgp_asn=None):
+        customer_gateway_id = random_customer_gateway_id()
+        customer_gateway = CustomerGateway(self, customer_gateway_id, type, ip_address, bgp_asn)
+        self.customer_gateways[customer_gateway_id] = customer_gateway
+        return customer_gateway
+
+    def get_all_customer_gateways(self, filters=None):
+        customer_gateways = self.customer_gateways.values()
+        return generic_filter(filters, customer_gateways)
+
+    def get_customer_gateway(self, customer_gateway_id):
+        customer_gateway = self.customer_gateways.get(customer_gateway_id, None)
+        if not customer_gateway:
+            raise InvalidCustomerGatewayIdError(customer_gateway_id)
+        return customer_gateway
+
+    def delete_customer_gateway(self, customer_gateway_id):
+        deleted = self.customer_gateways.pop(customer_gateway_id, None)
+        if not deleted:
+            raise InvalidCustomerGatewayIdError(customer_gateway_id)
+        return deleted
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
@@ -2806,7 +2910,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
                  ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend,
-                 NetworkAclBackend, VpnGatewayBackend):
+                 NetworkAclBackend, VpnGatewayBackend, CustomerGatewayBackend):
 
     def __init__(self, region_name):
         super(EC2Backend, self).__init__()
@@ -2831,7 +2935,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
         for resource_id in resource_ids:
             resource_prefix = get_prefix(resource_id)
             if resource_prefix == EC2_RESOURCE_TO_PREFIX['customer-gateway']:
-                self.raise_not_implemented_error('DescribeCustomerGateways')
+                self.get_customer_gateway(customer_gateway_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['dhcp-options']:
                 self.describe_dhcp_options(options_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['image']:

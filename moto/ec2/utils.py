@@ -89,6 +89,10 @@ def random_vpn_connection_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpn-connection'])
 
 
+def random_customer_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['customer-gateway'])
+
+
 def random_volume_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['volume'])
 
@@ -314,7 +318,7 @@ def get_object_value(obj, attr):
 
 
 def is_tag_filter(filter_name):
-    return (filter_name.startswith('tag:') or 
+    return (filter_name.startswith('tag:') or
             filter_name.startswith('tag-value') or
             filter_name.startswith('tag-key'))
 
