@@ -853,6 +853,41 @@ def test_update_item_range_key_set():
     })
 
 
+
+@mock_dynamodb2
+def test_update_item_does_not_exist_is_created():
+    table = _create_table_with_range_key()
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    table.update_item(
+        Key=item_key,
+        AttributeUpdates={
+            'username': {
+                'Action': u'PUT',
+                'Value': 'johndoe2'
+            },
+            'created': {
+                'Action': u'PUT',
+                'Value': Decimal('4'),
+            },
+            'mapfield': {
+                'Action': u'PUT',
+                'Value': {'key': 'value'},
+            }
+        },
+    )
+
+    returned_item = dict((k, str(v) if isinstance(v, Decimal) else v)
+                         for k, v in table.get_item(Key=item_key)['Item'].items())
+    dict(returned_item).should.equal({
+        'username': "johndoe2",
+        'forum_name': 'the-key',
+        'subject': '123',
+        'created': '4',
+        'mapfield': {'key': 'value'},
+    })
+
+
 @mock_dynamodb2
 def test_boto3_query_gsi_range_comparison():
     table = _create_table_with_range_key()

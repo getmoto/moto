@@ -275,8 +275,11 @@ class Table(object):
         try:
             if range_key:
                 return self.items[hash_key][range_key]
-            else:
+
+            if hash_key in self.items:
                 return self.items[hash_key]
+
+            raise KeyError
         except KeyError:
             return None
 
@@ -525,6 +528,23 @@ class DynamoDBBackend(BaseBackend):
             range_value = None
 
         item = table.get_item(hash_value, range_value)
+        # Update does not fail on new items, so create one
+        if item is None:
+            data = {
+                table.hash_key_attr: {
+                    hash_value.type: hash_value.value,
+                },
+            }
+            if range_value:
+                data.update({
+                    table.range_key_attr: {
+                        range_value.type: range_value.value,
+                    }
+                })
+
+            table.put_item(data)
+            item = table.get_item(hash_value, range_value)
+
         if update_expression:
             item.update(update_expression)
         else:
