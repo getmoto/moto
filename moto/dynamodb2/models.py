@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from collections import defaultdict
 import datetime
+import decimal
 import json
 
 from moto.compat import OrderedDict
@@ -142,6 +143,16 @@ class Item(object):
                         del self.attrs[attribute_name]
                 else:
                     self.attrs[attribute_name] = DynamoType({"S": new_value})
+            elif action == 'ADD':
+                if set(update_action['Value'].keys()) == set(['N']):
+                    existing = self.attrs.get(attribute_name, DynamoType({"N": '0'}))
+                    self.attrs[attribute_name] = DynamoType({"N": str(
+                            decimal.Decimal(existing.value) +
+                            decimal.Decimal(new_value)
+                    )})
+                else:
+                    # TODO: implement other data types
+                    raise NotImplementedError('ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
 
 
 class Table(object):
