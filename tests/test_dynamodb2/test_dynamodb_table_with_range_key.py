@@ -11,8 +11,9 @@ from moto import mock_dynamodb2
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
 try:
-    from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey
+    from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey, AllIndex
     from boto.dynamodb2.table import Item, Table
+    from boto.dynamodb2.types import STRING
     from boto.dynamodb2.exceptions import ValidationException
     from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 except ImportError:
@@ -27,6 +28,30 @@ def create_table():
         'read': 10,
         'write': 10,
     })
+    return table
+
+
+def create_table_with_local_indexes():
+    table = Table.create(
+        'messages',
+        schema=[
+            HashKey('forum_name'),
+            RangeKey('subject'),
+        ],
+        throughput={
+            'read': 10,
+            'write': 10,
+        },
+        indexes=[
+            AllIndex(
+                'recipient_timestamp_index',
+                parts=[
+                    HashKey('forum_name', data_type=STRING),
+                    RangeKey('timestamp'),
+                ]
+            )
+        ]
+    )
     return table
 
 
@@ -57,6 +82,48 @@ def test_create_table():
                 {'KeyType': 'RANGE', 'AttributeName': 'subject'}
             ],
             'ItemCount': 0, 'CreationDateTime': 1326499200.0,
+            'GlobalSecondaryIndexes': [],
+        }
+    }
+    table.describe().should.equal(expected)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+@freeze_time("2012-01-14")
+def test_create_table():
+    table = create_table_with_local_indexes()
+    expected = {
+        'Table': {
+            'AttributeDefinitions': [
+                {'AttributeName': 'forum_name', 'AttributeType': 'S'},
+                {'AttributeName': 'subject', 'AttributeType': 'S'},
+                {'AttributeName': 'timestamp', 'AttributeType': 'S'}
+            ],
+            'ProvisionedThroughput': {
+                'NumberOfDecreasesToday': 0,
+                'WriteCapacityUnits': 10,
+                'ReadCapacityUnits': 10,
+            },
+            'TableSizeBytes': 0,
+            'TableName': 'messages',
+            'TableStatus': 'ACTIVE',
+            'KeySchema': [
+                {'KeyType': 'HASH', 'AttributeName': 'forum_name'},
+                {'KeyType': 'RANGE', 'AttributeName': 'subject'}
+            ],
+            'LocalSecondaryIndexes': [
+                {
+                    'IndexName': 'recipient_timestamp_index',
+                    'KeySchema': [
+                        {'AttributeName': 'forum_name', 'KeyType': 'HASH'},
+                        {'AttributeName': 'timestamp', 'KeyType': 'RANGE'}
+                    ],
+                    'Projection': {'ProjectionType': 'ALL'}
+                }
+            ],
+            'ItemCount': 0,
+            'CreationDateTime': 1326499200.0,
             'GlobalSecondaryIndexes': [],
         }
     }
