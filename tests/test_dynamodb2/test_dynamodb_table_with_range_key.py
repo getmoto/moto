@@ -13,7 +13,7 @@ from tests.helpers import requires_boto_gte
 try:
     from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey, AllIndex
     from boto.dynamodb2.table import Item, Table
-    from boto.dynamodb2.types import STRING
+    from boto.dynamodb2.types import STRING, NUMBER
     from boto.dynamodb2.exceptions import ValidationException
     from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 except ImportError:
@@ -44,10 +44,10 @@ def create_table_with_local_indexes():
         },
         indexes=[
             AllIndex(
-                'recipient_timestamp_index',
+                'threads_index',
                 parts=[
                     HashKey('forum_name', data_type=STRING),
-                    RangeKey('timestamp'),
+                    RangeKey('threads', data_type=NUMBER),
                 ]
             )
         ]
@@ -81,6 +81,7 @@ def test_create_table():
                 {'KeyType': 'HASH', 'AttributeName': 'forum_name'},
                 {'KeyType': 'RANGE', 'AttributeName': 'subject'}
             ],
+            'LocalSecondaryIndexes': [],
             'ItemCount': 0, 'CreationDateTime': 1326499200.0,
             'GlobalSecondaryIndexes': [],
         }
@@ -91,14 +92,14 @@ def test_create_table():
 @requires_boto_gte("2.9")
 @mock_dynamodb2
 @freeze_time("2012-01-14")
-def test_create_table():
+def test_create_table_with_local_index():
     table = create_table_with_local_indexes()
     expected = {
         'Table': {
             'AttributeDefinitions': [
                 {'AttributeName': 'forum_name', 'AttributeType': 'S'},
                 {'AttributeName': 'subject', 'AttributeType': 'S'},
-                {'AttributeName': 'timestamp', 'AttributeType': 'S'}
+                {'AttributeName': 'threads', 'AttributeType': 'N'}
             ],
             'ProvisionedThroughput': {
                 'NumberOfDecreasesToday': 0,
@@ -114,10 +115,10 @@ def test_create_table():
             ],
             'LocalSecondaryIndexes': [
                 {
-                    'IndexName': 'recipient_timestamp_index',
+                    'IndexName': 'threads_index',
                     'KeySchema': [
                         {'AttributeName': 'forum_name', 'KeyType': 'HASH'},
-                        {'AttributeName': 'timestamp', 'KeyType': 'RANGE'}
+                        {'AttributeName': 'threads', 'KeyType': 'RANGE'}
                     ],
                     'Projection': {'ProjectionType': 'ALL'}
                 }
@@ -635,6 +636,26 @@ def test_query_with_global_indexes():
 
     results = table.query(status__eq='active')
     list(results).should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_query_with_local_indexes():
+    table = create_table_with_local_indexes()
+    item_data = {
+        'forum_name': 'Cool Forum',
+        'subject': 'Check this out!',
+        'version': '1',
+        'threads': 1,
+        'status': 'inactive'
+    }
+    item = Item(table, item_data)
+    item.save(overwrite=True)
+
+    item['version'] = '2'
+    item.save(overwrite=True)
+    # Revisit this query once support for QueryFilter is added
+    results = table.query(forum_name__eq='Cool Forum', index='threads_index')
+    list(results).should.have.length_of(1)
 
 
 @mock_dynamodb2
