@@ -48,6 +48,7 @@ def test_create_table():
             ],
             'ItemCount': 0, 'CreationDateTime': 1326499200.0,
             'GlobalSecondaryIndexes': [],
+            'LocalSecondaryIndexes': []
         }
     }
     conn = boto.dynamodb2.connect_to_region(
