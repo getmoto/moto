@@ -859,7 +859,7 @@ def test_update_item_does_not_exist_is_created():
     table = _create_table_with_range_key()
 
     item_key = {'forum_name': 'the-key', 'subject': '123'}
-    table.update_item(
+    result = table.update_item(
         Key=item_key,
         AttributeUpdates={
             'username': {
@@ -875,7 +875,10 @@ def test_update_item_does_not_exist_is_created():
                 'Value': {'key': 'value'},
             }
         },
+        ReturnValues='ALL_OLD',
     )
+
+    assert not result.get('Attributes')
 
     returned_item = dict((k, str(v) if isinstance(v, Decimal) else v)
                          for k, v in table.get_item(Key=item_key)['Item'].items())
