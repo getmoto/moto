@@ -212,18 +212,22 @@ class Table(object):
     def hash_key_names(self):
         keys = [self.hash_key_attr]
         for index in self.global_indexes:
+            hash_key = None
             for key in index['KeySchema']:
                 if key['KeyType'] == 'HASH':
-                    keys.append(key['AttributeName'])
+                    hash_key = key['AttributeName']
+            keys.append(hash_key)
         return keys
 
     @property
     def range_key_names(self):
         keys = [self.range_key_attr]
         for index in self.global_indexes:
+            range_key = None
             for key in index['KeySchema']:
                 if key['KeyType'] == 'RANGE':
-                    keys.append(key['AttributeName'])
+                    range_key = keys.append(key['AttributeName'])
+            keys.append(range_key)
         return keys
 
     def put_item(self, item_attrs, expected=None, overwrite=False):
@@ -475,13 +479,15 @@ class DynamoDBBackend(BaseBackend):
         if not table:
             return None, None
         else:
-            hash_key = range_key = None
-            for key in keys:
-                if key in table.hash_key_names:
-                    hash_key = key
-                elif key in table.range_key_names:
-                    range_key = key
-            return hash_key, range_key
+            if len(keys) == 1:
+                for key in keys:
+                    if key in table.hash_key_names:
+                        return key, None
+
+            for potential_hash, potential_range in zip(table.hash_key_names, table.range_key_names):
+                if set([potential_hash, potential_range]) == set(keys):
+                    return potential_hash, potential_range
+            return None, None
 
     def get_keys_value(self, table, keys):
         if table.hash_key_attr not in keys or (table.has_range_key and table.range_key_attr not in keys):
