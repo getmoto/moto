@@ -1323,6 +1323,53 @@ class SecurityGroupBackend(object):
 
         raise InvalidPermissionNotFoundError()
 
+    def authorize_security_group_egress(self,
+                                        group_name_or_id,
+                                        ip_protocol,
+                                        from_port,
+                                        to_port,
+                                        ip_ranges,
+                                        src_group_id=None,
+                                        cidr_ip=None,
+                                        vpc_id=None):
+
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+
+        if ip_ranges and not isinstance(ip_ranges, list):
+            ip_ranges = [ip_ranges]
+
+        # for VPCs
+        source_groups = []
+        source_group = self.get_security_group_from_id(src_group_id)
+        if source_group:
+            source_groups.append(source_group)
+        security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
+        group.egress_rules.append(security_rule)
+
+    def revoke_security_group_egress(self,
+                                     group_name_or_id,
+                                     ip_protocol,
+                                     from_port,
+                                     to_port,
+                                     ip_ranges,
+                                     source_group_names=None,
+                                     source_group_ids=None,
+                                     vpc_id=None):
+
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+
+        source_groups = []
+        for source_group_name in source_group_names:
+            source_group = self.get_security_group_from_name(source_group_name, vpc_id)
+            if source_group:
+                source_groups.append(source_group)
+
+        security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
+        if security_rule in group.egress_rules:
+            group.egress_rules.remove(security_rule)
+            return security_rule
+        raise InvalidPermissionNotFoundError()
+
 
 class SecurityGroupIngress(object):
 
