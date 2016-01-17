@@ -431,7 +431,7 @@ def test_update_item_remove():
     }
     table.put_item(data=data)
     key_map = {
-        "S": "steve"
+        'username': {"S": "steve"}
     }
 
     # Then remove the SentBy field
@@ -456,7 +456,7 @@ def test_update_item_set():
     }
     table.put_item(data=data)
     key_map = {
-        "S": "steve"
+        'username': {"S": "steve"}
     }
 
     conn.update_item("messages", key_map, update_expression="SET foo=:bar, blah=:baz REMOVE :SentBy")

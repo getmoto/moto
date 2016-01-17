@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from collections import defaultdict
 import datetime
+import decimal
 import json
 
 from moto.compat import OrderedDict
@@ -142,6 +143,16 @@ class Item(object):
                         del self.attrs[attribute_name]
                 else:
                     self.attrs[attribute_name] = DynamoType({"S": new_value})
+            elif action == 'ADD':
+                if set(update_action['Value'].keys()) == set(['N']):
+                    existing = self.attrs.get(attribute_name, DynamoType({"N": '0'}))
+                    self.attrs[attribute_name] = DynamoType({"N": str(
+                            decimal.Decimal(existing.value) +
+                            decimal.Decimal(new_value)
+                    )})
+                else:
+                    # TODO: implement other data types
+                    raise NotImplementedError('ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
 
 
 class Table(object):
@@ -202,18 +213,22 @@ class Table(object):
     def hash_key_names(self):
         keys = [self.hash_key_attr]
         for index in self.global_indexes:
+            hash_key = None
             for key in index['KeySchema']:
                 if key['KeyType'] == 'HASH':
-                    keys.append(key['AttributeName'])
+                    hash_key = key['AttributeName']
+            keys.append(hash_key)
         return keys
 
     @property
     def range_key_names(self):
         keys = [self.range_key_attr]
         for index in self.global_indexes:
+            range_key = None
             for key in index['KeySchema']:
                 if key['KeyType'] == 'RANGE':
-                    keys.append(key['AttributeName'])
+                    range_key = keys.append(key['AttributeName'])
+            keys.append(range_key)
         return keys
 
     def put_item(self, item_attrs, expected=None, overwrite=False):
@@ -276,8 +291,11 @@ class Table(object):
         try:
             if range_key:
                 return self.items[hash_key][range_key]
-            else:
+
+            if hash_key in self.items:
                 return self.items[hash_key]
+
+            raise KeyError
         except KeyError:
             return None
 
@@ -462,13 +480,15 @@ class DynamoDBBackend(BaseBackend):
         if not table:
             return None, None
         else:
-            hash_key = range_key = None
-            for key in keys:
-                if key in table.hash_key_names:
-                    hash_key = key
-                elif key in table.range_key_names:
-                    range_key = key
-            return hash_key, range_key
+            if len(keys) == 1:
+                for key in keys:
+                    if key in table.hash_key_names:
+                        return key, None
+
+            for potential_hash, potential_range in zip(table.hash_key_names, table.range_key_names):
+                if set([potential_hash, potential_range]) == set(keys):
+                    return potential_hash, potential_range
+            return None, None
 
     def get_keys_value(self, table, keys):
         if table.hash_key_attr not in keys or (table.has_range_key and table.range_key_attr not in keys):
@@ -526,6 +546,23 @@ class DynamoDBBackend(BaseBackend):
             range_value = None
 
         item = table.get_item(hash_value, range_value)
+        # Update does not fail on new items, so create one
+        if item is None:
+            data = {
+                table.hash_key_attr: {
+                    hash_value.type: hash_value.value,
+                },
+            }
+            if range_value:
+                data.update({
+                    table.range_key_attr: {
+                        range_value.type: range_value.value,
+                    }
+                })
+
+            table.put_item(data)
+            item = table.get_item(hash_value, range_value)
+
         if update_expression:
             item.update(update_expression)
         else:

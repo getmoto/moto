@@ -402,8 +402,12 @@ class DynamoHandler(BaseResponse):
         key = self.body['Key']
         update_expression = self.body.get('UpdateExpression')
         attribute_updates = self.body.get('AttributeUpdates')
+        existing_item = dynamodb_backend2.get_item(name, key)
         item = dynamodb_backend2.update_item(name, key, update_expression, attribute_updates)
 
         item_dict = item.to_json()
         item_dict['ConsumedCapacityUnits'] = 0.5
+        if not existing_item:
+            item_dict['Attributes'] = {}
+
         return dynamo_json_dump(item_dict)
