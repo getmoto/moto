@@ -277,6 +277,7 @@ class ELBResponse(BaseResponse):
         return template.render()
 
     def describe_tags(self):
+        elbs = []
         for key, value in self.querystring.items():
             if "LoadBalancerNames.member" in key:
                 number = key.split('.')[2]
@@ -284,9 +285,10 @@ class ELBResponse(BaseResponse):
                 elb = self.elb_backend.get_load_balancer(load_balancer_name)
                 if not elb:
                     raise LoadBalancerNotFound(load_balancer_name)
+                elbs.append(elb)
 
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
-        return template.render(tags=elb.tags)
+        return template.render(load_balancers=elbs)
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <AddTagsResult/>
@@ -305,9 +307,11 @@ REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticloadbalancing
 DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <DescribeTagsResult>
     <TagDescriptions>
+      {% for elb in load_balancers %}
       <member>
+        <LoadBalancerName>{{ elb.name }}</LoadBalancerName>
         <Tags>
-          {% for key, value in tags.items() %}
+          {% for key, value in elb.tags.items() %}
           <member>
             <Value>{{ value }}</Value>
             <Key>{{ key }}</Key>
@@ -315,6 +319,7 @@ DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalan
           {% endfor %}
         </Tags>
       </member>
+      {% endfor %}
     </TagDescriptions>
   </DescribeTagsResult>
   <ResponseMetadata>
