@@ -40,11 +40,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
         return template.render(buckets=all_buckets)
 
     def subdomain_based_buckets(self, request):
-        host = request.headers['host']
+        host = request.headers.get('host', request.headers.get('Host'))
         if host.startswith("localhost"):
             # For localhost, default to path-based buckets
             return False
-        return host != 's3.amazonaws.com' and not re.match("s3.(.*).amazonaws.com", host)
+
+        path_based = (host == 's3.amazonaws.com' or re.match("s3.(.*).amazonaws.com", host))
+        return not path_based
 
     def is_delete_keys(self, request, path, bucket_name):
         if self.subdomain_based_buckets(request):
