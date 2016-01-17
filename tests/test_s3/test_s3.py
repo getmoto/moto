@@ -962,6 +962,16 @@ def test_boto3_bucket_create():
 
 
 @mock_s3
+def test_boto3_bucket_create_eu_central():
+    s3 = boto3.resource('s3', region_name='eu-central-1')
+    s3.create_bucket(Bucket="blah")
+
+    s3.Object('blah', 'hello.txt').put(Body="some text")
+
+    s3.Object('blah', 'hello.txt').get()['Body'].read().decode("utf-8").should.equal("some text")
+
+
+@mock_s3
 def test_boto3_head_object():
     s3 = boto3.resource('s3', region_name='us-east-1')
     s3.create_bucket(Bucket="blah")

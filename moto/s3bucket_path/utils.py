@@ -9,3 +9,11 @@ def bucket_name_from_url(url):
     if len(l) == 0 or l[0] == "":
         return None
     return l[0]
+
+
+def parse_key_name(path):
+    return "/".join(path.rstrip("/").split("/")[2:])
+
+
+def is_delete_keys(path, bucket_name):
+    return path == u'/' + bucket_name + u'/?delete'
