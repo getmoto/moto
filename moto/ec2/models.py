@@ -1240,7 +1240,6 @@ class SecurityGroupBackend(object):
     def get_security_group_from_id(self, group_id):
         # 2 levels of chaining necessary since it's a complex structure
         all_groups = itertools.chain.from_iterable([x.values() for x in self.groups.values()])
-
         for group in all_groups:
             if group.id == group_id:
                 return group
@@ -1267,7 +1266,6 @@ class SecurityGroupBackend(object):
                                          source_group_ids=None,
                                          vpc_id=None):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
-
         if ip_ranges and not isinstance(ip_ranges, list):
             ip_ranges = [ip_ranges]
         if ip_ranges:
@@ -1321,6 +1319,55 @@ class SecurityGroupBackend(object):
             group.ingress_rules.remove(security_rule)
             return security_rule
 
+        raise InvalidPermissionNotFoundError()
+
+    def authorize_security_group_egress(self,
+                                        group_name_or_id,
+                                        ip_protocol,
+                                        from_port,
+                                        to_port,
+                                        ip_ranges,
+                                        src_group_id=None,
+                                        cidr_ip=None,
+                                        vpc_id=None):
+
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+
+        if ip_ranges:
+            for cidr in ip_ranges:
+                if not is_valid_cidr(cidr):
+                    raise InvalidCIDRSubnetError(cidr=cidr)
+
+        # for VPCs
+        source_groups = []
+        source_group = self.get_security_group_from_id(src_group_id)
+        if source_group:
+            source_groups.append(source_group)
+        security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
+        group.egress_rules.append(security_rule)
+
+    def revoke_security_group_egress(self,
+                                     group_name_or_id,
+                                     ip_protocol,
+                                     from_port,
+                                     to_port,
+                                     ip_ranges,
+                                     source_group_names=None,
+                                     source_group_ids=None,
+                                     vpc_id=None):
+
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+
+        source_groups = []
+        for source_group_name in source_group_names:
+            source_group = self.get_security_group_from_name(source_group_name, vpc_id)
+            if source_group:
+                source_groups.append(source_group)
+
+        security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
+        if security_rule in group.egress_rules:
+            group.egress_rules.remove(security_rule)
+            return security_rule
         raise InvalidPermissionNotFoundError()
 
 
