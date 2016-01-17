@@ -1,14 +1,10 @@
 import boto
+from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
 from sure import expect
 
 from moto import mock_swf
 from moto.swf import swf_backend
-from moto.swf.exceptions import (
-    SWFUnknownResourceFault,
-    SWFValidationException,
-    SWFDecisionValidationException,
-)
 
 from ..utils import setup_workflow
 
@@ -114,7 +110,7 @@ def test_respond_decision_task_completed_with_wrong_token():
     resp = conn.poll_for_decision_task("test-domain", "queue")
     conn.respond_decision_task_completed.when.called_with(
         "not-a-correct-token"
-    ).should.throw(SWFValidationException)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_respond_decision_task_completed_on_close_workflow_execution():
@@ -129,7 +125,7 @@ def test_respond_decision_task_completed_on_close_workflow_execution():
 
     conn.respond_decision_task_completed.when.called_with(
         task_token
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_respond_decision_task_completed_with_task_already_completed():
@@ -140,7 +136,7 @@ def test_respond_decision_task_completed_with_task_already_completed():
 
     conn.respond_decision_task_completed.when.called_with(
         task_token
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_respond_decision_task_completed_with_complete_workflow_execution():
@@ -179,7 +175,7 @@ def test_respond_decision_task_completed_with_close_decision_not_last():
 
     conn.respond_decision_task_completed.when.called_with(
         task_token, decisions=decisions
-    ).should.throw(SWFValidationException, r"Close must be last decision in list")
+    ).should.throw(SWFResponseError, r"Close must be last decision in list")
 
 @mock_swf
 def test_respond_decision_task_completed_with_invalid_decision_type():
@@ -195,7 +191,7 @@ def test_respond_decision_task_completed_with_invalid_decision_type():
     conn.respond_decision_task_completed.when.called_with(
         task_token, decisions=decisions
         ).should.throw(
-            SWFDecisionValidationException,
+            SWFResponseError,
             r"Value 'BadDecisionType' at 'decisions.1.member.decisionType'"
         )
 
@@ -215,7 +211,7 @@ def test_respond_decision_task_completed_with_missing_attributes():
     conn.respond_decision_task_completed.when.called_with(
         task_token, decisions=decisions
         ).should.throw(
-            SWFDecisionValidationException,
+            SWFResponseError,
             r"Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' " \
             r"failed to satisfy constraint: Member must not be null"
         )
@@ -233,7 +229,7 @@ def test_respond_decision_task_completed_with_missing_attributes_totally():
     conn.respond_decision_task_completed.when.called_with(
         task_token, decisions=decisions
         ).should.throw(
-            SWFDecisionValidationException,
+            SWFResponseError,
             r"Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' " \
             r"failed to satisfy constraint: Member must not be null"
         )

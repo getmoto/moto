@@ -1,13 +1,10 @@
 import boto
+from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
 from sure import expect
 
 from moto import mock_swf
 from moto.swf import swf_backend
-from moto.swf.exceptions import (
-    SWFValidationException,
-    SWFUnknownResourceFault,
-)
 
 from ..utils import setup_workflow, SCHEDULE_ACTIVITY_TASK_DECISION
 
@@ -91,7 +88,7 @@ def test_respond_activity_task_completed_with_wrong_token():
     conn.poll_for_activity_task("test-domain", "activity-task-list")
     conn.respond_activity_task_completed.when.called_with(
         "not-a-correct-token"
-    ).should.throw(SWFValidationException, "Invalid token")
+    ).should.throw(SWFResponseError, "Invalid token")
 
 @mock_swf
 def test_respond_activity_task_completed_on_closed_workflow_execution():
@@ -109,7 +106,7 @@ def test_respond_activity_task_completed_on_closed_workflow_execution():
 
     conn.respond_activity_task_completed.when.called_with(
         activity_token
-    ).should.throw(SWFUnknownResourceFault, "WorkflowExecution=")
+    ).should.throw(SWFResponseError, "WorkflowExecution=")
 
 @mock_swf
 def test_respond_activity_task_completed_with_task_already_completed():
@@ -124,7 +121,7 @@ def test_respond_activity_task_completed_with_task_already_completed():
 
     conn.respond_activity_task_completed.when.called_with(
         activity_token
-    ).should.throw(SWFUnknownResourceFault, "Unknown activity, scheduledEventId = 5")
+    ).should.throw(SWFResponseError, "Unknown activity, scheduledEventId = 5")
 
 
 # RespondActivityTaskFailed endpoint
@@ -162,7 +159,7 @@ def test_respond_activity_task_completed_with_wrong_token():
     conn.poll_for_activity_task("test-domain", "activity-task-list")
     conn.respond_activity_task_failed.when.called_with(
         "not-a-correct-token"
-    ).should.throw(SWFValidationException, "Invalid token")
+    ).should.throw(SWFResponseError, "Invalid token")
 
 
 # RecordActivityTaskHeartbeat endpoint
@@ -189,7 +186,7 @@ def test_record_activity_task_heartbeat_with_wrong_token():
 
     conn.record_activity_task_heartbeat.when.called_with(
         "bad-token", details="some progress details"
-    ).should.throw(SWFValidationException)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout():

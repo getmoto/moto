@@ -7,10 +7,7 @@ from moto.swf.models import (
     WorkflowType,
     WorkflowExecution,
 )
-from moto.swf.exceptions import (
-    SWFDefaultUndefinedFault,
-)
-
+from moto.swf.exceptions import SWFDefaultUndefinedFault
 from ..utils import (
     auto_start_decision_tasks,
     get_basic_domain,

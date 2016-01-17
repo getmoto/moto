@@ -4,6 +4,9 @@ from sure import expect
 from moto.swf.exceptions import SWFUnknownResourceFault
 from moto.swf.models import Domain
 
+# Ensure 'assert_raises' context manager support for Python 2.6
+import tests.backport_assert_raises  # noqa
+from nose.tools import assert_raises
 
 # Fake WorkflowExecution for tests purposes
 WorkflowExecution = namedtuple(
@@ -69,11 +72,11 @@ def test_domain_get_workflow_execution():
     domain.get_workflow_execution("wf-id-1", run_id="run-id-1").should.equal(wfe1)
     domain.get_workflow_execution("wf-id-1", run_id="run-id-2").should.equal(wfe2)
     domain.get_workflow_execution("wf-id-3", run_id="run-id-4").should.equal(wfe4)
+
     domain.get_workflow_execution.when.called_with(
         "wf-id-1", run_id="non-existent"
     ).should.throw(
         SWFUnknownResourceFault,
-        "Unknown execution: WorkflowExecution=[workflowId=wf-id-1, runId=non-existent]"
     )
 
     # get OPEN workflow execution by default if no run_id
@@ -81,12 +84,12 @@ def test_domain_get_workflow_execution():
     domain.get_workflow_execution.when.called_with(
         "wf-id-3"
     ).should.throw(
-        SWFUnknownResourceFault, "Unknown execution, workflowId = wf-id-3"
+        SWFUnknownResourceFault
     )
     domain.get_workflow_execution.when.called_with(
         "wf-id-non-existent"
     ).should.throw(
-        SWFUnknownResourceFault, "Unknown execution, workflowId = wf-id-non-existent"
+        SWFUnknownResourceFault
     )
 
     # raise_if_closed attribute
@@ -94,8 +97,7 @@ def test_domain_get_workflow_execution():
     domain.get_workflow_execution.when.called_with(
         "wf-id-3", run_id="run-id-4", raise_if_closed=True
     ).should.throw(
-        SWFUnknownResourceFault,
-        "Unknown execution: WorkflowExecution=[workflowId=wf-id-3, runId=run-id-4]"
+        SWFUnknownResourceFault
     )
 
     # raise_if_none attribute

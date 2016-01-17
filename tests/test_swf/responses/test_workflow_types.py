@@ -2,12 +2,7 @@ import boto
 from sure import expect
 
 from moto import mock_swf
-from moto.swf.exceptions import (
-    SWFUnknownResourceFault,
-    SWFTypeAlreadyExistsFault,
-    SWFTypeDeprecatedFault,
-    SWFSerializationException,
-)
+from boto.swf.exceptions import SWFResponseError
 
 
 # RegisterWorkflowType endpoint
@@ -30,7 +25,7 @@ def test_register_already_existing_workflow_type():
 
     conn.register_workflow_type.when.called_with(
         "test-domain", "test-workflow", "v1.0"
-    ).should.throw(SWFTypeAlreadyExistsFault)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_register_with_wrong_parameter_type():
@@ -39,7 +34,7 @@ def test_register_with_wrong_parameter_type():
 
     conn.register_workflow_type.when.called_with(
         "test-domain", "test-workflow", 12
-    ).should.throw(SWFSerializationException)
+    ).should.throw(SWFResponseError)
 
 
 # ListWorkflowTypes endpoint
@@ -91,7 +86,7 @@ def test_deprecate_already_deprecated_workflow_type():
 
     conn.deprecate_workflow_type.when.called_with(
         "test-domain", "test-workflow", "v1.0"
-    ).should.throw(SWFTypeDeprecatedFault)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_deprecate_non_existent_workflow_type():
@@ -100,7 +95,7 @@ def test_deprecate_non_existent_workflow_type():
 
     conn.deprecate_workflow_type.when.called_with(
         "test-domain", "non-existent", "v1.0"
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)
 
 
 # DescribeWorkflowType endpoint
@@ -127,4 +122,4 @@ def test_describe_non_existent_workflow_type():
 
     conn.describe_workflow_type.when.called_with(
         "test-domain", "non-existent", "v1.0"
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)

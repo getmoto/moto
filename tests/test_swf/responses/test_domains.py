@@ -1,13 +1,8 @@
 import boto
+from boto.swf.exceptions import SWFResponseError
 from sure import expect
 
 from moto import mock_swf
-from moto.swf.exceptions import (
-    SWFUnknownResourceFault,
-    SWFDomainAlreadyExistsFault,
-    SWFDomainDeprecatedFault,
-    SWFSerializationException,
-)
 
 
 # RegisterDomain endpoint
@@ -30,7 +25,7 @@ def test_register_already_existing_domain():
 
     conn.register_domain.when.called_with(
         "test-domain", "60", description="A test domain"
-    ).should.throw(SWFDomainAlreadyExistsFault)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_register_with_wrong_parameter_type():
@@ -38,7 +33,7 @@ def test_register_with_wrong_parameter_type():
 
     conn.register_domain.when.called_with(
         "test-domain", 60, description="A test domain"
-    ).should.throw(SWFSerializationException)
+    ).should.throw(SWFResponseError)
 
 
 # ListDomains endpoint
@@ -85,7 +80,7 @@ def test_deprecate_already_deprecated_domain():
 
     conn.deprecate_domain.when.called_with(
         "test-domain"
-    ).should.throw(SWFDomainDeprecatedFault)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_deprecate_non_existent_domain():
@@ -93,7 +88,7 @@ def test_deprecate_non_existent_domain():
 
     conn.deprecate_domain.when.called_with(
         "non-existent"
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)
 
 
 # DescribeDomain endpoint
@@ -114,4 +109,4 @@ def test_describe_non_existent_domain():
 
     conn.describe_domain.when.called_with(
         "non-existent"
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)

@@ -1,12 +1,12 @@
 import boto
+from boto.swf.exceptions import SWFResponseError
+
+# Ensure 'assert_raises' context manager support for Python 2.6
+import tests.backport_assert_raises  # noqa
+from nose.tools import assert_raises
 from sure import expect
 
 from moto import mock_swf
-from moto.swf.exceptions import (
-    SWFWorkflowExecutionAlreadyStartedFault,
-    SWFTypeDeprecatedFault,
-    SWFUnknownResourceFault,
-)
 
 
 # Utils
@@ -39,7 +39,7 @@ def test_start_already_started_workflow_execution():
 
     conn.start_workflow_execution.when.called_with(
         "test-domain", "uid-abcd1234", "test-workflow", "v1.0"
-    ).should.throw(SWFWorkflowExecutionAlreadyStartedFault)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_start_workflow_execution_on_deprecated_type():
@@ -48,7 +48,7 @@ def test_start_workflow_execution_on_deprecated_type():
 
     conn.start_workflow_execution.when.called_with(
         "test-domain", "uid-abcd1234", "test-workflow", "v1.0"
-    ).should.throw(SWFTypeDeprecatedFault)
+    ).should.throw(SWFResponseError)
 
 
 # DescribeWorkflowExecution endpoint
@@ -68,7 +68,7 @@ def test_describe_non_existent_workflow_execution():
 
     conn.describe_workflow_execution.when.called_with(
         "test-domain", "wrong-run-id", "wrong-workflow-id"
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)
 
 
 # GetWorkflowExecutionHistory endpoint
@@ -99,7 +99,7 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution():
 
     conn.get_workflow_execution_history.when.called_with(
         "test-domain", "wrong-run-id", "wrong-workflow-id"
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)
 
 
 # TerminateWorkflowExecution endpoint
@@ -138,26 +138,26 @@ def test_terminate_workflow_execution_with_wrong_workflow_or_run_id():
     conn.terminate_workflow_execution.when.called_with(
         "test-domain", "uid-abcd1234", run_id=run_id
     ).should.throw(
-        SWFUnknownResourceFault, "WorkflowExecution=[workflowId=uid-abcd1234, runId="
+        SWFResponseError, "WorkflowExecution=[workflowId=uid-abcd1234, runId="
     )
 
     # already closed, without run_id
     conn.terminate_workflow_execution.when.called_with(
         "test-domain", "uid-abcd1234"
     ).should.throw(
-        SWFUnknownResourceFault, "Unknown execution, workflowId = uid-abcd1234"
+        SWFResponseError, "Unknown execution, workflowId = uid-abcd1234"
     )
 
     # wrong workflow id
     conn.terminate_workflow_execution.when.called_with(
         "test-domain", "uid-non-existent"
     ).should.throw(
-        SWFUnknownResourceFault, "Unknown execution, workflowId = uid-non-existent"
+        SWFResponseError, "Unknown execution, workflowId = uid-non-existent"
     )
 
     # wrong run_id
     conn.terminate_workflow_execution.when.called_with(
         "test-domain", "uid-abcd1234", run_id="foo"
     ).should.throw(
-        SWFUnknownResourceFault, "WorkflowExecution=[workflowId=uid-abcd1234, runId="
+        SWFResponseError, "WorkflowExecution=[workflowId=uid-abcd1234, runId="
     )

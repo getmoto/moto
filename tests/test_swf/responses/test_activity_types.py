@@ -1,13 +1,8 @@
 import boto
+from boto.swf.exceptions import SWFResponseError
 from sure import expect
 
 from moto import mock_swf
-from moto.swf.exceptions import (
-    SWFUnknownResourceFault,
-    SWFTypeAlreadyExistsFault,
-    SWFTypeDeprecatedFault,
-    SWFSerializationException,
-)
 
 
 # RegisterActivityType endpoint
@@ -30,7 +25,7 @@ def test_register_already_existing_activity_type():
 
     conn.register_activity_type.when.called_with(
         "test-domain", "test-activity", "v1.0"
-    ).should.throw(SWFTypeAlreadyExistsFault)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_register_with_wrong_parameter_type():
@@ -39,7 +34,7 @@ def test_register_with_wrong_parameter_type():
 
     conn.register_activity_type.when.called_with(
         "test-domain", "test-activity", 12
-    ).should.throw(SWFSerializationException)
+    ).should.throw(SWFResponseError)
 
 # ListActivityTypes endpoint
 @mock_swf
@@ -90,7 +85,7 @@ def test_deprecate_already_deprecated_activity_type():
 
     conn.deprecate_activity_type.when.called_with(
         "test-domain", "test-activity", "v1.0"
-    ).should.throw(SWFTypeDeprecatedFault)
+    ).should.throw(SWFResponseError)
 
 @mock_swf
 def test_deprecate_non_existent_activity_type():
@@ -99,7 +94,7 @@ def test_deprecate_non_existent_activity_type():
 
     conn.deprecate_activity_type.when.called_with(
         "test-domain", "non-existent", "v1.0"
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)
 
 # DescribeActivityType endpoint
 @mock_swf
@@ -123,4 +118,4 @@ def test_describe_non_existent_activity_type():
 
     conn.describe_activity_type.when.called_with(
         "test-domain", "non-existent", "v1.0"
-    ).should.throw(SWFUnknownResourceFault)
+    ).should.throw(SWFResponseError)
