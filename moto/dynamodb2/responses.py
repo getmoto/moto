@@ -100,12 +100,14 @@ class DynamoHandler(BaseResponse):
         attr = body["AttributeDefinitions"]
         # getting the indexes
         global_indexes = body.get("GlobalSecondaryIndexes", [])
+        local_secondary_indexes = body.get("LocalSecondaryIndexes", [])
 
         table = dynamodb_backend2.create_table(table_name,
                    schema=key_schema,
                    throughput=throughput,
                    attr=attr,
-                   global_indexes=global_indexes)
+                   global_indexes=global_indexes,
+                   indexes=local_secondary_indexes)
         if table is not None:
             return dynamo_json_dump(table.describe)
         else:

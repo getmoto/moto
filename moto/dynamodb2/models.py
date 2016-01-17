@@ -184,6 +184,7 @@ class Table(object):
                 'ItemCount': len(self),
                 'CreationDateTime': unix_time(self.created_at),
                 'GlobalSecondaryIndexes': [index for index in self.global_indexes],
+                'LocalSecondaryIndexes': [index for index in self.indexes]
             }
         }
         return results
