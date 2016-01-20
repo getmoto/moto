@@ -95,6 +95,9 @@ def test_volume_filters():
     volumes_by_status = conn.get_all_volumes(filters={'status': 'in-use'})
     set([vol.id for vol in volumes_by_status]).should.equal(set([block_mapping.volume_id]))
 
+    volumes_by_id = conn.get_all_volumes(filters={'volume-id': volume1.id})
+    set([vol.id for vol in volumes_by_id]).should.equal(set([volume1.id]))
+
     volumes_by_tag_key = conn.get_all_volumes(filters={'tag-key': 'testkey1'})
     set([vol.id for vol in volumes_by_tag_key]).should.equal(set([volume1.id]))
 
