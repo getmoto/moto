@@ -24,8 +24,11 @@ def parse_key_name(pth):
     return pth.lstrip("/")
 
 
-def is_delete_keys(path, bucket_name):
-    return path == u'/?delete'
+def is_delete_keys(request, path, bucket_name):
+    return path == u'/?delete' or (
+        path == u'/' and
+        getattr(request, "query_string", "") == "delete"
+    )
 
 
 class ResponseObject(_TemplateEnvironmentMixin):
@@ -50,9 +53,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
     def is_delete_keys(self, request, path, bucket_name):
         if self.subdomain_based_buckets(request):
-            return is_delete_keys(path, bucket_name)
+            return is_delete_keys(request, path, bucket_name)
         else:
-            return bucketpath_is_delete_keys(path, bucket_name)
+            return bucketpath_is_delete_keys(request, path, bucket_name)
 
     def parse_bucket_name_from_url(self, request, url):
         if self.subdomain_based_buckets(request):
