@@ -1505,6 +1505,9 @@ class Volume(TaggedEC2Resource):
         if filter_name == 'status':
             return self.status
 
+        if filter_name == 'volume-id':
+            return self.id
+
         filter_value = super(Volume, self).get_filter_value(filter_name)
 
         if filter_value is None:
