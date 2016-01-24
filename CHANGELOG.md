@@ -4,6 +4,11 @@ Moto Changelog
 Latest
 ------
 
+0.4.21
+------
+
+    * Fix bug with wrong response matches for S3
+
 0.4.20
 ------
 
