@@ -74,6 +74,10 @@ def convert_regex_to_flask_path(url_path):
         return '<regex("{0}"):{1}>'.format(match_pattern, match_name)
 
     url_path = re.sub("\(\?P<(.*?)>(.*?)\)", caller, url_path)
+
+    if url_path.endswith("/?"):
+        # Flask does own handling of trailing slashes
+        url_path = url_path.rstrip("/?")
     return url_path
 
 
