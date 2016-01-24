@@ -24,8 +24,11 @@ def parse_key_name(pth):
     return pth.lstrip("/")
 
 
-def is_delete_keys(path, bucket_name):
-    return path == u'/?delete'
+def is_delete_keys(request, path, bucket_name):
+    return path == u'/?delete' or (
+        path == u'/' and
+        getattr(request, "query_string", "") == "delete"
+    )
 
 
 class ResponseObject(_TemplateEnvironmentMixin):
@@ -50,9 +53,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
     def is_delete_keys(self, request, path, bucket_name):
         if self.subdomain_based_buckets(request):
-            return is_delete_keys(path, bucket_name)
+            return is_delete_keys(request, path, bucket_name)
         else:
-            return bucketpath_is_delete_keys(path, bucket_name)
+            return bucketpath_is_delete_keys(request, path, bucket_name)
 
     def parse_bucket_name_from_url(self, request, url):
         if self.subdomain_based_buckets(request):
@@ -118,7 +121,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif method == 'DELETE':
             return self._bucket_response_delete(body, bucket_name, querystring, headers)
         elif method == 'POST':
-            return self._bucket_response_post(request, bucket_name, headers)
+            return self._bucket_response_post(request, body, bucket_name, headers)
         else:
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
@@ -265,9 +268,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
             template = self.response_template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
             return 409, headers, template.render(bucket=removed_bucket)
 
-    def _bucket_response_post(self, request, bucket_name, headers):
+    def _bucket_response_post(self, request, body, bucket_name, headers):
         if self.is_delete_keys(request, request.path, bucket_name):
-            return self._bucket_response_delete_keys(request, bucket_name, headers)
+            return self._bucket_response_delete_keys(request, body, bucket_name, headers)
 
         # POST to bucket-url should create file from form
         if hasattr(request, 'form'):
@@ -294,10 +297,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         return 200, headers, ""
 
-    def _bucket_response_delete_keys(self, request, bucket_name, headers):
+    def _bucket_response_delete_keys(self, request, body, bucket_name, headers):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
 
-        keys = minidom.parseString(request.body.decode('utf-8')).getElementsByTagName('Key')
+        keys = minidom.parseString(body).getElementsByTagName('Key')
         deleted_names = []
         error_names = []
 
