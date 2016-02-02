@@ -3,8 +3,6 @@ from boto.swf.exceptions import SWFResponseError
 
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
-from sure import expect
 
 from moto import mock_swf
 
@@ -32,6 +30,7 @@ def test_start_workflow_execution():
     wf = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
     wf.should.contain("runId")
 
+
 @mock_swf
 def test_start_already_started_workflow_execution():
     conn = setup_swf_environment()
@@ -40,6 +39,7 @@ def test_start_already_started_workflow_execution():
     conn.start_workflow_execution.when.called_with(
         "test-domain", "uid-abcd1234", "test-workflow", "v1.0"
     ).should.throw(SWFResponseError)
+
 
 @mock_swf
 def test_start_workflow_execution_on_deprecated_type():
@@ -62,6 +62,7 @@ def test_describe_workflow_execution():
     wfe["executionInfo"]["execution"]["workflowId"].should.equal("uid-abcd1234")
     wfe["executionInfo"]["executionStatus"].should.equal("OPEN")
 
+
 @mock_swf
 def test_describe_non_existent_workflow_execution():
     conn = setup_swf_environment()
@@ -82,6 +83,7 @@ def test_get_workflow_execution_history():
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
 
+
 @mock_swf
 def test_get_workflow_execution_history_with_reverse_order():
     conn = setup_swf_environment()
@@ -92,6 +94,7 @@ def test_get_workflow_execution_history_with_reverse_order():
                                                reverse_order=True)
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal(["DecisionTaskScheduled", "WorkflowExecutionStarted"])
+
 
 @mock_swf
 def test_get_workflow_execution_history_on_non_existent_workflow_execution():
@@ -124,6 +127,7 @@ def test_terminate_workflow_execution():
     attrs["reason"].should.equal("a more complete reason")
     attrs["cause"].should.equal("OPERATOR_INITIATED")
 
+
 @mock_swf
 def test_terminate_workflow_execution_with_wrong_workflow_or_run_id():
     conn = setup_swf_environment()
@@ -132,7 +136,7 @@ def test_terminate_workflow_execution_with_wrong_workflow_or_run_id():
     )["runId"]
 
     # terminate workflow execution
-    resp = conn.terminate_workflow_execution("test-domain", "uid-abcd1234")
+    conn.terminate_workflow_execution("test-domain", "uid-abcd1234")
 
     # already closed, with run_id
     conn.terminate_workflow_execution.when.called_with(

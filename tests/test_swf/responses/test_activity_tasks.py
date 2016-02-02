@@ -1,7 +1,5 @@
-import boto
 from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
-from sure import expect
 
 from moto import mock_swf
 from moto.swf import swf_backend
@@ -24,14 +22,16 @@ def test_poll_for_activity_task_when_one():
     resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
     resp["events"][-1]["eventType"].should.equal("ActivityTaskStarted")
     resp["events"][-1]["activityTaskStartedEventAttributes"].should.equal(
-        { "identity": "surprise", "scheduledEventId": 5 }
+        {"identity": "surprise", "scheduledEventId": 5}
     )
+
 
 @mock_swf
 def test_poll_for_activity_task_when_none():
     conn = setup_workflow()
     resp = conn.poll_for_activity_task("test-domain", "activity-task-list")
     resp.should.equal({"startedEventId": 0})
+
 
 @mock_swf
 def test_poll_for_activity_task_on_non_existent_queue():
@@ -51,6 +51,7 @@ def test_count_pending_activity_tasks():
 
     resp = conn.count_pending_activity_tasks("test-domain", "activity-task-list")
     resp.should.equal({"count": 1, "truncated": False})
+
 
 @mock_swf
 def test_count_pending_decision_tasks_on_non_existent_task_list():
@@ -75,20 +76,9 @@ def test_respond_activity_task_completed():
     resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
     resp["events"][-2]["eventType"].should.equal("ActivityTaskCompleted")
     resp["events"][-2]["activityTaskCompletedEventAttributes"].should.equal(
-        { "result": "result of the task", "scheduledEventId": 5, "startedEventId": 6 }
+        {"result": "result of the task", "scheduledEventId": 5, "startedEventId": 6}
     )
 
-@mock_swf
-def test_respond_activity_task_completed_with_wrong_token():
-    conn = setup_workflow()
-    decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
-    conn.respond_decision_task_completed(decision_token, decisions=[
-        SCHEDULE_ACTIVITY_TASK_DECISION
-    ])
-    conn.poll_for_activity_task("test-domain", "activity-task-list")
-    conn.respond_activity_task_completed.when.called_with(
-        "not-a-correct-token"
-    ).should.throw(SWFResponseError, "Invalid token")
 
 @mock_swf
 def test_respond_activity_task_completed_on_closed_workflow_execution():
@@ -107,6 +97,7 @@ def test_respond_activity_task_completed_on_closed_workflow_execution():
     conn.respond_activity_task_completed.when.called_with(
         activity_token
     ).should.throw(SWFResponseError, "WorkflowExecution=")
+
 
 @mock_swf
 def test_respond_activity_task_completed_with_task_already_completed():
@@ -142,9 +133,10 @@ def test_respond_activity_task_failed():
     resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
     resp["events"][-2]["eventType"].should.equal("ActivityTaskFailed")
     resp["events"][-2]["activityTaskFailedEventAttributes"].should.equal(
-        { "reason": "short reason", "details": "long details",
-          "scheduledEventId": 5, "startedEventId": 6 }
+        {"reason": "short reason", "details": "long details",
+         "scheduledEventId": 5, "startedEventId": 6}
     )
+
 
 @mock_swf
 def test_respond_activity_task_completed_with_wrong_token():
@@ -175,6 +167,7 @@ def test_record_activity_task_heartbeat():
     resp = conn.record_activity_task_heartbeat(activity_token)
     resp.should.equal({"cancelRequested": False})
 
+
 @mock_swf
 def test_record_activity_task_heartbeat_with_wrong_token():
     conn = setup_workflow()
@@ -187,6 +180,7 @@ def test_record_activity_task_heartbeat_with_wrong_token():
     conn.record_activity_task_heartbeat.when.called_with(
         "bad-token", details="some progress details"
     ).should.throw(SWFResponseError)
+
 
 @mock_swf
 def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout():

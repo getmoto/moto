@@ -1,5 +1,3 @@
-from sure import expect
-
 from moto.swf.models import GenericType
 
 
@@ -18,6 +16,7 @@ def test_type_short_dict_representation():
     _type = FooType("test-foo", "v1.0")
     _type.to_short_dict().should.equal({"name": "test-foo", "version": "v1.0"})
 
+
 def test_type_medium_dict_representation():
     _type = FooType("test-foo", "v1.0")
     _type.to_medium_dict()["fooType"].should.equal(_type.to_short_dict())
@@ -32,13 +31,14 @@ def test_type_medium_dict_representation():
     _type.status = "DEPRECATED"
     _type.to_medium_dict().should.contain("deprecationDate")
 
+
 def test_type_full_dict_representation():
     _type = FooType("test-foo", "v1.0")
     _type.to_full_dict()["typeInfo"].should.equal(_type.to_medium_dict())
     _type.to_full_dict()["configuration"].should.equal({})
 
     _type.task_list = "foo"
-    _type.to_full_dict()["configuration"]["defaultTaskList"].should.equal({"name":"foo"})
+    _type.to_full_dict()["configuration"]["defaultTaskList"].should.equal({"name": "foo"})
 
     _type.just_an_example_timeout = "60"
     _type.to_full_dict()["configuration"]["justAnExampleTimeout"].should.equal("60")
@@ -46,6 +46,7 @@ def test_type_full_dict_representation():
     _type.non_whitelisted_property = "34"
     keys = _type.to_full_dict()["configuration"].keys()
     sorted(keys).should.equal(["defaultTaskList", "justAnExampleTimeout"])
+
 
 def test_type_string_representation():
     _type = FooType("test-foo", "v1.0")

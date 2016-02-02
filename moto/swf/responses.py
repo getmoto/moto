@@ -2,8 +2,6 @@ import json
 import six
 
 from moto.core.responses import BaseResponse
-from werkzeug.exceptions import HTTPException
-from moto.core.utils import camelcase_to_underscores, method_names_from_class
 
 from .exceptions import SWFSerializationException
 from .models import swf_backends
@@ -90,14 +88,14 @@ class SWFResponse(BaseResponse):
         self._check_string(retention)
         self._check_string(name)
         self._check_none_or_string(description)
-        domain = self.swf_backend.register_domain(name, retention,
-                                                  description=description)
+        self.swf_backend.register_domain(name, retention,
+                                         description=description)
         return ""
 
     def deprecate_domain(self):
         name = self._params["name"]
         self._check_string(name)
-        domain = self.swf_backend.deprecate_domain(name)
+        self.swf_backend.deprecate_domain(name)
         return ""
 
     def describe_domain(self):
@@ -136,7 +134,7 @@ class SWFResponse(BaseResponse):
         self._check_none_or_string(description)
 
         # TODO: add defaultTaskPriority when boto gets to support it
-        activity_type = self.swf_backend.register_type(
+        self.swf_backend.register_type(
             "activity", domain, name, version, task_list=task_list,
             default_task_heartbeat_timeout=default_task_heartbeat_timeout,
             default_task_schedule_to_close_timeout=default_task_schedule_to_close_timeout,
@@ -180,7 +178,7 @@ class SWFResponse(BaseResponse):
 
         # TODO: add defaultTaskPriority when boto gets to support it
         # TODO: add defaultLambdaRole when boto gets to support it
-        workflow_type = self.swf_backend.register_type(
+        self.swf_backend.register_type(
             "workflow", domain, name, version, task_list=task_list,
             default_child_policy=default_child_policy,
             default_task_start_to_close_timeout=default_task_start_to_close_timeout,

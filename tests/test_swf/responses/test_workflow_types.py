@@ -1,5 +1,4 @@
 import boto
-from sure import expect
 
 from moto import mock_swf
 from boto.swf.exceptions import SWFResponseError
@@ -17,6 +16,7 @@ def test_register_workflow_type():
     actype["workflowType"]["name"].should.equal("test-workflow")
     actype["workflowType"]["version"].should.equal("v1.0")
 
+
 @mock_swf
 def test_register_already_existing_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -26,6 +26,7 @@ def test_register_already_existing_workflow_type():
     conn.register_workflow_type.when.called_with(
         "test-domain", "test-workflow", "v1.0"
     ).should.throw(SWFResponseError)
+
 
 @mock_swf
 def test_register_with_wrong_parameter_type():
@@ -49,6 +50,7 @@ def test_list_workflow_types():
     all_workflow_types = conn.list_workflow_types("test-domain", "REGISTERED")
     names = [activity_type["workflowType"]["name"] for activity_type in all_workflow_types["typeInfos"]]
     names.should.equal(["a-test-workflow", "b-test-workflow", "c-test-workflow"])
+
 
 @mock_swf
 def test_list_workflow_types_reverse_order():
@@ -77,6 +79,7 @@ def test_deprecate_workflow_type():
     actype["workflowType"]["name"].should.equal("test-workflow")
     actype["workflowType"]["version"].should.equal("v1.0")
 
+
 @mock_swf
 def test_deprecate_already_deprecated_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -87,6 +90,7 @@ def test_deprecate_already_deprecated_workflow_type():
     conn.deprecate_workflow_type.when.called_with(
         "test-domain", "test-workflow", "v1.0"
     ).should.throw(SWFResponseError)
+
 
 @mock_swf
 def test_deprecate_non_existent_workflow_type():
@@ -114,6 +118,7 @@ def test_describe_workflow_type():
     infos["workflowType"]["name"].should.equal("test-workflow")
     infos["workflowType"]["version"].should.equal("v1.0")
     infos["status"].should.equal("REGISTERED")
+
 
 @mock_swf
 def test_describe_non_existent_workflow_type():

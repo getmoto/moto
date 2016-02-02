@@ -1,5 +1,4 @@
 from freezegun import freeze_time
-from sure import expect
 
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
 from moto.swf.models import (
@@ -43,9 +42,9 @@ def test_activity_task_creation():
     task.fail()
     task.state.should.equal("FAILED")
 
+
 def test_activity_task_full_dict_representation():
     wfe = make_workflow_execution()
-    wft = wfe.workflow_type
     at = ActivityTask(
         activity_id="my-activity-123",
         activity_type=ActivityType("foo", "v1.0"),
@@ -68,6 +67,7 @@ def test_activity_task_full_dict_representation():
     fd = at.to_full_dict()
     fd["startedEventId"].should.equal(1234)
 
+
 def test_activity_task_reset_heartbeat_clock():
     wfe = make_workflow_execution()
 
@@ -87,6 +87,7 @@ def test_activity_task_reset_heartbeat_clock():
         task.reset_heartbeat_clock()
 
     task.last_heartbeat_timestamp.should.equal(1420117200.0)
+
 
 def test_activity_task_first_timeout():
     wfe = make_workflow_execution()
@@ -109,6 +110,7 @@ def test_activity_task_first_timeout():
         task.state.should.equal("TIMED_OUT")
         task.timeout_type.should.equal("HEARTBEAT")
 
+
 def test_activity_task_cannot_timeout_on_closed_workflow_execution():
     with freeze_time("2015-01-01 12:00:00"):
         wfe = make_workflow_execution()
@@ -129,6 +131,7 @@ def test_activity_task_cannot_timeout_on_closed_workflow_execution():
         wfe.first_timeout().should.be.a(Timeout)
         process_first_timeout(wfe)
         task.first_timeout().should.be.none
+
 
 def test_activity_task_cannot_change_state_on_closed_workflow_execution():
     wfe = make_workflow_execution()

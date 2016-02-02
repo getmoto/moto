@@ -1,4 +1,3 @@
-from sure import expect
 from freezegun import freeze_time
 
 from moto.swf.models import HistoryEvent
@@ -11,6 +10,7 @@ def test_history_event_creation():
     he.event_type.should.equal("DecisionTaskStarted")
     he.event_timestamp.should.equal(1420113600.0)
 
+
 @freeze_time("2015-01-01 12:00:00")
 def test_history_event_to_dict_representation():
     he = HistoryEvent(123, "DecisionTaskStarted", scheduled_event_id=2)
@@ -22,6 +22,7 @@ def test_history_event_to_dict_representation():
             "scheduledEventId": 2
         }
     })
+
 
 def test_history_event_breaks_on_initialization_if_not_implemented():
     HistoryEvent.when.called_with(

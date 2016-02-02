@@ -1,7 +1,5 @@
-import boto
 from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
-from sure import expect
 
 from moto import mock_swf
 from moto.swf import swf_backend
@@ -24,6 +22,7 @@ def test_poll_for_decision_task_when_one():
 
     resp["events"][-1]["decisionTaskStartedEventAttributes"]["identity"].should.equal("srv01")
 
+
 @mock_swf
 def test_poll_for_decision_task_when_none():
     conn = setup_workflow()
@@ -34,11 +33,13 @@ def test_poll_for_decision_task_when_none():
     # after waiting 60s when there's no decision to be taken
     resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
 
+
 @mock_swf
 def test_poll_for_decision_task_on_non_existent_queue():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "non-existent-queue")
     resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
+
 
 @mock_swf
 def test_poll_for_decision_task_with_reverse_order():
@@ -56,11 +57,13 @@ def test_count_pending_decision_tasks():
     resp = conn.count_pending_decision_tasks("test-domain", "queue")
     resp.should.equal({"count": 1, "truncated": False})
 
+
 @mock_swf
 def test_count_pending_decision_tasks_on_non_existent_task_list():
     conn = setup_workflow()
     resp = conn.count_pending_decision_tasks("test-domain", "non-existent")
     resp.should.equal({"count": 0, "truncated": False})
+
 
 @mock_swf
 def test_count_pending_decision_tasks_after_decision_completes():
@@ -104,13 +107,15 @@ def test_respond_decision_task_completed_with_no_decision():
     resp = conn.describe_workflow_execution("test-domain", conn.run_id, "uid-abcd1234")
     resp["latestExecutionContext"].should.equal("free-form context")
 
+
 @mock_swf
 def test_respond_decision_task_completed_with_wrong_token():
     conn = setup_workflow()
-    resp = conn.poll_for_decision_task("test-domain", "queue")
+    conn.poll_for_decision_task("test-domain", "queue")
     conn.respond_decision_task_completed.when.called_with(
         "not-a-correct-token"
     ).should.throw(SWFResponseError)
+
 
 @mock_swf
 def test_respond_decision_task_completed_on_close_workflow_execution():
@@ -127,6 +132,7 @@ def test_respond_decision_task_completed_on_close_workflow_execution():
         task_token
     ).should.throw(SWFResponseError)
 
+
 @mock_swf
 def test_respond_decision_task_completed_with_task_already_completed():
     conn = setup_workflow()
@@ -137,6 +143,7 @@ def test_respond_decision_task_completed_with_task_already_completed():
     conn.respond_decision_task_completed.when.called_with(
         task_token
     ).should.throw(SWFResponseError)
+
 
 @mock_swf
 def test_respond_decision_task_completed_with_complete_workflow_execution():
@@ -162,6 +169,7 @@ def test_respond_decision_task_completed_with_complete_workflow_execution():
     ])
     resp["events"][-1]["workflowExecutionCompletedEventAttributes"]["result"].should.equal("foo bar")
 
+
 @mock_swf
 def test_respond_decision_task_completed_with_close_decision_not_last():
     conn = setup_workflow()
@@ -169,13 +177,14 @@ def test_respond_decision_task_completed_with_close_decision_not_last():
     task_token = resp["taskToken"]
 
     decisions = [
-        { "decisionType": "CompleteWorkflowExecution" },
-        { "decisionType": "WeDontCare" },
+        {"decisionType": "CompleteWorkflowExecution"},
+        {"decisionType": "WeDontCare"},
     ]
 
     conn.respond_decision_task_completed.when.called_with(
         task_token, decisions=decisions
     ).should.throw(SWFResponseError, r"Close must be last decision in list")
+
 
 @mock_swf
 def test_respond_decision_task_completed_with_invalid_decision_type():
@@ -184,16 +193,16 @@ def test_respond_decision_task_completed_with_invalid_decision_type():
     task_token = resp["taskToken"]
 
     decisions = [
-        { "decisionType": "BadDecisionType" },
-        { "decisionType": "CompleteWorkflowExecution" },
+        {"decisionType": "BadDecisionType"},
+        {"decisionType": "CompleteWorkflowExecution"},
     ]
 
     conn.respond_decision_task_completed.when.called_with(
-        task_token, decisions=decisions
-        ).should.throw(
+        task_token, decisions=decisions).should.throw(
             SWFResponseError,
             r"Value 'BadDecisionType' at 'decisions.1.member.decisionType'"
-        )
+    )
+
 
 @mock_swf
 def test_respond_decision_task_completed_with_missing_attributes():
@@ -210,11 +219,12 @@ def test_respond_decision_task_completed_with_missing_attributes():
 
     conn.respond_decision_task_completed.when.called_with(
         task_token, decisions=decisions
-        ).should.throw(
-            SWFResponseError,
-            r"Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' " \
-            r"failed to satisfy constraint: Member must not be null"
-        )
+    ).should.throw(
+        SWFResponseError,
+        r"Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' "
+        r"failed to satisfy constraint: Member must not be null"
+    )
+
 
 @mock_swf
 def test_respond_decision_task_completed_with_missing_attributes_totally():
@@ -223,16 +233,17 @@ def test_respond_decision_task_completed_with_missing_attributes_totally():
     task_token = resp["taskToken"]
 
     decisions = [
-        { "decisionType": "StartTimer" },
+        {"decisionType": "StartTimer"},
     ]
 
     conn.respond_decision_task_completed.when.called_with(
         task_token, decisions=decisions
-        ).should.throw(
-            SWFResponseError,
-            r"Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' " \
-            r"failed to satisfy constraint: Member must not be null"
-        )
+    ).should.throw(
+        SWFResponseError,
+        r"Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' "
+        r"failed to satisfy constraint: Member must not be null"
+    )
+
 
 @mock_swf
 def test_respond_decision_task_completed_with_fail_workflow_execution():
@@ -259,6 +270,7 @@ def test_respond_decision_task_completed_with_fail_workflow_execution():
     attrs = resp["events"][-1]["workflowExecutionFailedEventAttributes"]
     attrs["reason"].should.equal("my rules")
     attrs["details"].should.equal("foo")
+
 
 @mock_swf
 @freeze_time("2015-01-01 12:00:00")

@@ -1,6 +1,5 @@
 import boto
 from boto.swf.exceptions import SWFResponseError
-from sure import expect
 
 from moto import mock_swf
 
@@ -18,6 +17,7 @@ def test_register_domain():
     domain["status"].should.equal("REGISTERED")
     domain["description"].should.equal("A test domain")
 
+
 @mock_swf
 def test_register_already_existing_domain():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -26,6 +26,7 @@ def test_register_already_existing_domain():
     conn.register_domain.when.called_with(
         "test-domain", "60", description="A test domain"
     ).should.throw(SWFResponseError)
+
 
 @mock_swf
 def test_register_with_wrong_parameter_type():
@@ -47,6 +48,7 @@ def test_list_domains_order():
     all_domains = conn.list_domains("REGISTERED")
     names = [domain["name"] for domain in all_domains["domainInfos"]]
     names.should.equal(["a-test-domain", "b-test-domain", "c-test-domain"])
+
 
 @mock_swf
 def test_list_domains_reverse_order():
@@ -72,6 +74,7 @@ def test_deprecate_domain():
 
     domain["name"].should.equal("test-domain")
 
+
 @mock_swf
 def test_deprecate_already_deprecated_domain():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -81,6 +84,7 @@ def test_deprecate_already_deprecated_domain():
     conn.deprecate_domain.when.called_with(
         "test-domain"
     ).should.throw(SWFResponseError)
+
 
 @mock_swf
 def test_deprecate_non_existent_domain():
@@ -102,6 +106,7 @@ def test_describe_domain():
     domain["domainInfo"]["description"].should.equal("A test domain")
     domain["domainInfo"]["name"].should.equal("test-domain")
     domain["domainInfo"]["status"].should.equal("REGISTERED")
+
 
 @mock_swf
 def test_describe_non_existent_domain():

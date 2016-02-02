@@ -98,13 +98,13 @@ class SWFDecisionValidationException(SWFClientError):
         for pb in problems:
             if pb["type"] == "null_value":
                 messages.append(
-                    "Value null at '%(where)s' failed to satisfy constraint: "\
+                    "Value null at '%(where)s' failed to satisfy constraint: "
                     "Member must not be null" % pb
                 )
             elif pb["type"] == "bad_decision_type":
                 messages.append(
-                    "Value '%(value)s' at '%(where)s' failed to satisfy constraint: " \
-                    "Member must satisfy enum value set: " \
+                    "Value '%(value)s' at '%(where)s' failed to satisfy constraint: "
+                    "Member must satisfy enum value set: "
                     "[%(possible_values)s]" % pb
                 )
             else:

@@ -92,7 +92,7 @@ class Domain(object):
         if not wfe and raise_if_none:
             if run_id:
                 args = ["execution", "WorkflowExecution=[workflowId={0}, runId={1}]".format(
-                            workflow_id, run_id)]
+                        workflow_id, run_id)]
             else:
                 args = ["execution, workflowId = {0}".format(workflow_id)]
             raise SWFUnknownResourceFault(*args)
@@ -100,7 +100,7 @@ class Domain(object):
         return wfe
 
     def add_to_activity_task_list(self, task_list, obj):
-        if not task_list in self.activity_task_lists:
+        if task_list not in self.activity_task_lists:
             self.activity_task_lists[task_list] = []
         self.activity_task_lists[task_list].append(obj)
 
@@ -112,7 +112,7 @@ class Domain(object):
         return _all
 
     def add_to_decision_task_list(self, task_list, obj):
-        if not task_list in self.decision_task_lists:
+        if task_list not in self.decision_task_lists:
             self.decision_task_lists[task_list] = []
         self.decision_task_lists[task_list].append(obj)
 
