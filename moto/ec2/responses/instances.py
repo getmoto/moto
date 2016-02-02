@@ -185,7 +185,7 @@ class InstanceResponse(BaseResponse):
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
 
-EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <reservationId>{{ reservation.id }}</reservationId>
   <ownerId>111122223333</ownerId>
@@ -460,7 +460,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns='http://ec2.amazona
 </DescribeInstancesResponse>"""
 
 EC2_TERMINATE_INSTANCES = """
-<TerminateInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<TerminateInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instancesSet>
     {% for instance in instances %}
@@ -480,7 +480,7 @@ EC2_TERMINATE_INSTANCES = """
 </TerminateInstancesResponse>"""
 
 EC2_STOP_INSTANCES = """
-<StopInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<StopInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instancesSet>
     {% for instance in instances %}
@@ -500,7 +500,7 @@ EC2_STOP_INSTANCES = """
 </StopInstancesResponse>"""
 
 EC2_START_INSTANCES = """
-<StartInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<StartInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instancesSet>
     {% for instance in instances %}
@@ -519,12 +519,12 @@ EC2_START_INSTANCES = """
   </instancesSet>
 </StartInstancesResponse>"""
 
-EC2_REBOOT_INSTANCES = """<RebootInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+EC2_REBOOT_INSTANCES = """<RebootInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </RebootInstancesResponse>"""
 
-EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
@@ -532,7 +532,7 @@ EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="h
   </{{ attribute }}>
 </DescribeInstanceAttributeResponse>"""
 
-EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
@@ -544,13 +544,13 @@ EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE = """<DescribeInstanceAttributeResponse
   </{{ attribute }}>
 </DescribeInstanceAttributeResponse>"""
 
-EC2_MODIFY_INSTANCE_ATTRIBUTE = """<ModifyInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+EC2_MODIFY_INSTANCE_ATTRIBUTE = """<ModifyInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </ModifyInstanceAttributeResponse>"""
 
 EC2_INSTANCE_STATUS = """<?xml version="1.0" encoding="UTF-8"?>
-<DescribeInstanceStatusResponse xmlns="http://ec2.amazonaws.com/doc/2014-05-01/">
+<DescribeInstanceStatusResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
     <instanceStatusSet>
       {% for instance in instances %}

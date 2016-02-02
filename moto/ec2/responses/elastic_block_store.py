@@ -108,7 +108,7 @@ class ElasticBlockStore(BaseResponse):
         raise NotImplementedError('ElasticBlockStore.reset_snapshot_attribute is not yet implemented')
 
 
-CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <volumeId>{{ volume.id }}</volumeId>
   <size>{{ volume.size }}</size>
@@ -123,7 +123,7 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   <volumeType>standard</volumeType>
 </CreateVolumeResponse>"""
 
-DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <volumeSet>
       {% for volume in volumes %}
@@ -166,12 +166,12 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
    </volumeSet>
 </DescribeVolumesResponse>"""
 
-DELETE_VOLUME_RESPONSE = """<DeleteVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DELETE_VOLUME_RESPONSE = """<DeleteVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </DeleteVolumeResponse>"""
 
-ATTACHED_VOLUME_RESPONSE = """<AttachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+ATTACHED_VOLUME_RESPONSE = """<AttachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <volumeId>{{ attachment.volume.id }}</volumeId>
   <instanceId>{{ attachment.instance.id }}</instanceId>
@@ -180,7 +180,7 @@ ATTACHED_VOLUME_RESPONSE = """<AttachVolumeResponse xmlns="http://ec2.amazonaws.
   <attachTime>{{attachment.attach_time}}</attachTime>
 </AttachVolumeResponse>"""
 
-DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <volumeId>{{ attachment.volume.id }}</volumeId>
    <instanceId>{{ attachment.instance.id }}</instanceId>
@@ -189,7 +189,7 @@ DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.c
    <attachTime>2013-10-04T17:38:53.000Z</attachTime>
 </DetachVolumeResponse>"""
 
-CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <snapshotId>{{ snapshot.id }}</snapshotId>
   <volumeId>{{ snapshot.volume.id }}</volumeId>
@@ -201,7 +201,7 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   <description>{{ snapshot.description }}</description>
 </CreateSnapshotResponse>"""
 
-DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <snapshotSet>
       {% for snapshot in snapshots %}
@@ -229,13 +229,13 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
    </snapshotSet>
 </DescribeSnapshotsResponse>"""
 
-DELETE_SNAPSHOT_RESPONSE = """<DeleteSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DELETE_SNAPSHOT_RESPONSE = """<DeleteSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </DeleteSnapshotResponse>"""
 
 DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE = """
-<DescribeSnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<DescribeSnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>a9540c9f-161a-45d8-9cc1-1182b89ad69f</requestId>
     <snapshotId>snap-a0332ee0</snapshotId>
    {% if not groups %}
@@ -254,7 +254,7 @@ DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE = """
 """
 
 MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE = """
-<ModifySnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<ModifySnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>666d2944-9276-4d6a-be12-1f4ada972fd8</requestId>
     <return>true</return>
 </ModifySnapshotAttributeResponse>

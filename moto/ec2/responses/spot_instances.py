@@ -72,7 +72,7 @@ class SpotInstances(BaseResponse):
         return template.render(requests=requests)
 
 
-REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-06-15/">
+REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <spotInstanceRequestSet>
     {% for request in requests %}
@@ -127,7 +127,7 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
  </spotInstanceRequestSet>
 </RequestSpotInstancesResponse>"""
 
-DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2013-06-15/">
+DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <spotInstanceRequestSet>
     {% for request in requests %}
@@ -206,7 +206,7 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
   </spotInstanceRequestSet>
 </DescribeSpotInstanceRequestsResponse>"""
 
-CANCEL_SPOT_INSTANCES_TEMPLATE = """<CancelSpotInstanceRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2013-06-15/">
+CANCEL_SPOT_INSTANCES_TEMPLATE = """<CancelSpotInstanceRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <spotInstanceRequestSet>
     {% for request in requests %}

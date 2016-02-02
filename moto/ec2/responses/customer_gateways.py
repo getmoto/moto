@@ -28,7 +28,7 @@ class CustomerGateways(BaseResponse):
 
 
 CREATE_CUSTOMER_GATEWAY_RESPONSE = """
-<CreateCustomerGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2014-10-01/">
+<CreateCustomerGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <customerGateway>
       <customerGatewayId>{{ customer_gateway.id }}</customerGatewayId>
@@ -50,7 +50,7 @@ CREATE_CUSTOMER_GATEWAY_RESPONSE = """
 </CreateCustomerGatewayResponse>"""
 
 DELETE_CUSTOMER_GATEWAY_RESPONSE = """
-<DeleteCustomerGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2014-10-01/">
+<DeleteCustomerGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <return>{{ delete_status }}</return>
 </DeleteCustomerGatewayResponse>"""
