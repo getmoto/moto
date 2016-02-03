@@ -44,7 +44,12 @@ class ElasticIPAddresses(BaseResponse):
         template = self.response_template(DESCRIBE_ADDRESS_RESPONSE)
 
         if "Filter.1.Name" in self.querystring:
-            raise NotImplementedError("Filtering not supported in describe_address.")
+            filter_by = sequence_from_querystring("Filter.1.Name", self.querystring)[0]
+            filter_value = sequence_from_querystring("Filter.1.Value", self.querystring)
+            if filter_by == 'instance-id':
+                addresses = filter(lambda x: x.instance.id == filter_value[0], self.ec2_backend.describe_addresses())
+            else:
+                raise NotImplementedError("Filtering not supported in describe_address.")
         elif "PublicIp.1" in self.querystring:
             public_ips = sequence_from_querystring("PublicIp", self.querystring)
             addresses = self.ec2_backend.address_by_ip(public_ips)
