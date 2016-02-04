@@ -146,6 +146,27 @@ class WorkflowExecution(object):
             hsh["latestActivityTaskTimestamp"] = self.latest_activity_task_timestamp
         return hsh
 
+    def to_list_dict(self):
+        hsh = {
+            'execution': {
+                'workflowId': self.workflow_id,
+                'runId': self.run_id,
+            },
+            'workflowType': self.workflow_type.to_short_dict(),
+            'startTimestamp': self.start_timestamp,
+            'executionStatus': self.execution_status,
+            'cancelRequested': self.cancel_requested,
+        }
+        if self.tag_list:
+            hsh['tagList'] = self.tag_list
+        if self.parent:
+            hsh['parent'] = self.parent
+        if self.close_status:
+            hsh['closeStatus'] = self.close_status
+        if self.close_timestamp:
+            hsh['closeTimestamp'] = self.close_timestamp
+        return hsh
+
     def _process_timeouts(self):
         """
         SWF timeouts can happen on different objects (workflow executions,

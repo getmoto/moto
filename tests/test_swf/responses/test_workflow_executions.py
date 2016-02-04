@@ -1,10 +1,13 @@
 import boto
 from boto.swf.exceptions import SWFResponseError
+from datetime import datetime, timedelta
 
+import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 
 from moto import mock_swf
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 
 # Utils
@@ -103,6 +106,50 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution():
     conn.get_workflow_execution_history.when.called_with(
         "test-domain", "wrong-run-id", "wrong-workflow-id"
     ).should.throw(SWFResponseError)
+
+
+# ListOpenWorkflowExecutions endpoint
+@mock_swf
+def test_list_open_workflow_executions():
+    conn = setup_swf_environment()
+    conn.start_workflow_execution(
+        'test-domain', 'uid-abcd1234', 'test-workflow', 'v1.0'
+    )
+
+    yesterday = datetime.now() - timedelta(days=1)
+    oldest_date = iso_8601_datetime_with_milliseconds(yesterday)
+    response = conn.list_open_workflow_executions('test-domain',
+                                                  oldest_date,
+                                                  workflow_id='test-workflow')
+    execution_infos = response['executionInfos']
+    len(execution_infos).should.equal(1)
+    open_workflow = execution_infos[0]
+    open_workflow['workflowType'].should.equal({'version': 'v1.0',
+                                                'name': 'test-workflow'})
+    open_workflow.should.contain('startTimestamp')
+    open_workflow['execution']['workflowId'].should.equal('uid-abcd1234')
+    open_workflow['execution'].should.contain('runId')
+    open_workflow['cancelRequested'].should.be(False)
+    open_workflow['executionStatus'].should.equal('OPEN')
+
+
+@mock_swf
+def test_list_open_workflow_executions_does_not_show_closed():
+    conn = setup_swf_environment()
+    run_id = conn.start_workflow_execution(
+        'test-domain', 'uid-abcd1234', 'test-workflow', 'v1.0'
+    )['runId']
+    conn.terminate_workflow_execution('test-domain', 'uid-abcd1234',
+                                      details='some details',
+                                      reason='a more complete reason',
+                                      run_id=run_id)
+
+    yesterday = datetime.now() - timedelta(days=1)
+    oldest_date = iso_8601_datetime_with_milliseconds(yesterday)
+    response = conn.list_open_workflow_executions('test-domain',
+                                                  oldest_date,
+                                                  workflow_id='test-workflow')
+    response['executionInfos'].should.be.empty
 
 
 # TerminateWorkflowExecution endpoint

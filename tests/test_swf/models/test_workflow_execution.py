@@ -1,4 +1,5 @@
 from freezegun import freeze_time
+import sure  # noqa
 
 from moto.swf.models import (
     ActivityType,
@@ -139,6 +140,26 @@ def test_workflow_execution_full_dict_representation():
         "taskList": {"name": "queue"},
         "taskStartToCloseTimeout": "300",
     })
+
+
+def test_workflow_execution_list_dict_representation():
+    domain = get_basic_domain()
+    wf_type = WorkflowType(
+        'test-workflow', 'v1.0',
+        task_list='queue', default_child_policy='ABANDON',
+        default_execution_start_to_close_timeout='300',
+        default_task_start_to_close_timeout='300',
+    )
+    wfe = WorkflowExecution(domain, wf_type, 'ab1234')
+
+    ld = wfe.to_list_dict()
+    ld['workflowType']['version'].should.equal('v1.0')
+    ld['workflowType']['name'].should.equal('test-workflow')
+    ld['executionStatus'].should.equal('OPEN')
+    ld['execution']['workflowId'].should.equal('ab1234')
+    ld['execution'].should.contain('runId')
+    ld['cancelRequested'].should.be.false
+    ld.should.contain('startTimestamp')
 
 
 def test_workflow_execution_schedule_decision_task():

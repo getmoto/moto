@@ -61,6 +61,21 @@ class SWFBackend(BaseBackend):
             domains = reversed(domains)
         return domains
 
+    def list_open_workflow_executions(self, domain_name, start_time_filter,
+                                      maximum_page_size, reverse_order,
+                                      **kwargs):
+        self._process_timeouts()
+        domain = self._get_domain(domain_name)
+        if domain.status == "DEPRECATED":
+            raise SWFDomainDeprecatedFault(domain_name)
+        open_wfes = [
+            wfe for wfe in domain.workflow_executions
+            if wfe.execution_status == 'OPEN'
+        ]
+        if reverse_order:
+            open_wfes = reversed(open_wfes)
+        return open_wfes[0:maximum_page_size]
+
     def register_domain(self, name, workflow_execution_retention_period_in_days,
                         description=None):
         if self._get_domain(name, ignore_empty=True):
