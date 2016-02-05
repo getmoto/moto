@@ -7,7 +7,7 @@ import sure  # noqa
 import tests.backport_assert_raises  # noqa
 
 from moto import mock_swf
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import unix_time
 
 
 # Utils
@@ -126,7 +126,7 @@ def test_list_open_workflow_executions():
                                       run_id=run_id)
 
     yesterday = datetime.now() - timedelta(days=1)
-    oldest_date = iso_8601_datetime_with_milliseconds(yesterday)
+    oldest_date = unix_time(yesterday)
     response = conn.list_open_workflow_executions('test-domain',
                                                   oldest_date,
                                                   workflow_id='test-workflow')
@@ -160,7 +160,7 @@ def test_list_closed_workflow_executions():
                                       run_id=run_id)
 
     yesterday = datetime.now() - timedelta(days=1)
-    oldest_date = iso_8601_datetime_with_milliseconds(yesterday)
+    oldest_date = unix_time(yesterday)
     response = conn.list_closed_workflow_executions(
         'test-domain',
         start_oldest_date=oldest_date,

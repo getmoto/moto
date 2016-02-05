@@ -22,6 +22,10 @@ class SWFResponse(BaseResponse):
         if not isinstance(parameter, int):
             raise SWFSerializationException(parameter)
 
+    def _check_float(self, parameter):
+        if not isinstance(parameter, float):
+            raise SWFSerializationException(parameter)
+
     def _check_none_or_string(self, parameter):
         if parameter is not None:
             self._check_string(parameter)
@@ -120,13 +124,13 @@ class SWFResponse(BaseResponse):
         if start_time_filter is None and close_time_filter is None:
             raise SWFValidationException('Must specify time filter')
         if start_time_filter:
-            self._check_int(start_time_filter['oldestDate'])
+            self._check_float(start_time_filter['oldestDate'])
             if 'latestDate' in start_time_filter:
-                self._check_int(start_time_filter['latestDate'])
+                self._check_float(start_time_filter['latestDate'])
         if close_time_filter:
-            self._check_int(close_time_filter['oldestDate'])
+            self._check_float(close_time_filter['oldestDate'])
             if 'latestDate' in close_time_filter:
-                self._check_int(close_time_filter['latestDate'])
+                self._check_float(close_time_filter['latestDate'])
         if tag_filter:
             self._check_string(tag_filter['tag'])
         if type_filter:
@@ -168,9 +172,9 @@ class SWFResponse(BaseResponse):
         self._check_exclusivity(executionFilter=execution_filter,
                                 typeFilter=type_filter,
                                 tagFilter=tag_filter)
-        self._check_int(start_time_filter['oldestDate'])
+        self._check_float(start_time_filter['oldestDate'])
         if 'latestDate' in start_time_filter:
-            self._check_int(start_time_filter['latestDate'])
+            self._check_float(start_time_filter['latestDate'])
         if tag_filter:
             self._check_string(tag_filter['tag'])
         if type_filter:
