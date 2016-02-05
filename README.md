@@ -103,6 +103,8 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |------------------------------------------------------------------------------|
 | STS                   | @mock_sts        | core endpoints done               |
 |------------------------------------------------------------------------------|
+| SWF                   | @mock_sfw        | basic endpoints done              |
+|------------------------------------------------------------------------------|
 ```
 
 ### Another Example
