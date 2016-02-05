@@ -398,8 +398,6 @@ class SWFResponse(BaseResponse):
         return json.dumps({"count": count, "truncated": False})
 
     def respond_decision_task_completed(self):
-
-        import ipdb; ipdb.set_trace()
         task_token = self._params["taskToken"]
         execution_context = self._params.get("executionContext")
         decisions = self._params.get("decisions")
