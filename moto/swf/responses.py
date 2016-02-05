@@ -97,6 +97,62 @@ class SWFResponse(BaseResponse):
             "domainInfos": [domain.to_short_dict() for domain in domains]
         })
 
+    def list_closed_workflow_executions(self):
+        domain = self._params['domain']
+        start_time_filter = self._params.get('startTimeFilter', None)
+        close_time_filter = self._params.get('closeTimeFilter', None)
+        execution_filter = self._params.get('executionFilter', None)
+        workflow_id = execution_filter['workflowId'] if execution_filter else None
+        maximum_page_size = self._params.get('maximumPageSize', 1000)
+        reverse_order = self._params.get('reverseOrder', None)
+        tag_filter = self._params.get('tagFilter', None)
+        type_filter = self._params.get('typeFilter', None)
+        close_status_filter = self._params.get('closeStatusFilter', None)
+
+        self._check_string(domain)
+        self._check_none_or_string(workflow_id)
+        self._check_exclusivity(executionFilter=execution_filter,
+                                typeFilter=type_filter,
+                                tagFilter=tag_filter,
+                                closeStatusFilter=close_status_filter)
+        self._check_exclusivity(startTimeFilter=start_time_filter,
+                                closeTimeFilter=close_time_filter)
+        if start_time_filter is None and close_time_filter is None:
+            raise SWFValidationException('Must specify time filter')
+        if start_time_filter:
+            self._check_int(start_time_filter['oldestDate'])
+            if 'latestDate' in start_time_filter:
+                self._check_int(start_time_filter['latestDate'])
+        if close_time_filter:
+            self._check_int(close_time_filter['oldestDate'])
+            if 'latestDate' in close_time_filter:
+                self._check_int(close_time_filter['latestDate'])
+        if tag_filter:
+            self._check_string(tag_filter['tag'])
+        if type_filter:
+            self._check_string(type_filter['name'])
+            self._check_string(type_filter['version'])
+        if close_status_filter:
+            self._check_string(close_status_filter['status'])
+        self._check_int(maximum_page_size)
+
+        workflow_executions = self.swf_backend.list_closed_workflow_executions(
+            domain_name=domain,
+            start_time_filter=start_time_filter,
+            close_time_filter=close_time_filter,
+            execution_filter=execution_filter,
+            tag_filter=tag_filter,
+            type_filter=type_filter,
+            maximum_page_size=maximum_page_size,
+            reverse_order=reverse_order,
+            workflow_id=workflow_id,
+            close_status_filter=close_status_filter
+        )
+
+        return json.dumps({
+            'executionInfos': [wfe.to_list_dict() for wfe in workflow_executions]
+        })
+
     def list_open_workflow_executions(self):
         domain = self._params['domain']
         start_time_filter = self._params['startTimeFilter']
@@ -112,6 +168,9 @@ class SWFResponse(BaseResponse):
         self._check_exclusivity(executionFilter=execution_filter,
                                 typeFilter=type_filter,
                                 tagFilter=tag_filter)
+        self._check_int(start_time_filter['oldestDate'])
+        if 'latestDate' in start_time_filter:
+            self._check_int(start_time_filter['latestDate'])
         if tag_filter:
             self._check_string(tag_filter['tag'])
         if type_filter:
@@ -339,6 +398,8 @@ class SWFResponse(BaseResponse):
         return json.dumps({"count": count, "truncated": False})
 
     def respond_decision_task_completed(self):
+
+        import ipdb; ipdb.set_trace()
         task_token = self._params["taskToken"]
         execution_context = self._params.get("executionContext")
         decisions = self._params.get("decisions")

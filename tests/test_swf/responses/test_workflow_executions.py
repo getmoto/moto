@@ -112,9 +112,18 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution():
 @mock_swf
 def test_list_open_workflow_executions():
     conn = setup_swf_environment()
+    # One open workflow execution
     conn.start_workflow_execution(
         'test-domain', 'uid-abcd1234', 'test-workflow', 'v1.0'
     )
+    # One closed workflow execution to make sure it isn't displayed
+    run_id = conn.start_workflow_execution(
+        'test-domain', 'uid-abcd12345', 'test-workflow', 'v1.0'
+    )['runId']
+    conn.terminate_workflow_execution('test-domain', 'uid-abcd12345',
+                                      details='some details',
+                                      reason='a more complete reason',
+                                      run_id=run_id)
 
     yesterday = datetime.now() - timedelta(days=1)
     oldest_date = iso_8601_datetime_with_milliseconds(yesterday)
@@ -133,23 +142,39 @@ def test_list_open_workflow_executions():
     open_workflow['executionStatus'].should.equal('OPEN')
 
 
+# ListClosedWorkflowExecutions endpoint
 @mock_swf
-def test_list_open_workflow_executions_does_not_show_closed():
+def test_list_closed_workflow_executions():
     conn = setup_swf_environment()
-    run_id = conn.start_workflow_execution(
+    # Leave one workflow execution open to make sure it isn't displayed
+    conn.start_workflow_execution(
         'test-domain', 'uid-abcd1234', 'test-workflow', 'v1.0'
+    )
+    # One closed workflow execution
+    run_id = conn.start_workflow_execution(
+        'test-domain', 'uid-abcd12345', 'test-workflow', 'v1.0'
     )['runId']
-    conn.terminate_workflow_execution('test-domain', 'uid-abcd1234',
+    conn.terminate_workflow_execution('test-domain', 'uid-abcd12345',
                                       details='some details',
                                       reason='a more complete reason',
                                       run_id=run_id)
 
     yesterday = datetime.now() - timedelta(days=1)
     oldest_date = iso_8601_datetime_with_milliseconds(yesterday)
-    response = conn.list_open_workflow_executions('test-domain',
-                                                  oldest_date,
-                                                  workflow_id='test-workflow')
-    response['executionInfos'].should.be.empty
+    response = conn.list_closed_workflow_executions(
+        'test-domain',
+        start_oldest_date=oldest_date,
+        workflow_id='test-workflow')
+    execution_infos = response['executionInfos']
+    len(execution_infos).should.equal(1)
+    open_workflow = execution_infos[0]
+    open_workflow['workflowType'].should.equal({'version': 'v1.0',
+                                                'name': 'test-workflow'})
+    open_workflow.should.contain('startTimestamp')
+    open_workflow['execution']['workflowId'].should.equal('uid-abcd12345')
+    open_workflow['execution'].should.contain('runId')
+    open_workflow['cancelRequested'].should.be(False)
+    open_workflow['executionStatus'].should.equal('CLOSED')
 
 
 # TerminateWorkflowExecution endpoint

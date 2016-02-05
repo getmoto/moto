@@ -57,7 +57,7 @@ class WorkflowExecution(object):
         self.latest_execution_context = None
         self.parent = None
         self.start_timestamp = None
-        self.tag_list = []  # TODO
+        self.tag_list = kwargs.get("tag_list", None) or []
         self.timeout_type = None
         self.workflow_type = workflow_type
         # args processing
@@ -254,6 +254,7 @@ class WorkflowExecution(object):
             task_list=self.task_list,
             task_start_to_close_timeout=self.task_start_to_close_timeout,
             workflow_type=self.workflow_type,
+            input=self.input
         )
         self.schedule_decision_task()
 

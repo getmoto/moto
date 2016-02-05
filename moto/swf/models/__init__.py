@@ -61,9 +61,8 @@ class SWFBackend(BaseBackend):
             domains = reversed(domains)
         return domains
 
-    def list_open_workflow_executions(self, domain_name, start_time_filter,
-                                      maximum_page_size, reverse_order,
-                                      **kwargs):
+    def list_open_workflow_executions(self, domain_name, maximum_page_size,
+                                      tag_filter, reverse_order, **kwargs):
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         if domain.status == "DEPRECATED":
@@ -72,9 +71,37 @@ class SWFBackend(BaseBackend):
             wfe for wfe in domain.workflow_executions
             if wfe.execution_status == 'OPEN'
         ]
+
+        if tag_filter:
+            for open_wfe in open_wfes:
+                if tag_filter['tag'] not in open_wfe.tag_list:
+                    open_wfes.remove(open_wfe)
         if reverse_order:
             open_wfes = reversed(open_wfes)
         return open_wfes[0:maximum_page_size]
+
+    def list_closed_workflow_executions(self, domain_name, close_time_filter,
+                                        tag_filter, close_status_filter, maximum_page_size, reverse_order,
+                                        **kwargs):
+        self._process_timeouts()
+        domain = self._get_domain(domain_name)
+        if domain.status == "DEPRECATED":
+            raise SWFDomainDeprecatedFault(domain_name)
+        closed_wfes = [
+            wfe for wfe in domain.workflow_executions
+            if wfe.execution_status == 'CLOSED'
+        ]
+        if tag_filter:
+            for closed_wfe in closed_wfes:
+                if tag_filter['tag'] not in closed_wfe.tag_list:
+                    closed_wfes.remove(closed_wfe)
+        if close_status_filter:
+            for closed_wfe in closed_wfes:
+                if close_status_filter != closed_wfe.close_status:
+                    closed_wfes.remove(closed_wfe)
+        if reverse_order:
+            closed_wfes = reversed(closed_wfes)
+        return closed_wfes[0:maximum_page_size]
 
     def register_domain(self, name, workflow_execution_retention_period_in_days,
                         description=None):
@@ -123,13 +150,13 @@ class SWFBackend(BaseBackend):
 
     def start_workflow_execution(self, domain_name, workflow_id,
                                  workflow_name, workflow_version,
-                                 tag_list=None, **kwargs):
+                                 tag_list=None, input=None, **kwargs):
         domain = self._get_domain(domain_name)
         wf_type = domain.get_type("workflow", workflow_name, workflow_version)
         if wf_type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(wf_type)
         wfe = WorkflowExecution(domain, wf_type, workflow_id,
-                                tag_list=tag_list, **kwargs)
+                                tag_list=tag_list, input=input, **kwargs)
         domain.add_workflow_execution(wfe)
         wfe.start()
 
