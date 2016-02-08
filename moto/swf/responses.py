@@ -46,7 +46,7 @@ class SWFResponse(BaseResponse):
                 raise SWFSerializationException(parameter)
 
     def _check_exclusivity(self, **kwargs):
-        if kwargs.values().count(None) >= len(kwargs) - 1:
+        if list(kwargs.values()).count(None) >= len(kwargs) - 1:
             return
         keys = kwargs.keys()
         if len(keys) == 2:
