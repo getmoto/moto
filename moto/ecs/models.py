@@ -117,6 +117,20 @@ class EC2ContainerServiceBackend(BaseBackend):
         """
         return [cluster.arn for cluster in self.clusters.values()]
 
+    def describe_clusters(self, list_clusters_name=None):
+        list_clusters = []
+        if list_clusters_name is None:
+            if 'default' in self.clusters:
+                list_clusters.append(self.clusters['default'].response_object)
+        else:
+            for cluster in list_clusters_name:
+                cluster_name = cluster.split('/')[-1]
+                if cluster_name in self.clusters:
+                    list_clusters.append(self.clusters[cluster_name].response_object)
+                else:
+                    raise Exception("{0} is not a cluster".format(cluster_name))
+        return list_clusters
+
     def delete_cluster(self, cluster_str):
         cluster_name = cluster_str.split('/')[-1]
         if cluster_name in self.clusters:

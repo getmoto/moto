@@ -35,6 +35,14 @@ class EC2ContainerServiceResponse(BaseResponse):
             'nextToken': str(uuid.uuid1())
         })
 
+    def describe_clusters(self):
+        list_clusters_name = self._get_param('clusters')
+        clusters = self.ecs_backend.describe_clusters(list_clusters_name)
+        return json.dumps({
+            'clusters': clusters,
+            'failures': []
+        })
+
     def delete_cluster(self):
         cluster_str = self._get_param('cluster')
         cluster = self.ecs_backend.delete_cluster(cluster_str)
