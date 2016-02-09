@@ -23,6 +23,8 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def create_cluster(self):
         cluster_name = self._get_param('clusterName')
+        if cluster_name is None:
+            cluster_name = 'default'
         cluster = self.ecs_backend.create_cluster(cluster_name)
         return json.dumps({
             'cluster': cluster.response_object
