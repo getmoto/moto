@@ -312,6 +312,7 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self.user_data = user_data
         self.security_groups = security_groups
         self.instance_type = kwargs.get("instance_type", "m1.small")
+        placement = kwargs.get("placement", None)
         self.vpc_id = None
         self.subnet_id = kwargs.get("subnet_id")
         in_ec2_classic = not bool(self.subnet_id)
@@ -343,6 +344,8 @@ class Instance(BotoInstance, TaggedEC2Resource):
             subnet = ec2_backend.get_subnet(self.subnet_id)
             self.vpc_id = subnet.vpc_id
             self._placement.zone = subnet.availability_zone
+        elif placement:
+            self._placement.zone = placement
         else:
             self._placement.zone = ec2_backend.region_name + 'a'
 

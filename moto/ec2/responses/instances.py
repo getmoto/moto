@@ -26,6 +26,7 @@ class InstanceResponse(BaseResponse):
         security_group_ids = self._get_multi_param('SecurityGroupId')
         nics = dict_from_querystring("NetworkInterface", self.querystring)
         instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
+        placement = self.querystring.get("Placement.AvailabilityZone", [None])[0]
         subnet_id = self.querystring.get("SubnetId", [None])[0]
         private_ip = self.querystring.get("PrivateIpAddress", [None])[0]
         associate_public_ip = self.querystring.get("AssociatePublicIpAddress", [None])[0]
@@ -33,7 +34,7 @@ class InstanceResponse(BaseResponse):
 
         new_reservation = self.ec2_backend.add_instances(
             image_id, min_count, user_data, security_group_names,
-            instance_type=instance_type, subnet_id=subnet_id,
+            instance_type=instance_type, placement=placement, subnet_id=subnet_id,
             key_name=key_name, security_group_ids=security_group_ids,
             nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip)
 
