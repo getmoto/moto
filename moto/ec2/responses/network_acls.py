@@ -66,7 +66,7 @@ class NetworkACLs(BaseResponse):
 
 
 CREATE_NETWORK_ACL_RESPONSE = """
-<CreateNetworkAclResponse xmlns="http://ec2.amazonaws.com/doc/2014-09-01/">
+<CreateNetworkAclResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <networkAcl>
       <networkAclId>{{ network_acl.id }}</networkAclId>
@@ -89,7 +89,7 @@ CREATE_NETWORK_ACL_RESPONSE = """
 """
 
 DESCRIBE_NETWORK_ACL_RESPONSE = """
-<DescribeNetworkAclsResponse xmlns="http://ec2.amazonaws.com/doc/2014-09-01/">
+<DescribeNetworkAclsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <networkAclSet>
    {% for network_acl in network_acls %}
@@ -140,21 +140,21 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
 """
 
 CREATE_NETWORK_ACL_ENTRY_RESPONSE = """
-<CreateNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2014-09-01/">
+<CreateNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </CreateNetworkAclEntryResponse>
 """
 
 REPLACE_NETWORK_ACL_ASSOCIATION = """
-<ReplaceNetworkAclAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2014-09-01/">
+<ReplaceNetworkAclAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <newAssociationId>{{ association.new_association_id }}</newAssociationId>
 </ReplaceNetworkAclAssociationResponse>
 """
 
 DELETE_NETWORK_ACL_ASSOCIATION = """
-<DeleteNetworkAclResponse xmlns="http://ec2.amazonaws.com/doc/2014-10-01/">
+<DeleteNetworkAclResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </DeleteNetworkAclResponse>

@@ -64,18 +64,18 @@ class AmisResponse(BaseResponse):
         raise NotImplementedError('AMIs.reset_image_attribute is not yet implemented')
 
 
-CREATE_IMAGE_RESPONSE = """<CreateImageResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+CREATE_IMAGE_RESPONSE = """<CreateImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <imageId>{{ image.id }}</imageId>
 </CreateImageResponse>"""
 
-COPY_IMAGE_RESPONSE = """<CopyImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+COPY_IMAGE_RESPONSE = """<CopyImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>60bc441d-fa2c-494d-b155-5d6a3EXAMPLE</requestId>
    <imageId>{{ image.id }}</imageId>
 </CopyImageResponse>"""
 
 # TODO almost all of these params should actually be templated based on the ec2 image
-DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <imagesSet>
     {% for image in images %}
@@ -125,7 +125,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
   </imagesSet>
 </DescribeImagesResponse>"""
 
-DESCRIBE_IMAGE_RESPONSE = """<DescribeImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DESCRIBE_IMAGE_RESPONSE = """<DescribeImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <imageId>{{ image.id }}</imageId>
    <{{ key }}>
@@ -133,13 +133,13 @@ DESCRIBE_IMAGE_RESPONSE = """<DescribeImageAttributeResponse xmlns="http://ec2.a
    </{{key }}>
 </DescribeImageAttributeResponse>"""
 
-DEREGISTER_IMAGE_RESPONSE = """<DeregisterImageResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DEREGISTER_IMAGE_RESPONSE = """<DeregisterImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>{{ success }}</return>
 </DeregisterImageResponse>"""
 
 DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE = """
-<DescribeImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-08-15/">
+<DescribeImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <imageId>{{ ami_id }}</imageId>
    {% if not groups and not users %}
@@ -165,7 +165,7 @@ DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE = """
 </DescribeImageAttributeResponse>"""
 
 MODIFY_IMAGE_ATTRIBUTE_RESPONSE = """
-<ModifyImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-08-15/">
+<ModifyImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <return>true</return>
 </ModifyImageAttributeResponse>
 """
