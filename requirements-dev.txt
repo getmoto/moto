@@ -5,5 +5,5 @@ sure>=1.2.24
 coverage
 freezegun
 flask
-boto3
+boto3>=1.2.3
 six

@@ -6,6 +6,7 @@ __title__ = 'moto'
 __version__ = '0.4.21'
 
 from .autoscaling import mock_autoscaling  # flake8: noqa
+from .awslambda import mock_lambda  # flake8: noqa
 from .cloudformation import mock_cloudformation  # flake8: noqa
 from .cloudwatch import mock_cloudwatch  # flake8: noqa
 from .datapipeline import mock_datapipeline  # flake8: noqa
