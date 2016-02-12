@@ -8,16 +8,21 @@ from moto.core import BaseBackend
 class LambdaFunction(object):
 
     def __init__(self, spec):
-        self.function_name = spec['FunctionName']
-        self.run_time = spec['Runtime']
-        self.role = spec['Role']
-        self.handler = spec['Handler']
-        self.description = spec['Description']
-        self.timeout = spec['Timeout']
-        self.memory_size = spec['MemorySize']
-        self.vpc_config = spec.get('VpcConfig', {})
+        # required
         self.code = spec['Code']
+        self.function_name = spec['FunctionName']
+        self.handler = spec['Handler']
+        self.role = spec['Role']
+        self.run_time = spec['Runtime']
 
+        # optional
+        self.description = spec.get('Description', '')
+        self.memory_size = spec.get('MemorySize', 128)
+        self.publish = spec.get('Publish', False)
+        self.timeout = spec.get('Timeout', 3)
+        self.vpc_config = spec.get('VpcConfig', {})
+
+        # auto-generated
         self.version = '$LATEST'
         self.last_modified = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         self.code_size = 210  # hello world function
@@ -52,6 +57,28 @@ class LambdaFunction(object):
             },
             "Configuration": self.get_configuration(),
         }
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        backend = lambda_backends[region_name]
+        fn = backend.create_function({
+            # required
+            'Code': properties['Code'],
+            'FunctionName': resource_name,
+            'Handler': properties['Handler'],
+            'Role': properties['Role'],
+            'Runtime': properties['Runtime'],
+
+            # optional
+            'Description': properties.get('Description', ''),
+            'MemorySize': properties.get('MemorySize', 128),
+            'Publish': properties.get('Publish', False),
+            'Timeout': properties.get('Timeout', 3),
+            'VpcConfig': properties.get('VpcConfig', {}),
+        })
+        return fn
 
 
 class LambdaBackend(BaseBackend):

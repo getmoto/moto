@@ -13,6 +13,7 @@ import boto.redshift
 import boto.sns
 import boto.sqs
 import boto.vpc
+import boto3
 import sure  # noqa
 
 from moto import (
@@ -22,6 +23,7 @@ from moto import (
     mock_ec2,
     mock_elb,
     mock_iam,
+    mock_lambda,
     mock_rds,
     mock_redshift,
     mock_route53,
@@ -1478,3 +1480,49 @@ def test_datapipeline():
     stack_resources = cf_conn.list_stack_resources(stack_id)
     stack_resources.should.have.length_of(1)
     stack_resources[0].physical_resource_id.should.equal(data_pipelines['pipelineIdList'][0]['id'])
+
+
+@mock_cloudformation
+@mock_lambda
+def test_lambda_function():
+    conn = boto3.client('lambda', 'us-east-1')
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "lambdaTest": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {
+                        "ZipFile": {"Fn::Join": [
+                            "\n",
+                            """
+                            exports.handler = function(event, context) {
+                                context.succeed();
+                            }
+                            """.splitlines()
+                        ]}
+                    },
+                    "Handler": "index.handler",
+                    "Description": "Test function",
+                    "MemorySize": 128,
+                    "Role": "test-role",
+                    "Runtime": "nodejs",
+                }
+            },
+        }
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto.cloudformation.connect_to_region("us-east-1")
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    result = conn.list_functions()
+    result['Functions'].should.have.length_of(1)
+    result['Functions'][0]['Description'].should.equal('Test function')
+    result['Functions'][0]['Handler'].should.equal('index.handler')
+    result['Functions'][0]['MemorySize'].should.equal(128)
+    result['Functions'][0]['Role'].should.equal('test-role')
+    result['Functions'][0]['Runtime'].should.equal('nodejs')

@@ -4,6 +4,7 @@ import functools
 import logging
 
 from moto.autoscaling import models as autoscaling_models
+from moto.awslambda import models as lambda_models
 from moto.datapipeline import models as datapipeline_models
 from moto.ec2 import models as ec2_models
 from moto.elb import models as elb_models
@@ -21,6 +22,7 @@ from boto.exception import BotoServerError
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
     "AWS::AutoScaling::LaunchConfiguration": autoscaling_models.FakeLaunchConfiguration,
+    "AWS::Lambda::Function": lambda_models.LambdaFunction,
     "AWS::EC2::EIP": ec2_models.ElasticAddress,
     "AWS::EC2::Instance": ec2_models.Instance,
     "AWS::EC2::InternetGateway": ec2_models.InternetGateway,
