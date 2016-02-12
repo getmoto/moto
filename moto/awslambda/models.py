@@ -18,7 +18,7 @@ class LambdaFunction(object):
         # optional
         self.description = spec.get('Description', '')
         self.memory_size = spec.get('MemorySize', 128)
-        self.publish = spec.get('Publish', False)
+        self.publish = spec.get('Publish', False) # this is ignored currently
         self.timeout = spec.get('Timeout', 3)
         self.vpc_config = spec.get('VpcConfig', {})
 
