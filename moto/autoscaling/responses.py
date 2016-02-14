@@ -20,6 +20,8 @@ class AutoScalingResponse(BaseResponse):
             name=self._get_param('LaunchConfigurationName'),
             image_id=self._get_param('ImageId'),
             key_name=self._get_param('KeyName'),
+            ramdisk_id=self._get_param('RamdiskId'),
+            kernel_id=self._get_param('KernelId'),
             security_groups=self._get_multi_param('SecurityGroups.member'),
             user_data=self._get_param('UserData'),
             instance_type=self._get_param('InstanceType'),
@@ -155,7 +157,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
             {% endfor %}
           </SecurityGroups>
           <CreatedTime>2013-01-21T23:04:42.200Z</CreatedTime>
-          <KernelId/>
+          <KernelId>{{ launch_configuration.kernel_id }}</KernelId>
           {% if launch_configuration.instance_profile_name %}
             <IamInstanceProfile>{{ launch_configuration.instance_profile_name }}</IamInstanceProfile>
           {% endif %}
@@ -202,7 +204,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
           {% else %}
             <KeyName/>
           {% endif %}
-          <RamdiskId/>
+          <RamdiskId>{{ launch_configuration.ramdisk_id }}</RamdiskId>
           <EbsOptimized>{{ launch_configuration.ebs_optimized }}</EbsOptimized>
           <InstanceMonitoring>
             <Enabled>{{ launch_configuration.instance_monitoring_enabled }}</Enabled>

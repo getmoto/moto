@@ -37,12 +37,14 @@ class FakeScalingPolicy(object):
 
 
 class FakeLaunchConfiguration(object):
-    def __init__(self, name, image_id, key_name, security_groups, user_data,
+    def __init__(self, name, image_id, key_name, ramdisk_id, kernel_id, security_groups, user_data,
                  instance_type, instance_monitoring, instance_profile_name,
                  spot_price, ebs_optimized, associate_public_ip_address, block_device_mapping_dict):
         self.name = name
         self.image_id = image_id
         self.key_name = key_name
+        self.ramdisk_id = ramdisk_id
+        self.kernel_id = kernel_id
         self.security_groups = security_groups if security_groups else []
         self.user_data = user_data
         self.instance_type = instance_type
@@ -63,6 +65,8 @@ class FakeLaunchConfiguration(object):
         config = backend.create_launch_configuration(
             name=resource_name,
             image_id=properties.get("ImageId"),
+            kernel_id=properties.get("KernelId"),
+            ramdisk_id=properties.get("RamdiskId"),
             key_name=properties.get("KeyName"),
             security_groups=properties.get("SecurityGroups"),
             user_data=properties.get("UserData"),
@@ -231,7 +235,7 @@ class AutoScalingBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(ec2_backend, elb_backend)
 
-    def create_launch_configuration(self, name, image_id, key_name,
+    def create_launch_configuration(self, name, image_id, key_name, kernel_id, ramdisk_id,
                                     security_groups, user_data, instance_type,
                                     instance_monitoring, instance_profile_name,
                                     spot_price, ebs_optimized, associate_public_ip_address, block_device_mappings):
@@ -239,6 +243,8 @@ class AutoScalingBackend(BaseBackend):
             name=name,
             image_id=image_id,
             key_name=key_name,
+            kernel_id=kernel_id,
+            ramdisk_id=ramdisk_id,
             security_groups=security_groups,
             user_data=user_data,
             instance_type=instance_type,
