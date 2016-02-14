@@ -25,7 +25,7 @@ class VPCs(BaseResponse):
 
 
 CREATE_VPC_RESPONSE = """
-<CreateVpcResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<CreateVpcResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <vpc>
       <vpcId>{{ vpc.id }}</vpcId>
@@ -47,7 +47,7 @@ CREATE_VPC_RESPONSE = """
 </CreateVpcResponse>"""
 
 DESCRIBE_VPCS_RESPONSE = """
-<DescribeVpcsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<DescribeVpcsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpcSet>
     {% for vpc in vpcs %}
@@ -74,7 +74,7 @@ DESCRIBE_VPCS_RESPONSE = """
 </DescribeVpcsResponse>"""
 
 DELETE_VPC_RESPONSE = """
-<DeleteVpcResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<DeleteVpcResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <return>true</return>
 </DeleteVpcResponse>

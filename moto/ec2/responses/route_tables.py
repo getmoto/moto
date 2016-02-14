@@ -89,21 +89,21 @@ class RouteTables(BaseResponse):
 
 
 CREATE_ROUTE_RESPONSE = """
-<CreateRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<CreateRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </CreateRouteResponse>
 """
 
 REPLACE_ROUTE_RESPONSE = """
-<ReplaceRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<ReplaceRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </ReplaceRouteResponse>
 """
 
 CREATE_ROUTE_TABLE_RESPONSE = """
-<CreateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<CreateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <routeTable>
       <routeTableId>{{ route_table.id }}</routeTableId>
@@ -135,7 +135,7 @@ CREATE_ROUTE_TABLE_RESPONSE = """
 """
 
 DESCRIBE_ROUTE_TABLES_RESPONSE = """
-<DescribeRouteTablesResponse xmlns="http://ec2.amazonaws.com/doc/2013-08-15/">
+<DescribeRouteTablesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>6f570b0b-9c18-4b07-bdec-73740dcf861a</requestId>
    <routeTableSet>
      {% for route_table in route_tables %}
@@ -197,35 +197,35 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
 """
 
 DELETE_ROUTE_RESPONSE = """
-<DeleteRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<DeleteRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </DeleteRouteResponse>
 """
 
 DELETE_ROUTE_TABLE_RESPONSE = """
-<DeleteRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<DeleteRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </DeleteRouteTableResponse>
 """
 
 ASSOCIATE_ROUTE_TABLE_RESPONSE = """
-<AssociateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+<AssociateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <associationId>{{ association_id }}</associationId>
 </AssociateRouteTableResponse>
 """
 
 DISASSOCIATE_ROUTE_TABLE_RESPONSE = """
-<DisassociateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+<DisassociateRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </DisassociateRouteTableResponse>
 """
 
 REPLACE_ROUTE_TABLE_ASSOCIATION_RESPONSE = """
-<ReplaceRouteTableAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+<ReplaceRouteTableAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <newAssociationId>{{ association_id }}</newAssociationId>
 </ReplaceRouteTableAssociationResponse>

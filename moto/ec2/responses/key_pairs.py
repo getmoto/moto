@@ -64,7 +64,7 @@ DELETE_KEY_PAIR_RESPONSE = """<DeleteKeyPairResponse xmlns="http://ec2.amazonaws
 </DeleteKeyPairResponse>"""
 
 IMPORT_KEYPAIR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-  <ImportKeyPairResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+  <ImportKeyPairResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>471f9fdd-8fe2-4a84-86b0-bd3d3e350979</requestId>
     <keyName>{{ name }}</keyName>
     <keyFingerprint>{{ fingerprint }}</keyFingerprint>

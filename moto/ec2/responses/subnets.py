@@ -33,7 +33,7 @@ class Subnets(BaseResponse):
 
 
 CREATE_SUBNET_RESPONSE = """
-<CreateSubnetResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<CreateSubnetResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <subnet>
     <subnetId>{{ subnet.id }}</subnetId>
@@ -56,13 +56,13 @@ CREATE_SUBNET_RESPONSE = """
 </CreateSubnetResponse>"""
 
 DELETE_SUBNET_RESPONSE = """
-<DeleteSubnetResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<DeleteSubnetResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <return>true</return>
 </DeleteSubnetResponse>"""
 
 DESCRIBE_SUBNETS_RESPONSE = """
-<DescribeSubnetsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<DescribeSubnetsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <subnetSet>
     {% for subnet in subnets %}

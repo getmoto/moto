@@ -13,7 +13,7 @@ class General(BaseResponse):
 
 
 GET_CONSOLE_OUTPUT_RESULT = '''
-<GetConsoleOutputResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+<GetConsoleOutputResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <timestamp>2010-10-14T01:12:41.000Z</timestamp>
