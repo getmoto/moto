@@ -538,6 +538,24 @@ def test_run_instance_with_instance_type():
 
 
 @mock_ec2
+def test_run_instance_with_default_placement():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance = reservation.instances[0]
+
+    instance.placement.should.equal("us-east-1a")
+
+
+@mock_ec2
+def test_run_instance_with_placement():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    reservation = conn.run_instances('ami-1234abcd', placement="us-east-1b")
+    instance = reservation.instances[0]
+
+    instance.placement.should.equal("us-east-1b")
+
+
+@mock_ec2
 def test_run_instance_with_subnet():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
