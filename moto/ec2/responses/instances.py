@@ -314,8 +314,12 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
             <groupSet>
               {% for group in reservation.dynamic_group_list %}
               <item>
+		{% if group.id %}
                 <groupId>{{ group.id }}</groupId>
                 <groupName>{{ group.name }}</groupName>
+                {% else %}
+                <groupId>{{ group }}</groupId>
+                {% endif %}
               </item>
               {% endfor %}
             </groupSet>
@@ -361,8 +365,12 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <groupSet>
                       {% for group in instance.dynamic_group_list %}
                       <item>
-                        <groupId>{{ group.id }}</groupId>
-                        <groupName>{{ group.name }}</groupName>
+		        {% if group.id %}
+		        <groupId>{{ group.id }}</groupId>
+		        <groupName>{{ group.name }}</groupName>
+		        {% else %}
+		        <groupId>{{ group }}</groupId>
+		        {% endif %}
                       </item>
                       {% endfor %}
                     </groupSet>
@@ -418,8 +426,12 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                           <groupSet>
                             {% for group in nic.group_set %}
                             <item>
-                              <groupId>{{ group.id }}</groupId>
-                              <groupName>{{ group.name }}</groupName>
+			      {% if group.id %}
+			      <groupId>{{ group.id }}</groupId>
+			      <groupName>{{ group.name }}</groupName>
+			      {% else %}
+			      <groupId>{{ group }}</groupId>
+			      {% endif %}
                             </item>
                             {% endfor %}
                           </groupSet>
