@@ -285,6 +285,8 @@ class SQSBackend(BaseBackend):
         # queue.messages only contains visible messages
         while True:
             for message in queue.messages:
+                if not message.visible:
+                    continue
                 message.mark_received(
                     visibility_timeout=queue.visibility_timeout
                 )
