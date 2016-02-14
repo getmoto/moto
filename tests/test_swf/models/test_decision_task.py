@@ -16,6 +16,7 @@ def test_decision_task_creation():
     dt.task_token.should_not.be.empty
     dt.started_event_id.should.be.none
 
+
 def test_decision_task_full_dict_representation():
     wfe = make_workflow_execution()
     wft = wfe.workflow_type
@@ -33,6 +34,7 @@ def test_decision_task_full_dict_representation():
     fd = dt.to_full_dict()
     fd["startedEventId"].should.equal(1234)
 
+
 def test_decision_task_first_timeout():
     wfe = make_workflow_execution()
     dt = DecisionTask(wfe, 123)
@@ -49,6 +51,7 @@ def test_decision_task_first_timeout():
     dt.complete()
     dt.first_timeout().should.be.none
 
+
 def test_decision_task_cannot_timeout_on_closed_workflow_execution():
     with freeze_time("2015-01-01 12:00:00"):
         wfe = make_workflow_execution()
@@ -63,6 +66,7 @@ def test_decision_task_cannot_timeout_on_closed_workflow_execution():
         wfe.first_timeout().should.be.a(Timeout)
         process_first_timeout(wfe)
         dt.first_timeout().should.be.none
+
 
 def test_decision_task_cannot_change_state_on_closed_workflow_execution():
     wfe = make_workflow_execution()

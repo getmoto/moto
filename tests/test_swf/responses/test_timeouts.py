@@ -1,6 +1,4 @@
-import boto
 from freezegun import freeze_time
-from sure import expect
 
 from moto import mock_swf
 
@@ -35,6 +33,7 @@ def test_activity_task_heartbeat_timeout():
 
         resp["events"][-1]["eventType"].should.equal("DecisionTaskScheduled")
 
+
 # Decision Task Start to Close timeout
 # Default value in workflow helpers: 5 mins
 @mock_swf
@@ -67,6 +66,7 @@ def test_decision_task_start_to_close_timeout():
         })
         # checks that event has been emitted at 12:05:00, not 12:05:30
         resp["events"][-2]["eventTimestamp"].should.equal(1420113900.0)
+
 
 # Workflow Execution Start to Close timeout
 # Default value in workflow helpers: 2 hours

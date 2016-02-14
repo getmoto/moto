@@ -15,9 +15,9 @@ from moto.swf.models import (
 # intuitive behaviour in moto/swf own tests...
 ACTIVITY_TASK_TIMEOUTS = {
     "heartbeatTimeout": "300",        # 5 mins
-    "scheduleToStartTimeout": "1800", # 30 mins
+    "scheduleToStartTimeout": "1800",  # 30 mins
     "startToCloseTimeout": "1800",    # 30 mins
-    "scheduleToCloseTimeout": "2700", # 45 mins
+    "scheduleToCloseTimeout": "2700",  # 45 mins
 }
 
 # Some useful decisions
@@ -25,12 +25,13 @@ SCHEDULE_ACTIVITY_TASK_DECISION = {
     "decisionType": "ScheduleActivityTask",
     "scheduleActivityTaskDecisionAttributes": {
         "activityId": "my-activity-001",
-        "activityType": { "name": "test-activity", "version": "v1.1" },
-        "taskList": { "name": "activity-task-list" },
+        "activityType": {"name": "test-activity", "version": "v1.1"},
+        "taskList": {"name": "activity-task-list"},
     }
 }
 for key, value in ACTIVITY_TASK_TIMEOUTS.items():
     SCHEDULE_ACTIVITY_TASK_DECISION["scheduleActivityTaskDecisionAttributes"][key] = value
+
 
 # A test Domain
 def get_basic_domain():
@@ -48,9 +49,11 @@ def _generic_workflow_type_attributes():
         "default_task_start_to_close_timeout": "300",
     }
 
+
 def get_basic_workflow_type():
     args, kwargs = _generic_workflow_type_attributes()
     return WorkflowType(*args, **kwargs)
+
 
 def mock_basic_workflow_type(domain_name, conn):
     args, kwargs = _generic_workflow_type_attributes()

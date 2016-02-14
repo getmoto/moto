@@ -1,6 +1,5 @@
 import boto
 from boto.swf.exceptions import SWFResponseError
-from sure import expect
 
 from moto import mock_swf
 
@@ -17,6 +16,7 @@ def test_register_activity_type():
     actype["activityType"]["name"].should.equal("test-activity")
     actype["activityType"]["version"].should.equal("v1.0")
 
+
 @mock_swf
 def test_register_already_existing_activity_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -27,6 +27,7 @@ def test_register_already_existing_activity_type():
         "test-domain", "test-activity", "v1.0"
     ).should.throw(SWFResponseError)
 
+
 @mock_swf
 def test_register_with_wrong_parameter_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -35,6 +36,7 @@ def test_register_with_wrong_parameter_type():
     conn.register_activity_type.when.called_with(
         "test-domain", "test-activity", 12
     ).should.throw(SWFResponseError)
+
 
 # ListActivityTypes endpoint
 @mock_swf
@@ -48,6 +50,7 @@ def test_list_activity_types():
     all_activity_types = conn.list_activity_types("test-domain", "REGISTERED")
     names = [activity_type["activityType"]["name"] for activity_type in all_activity_types["typeInfos"]]
     names.should.equal(["a-test-activity", "b-test-activity", "c-test-activity"])
+
 
 @mock_swf
 def test_list_activity_types_reverse_order():
@@ -76,6 +79,7 @@ def test_deprecate_activity_type():
     actype["activityType"]["name"].should.equal("test-activity")
     actype["activityType"]["version"].should.equal("v1.0")
 
+
 @mock_swf
 def test_deprecate_already_deprecated_activity_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -87,6 +91,7 @@ def test_deprecate_already_deprecated_activity_type():
         "test-domain", "test-activity", "v1.0"
     ).should.throw(SWFResponseError)
 
+
 @mock_swf
 def test_deprecate_non_existent_activity_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -95,6 +100,7 @@ def test_deprecate_non_existent_activity_type():
     conn.deprecate_activity_type.when.called_with(
         "test-domain", "non-existent", "v1.0"
     ).should.throw(SWFResponseError)
+
 
 # DescribeActivityType endpoint
 @mock_swf
@@ -110,6 +116,7 @@ def test_describe_activity_type():
     infos["activityType"]["name"].should.equal("test-activity")
     infos["activityType"]["version"].should.equal("v1.0")
     infos["status"].should.equal("REGISTERED")
+
 
 @mock_swf
 def test_describe_non_existent_activity_type():

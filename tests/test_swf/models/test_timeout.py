@@ -1,9 +1,9 @@
 from freezegun import freeze_time
-from sure import expect
 
-from moto.swf.models import Timeout, WorkflowExecution
+from moto.swf.models import Timeout
 
 from ..utils import make_workflow_execution
+
 
 def test_timeout_creation():
     wfe = make_workflow_execution()

@@ -2,10 +2,8 @@ import json
 import six
 
 from moto.core.responses import BaseResponse
-from werkzeug.exceptions import HTTPException
-from moto.core.utils import camelcase_to_underscores, method_names_from_class
 
-from .exceptions import SWFSerializationException
+from .exceptions import SWFSerializationException, SWFValidationException
 from .models import swf_backends
 
 
@@ -19,6 +17,15 @@ class SWFResponse(BaseResponse):
     @property
     def _params(self):
         return json.loads(self.body.decode("utf-8"))
+
+    def _check_int(self, parameter):
+        if not isinstance(parameter, int):
+            raise SWFSerializationException(parameter)
+
+    def _check_float_or_int(self, parameter):
+        if not isinstance(parameter, float):
+            if not isinstance(parameter, int):
+                raise SWFSerializationException(parameter)
 
     def _check_none_or_string(self, parameter):
         if parameter is not None:
@@ -38,6 +45,18 @@ class SWFResponse(BaseResponse):
         for i in parameter:
             if not isinstance(i, six.string_types):
                 raise SWFSerializationException(parameter)
+
+    def _check_exclusivity(self, **kwargs):
+        if list(kwargs.values()).count(None) >= len(kwargs) - 1:
+            return
+        keys = kwargs.keys()
+        if len(keys) == 2:
+            message = 'Cannot specify both a {0} and a {1}'.format(keys[0],
+                                                                   keys[1])
+        else:
+            message = 'Cannot specify more than one exclusive filters in the' \
+                ' same query: {0}'.format(keys)
+            raise SWFValidationException(message)
 
     def _list_types(self, kind):
         domain_name = self._params["domain"]
@@ -83,6 +102,102 @@ class SWFResponse(BaseResponse):
             "domainInfos": [domain.to_short_dict() for domain in domains]
         })
 
+    def list_closed_workflow_executions(self):
+        domain = self._params['domain']
+        start_time_filter = self._params.get('startTimeFilter', None)
+        close_time_filter = self._params.get('closeTimeFilter', None)
+        execution_filter = self._params.get('executionFilter', None)
+        workflow_id = execution_filter['workflowId'] if execution_filter else None
+        maximum_page_size = self._params.get('maximumPageSize', 1000)
+        reverse_order = self._params.get('reverseOrder', None)
+        tag_filter = self._params.get('tagFilter', None)
+        type_filter = self._params.get('typeFilter', None)
+        close_status_filter = self._params.get('closeStatusFilter', None)
+
+        self._check_string(domain)
+        self._check_none_or_string(workflow_id)
+        self._check_exclusivity(executionFilter=execution_filter,
+                                typeFilter=type_filter,
+                                tagFilter=tag_filter,
+                                closeStatusFilter=close_status_filter)
+        self._check_exclusivity(startTimeFilter=start_time_filter,
+                                closeTimeFilter=close_time_filter)
+        if start_time_filter is None and close_time_filter is None:
+            raise SWFValidationException('Must specify time filter')
+        if start_time_filter:
+            self._check_float_or_int(start_time_filter['oldestDate'])
+            if 'latestDate' in start_time_filter:
+                self._check_float_or_int(start_time_filter['latestDate'])
+        if close_time_filter:
+            self._check_float_or_int(close_time_filter['oldestDate'])
+            if 'latestDate' in close_time_filter:
+                self._check_float_or_int(close_time_filter['latestDate'])
+        if tag_filter:
+            self._check_string(tag_filter['tag'])
+        if type_filter:
+            self._check_string(type_filter['name'])
+            self._check_string(type_filter['version'])
+        if close_status_filter:
+            self._check_string(close_status_filter['status'])
+        self._check_int(maximum_page_size)
+
+        workflow_executions = self.swf_backend.list_closed_workflow_executions(
+            domain_name=domain,
+            start_time_filter=start_time_filter,
+            close_time_filter=close_time_filter,
+            execution_filter=execution_filter,
+            tag_filter=tag_filter,
+            type_filter=type_filter,
+            maximum_page_size=maximum_page_size,
+            reverse_order=reverse_order,
+            workflow_id=workflow_id,
+            close_status_filter=close_status_filter
+        )
+
+        return json.dumps({
+            'executionInfos': [wfe.to_list_dict() for wfe in workflow_executions]
+        })
+
+    def list_open_workflow_executions(self):
+        domain = self._params['domain']
+        start_time_filter = self._params['startTimeFilter']
+        execution_filter = self._params.get('executionFilter', None)
+        workflow_id = execution_filter['workflowId'] if execution_filter else None
+        maximum_page_size = self._params.get('maximumPageSize', 1000)
+        reverse_order = self._params.get('reverseOrder', None)
+        tag_filter = self._params.get('tagFilter', None)
+        type_filter = self._params.get('typeFilter', None)
+
+        self._check_string(domain)
+        self._check_none_or_string(workflow_id)
+        self._check_exclusivity(executionFilter=execution_filter,
+                                typeFilter=type_filter,
+                                tagFilter=tag_filter)
+        self._check_float_or_int(start_time_filter['oldestDate'])
+        if 'latestDate' in start_time_filter:
+            self._check_float_or_int(start_time_filter['latestDate'])
+        if tag_filter:
+            self._check_string(tag_filter['tag'])
+        if type_filter:
+            self._check_string(type_filter['name'])
+            self._check_string(type_filter['version'])
+        self._check_int(maximum_page_size)
+
+        workflow_executions = self.swf_backend.list_open_workflow_executions(
+            domain_name=domain,
+            start_time_filter=start_time_filter,
+            execution_filter=execution_filter,
+            tag_filter=tag_filter,
+            type_filter=type_filter,
+            maximum_page_size=maximum_page_size,
+            reverse_order=reverse_order,
+            workflow_id=workflow_id
+        )
+
+        return json.dumps({
+            'executionInfos': [wfe.to_list_dict() for wfe in workflow_executions]
+        })
+
     def register_domain(self):
         name = self._params["name"]
         retention = self._params["workflowExecutionRetentionPeriodInDays"]
@@ -90,14 +205,14 @@ class SWFResponse(BaseResponse):
         self._check_string(retention)
         self._check_string(name)
         self._check_none_or_string(description)
-        domain = self.swf_backend.register_domain(name, retention,
-                                                  description=description)
+        self.swf_backend.register_domain(name, retention,
+                                         description=description)
         return ""
 
     def deprecate_domain(self):
         name = self._params["name"]
         self._check_string(name)
-        domain = self.swf_backend.deprecate_domain(name)
+        self.swf_backend.deprecate_domain(name)
         return ""
 
     def describe_domain(self):
@@ -136,7 +251,7 @@ class SWFResponse(BaseResponse):
         self._check_none_or_string(description)
 
         # TODO: add defaultTaskPriority when boto gets to support it
-        activity_type = self.swf_backend.register_type(
+        self.swf_backend.register_type(
             "activity", domain, name, version, task_list=task_list,
             default_task_heartbeat_timeout=default_task_heartbeat_timeout,
             default_task_schedule_to_close_timeout=default_task_schedule_to_close_timeout,
@@ -180,7 +295,7 @@ class SWFResponse(BaseResponse):
 
         # TODO: add defaultTaskPriority when boto gets to support it
         # TODO: add defaultLambdaRole when boto gets to support it
-        workflow_type = self.swf_backend.register_type(
+        self.swf_backend.register_type(
             "workflow", domain, name, version, task_list=task_list,
             default_child_policy=default_child_policy,
             default_task_start_to_close_timeout=default_task_start_to_close_timeout,

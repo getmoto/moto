@@ -57,7 +57,7 @@ class WorkflowExecution(object):
         self.latest_execution_context = None
         self.parent = None
         self.start_timestamp = None
-        self.tag_list = []  # TODO
+        self.tag_list = kwargs.get("tag_list", None) or []
         self.timeout_type = None
         self.workflow_type = workflow_type
         # args processing
@@ -144,6 +144,27 @@ class WorkflowExecution(object):
             hsh["latestExecutionContext"] = self.latest_execution_context
         if self.latest_activity_task_timestamp:
             hsh["latestActivityTaskTimestamp"] = self.latest_activity_task_timestamp
+        return hsh
+
+    def to_list_dict(self):
+        hsh = {
+            'execution': {
+                'workflowId': self.workflow_id,
+                'runId': self.run_id,
+            },
+            'workflowType': self.workflow_type.to_short_dict(),
+            'startTimestamp': self.start_timestamp,
+            'executionStatus': self.execution_status,
+            'cancelRequested': self.cancel_requested,
+        }
+        if self.tag_list:
+            hsh['tagList'] = self.tag_list
+        if self.parent:
+            hsh['parent'] = self.parent
+        if self.close_status:
+            hsh['closeStatus'] = self.close_status
+        if self.close_timestamp:
+            hsh['closeTimestamp'] = self.close_timestamp
         return hsh
 
     def _process_timeouts(self):
@@ -233,6 +254,7 @@ class WorkflowExecution(object):
             task_list=self.task_list,
             task_start_to_close_timeout=self.task_start_to_close_timeout,
             workflow_type=self.workflow_type,
+            input=self.input
         )
         self.schedule_decision_task()
 
