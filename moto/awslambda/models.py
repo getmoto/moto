@@ -54,7 +54,7 @@ class LambdaFunction(object):
                 else:
                     self.code_size = 123
                     self.code_sha_256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-        self.function_arn = 'arn:aws:lambda:123456789012:function:{}'.format(self.function_name)
+        self.function_arn = 'arn:aws:lambda:123456789012:function:{0}'.format(self.function_name)
 
     @property
     def vpc_config(self):
@@ -86,7 +86,7 @@ class LambdaFunction(object):
     def get_code(self):
         return {
             "Code": {
-                "Location": "s3://lambda-functions.aws.amazon.com/{}".format(self.code['S3Key']),
+                "Location": "s3://lambda-functions.aws.amazon.com/{0}".format(self.code['S3Key']),
                 "RepositoryType": "S3"
             },
             "Configuration": self.get_configuration(),
