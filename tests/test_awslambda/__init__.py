@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import botocore.client
 import boto3
 import hashlib
 import io
@@ -183,12 +184,9 @@ def test_delete_function():
     )
 
     success_result = conn.delete_function(FunctionName='testFunction')
-
     success_result.should.equal({'ResponseMetadata': {'HTTPStatusCode': 204}})
 
-    # FIXME:!!!!
-    # not_found_result = conn.delete_function(FunctionName='testFunctionThatDoesntExist')
-    # not_found_result.should.equal({'ResponseMetadata': {'HTTPStatusCode': 404}})
+    conn.delete_function.when.called_with(FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
 
 
 @mock_lambda
