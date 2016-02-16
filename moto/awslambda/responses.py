@@ -41,7 +41,7 @@ class LambdaResponse(BaseResponse):
         spec = json.loads(request.body)
         fn = lambda_backend.create_function(spec)
         config = fn.get_configuration()
-        return 200, headers, json.dumps(config)
+        return 201, headers, json.dumps(config)
 
     def _delete_function(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)

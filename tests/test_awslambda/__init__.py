@@ -64,7 +64,7 @@ def test_create_function_from_aws_bucket():
         #     "VpcId": "vpc-123abc"
         # },
 
-        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'ResponseMetadata': {'HTTPStatusCode': 201},
     })
 
 
@@ -120,7 +120,7 @@ def handler(event, context):
         #     "VpcId": "vpc-123abc"
         # },
 
-        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'ResponseMetadata': {'HTTPStatusCode': 201},
     })
 
 
