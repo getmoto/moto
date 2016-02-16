@@ -13,11 +13,12 @@ from moto import mock_lambda, mock_s3
 
 def get_test_zip_file():
     zip_output = io.BytesIO()
-    with zipfile.ZipFile(zip_output, 'w') as f:
-        f.writestr('lambda_function.py', b'''\
+    zip_file = zipfile.ZipFile(zip_output, 'w')
+    zip_file.writestr('lambda_function.py', b'''\
 def handler(event, context):
     return "hello world"
 ''')
+    zip_file.close()
     zip_output.seek(0)
     return zip_output.read()
 
