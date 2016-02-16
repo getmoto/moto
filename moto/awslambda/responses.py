@@ -39,9 +39,13 @@ class LambdaResponse(BaseResponse):
         lambda_backend = self.get_lambda_backend(full_url)
 
         spec = json.loads(request.body)
-        fn = lambda_backend.create_function(spec)
-        config = fn.get_configuration()
-        return 201, headers, json.dumps(config)
+        try:
+            fn = lambda_backend.create_function(spec)
+        except ValueError as e:
+            return 400, headers, json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}})
+        else:
+            config = fn.get_configuration()
+            return 201, headers, json.dumps(config)
 
     def _delete_function(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)

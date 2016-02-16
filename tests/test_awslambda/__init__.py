@@ -8,7 +8,18 @@ import zipfile
 import sure  # noqa
 
 from freezegun import freeze_time
-from moto import mock_lambda
+from moto import mock_lambda, mock_s3
+
+
+def get_test_zip_file():
+    zip_output = io.BytesIO()
+    with zipfile.ZipFile(zip_output, 'w') as f:
+        f.writestr('lambda_function.py', b'''\
+def handler(event, context):
+    return "hello world"
+''')
+    zip_output.seek(0)
+    return zip_output.read()
 
 
 @mock_lambda
@@ -22,7 +33,36 @@ def test_list_functions():
 
 @mock_lambda
 @freeze_time('2015-01-01 00:00:00')
+def test_create_based_on_s3_with_missing_bucket():
+    conn = boto3.client('lambda', 'us-west-2')
+
+    conn.create_function.when.called_with(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'S3Bucket': 'this-bucket-does-not-exist',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        VpcConfig={
+            "SecurityGroupIds": ["sg-123abc"],
+            "SubnetIds": ["subnet-123abc"],
+        },
+    ).should.throw(botocore.client.ClientError)
+
+
+@mock_lambda
+@mock_s3
+@freeze_time('2015-01-01 00:00:00')
 def test_create_function_from_aws_bucket():
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=get_test_zip_file())
     conn = boto3.client('lambda', 'us-west-2')
 
     result = conn.create_function(
@@ -71,14 +111,7 @@ def test_create_function_from_aws_bucket():
 def test_create_function_from_zipfile():
     conn = boto3.client('lambda', 'us-west-2')
 
-    zip_output = io.BytesIO()
-    with zipfile.ZipFile(zip_output, 'w') as f:
-        f.writestr('lambda_function.py', b'''\
-def handler(event, context):
-    return "hello world"
-''')
-    zip_output.seek(0)
-    zip_content = zip_output.read()
+    zip_content = get_test_zip_file()
     result = conn.create_function(
         FunctionName='testFunction',
         Runtime='python2.7',
@@ -115,8 +148,12 @@ def handler(event, context):
 
 
 @mock_lambda
+@mock_s3
 @freeze_time('2015-01-01 00:00:00')
 def test_get_function():
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=get_test_zip_file())
     conn = boto3.client('lambda', 'us-west-2')
 
     conn.create_function(
@@ -165,7 +202,11 @@ def test_get_function():
 
 
 @mock_lambda
+@mock_s3
 def test_delete_function():
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=get_test_zip_file())
     conn = boto3.client('lambda', 'us-west-2')
 
     conn.create_function(
@@ -190,12 +231,16 @@ def test_delete_function():
 
 
 @mock_lambda
+@mock_s3
 @freeze_time('2015-01-01 00:00:00')
 def test_list_create_list_get_delete_list():
     """
     test `list -> create -> list -> get -> delete -> list` integration
 
     """
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=get_test_zip_file())
     conn = boto3.client('lambda', 'us-west-2')
 
     conn.list_functions()['Functions'].should.have.length_of(0)

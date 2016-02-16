@@ -6,6 +6,8 @@ import hashlib
 
 import boto.awslambda
 from moto.core import BaseBackend
+from moto.s3.models import s3_backend
+from moto.s3.exceptions import MissingBucket
 
 
 class LambdaFunction(object):
@@ -35,8 +37,23 @@ class LambdaFunction(object):
             self.code_size = len(code)
             self.code_sha_256 = hashlib.sha256(code).hexdigest()
         else:
-            self.code_size = 123
-            self.code_sha_256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+            # validate s3 bucket
+            try:
+                # FIXME: does not validate bucket region
+                key = s3_backend.get_key(self.code['S3Bucket'], self.code['S3Key'])
+            except MissingBucket:
+                raise ValueError(
+                    "InvalidParameterValueException",
+                    "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist")
+            else:
+                # validate s3 key
+                if key is None:
+                    raise ValueError(
+                        "InvalidParameterValueException",
+                        "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.")
+                else:
+                    self.code_size = 123
+                    self.code_sha_256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
         self.function_arn = 'arn:aws:lambda:123456789012:function:{}'.format(self.function_name)
 
     @property
