@@ -96,22 +96,22 @@ class LambdaFunction(object):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
-        backend = lambda_backends[region_name]
-        fn = backend.create_function({
-            # required
+        # required
+        spec = {
             'Code': properties['Code'],
             'FunctionName': resource_name,
             'Handler': properties['Handler'],
             'Role': properties['Role'],
             'Runtime': properties['Runtime'],
+        }
+        optional_properties = 'Description MemorySize Publish Timeout VpcConfig'.split()
+        # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the default logic
+        for prop in optional_properties:
+            if prop in properties:
+                spec[prop] = properties[prop]
 
-            # optional
-            'Description': properties.get('Description', ''),
-            'MemorySize': properties.get('MemorySize', 128),
-            'Publish': properties.get('Publish', False),
-            'Timeout': properties.get('Timeout', 3),
-            'VpcConfig': properties.get('VpcConfig', {}),
-        })
+        backend = lambda_backends[region_name]
+        fn = backend.create_function(spec)
         return fn
 
 
