@@ -18,14 +18,14 @@ def test_list_functions():
 
 @mock_lambda
 @freeze_time('2015-01-01 00:00:00')
-def test_create_function():
+def test_create_function_from_aws_bucket():
     conn = boto3.client('lambda', 'us-west-2')
 
     result = conn.create_function(
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_handler.handler',
+        Handler='lambda_function.handler',
         Code={
             'S3Bucket': 'test-bucket',
             'S3Key': 'test.zip',
@@ -74,7 +74,7 @@ def test_get_function():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_handler.handler',
+        Handler='lambda_function.handler',
         Code={
             'S3Bucket': 'test-bucket',
             'S3Key': 'test.zip',
@@ -98,7 +98,7 @@ def test_get_function():
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",
-            "Handler": "lambda_handler.handler",
+            "Handler": "lambda_function.handler",
             "LastModified": "2015-01-01 00:00:00",
             "MemorySize": 128,
             "Role": "test-iam-role",
@@ -128,7 +128,7 @@ def test_delete_function():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_handler.handler',
+        Handler='lambda_function.handler',
         Code={
             'S3Bucket': 'test-bucket',
             'S3Key': 'test.zip',
@@ -163,7 +163,7 @@ def test_list_create_list_get_delete_list():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_handler.handler',
+        Handler='lambda_function.handler',
         Code={
             'S3Bucket': 'test-bucket',
             'S3Key': 'test.zip',
@@ -184,7 +184,7 @@ def test_list_create_list_get_delete_list():
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",
-            "Handler": "lambda_handler.handler",
+            "Handler": "lambda_function.handler",
             "LastModified": "2015-01-01 00:00:00",
             "MemorySize": 128,
             "Role": "test-iam-role",
