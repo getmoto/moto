@@ -23,7 +23,9 @@ class LambdaFunction(object):
         self.memory_size = spec.get('MemorySize', 128)
         self.publish = spec.get('Publish', False) # this is ignored currently
         self.timeout = spec.get('Timeout', 3)
-        self.vpc_config = spec.get('VpcConfig', {})
+
+        # this isn't finished yet. it needs to find out the VpcId value
+        self._vpc_config = spec.get('VpcConfig', {'SubnetIds': [], 'SecurityGroupIds': []})
 
         # auto-generated
         self.version = '$LATEST'
@@ -36,6 +38,13 @@ class LambdaFunction(object):
             self.code_size = 123
             self.code_sha_256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
         self.function_arn = 'arn:aws:lambda:123456789012:function:{}'.format(self.function_name)
+
+    @property
+    def vpc_config(self):
+        config = self._vpc_config.copy()
+        if config['SecurityGroupIds']:
+            config.update({"VpcId": "vpc-123abc"})
+        return config
 
     def __repr__(self):
         return json.dumps(self.get_configuration())

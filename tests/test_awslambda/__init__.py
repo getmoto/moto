@@ -37,12 +37,10 @@ def test_create_function_from_aws_bucket():
         Timeout=3,
         MemorySize=128,
         Publish=True,
-        # boto3 doesnt support it
-        # VpcConfig={
-        #     "SecurityGroupIds": ["sg-123abc"],
-        #     "SubnetIds": ["subnet-123abc"],
-        #     "VpcId": "vpc-123abc"
-        # },
+        VpcConfig={
+            "SecurityGroupIds": ["sg-123abc"],
+            "SubnetIds": ["subnet-123abc"],
+        },
     )
     result.should.equal({
         'FunctionName': 'testFunction',
@@ -57,12 +55,11 @@ def test_create_function_from_aws_bucket():
         'LastModified': '2015-01-01 00:00:00',
         'CodeSha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         'Version': '$LATEST',
-        # boto3 doesnt support it
-        # VpcConfig={
-        #     "SecurityGroupIds": ["sg-123abc"],
-        #     "SubnetIds": ["subnet-123abc"],
-        #     "VpcId": "vpc-123abc"
-        # },
+        'VpcConfig': {
+            "SecurityGroupIds": ["sg-123abc"],
+            "SubnetIds": ["subnet-123abc"],
+            "VpcId": "vpc-123abc"
+        },
 
         'ResponseMetadata': {'HTTPStatusCode': 201},
     })
@@ -93,12 +90,6 @@ def handler(event, context):
         Timeout=3,
         MemorySize=128,
         Publish=True,
-        # boto3 doesnt support it
-        # VpcConfig={
-        #     "SecurityGroupIds": ["sg-123abc"],
-        #     "SubnetIds": ["subnet-123abc"],
-        #     "VpcId": "vpc-123abc"
-        # },
     )
     result.should.equal({
         'FunctionName': 'testFunction',
@@ -113,12 +104,10 @@ def handler(event, context):
         'LastModified': '2015-01-01 00:00:00',
         'CodeSha256': hashlib.sha256(zip_content).hexdigest(),
         'Version': '$LATEST',
-        # boto3 doesnt support it
-        # VpcConfig={
-        #     "SecurityGroupIds": ["sg-123abc"],
-        #     "SubnetIds": ["subnet-123abc"],
-        #     "VpcId": "vpc-123abc"
-        # },
+        'VpcConfig': {
+            "SecurityGroupIds": [],
+            "SubnetIds": [],
+        },
 
         'ResponseMetadata': {'HTTPStatusCode': 201},
     })
@@ -164,15 +153,10 @@ def test_get_function():
             "Runtime": "python2.7",
             "Timeout": 3,
             "Version": '$LATEST',
-            # "VpcConfig": {
-            #     "SecurityGroupIds": [
-            #         "string"
-            #     ],
-            #     "SubnetIds": [
-            #         "string"
-            #     ],
-            #     "VpcId": "string"
-            # }
+            "VpcConfig": {
+                "SecurityGroupIds": [],
+                "SubnetIds": [],
+            }
         },
         'ResponseMetadata': {'HTTPStatusCode': 200},
     })
@@ -250,15 +234,10 @@ def test_list_create_list_get_delete_list():
             "Runtime": "python2.7",
             "Timeout": 3,
             "Version": '$LATEST',
-            # "VpcConfig": {
-            #     "SecurityGroupIds": [
-            #         "string"
-            #     ],
-            #     "SubnetIds": [
-            #         "string"
-            #     ],
-            #     "VpcId": "string"
-            # }
+            "VpcConfig": {
+                "SecurityGroupIds": [],
+                "SubnetIds": [],
+            }
         },
         'ResponseMetadata': {'HTTPStatusCode': 200},
     }
