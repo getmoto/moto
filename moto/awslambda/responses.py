@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import json
 import re
+import uuid
 
 from moto.core.responses import BaseResponse
 from .models import lambda_backends
@@ -31,7 +32,7 @@ class LambdaResponse(BaseResponse):
         lambda_backend = self.get_lambda_backend(full_url)
         return 200, headers, json.dumps({
             "Functions": [fn.get_configuration() for fn in lambda_backend.list_functions()],
-            "NextMarker": "aws-lambda-next-marker",
+            "NextMarker": str(uuid.uuid4()),
         })
 
     def _create_function(self, request, full_url, headers):
