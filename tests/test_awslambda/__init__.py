@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
 
 import boto3
+import hashlib
+import io
+import zipfile
 import sure  # noqa
 
 from freezegun import freeze_time
@@ -46,13 +49,69 @@ def test_create_function_from_aws_bucket():
         'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
-        'Handler': 'lambda_handler.handler',
-        'CodeSize': 210,
+        'Handler': 'lambda_function.handler',
+        'CodeSize': 123,
         'Description': 'test lambda function',
         'Timeout': 3,
         'MemorySize': 128,
         'LastModified': '2015-01-01 00:00:00',
-        'CodeSha256': 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9',
+        'CodeSha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        'Version': '$LATEST',
+        # boto3 doesnt support it
+        # VpcConfig={
+        #     "SecurityGroupIds": ["sg-123abc"],
+        #     "SubnetIds": ["subnet-123abc"],
+        #     "VpcId": "vpc-123abc"
+        # },
+
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+    })
+
+
+@mock_lambda
+@freeze_time('2015-01-01 00:00:00')
+def test_create_function_from_zipfile():
+    conn = boto3.client('lambda', 'us-west-2')
+
+    zip_output = io.BytesIO()
+    with zipfile.ZipFile(zip_output, 'w') as f:
+        f.writestr('lambda_function.py', b'''\
+def handler(event, context):
+    return "hello world"
+''')
+    zip_output.seek(0)
+    zip_content = zip_output.read()
+    result = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': zip_content,
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        # boto3 doesnt support it
+        # VpcConfig={
+        #     "SecurityGroupIds": ["sg-123abc"],
+        #     "SubnetIds": ["subnet-123abc"],
+        #     "VpcId": "vpc-123abc"
+        # },
+    )
+    result.should.equal({
+        'FunctionName': 'testFunction',
+        'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
+        'Runtime': 'python2.7',
+        'Role': 'test-iam-role',
+        'Handler': 'lambda_function.handler',
+        'CodeSize': len(zip_content),
+        'Description': 'test lambda function',
+        'Timeout': 3,
+        'MemorySize': 128,
+        'LastModified': '2015-01-01 00:00:00',
+        'CodeSha256': hashlib.sha256(zip_content).hexdigest(),
         'Version': '$LATEST',
         # boto3 doesnt support it
         # VpcConfig={
@@ -93,8 +152,8 @@ def test_get_function():
             "RepositoryType": "S3"
         },
         "Configuration": {
-            "CodeSha256": 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9',
-            "CodeSize": 210,
+            "CodeSha256": 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            "CodeSize": 123,
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",
@@ -179,8 +238,8 @@ def test_list_create_list_get_delete_list():
             "RepositoryType": "S3"
         },
         "Configuration": {
-            "CodeSha256": 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9',
-            "CodeSize": 210,
+            "CodeSha256": 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            "CodeSize": 123,
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",

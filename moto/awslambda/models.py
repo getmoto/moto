@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
 
+import base64
 import datetime
+import hashlib
+
 import boto.awslambda
 from moto.core import BaseBackend
 
@@ -25,8 +28,13 @@ class LambdaFunction(object):
         # auto-generated
         self.version = '$LATEST'
         self.last_modified = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-        self.code_size = 210  # hello world function
-        self.code_sha_256 = 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9' # hello world function
+        if 'ZipFile' in self.code:
+            code = base64.b64decode(self.code['ZipFile'])
+            self.code_size = len(code)
+            self.code_sha_256 = hashlib.sha256(code).hexdigest()
+        else:
+            self.code_size = 123
+            self.code_sha_256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
         self.function_arn = 'arn:aws:lambda:123456789012:function:{}'.format(self.function_name)
 
     def __repr__(self):
