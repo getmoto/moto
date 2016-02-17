@@ -113,6 +113,14 @@ def health_check_response(request, full_url, headers):
         health_checks = route53_backend.get_health_checks()
         return 200, headers, template.render(health_checks=health_checks)
 
+def not_implemented_methods(request, full_url, headers):
+    action = ''
+    if 'tags' in full_url:
+        action = 'tags'
+    elif 'trafficpolicyinstances' in full_url:
+        action = 'policies'
+    raise NotImplementedError("The action for {0} has not been implemented for route 53".format(action))
+
 
 LIST_RRSET_REPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>
