@@ -113,7 +113,7 @@ def health_check_response(request, full_url, headers):
         health_checks = route53_backend.get_health_checks()
         return 200, headers, template.render(health_checks=health_checks)
 
-def not_implemented_methods(request, full_url, headers):
+def not_implemented_response(request, full_url, headers):
     action = ''
     if 'tags' in full_url:
         action = 'tags'
