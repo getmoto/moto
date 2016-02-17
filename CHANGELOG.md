@@ -4,6 +4,14 @@ Moto Changelog
 Latest
 ------
 
+0.4.22
+------
+
+    * Add basic lambda endpoints
+    * Support placement for EC2
+    * Cleanup API versions
+
+
 0.4.21
 ------
 
