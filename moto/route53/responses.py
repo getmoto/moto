@@ -9,7 +9,10 @@ def list_or_create_hostzone_response(request, full_url, headers):
 
     if request.method == "POST":
         elements = xmltodict.parse(request.body)
-        comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["Comment"]
+        if "HostedZoneConfig" in elements["CreateHostedZoneRequest"]:
+            comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["Comment"]
+        else:
+            comment = None
         new_zone = route53_backend.create_hosted_zone(elements["CreateHostedZoneRequest"]["Name"], comment=comment)
         template = Template(CREATE_HOSTED_ZONE_RESPONSE)
         return 201, headers, template.render(zone=new_zone)
@@ -138,7 +141,9 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
       <Name>{{ zone.name }}</Name>
       <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
       <Config>
-        <Comment>{{ zone.comment }}</Comment>
+        {% if zone.comment %}
+            <Comment>{{ zone.comment }}</Comment>
+        {% endif %}
         <PrivateZone>{{ zone.private_zone }}</PrivateZone>
       </Config>
    </HostedZone>
@@ -155,7 +160,9 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
       <Name>{{ zone.name }}</Name>
       <ResourceRecordSetCount>0</ResourceRecordSetCount>
       <Config>
-        <Comment>{{ zone.comment }}</Comment>
+        {% if zone.comment %}
+            <Comment>{{ zone.comment }}</Comment>
+        {% endif %}
         <PrivateZone>{{ zone.private_zone }}</PrivateZone>
       </Config>
    </HostedZone>
@@ -173,7 +180,9 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
          <Id>{{ zone.id }}</Id>
          <Name>{{ zone.name }}</Name>
          <Config>
-           <Comment>{{ zone.comment }}</Comment>
+            {% if zone.comment %}
+                <Comment>{{ zone.comment }}</Comment>
+            {% endif %}
            <PrivateZone>{{ zone.private_zone }}</PrivateZone>
          </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
