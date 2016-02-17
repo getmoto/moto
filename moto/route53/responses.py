@@ -174,6 +174,7 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
       </HostedZone>
       {% endfor %}
    </HostedZones>
+   <IsTruncated>false</IsTruncated>
 </ListHostedZonesResponse>"""
 
 CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
