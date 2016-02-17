@@ -113,7 +113,9 @@ class FakeZone(object):
     def __init__(self, name, id_, comment=None):
         self.name = name
         self.id = id_
-        self.comment = comment
+        if comment is not None:
+            self.comment = comment
+        self.private_zone = False
         self.rrsets = []
 
     def add_rrset(self, record_set):
