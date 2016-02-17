@@ -139,6 +139,7 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
       <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
       <Config>
         <Comment>{{ zone.comment }}</Comment>
+        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
       </Config>
    </HostedZone>
    <DelegationSet>
@@ -153,6 +154,10 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
       <Id>/hostedzone/{{ zone.id }}</Id>
       <Name>{{ zone.name }}</Name>
       <ResourceRecordSetCount>0</ResourceRecordSetCount>
+      <Config>
+        <Comment>{{ zone.comment }}</Comment>
+        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+      </Config>
    </HostedZone>
    <DelegationSet>
       <NameServers>
@@ -169,6 +174,7 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
          <Name>{{ zone.name }}</Name>
          <Config>
            <Comment>{{ zone.comment }}</Comment>
+           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
          </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
       </HostedZone>
