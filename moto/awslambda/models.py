@@ -52,8 +52,8 @@ class LambdaFunction(object):
                         "InvalidParameterValueException",
                         "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.")
                 else:
-                    self.code_size = 123
-                    self.code_sha_256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                    self.code_size = key.size
+                    self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
         self.function_arn = 'arn:aws:lambda:123456789012:function:{0}'.format(self.function_name)
 
     @property

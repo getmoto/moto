@@ -63,7 +63,9 @@ def test_create_based_on_s3_with_missing_bucket():
 def test_create_function_from_aws_bucket():
     s3_conn = boto3.client('s3', 'us-west-2')
     s3_conn.create_bucket(Bucket='test-bucket')
-    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=get_test_zip_file())
+
+    zip_content = get_test_zip_file()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
     conn = boto3.client('lambda', 'us-west-2')
 
     result = conn.create_function(
@@ -90,12 +92,12 @@ def test_create_function_from_aws_bucket():
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.handler',
-        'CodeSize': 123,
+        "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
+        "CodeSize": len(zip_content),
         'Description': 'test lambda function',
         'Timeout': 3,
         'MemorySize': 128,
         'LastModified': '2015-01-01 00:00:00',
-        'CodeSha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         'Version': '$LATEST',
         'VpcConfig': {
             "SecurityGroupIds": ["sg-123abc"],
@@ -154,7 +156,9 @@ def test_create_function_from_zipfile():
 def test_get_function():
     s3_conn = boto3.client('s3', 'us-west-2')
     s3_conn.create_bucket(Bucket='test-bucket')
-    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=get_test_zip_file())
+
+    zip_content = get_test_zip_file()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
     conn = boto3.client('lambda', 'us-west-2')
 
     conn.create_function(
@@ -180,8 +184,8 @@ def test_get_function():
             "RepositoryType": "S3"
         },
         "Configuration": {
-            "CodeSha256": 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-            "CodeSize": 123,
+            "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
+            "CodeSize": len(zip_content),
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",
@@ -207,7 +211,9 @@ def test_get_function():
 def test_delete_function():
     s3_conn = boto3.client('s3', 'us-west-2')
     s3_conn.create_bucket(Bucket='test-bucket')
-    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=get_test_zip_file())
+
+    zip_content = get_test_zip_file()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
     conn = boto3.client('lambda', 'us-west-2')
 
     conn.create_function(
@@ -241,7 +247,9 @@ def test_list_create_list_get_delete_list():
     """
     s3_conn = boto3.client('s3', 'us-west-2')
     s3_conn.create_bucket(Bucket='test-bucket')
-    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=get_test_zip_file())
+
+    zip_content = get_test_zip_file()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
     conn = boto3.client('lambda', 'us-west-2')
 
     conn.list_functions()['Functions'].should.have.length_of(0)
@@ -266,8 +274,8 @@ def test_list_create_list_get_delete_list():
             "RepositoryType": "S3"
         },
         "Configuration": {
-            "CodeSha256": 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-            "CodeSize": 123,
+            "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
+            "CodeSize": len(zip_content),
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",
