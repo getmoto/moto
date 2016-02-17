@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from moto.autoscaling import autoscaling_backend
+from moto.awslambda import lambda_backend
 from moto.cloudwatch import cloudwatch_backend
 from moto.cloudformation import cloudformation_backend
 from moto.datapipeline import datapipeline_backend
@@ -43,7 +44,8 @@ BACKENDS = {
     'sns': sns_backend,
     'sqs': sqs_backend,
     'sts': sts_backend,
-    'route53': route53_backend
+    'route53': route53_backend,
+    'lambda': lambda_backend,
 }
 
 
