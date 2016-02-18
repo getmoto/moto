@@ -1,5 +1,5 @@
 from moto.core.responses import BaseResponse
-from .models import cloudwatch_backend
+from .models import cloudwatch_backends
 import logging
 
 
@@ -18,6 +18,7 @@ class CloudWatchResponse(BaseResponse):
         ok_actions = self._get_multi_param('OKActions.member')
         insufficient_data_actions = self._get_multi_param("InsufficientDataActions.member")
         unit = self._get_param('Unit')
+        cloudwatch_backend = cloudwatch_backends[self.region]
         alarm = cloudwatch_backend.put_metric_alarm(name, comparison_operator,
                                                     evaluation_periods, period,
                                                     threshold, statistic,
@@ -33,6 +34,7 @@ class CloudWatchResponse(BaseResponse):
         alarm_name_prefix = self._get_param('AlarmNamePrefix')
         alarm_names = self._get_multi_param('AlarmNames.member')
         state_value = self._get_param('StateValue')
+        cloudwatch_backend = cloudwatch_backends[self.region]
 
         if action_prefix:
             alarms = cloudwatch_backend.get_alarms_by_action_prefix(action_prefix)
@@ -50,6 +52,7 @@ class CloudWatchResponse(BaseResponse):
 
     def delete_alarms(self):
         alarm_names = self._get_multi_param('AlarmNames.member')
+        cloudwatch_backend = cloudwatch_backends[self.region]
         cloudwatch_backend.delete_alarms(alarm_names)
         template = self.response_template(DELETE_METRIC_ALARMS_TEMPLATE)
         return template.render()
@@ -76,11 +79,13 @@ class CloudWatchResponse(BaseResponse):
                 dimension_index += 1
             metric_data.append([metric_name, value, dimensions])
             metric_index += 1
+        cloudwatch_backend = cloudwatch_backends[self.region]
         cloudwatch_backend.put_metric_data(namespace, metric_data)
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
         return template.render()
 
     def list_metrics(self):
+        cloudwatch_backend = cloudwatch_backends[self.region]
         metrics = cloudwatch_backend.get_all_metrics()
         template = self.response_template(LIST_METRICS_TEMPLATE)
         return template.render(metrics=metrics)
