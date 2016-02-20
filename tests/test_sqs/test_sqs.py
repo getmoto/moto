@@ -491,3 +491,14 @@ def test_boto3_message_send():
 
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_boto3_set_queue_attributes():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="blah")
+
+    queue.attributes['VisibilityTimeout'].should.equal("30")
+
+    queue.set_attributes(Attributes={"VisibilityTimeout": "45"})
+    queue.attributes['VisibilityTimeout'].should.equal("45")
