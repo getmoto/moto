@@ -32,7 +32,7 @@ class LambdaResponse(BaseResponse):
         lambda_backend = self.get_lambda_backend(full_url)
         return 200, headers, json.dumps({
             "Functions": [fn.get_configuration() for fn in lambda_backend.list_functions()],
-            "NextMarker": str(uuid.uuid4()),
+            # "NextMarker": str(uuid.uuid4()),
         })
 
     def _create_function(self, request, full_url, headers):
