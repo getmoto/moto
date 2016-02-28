@@ -90,9 +90,14 @@ class SQSResponse(BaseResponse):
 
     def set_queue_attributes(self):
         queue_name = self._get_queue_name()
-        key = camelcase_to_underscores(self.querystring.get('Attribute.Name')[0])
-        value = self.querystring.get('Attribute.Value')[0]
-        self.sqs_backend.set_queue_attribute(queue_name, key, value)
+        if "Attribute.Name" in self.querystring:
+            key = camelcase_to_underscores(self.querystring.get("Attribute.Name")[0])
+            value = self.querystring.get("Attribute.Value")[0]
+            self.sqs_backend.set_queue_attribute(queue_name, key, value)
+        for a in self._get_list_prefix("Attribute"):
+            key = camelcase_to_underscores(a["name"])
+            value = a["value"]
+            self.sqs_backend.set_queue_attribute(queue_name, key, value)
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
