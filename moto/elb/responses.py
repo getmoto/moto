@@ -234,7 +234,7 @@ class ELBResponse(BaseResponse):
                 tag_values = []
                 tag_keys = []
 
-                for t_key, t_val in self.querystring.items():
+                for t_key, t_val in sorted(self.querystring.items()):
                     if t_key.startswith('Tags.member.'):
                         if t_key.split('.')[3] == 'Key':
                             tag_keys.extend(t_val)
