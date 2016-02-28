@@ -1,4 +1,5 @@
 from moto.core import BaseBackend
+import boto.ec2.cloudwatch
 
 
 class Dimension(object):
@@ -99,4 +100,6 @@ class CloudWatchBackend(BaseBackend):
         return self.metric_data
 
 
-cloudwatch_backend = CloudWatchBackend()
+cloudwatch_backends = {}
+for region in boto.ec2.cloudwatch.regions():
+    cloudwatch_backends[region.name] = CloudWatchBackend()
