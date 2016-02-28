@@ -1,1 +1,3 @@
 include README.md LICENSE AUTHORS.md
+include requirements.txt requirements-dev.txt tox.ini
+recursive-include tests * 
