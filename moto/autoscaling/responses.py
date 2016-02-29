@@ -241,11 +241,11 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <Tags>
           {% for tag in group.tags %}
           <member>
-            <ResourceType>{{ tag.resource_type }}</ResourceType>
-            <ResourceId>{{ tag.resource_id }}</ResourceId>
-            <PropagateAtLaunch>{{ tag.propagate_at_launch }}</PropagateAtLaunch>
-            <Key>{{ tag.key }}</Key>
-            <Value>{{ tag.value }}</Value>
+            <ResourceType>{{ tag.resource_type or tag.ResourceType }}</ResourceType>
+            <ResourceId>{{ tag.resource_id or tag.ResourceId }}</ResourceId>
+            <PropagateAtLaunch>{{ tag.propagate_at_launch or tag.PropagateAtLaunch }}</PropagateAtLaunch>
+            <Key>{{ tag.key or tag.Key }}</Key>
+            <Value>{{ tag.value or tag.Value }}</Value>
           </member>
           {% endfor %}
         </Tags>

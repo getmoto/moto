@@ -227,5 +227,6 @@ def test_stack_tags():
         TemplateBody=dummy_template_json,
         Tags=tags,
     )
-
-    stack.tags.should.equal(tags)
+    observed_tag_items = set(item for items in [tag.items() for tag in stack.tags] for item in items)
+    expected_tag_items = set(item for items in [tag.items() for tag in tags] for item in items)
+    observed_tag_items.should.equal(expected_tag_items)
