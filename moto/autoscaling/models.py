@@ -80,6 +80,10 @@ class FakeLaunchConfiguration(object):
         )
         return config
 
+    def delete(self, region_name):
+        backend = autoscaling_backends[region_name]
+        backend.delete_launch_configuration(self.name)
+
     @property
     def physical_resource_id(self):
         return self.name
@@ -166,6 +170,10 @@ class FakeAutoScalingGroup(object):
             tags=properties.get("Tags", []),
         )
         return group
+
+    def delete(self, region_name):
+        backend = autoscaling_backends[region_name]
+        backend.delete_autoscaling_group(self.name)
 
     @property
     def physical_resource_id(self):
