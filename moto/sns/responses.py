@@ -12,10 +12,6 @@ class SNSResponse(BaseResponse):
     def backend(self):
         return sns_backends[self.region]
 
-    @property
-    def request_json(self):
-        return 'JSON' in self.querystring.get('ContentType', [])
-
     def _get_attributes(self):
         attributes = self._get_list_prefix('Attributes.entry')
         return dict(

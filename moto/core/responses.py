@@ -254,6 +254,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
             param_index += 1
         return results
 
+    @property
+    def request_json(self):
+        return 'JSON' in self.querystring.get('ContentType', [])
+
 
 def metadata_response(request, full_url, headers):
     """
