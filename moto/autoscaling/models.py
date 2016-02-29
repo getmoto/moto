@@ -156,7 +156,7 @@ class FakeAutoScalingGroup(object):
             max_size=properties.get("MaxSize"),
             min_size=properties.get("MinSize"),
             launch_config_name=launch_config_name,
-            vpc_zone_identifier=properties.get("VPCZoneIdentifier"),
+            vpc_zone_identifier=(','.join(properties.get("VPCZoneIdentifier", [])) or None),
             default_cooldown=properties.get("Cooldown"),
             health_check_period=properties.get("HealthCheckGracePeriod"),
             health_check_type=properties.get("HealthCheckType"),
