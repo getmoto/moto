@@ -6,6 +6,7 @@ from six.moves.urllib.parse import urlparse
 from moto.core.responses import BaseResponse
 from moto.s3 import s3_backend
 from .models import cloudformation_backends
+from .exceptions import ValidationError
 
 
 class CloudFormationResponse(BaseResponse):
@@ -68,11 +69,26 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(DESCRIBE_STACKS_TEMPLATE)
         return template.render(stacks=stacks)
 
+    def describe_stack_resource(self):
+        stack_name = self._get_param('StackName')
+        stack = self.cloudformation_backend.get_stack(stack_name)
+        logical_resource_id = self._get_param('LogicalResourceId')
+
+        for stack_resource in stack.stack_resources:
+            if stack_resource.logical_resource_id == logical_resource_id:
+                resource = stack_resource
+                break
+        else:
+            raise ValidationError(logical_resource_id)   
+        
+        template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
+        return template.render(stack=stack, resource=resource)
+
     def describe_stack_resources(self):
         stack_name = self._get_param('StackName')
         stack = self.cloudformation_backend.get_stack(stack_name)
 
-        template = self.response_template(DESCRIBE_STACKS_RESOURCES_RESPONSE)
+        template = self.response_template(DESCRIBE_STACK_RESOURCES_RESPONSE)
         return template.render(stack=stack)
 
     def list_stacks(self):
@@ -199,7 +215,22 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
 </DescribeStacksResponse>"""
 
 
-DESCRIBE_STACKS_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
+DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
+  <DescribeStackResourceResult>
+    <StackResourceDetail>
+      <StackId>{{ stack.stack_id }}</StackId>
+      <StackName>{{ stack.name }}</StackName>
+      <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
+      <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
+      <ResourceType>{{ resource.type }}</ResourceType>
+      <Timestamp>2010-07-27T22:27:28Z</Timestamp>
+      <ResourceStatus>{{ stack.status }}</ResourceStatus>
+    </StackResourceDetail>
+  </DescribeStackResourceResult>
+</DescribeStackResourceResponse>"""
+
+
+DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
   <StackResources>
     {% for resource in stack.stack_resources %}
     <member>
