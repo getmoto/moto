@@ -15,6 +15,7 @@ from boto.ec2.launchspecification import LaunchSpecification
 
 from moto.core import BaseBackend
 from moto.core.models import Model
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .exceptions import (
     EC2ClientError,
     DependencyViolationError,
@@ -70,6 +71,7 @@ from .utils import (
     random_instance_id,
     random_internet_gateway_id,
     random_ip,
+    random_nat_gateway_id,
     random_key_pair,
     random_private_ip,
     random_public_ip,
@@ -2955,6 +2957,61 @@ class CustomerGatewayBackend(object):
         return deleted
 
 
+class NatGateway(object):
+
+    def __init__(self, backend, subnet_id, allocation_id):
+        # public properties
+        self.id = random_nat_gateway_id()
+        self.subnet_id = subnet_id
+        self.allocation_id = allocation_id
+        self.state = 'available'
+        self.private_ip = random_private_ip()
+
+        # protected properties
+        self._created_at = datetime.utcnow()
+        self._backend = backend
+        # NOTE: this is the core of NAT Gateways creation
+        self._eni = self._backend.create_network_interface(backend.get_subnet(self.subnet_id), self.private_ip)
+
+        # associate allocation with ENI
+        self._backend.associate_address(eni=self._eni, allocation_id=self.allocation_id)
+
+    @property
+    def vpc_id(self):
+        subnet = self._backend.get_subnet(self.subnet_id)
+        return subnet.vpc_id
+
+    @property
+    def create_time(self):
+        return iso_8601_datetime_with_milliseconds(self._created_at)
+
+    @property
+    def network_interface_id(self):
+        return self._eni.id
+
+    @property
+    def public_ip(self):
+        eips = self._backend.address_by_allocation([self.allocation_id])
+        return eips[0].public_ip
+
+
+class NatGatewayBackend(object):
+
+    def __init__(self):
+        self.nat_gateways = {}
+
+    def get_all_nat_gateways(self, filters):
+        return self.nat_gateways.values()
+
+    def create_nat_gateway(self, subnet_id, allocation_id):
+        nat_gateway = NatGateway(self, subnet_id, allocation_id)
+        self.nat_gateways[nat_gateway.id] = nat_gateway
+        return nat_gateway
+
+    def delete_nat_gateway(self, nat_gateway_id):
+        return self.nat_gateways.pop(nat_gateway_id)
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
@@ -2963,7 +3020,8 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
                  VPCGatewayAttachmentBackend, SpotRequestBackend,
                  ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend,
-                 NetworkAclBackend, VpnGatewayBackend, CustomerGatewayBackend):
+                 NetworkAclBackend, VpnGatewayBackend, CustomerGatewayBackend,
+                 NatGatewayBackend):
 
     def __init__(self, region_name):
         super(EC2Backend, self).__init__()
