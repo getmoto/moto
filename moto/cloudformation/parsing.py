@@ -374,6 +374,11 @@ class ResourceMap(collections.Mapping):
                 changed_resource = parse_and_update_resource(resource_name, resource_json, self, self._region_name)
                 self._parsed_resources[resource_name] = changed_resource
 
+    def delete(self):
+        for resource in self.resources:
+            parsed_resource = self._parsed_resources.pop(resource)
+            parsed_resource.delete(self._region_name)
+
 
 class OutputMap(collections.Mapping):
     def __init__(self, resources, template):

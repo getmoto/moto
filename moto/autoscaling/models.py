@@ -80,6 +80,10 @@ class FakeLaunchConfiguration(object):
         )
         return config
 
+    def delete(self, region_name):
+        backend = autoscaling_backends[region_name]
+        backend.delete_launch_configuration(self.name)
+
     @property
     def physical_resource_id(self):
         return self.name
@@ -156,7 +160,7 @@ class FakeAutoScalingGroup(object):
             max_size=properties.get("MaxSize"),
             min_size=properties.get("MinSize"),
             launch_config_name=launch_config_name,
-            vpc_zone_identifier=properties.get("VPCZoneIdentifier"),
+            vpc_zone_identifier=(','.join(properties.get("VPCZoneIdentifier", [])) or None),
             default_cooldown=properties.get("Cooldown"),
             health_check_period=properties.get("HealthCheckGracePeriod"),
             health_check_type=properties.get("HealthCheckType"),
@@ -166,6 +170,10 @@ class FakeAutoScalingGroup(object):
             tags=properties.get("Tags", []),
         )
         return group
+
+    def delete(self, region_name):
+        backend = autoscaling_backends[region_name]
+        backend.delete_autoscaling_group(self.name)
 
     @property
     def physical_resource_id(self):

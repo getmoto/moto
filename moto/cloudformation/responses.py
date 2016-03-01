@@ -6,6 +6,7 @@ from six.moves.urllib.parse import urlparse
 from moto.core.responses import BaseResponse
 from moto.s3 import s3_backend
 from .models import cloudformation_backends
+from .exceptions import ValidationError
 
 
 class CloudFormationResponse(BaseResponse):
@@ -47,14 +48,17 @@ class CloudFormationResponse(BaseResponse):
             notification_arns=stack_notification_arns,
             tags=tags,
         )
-        stack_body = {
-            'CreateStackResponse': {
-                'CreateStackResult': {
-                    'StackId': stack.stack_id,
+        if self.request_json:
+            return json.dumps({
+                'CreateStackResponse': {
+                    'CreateStackResult': {
+                        'StackId': stack.stack_id,
+                    }
                 }
-            }
-        }
-        return json.dumps(stack_body)
+            })
+        else:
+            template = self.response_template(CREATE_STACK_RESPONSE_TEMPLATE)
+            return template.render(stack=stack)
 
     def describe_stacks(self):
         stack_name_or_id = None
@@ -65,11 +69,26 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(DESCRIBE_STACKS_TEMPLATE)
         return template.render(stacks=stacks)
 
+    def describe_stack_resource(self):
+        stack_name = self._get_param('StackName')
+        stack = self.cloudformation_backend.get_stack(stack_name)
+        logical_resource_id = self._get_param('LogicalResourceId')
+
+        for stack_resource in stack.stack_resources:
+            if stack_resource.logical_resource_id == logical_resource_id:
+                resource = stack_resource
+                break
+        else:
+            raise ValidationError(logical_resource_id)   
+        
+        template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
+        return template.render(stack=stack, resource=resource)
+
     def describe_stack_resources(self):
         stack_name = self._get_param('StackName')
         stack = self.cloudformation_backend.get_stack(stack_name)
 
-        template = self.response_template(DESCRIBE_STACKS_RESOURCES_RESPONSE)
+        template = self.response_template(DESCRIBE_STACK_RESOURCES_RESPONSE)
         return template.render(stack=stack)
 
     def list_stacks(self):
@@ -87,18 +106,21 @@ class CloudFormationResponse(BaseResponse):
     def get_template(self):
         name_or_stack_id = self.querystring.get('StackName')[0]
         stack = self.cloudformation_backend.get_stack(name_or_stack_id)
-
-        response = {
-            "GetTemplateResponse": {
-            "GetTemplateResult": {
-                "TemplateBody": stack.template,
-                "ResponseMetadata": {
-                    "RequestId": "2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE"
+        
+        if self.request_json:
+            return json.dumps({
+                "GetTemplateResponse": {
+                    "GetTemplateResult": {
+                        "TemplateBody": stack.template,
+                        "ResponseMetadata": {
+                            "RequestId": "2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE"
+                        }
+                    }
                 }
-            }
-          }
-        }
-        return json.dumps(response)
+            })
+        else:
+            template = self.response_template(GET_TEMPLATE_RESPONSE_TEMPLATE)
+            return template.render(stack=stack)
 
     def update_stack(self):
         stack_name = self._get_param('StackName')
@@ -121,59 +143,108 @@ class CloudFormationResponse(BaseResponse):
         name_or_stack_id = self.querystring.get('StackName')[0]
 
         self.cloudformation_backend.delete_stack(name_or_stack_id)
-        return json.dumps({
-            'DeleteStackResponse': {
-                'DeleteStackResult': {},
-            }
-        })
+        if self.request_json:
+            return json.dumps({
+                'DeleteStackResponse': {
+                    'DeleteStackResult': {},
+                }
+            })
+        else:
+            template = self.response_template(DELETE_STACK_RESPONSE_TEMPLATE)
+            return template.render()
 
 
-DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResult>
-  <Stacks>
-    {% for stack in stacks %}
-    <member>
-      <StackName>{{ stack.name }}</StackName>
-      <StackId>{{ stack.stack_id }}</StackId>
-      <CreationTime>2010-07-27T22:28:28Z</CreationTime>
-      <StackStatus>{{ stack.status }}</StackStatus>
-      {% if stack.notification_arns %}
-      <NotificationARNs>
-        {% for notification_arn in stack.notification_arns %}
-        <member>{{ notification_arn }}</member>
-        {% endfor %}
-      </NotificationARNs>
-      {% else %}
-      <NotificationARNs/>
-      {% endif %}
-      <DisableRollback>false</DisableRollback>
-      <Outputs>
-      {% for output in stack.stack_outputs %}
-        <member>
-          <OutputKey>{{ output.key }}</OutputKey>
-          <OutputValue>{{ output.value }}</OutputValue>
-        </member>
-      {% endfor %}
-      </Outputs>
-      <Parameters>
-      {% for param_name, param_value in stack.stack_parameters.items() %}
-        <member>
-          <ParameterKey>{{ param_name }}</ParameterKey>
-          <ParameterValue>{{ param_value }}</ParameterValue>
-        </member>
-      {% endfor %}
-      </Parameters>
-      <Tags>
-        {% for tag_key, tag_value in stack.tags.items() %}
+CREATE_STACK_RESPONSE_TEMPLATE = """<CreateStackResponse>
+  <CreateStackResult>
+    <StackId>{{ stack.stack_id }}</StackId>
+  </CreateStackResult>
+  <ResponseMetadata>
+    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+    </ResponseMetadata>
+</CreateStackResponse>
+"""
+
+
+DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
+  <DescribeStacksResult>
+    <Stacks>
+      {% for stack in stacks %}
+      <member>
+        <StackName>{{ stack.name }}</StackName>
+        <StackId>{{ stack.stack_id }}</StackId>
+        <CreationTime>2010-07-27T22:28:28Z</CreationTime>
+        <StackStatus>{{ stack.status }}</StackStatus>
+        {% if stack.notification_arns %}
+        <NotificationARNs>
+          {% for notification_arn in stack.notification_arns %}
+          <member>{{ notification_arn }}</member>
+          {% endfor %}
+        </NotificationARNs>
+        {% else %}
+        <NotificationARNs/>
+        {% endif %}
+        <DisableRollback>false</DisableRollback>
+        <Outputs>
+        {% for output in stack.stack_outputs %}
           <member>
-            <Key>{{ tag_key }}</Key>
-            <Value>{{ tag_value }}</Value>
+            <OutputKey>{{ output.key }}</OutputKey>
+            <OutputValue>{{ output.value }}</OutputValue>
           </member>
         {% endfor %}
-      </Tags>
+        </Outputs>
+        <Parameters>
+        {% for param_name, param_value in stack.stack_parameters.items() %}
+          <member>
+            <ParameterKey>{{ param_name }}</ParameterKey>
+            <ParameterValue>{{ param_value }}</ParameterValue>
+          </member>
+        {% endfor %}
+        </Parameters>
+        <Tags>
+          {% for tag_key, tag_value in stack.tags.items() %}
+            <member>
+              <Key>{{ tag_key }}</Key>
+              <Value>{{ tag_value }}</Value>
+            </member>
+          {% endfor %}
+        </Tags>
+      </member>
+      {% endfor %}
+    </Stacks>
+  </DescribeStacksResult>
+</DescribeStacksResponse>"""
+
+
+DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
+  <DescribeStackResourceResult>
+    <StackResourceDetail>
+      <StackId>{{ stack.stack_id }}</StackId>
+      <StackName>{{ stack.name }}</StackName>
+      <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
+      <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
+      <ResourceType>{{ resource.type }}</ResourceType>
+      <Timestamp>2010-07-27T22:27:28Z</Timestamp>
+      <ResourceStatus>{{ stack.status }}</ResourceStatus>
+    </StackResourceDetail>
+  </DescribeStackResourceResult>
+</DescribeStackResourceResponse>"""
+
+
+DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
+  <StackResources>
+    {% for resource in stack.stack_resources %}
+    <member>
+      <StackId>{{ stack.stack_id }}</StackId>
+      <StackName>{{ stack.name }}</StackName>
+      <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
+      <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
+      <ResourceType>{{ resource.type }}</ResourceType>
+      <Timestamp>2010-07-27T22:27:28Z</Timestamp>
+      <ResourceStatus>{{ stack.status }}</ResourceStatus>
     </member>
     {% endfor %}
-  </Stacks>
-</DescribeStacksResult>"""
+  </StackResources>
+</DescribeStackResourcesResult>"""
 
 
 LIST_STACKS_RESPONSE = """<ListStacksResponse>
@@ -191,23 +262,6 @@ LIST_STACKS_RESPONSE = """<ListStacksResponse>
   </StackSummaries>
  </ListStacksResult>
 </ListStacksResponse>"""
-
-
-DESCRIBE_STACKS_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
-  <StackResources>
-    {% for resource in stack.stack_resources %}
-    <member>
-      <StackId>{{ stack.stack_id }}</StackId>
-      <StackName>{{ stack.name }}</StackName>
-      <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
-      <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-      <ResourceType>{{ resource.type }}</ResourceType>
-      <Timestamp>2010-07-27T22:27:28Z</Timestamp>
-      <ResourceStatus>{{ stack.status }}</ResourceStatus>
-    </member>
-    {% endfor %}
-  </StackResources>
-</DescribeStackResourcesResult>"""
 
 
 LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
@@ -228,3 +282,22 @@ LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
     <RequestId>2d06e36c-ac1d-11e0-a958-f9382b6eb86b</RequestId>
   </ResponseMetadata>
 </ListStackResourcesResponse>"""
+
+
+GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
+  <GetTemplateResult>
+    <TemplateBody>{{ stack.template }}
+    </TemplateBody>
+  </GetTemplateResult>
+  <ResponseMetadata>
+    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+  </ResponseMetadata>
+</GetTemplateResponse>"""
+
+
+DELETE_STACK_RESPONSE_TEMPLATE = """<DeleteStackResponse>
+  <ResponseMetadata>
+    <RequestId>5ccc7dcd-744c-11e5-be70-example</RequestId>
+  </ResponseMetadata>
+</DeleteStackResponse>
+"""

@@ -52,6 +52,10 @@ class FakeStack(object):
         self.resource_map.update(json.loads(template))
         self.output_map = self._create_output_map()
 
+    def delete(self):
+        self.resource_map.delete()
+        self.status = 'DELETE_COMPLETE'
+
 
 class CloudFormationBackend(BaseBackend):
 
@@ -112,13 +116,14 @@ class CloudFormationBackend(BaseBackend):
         if name_or_stack_id in self.stacks:
             # Delete by stack id
             stack = self.stacks.pop(name_or_stack_id, None)
-            stack.status = 'DELETE_COMPLETE'
+            stack.delete()
             self.deleted_stacks[stack.stack_id] = stack
             return self.stacks.pop(name_or_stack_id, None)
         else:
             # Delete by stack name
-            stack_to_delete = [stack for stack in self.stacks.values() if stack.name == name_or_stack_id][0]
-            self.delete_stack(stack_to_delete.stack_id)
+            for stack in list(self.stacks.values()):
+                if stack.name == name_or_stack_id:
+                    self.delete_stack(stack.stack_id)
 
 
 cloudformation_backends = {}
