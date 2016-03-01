@@ -308,9 +308,9 @@ class Table(object):
         except KeyError:
             return None
 
-    def query(self, hash_key, range_comparison, range_objs, index_name=None):
+    def query(self, hash_key, range_comparison, range_objs, limit,
+              exclusive_start_key, scan_index_forward, index_name=None):
         results = []
-        last_page = True  # Once pagination is implemented, change this
 
         if index_name:
             all_indexes = (self.global_indexes or []) + (self.indexes or [])
@@ -365,7 +365,11 @@ class Table(object):
                                                 if item.attrs.get(index_range_key['AttributeName']) else None)
         else:
             results.sort(key=lambda item: item.range_key)
-        return results, last_page
+
+        if scan_index_forward is False:
+            results.reverse()
+
+        return self._trim_results(results, limit, exclusive_start_key)
 
     def all_items(self):
         for hash_set in self.items.values():
@@ -375,10 +379,9 @@ class Table(object):
             else:
                 yield hash_set
 
-    def scan(self, filters):
+    def scan(self, filters, limit, exclusive_start_key):
         results = []
         scanned_count = 0
-        last_page = True  # Once pagination is implemented, change this
 
         for result in self.all_items():
             scanned_count += 1
@@ -401,7 +404,33 @@ class Table(object):
 
             if passes_all_conditions:
                 results.append(result)
-        return results, scanned_count, last_page
+
+        results, last_evaluated_key = self._trim_results(results, limit,
+                                                         exclusive_start_key)
+        return results, scanned_count, last_evaluated_key
+
+    def _trim_results(self, results, limit, exclusive_start_key):
+        if exclusive_start_key is not None:
+            hash_key = DynamoType(exclusive_start_key.get(self.hash_key_attr))
+            range_key = exclusive_start_key.get(self.range_key_attr)
+            if range_key is not None:
+                range_key = DynamoType(range_key)
+            for i in range(len(results)):
+                if results[i].hash_key == hash_key and results[i].range_key == range_key:
+                    results = results[i + 1:]
+                    break
+
+        last_evaluated_key = None
+        if limit and len(results) > limit:
+            results = results[:limit]
+            last_evaluated_key = {
+                self.hash_key_attr: results[-1].hash_key
+            }
+            if results[-1].range_key is not None:
+                last_evaluated_key[self.range_key_attr] = results[-1].range_key
+
+        return results, last_evaluated_key
+
 
     def lookup(self, *args, **kwargs):
         if not self.schema:
@@ -507,7 +536,8 @@ class DynamoDBBackend(BaseBackend):
         hash_key, range_key = self.get_keys_value(table, keys)
         return table.get_item(hash_key, range_key)
 
-    def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts, index_name=None):
+    def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts,
+              limit, exclusive_start_key, scan_index_forward, index_name=None):
         table = self.tables.get(table_name)
         if not table:
             return None, None
@@ -515,9 +545,10 @@ class DynamoDBBackend(BaseBackend):
         hash_key = DynamoType(hash_key_dict)
         range_values = [DynamoType(range_value) for range_value in range_value_dicts]
 
-        return table.query(hash_key, range_comparison, range_values, index_name)
+        return table.query(hash_key, range_comparison, range_values, limit,
+                           exclusive_start_key, scan_index_forward, index_name)
 
-    def scan(self, table_name, filters):
+    def scan(self, table_name, filters, limit, exclusive_start_key):
         table = self.tables.get(table_name)
         if not table:
             return None, None, None
@@ -527,7 +558,7 @@ class DynamoDBBackend(BaseBackend):
             dynamo_types = [DynamoType(value) for value in comparison_values]
             scan_filters[key] = (comparison_operator, dynamo_types)
 
-        return table.scan(scan_filters)
+        return table.scan(scan_filters, limit, exclusive_start_key)
 
     def update_item(self, table_name, key, update_expression, attribute_updates):
         table = self.get_table(table_name)

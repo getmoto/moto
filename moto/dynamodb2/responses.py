@@ -238,7 +238,6 @@ class DynamoHandler(BaseResponse):
 
     def query(self):
         name = self.body['TableName']
-
         # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
         key_condition_expression = self.body.get('KeyConditionExpression')
         if key_condition_expression:
@@ -317,18 +316,15 @@ class DynamoHandler(BaseResponse):
                             range_values = []
 
         index_name = self.body.get('IndexName')
-        items, last_page = dynamodb_backend2.query(name, hash_key, range_comparison, range_values, index_name=index_name)
+        exclusive_start_key = self.body.get('ExclusiveStartKey')
+        limit = self.body.get("Limit")
+        scan_index_forward = self.body.get("ScanIndexForward")
+        items, last_evaluated_key = dynamodb_backend2.query(
+            name, hash_key, range_comparison, range_values, limit,
+            exclusive_start_key, scan_index_forward, index_name=index_name)
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
-
-        reversed = self.body.get("ScanIndexForward")
-        if reversed is False:
-            items.reverse()
-
-        limit = self.body.get("Limit")
-        if limit:
-            items = items[:limit]
 
         result = {
             "Count": len(items),
@@ -337,12 +333,9 @@ class DynamoHandler(BaseResponse):
         if self.body.get('Select', '').upper() != 'COUNT':
             result["Items"] = [item.attrs for item in items]
 
-        # Implement this when we do pagination
-        # if not last_page:
-        #     result["LastEvaluatedKey"] = {
-        #         "HashKeyElement": items[-1].hash_key,
-        #         "RangeKeyElement": items[-1].range_key,
-        #     }
+        if last_evaluated_key is not None:
+            result["LastEvaluatedKey"] = last_evaluated_key
+
         return dynamo_json_dump(result)
 
     def scan(self):
@@ -356,15 +349,16 @@ class DynamoHandler(BaseResponse):
             comparison_values = scan_filter.get("AttributeValueList", [])
             filters[attribute_name] = (comparison_operator, comparison_values)
 
-        items, scanned_count, last_page = dynamodb_backend2.scan(name, filters)
+        exclusive_start_key = self.body.get('ExclusiveStartKey')
+        limit = self.body.get("Limit")
+
+        items, scanned_count, last_evaluated_key = dynamodb_backend2.scan(name, filters,
+                                                                          limit,
+                                                                          exclusive_start_key)
 
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
-
-        limit = self.body.get("Limit")
-        if limit:
-            items = items[:limit]
 
         result = {
             "Count": len(items),
@@ -372,13 +366,8 @@ class DynamoHandler(BaseResponse):
             "ConsumedCapacityUnits": 1,
             "ScannedCount": scanned_count
         }
-
-        # Implement this when we do pagination
-        # if not last_page:
-        #     result["LastEvaluatedKey"] = {
-        #         "HashKeyElement": items[-1].hash_key,
-        #         "RangeKeyElement": items[-1].range_key,
-        #     }
+        if last_evaluated_key is not None:
+            result["LastEvaluatedKey"] = last_evaluated_key
         return dynamo_json_dump(result)
 
     def delete_item(self):
