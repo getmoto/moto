@@ -1526,3 +1526,65 @@ def test_lambda_function():
     result['Functions'][0]['MemorySize'].should.equal(128)
     result['Functions'][0]['Role'].should.equal('test-role')
     result['Functions'][0]['Runtime'].should.equal('nodejs')
+
+
+@mock_cloudformation
+@mock_ec2
+def test_nat_gateway():
+    ec2_conn = boto3.client('ec2', 'us-east-1')
+    vpc_id = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']['VpcId']
+    subnet_id = ec2_conn.create_subnet(CidrBlock='10.0.1.0/24', VpcId=vpc_id)['Subnet']['SubnetId']
+    route_table_id = ec2_conn.create_route_table(VpcId=vpc_id)['RouteTable']['RouteTableId']
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "NAT" : {
+                "DependsOn" : "vpcgatewayattachment",
+                "Type" : "AWS::EC2::NatGateway",
+                "Properties" : {
+                    "AllocationId" : { "Fn::GetAtt" : ["EIP", "AllocationId"]},
+                    "SubnetId" : subnet_id
+                    }
+            },
+            "EIP" : {
+                "Type" : "AWS::EC2::EIP",
+                "Properties" : {
+                    "Domain" : "vpc"
+                }
+            },
+            "Route" : {
+                "Type" : "AWS::EC2::Route",
+                "Properties" : {
+                    "RouteTableId" : route_table_id,
+                    "DestinationCidrBlock" : "0.0.0.0/0",
+                    "NatGatewayId" : { "Ref" : "NAT" }
+              }
+            },
+            "internetgateway": {
+                "Type": "AWS::EC2::InternetGateway"
+            },
+            "vpcgatewayattachment": {
+                "Type": "AWS::EC2::VPCGatewayAttachment",
+                "Properties": {
+                    "InternetGatewayId": {
+                        "Ref": "internetgateway"
+                    },
+                    "VpcId": vpc_id,
+                },
+            }
+        }
+    }
+
+    cf_conn = boto3.client('cloudformation', 'us-east-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=json.dumps(template),
+    )
+
+    result = ec2_conn.describe_nat_gateways()
+
+    result['NatGateways'].should.have.length_of(1)
+    result['NatGateways'][0]['VpcId'].should.equal(vpc_id)
+    result['NatGateways'][0]['SubnetId'].should.equal(subnet_id)
+    result['NatGateways'][0]['State'].should.equal('available')

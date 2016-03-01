@@ -2994,6 +2994,15 @@ class NatGateway(object):
         eips = self._backend.address_by_allocation([self.allocation_id])
         return eips[0].public_ip
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        ec2_backend = ec2_backends[region_name]
+        nat_gateway = ec2_backend.create_nat_gateway(
+            cloudformation_json['Properties']['SubnetId'],
+            cloudformation_json['Properties']['AllocationId'],
+        )
+        return nat_gateway
+
 
 class NatGatewayBackend(object):
 
