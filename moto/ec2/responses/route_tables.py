@@ -179,7 +179,6 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
               </item>
             {% endfor %}
           </associationSet>
-         <tagSet/>
          <tagSet>
           {% for tag in route_table.get_tags() %}
            <item>
