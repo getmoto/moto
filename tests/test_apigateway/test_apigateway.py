@@ -187,3 +187,44 @@ def test_create_method_response():
         statusCode='200',
     )
     response.should.equal({'ResponseMetadata': {'HTTPStatusCode': 200}})
+
+
+@mock_apigateway
+def test_integrations():
+    client = boto3.client('apigateway', region_name='us-west-2')
+    response = client.create_rest_api(
+        name='my_api',
+        description='this is my api',
+    )
+    api_id = response['id']
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources['items'] if resource['path'] == '/'][0]['id']
+
+    client.put_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        authorizationType='none',
+    )
+
+    client.get_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET'
+    )
+
+    client.put_method_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        statusCode='200',
+    )
+
+    response = client.put_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        type='HTTP',
+        uri='http://httpbin.org/robots.txt',
+    )
