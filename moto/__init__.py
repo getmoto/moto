@@ -33,7 +33,11 @@ from .route53 import mock_route53  # flake8: noqa
 from .swf import mock_swf  # flake8: noqa
 
 
-# Need to monkey-patch botocore requests back to underlying urllib3 classes
-from botocore.awsrequest import HTTPSConnectionPool, HTTPConnectionPool, HTTPConnection, VerifiedHTTPSConnection
-HTTPSConnectionPool.ConnectionCls = VerifiedHTTPSConnection
-HTTPConnectionPool.ConnectionCls = HTTPConnection
+try:
+    # Need to monkey-patch botocore requests back to underlying urllib3 classes
+    from botocore.awsrequest import HTTPSConnectionPool, HTTPConnectionPool, HTTPConnection, VerifiedHTTPSConnection
+except ImportError:
+    pass
+else:
+    HTTPSConnectionPool.ConnectionCls = VerifiedHTTPSConnection
+    HTTPConnectionPool.ConnectionCls = HTTPConnection
