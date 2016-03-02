@@ -7,6 +7,6 @@ freezegun
 flask
 # botocore 1.3.29 breaks s3 in tests (lambda and s3 tests)
 # so we need to pin a boto3 and botocore revision pair that we know works
-boto3#==1.2.4
-botocore#==1.3.28
+boto3
+botocore
 six
