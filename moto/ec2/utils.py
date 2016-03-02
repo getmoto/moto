@@ -9,6 +9,7 @@ EC2_RESOURCE_TO_PREFIX = {
     'image': 'ami',
     'instance': 'i',
     'internet-gateway': 'igw',
+    'nat-gateway': 'nat',
     'network-acl': 'acl',
     'network-acl-subnet-assoc': 'aclassoc',
     'network-interface': 'eni',
@@ -33,8 +34,7 @@ EC2_RESOURCE_TO_PREFIX = {
 EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
 
 
-def random_id(prefix=''):
-    size = 8
+def random_id(prefix='', size=8):
     chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
 
     resource_id = ''.join(six.text_type(random.choice(chars)) for x in range(size))
@@ -131,6 +131,10 @@ def random_eni_id():
 
 def random_eni_attach_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['network-interface-attachment'])
+
+
+def random_nat_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['nat-gateway'], size=17)
 
 
 def random_public_ip():
