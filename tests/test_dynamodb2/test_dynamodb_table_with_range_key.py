@@ -941,7 +941,6 @@ def test_update_item_range_key_set():
     })
 
 
-
 @mock_dynamodb2
 def test_update_item_does_not_exist_is_created():
     table = _create_table_with_range_key()
@@ -1405,3 +1404,36 @@ def test_update_table_gsi_throughput():
 
     table = dynamodb.Table('users')
     table.global_secondary_indexes.should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_query_pagination():
+    table = _create_table_with_range_key()
+    for i in range(10):
+        table.put_item(Item={
+            'forum_name': 'the-key',
+            'subject': '{0}'.format(i),
+            'username': 'johndoe',
+            'created': Decimal('3'),
+        })
+
+    page1 = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key'),
+        Limit=6
+    )
+    page1['Count'].should.equal(6)
+    page1['Items'].should.have.length_of(6)
+    page1.should.have.key('LastEvaluatedKey')
+
+    page2 = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key'),
+        Limit=6,
+        ExclusiveStartKey=page1['LastEvaluatedKey']
+    )
+    page2['Count'].should.equal(4)
+    page2['Items'].should.have.length_of(4)
+    page2.should_not.have.key('LastEvaluatedKey')
+
+    results = page1['Items'] + page2['Items']
+    subjects = set([int(r['subject']) for r in results])
+    subjects.should.equal(set(range(10)))

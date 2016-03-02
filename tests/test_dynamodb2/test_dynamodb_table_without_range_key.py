@@ -520,11 +520,9 @@ boto3
 """
 
 
-@mock_dynamodb2
-def test_boto3_conditions():
+def _create_user_table():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
-    # Create the DynamoDB table.
     table = dynamodb.create_table(
         TableName='users',
         KeySchema=[
@@ -544,7 +542,12 @@ def test_boto3_conditions():
             'WriteCapacityUnits': 5
         }
     )
-    table = dynamodb.Table('users')
+    return dynamodb.Table('users')
+
+
+@mock_dynamodb2
+def test_boto3_conditions():
+    table = _create_user_table()
 
     table.put_item(Item={'username': 'johndoe'})
     table.put_item(Item={'username': 'janedoe'})
@@ -555,3 +558,27 @@ def test_boto3_conditions():
     response['Count'].should.equal(1)
     response['Items'].should.have.length_of(1)
     response['Items'][0].should.equal({"username": "johndoe"})
+
+
+@mock_dynamodb2
+def test_scan_pagination():
+    table = _create_user_table()
+
+    expected_usernames = ['user{0}'.format(i) for i in range(10)]
+    for u in expected_usernames:
+        table.put_item(Item={'username': u})
+
+    page1 = table.scan(Limit=6)
+    page1['Count'].should.equal(6)
+    page1['Items'].should.have.length_of(6)
+    page1.should.have.key('LastEvaluatedKey')
+
+    page2 = table.scan(Limit=6,
+                       ExclusiveStartKey=page1['LastEvaluatedKey'])
+    page2['Count'].should.equal(4)
+    page2['Items'].should.have.length_of(4)
+    page2.should_not.have.key('LastEvaluatedKey')
+
+    results = page1['Items'] + page2['Items']
+    usernames = set([r['username'] for r in results])
+    usernames.should.equal(set(expected_usernames))
