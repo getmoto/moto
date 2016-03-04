@@ -98,3 +98,22 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == 'DELETE':
             method_response = self.backend.delete_method_response(function_id, resource_id, method_type, response_code)
             return 200, headers, json.dumps(method_response)
+
+    def integrations(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        resource_id = url_path_parts[4]
+        method_type = url_path_parts[6]
+
+        if self.method == 'GET':
+            integration_response = self.backend.get_integration(function_id, resource_id, method_type)
+            return 200, headers, json.dumps(integration_response)
+        elif self.method == 'PUT':
+            integration_type = self._get_param('type')
+            uri = self._get_param('uri')
+            integration_response = self.backend.create_integration(function_id, resource_id, method_type, integration_type, uri)
+            return 200, headers, json.dumps(integration_response)
+        elif self.method == 'DELETE':
+            integration_response = self.backend.delete_integration(function_id, resource_id, method_type)
+            return 200, headers, json.dumps(integration_response)

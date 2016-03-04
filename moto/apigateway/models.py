@@ -6,6 +6,13 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import create_id
 
 
+class Integration(dict):
+    def __init__(self, integration_type, uri):
+        super(Integration, self).__init__()
+        self['type'] = integration_type
+        self['uri'] = uri
+
+
 class MethodResponse(dict):
     def __init__(self, status_code):
         super(MethodResponse, self).__init__()
@@ -64,6 +71,17 @@ class Resource(object):
 
     def get_method(self, method_type):
         return self.resource_methods[method_type]
+
+    def add_integration(self, method_type, integration_type, uri):
+        integration = Integration(integration_type, uri)
+        self.resource_methods[method_type]['methodIntegration'] = integration
+        return integration
+
+    def get_integration(self, method_type):
+        return self.resource_methods[method_type]['methodIntegration']
+
+    def delete_integration(self, method_type):
+        return self.resource_methods[method_type].pop('methodIntegration')
 
 
 class RestAPI(object):
@@ -164,6 +182,19 @@ class APIGatewayBackend(BaseBackend):
         method = self.get_method(function_id, resource_id, method_type)
         method_response = method.delete_response(response_code)
         return method_response
+
+    def create_integration(self, function_id, resource_id, method_type, integration_type, uri):
+        resource = self.get_resource(function_id, resource_id)
+        integration = resource.add_integration(method_type, integration_type, uri)
+        return integration
+
+    def get_integration(self, function_id, resource_id, method_type):
+        resource = self.get_resource(function_id, resource_id)
+        return resource.get_integration(method_type)
+
+    def delete_integration(self, function_id, resource_id, method_type):
+        resource = self.get_resource(function_id, resource_id)
+        return resource.delete_integration(method_type)
 
 apigateway_backends = {}
 for region_name in ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1']:  # Not available in boto yet

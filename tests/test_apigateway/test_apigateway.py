@@ -208,12 +208,6 @@ def test_integrations():
         authorizationType='none',
     )
 
-    client.get_method(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod='GET'
-    )
-
     client.put_method_response(
         restApiId=api_id,
         resourceId=root_id,
@@ -228,3 +222,40 @@ def test_integrations():
         type='HTTP',
         uri='http://httpbin.org/robots.txt',
     )
+    response.should.equal({
+        'type': 'HTTP',
+        'uri': 'http://httpbin.org/robots.txt',
+        'ResponseMetadata': {'HTTPStatusCode': 200}
+    })
+
+    response = client.get_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET'
+    )
+    response.should.equal({
+        'type': 'HTTP',
+        'uri': 'http://httpbin.org/robots.txt',
+        'ResponseMetadata': {'HTTPStatusCode': 200}
+    })
+
+    response = client.get_resource(
+        restApiId=api_id,
+        resourceId=root_id,
+    )
+    response['resourceMethods']['GET']['methodIntegration'].should.equal({
+        'type': 'HTTP',
+        'uri': 'http://httpbin.org/robots.txt'
+    })
+
+    client.delete_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET'
+    )
+
+    response = client.get_resource(
+        restApiId=api_id,
+        resourceId=root_id,
+    )
+    response['resourceMethods']['GET'].shouldnt.contain("methodIntegration")
