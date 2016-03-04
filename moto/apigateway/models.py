@@ -6,6 +6,13 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import create_id
 
 
+class Deployment(dict):
+    def __init__(self, deployment_id, name):
+        super(Deployment, self).__init__()
+        self['id'] = deployment_id
+        self['stageName'] = name
+
+
 class Integration(dict):
     def __init__(self, integration_type, uri):
         super(Integration, self).__init__()
@@ -91,6 +98,8 @@ class RestAPI(object):
         self.description = description
         self.create_date = datetime.datetime.utcnow()
 
+        self.deployments = {}
+
         self.resources = {}
         self.add_child('/')  # Add default child
 
@@ -107,6 +116,21 @@ class RestAPI(object):
         child = Resource(id=child_id, path_part=path, parent_id=parent_id)
         self.resources[child_id] = child
         return child
+
+    def create_deployment(self, name):
+        deployment_id = create_id()
+        deployment = Deployment(deployment_id, name)
+        self.deployments[deployment_id] = deployment
+        return deployment
+
+    def get_deployment(self, deployment_id):
+        return self.deployments[deployment_id]
+
+    def get_deployments(self):
+        return self.deployments.values()
+
+    def delete_deployment(self, deployment_id):
+        return self.deployments.pop(deployment_id)
 
 
 class APIGatewayBackend(BaseBackend):
@@ -195,6 +219,23 @@ class APIGatewayBackend(BaseBackend):
     def delete_integration(self, function_id, resource_id, method_type):
         resource = self.get_resource(function_id, resource_id)
         return resource.delete_integration(method_type)
+
+    def create_deployment(self, function_id, name):
+        api = self.get_rest_api(function_id)
+        deployment = api.create_deployment(name)
+        return deployment
+
+    def get_deployment(self, function_id, deployment_id):
+        api = self.get_rest_api(function_id)
+        return api.get_deployment(deployment_id)
+
+    def get_deployments(self, function_id):
+        api = self.get_rest_api(function_id)
+        return api.get_deployments()
+
+    def delete_deployment(self, function_id, deployment_id):
+        api = self.get_rest_api(function_id)
+        return api.delete_deployment(deployment_id)
 
 apigateway_backends = {}
 for region_name in ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1']:  # Not available in boto yet

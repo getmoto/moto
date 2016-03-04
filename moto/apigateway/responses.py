@@ -117,3 +117,28 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == 'DELETE':
             integration_response = self.backend.delete_integration(function_id, resource_id, method_type)
             return 200, headers, json.dumps(integration_response)
+
+    def deployments(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
+
+        if self.method == 'GET':
+            deployments = self.backend.get_deployments(function_id)
+            return 200, headers, json.dumps({"item": deployments})
+        elif self.method == 'POST':
+            name = self._get_param("stageName")
+            deployment = self.backend.create_deployment(function_id, name)
+            return 200, headers, json.dumps(deployment)
+
+    def individual_deployment(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        deployment_id = url_path_parts[4]
+
+        if self.method == 'GET':
+            deployment = self.backend.get_deployment(function_id, deployment_id)
+            return 200, headers, json.dumps(deployment)
+        elif self.method == 'DELETE':
+            deployment = self.backend.delete_deployment(function_id, deployment_id)
+            return 200, headers, json.dumps(deployment)

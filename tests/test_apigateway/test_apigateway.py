@@ -259,3 +259,45 @@ def test_integrations():
         resourceId=root_id,
     )
     response['resourceMethods']['GET'].shouldnt.contain("methodIntegration")
+
+
+@mock_apigateway
+def test_deployment():
+    client = boto3.client('apigateway', region_name='us-west-2')
+    response = client.create_rest_api(
+        name='my_api',
+        description='this is my api',
+    )
+    api_id = response['id']
+
+    response = client.create_deployment(
+        restApiId=api_id,
+        stageName='staging',
+    )
+    deployment_id = response['id']
+
+    response = client.get_deployment(
+        restApiId=api_id,
+        deploymentId=deployment_id,
+    )
+    response.should.equal({
+        'id': deployment_id,
+        'ResponseMetadata': {'HTTPStatusCode': 200}
+    })
+
+    response = client.get_deployments(
+        restApiId=api_id,
+    )
+    response['items'].should.equal([
+        {'id': deployment_id}
+    ])
+
+    response = client.delete_deployment(
+        restApiId=api_id,
+        deploymentId=deployment_id,
+    )
+
+    response = client.get_deployments(
+        restApiId=api_id,
+    )
+    len(response['items']).should.equal(0)
