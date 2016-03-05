@@ -94,9 +94,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
     def dispatch(cls, *args, **kwargs):
         return cls()._dispatch(*args, **kwargs)
 
-    def _dispatch(self, request, full_url, headers):
+    def setup_class(self, request, full_url, headers):
         querystring = {}
-
         if hasattr(request, 'body'):
             # Boto
             self.body = request.body
@@ -133,6 +132,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         self.headers = request.headers
         self.response_headers = headers
+
+    def _dispatch(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
         return self.call_action()
 
     def call_action(self):
