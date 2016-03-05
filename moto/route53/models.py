@@ -70,6 +70,8 @@ class RecordSet(object):
         self.weight = kwargs.get('Weight')
         self.region = kwargs.get('Region')
         self.health_check = kwargs.get('HealthCheckId')
+        self.hosted_zone_name = kwargs.get('HostedZoneName')
+        self.hosted_zone_id = kwargs.get('HostedZoneId')
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -106,6 +108,11 @@ class RecordSet(object):
                 {% endif %}
             </ResourceRecordSet>""")
         return template.render(record_set=self)
+
+    def delete(self, *args, **kwargs):
+        ''' Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored '''
+        hosted_zone = route53_backend.get_hosted_zone_by_name(self.hosted_zone_name)
+        hosted_zone.delete_rrset_by_name(self.name)
 
 
 class FakeZone(object):
