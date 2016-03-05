@@ -223,9 +223,18 @@ def test_integrations():
         uri='http://httpbin.org/robots.txt',
     )
     response.should.equal({
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'httpMethod': 'GET',
+        'integrationResponses': {
+            '200': {
+                'responseTemplates': {
+                    'application/json': None
+                },
+                'statusCode': 200
+            }
+        },
         'type': 'HTTP',
-        'uri': 'http://httpbin.org/robots.txt',
-        'ResponseMetadata': {'HTTPStatusCode': 200}
+        'uri': 'http://httpbin.org/robots.txt'
     })
 
     response = client.get_integration(
@@ -234,9 +243,18 @@ def test_integrations():
         httpMethod='GET'
     )
     response.should.equal({
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'httpMethod': 'GET',
+        'integrationResponses': {
+            '200': {
+                'responseTemplates': {
+                    'application/json': None
+                },
+                'statusCode': 200
+            }
+        },
         'type': 'HTTP',
-        'uri': 'http://httpbin.org/robots.txt',
-        'ResponseMetadata': {'HTTPStatusCode': 200}
+        'uri': 'http://httpbin.org/robots.txt'
     })
 
     response = client.get_resource(
@@ -244,6 +262,15 @@ def test_integrations():
         resourceId=root_id,
     )
     response['resourceMethods']['GET']['methodIntegration'].should.equal({
+        'httpMethod': 'GET',
+        'integrationResponses': {
+            '200': {
+                'responseTemplates': {
+                    'application/json': None
+                },
+                'statusCode': 200
+            }
+        },
         'type': 'HTTP',
         'uri': 'http://httpbin.org/robots.txt'
     })
@@ -259,6 +286,101 @@ def test_integrations():
         resourceId=root_id,
     )
     response['resourceMethods']['GET'].shouldnt.contain("methodIntegration")
+
+
+@mock_apigateway
+def test_integration_response():
+    client = boto3.client('apigateway', region_name='us-west-2')
+    response = client.create_rest_api(
+        name='my_api',
+        description='this is my api',
+    )
+    api_id = response['id']
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources['items'] if resource['path'] == '/'][0]['id']
+
+    client.put_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        authorizationType='none',
+    )
+
+    client.put_method_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        statusCode='200',
+    )
+
+    response = client.put_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        type='HTTP',
+        uri='http://httpbin.org/robots.txt',
+    )
+
+    response = client.put_integration_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        statusCode='200',
+        selectionPattern='foobar',
+    )
+    response.should.equal({
+        'statusCode': '200',
+        'selectionPattern': 'foobar',
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'responseTemplates': {
+            'application/json': None
+        }
+    })
+
+    response = client.get_integration_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        statusCode='200',
+    )
+    response.should.equal({
+        'statusCode': '200',
+        'selectionPattern': 'foobar',
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'responseTemplates': {
+            'application/json': None
+        }
+    })
+
+    response = client.get_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+    )
+    response['methodIntegration']['integrationResponses'].should.equal({
+        '200': {
+            'responseTemplates': {
+                'application/json': None
+            },
+            'selectionPattern': 'foobar',
+            'statusCode': '200'
+        }
+    })
+
+    response = client.delete_integration_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        statusCode='200',
+    )
+
+    response = client.get_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+    )
+    response['methodIntegration']['integrationResponses'].should.equal({})
 
 
 @mock_apigateway

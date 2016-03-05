@@ -13,11 +13,34 @@ class Deployment(dict):
         self['stageName'] = name
 
 
+class IntegrationResponse(dict):
+    def __init__(self, status_code, selection_pattern=None):
+        self['responseTemplates'] = {"application/json": None}
+        self['statusCode'] = status_code
+        if selection_pattern:
+            self['selectionPattern'] = selection_pattern
+
+
 class Integration(dict):
-    def __init__(self, integration_type, uri):
+    def __init__(self, integration_type, uri, http_method):
         super(Integration, self).__init__()
         self['type'] = integration_type
         self['uri'] = uri
+        self['httpMethod'] = http_method
+        self["integrationResponses"] = {
+            "200": IntegrationResponse(200)
+        }
+
+    def create_integration_response(self, status_code, selection_pattern):
+        integration_response = IntegrationResponse(status_code, selection_pattern)
+        self["integrationResponses"][status_code] = integration_response
+        return integration_response
+
+    def get_integration_response(self, status_code):
+        return self["integrationResponses"][status_code]
+
+    def delete_integration_response(self, status_code):
+        return self["integrationResponses"].pop(status_code)
 
 
 class MethodResponse(dict):
@@ -80,7 +103,7 @@ class Resource(object):
         return self.resource_methods[method_type]
 
     def add_integration(self, method_type, integration_type, uri):
-        integration = Integration(integration_type, uri)
+        integration = Integration(integration_type, uri, method_type)
         self.resource_methods[method_type]['methodIntegration'] = integration
         return integration
 
@@ -219,6 +242,21 @@ class APIGatewayBackend(BaseBackend):
     def delete_integration(self, function_id, resource_id, method_type):
         resource = self.get_resource(function_id, resource_id)
         return resource.delete_integration(method_type)
+
+    def create_integration_response(self, function_id, resource_id, method_type, status_code, selection_pattern):
+        integration = self.get_integration(function_id, resource_id, method_type)
+        integration_response = integration.create_integration_response(status_code, selection_pattern)
+        return integration_response
+
+    def get_integration_response(self, function_id, resource_id, method_type, status_code):
+        integration = self.get_integration(function_id, resource_id, method_type)
+        integration_response = integration.get_integration_response(status_code)
+        return integration_response
+
+    def delete_integration_response(self, function_id, resource_id, method_type, status_code):
+        integration = self.get_integration(function_id, resource_id, method_type)
+        integration_response = integration.delete_integration_response(status_code)
+        return integration_response
 
     def create_deployment(self, function_id, name):
         api = self.get_rest_api(function_id)

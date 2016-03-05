@@ -57,14 +57,12 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == 'GET':
             resource = self.backend.get_resource(function_id, resource_id)
-            return 200, headers, json.dumps(resource.to_dict())
         elif self.method == 'POST':
             path_part = self._get_param("pathPart")
             resource = self.backend.create_resource(function_id, resource_id, path_part)
-            return 200, headers, json.dumps(resource.to_dict())
         elif self.method == 'DELETE':
             resource = self.backend.delete_resource(function_id, resource_id)
-            return 200, headers, json.dumps(resource.to_dict())
+        return 200, headers, json.dumps(resource.to_dict())
 
     def resource_methods(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -91,13 +89,11 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == 'GET':
             method_response = self.backend.get_method_response(function_id, resource_id, method_type, response_code)
-            return 200, headers, json.dumps(method_response)
         elif self.method == 'PUT':
             method_response = self.backend.create_method_response(function_id, resource_id, method_type, response_code)
-            return 200, headers, json.dumps(method_response)
         elif self.method == 'DELETE':
             method_response = self.backend.delete_method_response(function_id, resource_id, method_type, response_code)
-            return 200, headers, json.dumps(method_response)
+        return 200, headers, json.dumps(method_response)
 
     def integrations(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -108,15 +104,36 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == 'GET':
             integration_response = self.backend.get_integration(function_id, resource_id, method_type)
-            return 200, headers, json.dumps(integration_response)
         elif self.method == 'PUT':
             integration_type = self._get_param('type')
             uri = self._get_param('uri')
             integration_response = self.backend.create_integration(function_id, resource_id, method_type, integration_type, uri)
-            return 200, headers, json.dumps(integration_response)
         elif self.method == 'DELETE':
             integration_response = self.backend.delete_integration(function_id, resource_id, method_type)
-            return 200, headers, json.dumps(integration_response)
+        return 200, headers, json.dumps(integration_response)
+
+    def integration_responses(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        resource_id = url_path_parts[4]
+        method_type = url_path_parts[6]
+        status_code = url_path_parts[9]
+
+        if self.method == 'GET':
+            integration_response = self.backend.get_integration_response(
+                function_id, resource_id, method_type, status_code
+            )
+        elif self.method == 'PUT':
+            selection_pattern = self._get_param("selectionPattern")
+            integration_response = self.backend.create_integration_response(
+                function_id, resource_id, method_type, status_code, selection_pattern
+            )
+        elif self.method == 'DELETE':
+            integration_response = self.backend.delete_integration_response(
+                function_id, resource_id, method_type, status_code
+            )
+        return 200, headers, json.dumps(integration_response)
 
     def deployments(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -138,7 +155,6 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == 'GET':
             deployment = self.backend.get_deployment(function_id, deployment_id)
-            return 200, headers, json.dumps(deployment)
         elif self.method == 'DELETE':
             deployment = self.backend.delete_deployment(function_id, deployment_id)
-            return 200, headers, json.dumps(deployment)
+        return 200, headers, json.dumps(deployment)
