@@ -55,6 +55,8 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |------------------------------------------------------------------------------|
 | Service Name          | Decorator        | Development Status                |
 |------------------------------------------------------------------------------|
+| API Gateway           | @mock_apigateway | core endpoints done               |
+|------------------------------------------------------------------------------|
 | Autoscaling           | @mock_autoscaling| core endpoints done               |
 |------------------------------------------------------------------------------|
 | Cloudformation        | @mock_cloudformation| core endpoints done            |
