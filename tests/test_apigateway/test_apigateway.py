@@ -515,4 +515,4 @@ def test_http_proxying_integration():
 
     deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(api_id=api_id, region_name=region_name, stage_name=stage_name)
 
-    requests.get(deploy_url).content.should.equal("a fake response")
+    requests.get(deploy_url).content.should.equal(b"a fake response")

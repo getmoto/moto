@@ -210,7 +210,7 @@ class RestAPI(object):
         return self.deployments[deployment_id]
 
     def get_deployments(self):
-        return self.deployments.values()
+        return list(self.deployments.values())
 
     def delete_deployment(self, deployment_id):
         return self.deployments.pop(deployment_id)

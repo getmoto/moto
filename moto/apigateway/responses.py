@@ -9,7 +9,7 @@ from .models import apigateway_backends
 class APIGatewayResponse(BaseResponse):
 
     def _get_param(self, key):
-        return json.loads(self.body).get(key)
+        return json.loads(self.body.decode("ascii")).get(key)
 
     @property
     def backend(self):
