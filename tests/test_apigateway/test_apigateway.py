@@ -4,6 +4,8 @@ from datetime import datetime
 from dateutil.tz import tzutc
 import boto3
 from freezegun import freeze_time
+import httpretty
+import requests
 import sure  # noqa
 
 from moto import mock_apigateway
@@ -99,6 +101,46 @@ def test_create_resource():
     )
 
     len(client.get_resources(restApiId=api_id)['items']).should.equal(1)
+
+
+@mock_apigateway
+def test_child_resource():
+    client = boto3.client('apigateway', region_name='us-west-2')
+    response = client.create_rest_api(
+        name='my_api',
+        description='this is my api',
+    )
+    api_id = response['id']
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources['items'] if resource['path'] == '/'][0]['id']
+
+    response = client.create_resource(
+        restApiId=api_id,
+        parentId=root_id,
+        pathPart='users',
+    )
+    users_id = response['id']
+
+    response = client.create_resource(
+        restApiId=api_id,
+        parentId=users_id,
+        pathPart='tags',
+    )
+    tags_id = response['id']
+
+    child_resource = client.get_resource(
+        restApiId=api_id,
+        resourceId=tags_id,
+    )
+    child_resource.should.equal({
+        'path': '/users/tags',
+        'pathPart': 'tags',
+        'parentId': users_id,
+        'id': tags_id,
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'resourceMethods': {'GET': {}},
+    })
 
 
 @mock_apigateway
@@ -423,3 +465,54 @@ def test_deployment():
         restApiId=api_id,
     )
     len(response['items']).should.equal(0)
+
+
+@httpretty.activate
+@mock_apigateway
+def test_http_proxying_integration():
+    httpretty.register_uri(
+        httpretty.GET, "http://httpbin.org/robots.txt", body='a fake response'
+    )
+
+    region_name = 'us-west-2'
+    client = boto3.client('apigateway', region_name=region_name)
+    response = client.create_rest_api(
+        name='my_api',
+        description='this is my api',
+    )
+    api_id = response['id']
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources['items'] if resource['path'] == '/'][0]['id']
+
+    client.put_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        authorizationType='none',
+    )
+
+    client.put_method_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        statusCode='200',
+    )
+
+    response = client.put_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='GET',
+        type='HTTP',
+        uri='http://httpbin.org/robots.txt',
+    )
+
+    stage_name = 'staging'
+    client.create_deployment(
+        restApiId=api_id,
+        stageName=stage_name,
+    )
+
+    deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(api_id=api_id, region_name=region_name, stage_name=stage_name)
+
+    requests.get(deploy_url).content.should.equal("a fake response")

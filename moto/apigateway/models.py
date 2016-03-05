@@ -1,9 +1,14 @@
 from __future__ import unicode_literals
 
 import datetime
+import httpretty
+import requests
+
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import create_id
+
+STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
 
 class Deployment(dict):
@@ -76,8 +81,10 @@ class Method(dict):
 
 
 class Resource(object):
-    def __init__(self, id, path_part, parent_id):
+    def __init__(self, id, region_name, api_id, path_part, parent_id):
         self.id = id
+        self.region_name = region_name
+        self.api_id = api_id
         self.path_part = path_part
         self.parent_id = parent_id
         self.resource_methods = {
@@ -86,13 +93,40 @@ class Resource(object):
 
     def to_dict(self):
         response = {
-            "path": self.path_part,
+            "path": self.get_path(),
             "id": self.id,
             "resourceMethods": self.resource_methods,
         }
         if self.parent_id:
-            response['parent_id'] = self.parent_id
+            response['parentId'] = self.parent_id
+            response['pathPart'] = self.path_part
         return response
+
+    def get_path(self):
+        return self.get_parent_path() + self.path_part
+
+    def get_parent_path(self):
+        if self.parent_id:
+            backend = apigateway_backends[self.region_name]
+            parent = backend.get_resource(self.api_id, self.parent_id)
+            parent_path = parent.get_path()
+            if parent_path != '/':  # Root parent
+                parent_path += '/'
+            return parent_path
+        else:
+            return ''
+
+    def get_response(self, request):
+        integration = self.get_integration(request.method)
+        integration_type = integration['type']
+
+        if integration_type == 'HTTP':
+            uri = integration['uri']
+            requests_func = getattr(requests, integration['httpMethod'].lower())
+            response = requests_func(uri)
+        else:
+            raise NotImplementedError("The {0} type has not been implemented".format(integration_type))
+        return response.status_code, response.text
 
     def add_method(self, method_type, authorization_type):
         method = Method(method_type=method_type, authorization_type=authorization_type)
@@ -115,8 +149,9 @@ class Resource(object):
 
 
 class RestAPI(object):
-    def __init__(self, id, name, description):
+    def __init__(self, id, region_name, name, description):
         self.id = id
+        self.region_name = region_name
         self.name = name
         self.description = description
         self.create_date = datetime.datetime.utcnow()
@@ -136,14 +171,39 @@ class RestAPI(object):
 
     def add_child(self, path, parent_id=None):
         child_id = create_id()
-        child = Resource(id=child_id, path_part=path, parent_id=parent_id)
+        child = Resource(id=child_id, region_name=self.region_name, api_id=self.id, path_part=path, parent_id=parent_id)
         self.resources[child_id] = child
         return child
+
+    def get_resource_for_path(self, path_after_stage_name):
+        for resource in self.resources.values():
+            if resource.get_path() == path_after_stage_name:
+                return resource
+        # TODO deal with no matching resource
+
+    def resource_callback(self, request, full_url, headers):
+        path_after_stage_name = '/'.join(request.path.split("/")[2:])
+        if not path_after_stage_name:
+            path_after_stage_name = '/'
+
+        resource = self.get_resource_for_path(path_after_stage_name)
+        status_code, response = resource.get_response(request)
+        return status_code, headers, response
+
+    def update_integration_mocks(self, stage_name):
+        httpretty.enable()
+
+        stage_url = STAGE_URL.format(api_id=self.id, region_name=self.region_name, stage_name=stage_name)
+        for method in httpretty.httpretty.METHODS:
+            httpretty.register_uri(method, stage_url, body=self.resource_callback)
 
     def create_deployment(self, name):
         deployment_id = create_id()
         deployment = Deployment(deployment_id, name)
         self.deployments[deployment_id] = deployment
+
+        self.update_integration_mocks(name)
+
         return deployment
 
     def get_deployment(self, deployment_id):
@@ -169,7 +229,7 @@ class APIGatewayBackend(BaseBackend):
 
     def create_rest_api(self, name, description):
         api_id = create_id()
-        rest_api = RestAPI(api_id, name, description)
+        rest_api = RestAPI(api_id, self.region_name, name, description)
         self.apis[api_id] = rest_api
         return rest_api
 
