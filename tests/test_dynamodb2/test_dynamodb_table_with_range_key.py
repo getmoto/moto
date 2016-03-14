@@ -62,6 +62,176 @@ def iterate_results(res):
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
+def test_query_filter_eq():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Awesome Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Not So Awesome Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', index='threads_index', threads__eq=5
+    )
+    list(results).should.have.length_of(1)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_filter_lt():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Awesome Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Not So Awesome Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', index='threads_index', threads__lt=5
+    )
+    list(results).should.have.length_of(2)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_filter_gt():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Awesome Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Not So Awesome Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', index='threads_index', threads__gt=1
+    )
+    list(results).should.have.length_of(1)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_filter_lte():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Awesome Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Not So Awesome Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', index='threads_index', threads__lte=5
+    )
+    list(results).should.have.length_of(3)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_filter_gte():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Awesome Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Not So Awesome Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', index='threads_index', threads__gte=1
+    )
+    list(results).should.have.length_of(2)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
 @freeze_time("2012-01-14")
 def test_create_table():
     table = create_table()
@@ -640,6 +810,7 @@ def test_query_with_global_indexes():
 
 @mock_dynamodb2
 def test_query_with_local_indexes():
+    # testing
     table = create_table_with_local_indexes()
     item_data = {
         'forum_name': 'Cool Forum',
