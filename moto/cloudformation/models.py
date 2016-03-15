@@ -26,7 +26,7 @@ class FakeStack(object):
         self.output_map = self._create_output_map()
 
     def _create_resource_map(self):
-        resource_map = ResourceMap(self.stack_id, self.name, self.parameters, self.region_name, self.template_dict)
+        resource_map = ResourceMap(self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict)
         resource_map.create()
         return resource_map
 

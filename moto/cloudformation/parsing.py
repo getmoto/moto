@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import collections
 import functools
 import logging
+import copy
 
 from moto.autoscaling import models as autoscaling_models
 from moto.awslambda import models as lambda_models
@@ -264,11 +265,12 @@ class ResourceMap(collections.Mapping):
     each resources is passed this lazy map that it can grab dependencies from.
     """
 
-    def __init__(self, stack_id, stack_name, parameters, region_name, template):
+    def __init__(self, stack_id, stack_name, parameters, tags, region_name, template):
         self._template = template
         self._resource_json_map = template['Resources']
         self._region_name = region_name
         self.input_parameters = parameters
+        self.tags = copy.deepcopy(tags)
         self.resolved_parameters = {}
 
         # Create the default resources
@@ -339,13 +341,12 @@ class ResourceMap(collections.Mapping):
 
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.
-        tags = {'aws:cloudformation:stack-name': self.get('AWS::StackName'),
-                'aws:cloudformation:stack-id': self.get('AWS::StackId')}
+        self.tags.update({'aws:cloudformation:stack-name': self.get('AWS::StackName'),
+                'aws:cloudformation:stack-id': self.get('AWS::StackId')})
         for resource in self.resources:
-            self[resource]
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
-                tags['aws:cloudformation:logical-id'] = resource
-                ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], tags)
+                self.tags['aws:cloudformation:logical-id'] = resource
+                ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], self.tags)
 
     def update(self, template):
         self.load_mapping()
