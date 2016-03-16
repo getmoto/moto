@@ -85,6 +85,24 @@ class RecordSet(object):
         record_set = hosted_zone.add_rrset(properties)
         return record_set
 
+    @classmethod
+    def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        # this will break if you changed the zone the record is in, unfortunately
+        properties = cloudformation_json['Properties']
+
+        zone_name = properties.get("HostedZoneName")
+        if zone_name:
+            hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
+        else:
+            hosted_zone = route53_backend.get_hosted_zone(properties["HostedZoneId"])
+
+        try:
+            hosted_zone.delete_rrset_by_name(resource_name)
+        except KeyError:
+            pass
+
+        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+
     def to_xml(self):
         template = Template("""<ResourceRecordSet>
                 <Name>{{ record_set.name }}</Name>

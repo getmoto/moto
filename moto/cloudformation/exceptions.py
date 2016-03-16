@@ -14,7 +14,7 @@ class ValidationError(BadRequest):
         super(ValidationError, self).__init__()
         self.description = template.render(
             code="ValidationError",
-            messgae="Stack:{0} does not exist".format(name_or_id),
+            message="Stack:{0} does not exist".format(name_or_id),
         )
 
 
@@ -24,7 +24,7 @@ class MissingParameterError(BadRequest):
         super(MissingParameterError, self).__init__()
         self.description = template.render(
             code="Missing Parameter",
-            messgae="Missing parameter {0}".format(parameter_name),
+            message="Missing parameter {0}".format(parameter_name),
         )
 
 

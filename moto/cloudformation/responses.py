@@ -130,14 +130,18 @@ class CloudFormationResponse(BaseResponse):
             name=stack_name,
             template=stack_body,
         )
-        stack_body = {
-            'UpdateStackResponse': {
-                'UpdateStackResult': {
-                    'StackId': stack.name,
+        if self.request_json:
+            stack_body = {
+                'UpdateStackResponse': {
+                    'UpdateStackResult': {
+                        'StackId': stack.name,
+                    }
                 }
             }
-        }
-        return json.dumps(stack_body)
+            return json.dumps(stack_body)
+        else:
+            template = self.response_template(UPDATE_STACK_RESPONSE_TEMPLATE)
+            return template.render(stack=stack)
 
     def delete_stack(self):
         name_or_stack_id = self.querystring.get('StackName')[0]
@@ -294,6 +298,16 @@ GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
   </ResponseMetadata>
 </GetTemplateResponse>"""
 
+
+UPDATE_STACK_RESPONSE_TEMPLATE = """<UpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <UpdateStackResult>
+    <StackId>{{ stack.stack_id }}</StackId>
+  </UpdateStackResult>
+  <ResponseMetadata>
+    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+  </ResponseMetadata>
+</UpdateStackResponse>
+"""
 
 DELETE_STACK_RESPONSE_TEMPLATE = """<DeleteStackResponse>
   <ResponseMetadata>

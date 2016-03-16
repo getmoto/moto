@@ -262,10 +262,17 @@ def test_stack_elb_integration_with_attached_ec2_instances():
         "Resources": {
             "MyELB": {
                 "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-                "Instances": [{"Ref": "Ec2Instance1"}],
                 "Properties": {
+                    "Instances": [{"Ref": "Ec2Instance1"}],
                     "LoadBalancerName": "test-elb",
-                    "AvailabilityZones": ['us-east1'],
+                    "AvailabilityZones": ['us-east-1'],
+                    "Listeners": [
+                        {
+                            "InstancePort": "80",
+                            "LoadBalancerPort": "80",
+                            "Protocol": "HTTP",
+                        }
+                    ],
                 }
             },
             "Ec2Instance1": {
@@ -293,7 +300,7 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     ec2_instance = reservation.instances[0]
 
     load_balancer.instances[0].id.should.equal(ec2_instance.id)
-    list(load_balancer.availability_zones).should.equal(['us-east1'])
+    list(load_balancer.availability_zones).should.equal(['us-east-1'])
 
 
 @mock_ec2()
@@ -442,7 +449,7 @@ def test_autoscaling_group_with_elb():
                     "Listeners": [{
                         "LoadBalancerPort": "80",
                         "InstancePort": "80",
-                        "Protocol": "HTTP"
+                        "Protocol": "HTTP",
                     }],
                     "LoadBalancerName": "my-elb",
                     "HealthCheck": {
