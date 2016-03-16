@@ -61,6 +61,7 @@ class FakeLoadBalancer(object):
         self.policies.app_cookie_stickiness_policies = []
         self.policies.lb_cookie_stickiness_policies = []
         self.tags = {}
+        self.dns_name = "tests.us-east-1.elb.amazonaws.com"
 
         for port in ports:
             listener = FakeListener(
@@ -117,7 +118,7 @@ class FakeLoadBalancer(object):
         elif attribute_name == 'CanonicalHostedZoneNameID':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneNameID" ]"')
         elif attribute_name == 'DNSName':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DNSName" ]"')
+            return self.dns_name
         elif attribute_name == 'SourceSecurityGroup.GroupName':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.GroupName" ]"')
         elif attribute_name == 'SourceSecurityGroup.OwnerAlias':
