@@ -369,7 +369,7 @@ class Table(object):
         if scan_index_forward is False:
             results.reverse()
 
-        scanned_count = len(self.all_items())
+        scanned_count = len(list(self.all_items()))
 
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key)
