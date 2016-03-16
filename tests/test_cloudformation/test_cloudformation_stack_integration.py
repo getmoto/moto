@@ -303,6 +303,54 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     list(load_balancer.availability_zones).should.equal(['us-east-1'])
 
 
+@mock_elb()
+@mock_cloudformation()
+def test_stack_elb_integration_with_health_check():
+    elb_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "MyELB": {
+                "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+                "Properties": {
+                    "LoadBalancerName": "test-elb",
+                    "AvailabilityZones": ['us-west-1'],
+                    "HealthCheck": {
+                        "HealthyThreshold": "3",
+                        "Interval": "5",
+                        "Target": "HTTP:80/healthcheck",
+                        "Timeout": "4",
+                        "UnhealthyThreshold": "2",
+                    },
+                    "Listeners": [
+                        {
+                            "InstancePort": "80",
+                            "LoadBalancerPort": "80",
+                            "Protocol": "HTTP",
+                        }
+                    ],
+                }
+            },
+        },
+    }
+    elb_template_json = json.dumps(elb_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "elb_stack",
+        template_body=elb_template_json,
+    )
+
+    elb_conn = boto.ec2.elb.connect_to_region("us-west-1")
+    load_balancer = elb_conn.get_all_load_balancers()[0]
+    health_check = load_balancer.health_check
+
+    health_check.healthy_threshold.should.equal(3)
+    health_check.interval.should.equal(5)
+    health_check.target.should.equal("HTTP:80/healthcheck")
+    health_check.timeout.should.equal(4)
+    health_check.unhealthy_threshold.should.equal(2)
+
+
 @mock_ec2()
 @mock_redshift()
 @mock_cloudformation()
@@ -453,7 +501,7 @@ def test_autoscaling_group_with_elb():
                     }],
                     "LoadBalancerName": "my-elb",
                     "HealthCheck": {
-                        "Target": "80",
+                        "Target": "HTTP:80",
                         "HealthyThreshold": "3",
                         "UnhealthyThreshold": "5",
                         "Interval": "30",

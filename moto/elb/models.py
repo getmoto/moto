@@ -94,6 +94,18 @@ class FakeLoadBalancer(object):
         instance_ids = properties.get('Instances', [])
         for instance_id in instance_ids:
             elb_backend.register_instances(new_elb.name, [instance_id])
+
+        health_check = properties.get('HealthCheck')
+        if health_check:
+            elb_backend.configure_health_check(
+                load_balancer_name=new_elb.name,
+                timeout=health_check['Timeout'],
+                healthy_threshold=health_check['HealthyThreshold'],
+                unhealthy_threshold=health_check['UnhealthyThreshold'],
+                interval=health_check['Interval'],
+                target=health_check['Target'],
+            )
+
         return new_elb
 
     @classmethod
@@ -105,7 +117,6 @@ class FakeLoadBalancer(object):
             pass
 
         return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
-
 
     @property
     def physical_resource_id(self):
