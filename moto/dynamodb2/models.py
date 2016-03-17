@@ -309,7 +309,7 @@ class Table(object):
             return None
 
     def query(self, hash_key, range_comparison, range_objs, limit,
-              exclusive_start_key, scan_index_forward, index_name=None):
+              exclusive_start_key, scan_index_forward, index_name=None, **filter_kwargs):
         results = []
 
         if index_name:
@@ -354,8 +354,16 @@ class Table(object):
                 for result in possible_results:
                     if result.range_key.compare(range_comparison, range_objs):
                         results.append(result)
-        else:
-            # If we're not filtering on range key, return all values
+
+        if filter_kwargs:
+            for result in possible_results:
+                for field, value in filter_kwargs.items():
+                    dynamo_types = [DynamoType(ele) for ele in value["AttributeValueList"]]
+                    if result.attrs.get(field).compare(value['ComparisonOperator'], dynamo_types):
+                        results.append(result)
+
+        if not range_comparison and not filter_kwargs:
+            # If we're not filtering on range key or on an index return all values
             results = possible_results
 
         if index_name:
@@ -513,11 +521,17 @@ class DynamoDBBackend(BaseBackend):
                 for key in keys:
                     if key in table.hash_key_names:
                         return key, None
-
-            for potential_hash, potential_range in zip(table.hash_key_names, table.range_key_names):
-                if set([potential_hash, potential_range]) == set(keys):
-                    return potential_hash, potential_range
-            return None, None
+            # import pdb; pdb.set_trace()
+            # for potential_hash, potential_range in zip(table.hash_key_names, table.range_key_names):
+            #     if set([potential_hash, potential_range]) == set(keys):
+            #         return potential_hash, potential_range
+            potential_hash, potential_range = None, None
+            for key in set(keys):
+                if key in table.hash_key_names:
+                    potential_hash = key
+                elif key in table.range_key_names:
+                    potential_range = key
+            return potential_hash, potential_range
 
     def get_keys_value(self, table, keys):
         if table.hash_key_attr not in keys or (table.has_range_key and table.range_key_attr not in keys):
@@ -537,7 +551,7 @@ class DynamoDBBackend(BaseBackend):
         return table.get_item(hash_key, range_key)
 
     def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts,
-              limit, exclusive_start_key, scan_index_forward, index_name=None):
+              limit, exclusive_start_key, scan_index_forward, index_name=None, **filter_kwargs):
         table = self.tables.get(table_name)
         if not table:
             return None, None
@@ -546,7 +560,7 @@ class DynamoDBBackend(BaseBackend):
         range_values = [DynamoType(range_value) for range_value in range_value_dicts]
 
         return table.query(hash_key, range_comparison, range_values, limit,
-                           exclusive_start_key, scan_index_forward, index_name)
+                           exclusive_start_key, scan_index_forward, index_name, **filter_kwargs)
 
     def scan(self, table_name, filters, limit, exclusive_start_key):
         table = self.tables.get(table_name)
