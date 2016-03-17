@@ -240,6 +240,7 @@ class DynamoHandler(BaseResponse):
         name = self.body['TableName']
         # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
         key_condition_expression = self.body.get('KeyConditionExpression')
+        filter_kwargs = {}
         if key_condition_expression:
             value_alias_map = self.body['ExpressionAttributeValues']
 
@@ -295,6 +296,7 @@ class DynamoHandler(BaseResponse):
             key_conditions = self.body.get('KeyConditions')
             if key_conditions:
                 hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name, key_conditions.keys())
+                filter_kwargs = {key: value for key, value in key_conditions.items() if key not in (hash_key_name, range_key_name)}
                 if hash_key_name is None:
                     er = "'com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
                     return self.error(er)
@@ -303,25 +305,24 @@ class DynamoHandler(BaseResponse):
                     range_comparison = None
                     range_values = []
                 else:
-                    if range_key_name is None:
+                    if range_key_name is None and not filter_kwargs:
                         er = "com.amazon.coral.validate#ValidationException"
                         return self.error(er)
                     else:
-                        range_condition = key_conditions[range_key_name]
+                        range_condition = key_conditions.get(range_key_name)
                         if range_condition:
                             range_comparison = range_condition['ComparisonOperator']
                             range_values = range_condition['AttributeValueList']
                         else:
                             range_comparison = None
                             range_values = []
-
         index_name = self.body.get('IndexName')
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
         scan_index_forward = self.body.get("ScanIndexForward")
         items, last_evaluated_key = dynamodb_backend2.query(
             name, hash_key, range_comparison, range_values, limit,
-            exclusive_start_key, scan_index_forward, index_name=index_name)
+            exclusive_start_key, scan_index_forward, index_name=index_name, **filter_kwargs)
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
