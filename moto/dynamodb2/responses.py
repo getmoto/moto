@@ -296,7 +296,9 @@ class DynamoHandler(BaseResponse):
             key_conditions = self.body.get('KeyConditions')
             if key_conditions:
                 hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name, key_conditions.keys())
-                filter_kwargs = {key: value for key, value in key_conditions.items() if key not in (hash_key_name, range_key_name)}
+                for key, value in key_conditions.items():
+                    if key not in (hash_key_name, range_key_name):
+                        filter_kwargs[key] = value
                 if hash_key_name is None:
                     er = "'com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
                     return self.error(er)
