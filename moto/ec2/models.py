@@ -1137,15 +1137,19 @@ class SecurityGroup(TaggedEC2Resource):
 
     @classmethod
     def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        cls.delete_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
         ec2_backend = ec2_backends[region_name]
         vpc_id = properties.get('VpcId')
 
         security_group = ec2_backend.get_security_group_from_name(resource_name, vpc_id)
-        security_group.delete(region_name)
-
-        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+        if security_group:
+            security_group.delete(region_name)
 
     def delete(self, region_name):
         ''' Not exposed as part of the ELB API - used for CloudFormation. '''

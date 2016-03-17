@@ -87,6 +87,11 @@ class RecordSet(object):
 
     @classmethod
     def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        cls.delete_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         # this will break if you changed the zone the record is in, unfortunately
         properties = cloudformation_json['Properties']
 
@@ -100,8 +105,6 @@ class RecordSet(object):
             hosted_zone.delete_rrset_by_name(resource_name)
         except KeyError:
             pass
-
-        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
 
     def to_xml(self):
         template = Template("""<ResourceRecordSet>

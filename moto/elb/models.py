@@ -110,13 +110,16 @@ class FakeLoadBalancer(object):
 
     @classmethod
     def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        cls.delete_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         elb_backend = elb_backends[region_name]
         try:
             elb_backend.delete_load_balancer(resource_name)
         except KeyError:
             pass
-
-        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
 
     @property
     def physical_resource_id(self):

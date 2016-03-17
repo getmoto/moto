@@ -114,7 +114,7 @@ def clean_json(resource_json, resources_map):
             return result
 
         if 'Fn::GetAtt' in resource_json:
-            resource = resources_map[resource_json['Fn::GetAtt'][0]]
+            resource = resources_map.get(resource_json['Fn::GetAtt'][0])
             if resource is None:
                 return resource_json
             try:
@@ -288,6 +288,8 @@ class ResourceMap(collections.Mapping):
             return self._parsed_resources[resource_logical_id]
         else:
             resource_json = self._resource_json_map.get(resource_logical_id)
+            if not resource_json:
+                raise KeyError(resource_logical_id)
             new_resource = parse_and_create_resource(resource_logical_id, resource_json, self, self._region_name)
             self._parsed_resources[resource_logical_id] = new_resource
             return new_resource

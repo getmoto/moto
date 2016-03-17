@@ -83,13 +83,16 @@ class FakeLaunchConfiguration(object):
 
     @classmethod
     def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        cls.delete_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         backend = autoscaling_backends[region_name]
         try:
             backend.delete_launch_configuration(resource_name)
         except KeyError:
             pass
-
-        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
 
     def delete(self, region_name):
         backend = autoscaling_backends[region_name]
@@ -184,6 +187,11 @@ class FakeAutoScalingGroup(object):
 
     @classmethod
     def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        cls.delete_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         backend = autoscaling_backends[region_name]
         try:
             backend.delete_autoscaling_group(resource_name)
@@ -192,8 +200,6 @@ class FakeAutoScalingGroup(object):
         except LoadBalancerNotFoundError:
             # sometimes the ELB gets modified before the ASG, so just skip over desired capacity
             backend.autoscaling_groups.pop(resource_name, None)
-
-        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
 
     def delete(self, region_name):
         backend = autoscaling_backends[region_name]
