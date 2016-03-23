@@ -79,8 +79,8 @@ class CloudFormationResponse(BaseResponse):
                 resource = stack_resource
                 break
         else:
-            raise ValidationError(logical_resource_id)   
-        
+            raise ValidationError(logical_resource_id)
+
         template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
         return template.render(stack=stack, resource=resource)
 
@@ -106,7 +106,7 @@ class CloudFormationResponse(BaseResponse):
     def get_template(self):
         name_or_stack_id = self.querystring.get('StackName')[0]
         stack = self.cloudformation_backend.get_stack(name_or_stack_id)
-        
+
         if self.request_json:
             return json.dumps({
                 "GetTemplateResponse": {
@@ -124,7 +124,10 @@ class CloudFormationResponse(BaseResponse):
 
     def update_stack(self):
         stack_name = self._get_param('StackName')
-        stack_body = self._get_param('TemplateBody')
+        if self._get_param('UsePreviousTemplate') == "true":
+            stack_body = self.cloudformation_backend.get_stack(stack_name).template
+        else:
+            stack_body = self._get_param('TemplateBody')
 
         stack = self.cloudformation_backend.update_stack(
             name=stack_name,
