@@ -51,10 +51,11 @@ class FakeStack(object):
         self.template = template
         self.resource_map.update(json.loads(template))
         self.output_map = self._create_output_map()
+        self.status = "UPDATE_COMPLETE"
 
     def delete(self):
         self.resource_map.delete()
-        self.status = 'DELETE_COMPLETE'
+        self.status = "DELETE_COMPLETE"
 
 
 class CloudFormationBackend(BaseBackend):
