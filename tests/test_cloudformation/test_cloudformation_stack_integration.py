@@ -363,6 +363,12 @@ def test_stack_security_groups():
                 "Type": "AWS::EC2::SecurityGroup",
                 "Properties": {
                     "GroupDescription": "My security group",
+                    "Tags": [
+                        {
+                            "Key": "bar",
+                            "Value": "baz"
+                        }
+                    ],
                     "SecurityGroupIngress": [{
                         "IpProtocol": "tcp",
                         "FromPort": "22",
@@ -384,6 +390,7 @@ def test_stack_security_groups():
     conn.create_stack(
         "security_group_stack",
         template_body=security_group_template_json,
+        tags={"foo":"bar"}
     )
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
@@ -395,6 +402,8 @@ def test_stack_security_groups():
 
     ec2_instance.groups[0].id.should.equal(instance_group.id)
     instance_group.description.should.equal("My security group")
+    instance_group.tags.should.have.key('foo').which.should.equal('bar')
+    instance_group.tags.should.have.key('bar').which.should.equal('baz')
     rule1, rule2 = instance_group.rules
     int(rule1.to_port).should.equal(22)
     int(rule1.from_port).should.equal(22)
