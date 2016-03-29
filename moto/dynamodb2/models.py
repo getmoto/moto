@@ -369,7 +369,11 @@ class Table(object):
         if scan_index_forward is False:
             results.reverse()
 
-        return self._trim_results(results, limit, exclusive_start_key)
+        scanned_count = len(list(self.all_items()))
+
+        results, last_evaluated_key = self._trim_results(results, limit,
+                                                         exclusive_start_key)
+        return results, scanned_count, last_evaluated_key
 
     def all_items(self):
         for hash_set in self.items.values():

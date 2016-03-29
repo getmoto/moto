@@ -319,7 +319,7 @@ class DynamoHandler(BaseResponse):
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
         scan_index_forward = self.body.get("ScanIndexForward")
-        items, last_evaluated_key = dynamodb_backend2.query(
+        items, scanned_count, last_evaluated_key = dynamodb_backend2.query(
             name, hash_key, range_comparison, range_values, limit,
             exclusive_start_key, scan_index_forward, index_name=index_name)
         if items is None:
@@ -329,6 +329,7 @@ class DynamoHandler(BaseResponse):
         result = {
             "Count": len(items),
             "ConsumedCapacityUnits": 1,
+            "ScannedCount": scanned_count
         }
         if self.body.get('Select', '').upper() != 'COUNT':
             result["Items"] = [item.attrs for item in items]
