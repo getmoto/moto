@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     "Jinja2",
-    "boto>=2.26.0",
+    "boto>=2.36.0",
     "flask",
     "httpretty==0.8.10",
     "requests",
