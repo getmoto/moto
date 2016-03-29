@@ -360,7 +360,9 @@ filter_dict_attribute_mapping = {
     'vpc-id': 'vpc_id',
     'group-id': 'security_groups',
     'instance.group-id': 'security_groups',
-    'instance-type': 'instance_type'
+    'instance-type': 'instance_type',
+    'private-ip-address' : 'private_ip',
+    'ip-address' : 'public_ip'
 }
 
 
