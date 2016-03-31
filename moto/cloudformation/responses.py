@@ -230,21 +230,23 @@ DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
 </DescribeStackResourceResponse>"""
 
 
-DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResult>
-  <StackResources>
-    {% for resource in stack.stack_resources %}
-    <member>
-      <StackId>{{ stack.stack_id }}</StackId>
-      <StackName>{{ stack.name }}</StackName>
-      <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
-      <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-      <ResourceType>{{ resource.type }}</ResourceType>
-      <Timestamp>2010-07-27T22:27:28Z</Timestamp>
-      <ResourceStatus>{{ stack.status }}</ResourceStatus>
-    </member>
-    {% endfor %}
-  </StackResources>
-</DescribeStackResourcesResult>"""
+DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
+    <DescribeStackResourcesResult>
+      <StackResources>
+        {% for resource in stack.stack_resources %}
+        <member>
+          <StackId>{{ stack.stack_id }}</StackId>
+          <StackName>{{ stack.name }}</StackName>
+          <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
+          <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
+          <ResourceType>{{ resource.type }}</ResourceType>
+          <Timestamp>2010-07-27T22:27:28Z</Timestamp>
+          <ResourceStatus>{{ stack.status }}</ResourceStatus>
+        </member>
+        {% endfor %}
+      </StackResources>
+    </DescribeStackResourcesResult>
+</DescribeStackResourcesResponse>"""
 
 
 LIST_STACKS_RESPONSE = """<ListStacksResponse>
