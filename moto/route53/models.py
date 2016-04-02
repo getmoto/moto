@@ -86,9 +86,9 @@ class RecordSet(object):
         return record_set
 
     @classmethod
-    def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        cls.delete_from_cloudformation_json(resource_name, cloudformation_json, region_name)
-        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
+        cls.delete_from_cloudformation_json(original_resource.name, cloudformation_json, region_name)
+        return cls.create_from_cloudformation_json(new_resource_name, cloudformation_json, region_name)
 
     @classmethod
     def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):

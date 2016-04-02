@@ -286,3 +286,24 @@ def test_update_stack():
         }
     })
 
+@mock_cloudformation
+def test_update_stack():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+    )
+    conn.update_stack("test_stack", use_previous_template=True)
+
+    stack = conn.describe_stacks()[0]
+    stack.stack_status.should.equal("UPDATE_COMPLETE")
+    stack.get_template().should.equal({
+        'GetTemplateResponse': {
+            'GetTemplateResult': {
+                'TemplateBody': dummy_template_json,
+                'ResponseMetadata': {
+                    'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
+                }
+            }
+        }
+    })

@@ -137,7 +137,7 @@ class Queue(object):
         )
 
     @classmethod
-    def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
         queue_name = properties['QueueName']
 

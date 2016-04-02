@@ -207,11 +207,17 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
 
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, resource_json, resource_name = parse_resource(logical_id, resource_json, resources_map)
-    resource = resource_class.update_from_cloudformation_json(resource_name, resource_json, region_name)
-    resource.type = resource_json['Type']
-    resource.logical_resource_id = logical_id
-    return resource
+    resource_class, new_resource_json, new_resource_name = parse_resource(logical_id, resource_json, resources_map)
+    original_resource = resources_map[logical_id]
+    new_resource = resource_class.update_from_cloudformation_json(
+        original_resource=original_resource,
+        new_resource_name=new_resource_name,
+        cloudformation_json=new_resource_json,
+        region_name=region_name
+    )
+    new_resource.type = resource_json['Type']
+    new_resource.logical_resource_id = logical_id
+    return new_resource
 
 
 def parse_and_delete_resource(logical_id, resource_json, resources_map, region_name):
