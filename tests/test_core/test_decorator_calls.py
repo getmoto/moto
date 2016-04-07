@@ -2,10 +2,12 @@ from __future__ import unicode_literals
 import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
+import unittest
+
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_ec2
+from moto import mock_ec2, mock_s3
 
 '''
 Test the different ways that the decorator can be used
@@ -69,3 +71,14 @@ class Tester(object):
     def test_still_the_same(self):
         conn = boto.connect_ec2()
         list(conn.get_all_instances()).should.have.length_of(0)
+
+
+@mock_s3
+class TesterWithSetup(unittest.TestCase):
+    def setUp(self):
+        self.conn = boto.connect_s3()
+        self.conn.create_bucket('mybucket')
+
+    def test_still_the_same(self):
+        bucket = self.conn.get_bucket('mybucket')
+        bucket.name.should.equal("mybucket")

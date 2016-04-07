@@ -11,6 +11,7 @@ from .utils import region_from_glacier_url, vault_from_glacier_url
 class GlacierResponse(_TemplateEnvironmentMixin):
 
     def __init__(self, backend):
+        super(GlacierResponse, self).__init__()
         self.backend = backend
 
     @classmethod

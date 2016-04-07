@@ -4,6 +4,7 @@ import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import boto
+import boto3
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
@@ -286,6 +287,43 @@ def test_route_table_replace_route_table_association():
     cm.exception.code.should.equal('InvalidRouteTableID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_route_table_get_by_tag():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+
+    vpc = conn.create_vpc('10.0.0.0/16')
+
+    route_table = conn.create_route_table(vpc.id)
+    route_table.add_tag('Name', 'TestRouteTable')
+
+    route_tables = conn.get_all_route_tables(filters={'tag:Name': 'TestRouteTable'})
+
+    route_tables.should.have.length_of(1)
+    route_tables[0].vpc_id.should.equal(vpc.id)
+    route_tables[0].id.should.equal(route_table.id)
+    route_tables[0].tags.should.have.length_of(1)
+    route_tables[0].tags['Name'].should.equal('TestRouteTable')
+
+
+@mock_ec2
+def test_route_table_get_by_tag_boto3():
+    ec2 = boto3.resource('ec2', region_name='eu-central-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    route_table = ec2.create_route_table(VpcId=vpc.id)
+    route_table.create_tags(Tags=[{'Key': 'Name', 'Value': 'TestRouteTable'}])
+
+    filters = [{'Name': 'tag:Name', 'Values': ['TestRouteTable']}]
+    route_tables = list(ec2.route_tables.filter(Filters=filters))
+
+    route_tables.should.have.length_of(1)
+    route_tables[0].vpc_id.should.equal(vpc.id)
+    route_tables[0].id.should.equal(route_table.id)
+    route_tables[0].tags.should.have.length_of(1)
+    route_tables[0].tags[0].should.equal({'Key': 'Name', 'Value': 'TestRouteTable'})
 
 
 @mock_ec2

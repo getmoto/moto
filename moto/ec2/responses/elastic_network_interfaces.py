@@ -59,7 +59,7 @@ class ElasticNetworkInterfaces(BaseResponse):
         raise NotImplementedError('ElasticNetworkInterfaces(AmazonVPC).reset_network_interface_attribute is not yet implemented')
 
 CREATE_NETWORK_INTERFACE_RESPONSE = """
-<CreateNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<CreateNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>2c6021ec-d705-445a-9780-420d0c7ab793</requestId>
     <networkInterface>
         <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
@@ -100,7 +100,7 @@ CREATE_NETWORK_INTERFACE_RESPONSE = """
 </CreateNetworkInterfaceResponse>
 """
 
-DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>ddb0aaf1-8b65-4f0a-94fa-654b18b8a204</requestId>
     <networkInterfaceSet>
     {% for eni in enis %}
@@ -169,23 +169,23 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
     </networkInterfaceSet>
 </DescribeNetworkInterfacesResponse>"""
 
-ATTACH_NETWORK_INTERFACE_RESPONSE = """<AttachNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+ATTACH_NETWORK_INTERFACE_RESPONSE = """<AttachNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <attachmentId>{{ attachment_id }}</attachmentId>
 </AttachNetworkInterfaceResponse>"""
 
-DETACH_NETWORK_INTERFACE_RESPONSE = """<DetachNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2014-06-15/">
+DETACH_NETWORK_INTERFACE_RESPONSE = """<DetachNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </DetachNetworkInterfaceResponse>"""
 
-MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE = """<ModifyNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE = """<ModifyNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </ModifyNetworkInterfaceAttributeResponse>"""
 
 DELETE_NETWORK_INTERFACE_RESPONSE = """
-<DeleteNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<DeleteNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>34b5b3b4-d0c5-49b9-b5e2-a468ef6adcd8</requestId>
     <return>true</return>
 </DeleteNetworkInterfaceResponse>"""

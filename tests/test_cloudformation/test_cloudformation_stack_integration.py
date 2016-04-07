@@ -3,23 +3,29 @@ import json
 
 import boto
 import boto.cloudformation
+import boto.datapipeline
 import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
 from boto.exception import BotoServerError
 import boto.iam
+import boto.redshift
 import boto.sns
 import boto.sqs
 import boto.vpc
+import boto3
 import sure  # noqa
 
 from moto import (
     mock_autoscaling,
     mock_cloudformation,
+    mock_datapipeline,
     mock_ec2,
     mock_elb,
     mock_iam,
+    mock_lambda,
     mock_rds,
+    mock_redshift,
     mock_route53,
     mock_sns,
     mock_sqs,
@@ -29,6 +35,7 @@ from .fixtures import (
     ec2_classic_eip,
     fn_join,
     rds_mysql_with_read_replica,
+    redshift,
     route53_ec2_instance_with_public_ip,
     route53_health_check,
     route53_roundrobin,
@@ -66,6 +73,150 @@ def test_stack_sqs_integration():
     queue.resource_type.should.equal('AWS::SQS::Queue')
     queue.logical_resource_id.should.equal("QueueGroup")
     queue.physical_resource_id.should.equal("my-queue")
+
+
+@mock_cloudformation()
+def test_stack_list_resources():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+
+                "Type": "AWS::SQS::Queue",
+                "Properties": {
+                    "QueueName": "my-queue",
+                    "VisibilityTimeout": 60,
+                }
+            },
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=sqs_template_json,
+    )
+
+    resources = conn.list_stack_resources("test_stack")
+    assert len(resources) == 1
+    queue = resources[0]
+    queue.resource_type.should.equal('AWS::SQS::Queue')
+    queue.logical_resource_id.should.equal("QueueGroup")
+    queue.physical_resource_id.should.equal("my-queue")
+
+
+@mock_cloudformation()
+@mock_sqs()
+def test_update_stack():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+
+                "Type": "AWS::SQS::Queue",
+                "Properties": {
+                    "QueueName": "my-queue",
+                    "VisibilityTimeout": 60,
+                }
+            },
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=sqs_template_json,
+    )
+
+    sqs_conn = boto.sqs.connect_to_region("us-west-1")
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(1)
+    queues[0].get_attributes('VisibilityTimeout')['VisibilityTimeout'].should.equal('60')
+
+    sqs_template['Resources']['QueueGroup']['Properties']['VisibilityTimeout'] = 100
+    sqs_template_json = json.dumps(sqs_template)
+    conn.update_stack("test_stack", sqs_template_json)
+
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(1)
+    queues[0].get_attributes('VisibilityTimeout')['VisibilityTimeout'].should.equal('100')
+
+
+@mock_cloudformation()
+@mock_sqs()
+def test_update_stack_and_remove_resource():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+
+                "Type": "AWS::SQS::Queue",
+                "Properties": {
+                    "QueueName": "my-queue",
+                    "VisibilityTimeout": 60,
+                }
+            },
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=sqs_template_json,
+    )
+
+    sqs_conn = boto.sqs.connect_to_region("us-west-1")
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(1)
+
+    sqs_template['Resources'].pop('QueueGroup')
+    sqs_template_json = json.dumps(sqs_template)
+    conn.update_stack("test_stack", sqs_template_json)
+
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(0)
+
+
+@mock_cloudformation()
+@mock_sqs()
+def test_update_stack_and_add_resource():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {},
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=sqs_template_json,
+    )
+
+    sqs_conn = boto.sqs.connect_to_region("us-west-1")
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(0)
+
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+
+                "Type": "AWS::SQS::Queue",
+                "Properties": {
+                    "QueueName": "my-queue",
+                    "VisibilityTimeout": 60,
+                }
+            },
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+    conn.update_stack("test_stack", sqs_template_json)
+
+    queues = sqs_conn.get_all_queues()
+    queues.should.have.length_of(1)
 
 
 @mock_ec2()
@@ -140,24 +291,53 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
-    instance_id = ec2_instance.id
 
     load_balancer.instances[0].id.should.equal(ec2_instance.id)
     list(load_balancer.availability_zones).should.equal(['us-east1'])
-    load_balancer_name = load_balancer.name
 
-    stack = conn.describe_stacks()[0]
-    stack_resources = stack.describe_resources()
-    stack_resources.should.have.length_of(2)
-    for resource in stack_resources:
-        if resource.resource_type == 'AWS::ElasticLoadBalancing::LoadBalancer':
-            load_balancer = resource
-        else:
-            ec2_instance = resource
 
-    load_balancer.logical_resource_id.should.equal("MyELB")
-    load_balancer.physical_resource_id.should.equal(load_balancer_name)
-    ec2_instance.physical_resource_id.should.equal(instance_id)
+@mock_ec2()
+@mock_redshift()
+@mock_cloudformation()
+def test_redshift_stack():
+    redshift_template_json = json.dumps(redshift.template)
+
+    vpc_conn = boto.vpc.connect_to_region("us-west-2")
+    conn = boto.cloudformation.connect_to_region("us-west-2")
+    conn.create_stack(
+        "redshift_stack",
+        template_body=redshift_template_json,
+        parameters=[
+            ("DatabaseName", "mydb"),
+            ("ClusterType", "multi-node"),
+            ("NumberOfNodes", 2),
+            ("NodeType", "dw1.xlarge"),
+            ("MasterUsername", "myuser"),
+            ("MasterUserPassword", "mypass"),
+            ("InboundTraffic", "10.0.0.1/16"),
+            ("PortNumber", 5439),
+        ]
+    )
+
+    redshift_conn = boto.redshift.connect_to_region("us-west-2")
+
+    cluster_res = redshift_conn.describe_clusters()
+    clusters = cluster_res['DescribeClustersResponse']['DescribeClustersResult']['Clusters']
+    clusters.should.have.length_of(1)
+    cluster = clusters[0]
+    cluster['DBName'].should.equal("mydb")
+    cluster['NumberOfNodes'].should.equal(2)
+    cluster['NodeType'].should.equal("dw1.xlarge")
+    cluster['MasterUsername'].should.equal("myuser")
+    cluster['Port'].should.equal(5439)
+    cluster['VpcSecurityGroups'].should.have.length_of(1)
+    security_group_id = cluster['VpcSecurityGroups'][0]['VpcSecurityGroupId']
+
+    groups = vpc_conn.get_all_security_groups(group_ids=[security_group_id])
+    groups.should.have.length_of(1)
+    group = groups[0]
+    group.rules.should.have.length_of(1)
+    group.rules[0].grants[0].cidr_ip.should.equal("10.0.0.1/16")
 
 
 @mock_ec2()
@@ -183,6 +363,12 @@ def test_stack_security_groups():
                 "Type": "AWS::EC2::SecurityGroup",
                 "Properties": {
                     "GroupDescription": "My security group",
+                    "Tags": [
+                        {
+                            "Key": "bar",
+                            "Value": "baz"
+                        }
+                    ],
                     "SecurityGroupIngress": [{
                         "IpProtocol": "tcp",
                         "FromPort": "22",
@@ -204,6 +390,7 @@ def test_stack_security_groups():
     conn.create_stack(
         "security_group_stack",
         template_body=security_group_template_json,
+        tags={"foo":"bar"}
     )
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
@@ -215,6 +402,8 @@ def test_stack_security_groups():
 
     ec2_instance.groups[0].id.should.equal(instance_group.id)
     instance_group.description.should.equal("My security group")
+    instance_group.tags.should.have.key('foo').which.should.equal('bar')
+    instance_group.tags.should.have.key('bar').which.should.equal('baz')
     rule1, rule2 = instance_group.rules
     int(rule1.to_port).should.equal(22)
     int(rule1.from_port).should.equal(22)
@@ -559,14 +748,16 @@ def test_single_instance_with_ebs_volume():
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
 
-    volume = ec2_conn.get_all_volumes()[0]
+    volumes = ec2_conn.get_all_volumes()
+    # Grab the mounted drive
+    volume = [volume for volume in volumes if volume.attach_data.device == '/dev/sdh'][0]
     volume.volume_state().should.equal('in-use')
     volume.attach_data.instance_id.should.equal(ec2_instance.id)
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    ebs_volume = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Volume'][0]
-    ebs_volume.physical_resource_id.should.equal(volume.id)
+    ebs_volumes = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Volume']
+    ebs_volumes[0].physical_resource_id.should.equal(volume.id)
 
 
 @mock_cloudformation()
@@ -1198,17 +1389,17 @@ def test_subnets_should_be_created_with_availability_zone():
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
 
     subnet_template = {
-       "AWSTemplateFormatVersion" : "2010-09-09",
-       "Resources" : {
-          "testSubnet" : {
-             "Type" : "AWS::EC2::Subnet",
-             "Properties" : {
-                "VpcId" : vpc.id,
-                "CidrBlock" : "10.0.0.0/24",
-                "AvailabilityZone" : "us-west-1b",
-             }
-          }
-       }
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "testSubnet": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "VpcId": vpc.id,
+                    "CidrBlock": "10.0.0.0/24",
+                    "AvailabilityZone": "us-west-1b",
+                }
+            }
+        }
     }
     cf_conn = boto.cloudformation.connect_to_region("us-west-1")
     template_json = json.dumps(subnet_template)
@@ -1218,3 +1409,191 @@ def test_subnets_should_be_created_with_availability_zone():
     )
     subnet = vpc_conn.get_all_subnets(filters={'cidrBlock': '10.0.0.0/24'})[0]
     subnet.availability_zone.should.equal('us-west-1b')
+
+
+@mock_cloudformation
+@mock_datapipeline
+def test_datapipeline():
+    dp_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "dataPipeline": {
+                "Properties": {
+                    "Activate": "true",
+                    "Name": "testDataPipeline",
+                    "PipelineObjects": [
+                        {
+                            "Fields": [
+                                {
+                                    "Key": "failureAndRerunMode",
+                                    "StringValue": "CASCADE"
+                                },
+                                {
+                                    "Key": "scheduleType",
+                                    "StringValue": "cron"
+                                },
+                                {
+                                    "Key": "schedule",
+                                    "RefValue": "DefaultSchedule"
+                                },
+                                {
+                                    "Key": "pipelineLogUri",
+                                    "StringValue": "s3://bucket/logs"
+                                },
+                                {
+                                    "Key": "type",
+                                    "StringValue": "Default"
+                                },
+                            ],
+                            "Id": "Default",
+                            "Name": "Default"
+                        },
+                        {
+                            "Fields": [
+                                {
+                                    "Key": "startDateTime",
+                                    "StringValue": "1970-01-01T01:00:00"
+                                },
+                                {
+                                    "Key": "period",
+                                    "StringValue": "1 Day"
+                                },
+                                {
+                                    "Key": "type",
+                                    "StringValue": "Schedule"
+                                }
+                            ],
+                            "Id": "DefaultSchedule",
+                            "Name": "RunOnce"
+                        }
+                    ],
+                    "PipelineTags": []
+                },
+                "Type": "AWS::DataPipeline::Pipeline"
+            }
+        }
+    }
+    cf_conn = boto.cloudformation.connect_to_region("us-east-1")
+    template_json = json.dumps(dp_template)
+    stack_id = cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    dp_conn = boto.datapipeline.connect_to_region('us-east-1')
+    data_pipelines = dp_conn.list_pipelines()
+
+    data_pipelines['pipelineIdList'].should.have.length_of(1)
+    data_pipelines['pipelineIdList'][0]['name'].should.equal('testDataPipeline')
+
+    stack_resources = cf_conn.list_stack_resources(stack_id)
+    stack_resources.should.have.length_of(1)
+    stack_resources[0].physical_resource_id.should.equal(data_pipelines['pipelineIdList'][0]['id'])
+
+
+@mock_cloudformation
+@mock_lambda
+def test_lambda_function():
+    conn = boto3.client('lambda', 'us-east-1')
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "lambdaTest": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {
+                        "ZipFile": {"Fn::Join": [
+                            "\n",
+                            """
+                            exports.handler = function(event, context) {
+                                context.succeed();
+                            }
+                            """.splitlines()
+                        ]}
+                    },
+                    "Handler": "index.handler",
+                    "Description": "Test function",
+                    "MemorySize": 128,
+                    "Role": "test-role",
+                    "Runtime": "nodejs",
+                }
+            },
+        }
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto.cloudformation.connect_to_region("us-east-1")
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    result = conn.list_functions()
+    result['Functions'].should.have.length_of(1)
+    result['Functions'][0]['Description'].should.equal('Test function')
+    result['Functions'][0]['Handler'].should.equal('index.handler')
+    result['Functions'][0]['MemorySize'].should.equal(128)
+    result['Functions'][0]['Role'].should.equal('test-role')
+    result['Functions'][0]['Runtime'].should.equal('nodejs')
+
+
+@mock_cloudformation
+@mock_ec2
+def test_nat_gateway():
+    ec2_conn = boto3.client('ec2', 'us-east-1')
+    vpc_id = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']['VpcId']
+    subnet_id = ec2_conn.create_subnet(CidrBlock='10.0.1.0/24', VpcId=vpc_id)['Subnet']['SubnetId']
+    route_table_id = ec2_conn.create_route_table(VpcId=vpc_id)['RouteTable']['RouteTableId']
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "NAT" : {
+                "DependsOn" : "vpcgatewayattachment",
+                "Type" : "AWS::EC2::NatGateway",
+                "Properties" : {
+                    "AllocationId" : { "Fn::GetAtt" : ["EIP", "AllocationId"]},
+                    "SubnetId" : subnet_id
+                    }
+            },
+            "EIP" : {
+                "Type" : "AWS::EC2::EIP",
+                "Properties" : {
+                    "Domain" : "vpc"
+                }
+            },
+            "Route" : {
+                "Type" : "AWS::EC2::Route",
+                "Properties" : {
+                    "RouteTableId" : route_table_id,
+                    "DestinationCidrBlock" : "0.0.0.0/0",
+                    "NatGatewayId" : { "Ref" : "NAT" }
+              }
+            },
+            "internetgateway": {
+                "Type": "AWS::EC2::InternetGateway"
+            },
+            "vpcgatewayattachment": {
+                "Type": "AWS::EC2::VPCGatewayAttachment",
+                "Properties": {
+                    "InternetGatewayId": {
+                        "Ref": "internetgateway"
+                    },
+                    "VpcId": vpc_id,
+                },
+            }
+        }
+    }
+
+    cf_conn = boto3.client('cloudformation', 'us-east-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=json.dumps(template),
+    )
+
+    result = ec2_conn.describe_nat_gateways()
+
+    result['NatGateways'].should.have.length_of(1)
+    result['NatGateways'][0]['VpcId'].should.equal(vpc_id)
+    result['NatGateways'][0]['SubnetId'].should.equal(subnet_id)
+    result['NatGateways'][0]['State'].should.equal('available')

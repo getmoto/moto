@@ -9,7 +9,10 @@ def list_or_create_hostzone_response(request, full_url, headers):
 
     if request.method == "POST":
         elements = xmltodict.parse(request.body)
-        comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["Comment"]
+        if "HostedZoneConfig" in elements["CreateHostedZoneRequest"]:
+            comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["Comment"]
+        else:
+            comment = None
         new_zone = route53_backend.create_hosted_zone(elements["CreateHostedZoneRequest"]["Name"], comment=comment)
         template = Template(CREATE_HOSTED_ZONE_RESPONSE)
         return 201, headers, template.render(zone=new_zone)
@@ -55,11 +58,15 @@ def rrset_response(request, full_url, headers):
             action = value['Action']
             record_set = value['ResourceRecordSet']
             if action == 'CREATE':
-                resource_records = list(record_set['ResourceRecords'].values())[0]
-                if not isinstance(resource_records, list):
-                    # Depending on how many records there are, this may or may not be a list
-                    resource_records = [resource_records]
-                record_set['ResourceRecords'] = [x['Value'] for x in resource_records]
+                if 'ResourceRecords' in record_set:
+                    resource_records = list(record_set['ResourceRecords'].values())[0]
+                    if not isinstance(resource_records, list):
+                        # Depending on how many records there are, this may or may not be a list
+                        resource_records = [resource_records]
+                    record_values = [x['Value'] for x in resource_records]
+                elif 'AliasTarget' in record_set:
+                    record_values = [record_set['AliasTarget']['DNSName']]
+                record_set['ResourceRecords'] = record_values
                 the_zone.add_rrset(record_set)
             elif action == "DELETE":
                 if 'SetIdentifier' in record_set:
@@ -106,6 +113,14 @@ def health_check_response(request, full_url, headers):
         health_checks = route53_backend.get_health_checks()
         return 200, headers, template.render(health_checks=health_checks)
 
+def not_implemented_response(request, full_url, headers):
+    action = ''
+    if 'tags' in full_url:
+        action = 'tags'
+    elif 'trafficpolicyinstances' in full_url:
+        action = 'policies'
+    raise NotImplementedError("The action for {0} has not been implemented for route 53".format(action))
+
 
 LIST_RRSET_REPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>
@@ -134,11 +149,16 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
       <Name>{{ zone.name }}</Name>
       <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
       <Config>
-        <Comment>{{ zone.comment }}</Comment>
+        {% if zone.comment %}
+            <Comment>{{ zone.comment }}</Comment>
+        {% endif %}
+        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
       </Config>
    </HostedZone>
    <DelegationSet>
+      <NameServers>
          <NameServer>moto.test.com</NameServer>
+      </NameServers>
    </DelegationSet>
 </GetHostedZoneResponse>"""
 
@@ -147,6 +167,12 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
       <Id>/hostedzone/{{ zone.id }}</Id>
       <Name>{{ zone.name }}</Name>
       <ResourceRecordSetCount>0</ResourceRecordSetCount>
+      <Config>
+        {% if zone.comment %}
+            <Comment>{{ zone.comment }}</Comment>
+        {% endif %}
+        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+      </Config>
    </HostedZone>
    <DelegationSet>
       <NameServers>
@@ -162,12 +188,16 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
          <Id>{{ zone.id }}</Id>
          <Name>{{ zone.name }}</Name>
          <Config>
-           <Comment>{{ zone.comment }}</Comment>
+            {% if zone.comment %}
+                <Comment>{{ zone.comment }}</Comment>
+            {% endif %}
+           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
          </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
       </HostedZone>
       {% endfor %}
    </HostedZones>
+   <IsTruncated>false</IsTruncated>
 </ListHostedZonesResponse>"""
 
 CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>

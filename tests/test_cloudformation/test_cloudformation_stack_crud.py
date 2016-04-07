@@ -40,7 +40,17 @@ def test_create_stack():
 
     stack = conn.describe_stacks()[0]
     stack.stack_name.should.equal('test_stack')
-    stack.get_template().should.equal(dummy_template)
+    stack.get_template().should.equal({
+        'GetTemplateResponse': {
+            'GetTemplateResult': {
+                'TemplateBody': dummy_template_json,
+                'ResponseMetadata': {
+                    'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
+                }
+            }
+        }
+
+    })
 
 
 @mock_cloudformation
@@ -83,7 +93,18 @@ def test_create_stack_from_s3_url():
 
     stack = conn.describe_stacks()[0]
     stack.stack_name.should.equal('new-stack')
-    stack.get_template().should.equal(dummy_template)
+    stack.get_template().should.equal(
+        {
+        'GetTemplateResponse': {
+            'GetTemplateResult': {
+                'TemplateBody': dummy_template_json,
+                'ResponseMetadata': {
+                    'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
+                }
+            }
+        }
+
+    })
 
 
 @mock_cloudformation
@@ -138,7 +159,17 @@ def test_get_template_by_name():
     )
 
     template = conn.get_template("test_stack")
-    template.should.equal(dummy_template)
+    template.should.equal({
+        'GetTemplateResponse': {
+            'GetTemplateResult': {
+                'TemplateBody': dummy_template_json,
+                'ResponseMetadata': {
+                    'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
+                }
+            }
+        }
+
+    })
 
 
 @mock_cloudformation
@@ -219,6 +250,19 @@ def test_cloudformation_params():
     param.value.should.equal('testing123')
 
 
+@mock_cloudformation
+def test_stack_tags():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+        tags={"foo": "bar", "baz": "bleh"},
+    )
+
+    stack = conn.describe_stacks()[0]
+    dict(stack.tags).should.equal({"foo": "bar", "baz": "bleh"})
+
+
 # @mock_cloudformation
 # def test_update_stack():
 #     conn = boto.connect_cloudformation()
@@ -230,4 +274,13 @@ def test_cloudformation_params():
 #     conn.update_stack("test_stack", dummy_template_json2)
 
 #     stack = conn.describe_stacks()[0]
-#     stack.get_template().should.equal(dummy_template2)
+#     stack.get_template().should.equal({
+#         'GetTemplateResponse': {
+#             'GetTemplateResult': {
+#                 'TemplateBody': dummy_template_json2,
+#                 'ResponseMetadata': {
+#                     'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
+#                 }
+#             }
+#         }
+#     })

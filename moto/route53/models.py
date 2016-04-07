@@ -68,14 +68,20 @@ class RecordSet(object):
         self.records = kwargs.get('ResourceRecords', [])
         self.set_identifier = kwargs.get('SetIdentifier')
         self.weight = kwargs.get('Weight')
+        self.region = kwargs.get('Region')
         self.health_check = kwargs.get('HealthCheckId')
+        self.hosted_zone_name = kwargs.get('HostedZoneName')
+        self.hosted_zone_id = kwargs.get('HostedZoneId')
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
-        zone_name = properties["HostedZoneName"]
-        hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
+        zone_name = properties.get("HostedZoneName")
+        if zone_name:
+            hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
+        else:
+            hosted_zone = route53_backend.get_hosted_zone(properties["HostedZoneId"])
         record_set = hosted_zone.add_rrset(properties)
         return record_set
 
@@ -88,6 +94,9 @@ class RecordSet(object):
                 {% endif %}
                 {% if record_set.weight %}
                     <Weight>{{ record_set.weight }}</Weight>
+                {% endif %}
+                {% if record_set.region %}
+                    <Region>{{ record_set.region }}</Region>
                 {% endif %}
                 <TTL>{{ record_set.ttl }}</TTL>
                 <ResourceRecords>
@@ -103,13 +112,22 @@ class RecordSet(object):
             </ResourceRecordSet>""")
         return template.render(record_set=self)
 
+    def delete(self, *args, **kwargs):
+        ''' Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored '''
+        hosted_zone = route53_backend.get_hosted_zone_by_name(self.hosted_zone_name)
+        if not hosted_zone:
+            hosted_zone = route53_backend.get_hosted_zone(self.hosted_zone_id)
+        hosted_zone.delete_rrset_by_name(self.name)
+
 
 class FakeZone(object):
 
     def __init__(self, name, id_, comment=None):
         self.name = name
         self.id = id_
-        self.comment = comment
+        if comment is not None:
+            self.comment = comment
+        self.private_zone = False
         self.rrsets = []
 
     def add_rrset(self, record_set):

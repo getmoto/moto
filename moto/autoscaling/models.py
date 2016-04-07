@@ -2,9 +2,16 @@ from __future__ import unicode_literals
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
+from moto.elb import elb_backends
 
 # http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AS_Concepts.html#Cooldown
 DEFAULT_COOLDOWN = 300
+
+
+class InstanceState(object):
+    def __init__(self, instance, lifecycle_state="InService"):
+        self.instance = instance
+        self.lifecycle_state = lifecycle_state
 
 
 class FakeScalingPolicy(object):
@@ -30,12 +37,14 @@ class FakeScalingPolicy(object):
 
 
 class FakeLaunchConfiguration(object):
-    def __init__(self, name, image_id, key_name, security_groups, user_data,
+    def __init__(self, name, image_id, key_name, ramdisk_id, kernel_id, security_groups, user_data,
                  instance_type, instance_monitoring, instance_profile_name,
                  spot_price, ebs_optimized, associate_public_ip_address, block_device_mapping_dict):
         self.name = name
         self.image_id = image_id
         self.key_name = key_name
+        self.ramdisk_id = ramdisk_id
+        self.kernel_id = kernel_id
         self.security_groups = security_groups if security_groups else []
         self.user_data = user_data
         self.instance_type = instance_type
@@ -56,6 +65,8 @@ class FakeLaunchConfiguration(object):
         config = backend.create_launch_configuration(
             name=resource_name,
             image_id=properties.get("ImageId"),
+            kernel_id=properties.get("KernelId"),
+            ramdisk_id=properties.get("RamdiskId"),
             key_name=properties.get("KeyName"),
             security_groups=properties.get("SecurityGroups"),
             user_data=properties.get("UserData"),
@@ -68,6 +79,10 @@ class FakeLaunchConfiguration(object):
             block_device_mappings=properties.get("BlockDeviceMapping.member")
         )
         return config
+
+    def delete(self, region_name):
+        backend = autoscaling_backends[region_name]
+        backend.delete_launch_configuration(self.name)
 
     @property
     def physical_resource_id(self):
@@ -107,7 +122,8 @@ class FakeAutoScalingGroup(object):
     def __init__(self, name, availability_zones, desired_capacity, max_size,
                  min_size, launch_config_name, vpc_zone_identifier,
                  default_cooldown, health_check_period, health_check_type,
-                 load_balancers, placement_group, termination_policies, autoscaling_backend):
+                 load_balancers, placement_group, termination_policies,
+                 autoscaling_backend, tags):
         self.autoscaling_backend = autoscaling_backend
         self.name = name
         self.availability_zones = availability_zones
@@ -125,8 +141,9 @@ class FakeAutoScalingGroup(object):
         self.placement_group = placement_group
         self.termination_policies = termination_policies
 
-        self.instances = []
+        self.instance_states = []
         self.set_desired_capacity(desired_capacity)
+        self.tags = tags if tags else []
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -143,15 +160,20 @@ class FakeAutoScalingGroup(object):
             max_size=properties.get("MaxSize"),
             min_size=properties.get("MinSize"),
             launch_config_name=launch_config_name,
-            vpc_zone_identifier=properties.get("VPCZoneIdentifier"),
+            vpc_zone_identifier=(','.join(properties.get("VPCZoneIdentifier", [])) or None),
             default_cooldown=properties.get("Cooldown"),
             health_check_period=properties.get("HealthCheckGracePeriod"),
             health_check_type=properties.get("HealthCheckType"),
             load_balancers=load_balancer_names,
             placement_group=None,
             termination_policies=properties.get("TerminationPolicies", []),
+            tags=properties.get("Tags", []),
         )
         return group
+
+    def delete(self, region_name):
+        backend = autoscaling_backends[region_name]
+        backend.delete_autoscaling_group(self.name)
 
     @property
     def physical_resource_id(self):
@@ -179,7 +201,7 @@ class FakeAutoScalingGroup(object):
         else:
             self.desired_capacity = new_capacity
 
-        curr_instance_count = len(self.instances)
+        curr_instance_count = len(self.instance_states)
 
         if self.desired_capacity == curr_instance_count:
             return
@@ -192,33 +214,36 @@ class FakeAutoScalingGroup(object):
                 count_needed,
                 self.launch_config.user_data,
                 self.launch_config.security_groups,
+                instance_type=self.launch_config.instance_type,
             )
             for instance in reservation.instances:
                 instance.autoscaling_group = self
-            self.instances.extend(reservation.instances)
+                self.instance_states.append(InstanceState(instance))
         else:
             # Need to remove some instances
             count_to_remove = curr_instance_count - self.desired_capacity
-            instances_to_remove = self.instances[:count_to_remove]
-            instance_ids_to_remove = [instance.id for instance in instances_to_remove]
+            instances_to_remove = self.instance_states[:count_to_remove]
+            instance_ids_to_remove = [instance.instance.id for instance in instances_to_remove]
             self.autoscaling_backend.ec2_backend.terminate_instances(instance_ids_to_remove)
-            self.instances = self.instances[count_to_remove:]
+            self.instance_states = self.instance_states[count_to_remove:]
 
 
 class AutoScalingBackend(BaseBackend):
 
-    def __init__(self, ec2_backend):
+    def __init__(self, ec2_backend, elb_backend):
         self.autoscaling_groups = {}
         self.launch_configurations = {}
         self.policies = {}
         self.ec2_backend = ec2_backend
+        self.elb_backend = elb_backend
 
     def reset(self):
         ec2_backend = self.ec2_backend
+        elb_backend = self.elb_backend
         self.__dict__ = {}
-        self.__init__(ec2_backend)
+        self.__init__(ec2_backend, elb_backend)
 
-    def create_launch_configuration(self, name, image_id, key_name,
+    def create_launch_configuration(self, name, image_id, key_name, kernel_id, ramdisk_id,
                                     security_groups, user_data, instance_type,
                                     instance_monitoring, instance_profile_name,
                                     spot_price, ebs_optimized, associate_public_ip_address, block_device_mappings):
@@ -226,6 +251,8 @@ class AutoScalingBackend(BaseBackend):
             name=name,
             image_id=image_id,
             key_name=key_name,
+            kernel_id=kernel_id,
+            ramdisk_id=ramdisk_id,
             security_groups=security_groups,
             user_data=user_data,
             instance_type=instance_type,
@@ -254,7 +281,7 @@ class AutoScalingBackend(BaseBackend):
                                  launch_config_name, vpc_zone_identifier,
                                  default_cooldown, health_check_period,
                                  health_check_type, load_balancers,
-                                 placement_group, termination_policies):
+                                 placement_group, termination_policies, tags):
 
         def make_int(value):
             return int(value) if value is not None else value
@@ -262,7 +289,10 @@ class AutoScalingBackend(BaseBackend):
         max_size = make_int(max_size)
         min_size = make_int(min_size)
         default_cooldown = make_int(default_cooldown)
-        health_check_period = make_int(health_check_period)
+        if health_check_period is None:
+            health_check_period = 300
+        else:
+            health_check_period = make_int(health_check_period)
 
         group = FakeAutoScalingGroup(
             name=name,
@@ -279,8 +309,11 @@ class AutoScalingBackend(BaseBackend):
             placement_group=placement_group,
             termination_policies=termination_policies,
             autoscaling_backend=self,
+            tags=tags,
         )
+
         self.autoscaling_groups[name] = group
+        self.update_attached_elbs(group.name)
         return group
 
     def update_autoscaling_group(self, name, availability_zones,
@@ -304,17 +337,19 @@ class AutoScalingBackend(BaseBackend):
             return list(groups)
 
     def delete_autoscaling_group(self, group_name):
+        self.set_desired_capacity(group_name, 0)
         self.autoscaling_groups.pop(group_name, None)
 
     def describe_autoscaling_instances(self):
-        instances = []
+        instance_states = []
         for group in self.autoscaling_groups.values():
-            instances.extend(group.instances)
-        return instances
+            instance_states.extend(group.instance_states)
+        return instance_states
 
     def set_desired_capacity(self, group_name, desired_capacity):
         group = self.autoscaling_groups[group_name]
         group.set_desired_capacity(desired_capacity)
+        self.update_attached_elbs(group_name)
 
     def change_capacity(self, group_name, scaling_adjustment):
         group = self.autoscaling_groups[group_name]
@@ -355,7 +390,15 @@ class AutoScalingBackend(BaseBackend):
         policy = self.policies[group_name]
         policy.execute()
 
+    def update_attached_elbs(self, group_name):
+        group = self.autoscaling_groups[group_name]
+        group_instance_ids = set(state.instance.id for state in group.instance_states)
+        for elb in self.elb_backend.describe_load_balancers(names=group.load_balancers):
+            elb_instace_ids = set(elb.instance_ids)
+            self.elb_backend.register_instances(elb.name, group_instance_ids - elb_instace_ids)
+            self.elb_backend.deregister_instances(elb.name, elb_instace_ids - group_instance_ids)
+
 
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():
-    autoscaling_backends[region] = AutoScalingBackend(ec2_backend)
+    autoscaling_backends[region] = AutoScalingBackend(ec2_backend, elb_backends[region])

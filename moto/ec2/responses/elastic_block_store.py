@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
+from moto.ec2.utils import filters_from_querystring
 
 
 class ElasticBlockStore(BaseResponse):
@@ -25,9 +26,10 @@ class ElasticBlockStore(BaseResponse):
         return template.render(snapshot=snapshot)
 
     def create_volume(self):
-        size = self.querystring.get('Size')[0]
-        zone = self.querystring.get('AvailabilityZone')[0]
-        volume = self.ec2_backend.create_volume(size, zone)
+        size = self._get_param('Size')
+        zone = self._get_param('AvailabilityZone')
+        snapshot_id = self._get_param('SnapshotId')
+        volume = self.ec2_backend.create_volume(size, zone, snapshot_id)
         template = self.response_template(CREATE_VOLUME_RESPONSE)
         return template.render(volume=volume)
 
@@ -42,12 +44,22 @@ class ElasticBlockStore(BaseResponse):
         return DELETE_VOLUME_RESPONSE
 
     def describe_snapshots(self):
-        snapshots = self.ec2_backend.describe_snapshots()
+        filters = filters_from_querystring(self.querystring)
+        # querystring for multiple snapshotids results in SnapshotId.1, SnapshotId.2 etc
+        snapshot_ids = ','.join([','.join(s[1]) for s in self.querystring.items() if 'SnapshotId' in s[0]])
+        snapshots = self.ec2_backend.describe_snapshots(filters=filters)
+        # Describe snapshots to handle filter on snapshot_ids
+        snapshots = [s for s in snapshots if s.id in snapshot_ids] if snapshot_ids else snapshots
         template = self.response_template(DESCRIBE_SNAPSHOTS_RESPONSE)
         return template.render(snapshots=snapshots)
 
     def describe_volumes(self):
-        volumes = self.ec2_backend.describe_volumes()
+        filters = filters_from_querystring(self.querystring)
+        # querystring for multiple volumeids results in VolumeId.1, VolumeId.2 etc
+        volume_ids = ','.join([','.join(v[1]) for v in self.querystring.items() if 'VolumeId' in v[0]])
+        volumes = self.ec2_backend.describe_volumes(filters=filters)
+        # Describe volumes to handle filter on volume_ids
+        volumes = [v for v in volumes if v.id in volume_ids] if volume_ids else volumes
         template = self.response_template(DESCRIBE_VOLUMES_RESPONSE)
         return template.render(volumes=volumes)
 
@@ -96,28 +108,36 @@ class ElasticBlockStore(BaseResponse):
         raise NotImplementedError('ElasticBlockStore.reset_snapshot_attribute is not yet implemented')
 
 
-CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <volumeId>{{ volume.id }}</volumeId>
   <size>{{ volume.size }}</size>
-  <snapshotId/>
+  {% if volume.snapshot_id %}
+    <snapshotId>{{ volume.snapshot_id }}</snapshotId>
+  {% else %}
+    <snapshotId/>
+  {% endif %}
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
-  <createTime>2013-10-04T17:38:53.000Z</createTime>
+  <createTime>{{ volume.create_time}}</createTime>
   <volumeType>standard</volumeType>
 </CreateVolumeResponse>"""
 
-DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <volumeSet>
       {% for volume in volumes %}
           <item>
              <volumeId>{{ volume.id }}</volumeId>
              <size>{{ volume.size }}</size>
-             <snapshotId/>
+             {% if volume.snapshot_id %}
+               <snapshotId>{{ volume.snapshot_id }}</snapshotId>
+             {% else %}
+               <snapshotId/>
+             {% endif %}
              <availabilityZone>{{ volume.zone.name }}</availabilityZone>
              <status>{{ volume.status }}</status>
-             <createTime>2013-10-04T17:38:53.000Z</createTime>
+             <createTime>{{ volume.create_time}}</createTime>
              <attachmentSet>
                 {% if volume.attachment %}
                     <item>
@@ -125,7 +145,7 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
                        <instanceId>{{ volume.attachment.instance.id }}</instanceId>
                        <device>{{ volume.attachment.device }}</device>
                        <status>attached</status>
-                       <attachTime>2013-10-04T17:38:53.000Z</attachTime>
+                       <attachTime>{{volume.attachment.attach_time}}</attachTime>
                        <deleteOnTermination>false</deleteOnTermination>
                     </item>
                 {% endif %}
@@ -146,21 +166,21 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
    </volumeSet>
 </DescribeVolumesResponse>"""
 
-DELETE_VOLUME_RESPONSE = """<DeleteVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DELETE_VOLUME_RESPONSE = """<DeleteVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </DeleteVolumeResponse>"""
 
-ATTACHED_VOLUME_RESPONSE = """<AttachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+ATTACHED_VOLUME_RESPONSE = """<AttachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <volumeId>{{ attachment.volume.id }}</volumeId>
   <instanceId>{{ attachment.instance.id }}</instanceId>
   <device>{{ attachment.device }}</device>
   <status>attaching</status>
-  <attachTime>2013-10-04T17:38:53.000Z</attachTime>
+  <attachTime>{{attachment.attach_time}}</attachTime>
 </AttachVolumeResponse>"""
 
-DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <volumeId>{{ attachment.volume.id }}</volumeId>
    <instanceId>{{ attachment.instance.id }}</instanceId>
@@ -169,28 +189,28 @@ DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.c
    <attachTime>2013-10-04T17:38:53.000Z</attachTime>
 </DetachVolumeResponse>"""
 
-CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <snapshotId>{{ snapshot.id }}</snapshotId>
   <volumeId>{{ snapshot.volume.id }}</volumeId>
   <status>pending</status>
-  <startTime>2013-10-04T17:38:53.000Z</startTime>
+  <startTime>{{ snapshot.start_time}}</startTime>
   <progress>60%</progress>
   <ownerId>111122223333</ownerId>
   <volumeSize>{{ snapshot.volume.size }}</volumeSize>
   <description>{{ snapshot.description }}</description>
 </CreateSnapshotResponse>"""
 
-DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <snapshotSet>
       {% for snapshot in snapshots %}
           <item>
              <snapshotId>{{ snapshot.id }}</snapshotId>
              <volumeId>{{ snapshot.volume.id }}</volumeId>
-             <status>pending</status>
-             <startTime>2013-10-04T17:38:53.000Z</startTime>
-             <progress>30%</progress>
+             <status>completed</status>
+             <startTime>{{ snapshot.start_time}}</startTime>
+             <progress>100%</progress>
              <ownerId>111122223333</ownerId>
              <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
@@ -209,13 +229,13 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
    </snapshotSet>
 </DescribeSnapshotsResponse>"""
 
-DELETE_SNAPSHOT_RESPONSE = """<DeleteSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DELETE_SNAPSHOT_RESPONSE = """<DeleteSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </DeleteSnapshotResponse>"""
 
 DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE = """
-<DescribeSnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<DescribeSnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>a9540c9f-161a-45d8-9cc1-1182b89ad69f</requestId>
     <snapshotId>snap-a0332ee0</snapshotId>
    {% if not groups %}
@@ -234,7 +254,7 @@ DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE = """
 """
 
 MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE = """
-<ModifySnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-07-15/">
+<ModifySnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>666d2944-9276-4d6a-be12-1f4ada972fd8</requestId>
     <return>true</return>
 </ModifySnapshotAttributeResponse>

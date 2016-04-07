@@ -391,7 +391,18 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
       {% for instance in instance_profiles %}
       <member>
         <Id>{{ instance.id }}</Id>
-        <Roles/>
+        <Roles>
+          {% for role in instance.roles %}
+          <member>
+            <Path>{{ role.path }}</Path>
+            <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+            <RoleName>{{ role.name }}</RoleName>
+            <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+            <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+            <RoleId>{{ role.id }}</RoleId>
+          </member>
+          {% endfor %}
+        </Roles>
         <InstanceProfileName>{{ instance.name }}</InstanceProfileName>
         <Path>{{ instance.path }}</Path>
         <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Database</Arn>
@@ -559,8 +570,7 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
          <Path>{{ user.path }}</Path>
          <UserName>{{ user.name }}</UserName>
          <UserId>{{ user.id }}</UserId>
-         <Arn>arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name }}
-         </Arn>
+         <Arn>arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name }}</Arn>
      </User>
    </{{ action }}UserResult>
    <ResponseMetadata>

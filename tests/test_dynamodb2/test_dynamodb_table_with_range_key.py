@@ -1,15 +1,21 @@
 from __future__ import unicode_literals
 
+from decimal import Decimal
+
 import boto
+import boto3
+from boto3.dynamodb.conditions import Key
 import sure  # noqa
 from freezegun import freeze_time
 from moto import mock_dynamodb2
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
 try:
-    from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey
+    from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey, AllIndex
     from boto.dynamodb2.table import Item, Table
+    from boto.dynamodb2.types import STRING, NUMBER
     from boto.dynamodb2.exceptions import ValidationException
+    from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 except ImportError:
     pass
 
@@ -22,6 +28,30 @@ def create_table():
         'read': 10,
         'write': 10,
     })
+    return table
+
+
+def create_table_with_local_indexes():
+    table = Table.create(
+        'messages',
+        schema=[
+            HashKey('forum_name'),
+            RangeKey('subject'),
+        ],
+        throughput={
+            'read': 10,
+            'write': 10,
+        },
+        indexes=[
+            AllIndex(
+                'threads_index',
+                parts=[
+                    HashKey('forum_name', data_type=STRING),
+                    RangeKey('threads', data_type=NUMBER),
+                ]
+            )
+        ]
+    )
     return table
 
 
@@ -51,7 +81,50 @@ def test_create_table():
                 {'KeyType': 'HASH', 'AttributeName': 'forum_name'},
                 {'KeyType': 'RANGE', 'AttributeName': 'subject'}
             ],
+            'LocalSecondaryIndexes': [],
             'ItemCount': 0, 'CreationDateTime': 1326499200.0,
+            'GlobalSecondaryIndexes': [],
+        }
+    }
+    table.describe().should.equal(expected)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+@freeze_time("2012-01-14")
+def test_create_table_with_local_index():
+    table = create_table_with_local_indexes()
+    expected = {
+        'Table': {
+            'AttributeDefinitions': [
+                {'AttributeName': 'forum_name', 'AttributeType': 'S'},
+                {'AttributeName': 'subject', 'AttributeType': 'S'},
+                {'AttributeName': 'threads', 'AttributeType': 'N'}
+            ],
+            'ProvisionedThroughput': {
+                'NumberOfDecreasesToday': 0,
+                'WriteCapacityUnits': 10,
+                'ReadCapacityUnits': 10,
+            },
+            'TableSizeBytes': 0,
+            'TableName': 'messages',
+            'TableStatus': 'ACTIVE',
+            'KeySchema': [
+                {'KeyType': 'HASH', 'AttributeName': 'forum_name'},
+                {'KeyType': 'RANGE', 'AttributeName': 'subject'}
+            ],
+            'LocalSecondaryIndexes': [
+                {
+                    'IndexName': 'threads_index',
+                    'KeySchema': [
+                        {'AttributeName': 'forum_name', 'KeyType': 'HASH'},
+                        {'AttributeName': 'threads', 'KeyType': 'RANGE'}
+                    ],
+                    'Projection': {'ProjectionType': 'ALL'}
+                }
+            ],
+            'ItemCount': 0,
+            'CreationDateTime': 1326499200.0,
             'GlobalSecondaryIndexes': [],
         }
     }
@@ -135,6 +208,36 @@ def test_item_add_and_describe_and_update():
         'Body': 'http://url_to_lolcat.gif',
         'SentBy': 'User B',
         'ReceivedTime': '12/9/2011 11:36:03 PM',
+    })
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_item_partial_save():
+    table = create_table()
+
+    data = {
+        'forum_name': 'LOLCat Forum',
+        'subject': 'The LOLz',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User A',
+    }
+
+    table.put_item(data=data)
+    returned_item = table.get_item(forum_name="LOLCat Forum", subject='The LOLz')
+
+    returned_item['SentBy'] = 'User B'
+    returned_item.partial_save()
+
+    returned_item = table.get_item(
+        forum_name='LOLCat Forum',
+        subject='The LOLz'
+    )
+    dict(returned_item).should.equal({
+        'forum_name': 'LOLCat Forum',
+        'subject': 'The LOLz',
+        'Body': 'http://url_to_lolcat.gif',
+        'SentBy': 'User B',
     })
 
 
@@ -252,31 +355,31 @@ def test_query():
 
     table.count().should.equal(4)
 
-    results = table.query(forum_name__eq='the-key', subject__gt='1', consistent=True)
+    results = table.query_2(forum_name__eq='the-key', subject__gt='1', consistent=True)
     expected = ["123", "456", "789"]
     for index, item in enumerate(results):
         item["subject"].should.equal(expected[index])
 
-    results = table.query(forum_name__eq="the-key", subject__gt='1', reverse=True)
+    results = table.query_2(forum_name__eq="the-key", subject__gt='1', reverse=True)
     for index, item in enumerate(results):
         item["subject"].should.equal(expected[len(expected) - 1 - index])
 
-    results = table.query(forum_name__eq='the-key', subject__gt='1', consistent=True)
+    results = table.query_2(forum_name__eq='the-key', subject__gt='1', consistent=True)
     sum(1 for _ in results).should.equal(3)
 
-    results = table.query(forum_name__eq='the-key', subject__gt='234', consistent=True)
+    results = table.query_2(forum_name__eq='the-key', subject__gt='234', consistent=True)
     sum(1 for _ in results).should.equal(2)
 
-    results = table.query(forum_name__eq='the-key', subject__gt='9999')
+    results = table.query_2(forum_name__eq='the-key', subject__gt='9999')
     sum(1 for _ in results).should.equal(0)
 
-    results = table.query(forum_name__eq='the-key', subject__beginswith='12')
+    results = table.query_2(forum_name__eq='the-key', subject__beginswith='12')
     sum(1 for _ in results).should.equal(1)
 
-    results = table.query(forum_name__eq='the-key', subject__beginswith='7')
+    results = table.query_2(forum_name__eq='the-key', subject__beginswith='7')
     sum(1 for _ in results).should.equal(1)
 
-    results = table.query(forum_name__eq='the-key', subject__between=['567', '890'])
+    results = table.query_2(forum_name__eq='the-key', subject__between=['567', '890'])
     sum(1 for _ in results).should.equal(1)
 
 
@@ -536,6 +639,219 @@ def test_query_with_global_indexes():
 
 
 @mock_dynamodb2
+def test_query_with_local_indexes():
+    table = create_table_with_local_indexes()
+    item_data = {
+        'forum_name': 'Cool Forum',
+        'subject': 'Check this out!',
+        'version': '1',
+        'threads': 1,
+        'status': 'inactive'
+    }
+    item = Item(table, item_data)
+    item.save(overwrite=True)
+
+    item['version'] = '2'
+    item.save(overwrite=True)
+    results = table.query(forum_name__eq='Cool Forum', index='threads_index', threads__eq=1)
+    list(results).should.have.length_of(1)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_filter_eq():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+    results = table.query_2(
+        forum_name__eq='Cool Forum', index='threads_index', threads__eq=5
+    )
+    list(results).should.have.length_of(1)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_filter_lt():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', index='threads_index', threads__lt=5
+    )
+    results = list(results)
+    results.should.have.length_of(2)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_filter_gt():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', index='threads_index', threads__gt=1
+    )
+    list(results).should.have.length_of(1)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_filter_lte():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', index='threads_index', threads__lte=5
+    )
+    list(results).should.have.length_of(3)
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_filter_gte():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Read this now!',
+            'version': '1',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Please read this... please',
+            'version': '1',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', index='threads_index', threads__gte=1
+    )
+    list(results).should.have.length_of(2)
+
+
+@mock_dynamodb2
+def test_reverse_query():
+    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+
+    table = Table.create('messages', schema=[
+        HashKey('subject'),
+        RangeKey('created_at', data_type='N')
+    ])
+
+    for i in range(10):
+        table.put_item({
+            'subject': "Hi",
+            'created_at': i
+        })
+
+    results = table.query_2(subject__eq="Hi",
+                            created_at__lt=6,
+                            limit=4,
+                            reverse=True)
+
+    expected = [Decimal(5), Decimal(4), Decimal(3), Decimal(2)]
+    [r['created_at'] for r in results].should.equal(expected)
+
+
+@mock_dynamodb2
 def test_lookup():
     from decimal import Decimal
     table = Table.create('messages', schema=[
@@ -553,3 +869,740 @@ def test_lookup():
     message = table.lookup(hash_key, range_key)
     message.get('test_hash').should.equal(Decimal(hash_key))
     message.get('test_range').should.equal(Decimal(range_key))
+
+
+@mock_dynamodb2
+def test_failed_overwrite():
+    table = Table.create('messages', schema=[
+        HashKey('id'),
+        RangeKey('range'),
+    ], throughput={
+        'read': 7,
+        'write': 3,
+    })
+
+    data1 = {'id': '123', 'range': 'abc', 'data': '678'}
+    table.put_item(data=data1)
+
+    data2 = {'id': '123', 'range': 'abc', 'data': '345'}
+    table.put_item(data=data2, overwrite=True)
+
+    data3 = {'id': '123', 'range': 'abc', 'data': '812'}
+    table.put_item.when.called_with(data=data3).should.throw(ConditionalCheckFailedException)
+
+    returned_item = table.lookup('123', 'abc')
+    dict(returned_item).should.equal(data2)
+
+    data4 = {'id': '123', 'range': 'ghi', 'data': 812}
+    table.put_item(data=data4)
+
+    returned_item = table.lookup('123', 'ghi')
+    dict(returned_item).should.equal(data4)
+
+
+@mock_dynamodb2
+def test_conflicting_writes():
+    table = Table.create('messages', schema=[
+        HashKey('id'),
+        RangeKey('range'),
+    ])
+
+    item_data = {'id': '123', 'range': 'abc', 'data': '678'}
+    item1 = Item(table, item_data)
+    item2 = Item(table, item_data)
+    item1.save()
+
+    item1['data'] = '579'
+    item2['data'] = '912'
+
+    item1.save()
+    item2.save.when.called_with().should.throw(ConditionalCheckFailedException)
+
+"""
+boto3
+"""
+
+
+@mock_dynamodb2
+def test_boto3_conditions():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123'
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '456'
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '789'
+    })
+
+    # Test a query returning all items
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('1'),
+        ScanIndexForward=True,
+    )
+    expected = ["123", "456", "789"]
+    for index, item in enumerate(results['Items']):
+        item["subject"].should.equal(expected[index])
+
+    # Return all items again, but in reverse
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('1'),
+        ScanIndexForward=False,
+    )
+    for index, item in enumerate(reversed(results['Items'])):
+        item["subject"].should.equal(expected[index])
+
+    # Filter the subjects to only return some of the results
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('234'),
+        ConsistentRead=True,
+    )
+    results['Count'].should.equal(2)
+
+    # Filter to return no results
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('9999')
+    )
+    results['Count'].should.equal(0)
+
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").begins_with('12')
+    )
+    results['Count'].should.equal(1)
+
+    results = table.query(
+        KeyConditionExpression=Key("subject").begins_with('7') & Key('forum_name').eq('the-key')
+    )
+    results['Count'].should.equal(1)
+
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").between('567', '890')
+    )
+    results['Count'].should.equal(1)
+
+
+def _create_table_with_range_key():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        GlobalSecondaryIndexes=[{
+            'IndexName': 'TestGSI',
+            'KeySchema': [
+                {
+                    'AttributeName': 'username',
+                    'KeyType': 'HASH',
+                },
+                {
+                    'AttributeName': 'created',
+                    'KeyType': 'RANGE',
+                }
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5
+            }
+        }],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    return dynamodb.Table('users')
+
+
+@mock_dynamodb2
+def test_update_item_range_key_set():
+    table = _create_table_with_range_key()
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'username': 'johndoe',
+        'created': Decimal('3'),
+    })
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    table.update_item(
+        Key=item_key,
+        AttributeUpdates={
+            'username': {
+                'Action': u'PUT',
+                'Value': 'johndoe2'
+            },
+            'created': {
+                'Action': u'PUT',
+                'Value': Decimal('4'),
+            },
+            'mapfield': {
+                'Action': u'PUT',
+                'Value': {'key': 'value'},
+            }
+        },
+    )
+
+    returned_item = dict((k, str(v) if isinstance(v, Decimal) else v)
+                         for k, v in table.get_item(Key=item_key)['Item'].items())
+    dict(returned_item).should.equal({
+        'username': "johndoe2",
+        'forum_name': 'the-key',
+        'subject': '123',
+        'created': '4',
+        'mapfield': {'key': 'value'},
+    })
+
+
+@mock_dynamodb2
+def test_update_item_does_not_exist_is_created():
+    table = _create_table_with_range_key()
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    result = table.update_item(
+        Key=item_key,
+        AttributeUpdates={
+            'username': {
+                'Action': u'PUT',
+                'Value': 'johndoe2'
+            },
+            'created': {
+                'Action': u'PUT',
+                'Value': Decimal('4'),
+            },
+            'mapfield': {
+                'Action': u'PUT',
+                'Value': {'key': 'value'},
+            }
+        },
+        ReturnValues='ALL_OLD',
+    )
+
+    assert not result.get('Attributes')
+
+    returned_item = dict((k, str(v) if isinstance(v, Decimal) else v)
+                         for k, v in table.get_item(Key=item_key)['Item'].items())
+    dict(returned_item).should.equal({
+        'username': "johndoe2",
+        'forum_name': 'the-key',
+        'subject': '123',
+        'created': '4',
+        'mapfield': {'key': 'value'},
+    })
+
+
+@mock_dynamodb2
+def test_update_item_add_value():
+    table = _create_table_with_range_key()
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'numeric_field': Decimal('-1'),
+    })
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    table.update_item(
+        Key=item_key,
+        AttributeUpdates={
+            'numeric_field': {
+                'Action': u'ADD',
+                'Value': Decimal('2'),
+            },
+        },
+    )
+
+    returned_item = dict((k, str(v) if isinstance(v, Decimal) else v)
+                         for k, v in table.get_item(Key=item_key)['Item'].items())
+    dict(returned_item).should.equal({
+        'numeric_field': '1',
+        'forum_name': 'the-key',
+        'subject': '123',
+    })
+
+
+@mock_dynamodb2
+def test_update_item_add_value_does_not_exist_is_created():
+    table = _create_table_with_range_key()
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    table.update_item(
+        Key=item_key,
+        AttributeUpdates={
+            'numeric_field': {
+                'Action': u'ADD',
+                'Value': Decimal('2'),
+            },
+        },
+    )
+
+    returned_item = dict((k, str(v) if isinstance(v, Decimal) else v)
+                         for k, v in table.get_item(Key=item_key)['Item'].items())
+    dict(returned_item).should.equal({
+        'numeric_field': '2',
+        'forum_name': 'the-key',
+        'subject': '123',
+    })
+
+
+@mock_dynamodb2
+def test_boto3_query_gsi_range_comparison():
+    table = _create_table_with_range_key()
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'username': 'johndoe',
+        'created': 3,
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '456',
+        'username': 'johndoe',
+        'created': 1,
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '789',
+        'username': 'johndoe',
+        'created': 2,
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '159',
+        'username': 'janedoe',
+        'created': 2,
+    })
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '601',
+        'username': 'janedoe',
+        'created': 5,
+    })
+
+    # Test a query returning all johndoe items
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt('0'),
+        ScanIndexForward=True,
+        IndexName='TestGSI',
+    )
+    expected = ["456", "789", "123"]
+    for index, item in enumerate(results['Items']):
+        item["subject"].should.equal(expected[index])
+
+    # Return all johndoe items again, but in reverse
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt('0'),
+        ScanIndexForward=False,
+        IndexName='TestGSI',
+    )
+    for index, item in enumerate(reversed(results['Items'])):
+        item["subject"].should.equal(expected[index])
+
+    # Filter the creation to only return some of the results
+    # And reverse order of hash + range key
+    results = table.query(
+        KeyConditionExpression=Key("created").gt('1') & Key('username').eq('johndoe'),
+        ConsistentRead=True,
+        IndexName='TestGSI',
+    )
+    results['Count'].should.equal(2)
+
+    # Filter to return no results
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").gt('9'),
+        IndexName='TestGSI',
+    )
+    results['Count'].should.equal(0)
+
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").eq('5'),
+        IndexName='TestGSI',
+    )
+    results['Count'].should.equal(1)
+
+    # Test range key sorting
+    results = table.query(
+        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt('0'),
+        IndexName='TestGSI',
+    )
+    expected = [Decimal('1'), Decimal('2'), Decimal('3')]
+    for index, item in enumerate(results['Items']):
+        item["created"].should.equal(expected[index])
+
+
+@mock_dynamodb2
+def test_update_table_throughput():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 6
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.provisioned_throughput['ReadCapacityUnits'].should.equal(5)
+    table.provisioned_throughput['WriteCapacityUnits'].should.equal(6)
+
+    table.update(ProvisionedThroughput={
+        'ReadCapacityUnits': 10,
+        'WriteCapacityUnits': 11,
+    })
+
+    table = dynamodb.Table('users')
+
+    table.provisioned_throughput['ReadCapacityUnits'].should.equal(10)
+    table.provisioned_throughput['WriteCapacityUnits'].should.equal(11)
+
+
+@mock_dynamodb2
+def test_update_table_gsi_throughput():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        GlobalSecondaryIndexes=[{
+            'IndexName': 'TestGSI',
+            'KeySchema': [
+                {
+                    'AttributeName': 'username',
+                    'KeyType': 'HASH',
+                },
+                {
+                    'AttributeName': 'created',
+                    'KeyType': 'RANGE',
+                }
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 3,
+                'WriteCapacityUnits': 4
+            }
+        }],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 6
+        }
+    )
+    table = dynamodb.Table('users')
+
+    gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
+    gsi_throughput['ReadCapacityUnits'].should.equal(3)
+    gsi_throughput['WriteCapacityUnits'].should.equal(4)
+
+    table.provisioned_throughput['ReadCapacityUnits'].should.equal(5)
+    table.provisioned_throughput['WriteCapacityUnits'].should.equal(6)
+
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Update': {
+            'IndexName': 'TestGSI',
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 10,
+                'WriteCapacityUnits': 11,
+            }
+        },
+    }])
+
+    table = dynamodb.Table('users')
+
+    # Primary throughput has not changed
+    table.provisioned_throughput['ReadCapacityUnits'].should.equal(5)
+    table.provisioned_throughput['WriteCapacityUnits'].should.equal(6)
+
+    gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
+    gsi_throughput['ReadCapacityUnits'].should.equal(10)
+    gsi_throughput['WriteCapacityUnits'].should.equal(11)
+
+
+
+@mock_dynamodb2
+def test_update_table_gsi_create():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 6
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.global_secondary_indexes.should.have.length_of(0)
+
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Create': {
+            'IndexName': 'TestGSI',
+            'KeySchema': [
+                {
+                    'AttributeName': 'username',
+                    'KeyType': 'HASH',
+                },
+                {
+                    'AttributeName': 'created',
+                    'KeyType': 'RANGE',
+                }
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 3,
+                'WriteCapacityUnits': 4
+            }
+        },
+    }])
+
+    table = dynamodb.Table('users')
+    table.global_secondary_indexes.should.have.length_of(1)
+
+    gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
+    assert gsi_throughput['ReadCapacityUnits'].should.equal(3)
+    assert gsi_throughput['WriteCapacityUnits'].should.equal(4)
+
+    # Check update works
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Update': {
+            'IndexName': 'TestGSI',
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 10,
+                'WriteCapacityUnits': 11,
+            }
+        },
+    }])
+    table = dynamodb.Table('users')
+
+    gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
+    assert gsi_throughput['ReadCapacityUnits'].should.equal(10)
+    assert gsi_throughput['WriteCapacityUnits'].should.equal(11)
+
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Delete': {
+            'IndexName': 'TestGSI',
+        },
+    }])
+
+    table = dynamodb.Table('users')
+    table.global_secondary_indexes.should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_update_table_gsi_throughput():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        GlobalSecondaryIndexes=[{
+            'IndexName': 'TestGSI',
+            'KeySchema': [
+                {
+                    'AttributeName': 'username',
+                    'KeyType': 'HASH',
+                },
+                {
+                    'AttributeName': 'created',
+                    'KeyType': 'RANGE',
+                }
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL',
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 3,
+                'WriteCapacityUnits': 4
+            }
+        }],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 6
+        }
+    )
+    table = dynamodb.Table('users')
+    table.global_secondary_indexes.should.have.length_of(1)
+
+    table.update(GlobalSecondaryIndexUpdates=[{
+        'Delete': {
+            'IndexName': 'TestGSI',
+        },
+    }])
+
+    table = dynamodb.Table('users')
+    table.global_secondary_indexes.should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_query_pagination():
+    table = _create_table_with_range_key()
+    for i in range(10):
+        table.put_item(Item={
+            'forum_name': 'the-key',
+            'subject': '{0}'.format(i),
+            'username': 'johndoe',
+            'created': Decimal('3'),
+        })
+
+    page1 = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key'),
+        Limit=6
+    )
+    page1['Count'].should.equal(6)
+    page1['Items'].should.have.length_of(6)
+    page1.should.have.key('LastEvaluatedKey')
+
+    page2 = table.query(
+        KeyConditionExpression=Key('forum_name').eq('the-key'),
+        Limit=6,
+        ExclusiveStartKey=page1['LastEvaluatedKey']
+    )
+    page2['Count'].should.equal(4)
+    page2['Items'].should.have.length_of(4)
+    page2.should_not.have.key('LastEvaluatedKey')
+
+    results = page1['Items'] + page2['Items']
+    subjects = set([int(r['subject']) for r in results])
+    subjects.should.equal(set(range(10)))

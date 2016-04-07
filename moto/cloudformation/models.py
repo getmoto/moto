@@ -10,23 +10,30 @@ from .exceptions import ValidationError
 
 
 class FakeStack(object):
-    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None):
+    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None):
         self.stack_id = stack_id
         self.name = name
         self.template = template
+        self.template_dict = json.loads(self.template)
         self.parameters = parameters
         self.region_name = region_name
         self.notification_arns = notification_arns if notification_arns else []
+        self.tags = tags if tags else {}
         self.status = 'CREATE_COMPLETE'
 
-        template_dict = json.loads(self.template)
-        self.description = template_dict.get('Description')
+        self.description = self.template_dict.get('Description')
+        self.resource_map = self._create_resource_map()
+        self.output_map = self._create_output_map()
 
-        self.resource_map = ResourceMap(stack_id, name, parameters, region_name, template_dict)
-        self.resource_map.create()
+    def _create_resource_map(self):
+        resource_map = ResourceMap(self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict)
+        resource_map.create()
+        return resource_map
 
-        self.output_map = OutputMap(self.resource_map, template_dict)
-        self.output_map.create()
+    def _create_output_map(self):
+        output_map = OutputMap(self.resource_map, self.template_dict)
+        output_map.create()
+        return output_map
 
     @property
     def stack_parameters(self):
@@ -40,6 +47,15 @@ class FakeStack(object):
     def stack_outputs(self):
         return self.output_map.values()
 
+    def update(self, template):
+        self.template = template
+        self.resource_map.update(json.loads(template))
+        self.output_map = self._create_output_map()
+
+    def delete(self):
+        self.resource_map.delete()
+        self.status = 'DELETE_COMPLETE'
+
 
 class CloudFormationBackend(BaseBackend):
 
@@ -47,7 +63,7 @@ class CloudFormationBackend(BaseBackend):
         self.stacks = {}
         self.deleted_stacks = {}
 
-    def create_stack(self, name, template, parameters, region_name, notification_arns=None):
+    def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None):
         stack_id = generate_stack_id(name)
         new_stack = FakeStack(
             stack_id=stack_id,
@@ -56,6 +72,7 @@ class CloudFormationBackend(BaseBackend):
             parameters=parameters,
             region_name=region_name,
             notification_arns=notification_arns,
+            tags=tags,
         )
         self.stacks[stack_id] = new_stack
         return new_stack
@@ -86,22 +103,27 @@ class CloudFormationBackend(BaseBackend):
             # Lookup by stack name
             return [stack for stack in self.stacks.values() if stack.name == name_or_stack_id][0]
 
-    # def update_stack(self, name, template):
-    #     stack = self.get_stack(name)
-    #     stack.template = template
-    #     return stack
+    def update_stack(self, name, template):
+        stack = self.get_stack(name)
+        stack.update(template)
+        return stack
+
+    def list_stack_resources(self, stack_name_or_id):
+        stack = self.get_stack(stack_name_or_id)
+        return stack.stack_resources
 
     def delete_stack(self, name_or_stack_id):
         if name_or_stack_id in self.stacks:
             # Delete by stack id
             stack = self.stacks.pop(name_or_stack_id, None)
-            stack.status = 'DELETE_COMPLETE'
+            stack.delete()
             self.deleted_stacks[stack.stack_id] = stack
             return self.stacks.pop(name_or_stack_id, None)
         else:
             # Delete by stack name
-            stack_to_delete = [stack for stack in self.stacks.values() if stack.name == name_or_stack_id][0]
-            self.delete_stack(stack_to_delete.stack_id)
+            for stack in list(self.stacks.values()):
+                if stack.name == name_or_stack_id:
+                    self.delete_stack(stack.stack_id)
 
 
 cloudformation_backends = {}

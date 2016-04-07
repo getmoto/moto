@@ -75,11 +75,10 @@ def test_send_html_email():
 def test_send_raw_email():
     conn = boto.connect_ses('the_key', 'the_secret')
 
-    to = 'to@example.com'
     message = email.mime.multipart.MIMEMultipart()
     message['Subject'] = 'Test'
     message['From'] = 'test@example.com'
-    message['To'] = to
+    message['To'] = 'to@example.com'
 
     # Message body
     part = email.mime.text.MIMEText('test file attached')
@@ -93,14 +92,12 @@ def test_send_raw_email():
     conn.send_raw_email.when.called_with(
         source=message['From'],
         raw_message=message.as_string(),
-        destinations=message['To']
     ).should.throw(BotoServerError)
 
     conn.verify_email_identity("test@example.com")
     conn.send_raw_email(
         source=message['From'],
         raw_message=message.as_string(),
-        destinations=message['To']
     )
 
     send_quota = conn.get_send_quota()

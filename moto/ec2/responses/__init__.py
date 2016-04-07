@@ -29,6 +29,7 @@ from .vpcs import VPCs
 from .vpc_peering_connections import VPCPeeringConnections
 from .vpn_connections import VPNConnections
 from .windows import Windows
+from .nat_gateways import NatGateways
 
 
 class EC2Response(
@@ -61,8 +62,13 @@ class EC2Response(
     VPCPeeringConnections,
     VPNConnections,
     Windows,
+    NatGateways,
 ):
     @property
     def ec2_backend(self):
         from moto.ec2.models import ec2_backends
         return ec2_backends[self.region]
+
+    @property
+    def should_autoescape(self):
+        return True

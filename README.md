@@ -55,14 +55,18 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |------------------------------------------------------------------------------|
 | Service Name          | Decorator        | Development Status                |
 |------------------------------------------------------------------------------|
+| API Gateway           | @mock_apigateway | core endpoints done               |
+|------------------------------------------------------------------------------|
 | Autoscaling           | @mock_autoscaling| core endpoints done               |
 |------------------------------------------------------------------------------|
 | Cloudformation        | @mock_cloudformation| core endpoints done            |
 |------------------------------------------------------------------------------|
 | Cloudwatch            | @mock_cloudwatch | basic endpoints done              |
 |------------------------------------------------------------------------------|
+| Data Pipeline         | @mock_datapipeline| basic endpoints done             |
+|------------------------------------------------------------------------------|
 | DynamoDB              | @mock_dynamodb   | core endpoints done               |
-| DynamoDB2             | @mock_dynamodb2  | core endpoints done - no indexes  |
+| DynamoDB2             | @mock_dynamodb2  | core endpoints + partial indexes  |
 |------------------------------------------------------------------------------|
 | EC2                   | @mock_ec2        | core endpoints done               |
 |     - AMI             |                  | core endpoints done               |
@@ -71,15 +75,25 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |     - Security Groups |                  | core endpoints done               |
 |     - Tags            |                  | all  endpoints done               |
 |------------------------------------------------------------------------------|
+| ECS                   | @mock_ecs        | basic endpoints done              |
+|------------------------------------------------------------------------------|
 | ELB                   | @mock_elb        | core endpoints done               |
 |------------------------------------------------------------------------------|
 | EMR                   | @mock_emr        | core endpoints done               |
 |------------------------------------------------------------------------------|
+| Glacier               | @mock_glacier    | core endpoints done               |
+|------------------------------------------------------------------------------|
 | IAM                   | @mock_iam        | core endpoints done               |
+|------------------------------------------------------------------------------|
+| Lambda                | @mock_lambda     | basic endpoints done              |
+|------------------------------------------------------------------------------|
+| Kinesis               | @mock_kinesis    | core endpoints done               |
 |------------------------------------------------------------------------------|
 | RDS                   | @mock_rds        | core endpoints done               |
 |------------------------------------------------------------------------------|
 | RDS2                  | @mock_rds2       | core endpoints done               |
+|------------------------------------------------------------------------------|
+| Redshift              | @mock_redshift   | core endpoints done               |
 |------------------------------------------------------------------------------|
 | Route53               | @mock_route53    | core endpoints done               |
 |------------------------------------------------------------------------------|
@@ -92,6 +106,8 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 | SQS                   | @mock_sqs        | core endpoints done               |
 |------------------------------------------------------------------------------|
 | STS                   | @mock_sts        | core endpoints done               |
+|------------------------------------------------------------------------------|
+| SWF                   | @mock_sfw        | basic endpoints done              |
 |------------------------------------------------------------------------------|
 ```
 

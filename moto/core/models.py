@@ -18,10 +18,10 @@ class MockAWS(object):
         if self.__class__.nested_count == 0:
             HTTPretty.reset()
 
-    def __call__(self, func):
+    def __call__(self, func, reset=True):
         if inspect.isclass(func):
             return self.decorate_class(func)
-        return self.decorate_callable(func)
+        return self.decorate_callable(func, reset)
 
     def __enter__(self):
         self.start()
@@ -64,10 +64,13 @@ class MockAWS(object):
             HTTPretty.disable()
             HTTPretty.reset()
 
-    def decorate_callable(self, func):
+    def decorate_callable(self, func, reset):
         def wrapper(*args, **kwargs):
-            with self:
+            self.start(reset=reset)
+            try:
                 result = func(*args, **kwargs)
+            finally:
+                self.stop()
             return result
         functools.update_wrapper(wrapper, func)
         wrapper.__wrapped__ = func
@@ -87,7 +90,7 @@ class MockAWS(object):
                 continue
 
             try:
-                setattr(klass, attr, self(attr_value))
+                setattr(klass, attr, self(attr_value, reset=False))
             except TypeError:
                 # Sometimes we can't set this for built-in types
                 continue

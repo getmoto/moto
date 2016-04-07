@@ -281,3 +281,40 @@ def test_bucket_key_listing_order():
     delimiter = '/'
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
     keys.should.equal(['toplevel/x/'])
+
+
+@mock_s3bucket_path
+def test_delete_keys():
+    conn = create_connection()
+    bucket = conn.create_bucket('foobar')
+
+    Key(bucket=bucket, name='file1').set_contents_from_string('abc')
+    Key(bucket=bucket, name='file2').set_contents_from_string('abc')
+    Key(bucket=bucket, name='file3').set_contents_from_string('abc')
+    Key(bucket=bucket, name='file4').set_contents_from_string('abc')
+
+    result = bucket.delete_keys(['file2', 'file3'])
+    result.deleted.should.have.length_of(2)
+    result.errors.should.have.length_of(0)
+    keys = bucket.get_all_keys()
+    keys.should.have.length_of(2)
+    keys[0].name.should.equal('file1')
+
+
+@mock_s3bucket_path
+def test_delete_keys_with_invalid():
+    conn = create_connection()
+    bucket = conn.create_bucket('foobar')
+
+    Key(bucket=bucket, name='file1').set_contents_from_string('abc')
+    Key(bucket=bucket, name='file2').set_contents_from_string('abc')
+    Key(bucket=bucket, name='file3').set_contents_from_string('abc')
+    Key(bucket=bucket, name='file4').set_contents_from_string('abc')
+
+    result = bucket.delete_keys(['abc', 'file3'])
+
+    result.deleted.should.have.length_of(1)
+    result.errors.should.have.length_of(1)
+    keys = bucket.get_all_keys()
+    keys.should.have.length_of(3)
+    keys[0].name.should.equal('file1')

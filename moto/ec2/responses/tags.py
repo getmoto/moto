@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-from xml.sax.saxutils import escape
 from moto.core.responses import BaseResponse
 from moto.ec2.models import validate_resource_ids
 from moto.ec2.utils import sequence_from_querystring, tags_from_query_string, filters_from_querystring
@@ -26,23 +25,21 @@ class TagResponse(BaseResponse):
     def describe_tags(self):
         filters = filters_from_querystring(querystring_dict=self.querystring)
         tags = self.ec2_backend.describe_tags(filters=filters)
-        for tag in tags:
-            tag['value'] = escape(tag['value'])
         template = self.response_template(DESCRIBE_RESPONSE)
         return template.render(tags=tags)
 
 
-CREATE_RESPONSE = """<CreateTagsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+CREATE_RESPONSE = """<CreateTagsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <return>true</return>
 </CreateTagsResponse>"""
 
-DELETE_RESPONSE = """<DeleteTagsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DELETE_RESPONSE = """<DeleteTagsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <return>true</return>
 </DeleteTagsResponse>"""
 
-DESCRIBE_RESPONSE = """<DescribeTagsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DESCRIBE_RESPONSE = """<DescribeTagsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <tagSet>
       {% for tag in tags %}

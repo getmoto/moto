@@ -33,8 +33,8 @@ class Cluster(object):
 
         self.allow_version_upgrade = allow_version_upgrade if allow_version_upgrade is not None else True
         self.cluster_version = cluster_version if cluster_version else "1.0"
-        self.port = port if port else 5439
-        self.automated_snapshot_retention_period = automated_snapshot_retention_period if automated_snapshot_retention_period else 1
+        self.port = int(port) if port else 5439
+        self.automated_snapshot_retention_period = int(automated_snapshot_retention_period) if automated_snapshot_retention_period else 1
         self.preferred_maintenance_window = preferred_maintenance_window if preferred_maintenance_window else "Mon:03:00-Mon:03:30"
 
         if cluster_parameter_group_name:
@@ -47,6 +47,7 @@ class Cluster(object):
         else:
             self.cluster_security_groups = ["Default"]
 
+        self.region = region
         if availability_zone:
             self.availability_zone = availability_zone
         else:
@@ -57,9 +58,57 @@ class Cluster(object):
         if cluster_type == 'single-node':
             self.number_of_nodes = 1
         elif number_of_nodes:
-            self.number_of_nodes = number_of_nodes
+            self.number_of_nodes = int(number_of_nodes)
         else:
             self.number_of_nodes = 1
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        redshift_backend = redshift_backends[region_name]
+        properties = cloudformation_json['Properties']
+
+        if 'ClusterSubnetGroupName' in properties:
+            subnet_group_name = properties['ClusterSubnetGroupName'].cluster_subnet_group_name
+        else:
+            subnet_group_name = None
+        cluster = redshift_backend.create_cluster(
+            cluster_identifier=resource_name,
+            node_type=properties.get('NodeType'),
+            master_username=properties.get('MasterUsername'),
+            master_user_password=properties.get('MasterUserPassword'),
+            db_name=properties.get('DBName'),
+            cluster_type=properties.get('ClusterType'),
+            cluster_security_groups=properties.get('ClusterSecurityGroups', []),
+            vpc_security_group_ids=properties.get('VpcSecurityGroupIds', []),
+            cluster_subnet_group_name=subnet_group_name,
+            availability_zone=properties.get('AvailabilityZone'),
+            preferred_maintenance_window=properties.get('PreferredMaintenanceWindow'),
+            cluster_parameter_group_name=properties.get('ClusterParameterGroupName'),
+            automated_snapshot_retention_period=properties.get('AutomatedSnapshotRetentionPeriod'),
+            port=properties.get('Port'),
+            cluster_version=properties.get('ClusterVersion'),
+            allow_version_upgrade=properties.get('AllowVersionUpgrade'),
+            number_of_nodes=properties.get('NumberOfNodes'),
+            publicly_accessible=properties.get("PubliclyAccessible"),
+            encrypted=properties.get("Encrypted"),
+            region=region_name,
+        )
+        return cluster
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Endpoint.Address':
+            return self.endpoint
+        elif attribute_name == 'Endpoint.Port':
+            return self.port
+        raise UnformattedGetAttTemplateException()
+
+    @property
+    def endpoint(self):
+        return "{0}.cg034hpkmmjt.{1}.redshift.amazonaws.com".format(
+            self.cluster_identifier,
+            self.region,
+        )
 
     @property
     def security_groups(self):
@@ -128,6 +177,18 @@ class SubnetGroup(object):
         if not self.subnets:
             raise InvalidSubnetError(subnet_ids)
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        redshift_backend = redshift_backends[region_name]
+        properties = cloudformation_json['Properties']
+
+        subnet_group = redshift_backend.create_cluster_subnet_group(
+            cluster_subnet_group_name=resource_name,
+            description=properties.get("Description"),
+            subnet_ids=properties.get("SubnetIds", []),
+        )
+        return subnet_group
+
     @property
     def subnets(self):
         return self.ec2_backend.get_all_subnets(filters={'subnet-id': self.subnet_ids})
@@ -172,6 +233,18 @@ class ParameterGroup(object):
         self.cluster_parameter_group_name = cluster_parameter_group_name
         self.group_family = group_family
         self.description = description
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        redshift_backend = redshift_backends[region_name]
+        properties = cloudformation_json['Properties']
+
+        parameter_group = redshift_backend.create_cluster_parameter_group(
+            cluster_parameter_group_name=resource_name,
+            description=properties.get("Description"),
+            group_family=properties.get("ParameterGroupFamily"),
+        )
+        return parameter_group
 
     def to_json(self):
         return {

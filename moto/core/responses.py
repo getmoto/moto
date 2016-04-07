@@ -63,8 +63,16 @@ class DynamicDictLoader(DictLoader):
 
 
 class _TemplateEnvironmentMixin(object):
-    loader = DynamicDictLoader({})
-    environment = Environment(loader=loader)
+
+    def __init__(self):
+        super(_TemplateEnvironmentMixin, self).__init__()
+        self.loader = DynamicDictLoader({})
+        self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape)
+
+    @property
+    def should_autoescape(self):
+        # Allow for subclass to overwrite
+        return False
 
     def contains_template(self, template_id):
         return self.loader.contains(template_id)
@@ -73,7 +81,7 @@ class _TemplateEnvironmentMixin(object):
         template_id = id(source)
         if not self.contains_template(template_id):
             self.loader.update({template_id: source})
-            self.environment = Environment(loader=self.loader)
+            self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape)
         return self.environment.get_template(template_id)
 
 
@@ -86,9 +94,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
     def dispatch(cls, *args, **kwargs):
         return cls()._dispatch(*args, **kwargs)
 
-    def _dispatch(self, request, full_url, headers):
+    def setup_class(self, request, full_url, headers):
         querystring = {}
-
         if hasattr(request, 'body'):
             # Boto
             self.body = request.body
@@ -123,8 +130,11 @@ class BaseResponse(_TemplateEnvironmentMixin):
         else:
             self.region = self.default_region
 
-        self.headers = dict(request.headers)
+        self.headers = request.headers
         self.response_headers = headers
+
+    def _dispatch(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
         return self.call_action()
 
     def call_action(self):
@@ -134,7 +144,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
             # Headers are case-insensitive. Probably a better way to do this.
             match = self.headers.get('x-amz-target') or self.headers.get('X-Amz-Target')
             if match:
-                action = match.split(".")[1]
+                action = match.split(".")[-1]
 
         action = camelcase_to_underscores(action)
         method_names = method_names_from_class(self.__class__)
@@ -245,6 +255,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
             results.append(new_items)
             param_index += 1
         return results
+
+    @property
+    def request_json(self):
+        return 'JSON' in self.querystring.get('ContentType', [])
 
 
 def metadata_response(request, full_url, headers):

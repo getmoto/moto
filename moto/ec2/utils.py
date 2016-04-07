@@ -9,6 +9,7 @@ EC2_RESOURCE_TO_PREFIX = {
     'image': 'ami',
     'instance': 'i',
     'internet-gateway': 'igw',
+    'nat-gateway': 'nat',
     'network-acl': 'acl',
     'network-acl-subnet-assoc': 'aclassoc',
     'network-interface': 'eni',
@@ -33,8 +34,7 @@ EC2_RESOURCE_TO_PREFIX = {
 EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
 
 
-def random_id(prefix=''):
-    size = 8
+def random_id(prefix='', size=8):
     chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
 
     resource_id = ''.join(six.text_type(random.choice(chars)) for x in range(size))
@@ -85,6 +85,14 @@ def random_vpn_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpn-gateway'])
 
 
+def random_vpn_connection_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpn-connection'])
+
+
+def random_customer_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['customer-gateway'])
+
+
 def random_volume_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['volume'])
 
@@ -123,6 +131,10 @@ def random_eni_id():
 
 def random_eni_attach_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['network-interface-attachment'])
+
+
+def random_nat_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['nat-gateway'], size=17)
 
 
 def random_public_ip():
@@ -310,7 +322,7 @@ def get_object_value(obj, attr):
 
 
 def is_tag_filter(filter_name):
-    return (filter_name.startswith('tag:') or 
+    return (filter_name.startswith('tag:') or
             filter_name.startswith('tag-value') or
             filter_name.startswith('tag-key'))
 
@@ -348,7 +360,9 @@ filter_dict_attribute_mapping = {
     'vpc-id': 'vpc_id',
     'group-id': 'security_groups',
     'instance.group-id': 'security_groups',
-    'instance-type': 'instance_type'
+    'instance-type': 'instance_type',
+    'private-ip-address' : 'private_ip',
+    'ip-address' : 'public_ip'
 }
 
 
@@ -453,27 +467,22 @@ def simple_aws_filter_to_re(filter_string):
     return tmp_filter
 
 
-# not really random ( http://xkcd.com/221/ )
 def random_key_pair():
+    def random_hex():
+        return chr(random.choice(list(range(48, 58)) + list(range(97, 102))))
+    def random_fingerprint():
+        return ':'.join([random_hex()+random_hex() for i in range(20)])
+    def random_material():
+        return ''.join([
+            chr(random.choice(list(range(65, 91)) + list(range(48, 58)) +
+                              list(range(97, 102))))
+            for i in range(1000)
+        ])
+    material = "---- BEGIN RSA PRIVATE KEY ----" + random_material() + \
+            "-----END RSA PRIVATE KEY-----"
     return {
-        'fingerprint': ('1f:51:ae:28:bf:89:e9:d8:1f:25:5d:37:2d:'
-                        '7d:b8:ca:9f:f5:f1:6f'),
-        'material': """---- BEGIN RSA PRIVATE KEY ----
-MIICiTCCAfICCQD6m7oRw0uXOjANBgkqhkiG9w0BAQUFADCBiDELMAkGA1UEBhMC
-VVMxCzAJBgNVBAgTAldBMRAwDgYDVQQHEwdTZWF0dGxlMQ8wDQYDVQQKEwZBbWF6
-b24xFDASBgNVBAsTC0lBTSBDb25zb2xlMRIwEAYDVQQDEwlUZXN0Q2lsYWMxHzAd
-BgkqhkiG9w0BCQEWEG5vb25lQGFtYXpvbi5jb20wHhcNMTEwNDI1MjA0NTIxWhcN
-MTIwNDI0MjA0NTIxWjCBiDELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAldBMRAwDgYD
-VQQHEwdTZWF0dGxlMQ8wDQYDVQQKEwZBbWF6b24xFDASBgNVBAsTC0lBTSBDb25z
-b2xlMRIwEAYDVQQDEwlUZXN0Q2lsYWMxHzAdBgkqhkiG9w0BCQEWEG5vb25lQGFt
-YXpvbi5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMaK0dn+a4GmWIWJ
-21uUSfwfEvySWtC2XADZ4nB+BLYgVIk60CpiwsZ3G93vUEIO3IyNoH/f0wYK8m9T
-rDHudUZg3qX4waLG5M43q7Wgc/MbQITxOUSQv7c7ugFFDzQGBzZswY6786m86gpE
-Ibb3OhjZnzcvQAaRHhdlQWIMm2nrAgMBAAEwDQYJKoZIhvcNAQEFBQADgYEAtCu4
-nUhVVxYUntneD9+h8Mg9q6q+auNKyExzyLwaxlAoo7TJHidbtS4J5iNmZgXL0Fkb
-FFBjvSfpJIlJ00zbhNYS5f6GuoEDmFJl0ZxBHjJnyp378OD8uTs7fLvjx79LjSTb
-NYiytVbZPQUQ5Yaxu2jXnimvw3rrszlaEXAMPLE
------END RSA PRIVATE KEY-----"""
+        'fingerprint': random_fingerprint(),
+        'material': material
     }
 
 

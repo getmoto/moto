@@ -8,8 +8,8 @@ from xml.sax.saxutils import escape
 import boto.sqs
 
 from moto.core import BaseBackend
-from moto.core.utils import camelcase_to_underscores, get_random_message_id
-from .utils import generate_receipt_handle, unix_time_millis
+from moto.core.utils import camelcase_to_underscores, get_random_message_id, unix_time_millis
+from .utils import generate_receipt_handle
 from .exceptions import (
     ReceiptHandleIsInvalid,
     MessageNotInflight
@@ -34,7 +34,7 @@ class Message(object):
     @property
     def md5(self):
         body_md5 = hashlib.md5()
-        body_md5.update(self.body.encode('utf-8'))
+        body_md5.update(self._body.encode('utf-8'))
         return body_md5.hexdigest()
 
     @property
@@ -103,11 +103,16 @@ class Queue(object):
                             'MessageRetentionPeriod',
                             'QueueArn',
                             'ReceiveMessageWaitTimeSeconds',
-                            'VisibilityTimeout']
+                            'VisibilityTimeout',
+                            'WaitTimeSeconds']
 
-    def __init__(self, name, visibility_timeout):
+    def __init__(self, name, visibility_timeout, wait_time_seconds, region):
         self.name = name
         self.visibility_timeout = visibility_timeout or 30
+        self.region = region
+
+        # wait_time_seconds will be set to immediate return messages
+        self.wait_time_seconds = wait_time_seconds or 0
         self._messages = []
 
         now = time.time()
@@ -128,7 +133,29 @@ class Queue(object):
         return sqs_backend.create_queue(
             name=properties['QueueName'],
             visibility_timeout=properties.get('VisibilityTimeout'),
+            wait_time_seconds=properties.get('WaitTimeSeconds')
         )
+
+    @classmethod
+    def update_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        queue_name = properties['QueueName']
+
+        sqs_backend = sqs_backends[region_name]
+        queue = sqs_backend.get_queue(queue_name)
+        if 'VisibilityTimeout' in properties:
+            queue.visibility_timeout = int(properties['VisibilityTimeout'])
+
+        if 'WaitTimeSeconds' in properties:
+            queue.wait_time_seconds = int(properties['WaitTimeSeconds'])
+        return queue
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        queue_name = properties['QueueName']
+        sqs_backend = sqs_backends[region_name]
+        sqs_backend.delete_queue(queue_name)
 
     @property
     def approximate_number_of_messages_delayed(self):
@@ -154,6 +181,10 @@ class Queue(object):
         return result
 
     @property
+    def url(self):
+        return "http://sqs.{0}.amazonaws.com/123456789012/{1}".format(self.region, self.name)
+
+    @property
     def messages(self):
         return [message for message in self._messages if message.visible and not message.delayed]
 
@@ -170,14 +201,20 @@ class Queue(object):
 
 
 class SQSBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name):
+        self.region_name = region_name
         self.queues = {}
         super(SQSBackend, self).__init__()
 
-    def create_queue(self, name, visibility_timeout):
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
+
+    def create_queue(self, name, visibility_timeout, wait_time_seconds):
         queue = self.queues.get(name)
         if queue is None:
-            queue = Queue(name, visibility_timeout)
+            queue = Queue(name, visibility_timeout, wait_time_seconds, self.region_name)
             self.queues[name] = queue
         return queue
 
@@ -228,7 +265,7 @@ class SQSBackend(BaseBackend):
 
         return message
 
-    def receive_messages(self, queue_name, count):
+    def receive_messages(self, queue_name, count, wait_seconds_timeout):
         """
         Attempt to retrieve visible messages from a queue.
 
@@ -242,13 +279,22 @@ class SQSBackend(BaseBackend):
         """
         queue = self.get_queue(queue_name)
         result = []
+
+        polling_end = time.time() + wait_seconds_timeout
+
         # queue.messages only contains visible messages
-        for message in queue.messages:
-            message.mark_received(
-                visibility_timeout=queue.visibility_timeout
-            )
-            result.append(message)
-            if len(result) >= count:
+        while True:
+            for message in queue.messages:
+                if not message.visible:
+                    continue
+                message.mark_received(
+                    visibility_timeout=queue.visibility_timeout
+                )
+                result.append(message)
+                if len(result) >= count:
+                    break
+
+            if result or time.time() > polling_end:
                 break
 
         return result
@@ -281,4 +327,4 @@ class SQSBackend(BaseBackend):
 
 sqs_backends = {}
 for region in boto.sqs.regions():
-    sqs_backends[region.name] = SQSBackend()
+    sqs_backends[region.name] = SQSBackend(region.name)

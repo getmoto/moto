@@ -2,12 +2,16 @@ from __future__ import unicode_literals
 import collections
 import functools
 import logging
+import copy
 
 from moto.autoscaling import models as autoscaling_models
+from moto.awslambda import models as lambda_models
+from moto.datapipeline import models as datapipeline_models
 from moto.ec2 import models as ec2_models
 from moto.elb import models as elb_models
 from moto.iam import models as iam_models
 from moto.rds import models as rds_models
+from moto.redshift import models as redshift_models
 from moto.route53 import models as route53_models
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
@@ -19,9 +23,11 @@ from boto.exception import BotoServerError
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
     "AWS::AutoScaling::LaunchConfiguration": autoscaling_models.FakeLaunchConfiguration,
+    "AWS::Lambda::Function": lambda_models.LambdaFunction,
     "AWS::EC2::EIP": ec2_models.ElasticAddress,
     "AWS::EC2::Instance": ec2_models.Instance,
     "AWS::EC2::InternetGateway": ec2_models.InternetGateway,
+    "AWS::EC2::NatGateway": ec2_models.NatGateway,
     "AWS::EC2::NetworkInterface": ec2_models.NetworkInterface,
     "AWS::EC2::Route": ec2_models.Route,
     "AWS::EC2::RouteTable": ec2_models.RouteTable,
@@ -35,11 +41,15 @@ MODEL_MAP = {
     "AWS::EC2::VPCGatewayAttachment": ec2_models.VPCGatewayAttachment,
     "AWS::EC2::VPCPeeringConnection": ec2_models.VPCPeeringConnection,
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
+    "AWS::DataPipeline::Pipeline": datapipeline_models.Pipeline,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,
     "AWS::RDS::DBInstance": rds_models.Database,
     "AWS::RDS::DBSecurityGroup": rds_models.SecurityGroup,
     "AWS::RDS::DBSubnetGroup": rds_models.SubnetGroup,
+    "AWS::Redshift::Cluster": redshift_models.Cluster,
+    "AWS::Redshift::ClusterParameterGroup": redshift_models.ParameterGroup,
+    "AWS::Redshift::ClusterSubnetGroup": redshift_models.SubnetGroup,
     "AWS::Route53::HealthCheck": route53_models.HealthCheck,
     "AWS::Route53::HostedZone": route53_models.FakeZone,
     "AWS::Route53::RecordSet": route53_models.RecordSet,
@@ -156,15 +166,10 @@ def resource_name_property_from_type(resource_type):
     return NAME_TYPE_MAP.get(resource_type)
 
 
-def parse_resource(logical_id, resource_json, resources_map, region_name):
+def parse_resource(logical_id, resource_json, resources_map):
     resource_type = resource_json['Type']
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
-        return None
-
-    condition = resource_json.get('Condition')
-    if condition and not resources_map[condition]:
-        # If this has a False condition, don't create the resource
         return None
 
     resource_json = clean_json(resource_json, resources_map)
@@ -182,11 +187,36 @@ def parse_resource(logical_id, resource_json, resources_map, region_name):
         resource_name = '{0}-{1}-{2}'.format(resources_map.get('AWS::StackName'),
                                              logical_id,
                                              random_suffix())
+    return resource_class, resource_json, resource_name
 
+
+def parse_and_create_resource(logical_id, resource_json, resources_map, region_name):
+    condition = resource_json.get('Condition')
+    if condition and not resources_map[condition]:
+        # If this has a False condition, don't create the resource
+        return None
+
+    resource_type = resource_json['Type']
+    resource_tuple = parse_resource(logical_id, resource_json, resources_map)
+    if not resource_tuple:
+        return None
+    resource_class, resource_json, resource_name = resource_tuple
     resource = resource_class.create_from_cloudformation_json(resource_name, resource_json, region_name)
     resource.type = resource_type
     resource.logical_resource_id = logical_id
     return resource
+
+
+def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
+    resource_class, resource_json, resource_name = parse_resource(logical_id, resource_json, resources_map)
+    resource = resource_class.update_from_cloudformation_json(resource_name, resource_json, region_name)
+    return resource
+
+
+def parse_and_delete_resource(logical_id, resource_json, resources_map, region_name):
+    resource_class, resource_json, resource_name = parse_resource(logical_id, resource_json, resources_map)
+    resource_class.delete_from_cloudformation_json(resource_name, resource_json, region_name)
+    return None
 
 
 def parse_condition(condition, resources_map, condition_map):
@@ -235,11 +265,12 @@ class ResourceMap(collections.Mapping):
     each resources is passed this lazy map that it can grab dependencies from.
     """
 
-    def __init__(self, stack_id, stack_name, parameters, region_name, template):
+    def __init__(self, stack_id, stack_name, parameters, tags, region_name, template):
         self._template = template
         self._resource_json_map = template['Resources']
         self._region_name = region_name
         self.input_parameters = parameters
+        self.tags = copy.deepcopy(tags)
         self.resolved_parameters = {}
 
         # Create the default resources
@@ -258,7 +289,7 @@ class ResourceMap(collections.Mapping):
             return self._parsed_resources[resource_logical_id]
         else:
             resource_json = self._resource_json_map.get(resource_logical_id)
-            new_resource = parse_resource(resource_logical_id, resource_json, self, self._region_name)
+            new_resource = parse_and_create_resource(resource_logical_id, resource_json, self, self._region_name)
             self._parsed_resources[resource_logical_id] = new_resource
             return new_resource
 
@@ -310,13 +341,45 @@ class ResourceMap(collections.Mapping):
 
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.
-        tags = {'aws:cloudformation:stack-name': self.get('AWS::StackName'),
-                'aws:cloudformation:stack-id': self.get('AWS::StackId')}
+        self.tags.update({'aws:cloudformation:stack-name': self.get('AWS::StackName'),
+                'aws:cloudformation:stack-id': self.get('AWS::StackId')})
         for resource in self.resources:
-            self[resource]
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
-                tags['aws:cloudformation:logical-id'] = resource
-                ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], tags)
+                self.tags['aws:cloudformation:logical-id'] = resource
+                ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], self.tags)
+
+    def update(self, template):
+        self.load_mapping()
+        self.load_parameters()
+        self.load_conditions()
+
+        old_template = self._resource_json_map
+        new_template = template['Resources']
+        self._resource_json_map = new_template
+
+        new_resource_names = set(new_template) - set(old_template)
+        for resource_name in new_resource_names:
+            resource_json = new_template[resource_name]
+            new_resource = parse_and_create_resource(resource_name, resource_json, self, self._region_name)
+            self._parsed_resources[resource_name] = new_resource
+
+        removed_resource_nams = set(old_template) - set(new_template)
+        for resource_name in removed_resource_nams:
+            resource_json = old_template[resource_name]
+            parse_and_delete_resource(resource_name, resource_json, self, self._region_name)
+            self._parsed_resources.pop(resource_name)
+
+        for resource_name in new_template:
+            if resource_name in old_template and new_template[resource_name] != old_template[resource_name]:
+                resource_json = new_template[resource_name]
+
+                changed_resource = parse_and_update_resource(resource_name, resource_json, self, self._region_name)
+                self._parsed_resources[resource_name] = changed_resource
+
+    def delete(self):
+        for resource in self.resources:
+            parsed_resource = self._parsed_resources.pop(resource)
+            parsed_resource.delete(self._region_name)
 
 
 class OutputMap(collections.Mapping):

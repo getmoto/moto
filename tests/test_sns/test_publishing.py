@@ -72,7 +72,7 @@ def test_publish_to_http():
     parse_qs(last_request.body.decode('utf-8')).should.equal({
         "Type": ["Notification"],
         "MessageId": [message_id],
-        "TopicArn": ["arn:aws:sns:us-east-1:123456789012:some-topic"],
+        "TopicArn": ["arn:aws:sns:{0}:123456789012:some-topic".format(conn.region.name)],
         "Subject": ["my subject"],
         "Message": ["my message"],
         "Timestamp": ["2013-01-01T00:00:00.000Z"],

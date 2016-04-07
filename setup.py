@@ -4,28 +4,27 @@ from setuptools import setup, find_packages
 
 install_requires = [
     "Jinja2",
-    "boto>=2.20.0",
+    "boto>=2.36.0",
     "flask",
-    "httpretty>=0.6.1",
+    "httpretty==0.8.10",
     "requests",
     "xmltodict",
     "six",
     "werkzeug",
 ]
 
-import sys
-
-if sys.version_info < (2, 7):
-    # No buildint OrderedDict before 2.7
-    install_requires.append('ordereddict')
+extras_require = {
+    # No builtin OrderedDict before 2.7
+    ':python_version=="2.6"': ['ordereddict'],
+}
 
 setup(
     name='moto',
-    version='0.4.3',
+    version='0.4.23',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',
-    author_email='spulec@gmail',
+    author_email='spulec@gmail.com',
     url='https://github.com/spulec/moto',
     entry_points={
         'console_scripts': [
@@ -34,6 +33,7 @@ setup(
     },
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
+    extras_require=extras_require,
     license="Apache",
     test_suite="tests",
     classifiers=[

@@ -27,7 +27,7 @@ class RDS2Response(BaseResponse):
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
             "iops": self._get_int_param("Iops"),
-            "master_password": self._get_param('MasterUserPassword'),
+            "master_user_password": self._get_param('MasterUserPassword'),
             "master_username": self._get_param('MasterUsername'),
             "multi_az": self._get_bool_param("MultiAZ"),
             # OptionGroupName

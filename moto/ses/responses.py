@@ -1,4 +1,7 @@
 from __future__ import unicode_literals
+import base64
+
+import six
 
 from moto.core.responses import BaseResponse
 from .models import ses_backend
@@ -26,7 +29,7 @@ class EmailResponse(BaseResponse):
     def verify_domain_identity(self):
         domain = self.querystring.get('Domain')[0]
         ses_backend.verify_domain(domain)
-        template = self.response_template(VERIFY_DOMAIN_DKIM_RESPONSE)
+        template = self.response_template(VERIFY_DOMAIN_IDENTITY_RESPONSE)
         return template.render()
 
     def delete_identity(self):
@@ -42,21 +45,40 @@ class EmailResponse(BaseResponse):
         body = self.querystring.get(bodydatakey)[0]
         source = self.querystring.get('Source')[0]
         subject = self.querystring.get('Message.Subject.Data')[0]
-        destination = self.querystring.get('Destination.ToAddresses.member.1')[0]
-        message = ses_backend.send_email(source, subject, body, destination)
-        if not message:
-            return "Did not have authority to send from email {0}".format(source), dict(status=400)
+        destinations = {
+            'ToAddresses': [],
+            'CcAddresses': [],
+            'BccAddresses': [],
+        }
+        for dest_type in destinations:
+            # consume up to 51 to allow exception
+            for i in six.moves.range(1, 52):
+                field = 'Destination.%s.member.%s' % (dest_type, i)
+                address = self.querystring.get(field)
+                if address is None:
+                    break
+                destinations[dest_type].append(address[0])
+
+        message = ses_backend.send_email(source, subject, body, destinations)
         template = self.response_template(SEND_EMAIL_RESPONSE)
         return template.render(message=message)
 
     def send_raw_email(self):
         source = self.querystring.get('Source')[0]
-        destination = self.querystring.get('Destinations.member.1')[0]
         raw_data = self.querystring.get('RawMessage.Data')[0]
+        raw_data = base64.b64decode(raw_data)
+        if six.PY3:
+            raw_data = raw_data.decode('utf-8')
+        destinations = []
+        # consume up to 51 to allow exception
+        for i in six.moves.range(1, 52):
+            field = 'Destinations.member.%s' % i
+            address = self.querystring.get(field)
+            if address is None:
+                break
+            destinations.append(address[0])
 
-        message = ses_backend.send_raw_email(source, destination, raw_data)
-        if not message:
-            return "Did not have authority to send from email {0}".format(source), dict(status=400)
+        message = ses_backend.send_raw_email(source, destinations, raw_data)
         template = self.response_template(SEND_RAW_EMAIL_RESPONSE)
         return template.render(message=message)
 
@@ -98,6 +120,16 @@ VERIFY_DOMAIN_DKIM_RESPONSE = """<VerifyDomainDkimResponse xmlns="http://ses.ama
       <RequestId>9662c15b-c469-11e1-99d1-797d6ecd6414</RequestId>
     </ResponseMetadata>
 </VerifyDomainDkimResponse>"""
+
+VERIFY_DOMAIN_IDENTITY_RESPONSE = """\
+<VerifyDomainIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <VerifyDomainIdentityResult>
+    <VerificationToken>QTKknzFg2J4ygwa+XvHAxUl1hyHoY0gVfZdfjIedHZ0=</VerificationToken>
+  </VerifyDomainIdentityResult>
+  <ResponseMetadata>
+    <RequestId>94f6368e-9bf2-11e1-8ee7-c98a0037a2b6</RequestId>
+  </ResponseMetadata>
+</VerifyDomainIdentityResponse>"""
 
 DELETE_IDENTITY_RESPONSE = """<DeleteIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <DeleteIdentityResult/>

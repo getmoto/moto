@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 import uuid
+import json
 
 import boto.sns
 import requests
@@ -27,7 +28,7 @@ class Topic(object):
         self.policy = DEFAULT_TOPIC_POLICY
         self.delivery_policy = ""
         self.effective_delivery_policy = DEFAULT_EFFECTIVE_DELIVERY_POLICY
-        self.arn = make_arn_for_topic(self.account_id, name)
+        self.arn = make_arn_for_topic(self.account_id, name, sns_backend.region_name)
 
         self.subscriptions_pending = 0
         self.subscriptions_confimed = 0
@@ -135,11 +136,18 @@ class PlatformEndpoint(object):
 
 
 class SNSBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name):
+        super(SNSBackend, self).__init__()
         self.topics = OrderedDict()
         self.subscriptions = OrderedDict()
         self.applications = {}
         self.platform_endpoints = {}
+        self.region_name = region_name
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def create_topic(self, name):
         topic = Topic(name, self)
@@ -247,10 +255,10 @@ class SNSBackend(BaseBackend):
 
 sns_backends = {}
 for region in boto.sns.regions():
-    sns_backends[region.name] = SNSBackend()
+    sns_backends[region.name] = SNSBackend(region.name)
 
 
-DEFAULT_TOPIC_POLICY = {
+DEFAULT_TOPIC_POLICY = json.dumps({
     "Version": "2008-10-17",
     "Id": "us-east-1/698519295917/test__default_policy_ID",
     "Statement": [{
@@ -277,9 +285,9 @@ DEFAULT_TOPIC_POLICY = {
             }
         }
     }]
-}
+})
 
-DEFAULT_EFFECTIVE_DELIVERY_POLICY = {
+DEFAULT_EFFECTIVE_DELIVERY_POLICY = json.dumps({
     'http': {
         'disableSubscriptionOverrides': False,
         'defaultHealthyRetryPolicy': {
@@ -292,4 +300,4 @@ DEFAULT_EFFECTIVE_DELIVERY_POLICY = {
             'backoffFunction': 'linear'
         }
     }
-}
+})

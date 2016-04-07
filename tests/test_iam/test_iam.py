@@ -6,6 +6,7 @@ from nose.tools import assert_raises, assert_equals, assert_not_equals
 from boto.exception import BotoServerError
 import base64
 from moto import mock_iam
+from nose.tools import raises
 
 
 @mock_iam()
@@ -39,6 +40,12 @@ def test_upload_server_cert():
     cert.server_certificate_name.should.equal("certname")
     cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
 
+@mock_iam()
+@raises(BotoServerError)
+def test_get_role__should_throw__when_role_does_not_exist():
+    conn = boto.connect_iam()
+
+    conn.get_role('unexisting_role')
 
 @mock_iam()
 def test_create_role_and_instance_profile():
@@ -59,7 +66,21 @@ def test_create_role_and_instance_profile():
     role_from_profile['role_name'].should.equal("my-role")
 
     conn.list_roles().roles[0].role_name.should.equal('my-role')
-    conn.list_instance_profiles().instance_profiles[0].instance_profile_name.should.equal("my-profile")
+
+
+@mock_iam()
+def test_list_instance_profiles():
+    conn = boto.connect_iam()
+    conn.create_instance_profile("my-profile", path="my-path")
+    conn.create_role("my-role", path="my-path")
+
+    conn.add_role_to_instance_profile("my-profile", "my-role")
+
+    profiles = conn.list_instance_profiles().instance_profiles
+
+    len(profiles).should.equal(1)
+    profiles[0].instance_profile_name.should.equal("my-profile")
+    profiles[0].roles.role_name.should.equal("my-role")
 
 
 @mock_iam()

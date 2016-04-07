@@ -15,7 +15,7 @@ def test_create_launch_configuration():
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
-        instance_type='m1.small',
+        instance_type='t1.micro',
         key_name='the_keys',
         security_groups=["default", "default2"],
         user_data=b"This is some user_data",
@@ -28,7 +28,7 @@ def test_create_launch_configuration():
     launch_config = conn.get_all_launch_configurations()[0]
     launch_config.name.should.equal('tester')
     launch_config.image_id.should.equal('ami-abcd1234')
-    launch_config.instance_type.should.equal('m1.small')
+    launch_config.instance_type.should.equal('t1.micro')
     launch_config.key_name.should.equal('the_keys')
     set(launch_config.security_groups).should.equal(set(['default', 'default2']))
     launch_config.user_data.should.equal(b"This is some user_data")
@@ -136,12 +136,12 @@ def test_create_launch_configuration_using_ip_association_should_default_to_fals
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
-        image_id='ami-abcd1234',    )
+        image_id='ami-abcd1234',
+    )
     conn.create_launch_configuration(config)
 
     launch_config = conn.get_all_launch_configurations()[0]
     launch_config.associate_public_ip_address.should.equal(False)
-
 
 
 @mock_autoscaling

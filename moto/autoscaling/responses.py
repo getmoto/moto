@@ -20,6 +20,8 @@ class AutoScalingResponse(BaseResponse):
             name=self._get_param('LaunchConfigurationName'),
             image_id=self._get_param('ImageId'),
             key_name=self._get_param('KeyName'),
+            ramdisk_id=self._get_param('RamdiskId'),
+            kernel_id=self._get_param('KernelId'),
             security_groups=self._get_multi_param('SecurityGroups.member'),
             user_data=self._get_param('UserData'),
             instance_type=self._get_param('InstanceType'),
@@ -60,6 +62,7 @@ class AutoScalingResponse(BaseResponse):
             load_balancers=self._get_multi_param('LoadBalancerNames.member'),
             placement_group=self._get_param('PlacementGroup'),
             termination_policies=self._get_multi_param('TerminationPolicies.member'),
+            tags=self._get_list_prefix('Tags.member'),
         )
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
@@ -103,9 +106,9 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def describe_auto_scaling_instances(self):
-        instances = self.autoscaling_backend.describe_autoscaling_instances()
+        instance_states = self.autoscaling_backend.describe_autoscaling_instances()
         template = self.response_template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
-        return template.render(instances=instances)
+        return template.render(instance_states=instance_states)
 
     def put_scaling_policy(self):
         policy = self.autoscaling_backend.create_autoscaling_policy(
@@ -154,7 +157,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
             {% endfor %}
           </SecurityGroups>
           <CreatedTime>2013-01-21T23:04:42.200Z</CreatedTime>
-          <KernelId/>
+          <KernelId>{{ launch_configuration.kernel_id }}</KernelId>
           {% if launch_configuration.instance_profile_name %}
             <IamInstanceProfile>{{ launch_configuration.instance_profile_name }}</IamInstanceProfile>
           {% endif %}
@@ -164,7 +167,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
           {% else %}
             <UserData/>
           {% endif %}
-          <InstanceType>m1.small</InstanceType>
+          <InstanceType>{{ launch_configuration.instance_type }}</InstanceType>
           <LaunchConfigurationARN>arn:aws:autoscaling:us-east-1:803981987763:launchConfiguration:
           9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/my-test-lc</LaunchConfigurationARN>
           {% if launch_configuration.block_device_mappings %}
@@ -201,7 +204,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
           {% else %}
             <KeyName/>
           {% endif %}
-          <RamdiskId/>
+          <RamdiskId>{{ launch_configuration.ramdisk_id }}</RamdiskId>
           <EbsOptimized>{{ launch_configuration.ebs_optimized }}</EbsOptimized>
           <InstanceMonitoring>
             <Enabled>{{ launch_configuration.instance_monitoring_enabled }}</Enabled>
@@ -235,7 +238,17 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
     <AutoScalingGroups>
       {% for group in groups %}
       <member>
-        <Tags/>
+        <Tags>
+          {% for tag in group.tags %}
+          <member>
+            <ResourceType>{{ tag.resource_type or tag.ResourceType }}</ResourceType>
+            <ResourceId>{{ tag.resource_id or tag.ResourceId }}</ResourceId>
+            <PropagateAtLaunch>{{ tag.propagate_at_launch or tag.PropagateAtLaunch }}</PropagateAtLaunch>
+            <Key>{{ tag.key or tag.Key }}</Key>
+            <Value>{{ tag.value or tag.Value }}</Value>
+          </member>
+          {% endfor %}
+        </Tags>
         <SuspendedProcesses/>
         <AutoScalingGroupName>{{ group.name }}</AutoScalingGroupName>
         <HealthCheckType>{{ group.health_check_type }}</HealthCheckType>
@@ -243,13 +256,13 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <EnabledMetrics/>
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
         <Instances>
-          {% for instance in group.instances %}
+          {% for instance_state in group.instance_states %}
           <member>
             <HealthStatus>HEALTHY</HealthStatus>
             <AvailabilityZone>us-east-1e</AvailabilityZone>
-            <InstanceId>{{ instance.id }}</InstanceId>
-            <LaunchConfigurationName>{{ instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
-            <LifecycleState>InService</LifecycleState>
+            <InstanceId>{{ instance_state.instance.id }}</InstanceId>
+            <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
+            <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
           </member>
           {% endfor %}
         </Instances>
@@ -315,14 +328,14 @@ DELETE_AUTOSCALING_GROUP_TEMPLATE = """<DeleteAutoScalingGroupResponse xmlns="ht
 DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <DescribeAutoScalingInstancesResult>
     <AutoScalingInstances>
-      {% for instance in instances %}
+      {% for instance_state in instance_states %}
       <member>
         <HealthStatus>HEALTHY</HealthStatus>
-        <AutoScalingGroupName>{{ instance.autoscaling_group.name }}</AutoScalingGroupName>
+        <AutoScalingGroupName>{{ instance_state.instance.autoscaling_group.name }}</AutoScalingGroupName>
         <AvailabilityZone>us-east-1e</AvailabilityZone>
-        <InstanceId>{{ instance.id }}</InstanceId>
-        <LaunchConfigurationName>{{ instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
-        <LifecycleState>InService</LifecycleState>
+        <InstanceId>{{ instance_state.instance.id }}</InstanceId>
+        <LaunchConfigurationName>{{ instance_state.instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
+        <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
       </member>
       {% endfor %}
     </AutoScalingInstances>

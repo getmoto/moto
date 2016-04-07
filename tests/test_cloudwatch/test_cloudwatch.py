@@ -4,13 +4,10 @@ import sure  # noqa
 
 from moto import mock_cloudwatch
 
-
-@mock_cloudwatch
-def test_create_alarm():
-    conn = boto.connect_cloudwatch()
-
-    alarm = MetricAlarm(
-        name='tester',
+def alarm_fixture(name="tester", action=None):
+    action = action or ['arn:alarm']
+    return MetricAlarm(
+        name=name,
         comparison='>=',
         threshold=2.0,
         period=60,
@@ -18,11 +15,17 @@ def test_create_alarm():
         statistic='Average',
         description='A test',
         dimensions={'InstanceId': ['i-0123456,i-0123457']},
-        alarm_actions=['arn:alarm'],
+        alarm_actions=action,
         ok_actions=['arn:ok'],
         insufficient_data_actions=['arn:insufficient'],
         unit='Seconds',
     )
+
+@mock_cloudwatch
+def test_create_alarm():
+    conn = boto.connect_cloudwatch()
+
+    alarm = alarm_fixture()
     conn.create_alarm(alarm)
 
     alarms = conn.describe_alarms()
@@ -46,20 +49,10 @@ def test_create_alarm():
 def test_delete_alarm():
     conn = boto.connect_cloudwatch()
 
-    alarm = MetricAlarm(
-        name='tester',
-        comparison='>=',
-        threshold=2.0,
-        period=60,
-        evaluation_periods=5,
-        statistic='Average',
-        description='A test',
-        dimensions={'InstanceId': ['i-0123456,i-0123457']},
-        alarm_actions=['arn:alarm'],
-        ok_actions=['arn:ok'],
-        insufficient_data_actions=['arn:insufficient'],
-        unit='Seconds',
-    )
+    alarms = conn.describe_alarms()
+    alarms.should.have.length_of(0)
+
+    alarm = alarm_fixture()
     conn.create_alarm(alarm)
 
     alarms = conn.describe_alarms()
@@ -88,3 +81,39 @@ def test_put_metric_data():
     metric.namespace.should.equal('tester')
     metric.name.should.equal('metric')
     dict(metric.dimensions).should.equal({'InstanceId': ['i-0123456,i-0123457']})
+
+
+@mock_cloudwatch
+def test_describe_alarms():
+    conn = boto.connect_cloudwatch()
+
+    alarms = conn.describe_alarms()
+    alarms.should.have.length_of(0)
+
+    conn.create_alarm(alarm_fixture(name="nfoobar", action="afoobar"))
+    conn.create_alarm(alarm_fixture(name="nfoobaz", action="afoobaz"))
+    conn.create_alarm(alarm_fixture(name="nbarfoo", action="abarfoo"))
+    conn.create_alarm(alarm_fixture(name="nbazfoo", action="abazfoo"))
+
+    alarms = conn.describe_alarms()
+    alarms.should.have.length_of(4)
+    alarms = conn.describe_alarms(alarm_name_prefix="nfoo")
+    alarms.should.have.length_of(2)
+    alarms = conn.describe_alarms(alarm_names=["nfoobar", "nbarfoo", "nbazfoo"])
+    alarms.should.have.length_of(3)
+    alarms = conn.describe_alarms(action_prefix="afoo")
+    alarms.should.have.length_of(2)
+
+    for alarm in conn.describe_alarms():
+        alarm.delete()
+
+    alarms = conn.describe_alarms()
+    alarms.should.have.length_of(0)
+
+@mock_cloudwatch
+def test_describe_state_value_unimplemented():
+    conn = boto.connect_cloudwatch()
+
+    conn.describe_alarms()
+    conn.describe_alarms.when.called_with(state_value="foo").should.throw(NotImplementedError)
+

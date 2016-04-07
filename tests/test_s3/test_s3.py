@@ -6,7 +6,10 @@ from six.moves.urllib.error import HTTPError
 from functools import wraps
 from io import BytesIO
 
+import json
 import boto
+import boto3
+from botocore.client import ClientError
 from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
@@ -210,6 +213,7 @@ def test_multipart_invalid_order():
     bucket.complete_multipart_upload.when.called_with(
         multipart.key_name, multipart.id, xml).should.throw(S3ResponseError)
 
+
 @mock_s3
 @reduced_min_part_size
 def test_multipart_duplicate_upload():
@@ -226,7 +230,8 @@ def test_multipart_duplicate_upload():
     multipart.complete_upload()
     # We should get only one copy of part 1.
     bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
-    
+
+
 @mock_s3
 def test_list_multiparts():
     # Create Bucket so that test can run
@@ -476,6 +481,14 @@ def test_post_with_metadata_to_bucket():
 
 
 @mock_s3
+def test_delete_missing_key():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket('foobar')
+
+    bucket.delete_key.when.called_with('foobar').should.throw(S3ResponseError)
+
+
+@mock_s3
 def test_delete_keys():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
@@ -713,7 +726,7 @@ def test_list_versions():
 
 
 @mock_s3
-def test_acl_is_ignored_for_now():
+def test_acl_setting():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('foobar')
     content = b'imafile'
@@ -727,6 +740,74 @@ def test_acl_is_ignored_for_now():
     key = bucket.get_key(keyname)
 
     assert key.get_contents_as_string() == content
+
+    grants = key.get_acl().acl.grants
+    assert any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+               g.permission == 'READ' for g in grants), grants
+
+
+@mock_s3
+def test_acl_setting_via_headers():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('foobar')
+    content = b'imafile'
+    keyname = 'test.txt'
+
+    key = Key(bucket, name=keyname)
+    key.content_type = 'text/plain'
+    key.set_contents_from_string(content, headers={
+        'x-amz-grant-full-control': 'uri="http://acs.amazonaws.com/groups/global/AllUsers"'
+    })
+
+    key = bucket.get_key(keyname)
+
+    assert key.get_contents_as_string() == content
+
+    grants = key.get_acl().acl.grants
+    assert any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+               g.permission == 'FULL_CONTROL' for g in grants), grants
+
+
+@mock_s3
+def test_acl_switching():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('foobar')
+    content = b'imafile'
+    keyname = 'test.txt'
+
+    key = Key(bucket, name=keyname)
+    key.content_type = 'text/plain'
+    key.set_contents_from_string(content, policy='public-read')
+    key.set_acl('private')
+
+    grants = key.get_acl().acl.grants
+    assert not any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+                   g.permission == 'READ' for g in grants), grants
+
+
+@mock_s3
+def test_bucket_acl_setting():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('foobar')
+
+    bucket.make_public()
+
+    grants = bucket.get_acl().acl.grants
+    assert any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+               g.permission == 'READ' for g in grants), grants
+
+
+@mock_s3
+def test_bucket_acl_switching():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('foobar')
+    bucket.make_public()
+
+    bucket.set_acl('private')
+
+    grants = bucket.get_acl().acl.grants
+    assert not any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
+                   g.permission == 'READ' for g in grants), grants
 
 
 @mock_s3
@@ -781,11 +862,151 @@ def test_ranged_get():
     key.key = 'bigkey'
     rep = b"0123456789"
     key.set_contents_from_string(rep * 10)
+
+    # Implicitly bounded range requests.
     key.get_contents_as_string(headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
-    key.get_contents_as_string(headers={'Range': 'bytes=99-99'}).should.equal(b'9')
-    key.get_contents_as_string(headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
     key.get_contents_as_string(headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=99-'}).should.equal(b'9')
+
+    # Explicitly bounded range requests starting from the first byte.
+    key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
+    key.get_contents_as_string(headers={'Range': 'bytes=0-49'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-100'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=0-700'}).should.equal(rep * 10)
+
+    # Explicitly bounded range requests starting from the / a middle byte.
+    key.get_contents_as_string(headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
+    key.get_contents_as_string(headers={'Range': 'bytes=50-99'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=50-100'}).should.equal(rep * 5)
+    key.get_contents_as_string(headers={'Range': 'bytes=50-700'}).should.equal(rep * 5)
+
+    # Explicitly bounded range requests starting from the last byte.
+    key.get_contents_as_string(headers={'Range': 'bytes=99-99'}).should.equal(b'9')
+    key.get_contents_as_string(headers={'Range': 'bytes=99-100'}).should.equal(b'9')
+    key.get_contents_as_string(headers={'Range': 'bytes=99-700'}).should.equal(b'9')
+
+    # Suffix range requests.
+    key.get_contents_as_string(headers={'Range': 'bytes=-1'}).should.equal(b'9')
     key.get_contents_as_string(headers={'Range': 'bytes=-60'}).should.equal(rep * 6)
+    key.get_contents_as_string(headers={'Range': 'bytes=-100'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=-101'}).should.equal(rep * 10)
+    key.get_contents_as_string(headers={'Range': 'bytes=-700'}).should.equal(rep * 10)
+
     key.size.should.equal(100)
+
+
+@mock_s3
+def test_policy():
+    conn = boto.connect_s3()
+    bucket_name = 'mybucket'
+    bucket = conn.create_bucket(bucket_name)
+
+    policy = json.dumps({
+        "Version": "2012-10-17",
+        "Id": "PutObjPolicy",
+        "Statement": [
+            {
+                "Sid": "DenyUnEncryptedObjectUploads",
+                "Effect": "Deny",
+                "Principal": "*",
+                "Action": "s3:PutObject",
+                "Resource": "arn:aws:s3:::{bucket_name}/*".format(bucket_name=bucket_name),
+                "Condition": {
+                    "StringNotEquals": {
+                        "s3:x-amz-server-side-encryption": "aws:kms"
+                    }
+                }
+            }
+        ]
+    })
+
+    with assert_raises(S3ResponseError) as err:
+        bucket.get_policy()
+
+    ex = err.exception
+    ex.box_usage.should.be.none
+    ex.error_code.should.equal('NoSuchBucketPolicy')
+    ex.message.should.equal('The bucket policy does not exist')
+    ex.reason.should.equal('Not Found')
+    ex.resource.should.be.none
+    ex.status.should.equal(404)
+    ex.body.should.contain(bucket_name)
+    ex.request_id.should_not.be.none
+
+    bucket.set_policy(policy).should.be.true
+
+    bucket = conn.get_bucket(bucket_name)
+
+    bucket.get_policy().decode('utf-8').should.equal(policy)
+
+    bucket.delete_policy()
+
+    with assert_raises(S3ResponseError) as err:
+        bucket.get_policy()
+
+
+"""
+boto3
+"""
+
+
+@mock_s3
+def test_boto3_bucket_create():
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket="blah")
+
+    s3.Object('blah', 'hello.txt').put(Body="some text")
+
+    s3.Object('blah', 'hello.txt').get()['Body'].read().decode("utf-8").should.equal("some text")
+
+
+@mock_s3
+def test_boto3_bucket_create_eu_central():
+    s3 = boto3.resource('s3', region_name='eu-central-1')
+    s3.create_bucket(Bucket="blah")
+
+    s3.Object('blah', 'hello.txt').put(Body="some text")
+
+    s3.Object('blah', 'hello.txt').get()['Body'].read().decode("utf-8").should.equal("some text")
+
+
+@mock_s3
+def test_boto3_head_object():
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket="blah")
+
+    s3.Object('blah', 'hello.txt').put(Body="some text")
+
+    s3.Object('blah', 'hello.txt').meta.client.head_object(Bucket='blah', Key='hello.txt')
+
+    with assert_raises(ClientError):
+        s3.Object('blah', 'hello2.txt').meta.client.head_object(Bucket='blah', Key='hello_bad.txt')
+
+
+TEST_XML = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<ns0:WebsiteConfiguration xmlns:ns0="http://s3.amazonaws.com/doc/2006-03-01/">
+    <ns0:IndexDocument>
+        <ns0:Suffix>index.html</ns0:Suffix>
+    </ns0:IndexDocument>
+    <ns0:RoutingRules>
+        <ns0:RoutingRule>
+            <ns0:Condition>
+                <ns0:KeyPrefixEquals>test/testing</ns0:KeyPrefixEquals>
+            </ns0:Condition>
+            <ns0:Redirect>
+                <ns0:ReplaceKeyWith>test.txt</ns0:ReplaceKeyWith>
+            </ns0:Redirect>
+        </ns0:RoutingRule>
+    </ns0:RoutingRules>
+</ns0:WebsiteConfiguration>
+"""
+
+
+@mock_s3
+def test_website_configuration_xml():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test-bucket')
+    bucket.set_website_configuration_xml(TEST_XML)
+    bucket.get_website_configuration_xml().should.equal(TEST_XML)

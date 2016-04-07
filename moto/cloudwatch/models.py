@@ -1,4 +1,5 @@
 from moto.core import BaseBackend
+import boto.ec2.cloudwatch
 
 
 class Dimension(object):
@@ -51,6 +52,42 @@ class CloudWatchBackend(BaseBackend):
     def get_all_alarms(self):
         return self.alarms.values()
 
+    @staticmethod
+    def _list_element_starts_with(items, needle):
+        """True of any of the list elements starts with needle"""
+        for item in items:
+            if item.startswith(needle):
+                return True
+        return False
+
+    def get_alarms_by_action_prefix(self, action_prefix):
+        return [
+            alarm
+            for alarm in self.alarms.values()
+            if CloudWatchBackend._list_element_starts_with(
+                alarm.alarm_actions, action_prefix
+            )
+        ]
+
+    def get_alarms_by_alarm_name_prefix(self, name_prefix):
+        return [
+            alarm
+            for alarm in self.alarms.values()
+            if alarm.name.startswith(name_prefix)
+        ]
+
+    def get_alarms_by_alarm_names(self, alarm_names):
+        return [
+            alarm
+            for alarm in self.alarms.values()
+            if alarm.name in alarm_names
+        ]
+
+    def get_alarms_by_state_value(self, state):
+        raise NotImplementedError(
+            "DescribeAlarm by state is not implemented in moto."
+        )
+
     def delete_alarms(self, alarm_names):
         for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
@@ -63,4 +100,6 @@ class CloudWatchBackend(BaseBackend):
         return self.metric_data
 
 
-cloudwatch_backend = CloudWatchBackend()
+cloudwatch_backends = {}
+for region in boto.ec2.cloudwatch.regions():
+    cloudwatch_backends[region.name] = CloudWatchBackend()

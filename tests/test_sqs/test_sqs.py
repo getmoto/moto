@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage, Message
 
@@ -32,6 +33,8 @@ def test_create_queues_in_multiple_region():
 
     list(west1_conn.get_all_queues()).should.have.length_of(1)
     list(west2_conn.get_all_queues()).should.have.length_of(1)
+
+    west1_conn.get_all_queues()[0].url.should.equal('http://sqs.us-west-1.amazonaws.com/123456789012/test-queue')
 
 
 @mock_sqs
@@ -165,6 +168,18 @@ def test_send_message_with_delay():
     message = messages[0]
     assert message.get_body().should.equal(body_two)
     queue.count().should.equal(0)
+
+
+@mock_sqs
+def test_send_large_message_fails():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue.set_message_class(RawMessage)
+
+    body_one = 'test message' * 200000
+    huge_message = queue.new_message(body_one)
+
+    queue.write.when.called_with(huge_message).should.throw(SQSError)
 
 
 @mock_sqs
@@ -462,3 +477,28 @@ def test_delete_message_after_visibility_timeout():
     m1_retrieved.delete()
 
     assert new_queue.count() == 0
+
+"""
+boto3
+"""
+
+
+@mock_sqs
+def test_boto3_message_send():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="blah")
+    queue.send_message(MessageBody="derp")
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_boto3_set_queue_attributes():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="blah")
+
+    queue.attributes['VisibilityTimeout'].should.equal("30")
+
+    queue.set_attributes(Attributes={"VisibilityTimeout": "45"})
+    queue.attributes['VisibilityTimeout'].should.equal("45")

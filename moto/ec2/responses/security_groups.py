@@ -9,9 +9,9 @@ def process_rules_from_querystring(querystring):
     except:
         group_name_or_id = querystring.get('GroupId')[0]
 
-    ip_protocol = querystring.get('IpPermissions.1.IpProtocol')[0]
-    from_port = querystring.get('IpPermissions.1.FromPort')[0]
-    to_port = querystring.get('IpPermissions.1.ToPort')[0]
+    ip_protocol = querystring.get('IpPermissions.1.IpProtocol', [None])[0]
+    from_port = querystring.get('IpPermissions.1.FromPort', [None])[0]
+    to_port = querystring.get('IpPermissions.1.ToPort', [None])[0]
     ip_ranges = []
     for key, value in querystring.items():
         if 'IpPermissions.1.IpRanges' in key:
@@ -31,7 +31,8 @@ def process_rules_from_querystring(querystring):
 
 class SecurityGroups(BaseResponse):
     def authorize_security_group_egress(self):
-        raise NotImplementedError('SecurityGroups.authorize_security_group_egress is not yet implemented')
+        self.ec2_backend.authorize_security_group_egress(*process_rules_from_querystring(self.querystring))
+        return AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE
 
     def authorize_security_group_ingress(self):
         self.ec2_backend.authorize_security_group_ingress(*process_rules_from_querystring(self.querystring))
@@ -73,25 +74,28 @@ class SecurityGroups(BaseResponse):
         return template.render(groups=groups)
 
     def revoke_security_group_egress(self):
-        raise NotImplementedError('SecurityGroups.revoke_security_group_egress is not yet implemented')
+        success = self.ec2_backend.revoke_security_group_egress(*process_rules_from_querystring(self.querystring))
+        if not success:
+            return "Could not find a matching egress rule", dict(status=404)
+        return REVOKE_SECURITY_GROUP_EGRESS_RESPONSE
 
     def revoke_security_group_ingress(self):
         self.ec2_backend.revoke_security_group_ingress(*process_rules_from_querystring(self.querystring))
         return REVOKE_SECURITY_GROUP_INGRESS_REPONSE
 
 
-CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
    <groupId>{{ group.id }}</groupId>
 </CreateSecurityGroupResponse>"""
 
-DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </DeleteSecurityGroupResponse>"""
 
-DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <securityGroupInfo>
       {% for group in groups %}
@@ -128,7 +132,31 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                     </item>
                 {% endfor %}
              </ipPermissions>
-             <ipPermissionsEgress/>
+             <ipPermissionsEgress>
+               {% for rule in group.egress_rules %}
+                    <item>
+                       <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+                       <fromPort>{{ rule.from_port }}</fromPort>
+                       <toPort>{{ rule.to_port }}</toPort>
+                       <groups>
+                          {% for source_group in rule.source_groups %}
+                              <item>
+                                 <userId>111122223333</userId>
+                                 <groupId>{{ source_group.id }}</groupId>
+                                 <groupName>{{ source_group.name }}</groupName>
+                              </item>
+                          {% endfor %}
+                       </groups>
+                       <ipRanges>
+                          {% for ip_range in rule.ip_ranges %}
+                              <item>
+                                 <cidrIp>{{ ip_range }}</cidrIp>
+                              </item>
+                          {% endfor %}
+                       </ipRanges>
+                    </item>
+               {% endfor %}
+             </ipPermissionsEgress>
              <tagSet>
                {% for tag in group.get_tags() %}
                  <item>
@@ -144,12 +172,23 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
    </securityGroupInfo>
 </DescribeSecurityGroupsResponse>"""
 
-AUTHORIZE_SECURITY_GROUP_INGRESS_REPONSE = """<AuthorizeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+AUTHORIZE_SECURITY_GROUP_INGRESS_REPONSE = """<AuthorizeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </AuthorizeSecurityGroupIngressResponse>"""
 
-REVOKE_SECURITY_GROUP_INGRESS_REPONSE = """<RevokeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2012-12-01/">
+REVOKE_SECURITY_GROUP_INGRESS_REPONSE = """<RevokeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </RevokeSecurityGroupIngressResponse>"""
+
+AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE = """
+<AuthorizeSecurityGroupEgressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <return>true</return>
+</AuthorizeSecurityGroupEgressResponse>"""
+
+REVOKE_SECURITY_GROUP_EGRESS_RESPONSE = """<RevokeSecurityGroupEgressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</RevokeSecurityGroupEgressResponse>"""
