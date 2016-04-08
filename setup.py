@@ -6,7 +6,7 @@ install_requires = [
     "Jinja2",
     "boto>=2.36.0",
     "flask",
-    "httpretty==0.8.10",
+    "httpretty",
     "requests",
     "xmltodict",
     "six",
