@@ -1,5 +1,6 @@
 from moto.core import BaseBackend
 import boto.ec2.cloudwatch
+import datetime
 
 
 class Dimension(object):
@@ -24,6 +25,8 @@ class FakeAlarm(object):
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
         self.unit = unit
+        self.state_updated_timestamp = datetime.datetime.now()
+        self.configuration_updated_timestamp = datetime.datetime.now()
 
 
 class MetricDatum(object):
