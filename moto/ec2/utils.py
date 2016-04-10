@@ -362,7 +362,8 @@ filter_dict_attribute_mapping = {
     'instance.group-id': 'security_groups',
     'instance-type': 'instance_type',
     'private-ip-address' : 'private_ip',
-    'ip-address' : 'public_ip'
+    'ip-address' : 'public_ip',
+    'availability-zone' :'placement'
 }
 
 
