@@ -3,9 +3,11 @@ from __future__ import unicode_literals
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
+import boto3
 import boto
 import boto.vpc
 from boto.exception import EC2ResponseError
+from botocore.exceptions import ParamValidationError
 import json
 import sure  # noqa
 
@@ -69,6 +71,29 @@ def test_subnet_should_have_proper_availability_zone_set():
     subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24", availability_zone='us-west-1b')
     subnetA.availability_zone.should.equal('us-west-1b')
 
+@mock_ec2
+def test_modify_subnet_attribute():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    client = boto3.client('ec2', region_name='us-west-1')
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+
+    subnet.map_public_ip_on_launch.should.be.false
+
+    client.modify_subnet_attribute(SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': True})
+    subnet.reload()
+
+    subnet.map_public_ip_on_launch.should.be.true
+
+@mock_ec2
+def test_modify_subnet_attribute_validation():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    client = boto3.client('ec2', region_name='us-west-1')
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+
+    with assert_raises(ParamValidationError):
+        client.modify_subnet_attribute(SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': 'invalid'})
 
 @mock_ec2
 def test_get_subnets_filtering():

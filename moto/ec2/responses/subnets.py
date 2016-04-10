@@ -31,6 +31,12 @@ class Subnets(BaseResponse):
         template = self.response_template(DESCRIBE_SUBNETS_RESPONSE)
         return template.render(subnets=subnets)
 
+    def modify_subnet_attribute(self):
+        subnet_id = self.querystring.get('SubnetId')[0]
+        map_public_ip = self.querystring.get('MapPublicIpOnLaunch.Value')[0]
+        self.ec2_backend.modify_subnet_attribute(subnet_id, map_public_ip)
+        return MODIFY_SUBNET_ATTRIBUTE_RESPONSE
+
 
 CREATE_SUBNET_RESPONSE = """
 <CreateSubnetResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -74,6 +80,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <availableIpAddressCount>251</availableIpAddressCount>
         <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
         <defaultForAz>{{ subnet.defaultForAz }}</defaultForAz>
+        <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
         <tagSet>
           {% for tag in subnet.get_tags() %}
             <item>
@@ -88,3 +95,9 @@ DESCRIBE_SUBNETS_RESPONSE = """
     {% endfor %}
   </subnetSet>
 </DescribeSubnetsResponse>"""
+
+MODIFY_SUBNET_ATTRIBUTE_RESPONSE = """
+<ModifySubnetAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <return>true</return>
+</ModifySubnetAttributeResponse>"""

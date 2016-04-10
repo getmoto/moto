@@ -1857,13 +1857,15 @@ class VPCPeeringConnectionBackend(object):
 
 
 class Subnet(TaggedEC2Resource):
-    def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone, defaultForAz):
+    def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone, defaultForAz,
+                 map_public_ip_on_launch):
         self.ec2_backend = ec2_backend
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
         self._availability_zone = availability_zone
         self.defaultForAz = defaultForAz
+        self.map_public_ip_on_launch = map_public_ip_on_launch
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1955,7 +1957,8 @@ class SubnetBackend(object):
         subnet_id = random_subnet_id()
         vpc = self.get_vpc(vpc_id)  # Validate VPC exists
         defaultForAz = "true" if vpc.is_default else "false"
-        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone, defaultForAz)
+        map_public_ip_on_launch = "true" if vpc.is_default else "false"
+        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone, defaultForAz, map_public_ip_on_launch)
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id)
@@ -1973,6 +1976,11 @@ class SubnetBackend(object):
             raise InvalidSubnetIdError(subnet_id)
         return deleted
 
+    def modify_subnet_attribute(self, subnet_id, map_public_ip):
+        subnet = self.get_subnet(subnet_id)
+        if map_public_ip not in ('true', 'false'):
+            raise InvalidParameterValueError(map_public_ip)
+        subnet.map_public_ip_on_launch = map_public_ip
 
 class SubnetRouteTableAssociation(object):
     def __init__(self, route_table_id, subnet_id):
