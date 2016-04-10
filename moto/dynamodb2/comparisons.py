@@ -32,7 +32,7 @@ COMPARISON_FUNCS = {
     'CONTAINS': lambda item_value, test_value: test_value in item_value,
     'NOT_CONTAINS': lambda item_value, test_value: test_value not in item_value,
     'BEGINS_WITH': lambda item_value, test_value: item_value.startswith(test_value),
-    'IN': lambda item_value, test_value: item_value in test_value,
+    'IN': lambda item_value, *test_values: item_value in test_values,
     'BETWEEN': lambda item_value, lower_test_value, upper_test_value: lower_test_value <= item_value <= upper_test_value,
 }
 
