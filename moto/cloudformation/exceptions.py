@@ -9,12 +9,15 @@ class UnformattedGetAttTemplateException(Exception):
 
 
 class ValidationError(BadRequest):
-    def __init__(self, name_or_id):
+    def __init__(self, name_or_id, message=None):
+        if message is None:
+            messgae="Stack:{0} does not exist".format(name_or_id),
+
         template = Template(ERROR_RESPONSE)
         super(ValidationError, self).__init__()
         self.description = template.render(
             code="ValidationError",
-            message="Stack:{0} does not exist".format(name_or_id),
+            message=message,
         )
 
 

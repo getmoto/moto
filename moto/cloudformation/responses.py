@@ -129,6 +129,10 @@ class CloudFormationResponse(BaseResponse):
         else:
             stack_body = self._get_param('TemplateBody')
 
+        stack = self.cloudformation_backend.get_stack(stack_name)
+        if stack.status == 'ROLLBACK_COMPLETE':
+            raise ValidationError(stack.stack_id, message="Stack:{0} is in ROLLBACK_COMPLETE state and can not be updated.".format(stack.stack_id))
+
         stack = self.cloudformation_backend.update_stack(
             name=stack_name,
             template=stack_body,
