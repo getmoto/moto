@@ -13,6 +13,7 @@ import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 from moto import mock_cloudformation, mock_s3
+from moto.cloudformation import cloudformation_backends
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -263,24 +264,41 @@ def test_stack_tags():
     dict(stack.tags).should.equal({"foo": "bar", "baz": "bleh"})
 
 
-# @mock_cloudformation
-# def test_update_stack():
-#     conn = boto.connect_cloudformation()
-#     conn.create_stack(
-#         "test_stack",
-#         template_body=dummy_template_json,
-#     )
+@mock_cloudformation
+def test_update_stack():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+    )
 
-#     conn.update_stack("test_stack", dummy_template_json2)
+    conn.update_stack("test_stack", dummy_template_json2)
 
-#     stack = conn.describe_stacks()[0]
-#     stack.get_template().should.equal({
-#         'GetTemplateResponse': {
-#             'GetTemplateResult': {
-#                 'TemplateBody': dummy_template_json2,
-#                 'ResponseMetadata': {
-#                     'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
-#                 }
-#             }
-#         }
-#     })
+    stack = conn.describe_stacks()[0]
+    stack.get_template().should.equal({
+        'GetTemplateResponse': {
+            'GetTemplateResult': {
+                'TemplateBody': dummy_template_json2,
+                'ResponseMetadata': {
+                    'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
+                }
+            }
+        }
+    })
+
+
+@mock_cloudformation
+def test_update_stack_when_rolled_back():
+    conn = boto.connect_cloudformation()
+    stack_id = conn.create_stack("test_stack", template_body=dummy_template_json)
+
+    cloudformation_backends[conn.region.name].stacks[stack_id].status = 'ROLLBACK_COMPLETE'
+
+    with assert_raises(BotoServerError) as err:
+        conn.update_stack("test_stack", dummy_template_json)
+
+    ex = err.exception
+    ex.body.should.match(r'is in ROLLBACK_COMPLETE state and can not be updated')
+    ex.error_code.should.equal('ValidationError')
+    ex.reason.should.equal('Bad Request')
+    ex.status.should.equal(400)
