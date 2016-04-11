@@ -5,8 +5,8 @@ from ..core.models import MockAWS
 ec2_backend = ec2_backends['us-east-1']
 
 
-def mock_ec2(func=None):
+def mock_ec2(func=None, fixtures={}):
     if func:
-        return MockAWS(ec2_backends)(func)
+        return MockAWS(ec2_backends, fixtures)(func)
     else:
-        return MockAWS(ec2_backends)
+        return MockAWS(ec2_backends, fixtures)

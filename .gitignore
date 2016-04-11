@@ -2,6 +2,7 @@ moto.egg-info/*
 dist/*
 .tox
 .coverage
+htmlcov/
 *.pyc
 *~
 .noseids
