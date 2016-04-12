@@ -57,7 +57,7 @@ def rrset_response(request, full_url, headers):
         for value in change_list:
             action = value['Action']
             record_set = value['ResourceRecordSet']
-            if action == 'CREATE':
+            if action in ('CREATE', 'UPSERT'):
                 if 'ResourceRecords' in record_set:
                     resource_records = list(record_set['ResourceRecords'].values())[0]
                     if not isinstance(resource_records, list):
@@ -67,7 +67,10 @@ def rrset_response(request, full_url, headers):
                 elif 'AliasTarget' in record_set:
                     record_values = [record_set['AliasTarget']['DNSName']]
                 record_set['ResourceRecords'] = record_values
-                the_zone.add_rrset(record_set)
+                if action == 'CREATE':
+                    the_zone.add_rrset(record_set)
+                else:
+                    the_zone.upsert_rrset(record_set)
             elif action == "DELETE":
                 if 'SetIdentifier' in record_set:
                     the_zone.delete_rrset_by_id(record_set["SetIdentifier"])

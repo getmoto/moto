@@ -135,6 +135,16 @@ class FakeZone(object):
         self.rrsets.append(record_set)
         return record_set
 
+    def upsert_rrset(self, record_set):
+        new_rrset = RecordSet(record_set)
+        for i, rrset in enumerate(self.rrsets):
+            if rrset.name == new_rrset.name:
+                self.rrsets[i] = new_rrset
+                break
+        else:
+            self.rrsets.append(new_rrset)
+        return new_rrset
+
     def delete_rrset_by_name(self, name):
         self.rrsets = [record_set for record_set in self.rrsets if record_set.name != name]
 
