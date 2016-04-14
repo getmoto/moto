@@ -27,12 +27,14 @@ class ELBResponse(BaseResponse):
         availability_zones = self._get_multi_param("AvailabilityZones.member")
         ports = self._get_list_prefix("Listeners.member")
         scheme = self._get_param('Scheme')
+        subnets = self._get_multi_param("Subnets.member")
 
         self.elb_backend.create_load_balancer(
             name=load_balancer_name,
             zones=availability_zones,
             ports=ports,
-            scheme=scheme
+            scheme=scheme,
+            subnets=subnets
         )
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
         return template.render()
@@ -369,7 +371,11 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
               <UnhealthyThreshold>{{ load_balancer.health_check.unhealthy_threshold }}</UnhealthyThreshold>
             {% endif %}
           </HealthCheck>
-          <VPCId>vpc-56e10e3d</VPCId>
+          {% if load_balancer.vpc_id %}
+          <VPCId>{{ load_balancer.vpc_id }}</VPCId>
+          {% else %}
+          <VPCId />
+          {% endif %}
           <ListenerDescriptions>
             {% for listener in load_balancer.listeners %}
               <member>
@@ -452,6 +458,11 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           {% endfor %}
           </BackendServerDescriptions>
           <Subnets>
+          {% for subnet in load_balancer.subnets %}
+              <member>
+              {{ subnet }}
+              </member>
+          {% endfor %}
           </Subnets>
         </member>
       {% endfor %}

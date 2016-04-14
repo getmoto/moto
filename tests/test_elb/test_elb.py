@@ -719,3 +719,28 @@ def test_add_remove_tags():
 
     lb_tags['my-lb'].shouldnt.have.key('other')
     lb_tags['other-lb'].should.have.key('other').which.should.equal('something')
+
+
+@mock_ec2
+@mock_elb
+def test_subnets():
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    vpc = ec2.create_vpc(
+        CidrBlock='172.28.7.0/24',
+        InstanceTenancy='default'
+    )
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26'
+    )
+    client = boto3.client('elb', region_name='us-east-1')
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Subnets=[subnet.id]
+    )
+
+    lb = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
+    lb.should.have.key('Subnets').which.should.have.length_of(1)
+
+    lb.should.have.key('VPCId').which.should.equal(vpc.id)
