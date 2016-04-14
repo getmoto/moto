@@ -29,13 +29,14 @@ class ELBResponse(BaseResponse):
         scheme = self._get_param('Scheme')
         subnets = self._get_multi_param("Subnets.member")
 
-        self.elb_backend.create_load_balancer(
+        elb = self.elb_backend.create_load_balancer(
             name=load_balancer_name,
             zones=availability_zones,
             ports=ports,
             scheme=scheme,
-            subnets=subnets
+            subnets=subnets,
         )
+        self._add_tags(elb)
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
@@ -231,31 +232,7 @@ class ELBResponse(BaseResponse):
                 if not elb:
                     raise LoadBalancerNotFoundError(load_balancer_name)
 
-                value = 'Tags.member.{0}.Value'.format(number)
-                key = 'Tags.member.{0}.Key'.format(number)
-                tag_values = []
-                tag_keys = []
-
-                for t_key, t_val in sorted(self.querystring.items()):
-                    if t_key.startswith('Tags.member.'):
-                        if t_key.split('.')[3] == 'Key':
-                            tag_keys.extend(t_val)
-                        elif t_key.split('.')[3] == 'Value':
-                            tag_values.extend(t_val)
-
-                counts = {}
-                for i in tag_keys:
-                    counts[i] = tag_keys.count(i)
-
-                counts = sorted(counts.items(), key=lambda i:i[1], reverse=True)
-
-                if counts and counts[0][1] > 1:
-                    # We have dupes...
-                    raise DuplicateTagKeysError(counts[0])
-
-                for tag_key, tag_value in zip(tag_keys, tag_values):
-                    elb.add_tag(tag_key, tag_value)
-
+                self._add_tags(elb)
 
         template = self.response_template(ADD_TAGS_TEMPLATE)
         return template.render()
@@ -291,6 +268,31 @@ class ELBResponse(BaseResponse):
 
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
         return template.render(load_balancers=elbs)
+
+    def _add_tags(self, elb):
+        tag_values = []
+        tag_keys = []
+
+        for t_key, t_val in sorted(self.querystring.items()):
+            if t_key.startswith('Tags.member.'):
+                if t_key.split('.')[3] == 'Key':
+                    tag_keys.extend(t_val)
+                elif t_key.split('.')[3] == 'Value':
+                    tag_values.extend(t_val)
+
+        counts = {}
+        for i in tag_keys:
+            counts[i] = tag_keys.count(i)
+
+        counts = sorted(counts.items(), key=lambda i:i[1], reverse=True)
+
+        if counts and counts[0][1] > 1:
+            # We have dupes...
+            raise DuplicateTagKeysError(counts[0])
+
+        for tag_key, tag_value in zip(tag_keys, tag_values):
+            elb.add_tag(tag_key, tag_value)
+
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <AddTagsResult/>

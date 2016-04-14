@@ -721,6 +721,24 @@ def test_add_remove_tags():
     lb_tags['other-lb'].should.have.key('other').which.should.equal('something')
 
 
+@mock_elb
+def test_create_with_tags():
+    client = boto3.client('elb', region_name='us-east-1')
+
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b'],
+        Tags=[{
+           'Key': 'k',
+           'Value': 'v'
+        }]
+    )
+
+    tags = dict((d['Key'], d['Value']) for d in client.describe_tags(LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags'])
+    tags.should.have.key('k').which.should.equal('v')
+
+
 @mock_ec2
 @mock_elb
 def test_subnets():
