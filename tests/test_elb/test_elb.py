@@ -614,11 +614,11 @@ def test_add_remove_tags():
     client.add_tags(LoadBalancerNames=['my-lb'],
                     Tags=[{
                        'Key': 'a',
-                       'Value': 'a'
+                       'Value': 'b'
                     }])
 
     tags = dict([(d['Key'], d['Value']) for d in client.describe_tags(LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags']])
-    tags.should.have('a').should.equal('a')
+    tags.should.have.key('a').which.should.equal('b')
 
     client.add_tags(LoadBalancerNames=['my-lb'],
                     Tags=[{
