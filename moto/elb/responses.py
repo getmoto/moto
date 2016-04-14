@@ -459,9 +459,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           </BackendServerDescriptions>
           <Subnets>
           {% for subnet in load_balancer.subnets %}
-              <member>
-              {{ subnet }}
-              </member>
+              <member>{{ subnet }}</member>
           {% endfor %}
           </Subnets>
         </member>
