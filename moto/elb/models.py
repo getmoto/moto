@@ -62,7 +62,7 @@ class FakeLoadBalancer(object):
         self.policies.app_cookie_stickiness_policies = []
         self.policies.lb_cookie_stickiness_policies = []
         self.subnets = subnets or []
-        self.vpc_id = vpc_id
+        self.vpc_id = vpc_id or 'vpc-56e10e3d'
         self.tags = {}
 
         for port in ports:
