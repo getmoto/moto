@@ -41,7 +41,36 @@ class OpsWorksResponse(BaseResponse):
         stack = self.opsworks_backend.create_stack(**kwargs)
         return json.dumps({"StackId": stack.id}, indent=1)
 
+    def create_layer(self):
+        kwargs = dict(
+            stack_id=self.parameters.get('StackId'),
+            type=self.parameters.get('Type'),
+            name=self.parameters.get('Name'),
+            shortname=self.parameters.get('Shortname'),
+            attributes=self.parameters.get('Attributes'),
+            custom_instance_profile_arn=self.parameters.get("CustomInstanceProfileArn"),
+            custom_json=self.parameters.get("CustomJson"),
+            custom_security_group_ids=self.parameters.get('CustomSecurityGroupIds'),
+            packages=self.parameters.get('Packages'),
+            volume_configurations=self.parameters.get("VolumeConfigurations"),
+            enable_autohealing=self.parameters.get("EnableAutoHealing"),
+            auto_assign_elastic_ips=self.parameters.get("AutoAssignElasticIps"),
+            auto_assign_public_ips=self.parameters.get("AutoAssignPublicIps"),
+            custom_recipes=self.parameters.get("CustomRecipes"),
+            install_updates_on_boot=self.parameters.get("InstallUpdatesOnBoot"),
+            use_ebs_optimized_instances=self.parameters.get("UseEbsOptimizedInstances"),
+            lifecycle_event_configuration=self.parameters.get("LifecycleEventConfiguration")
+        )
+        layer = self.opsworks_backend.create_layer(**kwargs)
+        return json.dumps({"LayerId": layer.id}, indent=1)
+
     def describe_stacks(self):
         stack_ids = self.parameters.get("StackIds")
         stacks = self.opsworks_backend.describe_stacks(stack_ids)
         return json.dumps({"Stacks": stacks}, indent=1)
+
+    def describe_layers(self):
+        stack_id = self.parameters.get("StackId")
+        layer_ids = self.parameters.get("LayerIds")
+        layers = self.opsworks_backend.describe_layers(stack_id, layer_ids)
+        return json.dumps({"Layers": layers}, indent=1)

@@ -5,34 +5,132 @@ from moto.elb import elb_backends
 import uuid
 import datetime
 
-from .exceptions import ResourceNotFoundException
+from .exceptions import ResourceNotFoundException, ValidationException
 
 
 class Layer(object):
-    def __init__(self, stack_id, type, name, shortname, attributes, 
-                 custom_instance_profile_arn, custom_json, 
-                 custom_security_group_ids, packages, volume_configurations,
-                 enable_autohealing, auto_assign_elastic_ips, 
-                 auto_assign_public_ips, custom_recipes, install_updates_on_boot,
-                 use_ebs_optimized_instances, lifecycle_event_configuration):
+    def __init__(self, stack_id, type, name, shortname,
+                 attributes=None,
+                 custom_instance_profile_arn=None,
+                 custom_json=None,
+                 custom_security_group_ids=None,
+                 packages=None,
+                 volume_configurations=None,
+                 enable_autohealing=None,
+                 auto_assign_elastic_ips=None,
+                 auto_assign_public_ips=None,
+                 custom_recipes=None,
+                 install_updates_on_boot=None,
+                 use_ebs_optimized_instances=None,
+                 lifecycle_event_configuration=None):
         self.stack_id = stack_id
         self.type = type
         self.name = name
         self.shortname = shortname
+
         self.attributes = attributes
+        if attributes is None:
+            self.attributes = {
+                'BundlerVersion': None,
+                'EcsClusterArn': None,
+                'EnableHaproxyStats': None,
+                'GangliaPassword': None,
+                'GangliaUrl': None,
+                'GangliaUser': None,
+                'HaproxyHealthCheckMethod': None,
+                'HaproxyHealthCheckUrl': None,
+                'HaproxyStatsPassword': None,
+                'HaproxyStatsUrl': None,
+                'HaproxyStatsUser': None,
+                'JavaAppServer': None,
+                'JavaAppServerVersion': None,
+                'Jvm': None,
+                'JvmOptions': None,
+                'JvmVersion': None,
+                'ManageBundler': None,
+                'MemcachedMemory': None,
+                'MysqlRootPassword': None,
+                'MysqlRootPasswordUbiquitous': None,
+                'NodejsVersion': None,
+                'PassengerVersion': None,
+                'RailsStack': None,
+                'RubyVersion': None,
+                'RubygemsVersion': None
+            }  # May not be accurate
+
+        self.packages = packages
+        if packages is None:
+            self.packages = packages
+
+        self.custom_recipes = custom_recipes
+        if custom_recipes is None:
+            self.custom_recipes = {
+                'Configure': [],
+                'Deploy': [],
+                'Setup': [],
+                'Shutdown': [],
+                'Undeploy': [],
+            }
+
+        self.custom_security_group_ids = custom_security_group_ids
+        if custom_security_group_ids is None:
+            self.custom_security_group_ids = []
+
+        self.lifecycle_event_configuration = lifecycle_event_configuration
+        if lifecycle_event_configuration is None:
+            self.lifecycle_event_configuration = {
+                "Shutdown": {"DelayUntilElbConnectionsDrained": False}
+            }
+
+        self.volume_configurations = volume_configurations
+        if volume_configurations is None:
+            self.volume_configurations = []
+
         self.custom_instance_profile_arn = custom_instance_profile_arn
         self.custom_json = custom_json
-        self.custom_security_group_ids = custom_security_group_ids
-        self.packages = packages
-        self.volume_configurations = volume_configurations
         self.enable_autohealing = enable_autohealing
         self.auto_assign_elastic_ips = auto_assign_elastic_ips
         self.auto_assign_public_ips = auto_assign_public_ips
-        self.custom_recipes = custom_recipes
         self.install_updates_on_boot = install_updates_on_boot
         self.use_ebs_optimized_instances = use_ebs_optimized_instances
-        self.lifecycle_event_configuration = lifecycle_event_configuration
+
         self.instances = []
+        self.id = "{}".format(uuid.uuid4())
+        self.created_at = datetime.datetime.utcnow()
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def to_dict(self):
+        d = {
+            "Attributes": self.attributes,
+            "AutoAssignElasticIps": self.auto_assign_elastic_ips,
+            "AutoAssignPublicIps": self.auto_assign_public_ips,
+            "CreatedAt": self.created_at.isoformat(),
+            "CustomRecipes": self.custom_recipes,
+            "CustomSecurityGroupIds": self.custom_security_group_ids,
+            "DefaultRecipes": {
+                "Configure": [],
+                "Setup": [],
+                "Shutdown": [],
+                "Undeploy": []
+            },  # May not be accurate
+            "DefaultSecurityGroupNames": ['AWS-OpsWorks-Custom-Server'],
+            "EnableAutoHealing": self.enable_autohealing,
+            "LayerId": self.id,
+            "LifecycleEventConfiguration": self.lifecycle_event_configuration,
+            "Name": self.name,
+            "Shortname": self.shortname,
+            "StackId": self.stack_id,
+            "Type": self.type,
+            "UseEbsOptimizedInstances": self.use_ebs_optimized_instances,
+            "VolumeConfigurations": self.volume_configurations,
+        }
+        if self.custom_json is not None:
+            d.update({"CustomJson": self.custom_json})
+        if self.custom_instance_profile_arn is not None:
+            d.update({"CustomInstanceProfileArn": self.custom_instance_profile_arn})
+        return d
 
 
 class Stack(object):
@@ -154,14 +252,51 @@ class OpsWorksBackend(BaseBackend):
         self.stacks[stack.id] = stack
         return stack
 
-    def describe_stacks(self, stack_ids=None):
+    def create_layer(self, **kwargs):
+        name = kwargs['name']
+        shortname = kwargs['shortname']
+        stackid = kwargs['stack_id']
+        if stackid not in self.stacks:
+            raise ResourceNotFoundException(stackid)
+        if name in [l.name for l in self.layers.values()]:
+            raise ValidationException(
+                'There is already a layer named "{}" '
+                'for this stack'.format(name))
+        if shortname in [l.shortname for l in self.layers.values()]:
+            raise ValidationException(
+                'There is already a layer with shortname "{}" '
+                'for this stack'.format(shortname))
+        layer = Layer(**kwargs)
+        self.layers[layer.id] = layer
+        self.stacks[stackid].layers.append(layer)
+        return layer
+
+    def describe_stacks(self, stack_ids):
         if stack_ids is None:
             return [stack.to_dict() for stack in self.stacks.values()]
 
         unknown_stacks = set(stack_ids) - set(self.stacks.keys())
         if unknown_stacks:
-            raise ResourceNotFoundException(unknown_stacks)
+            raise ResourceNotFoundException(", ".join(unknown_stacks))
         return [self.stacks[id].to_dict() for id in stack_ids]
+
+    def describe_layers(self, stack_id, layer_ids):
+        if stack_id is not None and layer_ids is not None:
+            raise ValidationException(
+                "Please provide one or more layer IDs or a stack ID"
+            )
+        if stack_id is not None:
+            if stack_id not in self.stacks:
+                raise ResourceNotFoundException(
+                    "Unable to find stack with ID {}".format(stack_id))
+            return [layer.to_dict() for layer in self.stacks[stack_id].layers]
+
+        unknown_layers = set(layer_ids) - set(self.layers.keys())
+        if unknown_layers:
+            raise ResourceNotFoundException(", ".join(unknown_layers))
+        return [self.layers[id].to_dict() for id in layer_ids]
+
+
 
 opsworks_backends = {}
 for region, ec2_backend in ec2_backends.items():
