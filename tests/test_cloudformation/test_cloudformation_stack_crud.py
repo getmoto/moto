@@ -9,7 +9,7 @@ import boto.cloudformation
 from boto.exception import BotoServerError
 import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
+# import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 from moto import mock_cloudformation, mock_s3
@@ -263,24 +263,24 @@ def test_stack_tags():
     dict(stack.tags).should.equal({"foo": "bar", "baz": "bleh"})
 
 
-# @mock_cloudformation
-# def test_update_stack():
-#     conn = boto.connect_cloudformation()
-#     conn.create_stack(
-#         "test_stack",
-#         template_body=dummy_template_json,
-#     )
+@mock_cloudformation
+def test_update_stack():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+    )
 
-#     conn.update_stack("test_stack", dummy_template_json2)
+    conn.update_stack("test_stack", dummy_template_json2)
 
-#     stack = conn.describe_stacks()[0]
-#     stack.get_template().should.equal({
-#         'GetTemplateResponse': {
-#             'GetTemplateResult': {
-#                 'TemplateBody': dummy_template_json2,
-#                 'ResponseMetadata': {
-#                     'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
-#                 }
-#             }
-#         }
-#     })
+    stack = conn.describe_stacks()[0]
+    stack.get_template().should.equal({
+        'GetTemplateResponse': {
+            'GetTemplateResult': {
+                'TemplateBody': dummy_template_json2,
+                'ResponseMetadata': {
+                    'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
+                }
+            }
+        }
+    })

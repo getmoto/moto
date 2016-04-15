@@ -10,7 +10,7 @@ from moto import mock_cloudformation, mock_s3
 import json
 import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
+# import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 dummy_template = {
@@ -19,7 +19,27 @@ dummy_template = {
     "Resources": {},
 }
 
+dummy_update_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "KeyName": {
+            "Description": "Name of an existing EC2 KeyPair",
+            "Type": "AWS::EC2::KeyPair::KeyName",
+            "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+        }
+    },
+    "Resources": {
+        "Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-08111162"
+            }
+        }
+    }
+}
+
 dummy_template_json = json.dumps(dummy_template)
+dummy_update_template_json = json.dumps(dummy_template)
 
 @mock_cloudformation
 def test_boto3_create_stack():
@@ -168,6 +188,25 @@ def test_describe_deleted_stack():
     stack_by_id['StackId'].should.equal(stack['StackId'])
     stack_by_id['StackName'].should.equal("test_stack")
     stack_by_id['StackStatus'].should.equal("DELETE_COMPLETE")
+
+@mock_cloudformation
+def test_describe_updated_stack():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_json,
+    )
+
+    cf_conn.update_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_update_template_json)
+
+    stack = cf_conn.describe_stacks(StackName="test_stack")['Stacks'][0]
+    stack_id = stack['StackId']
+    stack_by_id = cf_conn.describe_stacks(StackName=stack_id)['Stacks'][0]
+    stack_by_id['StackId'].should.equal(stack['StackId'])
+    stack_by_id['StackName'].should.equal("test_stack")
+    stack_by_id['StackStatus'].should.equal("UPDATE_COMPLETE")
 
 
 @mock_cloudformation
