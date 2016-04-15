@@ -1,11 +1,158 @@
 from __future__ import unicode_literals
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
-from moto.elb import elb_backends
 import uuid
 import datetime
+from random import choice
 
 from .exceptions import ResourceNotFoundException, ValidationException
+
+
+class OpsworkInstance(object):
+    """
+    opsworks maintains its own set of ec2 instance metadata.
+    This metadata exists before any instance reservations are made, and is
+    used to populate a reservation request when "start" is called
+    """
+    def __init__(self, stack_id, layer_ids, instance_type, ec2_backend,
+                 auto_scale_type=None,
+                 hostname=None,
+                 os=None,
+                 ami_id="ami-08111162",
+                 ssh_keyname=None,
+                 availability_zone=None,
+                 virtualization_type="hvm",
+                 subnet_id=None,
+                 architecture="x86_64",
+                 root_device_type="ebs",
+                 block_device_mappings=None,
+                 install_updates_on_boot=True,
+                 ebs_optimized=False,
+                 agent_version="INHERIT",
+                 instance_profile_arn=None,
+                 associate_public_ip=None,
+                 security_group_ids=None):
+
+        self.ec2_backend = ec2_backend
+
+        self.instance_profile_arn = instance_profile_arn
+        self.agent_version = agent_version
+        self.ebs_optimized = ebs_optimized
+        self.install_updates_on_boot = install_updates_on_boot
+        self.architecture = architecture
+        self.virtualization_type = virtualization_type
+        self.ami_id = ami_id
+        self.auto_scale_type = auto_scale_type
+        self.instance_type = instance_type
+        self.layer_ids = layer_ids
+        self.stack_id = stack_id
+
+        # may not be totally accurate defaults; instance-type dependent
+        self.root_device_type = root_device_type
+        self.block_device_mappings = block_device_mappings
+        if self.block_device_mappings is None:
+            self.block_device_mappings = [{
+                'DeviceName': 'ROOT_DEVICE',
+                'Ebs': {
+                    'VolumeSize': 8,
+                    'VolumeType': 'gp2'
+                }
+            }]
+        self.security_group_ids = security_group_ids
+        if self.security_group_ids is None:
+            self.security_group_ids = []
+
+        self.os = os
+        self.hostname = hostname
+        self.ssh_keyname = ssh_keyname
+        self.availability_zone = availability_zone
+        self.subnet_id = subnet_id
+        self.associate_public_ip = associate_public_ip
+
+        self.instance = None
+        self.reported_os = {}
+        self.infrastructure_class = "ec2 (fixed)"
+        self.platform = "linux (fixed)"
+
+        self.id = "{}".format(uuid.uuid4())
+        self.created_at = datetime.datetime.utcnow()
+
+    def start(self):
+        """
+        create an ec2 reservation if one doesn't already exist and call
+        start_instance. Update instance attributes to the newly created instance
+        attributes
+        """
+        if self.instances is None:
+            reservation = self.ec2_backend.add_instances(
+                image_id=self.ami_id,
+                count=1,
+                user_data="",
+                security_group_names=[],
+                security_group_ids=self.security_group_ids,
+                instance_type=self.instance_type,
+                key_name=self.ssh_keyname,
+                ebs_optimized=self.ebs_optimized,
+                subnet_id=self.subnet_id,
+                associate_public_ip=self.associate_public_ip,
+            )
+            self.instance = reservation.instances[0]
+            self.reported_os = {
+                'Family': 'rhel (fixed)',
+                'Name': 'amazon (fixed)',
+                'Version': '2016.03 (fixed)'
+            }
+            self.platform = self.instance.platform
+            self.security_group_ids = self.instance.security_groups
+            self.architecture = self.instance.architecture
+            self.virtualization_type = self.instance.virtualization_type
+            self.subnet_id = self.instance.subnet_id
+
+        self.ec2_backend.start_instances([self.instance.id])
+
+    @property
+    def status(self):
+        if self.instance is None:
+            return "stopped"
+        return self.instance._state.name
+
+    def to_dict(self):
+        d = {
+            "AgentVersion": self.agent_version,
+            "Architecture": self.architecture,
+            "AvailabilityZone": self.availability_zone,
+            "BlockDeviceMappings": self.block_device_mappings,
+            "CreatedAt": self.created_at.isoformat(),
+            "EbsOptimized": self.ebs_optimized,
+            "InstanceId": self.id,
+            "Hostname": self.hostname,
+            "InfrastructureClass": self.infrastructure_class,
+            "InstallUpdatesOnBoot": self.install_updates_on_boot,
+            "InstanceType": self.instance_type,
+            "LayerIds": self.layer_ids,
+            "Os": self.os,
+            "Platform": self.platform,
+            "ReportedOs": self.reported_os,
+            "RootDeviceType": self.root_device_type,
+            "SecurityGroupIds": self.security_group_ids,
+            "AmiId": self.ami_id,
+            "Status": self.status,
+        }
+        if self.ssh_keyname is not None:
+            d.update({"SshKeyName": self.ssh_keyname})
+
+        if self.auto_scale_type is not None:
+            d.update({"AutoScaleType": self.auto_scale_type})
+
+        if self.instance is not None:
+            del d['AmiId']
+            d.update({"Ec2InstanceId": self.instance.id})
+            d.update({"ReportedAgentVersion": "2425-20160406102508 (fixed)"})
+            d.update({"RootDeviceVolumeId": "vol-a20e450a (fixed)"})
+            if self.ssh_keyname is not None:
+                d.update({"SshHostDsaKeyFingerprint": "24:36:32:fe:d8:5f:9c:18:b1:ad:37:e9:eb:e8:69:58 (fixed)"})
+                d.update({"SshHostRsaKeyFingerprint": "3c:bd:37:52:d7:ca:67:e1:6e:4b:ac:31:86:79:f5:6c (fixed)"})
+        return d
 
 
 class Layer(object):
@@ -94,7 +241,6 @@ class Layer(object):
         self.install_updates_on_boot = install_updates_on_boot
         self.use_ebs_optimized_instances = use_ebs_optimized_instances
 
-        self.instances = []
         self.id = "{}".format(uuid.uuid4())
         self.created_at = datetime.datetime.utcnow()
 
@@ -135,7 +281,7 @@ class Layer(object):
 
 class Stack(object):
     def __init__(self, name, region, service_role_arn, default_instance_profile_arn,
-                 vpcid='vpc-1f99bf7c',
+                 vpcid="vpc-1f99bf7a",
                  attributes=None,
                  default_os='Ubuntu 12.04 LTS',
                  hostname_theme='Layer_Dependent',
@@ -193,6 +339,12 @@ class Stack(object):
     def __eq__(self, other):
         return self.id == other.id
 
+    def generate_hostname(self):
+        # this doesn't match amazon's implementation
+        return "{theme}-{rand}-(moto)".format(
+            theme=self.hostname_theme,
+            rand=[choice("abcdefghijhk") for _ in xrange(4)])
+
     @property
     def arn(self):
         return "arn:aws:opsworks:{region}:{account_number}:stack/{id}".format(
@@ -233,19 +385,16 @@ class Stack(object):
 
 
 class OpsWorksBackend(BaseBackend):
-    def __init__(self, ec2_backend, elb_backend):
+    def __init__(self, ec2_backend):
         self.stacks = {}
         self.layers = {}
         self.instances = {}
-        self.policies = {}
         self.ec2_backend = ec2_backend
-        self.elb_backend = elb_backend
 
     def reset(self):
         ec2_backend = self.ec2_backend
-        elb_backend = self.elb_backend
         self.__dict__ = {}
-        self.__init__(ec2_backend, elb_backend)
+        self.__init__(ec2_backend)
 
     def create_stack(self, **kwargs):
         stack = Stack(**kwargs)
@@ -270,6 +419,43 @@ class OpsWorksBackend(BaseBackend):
         self.layers[layer.id] = layer
         self.stacks[stackid].layers.append(layer)
         return layer
+
+    def create_instance(self, **kwargs):
+        stack_id = kwargs['stack_id']
+        layer_ids = kwargs['layer_ids']
+
+        if stack_id not in self.stacks:
+            raise ResourceNotFoundException(
+                "Unable to find stack with ID {}".format(stack_id))
+
+        unknown_layers = set(layer_ids) - set(self.layers.keys())
+        if unknown_layers:
+            raise ResourceNotFoundException(", ".join(unknown_layers))
+
+        if any([layer.stack_id != stack_id for layer in self.layers.values()]):
+            raise ValidationException(
+                "Please only provide layer IDs from the same stack")
+
+        stack = self.stacks[stack_id]
+        # pick the first to set default instance_profile_arn and
+        # security_group_ids on the instance.
+        layer = self.layers[layer_ids[0]]
+
+        kwargs.setdefault("hostname", stack.generate_hostname())
+        kwargs.setdefault("ssh_keyname", stack.default_ssh_keyname)
+        kwargs.setdefault("availability_zone", stack.default_availability_zone)
+        kwargs.setdefault("subnet_id", stack.default_subnet_id)
+        kwargs.setdefault("root_device_type", stack.default_root_device_type)
+        if layer.custom_instance_profile_arn:
+            kwargs.setdefault("instance_profile_arn", layer.custom_instance_profile_arn)
+        kwargs.setdefault("instance_profile_arn", stack.default_instance_profile_arn)
+        kwargs.setdefault("security_group_ids", layer.custom_security_group_ids)
+        kwargs.setdefault("associate_public_ip", layer.auto_assign_public_ips)
+        kwargs.setdefault("ebs_optimized", layer.use_ebs_optimized_instances)
+        kwargs.update({"ec2_backend": self.ec2_backend})
+        opsworks_instance = OpsworkInstance(**kwargs)
+        self.instances[opsworks_instance.id] = opsworks_instance
+        return opsworks_instance
 
     def describe_stacks(self, stack_ids):
         if stack_ids is None:
@@ -297,7 +483,6 @@ class OpsWorksBackend(BaseBackend):
         return [self.layers[id].to_dict() for id in layer_ids]
 
 
-
 opsworks_backends = {}
 for region, ec2_backend in ec2_backends.items():
-    opsworks_backends[region] = OpsWorksBackend(ec2_backend, elb_backends[region])
+    opsworks_backends[region] = OpsWorksBackend(ec2_backend)
