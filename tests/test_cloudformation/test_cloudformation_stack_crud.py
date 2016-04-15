@@ -9,7 +9,7 @@ import boto.cloudformation
 from boto.exception import BotoServerError
 import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
-# import tests.backport_assert_raises  # noqa
+import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 from moto import mock_cloudformation, mock_s3
