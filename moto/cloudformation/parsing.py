@@ -115,7 +115,7 @@ def clean_json(resource_json, resources_map):
             return result
 
         if 'Fn::GetAtt' in resource_json:
-            resource = resources_map[resource_json['Fn::GetAtt'][0]]
+            resource = resources_map.get(resource_json['Fn::GetAtt'][0])
             if resource is None:
                 return resource_json
             try:
@@ -208,15 +208,22 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
 
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, resource_json, resource_name = parse_resource(logical_id, resource_json, resources_map)
-    resource = resource_class.update_from_cloudformation_json(resource_name, resource_json, region_name)
-    return resource
+    resource_class, new_resource_json, new_resource_name = parse_resource(logical_id, resource_json, resources_map)
+    original_resource = resources_map[logical_id]
+    new_resource = resource_class.update_from_cloudformation_json(
+        original_resource=original_resource,
+        new_resource_name=new_resource_name,
+        cloudformation_json=new_resource_json,
+        region_name=region_name
+    )
+    new_resource.type = resource_json['Type']
+    new_resource.logical_resource_id = logical_id
+    return new_resource
 
 
 def parse_and_delete_resource(logical_id, resource_json, resources_map, region_name):
     resource_class, resource_json, resource_name = parse_resource(logical_id, resource_json, resources_map)
     resource_class.delete_from_cloudformation_json(resource_name, resource_json, region_name)
-    return None
 
 
 def parse_condition(condition, resources_map, condition_map):
@@ -289,6 +296,8 @@ class ResourceMap(collections.Mapping):
             return self._parsed_resources[resource_logical_id]
         else:
             resource_json = self._resource_json_map.get(resource_logical_id)
+            if not resource_json:
+                raise KeyError(resource_logical_id)
             new_resource = parse_and_create_resource(resource_logical_id, resource_json, self, self._region_name)
             self._parsed_resources[resource_logical_id] = new_resource
             return new_resource
@@ -369,17 +378,40 @@ class ResourceMap(collections.Mapping):
             parse_and_delete_resource(resource_name, resource_json, self, self._region_name)
             self._parsed_resources.pop(resource_name)
 
-        for resource_name in new_template:
-            if resource_name in old_template and new_template[resource_name] != old_template[resource_name]:
+        resources_to_update = set(name for name in new_template if name in old_template and new_template[name] != old_template[name])
+        tries = 1
+        while resources_to_update and tries < 5:
+            for resource_name in resources_to_update.copy():
                 resource_json = new_template[resource_name]
-
-                changed_resource = parse_and_update_resource(resource_name, resource_json, self, self._region_name)
-                self._parsed_resources[resource_name] = changed_resource
+                try:
+                    changed_resource = parse_and_update_resource(resource_name, resource_json, self, self._region_name)
+                except Exception as e:
+                    # skip over dependency violations, and try again in a second pass
+                    last_exception = e
+                else:
+                    self._parsed_resources[resource_name] = changed_resource
+                    resources_to_update.remove(resource_name)
+            tries += 1
+        if tries == 5:
+            raise last_exception
 
     def delete(self):
-        for resource in self.resources:
-            parsed_resource = self._parsed_resources.pop(resource)
-            parsed_resource.delete(self._region_name)
+        remaining_resources = set(self.resources)
+        tries = 1
+        while remaining_resources and tries < 5:
+            for resource in remaining_resources.copy():
+                parsed_resource = self._parsed_resources.get(resource)
+                if parsed_resource:
+                    try:
+                        parsed_resource.delete(self._region_name)
+                    except Exception as e:
+                        # skip over dependency violations, and try again in a second pass
+                        last_exception = e 
+                    else:
+                        remaining_resources.remove(resource)
+            tries += 1
+        if tries == 5:
+            raise last_exception
 
 
 class OutputMap(collections.Mapping):

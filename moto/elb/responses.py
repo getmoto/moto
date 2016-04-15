@@ -28,14 +28,14 @@ class ELBResponse(BaseResponse):
         ports = self._get_list_prefix("Listeners.member")
         scheme = self._get_param('Scheme')
 
-        self.elb_backend.create_load_balancer(
+        load_balancer = self.elb_backend.create_load_balancer(
             name=load_balancer_name,
             zones=availability_zones,
             ports=ports,
             scheme=scheme
         )
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
-        return template.render()
+        return template.render(load_balancer=load_balancer)
 
     def create_load_balancer_listeners(self):
         load_balancer_name = self._get_param('LoadBalancerName')
@@ -330,7 +330,7 @@ DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalan
 
 CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <CreateLoadBalancerResult>
-    <DNSName>tests.us-east-1.elb.amazonaws.com</DNSName>
+    <DNSName>{{ load_balancer.dns_name }}</DNSName>
   </CreateLoadBalancerResult>
   <ResponseMetadata>
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
@@ -434,7 +434,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           <CanonicalHostedZoneName>tests.us-east-1.elb.amazonaws.com</CanonicalHostedZoneName>
           <CanonicalHostedZoneNameID>Z3ZONEID</CanonicalHostedZoneNameID>
           <Scheme>{{ load_balancer.scheme }}</Scheme>
-          <DNSName>tests.us-east-1.elb.amazonaws.com</DNSName>
+          <DNSName>{{ load_balancer.dns_name }}</DNSName>
           <BackendServerDescriptions>
           {% for backend in load_balancer.backends %}
             <member>

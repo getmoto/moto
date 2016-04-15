@@ -3,6 +3,7 @@ from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
+from moto.elb.exceptions import LoadBalancerNotFoundError
 
 # http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AS_Concepts.html#Cooldown
 DEFAULT_COOLDOWN = 300
@@ -79,6 +80,19 @@ class FakeLaunchConfiguration(object):
             block_device_mappings=properties.get("BlockDeviceMapping.member")
         )
         return config
+
+    @classmethod
+    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
+        cls.delete_from_cloudformation_json(original_resource.name, cloudformation_json, region_name)
+        return cls.create_from_cloudformation_json(resource_name, cloudformation_json, region_name)
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        backend = autoscaling_backends[region_name]
+        try:
+            backend.delete_launch_configuration(resource_name)
+        except KeyError:
+            pass
 
     def delete(self, region_name):
         backend = autoscaling_backends[region_name]
@@ -171,9 +185,29 @@ class FakeAutoScalingGroup(object):
         )
         return group
 
+    @classmethod
+    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
+        cls.delete_from_cloudformation_json(original_resource.name, cloudformation_json, region_name)
+        return cls.create_from_cloudformation_json(new_resource_name, cloudformation_json, region_name)
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        backend = autoscaling_backends[region_name]
+        try:
+            backend.delete_autoscaling_group(resource_name)
+        except KeyError:
+            pass
+        except LoadBalancerNotFoundError:
+            # sometimes the ELB gets modified before the ASG, so just skip over desired capacity
+            backend.autoscaling_groups.pop(resource_name, None)
+
     def delete(self, region_name):
         backend = autoscaling_backends[region_name]
-        backend.delete_autoscaling_group(self.name)
+        try:
+            backend.delete_autoscaling_group(self.name)
+        except LoadBalancerNotFoundError:
+            # sometimes the ELB gets deleted before the ASG, so just skip over desired capacity
+            backend.autoscaling_groups.pop(self.name, None)
 
     @property
     def physical_resource_id(self):
