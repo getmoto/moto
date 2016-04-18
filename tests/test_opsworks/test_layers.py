@@ -8,7 +8,7 @@ from moto import mock_opsworks
 
 @mock_opsworks
 def test_create_layer_response():
-    client = boto3.client('opsworks')
+    client = boto3.client('opsworks', region_name='us-east-1')
     stack_id = client.create_stack(
         Name="test_stack_1",
         Region="us-east-1",
@@ -47,7 +47,7 @@ def test_create_layer_response():
 
 @mock_opsworks
 def test_describe_layers():
-    client = boto3.client('opsworks')
+    client = boto3.client('opsworks', region_name='us-east-1')
     stack_id = client.create_stack(
         Name="test_stack_1",
         Region="us-east-1",

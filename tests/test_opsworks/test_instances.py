@@ -8,7 +8,7 @@ from moto import mock_ec2
 
 @mock_opsworks
 def test_create_instance():
-    client = boto3.client('opsworks')
+    client = boto3.client('opsworks', region_name='us-east-1')
     stack_id = client.create_stack(
         Name="test_stack_1",
         Region="us-east-1",
@@ -48,7 +48,7 @@ def test_describe_instances():
     populate S2L2 with 3 instances (S2L2_i1..2)
     """
 
-    client = boto3.client('opsworks')
+    client = boto3.client('opsworks', region_name='us-east-1')
     S1 = client.create_stack(
         Name="S1",
         Region="us-east-1",
@@ -138,7 +138,7 @@ def test_ec2_integration():
     instances created via OpsWorks should be discoverable via ec2
     """
 
-    opsworks = boto3.client('opsworks')
+    opsworks = boto3.client('opsworks', region_name='us-east-1')
     stack_id = opsworks.create_stack(
         Name="S1",
         Region="us-east-1",
