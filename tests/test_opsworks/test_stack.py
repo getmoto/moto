@@ -23,7 +23,7 @@ def test_describe_stacks():
     client = boto3.client('opsworks', region_name='us-east-1')
     for i in range(1, 4):
         client.create_stack(
-            Name="test_stack_{}".format(i),
+            Name="test_stack_{0}".format(i),
             Region="us-east-1",
             ServiceRoleArn="service_arn",
             DefaultInstanceProfileArn="profile_arn"
