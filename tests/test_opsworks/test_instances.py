@@ -157,7 +157,7 @@ def test_ec2_integration():
         StackId=stack_id, LayerIds=[layer_id], InstanceType="t2.micro"
     )['InstanceId']
 
-    ec2 = boto3.client('ec2')
+    ec2 = boto3.client('ec2', region_name='us-east-1')
 
     # Before starting the instance, it shouldn't be discoverable via ec2
     reservations = ec2.describe_instances()['Reservations']
