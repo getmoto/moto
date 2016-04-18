@@ -96,5 +96,17 @@ class OpsWorksResponse(BaseResponse):
         stack_id = self.parameters.get("StackId")
         layer_ids = self.parameters.get("LayerIds")
         layers = self.opsworks_backend.describe_layers(stack_id, layer_ids)
-        return json.dumps({"Layers": layers})
+        return json.dumps({"Layers": layers}, indent=1)
 
+    def describe_instances(self):
+        instance_ids = self.parameters.get("InstanceIds")
+        layer_id = self.parameters.get("LayerId")
+        stack_id = self.parameters.get("StackId")
+        instances = self.opsworks_backend.describe_instances(
+            instance_ids, layer_id, stack_id)
+        return json.dumps({"Instances": instances}, indent=1)
+
+    def start_instance(self):
+        instance_id = self.parameters.get("InstanceId")
+        self.opsworks_backend.start_instance(instance_id)
+        return ""

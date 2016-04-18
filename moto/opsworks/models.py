@@ -49,6 +49,9 @@ class OpsworkInstance(object):
 
         # may not be totally accurate defaults; instance-type dependent
         self.root_device_type = root_device_type
+        # todo: refactor how we track block_device_mappings to use
+        # boto.ec2.blockdevicemapping.BlockDeviceType and standardize
+        # formatting in to_dict()
         self.block_device_mappings = block_device_mappings
         if self.block_device_mappings is None:
             self.block_device_mappings = [{
@@ -83,7 +86,7 @@ class OpsworkInstance(object):
         start_instance. Update instance attributes to the newly created instance
         attributes
         """
-        if self.instances is None:
+        if self.instance is None:
             reservation = self.ec2_backend.add_instances(
                 image_id=self.ami_id,
                 count=1,
@@ -107,6 +110,7 @@ class OpsworkInstance(object):
             self.architecture = self.instance.architecture
             self.virtualization_type = self.instance.virtualization_type
             self.subnet_id = self.instance.subnet_id
+            self.root_device_type = self.instance.root_device_type
 
         self.ec2_backend.start_instances([self.instance.id])
 
@@ -128,6 +132,7 @@ class OpsworkInstance(object):
             "Hostname": self.hostname,
             "InfrastructureClass": self.infrastructure_class,
             "InstallUpdatesOnBoot": self.install_updates_on_boot,
+            "InstanceProfileArn": self.instance_profile_arn,
             "InstanceType": self.instance_type,
             "LayerIds": self.layer_ids,
             "Os": self.os,
@@ -145,13 +150,16 @@ class OpsworkInstance(object):
             d.update({"AutoScaleType": self.auto_scale_type})
 
         if self.instance is not None:
-            del d['AmiId']
             d.update({"Ec2InstanceId": self.instance.id})
             d.update({"ReportedAgentVersion": "2425-20160406102508 (fixed)"})
             d.update({"RootDeviceVolumeId": "vol-a20e450a (fixed)"})
             if self.ssh_keyname is not None:
                 d.update({"SshHostDsaKeyFingerprint": "24:36:32:fe:d8:5f:9c:18:b1:ad:37:e9:eb:e8:69:58 (fixed)"})
                 d.update({"SshHostRsaKeyFingerprint": "3c:bd:37:52:d7:ca:67:e1:6e:4b:ac:31:86:79:f5:6c (fixed)"})
+            d.update({"PrivateDns": self.instance.private_dns})
+            d.update({"PrivateIp": self.instance.private_ip})
+            d.update({"PublicDns": getattr(self.instance, 'public_dns', None)})
+            d.update({"PublicIp": getattr(self.instance, 'public_ip', None)})
         return d
 
 
@@ -343,7 +351,7 @@ class Stack(object):
         # this doesn't match amazon's implementation
         return "{theme}-{rand}-(moto)".format(
             theme=self.hostname_theme,
-            rand=[choice("abcdefghijhk") for _ in xrange(4)])
+            rand=[choice("abcdefghijhk") for _ in range(4)])
 
     @property
     def arn(self):
@@ -432,14 +440,16 @@ class OpsWorksBackend(BaseBackend):
         if unknown_layers:
             raise ResourceNotFoundException(", ".join(unknown_layers))
 
-        if any([layer.stack_id != stack_id for layer in self.layers.values()]):
+        layers = [self.layers[id] for id in layer_ids]
+        if len(set([layer.stack_id for layer in layers])) != 1 or \
+                any([layer.stack_id != stack_id for layer in layers]):
             raise ValidationException(
                 "Please only provide layer IDs from the same stack")
 
         stack = self.stacks[stack_id]
         # pick the first to set default instance_profile_arn and
         # security_group_ids on the instance.
-        layer = self.layers[layer_ids[0]]
+        layer = layers[0]
 
         kwargs.setdefault("hostname", stack.generate_hostname())
         kwargs.setdefault("ssh_keyname", stack.default_ssh_keyname)
@@ -481,6 +491,37 @@ class OpsWorksBackend(BaseBackend):
         if unknown_layers:
             raise ResourceNotFoundException(", ".join(unknown_layers))
         return [self.layers[id].to_dict() for id in layer_ids]
+
+    def describe_instances(self, instance_ids, layer_id, stack_id):
+        if len(list(filter(None, (instance_ids, layer_id, stack_id)))) != 1:
+            raise ValidationException("Please provide either one or more "
+                                      "instance IDs or one stack ID or one "
+                                      "layer ID")
+        if instance_ids:
+            unknown_instances = set(instance_ids) - set(self.instances.keys())
+            if unknown_instances:
+                raise ResourceNotFoundException(", ".join(unknown_instances))
+            return [self.instances[id].to_dict() for id in instance_ids]
+
+        if layer_id:
+            if layer_id not in self.layers:
+                raise ResourceNotFoundException(
+                    "Unable to find layer with ID {}".format(layer_id))
+            instances = [i.to_dict() for i in self.instances.values() if layer_id in i.layer_ids]
+            return instances
+
+        if stack_id:
+            if stack_id not in self.stacks:
+                raise ResourceNotFoundException(
+                    "Unable to find stack with ID {}".format(stack_id))
+            instances = [i.to_dict() for i in self.instances.values() if stack_id==i.stack_id]
+            return instances
+
+    def start_instance(self, instance_id):
+        if instance_id not in self.instances:
+            raise ResourceNotFoundException(
+                "Unable to find instance with ID {}".format(instance_id))
+        self.instances[instance_id].start()
 
 
 opsworks_backends = {}

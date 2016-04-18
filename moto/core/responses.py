@@ -105,7 +105,6 @@ class BaseResponse(_TemplateEnvironmentMixin):
             # FIXME: At least in Flask==0.10.1, request.data is an empty string
             # and the information we want is in request.form. Keeping self.body
             # definition for back-compatibility
-            #if request.headers.get("content-type") == "application/x-amz-json-1.1":
             self.body = request.data
 
             querystring = {}

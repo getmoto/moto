@@ -21,7 +21,7 @@ def test_create_stack_response():
 @mock_opsworks
 def test_describe_stacks():
     client = boto3.client('opsworks')
-    for i in xrange(1, 4):
+    for i in range(1, 4):
         client.create_stack(
             Name="test_stack_{}".format(i),
             Region="us-east-1",
