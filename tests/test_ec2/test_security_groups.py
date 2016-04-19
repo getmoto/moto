@@ -157,8 +157,8 @@ def test_authorize_ip_range_and_revoke():
     success = conn.authorize_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32")
     assert success.should.be.true
     egress_security_group = conn.get_all_security_groups(groupnames='testegress')[0]
-    int(egress_security_group.rules_egress[0].to_port).should.equal(2222)
-    egress_security_group.rules_egress[0].grants[0].cidr_ip.should.equal("123.123.123.123/32")
+    int(egress_security_group.rules_egress[1].to_port).should.equal(2222)
+    egress_security_group.rules_egress[1].grants[0].cidr_ip.should.equal("123.123.123.123/32")
 
     # Wrong Cidr should throw error
     egress_security_group.revoke.when.called_with(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.122/32").should.throw(EC2ResponseError)
@@ -167,7 +167,7 @@ def test_authorize_ip_range_and_revoke():
     conn.revoke_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32")
 
     egress_security_group = conn.get_all_security_groups()[0]
-    egress_security_group.rules_egress.should.have.length_of(0)
+    egress_security_group.rules_egress.should.have.length_of(1)
 
 
 @mock_ec2
