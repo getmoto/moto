@@ -136,7 +136,7 @@ class InvalidPermissionNotFoundError(EC2ClientError):
     def __init__(self):
         super(InvalidPermissionNotFoundError, self).__init__(
             "InvalidPermission.NotFound",
-            "Could not find a matching ingress rule")
+            "The specified rule does not exist in this security group")
 
 
 class InvalidRouteTableIdError(EC2ClientError):
