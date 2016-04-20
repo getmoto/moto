@@ -212,7 +212,7 @@ def test_authorize_other_group_egress_and_revoke():
     sg02 = ec2.create_security_group(GroupName='sg02', Description='Test security group sg02', VpcId=vpc.id)
 
     ip_permission = {
-        'IpProtocol': u'tcp',
+        'IpProtocol': 'tcp',
         'FromPort': 27017,
         'ToPort': 27017,
         'UserIdGroupPairs': [{'GroupId': sg02.id, 'GroupName': 'sg02', 'UserId': sg02.owner_id}],
