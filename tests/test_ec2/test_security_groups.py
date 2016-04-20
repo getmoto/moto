@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
+import boto3
 import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
@@ -157,6 +158,8 @@ def test_authorize_ip_range_and_revoke():
     success = conn.authorize_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32")
     assert success.should.be.true
     egress_security_group = conn.get_all_security_groups(groupnames='testegress')[0]
+    # There are two egress rules associated with the security group:
+    # the default outbound rule and the new one
     int(egress_security_group.rules_egress[1].to_port).should.equal(2222)
     egress_security_group.rules_egress[1].grants[0].cidr_ip.should.equal("123.123.123.123/32")
 
@@ -167,6 +170,7 @@ def test_authorize_ip_range_and_revoke():
     conn.revoke_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32")
 
     egress_security_group = conn.get_all_security_groups()[0]
+    # There is still the default outbound rule
     egress_security_group.rules_egress.should.have.length_of(1)
 
 
@@ -199,6 +203,30 @@ def test_authorize_other_group_and_revoke():
 
 
 @mock_ec2
+def test_authorize_other_group_egress_and_revoke():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    sg01 = ec2.create_security_group(GroupName='sg01', Description='Test security group sg01', VpcId=vpc.id)
+    sg02 = ec2.create_security_group(GroupName='sg02', Description='Test security group sg02', VpcId=vpc.id)
+
+    ip_permission = {
+        'IpProtocol': u'tcp',
+        'FromPort': 27017,
+        'ToPort': 27017,
+        'UserIdGroupPairs': [{'GroupId': sg02.id, 'GroupName': 'sg02', 'UserId': sg02.owner_id}],
+        'IpRanges': []
+    }
+
+    sg01.authorize_egress(IpPermissions=[ip_permission])
+    sg01.ip_permissions_egress.should.have.length_of(2)
+    sg01.ip_permissions_egress.should.contain(ip_permission)
+
+    sg01.revoke_egress(IpPermissions=[ip_permission])
+    sg01.ip_permissions_egress.should.have.length_of(1)
+
+@mock_ec2
 def test_authorize_group_in_vpc():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vpc_id = "vpc-12345"
@@ -215,7 +243,7 @@ def test_authorize_group_in_vpc():
     int(security_group.rules[0].to_port).should.equal(2222)
     security_group.rules[0].grants[0].group_id.should.equal(other_security_group.id)
 
-    # Now revome the rule
+    # Now remove the rule
     success = security_group.revoke(ip_protocol="tcp", from_port="22", to_port="2222", src_group=other_security_group)
     success.should.be.true
 

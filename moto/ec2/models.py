@@ -1324,7 +1324,6 @@ class SecurityGroupBackend(object):
         if security_rule in group.ingress_rules:
             group.ingress_rules.remove(security_rule)
             return security_rule
-
         raise InvalidPermissionNotFoundError()
 
     def authorize_security_group_egress(self,
@@ -1333,22 +1332,33 @@ class SecurityGroupBackend(object):
                                         from_port,
                                         to_port,
                                         ip_ranges,
-                                        src_group_id=None,
-                                        cidr_ip=None,
+                                        source_group_names=None,
+                                        source_group_ids=None,
                                         vpc_id=None):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
-
+        if ip_ranges and not isinstance(ip_ranges, list):
+            ip_ranges = [ip_ranges]
         if ip_ranges:
             for cidr in ip_ranges:
                 if not is_valid_cidr(cidr):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
-        # for VPCs
+        source_group_names = source_group_names if source_group_names else []
+        source_group_ids = source_group_ids if source_group_ids else []
+
         source_groups = []
-        source_group = self.get_security_group_from_id(src_group_id)
-        if source_group:
-            source_groups.append(source_group)
+        for source_group_name in source_group_names:
+            source_group = self.get_security_group_from_name(source_group_name, vpc_id)
+            if source_group:
+                source_groups.append(source_group)
+
+        # for VPCs
+        for source_group_id in source_group_ids:
+            source_group = self.get_security_group_from_id(source_group_id)
+            if source_group:
+                source_groups.append(source_group)
+
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
         group.egress_rules.append(security_rule)
 
@@ -1367,6 +1377,11 @@ class SecurityGroupBackend(object):
         source_groups = []
         for source_group_name in source_group_names:
             source_group = self.get_security_group_from_name(source_group_name, vpc_id)
+            if source_group:
+                source_groups.append(source_group)
+
+        for source_group_id in source_group_ids:
+            source_group = self.get_security_group_from_id(source_group_id)
             if source_group:
                 source_groups.append(source_group)
 
