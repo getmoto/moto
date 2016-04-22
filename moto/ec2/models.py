@@ -1098,11 +1098,10 @@ class SecurityGroup(TaggedEC2Resource):
         self.name = name
         self.description = description
         self.ingress_rules = []
-        self.egress_rules = []
+        self.egress_rules = [SecurityRule(-1, -1, -1, ['0.0.0.0/0'], [])]
         self.enis = {}
         self.vpc_id = vpc_id
         self.owner_id = "123456789012"
-        self.egress_rules.append(SecurityRule(-1, -1, -1, ['0.0.0.0/0'], []))
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
