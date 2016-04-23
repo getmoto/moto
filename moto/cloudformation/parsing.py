@@ -379,7 +379,8 @@ class ResourceMap(collections.Mapping):
     def delete(self):
         for resource in self.resources:
             parsed_resource = self._parsed_resources.pop(resource)
-            parsed_resource.delete(self._region_name)
+            if parsed_resource and hasattr(parsed_resource, 'delete'):
+                parsed_resource.delete(self._region_name)
 
 
 class OutputMap(collections.Mapping):

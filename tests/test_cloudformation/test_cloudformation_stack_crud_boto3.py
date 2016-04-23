@@ -16,10 +16,30 @@ from nose.tools import assert_raises
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "Stack 1",
-    "Resources": {},
+    "Resources": {
+        "EC2Instance1": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-d3adb33f",
+                "KeyName": "dummy",
+                "InstanceType": "t2.micro",
+                "Tags": [
+                    {
+                        "Key": "Description",
+                        "Value": "Test tag"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "Name tag for tests"
+                    }
+                ]
+            }
+        }
+    }
 }
 
 dummy_template_json = json.dumps(dummy_template)
+
 
 @mock_cloudformation
 def test_boto3_create_stack():
@@ -29,7 +49,8 @@ def test_boto3_create_stack():
         TemplateBody=dummy_template_json,
     )
 
-    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(dummy_template)
+    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
+        dummy_template)
 
 
 @mock_cloudformation
@@ -59,7 +80,8 @@ def test_create_stack_with_notification_arn():
     )
 
     stack = list(cf.stacks.all())[0]
-    stack.notification_arns.should.contain('arn:aws:sns:us-east-1:123456789012:fake-queue')
+    stack.notification_arns.should.contain(
+        'arn:aws:sns:us-east-1:123456789012:fake-queue')
 
 
 @mock_cloudformation
@@ -78,8 +100,26 @@ def test_create_stack_from_s3_url():
         TemplateURL=key_url,
     )
 
-    cf_conn.get_template(StackName="stack_from_url")['TemplateBody'].should.equal(dummy_template)
+    cf_conn.get_template(StackName="stack_from_url")[
+        'TemplateBody'].should.equal(dummy_template)
 
+
+@mock_cloudformation
+def test_describe_stack_resources():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_json,
+    )
+
+    stack = cf_conn.describe_stacks(StackName="test_stack")['Stacks'][0]
+
+    response = cf_conn.describe_stack_resources(StackName=stack['StackName'])
+    resource = response['StackResources'][0]
+    resource['LogicalResourceId'].should.equal('EC2Instance1')
+    resource['ResourceStatus'].should.equal('CREATE_COMPLETE')
+    resource['ResourceType'].should.equal('AWS::EC2::Instance')
+    resource['StackId'].should.equal(stack['StackId'])
 
 @mock_cloudformation
 def test_describe_stack_by_name():
@@ -102,7 +142,8 @@ def test_describe_stack_by_stack_id():
     )
 
     stack = cf_conn.describe_stacks(StackName="test_stack")['Stacks'][0]
-    stack_by_id = cf_conn.describe_stacks(StackName=stack['StackId'])['Stacks'][0]
+    stack_by_id = cf_conn.describe_stacks(StackName=stack['StackId'])['Stacks'][
+        0]
 
     stack_by_id['StackId'].should.equal(stack['StackId'])
     stack_by_id['StackName'].should.equal("test_stack")
@@ -198,9 +239,9 @@ def test_cloudformation_params():
         StackName='test_stack',
         TemplateBody=dummy_template_with_params_json,
         Parameters=[{
-            "ParameterKey": "APPNAME",
-            "ParameterValue": "testing123",
-        }],
+                        "ParameterKey": "APPNAME",
+                        "ParameterValue": "testing123",
+                    }],
     )
 
     stack.parameters.should.have.length_of(1)
@@ -227,6 +268,8 @@ def test_stack_tags():
         TemplateBody=dummy_template_json,
         Tags=tags,
     )
-    observed_tag_items = set(item for items in [tag.items() for tag in stack.tags] for item in items)
-    expected_tag_items = set(item for items in [tag.items() for tag in tags] for item in items)
+    observed_tag_items = set(
+        item for items in [tag.items() for tag in stack.tags] for item in items)
+    expected_tag_items = set(
+        item for items in [tag.items() for tag in tags] for item in items)
     observed_tag_items.should.equal(expected_tag_items)

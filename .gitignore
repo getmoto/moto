@@ -2,9 +2,11 @@ moto.egg-info/*
 dist/*
 .tox
 .coverage
+cover/
 *.pyc
 *~
 .noseids
 build/
 .idea/
 *.swp
+.DS_Store
