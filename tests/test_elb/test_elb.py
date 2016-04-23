@@ -614,11 +614,11 @@ def test_add_remove_tags():
     client.add_tags(LoadBalancerNames=['my-lb'],
                     Tags=[{
                        'Key': 'a',
-                       'Value': 'a'
+                       'Value': 'b'
                     }])
 
     tags = dict([(d['Key'], d['Value']) for d in client.describe_tags(LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags']])
-    tags.should.have('a').should.equal('a')
+    tags.should.have.key('a').which.should.equal('b')
 
     client.add_tags(LoadBalancerNames=['my-lb'],
                     Tags=[{
@@ -719,3 +719,47 @@ def test_add_remove_tags():
 
     lb_tags['my-lb'].shouldnt.have.key('other')
     lb_tags['other-lb'].should.have.key('other').which.should.equal('something')
+
+
+@mock_elb
+def test_create_with_tags():
+    client = boto3.client('elb', region_name='us-east-1')
+
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b'],
+        Tags=[{
+           'Key': 'k',
+           'Value': 'v'
+        }]
+    )
+
+    tags = dict((d['Key'], d['Value']) for d in client.describe_tags(LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags'])
+    tags.should.have.key('k').which.should.equal('v')
+
+
+@mock_ec2
+@mock_elb
+def test_subnets():
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    vpc = ec2.create_vpc(
+        CidrBlock='172.28.7.0/24',
+        InstanceTenancy='default'
+    )
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26'
+    )
+    client = boto3.client('elb', region_name='us-east-1')
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Subnets=[subnet.id]
+    )
+
+    lb = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
+    lb.should.have.key('Subnets').which.should.have.length_of(1)
+    lb['Subnets'][0].should.equal(subnet.id)
+
+    lb.should.have.key('VPCId').which.should.equal(vpc.id)

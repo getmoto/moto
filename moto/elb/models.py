@@ -10,6 +10,7 @@ from boto.ec2.elb.attributes import (
 )
 from boto.ec2.elb.policies import Policies
 from moto.core import BaseBackend
+from moto.ec2.models import ec2_backends
 from .exceptions import LoadBalancerNotFoundError, TooManyTagsError, BadHealthCheckDefinition
 
 
@@ -47,7 +48,7 @@ class FakeBackend(object):
 
 
 class FakeLoadBalancer(object):
-    def __init__(self, name, zones, ports, scheme='internet-facing',):
+    def __init__(self, name, zones, ports, scheme='internet-facing', vpc_id=None, subnets=None):
         self.name = name
         self.health_check = None
         self.instance_ids = []
@@ -60,6 +61,8 @@ class FakeLoadBalancer(object):
         self.policies.other_policies = []
         self.policies.app_cookie_stickiness_policies = []
         self.policies.lb_cookie_stickiness_policies = []
+        self.subnets = subnets or []
+        self.vpc_id = vpc_id or 'vpc-56e10e3d'
         self.tags = {}
 
         for port in ports:
@@ -149,11 +152,22 @@ class FakeLoadBalancer(object):
 
 class ELBBackend(BaseBackend):
 
-    def __init__(self):
+    def __init__(self, region_name=None):
+        self.region_name = region_name
         self.load_balancers = {}
 
-    def create_load_balancer(self, name, zones, ports, scheme='internet-facing'):
-        new_load_balancer = FakeLoadBalancer(name=name, zones=zones, ports=ports, scheme=scheme)
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
+
+    def create_load_balancer(self, name, zones, ports, scheme='internet-facing', subnets=None):
+        vpc_id = None
+        ec2_backend = ec2_backends[self.region_name]
+        if subnets:
+            subnet = ec2_backend.get_subnet(subnets[0])
+            vpc_id = subnet.vpc_id
+        new_load_balancer = FakeLoadBalancer(name=name, zones=zones, ports=ports, scheme=scheme, subnets=subnets, vpc_id=vpc_id)
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
 
@@ -286,4 +300,4 @@ class ELBBackend(BaseBackend):
 
 elb_backends = {}
 for region in boto.ec2.elb.regions():
-    elb_backends[region.name] = ELBBackend()
+    elb_backends[region.name] = ELBBackend(region.name)
