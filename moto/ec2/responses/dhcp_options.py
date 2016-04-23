@@ -49,9 +49,8 @@ class DHCPOptions(BaseResponse):
 
     def describe_dhcp_options(self):
         dhcp_opt_ids = sequence_from_querystring("DhcpOptionsId", self.querystring)
-        if filters_from_querystring(self.querystring):
-            raise NotImplementedError("Filtering not supported in describe_dhcp_options.")
-        dhcp_opts = self.ec2_backend.get_all_dhcp_options(dhcp_opt_ids, None)
+        filters = filters_from_querystring(self.querystring)
+        dhcp_opts = self.ec2_backend.get_all_dhcp_options(dhcp_opt_ids, filters)
         template = self.response_template(DESCRIBE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options=dhcp_opts)
 

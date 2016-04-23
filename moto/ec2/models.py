@@ -2599,6 +2599,34 @@ class DHCPOptionsSet(TaggedEC2Resource):
         self.id = random_dhcp_option_id()
         self.vpc = None
 
+    def get_filter_value(self, filter_name):
+        """
+        API Version 2015-10-01 defines the following filters for DescribeDhcpOptions:
+
+        * dhcp-options-id
+        * key
+        * value
+        * tag:key=value
+        * tag-key
+        * tag-value
+
+        Taken from: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeDhcpOptions.html
+        """
+        if filter_name == 'dhcp-options-id':
+            return self.id
+        elif filter_name == 'key':
+            return list(self._options.keys())
+        elif filter_name == 'value':
+            values = [item for item in list(self._options.values()) if item]
+            return itertools.chain(*values)
+
+        filter_value = super(DHCPOptionsSet, self).get_filter_value(filter_name)
+
+        if filter_value is None:
+            self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeDhcpOptions".format(filter_name))
+
+        return filter_value
+
     @property
     def options(self):
         return self._options
