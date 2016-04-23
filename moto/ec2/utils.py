@@ -361,15 +361,15 @@ filter_dict_attribute_mapping = {
     'group-id': 'security_groups',
     'instance.group-id': 'security_groups',
     'instance-type': 'instance_type',
-    'private-ip-address' : 'private_ip',
-    'ip-address' : 'public_ip',
-    'availability-zone' :'placement'
+    'private-ip-address': 'private_ip',
+    'ip-address': 'public_ip',
+    'availability-zone': 'placement',
+    'architecture': 'architecture'
 }
 
 
 def passes_filter_dict(instance, filter_dict):
     for filter_name, filter_values in filter_dict.items():
-
         if filter_name in filter_dict_attribute_mapping:
             instance_attr = filter_dict_attribute_mapping[filter_name]
             instance_value = get_object_value(instance, instance_attr)
@@ -381,7 +381,7 @@ def passes_filter_dict(instance, filter_dict):
                 return False
         else:
             raise NotImplementedError(
-                "Filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/spulec/moto/issues",
+                "Filter dicts have not been implemented in Moto for '%s' yet. Feel free to open an issue at https://github.com/spulec/moto/issues" %
                 filter_name)
     return True
 

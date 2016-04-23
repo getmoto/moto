@@ -279,6 +279,17 @@ def test_get_instances_filtering_by_vpc_id():
 
 
 @mock_ec2
+def test_get_instances_filtering_by_architecture():
+    conn = boto.connect_ec2()
+    reservation = conn.run_instances('ami-1234abcd', min_count=1)
+    instance = reservation.instances
+
+    reservations = conn.get_all_instances(filters={'architecture': 'x86_64'})
+    # get_all_instances should return the instance
+    reservations[0].instances.should.have.length_of(1)
+
+
+@mock_ec2
 def test_get_instances_filtering_by_tag():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
@@ -519,7 +530,6 @@ def test_run_instance_with_security_group_name():
 def test_run_instance_with_security_group_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
     group = conn.create_security_group('group1', "some description")
-
     reservation = conn.run_instances('ami-1234abcd',
                                      security_group_ids=[group.id])
     instance = reservation.instances[0]
