@@ -313,3 +313,16 @@ def test_security_group_tag_filtering():
 
     groups = conn.get_all_security_groups(filters={"tag:test-tag": "test-value"})
     groups.should.have.length_of(1)
+
+
+@mock_ec2
+def test_authorize_all_protocols_with_no_port_specification():
+    conn = boto.connect_ec2()
+    sg = conn.create_security_group('test', 'test')
+
+    success = sg.authorize(ip_protocol='-1', cidr_ip='0.0.0.0/0')
+    success.should.be.true
+
+    sg = conn.get_all_security_groups('test')[0]
+    sg.rules[0].from_port.should.equal(None)
+    sg.rules[0].to_port.should.equal(None)
