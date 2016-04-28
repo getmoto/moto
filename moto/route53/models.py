@@ -106,6 +106,10 @@ class RecordSet(object):
         except KeyError:
             pass
 
+    @property
+    def physical_resource_id(self):
+        return self.name
+
     def to_xml(self):
         template = Template("""<ResourceRecordSet>
                 <Name>{{ record_set.name }}</Name>
