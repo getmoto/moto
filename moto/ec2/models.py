@@ -434,6 +434,9 @@ class Instance(BotoInstance, TaggedEC2Resource):
         self._state_reason = StateReason("Client.UserInitiatedShutdown: User initiated shutdown",
                                          "Client.UserInitiatedShutdown")
 
+    def delete(self, region):
+        self.terminate()
+
     def terminate(self, *args, **kwargs):
         for nic in self.nics.values():
             nic.stop()
@@ -1134,6 +1137,29 @@ class SecurityGroup(TaggedEC2Resource):
             )
 
         return security_group
+
+    @classmethod
+    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
+        cls._delete_security_group_given_vpc_id(original_resource.name, original_resource.vpc_id, region_name)
+        return cls.create_from_cloudformation_json(new_resource_name, cloudformation_json, region_name)
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        vpc_id = properties.get('VpcId')
+        cls._delete_security_group_given_vpc_id(resource_name, vpc_id, region_name)
+
+    @classmethod
+    def _delete_security_group_given_vpc_id(cls, resource_name, vpc_id, region_name):
+        ec2_backend = ec2_backends[region_name]
+        security_group = ec2_backend.get_security_group_from_name(resource_name, vpc_id)
+        if security_group:
+            security_group.delete(region_name)
+
+    def delete(self, region_name):
+        ''' Not exposed as part of the ELB API - used for CloudFormation. '''
+        backend = ec2_backends[region_name]
+        self.ec2_backend.delete_security_group(group_id=self.id)
 
     @property
     def physical_resource_id(self):

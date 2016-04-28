@@ -262,10 +262,17 @@ def test_stack_elb_integration_with_attached_ec2_instances():
         "Resources": {
             "MyELB": {
                 "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-                "Instances": [{"Ref": "Ec2Instance1"}],
                 "Properties": {
+                    "Instances": [{"Ref": "Ec2Instance1"}],
                     "LoadBalancerName": "test-elb",
-                    "AvailabilityZones": ['us-east1'],
+                    "AvailabilityZones": ['us-east-1'],
+                    "Listeners": [
+                        {
+                            "InstancePort": "80",
+                            "LoadBalancerPort": "80",
+                            "Protocol": "HTTP",
+                        }
+                    ],
                 }
             },
             "Ec2Instance1": {
@@ -293,7 +300,99 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     ec2_instance = reservation.instances[0]
 
     load_balancer.instances[0].id.should.equal(ec2_instance.id)
-    list(load_balancer.availability_zones).should.equal(['us-east1'])
+    list(load_balancer.availability_zones).should.equal(['us-east-1'])
+
+
+@mock_elb()
+@mock_cloudformation()
+def test_stack_elb_integration_with_health_check():
+    elb_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "MyELB": {
+                "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+                "Properties": {
+                    "LoadBalancerName": "test-elb",
+                    "AvailabilityZones": ['us-west-1'],
+                    "HealthCheck": {
+                        "HealthyThreshold": "3",
+                        "Interval": "5",
+                        "Target": "HTTP:80/healthcheck",
+                        "Timeout": "4",
+                        "UnhealthyThreshold": "2",
+                    },
+                    "Listeners": [
+                        {
+                            "InstancePort": "80",
+                            "LoadBalancerPort": "80",
+                            "Protocol": "HTTP",
+                        }
+                    ],
+                }
+            },
+        },
+    }
+    elb_template_json = json.dumps(elb_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "elb_stack",
+        template_body=elb_template_json,
+    )
+
+    elb_conn = boto.ec2.elb.connect_to_region("us-west-1")
+    load_balancer = elb_conn.get_all_load_balancers()[0]
+    health_check = load_balancer.health_check
+
+    health_check.healthy_threshold.should.equal(3)
+    health_check.interval.should.equal(5)
+    health_check.target.should.equal("HTTP:80/healthcheck")
+    health_check.timeout.should.equal(4)
+    health_check.unhealthy_threshold.should.equal(2)
+
+
+@mock_elb()
+@mock_cloudformation()
+def test_stack_elb_integration_with_update():
+    elb_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "MyELB": {
+                "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+                "Properties": {
+                    "LoadBalancerName": "test-elb",
+                    "AvailabilityZones": ['us-west-1a'],
+                    "Listeners": [
+                        {
+                            "InstancePort": "80",
+                            "LoadBalancerPort": "80",
+                            "Protocol": "HTTP",
+                        }
+                    ],
+                }
+            },
+        },
+    }
+    elb_template_json = json.dumps(elb_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "elb_stack",
+        template_body=elb_template_json,
+    )
+
+    elb_conn = boto.ec2.elb.connect_to_region("us-west-1")
+    load_balancer = elb_conn.get_all_load_balancers()[0]
+    load_balancer.availability_zones[0].should.equal('us-west-1a')
+
+    elb_template['Resources']['MyELB']['Properties']['AvailabilityZones'] = ['us-west-1b']
+    elb_template_json = json.dumps(elb_template)
+    conn.update_stack(
+        "elb_stack",
+        template_body=elb_template_json,
+    )
+    load_balancer = elb_conn.get_all_load_balancers()[0]
+    load_balancer.availability_zones[0].should.equal('us-west-1b')
 
 
 @mock_ec2()
@@ -451,11 +550,11 @@ def test_autoscaling_group_with_elb():
                     "Listeners": [{
                         "LoadBalancerPort": "80",
                         "InstancePort": "80",
-                        "Protocol": "HTTP"
+                        "Protocol": "HTTP",
                     }],
                     "LoadBalancerName": "my-elb",
                     "HealthCheck": {
-                        "Target": "80",
+                        "Target": "HTTP:80",
                         "HealthyThreshold": "3",
                         "UnhealthyThreshold": "5",
                         "Interval": "30",
@@ -496,6 +595,55 @@ def test_autoscaling_group_with_elb():
 
     elb_resource = [resource for resource in resources if resource.resource_type == 'AWS::ElasticLoadBalancing::LoadBalancer'][0]
     elb_resource.physical_resource_id.should.contain("my-elb")
+
+
+@mock_autoscaling()
+@mock_cloudformation()
+def test_autoscaling_group_update():
+    asg_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "my-as-group": {
+                "Type": "AWS::AutoScaling::AutoScalingGroup",
+                "Properties": {
+                    "AvailabilityZones": ['us-west-1'],
+                    "LaunchConfigurationName": {"Ref": "my-launch-config"},
+                    "MinSize": "2",
+                    "MaxSize": "2",
+                },
+            },
+
+            "my-launch-config": {
+                "Type": "AWS::AutoScaling::LaunchConfiguration",
+                "Properties": {
+                    "ImageId": "ami-1234abcd",
+                    "UserData": "some user data",
+                }
+            },
+        },
+    }
+    asg_template_json = json.dumps(asg_template)
+
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "asg_stack",
+        template_body=asg_template_json,
+    )
+
+    autoscale_conn = boto.ec2.autoscale.connect_to_region("us-west-1")
+    asg = autoscale_conn.get_all_groups()[0]
+    asg.min_size.should.equal(2)
+    asg.max_size.should.equal(2)
+
+    asg_template['Resources']['my-as-group']['Properties']['MaxSize'] = 3
+    asg_template_json = json.dumps(asg_template)
+    conn.update_stack(
+        "asg_stack",
+        template_body=asg_template_json,
+    )
+    asg = autoscale_conn.get_all_groups()[0]
+    asg.min_size.should.equal(2)
+    asg.max_size.should.equal(3)
 
 
 @mock_ec2()
@@ -1073,6 +1221,46 @@ def test_route53_associate_health_check():
 
 
 @mock_cloudformation()
+@mock_route53()
+def test_route53_with_update():
+    route53_conn = boto.connect_route53()
+
+    template_json = json.dumps(route53_health_check.template)
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    list(zones).should.have.length_of(1)
+    zone_id = zones[0]['Id']
+
+    rrsets = route53_conn.get_all_rrsets(zone_id)
+    rrsets.should.have.length_of(1)
+
+    record_set = rrsets[0]
+    record_set.resource_records.should.equal(["my.example.com"])
+
+    route53_health_check.template['Resources']['myDNSRecord']['Properties']['ResourceRecords'] = ["my_other.example.com"]
+    template_json = json.dumps(route53_health_check.template)
+    cf_conn.update_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    list(zones).should.have.length_of(1)
+    zone_id = zones[0]['Id']
+
+    rrsets = route53_conn.get_all_rrsets(zone_id)
+    rrsets.should.have.length_of(1)
+
+    record_set = rrsets[0]
+    record_set.resource_records.should.equal(["my_other.example.com"])
+
+
+@mock_cloudformation()
 @mock_sns()
 def test_sns_topic():
     dummy_template = {
@@ -1380,6 +1568,51 @@ def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
     security_group1.rules[0].ip_protocol.should.equal('tcp')
     security_group1.rules[0].from_port.should.equal('80')
     security_group1.rules[0].to_port.should.equal('8080')
+
+
+@mock_cloudformation
+@mock_ec2
+def test_security_group_with_update():
+    vpc_conn = boto.vpc.connect_to_region("us-west-1")
+    vpc1 = vpc_conn.create_vpc("10.0.0.0/16")
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "test-security-group": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription": "test security group",
+                    "VpcId": vpc1.id,
+                    "Tags": [
+                        {
+                            "Key": "sg-name",
+                            "Value": "sg"
+                        }
+                    ]
+                },
+            },
+        }
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+    security_group = vpc_conn.get_all_security_groups(filters={"tag:sg-name": "sg"})[0]
+    security_group.vpc_id.should.equal(vpc1.id)
+
+    vpc2 = vpc_conn.create_vpc("10.1.0.0/16")
+    template['Resources']['test-security-group']['Properties']['VpcId'] = vpc2.id
+    template_json = json.dumps(template)
+    cf_conn.update_stack(
+        "test_stack",
+        template_body=template_json,
+    )
+    security_group = vpc_conn.get_all_security_groups(filters={"tag:sg-name": "sg"})[0]
+    security_group.vpc_id.should.equal(vpc2.id)
 
 
 @mock_cloudformation

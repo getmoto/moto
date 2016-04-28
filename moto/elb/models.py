@@ -64,20 +64,21 @@ class FakeLoadBalancer(object):
         self.subnets = subnets or []
         self.vpc_id = vpc_id or 'vpc-56e10e3d'
         self.tags = {}
+        self.dns_name = "tests.us-east-1.elb.amazonaws.com"
 
         for port in ports:
             listener = FakeListener(
-                protocol=port['protocol'],
-                load_balancer_port=port['load_balancer_port'],
-                instance_port=port['instance_port'],
-                ssl_certificate_id=port.get('sslcertificate_id'),
+                protocol=(port.get('protocol') or port['Protocol']),
+                load_balancer_port=(port.get('load_balancer_port') or port['LoadBalancerPort']),
+                instance_port=(port.get('instance_port') or port['InstancePort']),
+                ssl_certificate_id=port.get('sslcertificate_id', port.get('SSLCertificateId')),
             )
             self.listeners.append(listener)
 
             # it is unclear per the AWS documentation as to when or how backend
             # information gets set, so let's guess and set it here *shrug*
             backend = FakeBackend(
-                instance_port=port['instance_port'],
+                instance_port=(port.get('instance_port') or port['InstancePort']),
             )
             self.backends.append(backend)
 
@@ -88,14 +89,40 @@ class FakeLoadBalancer(object):
         elb_backend = elb_backends[region_name]
         new_elb = elb_backend.create_load_balancer(
             name=properties.get('LoadBalancerName', resource_name),
-            zones=properties.get('AvailabilityZones'),
-            ports=[],
+            zones=properties.get('AvailabilityZones', []),
+            ports=properties['Listeners'],
+            scheme=properties.get('Scheme', 'internet-facing'),
         )
 
-        instance_ids = cloudformation_json.get('Instances', [])
+        instance_ids = properties.get('Instances', [])
         for instance_id in instance_ids:
             elb_backend.register_instances(new_elb.name, [instance_id])
+
+        health_check = properties.get('HealthCheck')
+        if health_check:
+            elb_backend.configure_health_check(
+                load_balancer_name=new_elb.name,
+                timeout=health_check['Timeout'],
+                healthy_threshold=health_check['HealthyThreshold'],
+                unhealthy_threshold=health_check['UnhealthyThreshold'],
+                interval=health_check['Interval'],
+                target=health_check['Target'],
+            )
+
         return new_elb
+
+    @classmethod
+    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
+        cls.delete_from_cloudformation_json(original_resource.name, cloudformation_json, region_name)
+        return cls.create_from_cloudformation_json(new_resource_name, cloudformation_json, region_name)
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        elb_backend = elb_backends[region_name]
+        try:
+            elb_backend.delete_load_balancer(resource_name)
+        except KeyError:
+            pass
 
     @property
     def physical_resource_id(self):
@@ -108,7 +135,7 @@ class FakeLoadBalancer(object):
         elif attribute_name == 'CanonicalHostedZoneNameID':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneNameID" ]"')
         elif attribute_name == 'DNSName':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DNSName" ]"')
+            return self.dns_name
         elif attribute_name == 'SourceSecurityGroup.GroupName':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.GroupName" ]"')
         elif attribute_name == 'SourceSecurityGroup.OwnerAlias':
@@ -148,6 +175,10 @@ class FakeLoadBalancer(object):
     def remove_tag(self, key):
         if key in self.tags:
             del self.tags[key]
+
+    def delete(self, region):
+        ''' Not exposed as part of the ELB API - used for CloudFormation. '''
+        elb_backends[region].delete_load_balancer(self.name)
 
 
 class ELBBackend(BaseBackend):

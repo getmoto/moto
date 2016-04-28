@@ -12,8 +12,7 @@ from boto.ec2.elb.policies import (
 
 from moto.core.responses import BaseResponse
 from .models import elb_backends
-from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError, \
-    TooManyTagsError
+from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
 
 
 class ELBResponse(BaseResponse):
@@ -29,16 +28,16 @@ class ELBResponse(BaseResponse):
         scheme = self._get_param('Scheme')
         subnets = self._get_multi_param("Subnets.member")
 
-        elb = self.elb_backend.create_load_balancer(
+        load_balancer = self.elb_backend.create_load_balancer(
             name=load_balancer_name,
             zones=availability_zones,
             ports=ports,
             scheme=scheme,
             subnets=subnets,
         )
-        self._add_tags(elb)
+        self._add_tags(load_balancer)
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
-        return template.render()
+        return template.render(load_balancer=load_balancer)
 
     def create_load_balancer_listeners(self):
         load_balancer_name = self._get_param('LoadBalancerName')
@@ -244,7 +243,7 @@ class ELBResponse(BaseResponse):
                 load_balancer_name = self._get_param('LoadBalancerNames.member.{0}'.format(number))
                 elb = self.elb_backend.get_load_balancer(load_balancer_name)
                 if not elb:
-                    raise LoadBalancerNotFound(load_balancer_name)
+                    raise LoadBalancerNotFoundError(load_balancer_name)
 
                 key = 'Tag.member.{0}.Key'.format(number)
                 for t_key, t_val in self.querystring.items():
@@ -263,7 +262,7 @@ class ELBResponse(BaseResponse):
                 load_balancer_name = self._get_param('LoadBalancerNames.member.{0}'.format(number))
                 elb = self.elb_backend.get_load_balancer(load_balancer_name)
                 if not elb:
-                    raise LoadBalancerNotFound(load_balancer_name)
+                    raise LoadBalancerNotFoundError(load_balancer_name)
                 elbs.append(elb)
 
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
@@ -334,7 +333,7 @@ DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalan
 
 CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <CreateLoadBalancerResult>
-    <DNSName>tests.us-east-1.elb.amazonaws.com</DNSName>
+    <DNSName>{{ load_balancer.dns_name }}</DNSName>
   </CreateLoadBalancerResult>
   <ResponseMetadata>
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
@@ -442,7 +441,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           <CanonicalHostedZoneName>tests.us-east-1.elb.amazonaws.com</CanonicalHostedZoneName>
           <CanonicalHostedZoneNameID>Z3ZONEID</CanonicalHostedZoneNameID>
           <Scheme>{{ load_balancer.scheme }}</Scheme>
-          <DNSName>tests.us-east-1.elb.amazonaws.com</DNSName>
+          <DNSName>{{ load_balancer.dns_name }}</DNSName>
           <BackendServerDescriptions>
           {% for backend in load_balancer.backends %}
             <member>
