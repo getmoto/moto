@@ -474,12 +474,12 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         return bucket.keys.pop(key_name)
 
-    def copy_key(self, src_bucket_name, src_key_name, dest_bucket_name, dest_key_name, storage=None, acl=None):
+    def copy_key(self, src_bucket_name, src_key_name, dest_bucket_name,
+                 dest_key_name, storage=None, acl=None, src_version_id=None):
         src_key_name = clean_key_name(src_key_name)
         dest_key_name = clean_key_name(dest_key_name)
-        src_bucket = self.get_bucket(src_bucket_name)
         dest_bucket = self.get_bucket(dest_bucket_name)
-        key = src_bucket.keys[src_key_name]
+        key = self.get_key(src_bucket_name, src_key_name, version_id=src_version_id)
         if dest_key_name != src_key_name:
             key = key.copy(dest_key_name)
         dest_bucket.keys[dest_key_name] = key

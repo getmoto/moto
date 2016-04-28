@@ -435,9 +435,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         if 'x-amz-copy-source' in request.headers:
             # Copy key
-            src_bucket, src_key = request.headers.get("x-amz-copy-source").split("/", 1)
+            src_key_parsed = urlparse(request.headers.get("x-amz-copy-source"))
+            src_bucket, src_key = src_key_parsed.path.split("/", 1)
+            src_version_id = parse_qs(src_key_parsed.query).get('versionId', [None])[0]
             self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
-                                  storage=storage_class, acl=acl)
+                                  storage=storage_class, acl=acl, src_version_id=src_version_id)
             mdirective = request.headers.get('x-amz-metadata-directive')
             if mdirective is not None and mdirective == 'REPLACE':
                 new_key = self.backend.get_key(bucket_name, key_name)

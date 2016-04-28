@@ -333,6 +333,22 @@ def test_copy_key():
 
 
 @mock_s3
+def test_copy_key_with_version():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    bucket.configure_versioning(versioning=True)
+    key = Key(bucket)
+    key.key = "the-key"
+    key.set_contents_from_string("some value")
+    key.set_contents_from_string("another value")
+
+    bucket.copy_key('new-key', 'foobar', 'the-key', src_version_id='0')
+
+    bucket.get_key("the-key").get_contents_as_string().should.equal(b"another value")
+    bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
+
+
+@mock_s3
 def test_set_metadata():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
