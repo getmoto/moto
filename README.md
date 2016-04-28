@@ -191,6 +191,11 @@ def test_my_model_save():
     mock.stop()
 ```
 
+## Use with other libraries (boto3) or languages
+
+In general, Moto doesn't rely on anything specific to Boto. It only mock AWS endpoints so there should be no issue with boto3 or using other languages. Feel free to open an issue if something isn't working though. If you are using another language, you will need to either use the stand-alone server mode (more below) or monkey path the HTTP calls yourself.
+
+
 ## Stand-alone Server Mode
 
 Moto also comes with a stand-alone server mode. This allows you to utilize the backend structure of Moto even if you don't use Python.
