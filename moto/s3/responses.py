@@ -372,7 +372,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif method == 'PUT':
             return self._key_response_put(request, body, bucket_name, query, key_name, headers)
         elif method == 'HEAD':
-            return self._key_response_head(bucket_name, key_name, headers)
+            return self._key_response_head(bucket_name, query, key_name, headers)
         elif method == 'DELETE':
             return self._key_response_delete(bucket_name, query, key_name, headers)
         elif method == 'POST':
@@ -468,8 +468,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
         headers.update(new_key.response_dict)
         return 200, headers, template.render(key=new_key)
 
-    def _key_response_head(self, bucket_name, key_name, headers):
-        key = self.backend.get_key(bucket_name, key_name)
+    def _key_response_head(self, bucket_name, query, key_name, headers):
+        version_id = query.get('versionId', [None])[0]
+        key = self.backend.get_key(bucket_name, key_name, version_id=version_id)
         if key:
             headers.update(key.metadata)
             headers.update(key.response_dict)

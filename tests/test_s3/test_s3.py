@@ -1000,6 +1000,28 @@ def test_boto3_head_object():
         s3.Object('blah', 'hello2.txt').meta.client.head_object(Bucket='blah', Key='hello_bad.txt')
 
 
+@mock_s3
+def test_boto3_head_object_with_versioning():
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    bucket = s3.create_bucket(Bucket='blah')
+    bucket.Versioning().enable()
+
+    old_content = 'some text'
+    new_content = 'some new text'
+    s3.Object('blah', 'hello.txt').put(Body=old_content)
+    s3.Object('blah', 'hello.txt').put(Body=new_content)
+
+    head_object = s3.Object('blah', 'hello.txt').meta.client.head_object(
+        Bucket='blah', Key='hello.txt')
+    head_object['VersionId'].should.equal('1')
+    head_object['ContentLength'].should.equal(len(new_content))
+
+    old_head_object = s3.Object('blah', 'hello.txt').meta.client.head_object(
+        Bucket='blah', Key='hello.txt', VersionId='0')
+    old_head_object['VersionId'].should.equal('0')
+    old_head_object['ContentLength'].should.equal(len(old_content))
+
+
 TEST_XML = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <ns0:WebsiteConfiguration xmlns:ns0="http://s3.amazonaws.com/doc/2006-03-01/">
