@@ -6,6 +6,10 @@ ERROR_WITH_BUCKET_NAME = """{% extends 'error' %}
 {% block extra %}<BucketName>{{ bucket }}</BucketName>{% endblock %}
 """
 
+ERROR_WITH_KEY_NAME = """{% extends 'error' %}
+{% block extra %}<KeyName>{{ key_name }}</KeyName>{% endblock %}
+"""
+
 
 class S3ClientError(RESTError):
     pass
@@ -38,6 +42,17 @@ class MissingBucket(BucketError):
             "NoSuchBucket",
             "The specified bucket does not exist",
             *args, **kwargs)
+
+
+class MissingKey(S3ClientError):
+    code = 404
+
+    def __init__(self, key_name):
+        super(MissingKey, self).__init__(
+            "NoSuchKey",
+            "The specified key does not exist.",
+            Key=key_name,
+        )
 
 
 class InvalidPartOrder(S3ClientError):

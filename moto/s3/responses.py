@@ -399,11 +399,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return 200, headers, template.render(obj=key)
 
-        if key:
-            headers.update(key.metadata)
-            return 200, headers, key.value
-        else:
-            return 404, headers, ""
+        headers.update(key.metadata)
+        return 200, headers, key.value
 
     def _key_response_put(self, request, body, bucket_name, query, key_name, headers):
         if query.get('uploadId') and query.get('partNumber'):
