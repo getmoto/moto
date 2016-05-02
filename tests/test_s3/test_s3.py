@@ -851,6 +851,18 @@ def test_unicode_value():
 
 
 @mock_s3
+def test_unicode_key_with_slash():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "/the-key-unîcode/test"
+    key.set_contents_from_string("value")
+
+    key = bucket.get_key("/the-key-unîcode/test")
+    key.get_contents_as_string().should.equal(b'value')
+
+
+@mock_s3
 def test_setting_content_encoding():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('mybucket')
