@@ -15,5 +15,5 @@ url_paths = {
     '{0}/(?P<key_or_bucket_name>[^/]+)/?$': S3ResponseInstance.ambiguous_response,
 
     # path-based bucket + key
-    '{0}/(?P<bucket_name_path>[a-zA-Z0-9\-_./]+)/(?P<key_name>.+)': S3ResponseInstance.key_response,
+    '{0}/(?P<bucket_name_path>[^/]+)/(?P<key_name>.+)': S3ResponseInstance.key_response,
 }
