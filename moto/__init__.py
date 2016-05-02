@@ -3,7 +3,7 @@ import logging
 logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = 'moto'
-__version__ = '0.4.23'
+__version__ = '0.4.24'
 
 from .apigateway import mock_apigateway  # flake8: noqa
 from .autoscaling import mock_autoscaling  # flake8: noqa
@@ -18,7 +18,7 @@ from .ecs import mock_ecs  # flake8: noqa
 from .elb import mock_elb  # flake8: noqa
 from .emr import mock_emr  # flake8: noqa
 from .glacier import mock_glacier  # flake8: noqa
-from .opsworks import mock_opsworks # flake8: noqa
+from .opsworks import mock_opsworks  # flake8: noqa
 from .iam import mock_iam  # flake8: noqa
 from .kinesis import mock_kinesis  # flake8: noqa
 from .kms import mock_kms  # flake8: noqa
