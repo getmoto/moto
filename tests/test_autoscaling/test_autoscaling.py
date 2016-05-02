@@ -419,3 +419,23 @@ def test_describe_autoscaling_groups():
         )
         response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
         response['AutoScalingGroups'][0]['AutoScalingGroupName'].should.equal('test_asg')
+
+@mock_autoscaling
+def test_update_autoscaling_group_boto3():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5
+    )
+
+    response = client.update_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        MinSize=1,
+        DesiredCapacity=1,
+    )
