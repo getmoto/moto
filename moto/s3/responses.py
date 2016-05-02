@@ -48,7 +48,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # For localhost, default to path-based buckets
             return False
 
-        path_based = (host == 's3.amazonaws.com' or re.match(r"s3\.([^.]*)\.amazonaws\.com", host))
+        path_based = (host == 's3.amazonaws.com' or re.match(r"s3[\.\-]([^.]*)\.amazonaws\.com", host))
         return not path_based
 
     def is_delete_keys(self, request, path, bucket_name):
