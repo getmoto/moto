@@ -252,6 +252,12 @@ class SNSBackend(BaseBackend):
         endpoint.attributes.update(attributes)
         return endpoint
 
+    def delete_endpoint(self, arn):
+        try:
+            del self.platform_endpoints[arn]
+        except KeyError:
+            raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
+
 
 sns_backends = {}
 for region in boto.sns.regions():

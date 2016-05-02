@@ -223,6 +223,40 @@ def test_set_endpoint_attributes():
 
 
 @mock_sns
+def test_delete_endpoint():
+    conn = boto.connect_sns()
+    platform_application = conn.create_platform_application(
+        name="my-application",
+        platform="APNS",
+    )
+    application_arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
+
+    endpoint = conn.create_platform_endpoint(
+        platform_application_arn=application_arn,
+        token="some_unique_id",
+        custom_user_data="some user data",
+        attributes={
+            "Enabled": False,
+            "CustomUserData": "some data",
+        },
+    )
+    endpoint_arn = endpoint['CreatePlatformEndpointResponse']['CreatePlatformEndpointResult']['EndpointArn']
+
+    endpoint_list = conn.list_endpoints_by_platform_application(
+        platform_application_arn=application_arn
+    )['ListEndpointsByPlatformApplicationResponse']['ListEndpointsByPlatformApplicationResult']['Endpoints']
+
+    endpoint_list.should.have.length_of(1)
+
+    conn.delete_endpoint(endpoint_arn)
+
+    endpoint_list = conn.list_endpoints_by_platform_application(
+        platform_application_arn=application_arn
+    )['ListEndpointsByPlatformApplicationResponse']['ListEndpointsByPlatformApplicationResult']['Endpoints']
+    endpoint_list.should.have.length_of(0)
+
+
+@mock_sns
 def test_publish_to_platform_endpoint():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(

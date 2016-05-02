@@ -421,6 +421,23 @@ class SNSResponse(BaseResponse):
         template = self.response_template(SET_ENDPOINT_ATTRIBUTES_TEMPLATE)
         return template.render()
 
+    def delete_endpoint(self):
+        arn = self._get_param('EndpointArn')
+        self.backend.delete_endpoint(arn)
+
+        if self.request_json:
+            return json.dumps({
+                "DeleteEndpointResponse": {
+                    "ResponseMetadata": {
+                        "RequestId": "384bc68d-3775-12df-8963-01868b7c937f",
+                    }
+                }
+            })
+
+        template = self.response_template(DELETE_ENDPOINT_TEMPLATE)
+        return template.render()
+
+
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
      <CreateTopicResult>
@@ -623,6 +640,13 @@ SET_ENDPOINT_ATTRIBUTES_TEMPLATE = """<SetEndpointAttributesResponse xmlns="http
     <RequestId>2fe0bfc7-3e85-5ee5-a9e2-f58b35e85f6a</RequestId>
   </ResponseMetadata>
 </SetEndpointAttributesResponse>"""
+
+DELETE_ENDPOINT_TEMPLATE = """<DeleteEndpointResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+ <ResponseMetadata>
+ <RequestId>c1d2b191-353c-5a5f-8969-fbdd3900afa8</RequestId>
+ </ResponseMetadata>
+</DeleteEndpointResponse>"""
+
 
 SET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE = """<SetPlatformApplicationAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <ResponseMetadata>
