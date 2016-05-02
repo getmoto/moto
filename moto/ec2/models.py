@@ -1158,7 +1158,6 @@ class SecurityGroup(TaggedEC2Resource):
 
     def delete(self, region_name):
         ''' Not exposed as part of the ELB API - used for CloudFormation. '''
-        backend = ec2_backends[region_name]
         self.ec2_backend.delete_security_group(group_id=self.id)
 
     @property
@@ -1570,6 +1569,7 @@ class Snapshot(TaggedEC2Resource):
         self.start_time = utc_date_and_time()
         self.create_volume_permission_groups = set()
         self.ec2_backend = ec2_backend
+        self.status = 'completed'
 
     def get_filter_value(self, filter_name):
 
@@ -2022,6 +2022,7 @@ class SubnetBackend(object):
         if map_public_ip not in ('true', 'false'):
             raise InvalidParameterValueError(map_public_ip)
         subnet.map_public_ip_on_launch = map_public_ip
+
 
 class SubnetRouteTableAssociation(object):
     def __init__(self, route_table_id, subnet_id):
