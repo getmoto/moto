@@ -217,18 +217,25 @@ class FakeAutoScalingGroup(object):
                launch_config_name, vpc_zone_identifier, default_cooldown,
                health_check_period, health_check_type, load_balancers,
                placement_group, termination_policies):
-        self.availability_zones = availability_zones
-        self.max_size = max_size
-        self.min_size = min_size
+        if availability_zones:
+            self.availability_zones = availability_zones
+        if max_size is not None:
+            self.max_size = max_size
+        if min_size is not None:
+            self.min_size = min_size
 
         if launch_config_name:
             self.launch_config = self.autoscaling_backend.launch_configurations[launch_config_name]
             self.launch_config_name = launch_config_name
-        self.vpc_zone_identifier = vpc_zone_identifier
-        self.health_check_period = health_check_period
-        self.health_check_type = health_check_type
+        if vpc_zone_identifier is not None:
+            self.vpc_zone_identifier = vpc_zone_identifier
+        if health_check_period is not None:
+            self.health_check_period = health_check_period
+        if health_check_type is not None:
+            self.health_check_type = health_check_type
 
-        self.set_desired_capacity(desired_capacity)
+        if desired_capacity is not None:
+            self.set_desired_capacity(desired_capacity)
 
     def set_desired_capacity(self, new_capacity):
         if new_capacity is None:

@@ -437,5 +437,9 @@ def test_update_autoscaling_group_boto3():
     response = client.update_auto_scaling_group(
         AutoScalingGroupName='test_asg',
         MinSize=1,
-        DesiredCapacity=1,
     )
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=["test_asg"]
+    )
+    response['AutoScalingGroups'][0]['MinSize'].should.equal(1)
