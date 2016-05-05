@@ -40,12 +40,14 @@ def test_upload_server_cert():
     cert.server_certificate_name.should.equal("certname")
     cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
 
+
 @mock_iam()
 @raises(BotoServerError)
 def test_get_role__should_throw__when_role_does_not_exist():
     conn = boto.connect_iam()
 
     conn.get_role('unexisting_role')
+
 
 @mock_iam()
 def test_create_role_and_instance_profile():
@@ -66,6 +68,23 @@ def test_create_role_and_instance_profile():
     role_from_profile['role_name'].should.equal("my-role")
 
     conn.list_roles().roles[0].role_name.should.equal('my-role')
+
+
+@mock_iam()
+def test_remove_role_from_instance_profile():
+    conn = boto.connect_iam()
+    conn.create_instance_profile("my-profile", path="my-path")
+    conn.create_role("my-role", assume_role_policy_document="some policy", path="my-path")
+    conn.add_role_to_instance_profile("my-profile", "my-role")
+
+    profile = conn.get_instance_profile("my-profile")
+    role_from_profile = list(profile.roles.values())[0]
+    role_from_profile['role_name'].should.equal("my-role")
+
+    conn.remove_role_from_instance_profile("my-profile", "my-role")
+
+    profile = conn.get_instance_profile("my-profile")
+    dict(profile.roles).should.be.empty
 
 
 @mock_iam()

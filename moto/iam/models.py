@@ -299,6 +299,11 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
         profile.roles.append(role)
 
+    def remove_role_from_instance_profile(self, profile_name, role_name):
+        profile = self.get_instance_profile(profile_name)
+        role = self.get_role(role_name)
+        profile.roles.remove(role)
+
     def get_all_server_certs(self, marker=None):
         return self.certificates.values()
 

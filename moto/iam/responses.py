@@ -75,6 +75,14 @@ class IamResponse(BaseResponse):
         template = self.response_template(ADD_ROLE_TO_INSTANCE_PROFILE_TEMPLATE)
         return template.render()
 
+    def remove_role_from_instance_profile(self):
+        profile_name = self._get_param('InstanceProfileName')
+        role_name = self._get_param('RoleName')
+
+        iam_backend.remove_role_from_instance_profile(profile_name, role_name)
+        template = self.response_template(REMOVE_ROLE_FROM_INSTANCE_PROFILE_TEMPLATE)
+        return template.render()
+
     def list_roles(self):
         roles = iam_backend.get_roles()
 
@@ -348,6 +356,12 @@ ADD_ROLE_TO_INSTANCE_PROFILE_TEMPLATE = """<AddRoleToInstanceProfileResponse xml
     <RequestId>12657608-99f2-11e1-a4c3-27EXAMPLE804</RequestId>
   </ResponseMetadata>
 </AddRoleToInstanceProfileResponse>"""
+
+REMOVE_ROLE_FROM_INSTANCE_PROFILE_TEMPLATE = """<RemoveRoleFromInstanceProfileResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>12657608-99f2-11e1-a4c3-27EXAMPLE804</RequestId>
+  </ResponseMetadata>
+</RemoveRoleFromInstanceProfileResponse>"""
 
 LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ListRolesResult>
