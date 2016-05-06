@@ -519,6 +519,31 @@ def test_conflicting_writes():
 boto3
 """
 
+@mock_dynamodb2
+def test_boto3_create_table():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'username',
+                'KeyType': 'HASH'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'username',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table.name.should.equal('users')
+
 
 def _create_user_table():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')

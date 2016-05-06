@@ -109,7 +109,7 @@ class DynamoHandler(BaseResponse):
                    global_indexes=global_indexes,
                    indexes=local_secondary_indexes)
         if table is not None:
-            return dynamo_json_dump(table.describe)
+            return dynamo_json_dump(table.describe())
         else:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceInUseException'
             return self.error(er)
@@ -118,7 +118,7 @@ class DynamoHandler(BaseResponse):
         name = self.body['TableName']
         table = dynamodb_backend2.delete_table(name)
         if table is not None:
-            return dynamo_json_dump(table.describe)
+            return dynamo_json_dump(table.describe())
         else:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
@@ -130,7 +130,7 @@ class DynamoHandler(BaseResponse):
         if 'ProvisionedThroughput' in self.body:
             throughput = self.body["ProvisionedThroughput"]
             table = dynamodb_backend2.update_table_throughput(name, throughput)
-        return dynamo_json_dump(table.describe)
+        return dynamo_json_dump(table.describe())
 
     def describe_table(self):
         name = self.body['TableName']
@@ -139,7 +139,7 @@ class DynamoHandler(BaseResponse):
         except KeyError:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
-        return dynamo_json_dump(table.describe)
+        return dynamo_json_dump(table.describe(base_key='Table'))
 
     def put_item(self):
         name = self.body['TableName']

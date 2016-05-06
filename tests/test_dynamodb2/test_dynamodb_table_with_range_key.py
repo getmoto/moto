@@ -1288,7 +1288,7 @@ def test_boto3_query_gsi_range_comparison():
 
 
 @mock_dynamodb2
-def test_update_table_throughput():
+def test_boto3_update_table_throughput():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
     # Create the DynamoDB table.
@@ -1336,7 +1336,7 @@ def test_update_table_throughput():
 
 
 @mock_dynamodb2
-def test_update_table_gsi_throughput():
+def test_boto3_update_table_gsi_throughput():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
     # Create the DynamoDB table.

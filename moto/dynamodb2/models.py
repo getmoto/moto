@@ -182,10 +182,9 @@ class Table(object):
         self.created_at = datetime.datetime.now()
         self.items = defaultdict(dict)
 
-    @property
-    def describe(self):
+    def describe(self, base_key='TableDescription'):
         results = {
-            'Table': {
+            base_key: {
                 'AttributeDefinitions': self.attr,
                 'ProvisionedThroughput': self.throughput,
                 'TableSizeBytes': 0,
@@ -525,7 +524,6 @@ class DynamoDBBackend(BaseBackend):
                 for key in keys:
                     if key in table.hash_key_names:
                         return key, None
-            # import pdb; pdb.set_trace()
             # for potential_hash, potential_range in zip(table.hash_key_names, table.range_key_names):
             #     if set([potential_hash, potential_range]) == set(keys):
             #         return potential_hash, potential_range
