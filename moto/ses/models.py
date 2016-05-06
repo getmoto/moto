@@ -33,6 +33,7 @@ class SESBackend(BaseBackend):
     def __init__(self):
         self.addresses = []
         self.domains = []
+        self.sent_messages = []
         self.sent_message_count = 0
 
     def _is_verified_address(self, address):
@@ -67,6 +68,7 @@ class SESBackend(BaseBackend):
 
         message_id = get_random_message_id()
         message = Message(message_id)
+        self.sent_messages.append(message)
         self.sent_message_count += recipient_count
         return message
 
@@ -88,7 +90,9 @@ class SESBackend(BaseBackend):
 
         self.sent_message_count += recipient_count
         message_id = get_random_message_id()
-        return RawMessage(message_id)
+        message = RawMessage(message_id)
+        self.sent_messages.append(message)
+        return message
 
     def get_send_quota(self):
         return SESQuota(self.sent_message_count)
