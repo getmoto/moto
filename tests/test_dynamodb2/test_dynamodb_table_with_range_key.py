@@ -1238,7 +1238,7 @@ def test_boto3_query_gsi_range_comparison():
 
     # Test a query returning all johndoe items
     results = table.query(
-        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt('0'),
+        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt(0),
         ScanIndexForward=True,
         IndexName='TestGSI',
     )
@@ -1248,7 +1248,7 @@ def test_boto3_query_gsi_range_comparison():
 
     # Return all johndoe items again, but in reverse
     results = table.query(
-        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt('0'),
+        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt(0),
         ScanIndexForward=False,
         IndexName='TestGSI',
     )
@@ -1258,7 +1258,7 @@ def test_boto3_query_gsi_range_comparison():
     # Filter the creation to only return some of the results
     # And reverse order of hash + range key
     results = table.query(
-        KeyConditionExpression=Key("created").gt('1') & Key('username').eq('johndoe'),
+        KeyConditionExpression=Key("created").gt(1) & Key('username').eq('johndoe'),
         ConsistentRead=True,
         IndexName='TestGSI',
     )
@@ -1266,20 +1266,20 @@ def test_boto3_query_gsi_range_comparison():
 
     # Filter to return no results
     results = table.query(
-        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").gt('9'),
+        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").gt(9),
         IndexName='TestGSI',
     )
     results['Count'].should.equal(0)
 
     results = table.query(
-        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").eq('5'),
+        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").eq(5),
         IndexName='TestGSI',
     )
     results['Count'].should.equal(1)
 
     # Test range key sorting
     results = table.query(
-        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt('0'),
+        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt(0),
         IndexName='TestGSI',
     )
     expected = [Decimal('1'), Decimal('2'), Decimal('3')]

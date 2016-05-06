@@ -53,6 +53,13 @@ class DynamoType(object):
     def __repr__(self):
         return "DynamoType: {0}".format(self.to_json())
 
+    @property
+    def cast_value(self):
+        if self.type == 'N':
+            return int(self.value)
+        else:
+            return self.value
+
     def to_json(self):
         return {self.type: self.value}
 
@@ -60,9 +67,9 @@ class DynamoType(object):
         """
         Compares this type against comparison filters
         """
-        range_values = [obj.value for obj in range_objs]
+        range_values = [obj.cast_value for obj in range_objs]
         comparison_func = get_comparison_func(range_comparison)
-        return comparison_func(self.value, *range_values)
+        return comparison_func(self.cast_value, *range_values)
 
 
 class Item(object):
