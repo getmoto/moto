@@ -409,9 +409,17 @@ class ResponseObject(_TemplateEnvironmentMixin):
             if 'x-amz-copy-source' in request.headers:
                 src = request.headers.get("x-amz-copy-source")
                 src_bucket, src_key = src.split("/", 1)
+                src_range = request.headers.get('x-amz-copy-source-range', '').split("bytes=")[-1]
+
+                try:
+                    start_byte, end_byte = src_range.split("-")
+                    start_byte, end_byte = int(start_byte), int(end_byte)
+                except ValueError:
+                    start_byte, end_byte = None, None
+
                 key = self.backend.copy_part(
                     bucket_name, upload_id, part_number, src_bucket,
-                    src_key)
+                    src_key, start_byte, end_byte)
                 template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
                 response = template.render(part=key)
             else:

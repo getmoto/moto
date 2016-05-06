@@ -156,9 +156,9 @@ def test_multipart_upload_with_copy_key():
     multipart = bucket.initiate_multipart_upload("the-key")
     part1 = b'0' * REDUCED_PART_SIZE
     multipart.upload_part_from_file(BytesIO(part1), 1)
-    multipart.copy_part_from_key("foobar", "original-key", 2)
+    multipart.copy_part_from_key("foobar", "original-key", 2, 0, 3)
     multipart.complete_upload()
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + b"key_value")
+    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + b"key_")
 
 
 @mock_s3
