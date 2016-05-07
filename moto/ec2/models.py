@@ -152,7 +152,7 @@ class TaggedEC2Resource(object):
             return [tag['value'] for tag in tags]
 
 
-class NetworkInterface(object):
+class NetworkInterface(TaggedEC2Resource):
     def __init__(self, ec2_backend, subnet, private_ip_address, device_index=0,
             public_ip_auto_assign=True, group_ids=None):
         self.ec2_backend = ec2_backend
@@ -236,6 +236,27 @@ class NetworkInterface(object):
     def physical_resource_id(self):
         return self.id
 
+    def get_filter_value(self, filter_name):
+        if filter_name == 'network-interface-id':
+            return self.id
+        elif filter_name in ('addresses.private-ip-address', 'private-ip-address'):
+            return self.private_ip_address
+        elif filter_name == 'subnet-id':
+            return self.subnet.id
+        elif filter_name == 'vpc-id':
+            return self.subnet.vpc_id
+        elif filter_name == 'group-id':
+            return [group.id for group in self._group_set]
+
+        filter_value = super(NetworkInterface, self).get_filter_value(filter_name)
+
+        if filter_value is None:
+            self.ec2_backend.raise_not_implemented_error(
+                "The filter '{0}' for DescribeNetworkInterfaces".format(filter_name)
+            )
+
+        return filter_value
+
 
 class NetworkInterfaceBackend(object):
     def __init__(self):
@@ -300,6 +321,18 @@ class NetworkInterfaceBackend(object):
         eni = self.get_network_interface(eni_id)
         group = self.get_security_group_from_id(group_id)
         eni._group_set = [group]
+
+    def get_all_network_interfaces(self, eni_ids=None, filters=None):
+        enis = self.enis.values()
+
+        if eni_ids:
+            enis = [eni for eni in enis if eni.id in eni_ids]
+            if len(enis) != len(eni_ids):
+                invalid_id = list(set(eni_ids).difference(set([eni.id for eni in enis])))[0]
+                raise InvalidNetworkInterfaceIdError(invalid_id)
+
+        return generic_filter(filters, enis)
+
 
 
 class Instance(BotoInstance, TaggedEC2Resource):
