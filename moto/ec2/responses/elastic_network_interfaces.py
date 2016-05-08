@@ -23,14 +23,9 @@ class ElasticNetworkInterfaces(BaseResponse):
         raise NotImplementedError('ElasticNetworkInterfaces(AmazonVPC).describe_network_interface_attribute is not yet implemented')
 
     def describe_network_interfaces(self):
-        # Partially implemented. Supports only network-interface-id and group-id filters
+        eni_ids = sequence_from_querystring('NetworkInterfaceId', self.querystring)
         filters = filters_from_querystring(self.querystring)
-        eni_ids = self._get_multi_param('NetworkInterfaceId.')
-        if 'network-interface-id' not in filters and eni_ids:
-            # Network interfaces can be filtered by passing the 'network-interface-id'
-            # filter or by passing the NetworkInterfaceId parameter
-            filters['network-interface-id'] = eni_ids
-        enis = self.ec2_backend.describe_network_interfaces(filters)
+        enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
         return template.render(enis=enis)
 
@@ -112,7 +107,11 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
            <description>Primary network interface</description>
            <ownerId>190610284047</ownerId>
            <requesterManaged>false</requesterManaged>
-           <status>in-use</status>
+           {% if eni.attachment_id %}
+             <status>in-use</status>
+           {% else %}
+             <status>available</status>
+           {% endif %}
            <macAddress>0e:a3:a7:7b:95:a7</macAddress>
            {% if eni.private_ip_address %}
              <privateIpAddress>{{ eni.private_ip_address }}</privateIpAddress>
@@ -129,6 +128,14 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
                 </item>
             {% endfor %}
             </groupSet>
+            <tagSet>
+              {% for tag in eni.get_tags() %}
+                <item>
+                  <key>{{ tag.key }}</key>
+                  <value>{{ tag.value }}</value>
+                </item>
+              {% endfor %}
+            </tagSet>
             {% if eni.instance %}
                <attachment>
                   <attachmentId>{{ eni.attachment_id }}</attachmentId>
@@ -145,7 +152,6 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
                 <publicDnsName>ec2-54-200-86-47.us-west-2.compute.amazonaws.com</publicDnsName>
                 <ipOwnerId>amazon</ipOwnerId>
             </association>
-            <tagSet/>
             {% if eni.private_ip_address %}
               <privateIpAddressesSet>
                   <item>
