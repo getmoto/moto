@@ -501,7 +501,8 @@ def test_delete_missing_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
 
-    bucket.delete_key.when.called_with('foobar').should.throw(S3ResponseError)
+    deleted_key = bucket.delete_key("foobar")
+    deleted_key.key.should.equal("foobar")
 
 
 @mock_s3

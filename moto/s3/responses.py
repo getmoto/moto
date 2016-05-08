@@ -305,11 +305,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
         error_names = []
 
         for k in keys:
-            try:
-                key_name = k.firstChild.nodeValue
-                self.backend.delete_key(bucket_name, key_name)
+            key_name = k.firstChild.nodeValue
+            success = self.backend.delete_key(bucket_name, key_name)
+            if success:
                 deleted_names.append(key_name)
-            except KeyError:
+            else:
                 error_names.append(key_name)
 
         return 200, headers, template.render(deleted=deleted_names, delete_errors=error_names)
@@ -520,12 +520,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
             upload_id = query['uploadId'][0]
             self.backend.cancel_multipart(bucket_name, upload_id)
             return 204, headers, ""
-        try:
-            removed_key = self.backend.delete_key(bucket_name, key_name)
-        except KeyError:
-            return 404, headers, ""
+        self.backend.delete_key(bucket_name, key_name)
         template = self.response_template(S3_DELETE_OBJECT_SUCCESS)
-        return 204, headers, template.render(bucket=removed_key)
+        return 204, headers, template.render()
 
     def _complete_multipart_body(self, body):
         ps = minidom.parseString(body).getElementsByTagName('Part')
