@@ -95,6 +95,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
              <platform>{{ image.platform }}</platform>
           {% endif %}
           <description>{{ image.description }}</description>
+          <creationDate>{{ image.creationDate.isoformat()+'+00:00' }}</creationDate>
           <rootDeviceType>ebs</rootDeviceType>
           <rootDeviceName>/dev/sda</rootDeviceName>
           <blockDeviceMapping>
