@@ -902,10 +902,11 @@ class TagBackend(object):
 
 class Ami(TaggedEC2Resource):
     def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
-            name=None, description=None):
+                 name=None, description=None, creationDate=None):
         self.ec2_backend = ec2_backend
         self.id = ami_id
         self.state = "available"
+        self.creationDate = creationDate or datetime.utcnow()
 
         if instance:
             self.instance = instance
@@ -977,15 +978,60 @@ class AmiBackend(object):
     def create_image(self, instance_id, name=None, description=None):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
-        instance = self.get_instance(instance_id)
-        ami = Ami(self, ami_id, instance=instance, source_ami=None, name=name, description=description)
-        self.amis[ami_id] = ami
+        ami = self._create_image_explicit(
+            ami_id,
+            instance_id=instance_id,
+            name=name,
+            description=description
+        )
         return ami
 
     def copy_image(self, source_image_id, source_region, name=None, description=None):
-        source_ami = ec2_backends[source_region].describe_images(ami_ids=[source_image_id])[0]
         ami_id = random_ami_id()
-        ami = Ami(self, ami_id, instance=None, source_ami=source_ami, name=name, description=description)
+        ami = self._create_image_explicit(
+            ami_id,
+            source_image_id=source_image_id,
+            source_region=source_region,
+            name=name,
+            description=description
+        )
+        return ami
+
+    def _create_image_explicit(
+            self,
+            ami_id,
+            instance_id=None,
+            source_image_id=None,
+            source_region=None,
+            name=None,
+            description=None,
+            virtualization_type=None,
+            architecture=None,
+            kernel_id=None,
+            platform=None
+            ):
+
+        instance = None
+        source_ami = None
+        if instance_id:
+            instance = self.get_instance(instance_id)
+        if source_image_id:
+            source_ami = ec2_backends[source_region].describe_images(
+                ami_ids=[source_image_id]
+            )[0]
+
+        ami = Ami(self,
+            ami_id, instance=instance, source_ami=source_ami,
+            name=name, description=description)
+        explicit_attrs = {
+            'virtualization_type': virtualization_type,
+            'architecture': architecture,
+            'kernel_id': kernel_id,
+            'platform': platform,
+        }
+        for (attr, value) in explicit_attrs.iteritems():
+            setattr(ami, attr, value)
+
         self.amis[ami_id] = ami
         return ami
 
@@ -1993,7 +2039,7 @@ class Subnet(TaggedEC2Resource):
         """
         if filter_name in ['cidr', 'cidrBlock', 'cidr-block']:
             return self.cidr_block
-        elif filter_name == 'vpc-id':
+        elif filter_name in ['vpc-id', 'vpcId']:
             return self.vpc_id
         elif filter_name == 'subnet-id':
             return self.id

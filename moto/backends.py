@@ -23,8 +23,10 @@ from moto.sns import sns_backend
 from moto.sqs import sqs_backend
 from moto.sts import sts_backend
 from moto.route53 import route53_backend
+from moto.motointernal import moto_backend
 
 BACKENDS = {
+    'moto': moto_backend,
     'apigateway': apigateway_backend,
     'autoscaling': autoscaling_backend,
     'cloudformation': cloudformation_backend,
