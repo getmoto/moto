@@ -334,7 +334,6 @@ class NetworkInterfaceBackend(object):
         return generic_filter(filters, enis)
 
 
-
 class Instance(BotoInstance, TaggedEC2Resource):
     def __init__(self, ec2_backend, image_id, user_data, security_groups, **kwargs):
         super(Instance, self).__init__()
@@ -906,6 +905,12 @@ class Ami(TaggedEC2Resource):
         self.ec2_backend = ec2_backend
         self.id = ami_id
         self.state = "available"
+        self.name = name
+        self.description = description
+        self.virtualization_type = None
+        self.architecture = None
+        self.kernel_id = None
+        self.platform = None
 
         if instance:
             self.instance = instance
@@ -914,8 +919,6 @@ class Ami(TaggedEC2Resource):
             self.architecture = instance.architecture
             self.kernel_id = instance.kernel
             self.platform = instance.platform
-            self.name = name
-            self.description = description
 
         elif source_ami:
             """
@@ -927,8 +930,10 @@ class Ami(TaggedEC2Resource):
             self.architecture = source_ami.architecture
             self.kernel_id = source_ami.kernel_id
             self.platform = source_ami.platform
-            self.name = name if name else source_ami.name
-            self.description = description if description else source_ami.description
+            if not name:
+                self.name = source_ami.name
+            if not description:
+                self.description = source_ami.description
 
         self.launch_permission_groups = set()
         self.launch_permission_users = set()
