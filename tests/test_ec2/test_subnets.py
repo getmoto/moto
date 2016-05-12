@@ -71,19 +71,59 @@ def test_subnet_should_have_proper_availability_zone_set():
     subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24", availability_zone='us-west-1b')
     subnetA.availability_zone.should.equal('us-west-1b')
 
+
+@mock_ec2
+def test_default_subnet():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    default_vpc = ec2.create_vpc(CidrBlock='172.31.0.0/16')
+    default_vpc.reload()
+    default_vpc.is_default.should.be.ok
+
+    subnet = ec2.create_subnet(VpcId=default_vpc.id, CidrBlock='172.31.0.0/20', AvailabilityZone='us-west-1a')
+    subnet.reload()
+    subnet.map_public_ip_on_launch.should.be.ok
+
+
+@mock_ec2
+def test_non_default_subnet():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock='172.31.0.0/16')
+
+    # Create the non default VPC
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+    subnet.reload()
+    subnet.map_public_ip_on_launch.shouldnt.be.ok
+
+
 @mock_ec2
 def test_modify_subnet_attribute():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
     client = boto3.client('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock='172.31.0.0/16')
+
     vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
 
-    subnet.map_public_ip_on_launch.should.be.false
+    # 'map_public_ip_on_launch' is set when calling 'DescribeSubnets' action
+    subnet.reload()
+
+    # For non default subnet, attribute value should be 'False'
+    subnet.map_public_ip_on_launch.shouldnt.be.ok
 
     client.modify_subnet_attribute(SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': True})
     subnet.reload()
 
-    subnet.map_public_ip_on_launch.should.be.true
+    subnet.map_public_ip_on_launch.should.be.ok
 
 @mock_ec2
 def test_modify_subnet_attribute_validation():

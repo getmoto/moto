@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import tests.backport_assert_raises  # flake8: noqa
 from nose.tools import assert_raises
 
+import boto3
 import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
@@ -208,3 +209,86 @@ def test_vpc_get_by_tag_value_subset():
     vpc_ids = tuple(map(lambda v: v.id, vpcs))
     vpc1.id.should.be.within(vpc_ids)
     vpc2.id.should.be.within(vpc_ids)
+
+
+@mock_ec2
+def test_default_vpc():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    default_vpc = ec2.create_vpc(CidrBlock='172.31.0.0/16')
+    default_vpc.reload()
+    default_vpc.is_default.should.be.ok
+
+    # Test default values for VPC attributes
+    response = default_vpc.describe_attribute(Attribute='enableDnsSupport')
+    attr = response.get('EnableDnsSupport')
+    attr.get('Value').should.be.ok
+
+    response = default_vpc.describe_attribute(Attribute='enableDnsHostnames')
+    attr = response.get('EnableDnsHostnames')
+    attr.get('Value').should.be.ok
+
+
+@mock_ec2
+def test_non_default_vpc():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock='172.31.0.0/16')
+
+    # Create the non default VPC
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    # Test default values for VPC attributes
+    response = vpc.describe_attribute(Attribute='enableDnsSupport')
+    attr = response.get('EnableDnsSupport')
+    attr.get('Value').should.be.ok
+
+    response = vpc.describe_attribute(Attribute='enableDnsHostnames')
+    attr = response.get('EnableDnsHostnames')
+    attr.get('Value').shouldnt.be.ok
+
+
+@mock_ec2
+def test_vpc_modify_enable_dns_support():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock='172.31.0.0/16')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    # Test default values for VPC attributes
+    response = vpc.describe_attribute(Attribute='enableDnsSupport')
+    attr = response.get('EnableDnsSupport')
+    attr.get('Value').should.be.ok
+
+    vpc.modify_attribute(EnableDnsSupport={'Value': False})
+
+    response = vpc.describe_attribute(Attribute='enableDnsSupport')
+    attr = response.get('EnableDnsSupport')
+    attr.get('Value').shouldnt.be.ok
+
+
+@mock_ec2
+def test_vpc_modify_enable_dns_hostnames():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock='172.31.0.0/16')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    # Test default values for VPC attributes
+    response = vpc.describe_attribute(Attribute='enableDnsHostnames')
+    attr = response.get('EnableDnsHostnames')
+    attr.get('Value').shouldnt.be.ok
+
+    vpc.modify_attribute(EnableDnsHostnames={'Value': True})
+
+    response = vpc.describe_attribute(Attribute='enableDnsHostnames')
+    attr = response.get('EnableDnsHostnames')
+    attr.get('Value').should.be.ok
