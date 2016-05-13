@@ -18,6 +18,10 @@ class Key(object):
         self.key_rotation_status = False
 
     @property
+    def physical_resource_id(self):
+        return self.id
+
+    @property
     def arn(self):
         return "arn:aws:kms:{0}:{1}:key/{2}".format(self.region, self.account_id, self.id)
 
@@ -34,6 +38,25 @@ class Key(object):
             }
         }
 
+    def delete(self, region_name):
+        kms_backends[region_name].delete_key(self.id)
+
+    @classmethod
+    def create_from_cloudformation_json(self, resource_name, cloudformation_json, region_name):
+        kms_backend = kms_backends[region_name]
+        properties = cloudformation_json['Properties']
+
+        key = kms_backend.create_key(
+            policy=properties['KeyPolicy'],
+            key_usage='ENCRYPT_DECRYPT',
+            description=properties['Description'],
+            region=region_name,
+        )
+        key.key_rotation_status = properties['EnableKeyRotation']
+        key.enabled = properties['Enabled']
+
+        return key
+
 
 class KmsBackend(BaseBackend):
 
@@ -45,6 +68,13 @@ class KmsBackend(BaseBackend):
         key = Key(policy, key_usage, description, region)
         self.keys[key.id] = key
         return key
+
+    def delete_key(self, key_id):
+        if key_id in self.keys:
+            if key_id in self.key_to_aliases:
+                self.key_to_aliases.pop(key_id)
+
+            return self.keys.pop(key_id)
 
     def describe_key(self, key_id):
         return self.keys[key_id]

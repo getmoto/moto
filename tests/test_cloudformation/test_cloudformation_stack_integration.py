@@ -23,6 +23,7 @@ from moto import (
     mock_ec2,
     mock_elb,
     mock_iam,
+    mock_kms,
     mock_lambda,
     mock_rds,
     mock_redshift,
@@ -1597,3 +1598,35 @@ def test_nat_gateway():
     result['NatGateways'][0]['VpcId'].should.equal(vpc_id)
     result['NatGateways'][0]['SubnetId'].should.equal(subnet_id)
     result['NatGateways'][0]['State'].should.equal('available')
+
+@mock_cloudformation()
+@mock_kms()
+def test_stack_kms():
+    kms_key_template = {
+        'Resources': {
+            'kmskey': {
+                'Properties': {
+                    'Description': 'A kms key',
+                    'EnableKeyRotation': True,
+                    'Enabled': True,
+                    'KeyPolicy': 'a policy',
+                },
+                'Type': 'AWS::KMS::Key'
+            }
+        }
+    }
+    kms_key_template_json = json.dumps(kms_key_template)
+
+    cf_conn = boto3.client('cloudformation', 'us-east-1')
+    cf_conn.create_stack(
+        StackName='test_stack',
+        TemplateBody=kms_key_template_json,
+    )
+
+    kms_conn = boto3.client('kms', 'us-east-1')
+    keys = kms_conn.list_keys()['Keys']
+    len(keys).should.equal(1)
+    result = kms_conn.describe_key(KeyId=keys[0]['KeyId'])
+
+    result['KeyMetadata']['Enabled'].should.equal(True)
+    result['KeyMetadata']['KeyUsage'].should.equal('ENCRYPT_DECRYPT')
