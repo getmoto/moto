@@ -35,3 +35,11 @@ class BadHealthCheckDefinition(ELBClientError):
             "ValidationError",
             "HealthCheck Target must begin with one of HTTP, TCP, HTTPS, SSL")
 
+
+class DuplicateLoadBalancerName(ELBClientError):
+    def __init__(self, name):
+        super(DuplicateLoadBalancerName, self).__init__(
+            "DuplicateLoadBalancerName",
+            "The specified load balancer name already exists for this account: {0}"
+            .format(name))
+

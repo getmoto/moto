@@ -11,7 +11,12 @@ from boto.ec2.elb.attributes import (
 from boto.ec2.elb.policies import Policies
 from moto.core import BaseBackend
 from moto.ec2.models import ec2_backends
-from .exceptions import LoadBalancerNotFoundError, TooManyTagsError, BadHealthCheckDefinition
+from .exceptions import (
+    LoadBalancerNotFoundError,
+    TooManyTagsError,
+    BadHealthCheckDefinition,
+    DuplicateLoadBalancerName,
+)
 
 
 class FakeHealthCheck(object):
@@ -64,7 +69,7 @@ class FakeLoadBalancer(object):
         self.subnets = subnets or []
         self.vpc_id = vpc_id or 'vpc-56e10e3d'
         self.tags = {}
-        self.dns_name = "tests.us-east-1.elb.amazonaws.com"
+        self.dns_name = "%s.us-east-1.elb.amazonaws.com" % (name)
 
         for port in ports:
             listener = FakeListener(
@@ -198,6 +203,8 @@ class ELBBackend(BaseBackend):
         if subnets:
             subnet = ec2_backend.get_subnet(subnets[0])
             vpc_id = subnet.vpc_id
+        if name in self.load_balancers:
+            raise DuplicateLoadBalancerName(name)
         new_load_balancer = FakeLoadBalancer(name=name, zones=zones, ports=ports, scheme=scheme, subnets=subnets, vpc_id=vpc_id)
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
