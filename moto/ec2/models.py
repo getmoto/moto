@@ -1750,7 +1750,11 @@ class VPC(TaggedEC2Resource):
         self.cidr_block = cidr_block
         self.dhcp_options = None
         self.state = 'available'
-        self.is_default = is_default
+        self.is_default = 'true' if is_default else 'false'
+        self.enable_dns_support = 'true'
+        # This attribute is set to 'true' only for default VPCs
+        # or VPCs created using the wizard of the VPC console
+        self.enable_dns_hostnames = 'true' if is_default else 'false'
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1847,6 +1851,20 @@ class VPCBackend(object):
             vpc.dhcp_options = None
         return vpc
 
+    def describe_vpc_attribute(self, vpc_id, attr_name):
+        vpc = self.get_vpc(vpc_id)
+        if attr_name in ('enable_dns_support', 'enable_dns_hostnames'):
+            return getattr(vpc, attr_name)
+        else:
+            raise InvalidParameterValueError(attr_name)
+
+    def modify_vpc_attribute(self, vpc_id, attr_name, attr_value):
+        vpc = self.get_vpc(vpc_id)
+        if attr_name in ('enable_dns_support', 'enable_dns_hostnames'):
+            setattr(vpc, attr_name, attr_value)
+        else:
+            raise InvalidParameterValueError(attr_name)
+
 
 class VPCPeeringConnectionStatus(object):
     def __init__(self, code='initiating-request', message=''):
@@ -1936,14 +1954,14 @@ class VPCPeeringConnectionBackend(object):
 
 
 class Subnet(TaggedEC2Resource):
-    def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone, defaultForAz,
+    def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone, default_for_az,
                  map_public_ip_on_launch):
         self.ec2_backend = ec2_backend
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
         self._availability_zone = availability_zone
-        self.defaultForAz = defaultForAz
+        self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
 
     @classmethod
@@ -1996,7 +2014,7 @@ class Subnet(TaggedEC2Resource):
 
         Taken from: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSubnets.html
         """
-        if filter_name in ['cidr', 'cidrBlock', 'cidr-block']:
+        if filter_name in ('cidr', 'cidrBlock', 'cidr-block'):
             return self.cidr_block
         elif filter_name == 'vpc-id':
             return self.vpc_id
@@ -2004,8 +2022,8 @@ class Subnet(TaggedEC2Resource):
             return self.id
         elif filter_name == 'availabilityZone':
             return self.availability_zone
-        elif filter_name == 'defaultForAz':
-            return self.defaultForAz
+        elif filter_name in ('defaultForAz', 'default-for-az'):
+            return self.default_for_az
 
         filter_value = super(Subnet, self).get_filter_value(filter_name)
 
@@ -2035,9 +2053,9 @@ class SubnetBackend(object):
     def create_subnet(self, vpc_id, cidr_block, availability_zone=None):
         subnet_id = random_subnet_id()
         vpc = self.get_vpc(vpc_id)  # Validate VPC exists
-        defaultForAz = "true" if vpc.is_default else "false"
-        map_public_ip_on_launch = "true" if vpc.is_default else "false"
-        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone, defaultForAz, map_public_ip_on_launch)
+        default_for_az = vpc.is_default
+        map_public_ip_on_launch = vpc.is_default
+        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone, default_for_az, map_public_ip_on_launch)
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id)

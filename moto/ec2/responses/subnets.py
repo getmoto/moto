@@ -79,7 +79,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
         <availableIpAddressCount>251</availableIpAddressCount>
         <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
-        <defaultForAz>{{ subnet.defaultForAz }}</defaultForAz>
+        <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
         <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
         <tagSet>
           {% for tag in subnet.get_tags() %}
