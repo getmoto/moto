@@ -438,7 +438,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
               <member>{{ zone }}</member>
             {% endfor %}
           </AvailabilityZones>
-          <CanonicalHostedZoneName>tests.us-east-1.elb.amazonaws.com</CanonicalHostedZoneName>
+          <CanonicalHostedZoneName>{{ load_balancer.dns_name }}</CanonicalHostedZoneName>
           <CanonicalHostedZoneNameID>Z3ZONEID</CanonicalHostedZoneNameID>
           <Scheme>{{ load_balancer.scheme }}</Scheme>
           <DNSName>{{ load_balancer.dns_name }}</DNSName>

@@ -763,3 +763,12 @@ def test_subnets():
     lb['Subnets'][0].should.equal(subnet.id)
 
     lb.should.have.key('VPCId').which.should.equal(vpc.id)
+
+
+@mock_elb
+def test_create_load_balancer_duplicate():
+    conn = boto.connect_elb()
+    ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
+    conn.create_load_balancer('my-lb', [], ports)
+    conn.create_load_balancer.when.called_with('my-lb', [], ports).should.throw(BotoServerError)
+
