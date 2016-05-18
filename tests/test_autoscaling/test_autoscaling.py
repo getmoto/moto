@@ -386,7 +386,7 @@ Boto3
 
 
 @mock_autoscaling
-def test_create_autoscaling_group():
+def test_create_autoscaling_group_boto3():
         client = boto3.client('autoscaling', region_name='us-east-1')
         _ = client.create_launch_configuration(
             LaunchConfigurationName='test_launch_configuration'
@@ -402,7 +402,7 @@ def test_create_autoscaling_group():
 
 
 @mock_autoscaling
-def test_describe_autoscaling_groups():
+def test_describe_autoscaling_groups_boto3():
         client = boto3.client('autoscaling', region_name='us-east-1')
         _ = client.create_launch_configuration(
             LaunchConfigurationName='test_launch_configuration'

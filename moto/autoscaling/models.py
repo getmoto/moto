@@ -197,17 +197,10 @@ class FakeAutoScalingGroup(object):
             backend.delete_autoscaling_group(resource_name)
         except KeyError:
             pass
-        except LoadBalancerNotFoundError:
-            # sometimes the ELB gets modified before the ASG, so just skip over desired capacity
-            backend.autoscaling_groups.pop(resource_name, None)
 
     def delete(self, region_name):
         backend = autoscaling_backends[region_name]
-        try:
-            backend.delete_autoscaling_group(self.name)
-        except LoadBalancerNotFoundError:
-            # sometimes the ELB gets deleted before the ASG, so just skip over desired capacity
-            backend.autoscaling_groups.pop(self.name, None)
+        backend.delete_autoscaling_group(self.name)
 
     @property
     def physical_resource_id(self):
@@ -435,7 +428,14 @@ class AutoScalingBackend(BaseBackend):
     def update_attached_elbs(self, group_name):
         group = self.autoscaling_groups[group_name]
         group_instance_ids = set(state.instance.id for state in group.instance_states)
-        for elb in self.elb_backend.describe_load_balancers(names=group.load_balancers):
+
+        try:
+            elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
+        except LoadBalancerNotFoundError:
+            # ELBs can be deleted before their autoscaling group
+            return
+
+        for elb in elbs:
             elb_instace_ids = set(elb.instance_ids)
             self.elb_backend.register_instances(elb.name, group_instance_ids - elb_instace_ids)
             self.elb_backend.deregister_instances(elb.name, elb_instace_ids - group_instance_ids)
