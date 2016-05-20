@@ -52,7 +52,8 @@ class SQSResponse(BaseResponse):
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
             return template.render(queue=queue)
         else:
-            return "", dict(status=404)
+            template = self.response_template(ERROR_QUEUE_DOESNT_EXIST)
+            return template.render(), dict(status=404)
 
     def list_queues(self):
         queue_name_prefix = self.querystring.get("QueueNamePrefix", [None])[0]
@@ -436,3 +437,14 @@ ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/do
     </Error>
     <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
 </ErrorResponse>"""
+
+ERROR_QUEUE_DOESNT_EXIST = """<?xml version="1.0"?>
+    <Response>
+        <Errors>
+            <Error>
+                <Code>AWS.SimpleQueueService.NonExistentQueue</Code>
+                <Message>The specified queue does not exist for this wsdl version.</Message>
+            </Error>
+        </Errors>
+        <RequestID>1d479d93-8058-404d-8563-af22d3236976</RequestID>
+    </Response>"""
