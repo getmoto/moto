@@ -38,6 +38,18 @@ class SQSResponse(BaseResponse):
             queue_name = self.path.split("/")[-1]
         return queue_name
 
+    def _get_validated_visibility_timeout(self):
+        """
+        :raises ValueError: If specified visibility timeout exceeds MAXIMUM_VISIBILTY_TIMEOUT
+        :raises TypeError: If visibility timeout was not specified
+        """
+        visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
+
+        if visibility_timeout > MAXIMUM_VISIBILTY_TIMEOUT:
+            raise ValueError
+
+        return visibility_timeout
+
     def create_queue(self):
         queue_name = self.querystring.get("QueueName")[0]
         queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=self.attribute.get('VisibilityTimeout'),
@@ -63,12 +75,11 @@ class SQSResponse(BaseResponse):
     def change_message_visibility(self):
         queue_name = self._get_queue_name()
         receipt_handle = self.querystring.get("ReceiptHandle")[0]
-        visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
 
-        if visibility_timeout > MAXIMUM_VISIBILTY_TIMEOUT:
-            return "Invalid request, maximum visibility timeout is {0}".format(
-                MAXIMUM_VISIBILTY_TIMEOUT
-            ), dict(status=400)
+        try:
+            visibility_timeout = self._get_validated_visibility_timeout()
+        except ValueError:
+            return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
         try:
             self.sqs_backend.change_message_visibility(
@@ -233,7 +244,14 @@ class SQSResponse(BaseResponse):
         except TypeError:
             wait_time = queue.wait_time_seconds
 
-        messages = self.sqs_backend.receive_messages(queue_name, message_count, wait_time)
+        try:
+            visibility_timeout = self._get_validated_visibility_timeout()
+        except TypeError:
+            visibility_timeout = queue.visibility_timeout
+        except ValueError:
+            return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
+
+        messages = self.sqs_backend.receive_messages(queue_name, message_count, wait_time, visibility_timeout)
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         output = template.render(messages=messages)
         return output
@@ -436,3 +454,5 @@ ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/do
     </Error>
     <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
 </ErrorResponse>"""
+
+ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = "Invalid request, maximum visibility timeout is {0}".format(MAXIMUM_VISIBILTY_TIMEOUT)

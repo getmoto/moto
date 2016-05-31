@@ -265,7 +265,7 @@ class SQSBackend(BaseBackend):
 
         return message
 
-    def receive_messages(self, queue_name, count, wait_seconds_timeout):
+    def receive_messages(self, queue_name, count, wait_seconds_timeout, visibility_timeout):
         """
         Attempt to retrieve visible messages from a queue.
 
@@ -276,6 +276,7 @@ class SQSBackend(BaseBackend):
 
         :param string queue_name: The name of the queue to read from.
         :param int count: The maximum amount of messages to retrieve.
+        :param int visibility_timeout: The number of seconds the message should remain invisible to other queue readers.
         """
         queue = self.get_queue(queue_name)
         result = []
@@ -288,7 +289,7 @@ class SQSBackend(BaseBackend):
                 if not message.visible:
                     continue
                 message.mark_received(
-                    visibility_timeout=queue.visibility_timeout
+                    visibility_timeout=visibility_timeout
                 )
                 result.append(message)
                 if len(result) >= count:

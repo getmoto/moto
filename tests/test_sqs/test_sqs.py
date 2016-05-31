@@ -204,6 +204,23 @@ def test_message_becomes_inflight_when_received():
 
 
 @mock_sqs
+def test_receive_message_with_explicit_visibility_timeout():
+    conn = boto.connect_sqs('the_key', 'the_secret')
+    queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue.set_message_class(RawMessage)
+
+    body_one = 'this is another test message'
+    queue.write(queue.new_message(body_one))
+
+    queue.count().should.equal(1)
+    messages = conn.receive_message(queue, number_messages=1, visibility_timeout=0)
+
+    assert len(messages) == 1
+
+    # Message should remain visible
+    queue.count().should.equal(1)
+
+@mock_sqs
 def test_change_message_visibility():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=2)
