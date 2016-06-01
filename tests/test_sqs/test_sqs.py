@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import boto
 import boto3
+import botocore.exceptions
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage, Message
 
@@ -498,6 +499,26 @@ def test_delete_message_after_visibility_timeout():
 """
 boto3
 """
+
+
+@mock_sqs
+def test_boto3_get_queue():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    new_queue = sqs.create_queue(QueueName='test-queue')
+    new_queue.should_not.be.none
+    new_queue.should.have.property('url').should.contain('test-queue')
+
+    queue = sqs.get_queue_by_name(QueueName='test-queue')
+    queue.attributes.get('QueueArn').should_not.be.none
+    queue.attributes.get('QueueArn').split(':')[-1].should.equal('test-queue')
+    queue.attributes.get('VisibilityTimeout').should_not.be.none
+    queue.attributes.get('VisibilityTimeout').should.equal('30')
+
+
+@mock_sqs
+def test_boto3_get_inexistent_queue():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    sqs.get_queue_by_name.when.called_with(QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
 
 
 @mock_sqs
