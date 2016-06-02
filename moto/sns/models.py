@@ -119,6 +119,7 @@ class PlatformEndpoint(object):
         self.token = token
         self.attributes = attributes
         self.id = uuid.uuid4()
+        self.messages = OrderedDict()
 
     @property
     def arn(self):
@@ -130,8 +131,9 @@ class PlatformEndpoint(object):
         )
 
     def publish(self, message):
-        message_id = six.text_type(uuid.uuid4())
         # This is where we would actually send a message
+        message_id = six.text_type(uuid.uuid4())
+        self.messages[message_id] = message
         return message_id
 
 
