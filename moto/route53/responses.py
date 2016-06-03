@@ -11,9 +11,21 @@ def list_or_create_hostzone_response(request, full_url, headers):
         elements = xmltodict.parse(request.body)
         if "HostedZoneConfig" in elements["CreateHostedZoneRequest"]:
             comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["Comment"]
+            try:
+                # in boto3, this field is set directly in the xml
+                private_zone = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["PrivateZone"]
+            except KeyError:
+                # if a VPC subsection is only included in xmls params when private_zone=True, 
+                # see boto: boto/route53/connection.py
+                private_zone = 'VPC' in elements["CreateHostedZoneRequest"]
         else:
             comment = None
-        new_zone = route53_backend.create_hosted_zone(elements["CreateHostedZoneRequest"]["Name"], comment=comment)
+            private_zone = False
+        new_zone = route53_backend.create_hosted_zone(
+            elements["CreateHostedZoneRequest"]["Name"],
+            comment=comment,
+            private_zone=private_zone,
+        )
         template = Template(CREATE_HOSTED_ZONE_RESPONSE)
         return 201, headers, template.render(zone=new_zone)
 
@@ -32,6 +44,7 @@ def get_or_delete_hostzone_response(request, full_url, headers):
 
     if request.method == "GET":
         template = Template(GET_HOSTED_ZONE_RESPONSE)
+
         return 200, headers, template.render(zone=the_zone)
     elif request.method == "DELETE":
         route53_backend.delete_hosted_zone(zoneid)
