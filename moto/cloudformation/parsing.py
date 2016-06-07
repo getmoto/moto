@@ -403,18 +403,17 @@ class ResourceMap(collections.Mapping):
         while remaining_resources and tries < 5:
             for resource in remaining_resources.copy():
                 parsed_resource = self._parsed_resources.get(resource)
-                if parsed_resource:
-                    try:
+                try:
+                    if parsed_resource and hasattr(parsed_resource, 'delete'):
                         parsed_resource.delete(self._region_name)
-                    except Exception as e:
-                        # skip over dependency violations, and try again in a second pass
-                        last_exception = e
-                    else:
-                        remaining_resources.remove(resource)
+                except Exception as e:
+                    # skip over dependency violations, and try again in a second pass
+                    last_exception = e
+                else:
+                    remaining_resources.remove(resource)
             tries += 1
         if tries == 5:
             raise last_exception
-
 
 class OutputMap(collections.Mapping):
     def __init__(self, resources, template):
