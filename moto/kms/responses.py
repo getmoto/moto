@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import json
 import re
+import base64
 
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -212,6 +213,18 @@ class KmsResponse(BaseResponse):
                 '__type': 'NotFoundException'})
 
         return json.dumps({'Truncated': False, 'PolicyNames': ['default']})
+
+    def encrypt(self):
+        key_id = self.parameters.get('KeyId')
+        plaintext = self.parameters.get('Plaintext')
+        encryption_context = self.parameters.get('EncryptionContext')
+
+        _assert_valid_key_id(key_id)
+
+        ciphertext_key_id, ciphertext = self.kms_backend.encrypt(key_id, plaintext, encryption_context)
+
+        return json.dumps({'CiphertextBlob': base64.b64encode(ciphertext), 'KeyId': ciphertext_key_id})
+
 
 def _assert_valid_key_id(key_id):
     if not re.match(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$', key_id, re.IGNORECASE):

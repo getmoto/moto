@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import re
 
+import boto3
 import boto.kms
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -143,6 +144,33 @@ def test_list_key_policies():
 
     policies = conn.list_key_policies(key_id)
     policies['PolicyNames'].should.equal(['default'])
+
+
+@mock_kms
+def test_encrypt():
+    kms = boto3.client('kms')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    response = kms.encrypt(KeyId=key_id, Plaintext=b'my plaintext',
+                           EncryptionContext={'Key': 'Value'})
+
+    ciphertext = response['CiphertextBlob']
+    key_id = response['KeyId']
+
+
+@mock_kms
+def test_encrypt__no_encryption_context():
+    kms = boto3.client('kms')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    response = kms.encrypt(KeyId=key_id, Plaintext=b'my plaintext')
+
+    ciphertext = response['CiphertextBlob']
+    key_id = response['KeyId']
 
 
 @mock_kms

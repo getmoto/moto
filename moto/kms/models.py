@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import os
+
 import boto.kms
 from moto.core import BaseBackend
 from .utils import generate_key_id
@@ -63,6 +65,7 @@ class KmsBackend(BaseBackend):
     def __init__(self):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
+        self.encryption_map = {}
 
     def create_key(self, policy, key_usage, description, region):
         key = Key(policy, key_usage, description, region)
@@ -113,6 +116,20 @@ class KmsBackend(BaseBackend):
 
     def get_key_policy(self, key_id):
         return self.keys[key_id].policy
+
+    def encrypt(self, key_id, plaintext, encryption_context):
+        ciphertext = os.urandom(512)
+
+        if encryption_context:
+            # The encryption context needs to be turned into a tuple so that it can be used as a
+            # key. It is sorted so that the tuple is always the same, given the same dictionary.
+            immutable_encryption_context = tuple(sorted(encryption_context.items()))
+        else:
+            immutable_encryption_context = None
+
+        self.encryption_map[(ciphertext, immutable_encryption_context)] = (key_id, plaintext)
+
+        return key_id, ciphertext
 
 
 kms_backends = {}
