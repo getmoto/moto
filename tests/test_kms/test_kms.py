@@ -202,6 +202,20 @@ def test_decrypt():
 
 
 @mock_kms
+def test_generate_data_key():
+    kms = boto3.client('kms')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    response = kms.generate_data_key(KeyId=key_id, KeySpec='AES_256',
+                                     EncryptionContext={'Key': 'Value'})
+
+    plaintext = response['Plaintext']
+    response_key_id = response['KeyId']
+
+
+@mock_kms
 def test__create_alias__returns_none_if_correct():
     kms = boto.connect_kms()
     create_resp = kms.create_key()

@@ -5,6 +5,7 @@ import os
 import boto.kms
 from moto.core import BaseBackend
 from .utils import generate_key_id
+from .exceptions import InvalidKeyUsageError
 from collections import defaultdict
 
 
@@ -138,6 +139,22 @@ class KmsBackend(BaseBackend):
             immutable_encryption_context = None
 
         return self.encryption_map[(ciphertext, immutable_encryption_context)]
+
+    def generate_data_key(self, key_id, key_spec=None, number_of_bytes=None, encryption_context=None):
+        if number_of_bytes:
+            raise NotImplementedError
+
+        if key_spec == 'AES_128':
+            plaintext = os.urandom(16)
+        elif key_spec == 'AES_256':
+            plaintext = os.urandom(32)
+        else:
+            raise InvalidKeyUsageError(key_spec)
+
+        __, ciphertext = self.encrypt(key_id=key_id, plaintext=plaintext, encryption_context=encryption_context)
+
+        return plaintext, key_id, ciphertext
+
 
 
 kms_backends = {}
