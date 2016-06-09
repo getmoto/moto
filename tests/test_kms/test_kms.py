@@ -202,6 +202,25 @@ def test_decrypt():
 
 
 @mock_kms
+def test_decrypt__wrong_encryption_context():
+    kms = boto3.client('kms')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    encryption_context = {'Key': 'Value'}
+
+    response = kms.encrypt(KeyId=key_id, Plaintext=b'my plaintext',
+                           EncryptionContext=encryption_context)
+
+    ciphertext = response['CiphertextBlob']
+    key_id = response['KeyId']
+
+    with assert_raises(JSONResponseError):
+        kms.decrypt(CiphertextBlob=ciphertext)
+
+
+@mock_kms
 def test_generate_data_key():
     kms = boto3.client('kms')
 
@@ -213,6 +232,37 @@ def test_generate_data_key():
 
     plaintext = response['Plaintext']
     response_key_id = response['KeyId']
+
+    assert len(plaintext) == 32
+    assert response_key_id == key_id
+
+
+@mock_kms
+def test_generate_data_key__AES_128():
+    kms = boto3.client('kms')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    response = kms.generate_data_key(KeyId=key_id, KeySpec='AES_128',
+                                     EncryptionContext={'Key': 'Value'})
+
+    plaintext = response['Plaintext']
+    response_key_id = response['KeyId']
+
+    assert len(plaintext) == 16
+    assert response_key_id == key_id
+
+
+@mock_kms
+def test_generate_data_key__invalid_key_spec():
+    kms = boto3.client('kms')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    with assert_raises(JSONResponseError):
+        kms.generate_data_key(KeyId=key_id, KeySpec='AES_1024', EncryptionContext={'Key': 'Value'})
 
 
 @mock_kms

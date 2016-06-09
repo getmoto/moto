@@ -3,9 +3,9 @@ from __future__ import unicode_literals
 import os
 
 import boto.kms
+from boto.exception import JSONResponseError
 from moto.core import BaseBackend
 from .utils import generate_key_id
-from .exceptions import InvalidKeyUsageError
 from collections import defaultdict
 
 
@@ -149,7 +149,11 @@ class KmsBackend(BaseBackend):
         elif key_spec == 'AES_256':
             plaintext = os.urandom(32)
         else:
-            raise InvalidKeyUsageError(key_spec)
+            raise JSONResponseError(400, 'Bad Request', body={
+                'message': "Value '{}' at 'keySpec' failed to satisfy constraint: Member "
+                                    "must satisfy enum value set: "
+                                    "[AES_256, AES_128]".format(key_spec),
+                '__type': 'InvalidCiphertextException'})
 
         __, ciphertext = self.encrypt(key_id=key_id, plaintext=plaintext, encryption_context=encryption_context)
 
