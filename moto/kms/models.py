@@ -131,6 +131,14 @@ class KmsBackend(BaseBackend):
 
         return key_id, ciphertext
 
+    def decrypt(self, ciphertext, encryption_context):
+        if encryption_context:
+            immutable_encryption_context = tuple(sorted(encryption_context.items()))
+        else:
+            immutable_encryption_context = None
+
+        return self.encryption_map[(ciphertext, immutable_encryption_context)]
+
 
 kms_backends = {}
 for region in boto.kms.regions():

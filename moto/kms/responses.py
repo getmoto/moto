@@ -9,6 +9,7 @@ from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 
 from moto.core.responses import BaseResponse
 from .models import kms_backends
+from .exceptions import InvalidKeyUsageError, ValidationError
 
 reserved_aliases = [
     'alias/aws/ebs',
@@ -224,6 +225,19 @@ class KmsResponse(BaseResponse):
         ciphertext_key_id, ciphertext = self.kms_backend.encrypt(key_id, plaintext, encryption_context)
 
         return json.dumps({'CiphertextBlob': base64.b64encode(ciphertext), 'KeyId': ciphertext_key_id})
+
+    def decrypt(self):
+        ciphertext = base64.b64decode(self.parameters.get('CiphertextBlob'))
+        encryption_context = self.parameters.get('EncryptionContext')
+
+        try:
+            key_id, plaintext = self.kms_backend.decrypt(ciphertext, encryption_context)
+        except KeyError:
+            raise JSONResponseError(400, 'Bad Request', body={
+                'message': 'The specified ciphertext has been corrupted or is otherwise invalid.',
+                '__type': 'InvalidCiphertextException'})
+
+        return json.dumps({'KeyId': key_id, 'Plaintext': plaintext})
 
 
 def _assert_valid_key_id(key_id):

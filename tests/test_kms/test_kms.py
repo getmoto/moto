@@ -159,6 +159,8 @@ def test_encrypt():
     ciphertext = response['CiphertextBlob']
     key_id = response['KeyId']
 
+    return key_id, ciphertext
+
 
 @mock_kms
 def test_encrypt__no_encryption_context():
@@ -171,6 +173,32 @@ def test_encrypt__no_encryption_context():
 
     ciphertext = response['CiphertextBlob']
     key_id = response['KeyId']
+
+    return key_id, ciphertext
+
+
+@mock_kms
+def test_decrypt():
+    kms = boto3.client('kms')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    encryption_context = {'Key': 'Value'}
+
+    response = kms.encrypt(KeyId=key_id, Plaintext=b'my plaintext',
+                           EncryptionContext=encryption_context)
+
+    ciphertext = response['CiphertextBlob']
+    key_id = response['KeyId']
+
+    response = kms.decrypt(CiphertextBlob=ciphertext, EncryptionContext=encryption_context)
+
+    plaintext = response['Plaintext']
+    response_key_id = response['KeyId']
+
+    assert response_key_id == key_id
+    assert plaintext == b'my plaintext'
 
 
 @mock_kms
