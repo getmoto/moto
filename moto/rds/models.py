@@ -373,6 +373,7 @@ class RDSBackend(BaseBackend):
             if database.is_replica:
                 primary = self.describe_databases(database.source_db_identifier)[0]
                 primary.remove_replica(database)
+            database.status = 'deleting'
             return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)
