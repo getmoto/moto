@@ -216,10 +216,11 @@ class KmsResponse(BaseResponse):
 
     def encrypt(self):
         key_id = self.parameters.get('KeyId')
-        plaintext = self.parameters.get('Plaintext')
+        plaintext = base64.b64decode(self.parameters.get('Plaintext'))
         encryption_context = self.parameters.get('EncryptionContext')
 
-        _assert_valid_key_id(key_id)
+        parsed_key_id = _parse_key_id(key_id)
+        _assert_valid_key_id(parsed_key_id)
 
         ciphertext_key_id, ciphertext = self.kms_backend.encrypt(key_id, plaintext, encryption_context)
 
@@ -236,7 +237,7 @@ class KmsResponse(BaseResponse):
                 'message': 'The specified ciphertext has been corrupted or is otherwise invalid.',
                 '__type': 'InvalidCiphertextException'})
 
-        return json.dumps({'KeyId': key_id, 'Plaintext': plaintext})
+        return json.dumps({'KeyId': key_id, 'Plaintext': base64.b64encode(plaintext)})
 
     def generate_data_key(self):
         key_id = self.parameters.get('KeyId')
@@ -244,12 +245,15 @@ class KmsResponse(BaseResponse):
         number_of_bytes = self.parameters.get('NumberOfBytes')
         encryption_context = self.parameters.get('EncryptionContext')
 
-        plaintext, ciphertext_key_id, ciphertext = self.kms_backend.generate_data_key(
+        parsed_key_id = _parse_key_id(key_id)
+        _assert_valid_key_id(parsed_key_id)
+
+        plaintext, __,  ciphertext = self.kms_backend.generate_data_key(
             key_id=key_id, key_spec=key_spec, number_of_bytes=number_of_bytes,
             encryption_context=encryption_context)
 
         return json.dumps({'CiphertextBlob': base64.b64encode(ciphertext),
-                           'KeyId': ciphertext_key_id,
+                           'KeyId': key_id,
                            'Plaintext': base64.b64encode(plaintext)})
 
 
@@ -262,3 +266,10 @@ def _assert_default_policy(policy_name):
         raise JSONResponseError(404, 'Not Found', body={
             'message': "No such policy exists",
             '__type': 'NotFoundException'})
+
+def _parse_key_id(key_id):
+    if 'arn' in key_id:
+        id_str = key_id.split(':')[-1]
+        return id_str.split('/')[-1]
+
+    return key_id
