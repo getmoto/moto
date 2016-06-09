@@ -148,7 +148,7 @@ def test_list_key_policies():
 
 @mock_kms
 def test_encrypt():
-    kms = boto3.client('kms')
+    kms = boto3.client('kms', region_name='us-west-2')
 
     key = kms.create_key()
     key_id = key['KeyMetadata']['KeyId']
@@ -164,7 +164,7 @@ def test_encrypt():
 
 @mock_kms
 def test_encrypt__no_encryption_context():
-    kms = boto3.client('kms')
+    kms = boto3.client('kms', region_name='us-west-2')
 
     key = kms.create_key()
     key_id = key['KeyMetadata']['KeyId']
@@ -179,7 +179,7 @@ def test_encrypt__no_encryption_context():
 
 @mock_kms
 def test_decrypt():
-    kms = boto3.client('kms')
+    kms = boto3.client('kms', region_name='us-west-2')
 
     key = kms.create_key()
     key_id = key['KeyMetadata']['KeyId']
@@ -203,7 +203,7 @@ def test_decrypt():
 
 @mock_kms
 def test_decrypt__wrong_encryption_context():
-    kms = boto3.client('kms')
+    kms = boto3.client('kms', region_name='us-west-2')
 
     key = kms.create_key()
     key_id = key['KeyMetadata']['KeyId']
@@ -222,7 +222,7 @@ def test_decrypt__wrong_encryption_context():
 
 @mock_kms
 def test_generate_data_key():
-    kms = boto3.client('kms')
+    kms = boto3.client('kms', region_name='us-west-2')
 
     key = kms.create_key()
     key_id = key['KeyMetadata']['KeyId']
@@ -239,7 +239,7 @@ def test_generate_data_key():
 
 @mock_kms
 def test_generate_data_key__AES_128():
-    kms = boto3.client('kms')
+    kms = boto3.client('kms', region_name='us-west-2')
 
     key = kms.create_key()
     key_id = key['KeyMetadata']['KeyId']
@@ -256,7 +256,7 @@ def test_generate_data_key__AES_128():
 
 @mock_kms
 def test_generate_data_key__invalid_key_spec():
-    kms = boto3.client('kms')
+    kms = boto3.client('kms', region_name='us-west-2')
 
     key = kms.create_key()
     key_id = key['KeyMetadata']['KeyId']
