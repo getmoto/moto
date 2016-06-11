@@ -113,6 +113,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.clusters = {}
         self.task_definitions = {}
         self.services = {}
+        self.container_instances = {}
 
     def fetch_task_definition(self, task_definition_str):
         task_definition_components = task_definition_str.split(':')
@@ -234,6 +235,28 @@ class EC2ContainerServiceBackend(BaseBackend):
                 return self.services.pop(cluster_service_pair)
         else:
             raise Exception("cluster {0} or service {1} does not exist".format(cluster_name, service_name))
+
+    def register_container_instance(self, cluster_str, ec2_instance_id):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name in self.clusters:
+            cluster = self.clusters[cluster_name]
+        else:
+            raise Exception("{0} is not a cluster".format(cluster.name))
+        container_instance = ContainerInstance(ec2_instance_id)
+        if not self.container_instances.get(cluster_name):
+            self.container_instances[cluster_name] = {}
+        self.container_instances[cluster_name][container_instance.containerInstanceArn] = container_instance
+        return container_instance
+
+    def list_container_instances(self, cluster_str):
+        cluster_name = cluster_str.split('/')[-1]
+        return sorted(self.container_instances[cluster_name].keys())
+
+    def describe_container_instances(self, cluster_str, list_container_instances_str):
+        pass
+
+    def deregister_container_instance(self, cluster_str, container_instance_str):
+        pass
 
 
 ecs_backends = {}
