@@ -85,6 +85,29 @@ class Service(BaseObject):
         return response_object
 
 
+class ContainerInstance(BaseObject):
+    def __init__(self, ec2_instance_id):
+        self.ec2_instance_id = ec2_instance_id
+        self.status = 'ACTIVE'
+        self.registeredResources = []
+        self.agentConnected = True
+        self.containerInstanceArn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(str(uuid.uuid1()))
+        self.pendingTaskCount = 0
+        self.remainingResources = []
+        self.runningTaskCount = 0
+        self.versionInfo = {
+                    'agentVersion': "1.0.0",
+                    'agentHash': '4023248',
+                    'dockerVersion': 'DockerVersion: 1.5.0'
+                }
+
+        @property
+        def response_object(self):
+            response_object = self.gen_response_object()
+            del response_object['name'], response_object['arn']
+            return response_object
+
+
 class EC2ContainerServiceBackend(BaseBackend):
     def __init__(self):
         self.clusters = {}
