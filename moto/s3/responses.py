@@ -445,13 +445,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
             src_version_id = parse_qs(src_key_parsed.query).get('versionId', [None])[0]
             self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
                                   storage=storage_class, acl=acl, src_version_id=src_version_id)
+            new_key = self.backend.get_key(bucket_name, key_name)
             mdirective = request.headers.get('x-amz-metadata-directive')
             if mdirective is not None and mdirective == 'REPLACE':
-                new_key = self.backend.get_key(bucket_name, key_name)
                 metadata = metadata_from_headers(request.headers)
                 new_key.set_metadata(metadata, replace=True)
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
-            return template.render(key=src_key)
+            headers.update(new_key.response_dict)
+            return 200, headers, template.render(key=new_key)
         streaming_request = hasattr(request, 'streaming') and request.streaming
         closing_connection = headers.get('connection') == 'close'
         if closing_connection and streaming_request:
@@ -771,12 +772,11 @@ S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       </AccessControlList>
     </AccessControlPolicy>"""
 
-S3_OBJECT_COPY_RESPONSE = """<CopyObjectResponse xmlns="http://doc.s3.amazonaws.com/2006-03-01">
-  <CopyObjectResponse>
+S3_OBJECT_COPY_RESPONSE = """\
+<CopyObjectResult xmlns="http://doc.s3.amazonaws.com/2006-03-01">
     <ETag>{{ key.etag }}</ETag>
     <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
-  </CopyObjectResponse>
-</CopyObjectResponse>"""
+</CopyObjectResult>"""
 
 S3_MULTIPART_INITIATE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
