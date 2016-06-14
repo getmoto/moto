@@ -251,10 +251,8 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def register_container_instance(self, cluster_str, ec2_instance_id):
         cluster_name = cluster_str.split('/')[-1]
-        if cluster_name in self.clusters:
-            cluster = self.clusters[cluster_name]
-        else:
-            raise Exception("{0} is not a cluster".format(cluster.name))
+        if cluster_name not in self.clusters:
+            raise Exception("{0} is not a cluster".format(cluster_name))
         container_instance = ContainerInstance(ec2_instance_id)
         if not self.container_instances.get(cluster_name):
             self.container_instances[cluster_name] = {}
