@@ -414,3 +414,42 @@ def test_list_container_instances():
     len(response['containerInstanceArns']).should.equal(instance_to_create)
     for arn in test_instance_arns:
         response['containerInstanceArns'].should.contain(arn)
+
+
+@mock_ec2
+@mock_ecs
+def test_describe_container_instances():
+    ecs_client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+    _ = ecs_client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    instance_to_create = 3
+    test_instance_arns = []
+    for i in range(0, instance_to_create):
+        test_instance = ec2.create_instances(
+            ImageId="ami-1234abcd",
+            MinCount=1,
+            MaxCount=1,
+        )[0]
+
+        instance_id_document = json.dumps(
+            ec2_utils.generate_instance_identity_document(test_instance)
+        )
+
+        response = ecs_client.register_container_instance(
+            cluster=test_cluster_name,
+            instanceIdentityDocument=instance_id_document)
+
+        test_instance_arns.append(response['containerInstance']['containerInstanceArn'])
+
+    test_instance_ids = map((lambda x: x.split('/')[1]), test_instance_arns)
+    response = ecs_client.describe_container_instances(cluster=test_cluster_name, containerInstances=test_instance_ids)
+    len(response['failures']).should.equal(0)
+    len(response['containerInstances']).should.equal(instance_to_create)
+    response_arns = [ci['containerInstanceArn'] for ci in response['containerInstances']]
+    for arn in test_instance_arns:
+        response_arns.should.contain(arn)

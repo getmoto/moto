@@ -130,3 +130,12 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({
             'containerInstanceArns': container_instance_arns
         })
+
+    def describe_container_instances(self):
+        cluster_str = self._get_param('cluster')
+        list_container_instance_arns = self._get_param('containerInstances')
+        container_instances, failures = self.ecs_backend.describe_container_instances(cluster_str, list_container_instance_arns)
+        return json.dumps({
+                'failures': [ci.response_object for ci in failures],
+                'containerInstances': [ci.response_object for ci in container_instances]
+        })

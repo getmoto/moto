@@ -108,6 +108,19 @@ class ContainerInstance(BaseObject):
             return response_object
 
 
+class Failure(BaseObject):
+    def __init__(self, reason, arn):
+        self.reason = reason
+        self.arn = arn
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        response_object['reason'] = self.reason
+        response_object['arn'] = self.arn
+        return response_object
+
+
 class EC2ContainerServiceBackend(BaseBackend):
     def __init__(self):
         self.clusters = {}
@@ -252,8 +265,21 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_name = cluster_str.split('/')[-1]
         return sorted(self.container_instances[cluster_name].keys())
 
-    def describe_container_instances(self, cluster_str, list_container_instances_str):
-        pass
+    def describe_container_instances(self, cluster_str, list_container_instance_ids):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name not in self.clusters:
+            raise Exception("{0} is not a cluster".format(cluster_name))
+        failures = []
+        container_instance_objects = []
+        for container_instance_id in list_container_instance_ids:
+            container_instance_arn = 'arn:aws:ecs:us-east-1:012345678910:container-instance/{0}'.format(container_instance_id)
+            container_instance = self.container_instances[cluster_name].get(container_instance_arn, None)
+            if container_instance is not None:
+                container_instance_objects.append(container_instance)
+            else:
+                failures.append(Failure(reason='MISSING', arn=container_instance_arn))
+
+        return container_instance_objects, failures
 
     def deregister_container_instance(self, cluster_str, container_instance_str):
         pass
