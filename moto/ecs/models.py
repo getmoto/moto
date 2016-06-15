@@ -256,12 +256,15 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instance = ContainerInstance(ec2_instance_id)
         if not self.container_instances.get(cluster_name):
             self.container_instances[cluster_name] = {}
-        self.container_instances[cluster_name][container_instance.containerInstanceArn] = container_instance
+        container_instance_id = container_instance.containerInstanceArn.split('/')[-1]
+        self.container_instances[cluster_name][container_instance_id] = container_instance
         return container_instance
 
     def list_container_instances(self, cluster_str):
         cluster_name = cluster_str.split('/')[-1]
-        return sorted(self.container_instances[cluster_name].keys())
+        container_instances_iter = self.container_instances.get(cluster_name, {}).itervalues()
+        container_instances = [ci.containerInstanceArn for ci in container_instances_iter]
+        return sorted(container_instances)
 
     def describe_container_instances(self, cluster_str, list_container_instance_ids):
         cluster_name = cluster_str.split('/')[-1]
@@ -270,8 +273,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         failures = []
         container_instance_objects = []
         for container_instance_id in list_container_instance_ids:
-            container_instance_arn = 'arn:aws:ecs:us-east-1:012345678910:container-instance/{0}'.format(container_instance_id)
-            container_instance = self.container_instances[cluster_name].get(container_instance_arn, None)
+            container_instance = self.container_instances[cluster_name].get(container_instance_id, None)
             if container_instance is not None:
                 container_instance_objects.append(container_instance)
             else:
