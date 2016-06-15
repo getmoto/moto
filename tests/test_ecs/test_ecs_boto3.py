@@ -446,7 +446,7 @@ def test_describe_container_instances():
 
         test_instance_arns.append(response['containerInstance']['containerInstanceArn'])
 
-    test_instance_ids = map((lambda x: x.split('/')[1]), test_instance_arns)
+    test_instance_ids = list(map((lambda x: x.split('/')[1]), test_instance_arns))
     response = ecs_client.describe_container_instances(cluster=test_cluster_name, containerInstances=test_instance_ids)
     len(response['failures']).should.equal(0)
     len(response['containerInstances']).should.equal(instance_to_create)
