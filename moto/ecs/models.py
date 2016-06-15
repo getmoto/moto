@@ -262,8 +262,8 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def list_container_instances(self, cluster_str):
         cluster_name = cluster_str.split('/')[-1]
-        container_instances_iter = self.container_instances.get(cluster_name, {}).itervalues()
-        container_instances = [ci.containerInstanceArn for ci in container_instances_iter]
+        container_instances_values = self.container_instances.get(cluster_name, {}).values()
+        container_instances = [ci.containerInstanceArn for ci in container_instances_values]
         return sorted(container_instances)
 
     def describe_container_instances(self, cluster_str, list_container_instance_ids):
