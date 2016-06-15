@@ -108,10 +108,10 @@ class ContainerInstance(BaseObject):
             return response_object
 
 
-class Failure(BaseObject):
-    def __init__(self, reason, arn):
+class ContainerInstanceFailure(BaseObject):
+    def __init__(self, reason, container_instance_id):
         self.reason = reason
-        self.arn = arn
+        self.arn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(container_instance_id)
 
     @property
     def response_object(self):
@@ -275,7 +275,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             if container_instance is not None:
                 container_instance_objects.append(container_instance)
             else:
-                failures.append(Failure(reason='MISSING', arn=container_instance_arn))
+                failures.append(ContainerInstanceFailure('MISSING', container_instance_id))
 
         return container_instance_objects, failures
 
