@@ -27,8 +27,23 @@ dummy_template2 = {
     "Resources": {},
 }
 
+# template with resource which has no delete attribute defined
+dummy_template3 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Stack 3",
+    "Resources": {
+        "VPC": {
+            "Properties": {
+                "CidrBlock": "192.168.0.0/16",
+        },
+        "Type": "AWS::EC2::VPC"
+        }
+    },
+}
+
 dummy_template_json = json.dumps(dummy_template)
 dummy_template_json2 = json.dumps(dummy_template2)
+dummy_template_json3 = json.dumps(dummy_template3)
 
 
 @mock_cloudformation
@@ -218,6 +233,19 @@ def test_delete_stack_by_id():
         conn.describe_stacks("test_stack")
 
     conn.describe_stacks(stack_id).should.have.length_of(1)
+
+
+@mock_cloudformation
+def test_delete_stack_with_resource_missing_delete_attr():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json3,
+    )
+
+    conn.list_stacks().should.have.length_of(1)
+    conn.delete_stack("test_stack")
+    conn.list_stacks().should.have.length_of(0)
 
 
 @mock_cloudformation
