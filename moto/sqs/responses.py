@@ -263,9 +263,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
         <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
     </CreateQueueResult>
     <ResponseMetadata>
-        <RequestId>
-            7a62c49f-347e-4fc4-9331-6e8e7a96aa73
-        </RequestId>
+        <RequestId>7a62c49f-347e-4fc4-9331-6e8e7a96aa73</RequestId>
     </ResponseMetadata>
 </CreateQueueResponse>"""
 
@@ -285,17 +283,13 @@ LIST_QUEUES_RESPONSE = """<ListQueuesResponse>
         {% endfor %}
     </ListQueuesResult>
     <ResponseMetadata>
-        <RequestId>
-            725275ae-0b9b-4762-b238-436d7c65a1ac
-        </RequestId>
+        <RequestId>725275ae-0b9b-4762-b238-436d7c65a1ac</RequestId>
     </ResponseMetadata>
 </ListQueuesResponse>"""
 
 DELETE_QUEUE_RESPONSE = """<DeleteQueueResponse>
     <ResponseMetadata>
-        <RequestId>
-            6fde8d1e-52cd-4581-8cd9-c512f4c64223
-        </RequestId>
+        <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
     </ResponseMetadata>
 </DeleteQueueResponse>"""
 
@@ -315,28 +309,24 @@ GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
 
 SET_QUEUE_ATTRIBUTE_RESPONSE = """<SetQueueAttributesResponse>
     <ResponseMetadata>
-        <RequestId>
-            e5cca473-4fc0-4198-a451-8abb94d02c75
-        </RequestId>
+        <RequestId>e5cca473-4fc0-4198-a451-8abb94d02c75</RequestId>
     </ResponseMetadata>
 </SetQueueAttributesResponse>"""
 
 SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
     <SendMessageResult>
         <MD5OfMessageBody>
-            {{ message.md5 }}
+            {{- message.md5 -}}
         </MD5OfMessageBody>
         {% if message.message_attributes.items()|count > 0 %}
           <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
         {% endif %}
         <MessageId>
-            {{ message.id }}
+            {{- message.id -}}
         </MessageId>
     </SendMessageResult>
     <ResponseMetadata>
-        <RequestId>
-            27daac76-34dd-47df-bd01-1f6e873584a0
-        </RequestId>
+        <RequestId>27daac76-34dd-47df-bd01-1f6e873584a0</RequestId>
     </ResponseMetadata>
 </SendMessageResponse>"""
 
@@ -384,9 +374,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
     {% endfor %}
   </ReceiveMessageResult>
   <ResponseMetadata>
-    <RequestId>
-      b6633655-283d-45b4-aee4-4e84e0ae6afa
-    </RequestId>
+    <RequestId>b6633655-283d-45b4-aee4-4e84e0ae6afa</RequestId>
   </ResponseMetadata>
 </ReceiveMessageResponse>"""
 
@@ -410,9 +398,7 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
 
 DELETE_MESSAGE_RESPONSE = """<DeleteMessageResponse>
     <ResponseMetadata>
-        <RequestId>
-            b5293cb5-d306-4a17-9048-b263635abe42
-        </RequestId>
+        <RequestId>b5293cb5-d306-4a17-9048-b263635abe42</RequestId>
     </ResponseMetadata>
 </DeleteMessageResponse>"""
 
@@ -431,17 +417,13 @@ DELETE_MESSAGE_BATCH_RESPONSE = """<DeleteMessageBatchResponse>
 
 CHANGE_MESSAGE_VISIBILITY_RESPONSE = """<ChangeMessageVisibilityResponse>
     <ResponseMetadata>
-        <RequestId>
-            6a7a282a-d013-4a59-aba9-335b0fa48bed
-        </RequestId>
+        <RequestId>6a7a282a-d013-4a59-aba9-335b0fa48bed</RequestId>
     </ResponseMetadata>
 </ChangeMessageVisibilityResponse>"""
 
 PURGE_QUEUE_RESPONSE = """<PurgeQueueResponse>
     <ResponseMetadata>
-        <RequestId>
-            6fde8d1e-52cd-4581-8cd9-c512f4c64223
-        </RequestId>
+        <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
     </ResponseMetadata>
 </PurgeQueueResponse>"""
 

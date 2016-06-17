@@ -81,7 +81,8 @@ class _TemplateEnvironmentMixin(object):
         template_id = id(source)
         if not self.contains_template(template_id):
             self.loader.update({template_id: source})
-            self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape)
+            self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape, trim_blocks=True,
+                                           lstrip_blocks=True)
         return self.environment.get_template(template_id)
 
 
