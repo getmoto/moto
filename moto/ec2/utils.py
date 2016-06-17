@@ -515,3 +515,35 @@ def is_valid_cidr(cird):
     cidr_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$'
     cidr_pattern_re = re.compile(cidr_pattern)
     return cidr_pattern_re.match(cird) is not None
+
+
+def generate_instance_identity_document(instance):
+    """
+    http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
+
+    A JSON file that describes an instance. Usually retrieved by URL:
+    http://169.254.169.254/latest/dynamic/instance-identity/document
+    Here we just fill a dictionary that represents the document
+
+    Typically, this document is used by the amazon-ecs-agent when registering a
+    new ContainerInstance
+    """
+
+    document = {
+            'devPayProductCodes': None,
+            'availabilityZone': instance.placement['AvailabilityZone'],
+            'privateIp': instance.private_ip_address,
+            'version': '2010-8-31',
+            'region': instance.placement['AvailabilityZone'][:-1],
+            'instanceId': instance.id,
+            'billingProducts': None,
+            'instanceType': instance.instance_type,
+            'accountId': '012345678910',
+            'pendingTime': '2015-11-19T16:32:11Z',
+            'imageId': instance.image_id,
+            'kernelId': instance.kernel_id,
+            'ramdiskId': instance.ramdisk_id,
+            'architecture': instance.architecture,
+            }
+
+    return document

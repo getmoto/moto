@@ -113,3 +113,29 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({
             'service': service.response_object
         })
+
+    def register_container_instance(self):
+        cluster_str = self._get_param('cluster')
+        instance_identity_document_str = self._get_param('instanceIdentityDocument')
+        instance_identity_document = json.loads(instance_identity_document_str)
+        ec2_instance_id = instance_identity_document["instanceId"]
+        container_instance = self.ecs_backend.register_container_instance(cluster_str, ec2_instance_id)
+        return json.dumps({
+            'containerInstance' : container_instance.response_object
+        })
+
+    def list_container_instances(self):
+        cluster_str = self._get_param('cluster')
+        container_instance_arns = self.ecs_backend.list_container_instances(cluster_str)
+        return json.dumps({
+            'containerInstanceArns': container_instance_arns
+        })
+
+    def describe_container_instances(self):
+        cluster_str = self._get_param('cluster')
+        list_container_instance_arns = self._get_param('containerInstances')
+        container_instances, failures = self.ecs_backend.describe_container_instances(cluster_str, list_container_instance_arns)
+        return json.dumps({
+                'failures': [ci.response_object for ci in failures],
+                'containerInstances': [ci.response_object for ci in container_instances]
+        })

@@ -85,11 +85,48 @@ class Service(BaseObject):
         return response_object
 
 
+class ContainerInstance(BaseObject):
+    def __init__(self, ec2_instance_id):
+        self.ec2_instance_id = ec2_instance_id
+        self.status = 'ACTIVE'
+        self.registeredResources = []
+        self.agentConnected = True
+        self.containerInstanceArn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(str(uuid.uuid1()))
+        self.pendingTaskCount = 0
+        self.remainingResources = []
+        self.runningTaskCount = 0
+        self.versionInfo = {
+                    'agentVersion': "1.0.0",
+                    'agentHash': '4023248',
+                    'dockerVersion': 'DockerVersion: 1.5.0'
+                }
+
+        @property
+        def response_object(self):
+            response_object = self.gen_response_object()
+            del response_object['name'], response_object['arn']
+            return response_object
+
+
+class ContainerInstanceFailure(BaseObject):
+    def __init__(self, reason, container_instance_id):
+        self.reason = reason
+        self.arn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(container_instance_id)
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        response_object['reason'] = self.reason
+        response_object['arn'] = self.arn
+        return response_object
+
+
 class EC2ContainerServiceBackend(BaseBackend):
     def __init__(self):
         self.clusters = {}
         self.task_definitions = {}
         self.services = {}
+        self.container_instances = {}
 
     def fetch_task_definition(self, task_definition_str):
         task_definition_components = task_definition_str.split(':')
@@ -211,6 +248,41 @@ class EC2ContainerServiceBackend(BaseBackend):
                 return self.services.pop(cluster_service_pair)
         else:
             raise Exception("cluster {0} or service {1} does not exist".format(cluster_name, service_name))
+
+    def register_container_instance(self, cluster_str, ec2_instance_id):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name not in self.clusters:
+            raise Exception("{0} is not a cluster".format(cluster_name))
+        container_instance = ContainerInstance(ec2_instance_id)
+        if not self.container_instances.get(cluster_name):
+            self.container_instances[cluster_name] = {}
+        container_instance_id = container_instance.containerInstanceArn.split('/')[-1]
+        self.container_instances[cluster_name][container_instance_id] = container_instance
+        return container_instance
+
+    def list_container_instances(self, cluster_str):
+        cluster_name = cluster_str.split('/')[-1]
+        container_instances_values = self.container_instances.get(cluster_name, {}).values()
+        container_instances = [ci.containerInstanceArn for ci in container_instances_values]
+        return sorted(container_instances)
+
+    def describe_container_instances(self, cluster_str, list_container_instance_ids):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name not in self.clusters:
+            raise Exception("{0} is not a cluster".format(cluster_name))
+        failures = []
+        container_instance_objects = []
+        for container_instance_id in list_container_instance_ids:
+            container_instance = self.container_instances[cluster_name].get(container_instance_id, None)
+            if container_instance is not None:
+                container_instance_objects.append(container_instance)
+            else:
+                failures.append(ContainerInstanceFailure('MISSING', container_instance_id))
+
+        return container_instance_objects, failures
+
+    def deregister_container_instance(self, cluster_str, container_instance_str):
+        pass
 
 
 ecs_backends = {}
