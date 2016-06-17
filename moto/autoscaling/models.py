@@ -440,6 +440,13 @@ class AutoScalingBackend(BaseBackend):
             self.elb_backend.register_instances(elb.name, group_instance_ids - elb_instace_ids)
             self.elb_backend.deregister_instances(elb.name, elb_instace_ids - group_instance_ids)
 
+    def create_or_update_tags(self, tags):
+        for tag in tags:
+            group_name = tag["ResourceId"]
+            group = self.autoscaling_groups[group_name]
+            updated_tags = group.tags.copy()
+            updated_tags.update(tag)
+            group.tags = updated_tags
 
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():
