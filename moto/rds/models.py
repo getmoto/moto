@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import copy
+import datetime
 
 import boto.rds
 from jinja2 import Template
@@ -49,6 +50,7 @@ class Database(object):
         self.availability_zone = kwargs.get("availability_zone")
         self.multi_az = kwargs.get("multi_az")
         self.db_subnet_group_name = kwargs.get("db_subnet_group_name")
+        self.instance_create_time = str(datetime.datetime.now())
         if self.db_subnet_group_name:
             self.db_subnet_group = rds_backends[self.region].describe_subnet_groups(self.db_subnet_group_name)[0]
         else:
@@ -206,6 +208,7 @@ class Database(object):
               <StorageType>{{ database.storage_type }}</StorageType>
               {% endif %}
               <DBInstanceClass>{{ database.db_instance_class }}</DBInstanceClass>
+              <InstanceCreateTime>{{ database.instance_create_time }}</InstanceCreateTime>
               <MasterUsername>{{ database.master_username }}</MasterUsername>
               <Endpoint>
                 <Address>{{ database.address }}</Address>
@@ -373,6 +376,7 @@ class RDSBackend(BaseBackend):
             if database.is_replica:
                 primary = self.describe_databases(database.source_db_identifier)[0]
                 primary.remove_replica(database)
+            database.status = 'deleting'
             return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)
