@@ -441,12 +441,25 @@ class AutoScalingBackend(BaseBackend):
             self.elb_backend.deregister_instances(elb.name, elb_instace_ids - group_instance_ids)
 
     def create_or_update_tags(self, tags):
+
         for tag in tags:
-            group_name = tag["ResourceId"]
+            group_name = tag["resource_id"]
             group = self.autoscaling_groups[group_name]
-            updated_tags = group.tags.copy()
-            updated_tags.update(tag)
-            group.tags = updated_tags
+            old_tags = group.tags
+
+            new_tags = []
+            #if key was in old_tags, update old tag
+            for old_tag in old_tags:
+                if old_tag["key"] == tag["key"]:
+                    new_tags.append(tag)
+                else:
+                    new_tags.append(old_tag)
+
+            #if key was never in old_tag's add it (create tag)
+            if not any(new_tag['key'] == tag['key'] for new_tag in new_tags):
+                new_tags.append(tag)
+
+            group.tags = new_tags
 
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():

@@ -170,6 +170,48 @@ def test_autoscaling_update():
 
 
 @mock_autoscaling
+def test_autoscaling_tags_update():
+    conn = boto.connect_autoscale()
+    config = LaunchConfiguration(
+        name='tester',
+        image_id='ami-abcd1234',
+        instance_type='t2.medium',
+    )
+    conn.create_launch_configuration(config)
+
+    group = AutoScalingGroup(
+        name='tester_group',
+        availability_zones=['us-east-1c', 'us-east-1b'],
+        desired_capacity=2,
+        max_size=2,
+        min_size=2,
+        launch_config=config,
+        vpc_zone_identifier='subnet-1234abcd',
+        tags=[Tag(
+            resource_id='tester_group',
+            key='test_key',
+            value='test_value',
+            propagate_at_launch=True
+        )],
+    )
+    conn.create_auto_scaling_group(group)
+
+    conn.create_or_update_tags(tags=[Tag(
+            resource_id='tester_group',
+            key='test_key',
+            value='new_test_value',
+            propagate_at_launch=True
+        ), Tag(
+            resource_id='tester_group',
+            key='test_key2',
+            value='test_value2',
+            propagate_at_launch=True
+        )])
+    group = conn.get_all_groups()[0]
+    group.tags.should.have.length_of(2)
+
+
+@mock_autoscaling
 def test_autoscaling_group_delete():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -420,6 +462,7 @@ def test_describe_autoscaling_groups_boto3():
         response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
         response['AutoScalingGroups'][0]['AutoScalingGroupName'].should.equal('test_asg')
 
+
 @mock_autoscaling
 def test_update_autoscaling_group_boto3():
     client = boto3.client('autoscaling', region_name='us-east-1')
@@ -443,3 +486,41 @@ def test_update_autoscaling_group_boto3():
         AutoScalingGroupNames=["test_asg"]
     )
     response['AutoScalingGroups'][0]['MinSize'].should.equal(1)
+
+
+@mock_autoscaling
+def test_autoscaling_taqs_update_boto3():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'test_value',
+            "PropagateAtLaunch": True
+        }]
+    )
+
+    client.create_or_update_tags(Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'updated_test_value',
+            "PropagateAtLaunch": True
+        }, {
+            "ResourceId": 'test_asg',
+            "Key": 'test_key2',
+            "Value": 'test_value2',
+            "PropagateAtLaunch": True
+        }])
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=["test_asg"]
+    )
+    response['AutoScalingGroups'][0]['Tags'].should.have.length_of(2)

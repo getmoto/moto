@@ -106,9 +106,11 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def create_or_update_tags(self):
-        tags = self._get_param('Tags')
+        tags = self._get_list_prefix('Tags.member')
+
         self.autoscaling_backend.create_or_update_tags(tags)
-        return None
+        template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
+        return template.render()
 
     def describe_auto_scaling_instances(self):
         instance_states = self.autoscaling_backend.describe_autoscaling_instances()
