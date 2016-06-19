@@ -4,6 +4,13 @@ Moto Changelog
 Latest
 ------
 
+0.4.25
+------
+
+    * ASG tags
+    * ContainerInstance handling in ECS
+    *
+
 0.4.22
 ------
 
