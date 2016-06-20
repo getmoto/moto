@@ -1,5 +1,6 @@
 moto.egg-info/*
 dist/*
+.cache
 .tox
 .coverage
 cover/

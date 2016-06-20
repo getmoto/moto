@@ -147,12 +147,12 @@ class RecordSet(object):
 
 class FakeZone(object):
 
-    def __init__(self, name, id_, comment=None):
+    def __init__(self, name, id_, private_zone, comment=None):
         self.name = name
         self.id = id_
         if comment is not None:
             self.comment = comment
-        self.private_zone = False
+        self.private_zone = private_zone
         self.rrsets = []
 
     def add_rrset(self, record_set):
@@ -194,7 +194,7 @@ class FakeZone(object):
         properties = cloudformation_json['Properties']
         name = properties["Name"]
 
-        hosted_zone = route53_backend.create_hosted_zone(name)
+        hosted_zone = route53_backend.create_hosted_zone(name, private_zone=False)
         return hosted_zone
 
 
@@ -227,9 +227,9 @@ class Route53Backend(BaseBackend):
         self.zones = {}
         self.health_checks = {}
 
-    def create_hosted_zone(self, name, comment=None):
+    def create_hosted_zone(self, name, private_zone, comment=None):
         new_id = get_random_hex()
-        new_zone = FakeZone(name, new_id, comment=comment)
+        new_zone = FakeZone(name, new_id, private_zone=private_zone, comment=comment)
         self.zones[new_id] = new_zone
         return new_zone
 

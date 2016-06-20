@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto
+import boto3
 from boto.route53.healthcheck import HealthCheck
 from boto.route53.record import ResourceRecordSets
 
@@ -283,3 +284,47 @@ def test_deleting_latency_route():
     # When get_cname only had one result, it returns just that result instead of a list.
     cname.identifier.should.equal('success-test-bar')
     cname.region.should.equal('us-west-1')
+
+
+@mock_route53
+def test_hosted_zone_private_zone_preserved():
+    conn = boto.connect_route53('the_key', 'the_secret')
+
+    firstzone = conn.create_hosted_zone("testdns.aws.com.", private_zone=True, vpc_id='vpc-fake', vpc_region='us-east-1')
+    zone_id = firstzone["CreateHostedZoneResponse"]["HostedZone"]["Id"].split("/")[-1]
+
+    hosted_zone = conn.get_hosted_zone(zone_id)
+    # in (original) boto, these bools returned as strings.
+    hosted_zone["GetHostedZoneResponse"]["HostedZone"]["Config"]["PrivateZone"].should.equal('True')
+
+    hosted_zones = conn.get_all_hosted_zones()
+    hosted_zones["ListHostedZonesResponse"]["HostedZones"][0]["Config"]["PrivateZone"].should.equal('True')
+
+    zone = conn.get_zone("testdns.aws.com.")
+    zone.config["PrivateZone"].should.equal('True')
+
+
+@mock_route53
+def test_hosted_zone_private_zone_preserved_boto3():
+    conn = boto3.client('route53')
+    # TODO: actually create_hosted_zone statements with PrivateZone=True, but without
+    # a _valid_ vpc-id should fail.
+    firstzone = conn.create_hosted_zone(
+        Name="testdns.aws.com.",
+        CallerReference=str(hash('foo')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="Test",
+        )
+    )
+
+    zone_id = firstzone["HostedZone"]["Id"].split("/")[-1]
+
+    hosted_zone = conn.get_hosted_zone(Id=zone_id)
+    hosted_zone["HostedZone"]["Config"]["PrivateZone"].should.equal(True)
+
+    hosted_zones = conn.list_hosted_zones()
+    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
+
+    # zone = conn.list_hosted_zones_by_name(DNSName="testdns.aws.com.")
+    # zone.config["PrivateZone"].should.equal(True)
