@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import base64
 import datetime
 import hashlib
+import json
 
 import boto.awslambda
 from moto.core import BaseBackend
@@ -91,6 +92,18 @@ class LambdaFunction(object):
             },
             "Configuration": self.get_configuration(),
         }
+
+    def invoke(self, request, headers):
+        payload = dict()
+
+        # Get the invocation type:
+        if request.headers.get("x-amz-invocation-type") == "RequestResponse":
+            encoded = base64.b64encode("Some log file output...".encode('utf-8'))
+            headers["x-amz-log-result"] = encoded.decode('utf-8')
+
+            payload["result"] = "Good"
+
+        return json.dumps(payload, indent=4)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
