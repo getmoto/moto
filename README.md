@@ -89,6 +89,8 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |------------------------------------------------------------------------------|
 | Kinesis               | @mock_kinesis    | core endpoints done               |
 |------------------------------------------------------------------------------|
+| KMS                   | @mock_kms        | basic endpoints done              |
+|------------------------------------------------------------------------------|
 | RDS                   | @mock_rds        | core endpoints done               |
 |------------------------------------------------------------------------------|
 | RDS2                  | @mock_rds2       | core endpoints done               |
