@@ -24,10 +24,14 @@ def test_describe_key():
     conn = boto.kms.connect_to_region("us-west-2")
     key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['KeyId']
+    key_arn = key['KeyMetadata']['Arn']
 
     key = conn.describe_key(key_id)
+    key_with_arn = conn.describe_key(key_arn)
     key['KeyMetadata']['Description'].should.equal("my key")
     key['KeyMetadata']['KeyUsage'].should.equal("ENCRYPT_DECRYPT")
+    key_with_arn['KeyMetadata']['Description'].should.equal("my key")
+    key_with_arn['KeyMetadata']['KeyUsage'].should.equal("ENCRYPT_DECRYPT")
 
 
 @mock_kms
