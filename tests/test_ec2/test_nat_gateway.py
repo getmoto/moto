@@ -56,6 +56,7 @@ def test_delete_nat_gateway():
     nat_gateway_id = nat_gateway['NatGateway']['NatGatewayId']
     response = conn.delete_nat_gateway(NatGatewayId=nat_gateway_id)
 
+    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
     response.should.equal({
         'NatGatewayId': nat_gateway_id,
         'ResponseMetadata': {
