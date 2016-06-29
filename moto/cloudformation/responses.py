@@ -281,7 +281,7 @@ DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://c
     <StackEvents>
       {% for event in stack.events %}
       <member>
-        <Timestamp>{{ event.timestamp }}</Timestamp>
+        <Timestamp>{{ event.timestamp.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}</Timestamp>
         <ResourceStatus>{{ event.resource_status }}</ResourceStatus>
         <StackId>{{ event.stack_id }}</StackId>
         <EventId>{{ event.event_id }}</EventId>
