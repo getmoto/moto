@@ -135,6 +135,7 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
              {% else %}
                <snapshotId/>
              {% endif %}
+             <encrypted>{{ volume.encrypted }}</encrypted>
              <availabilityZone>{{ volume.zone.name }}</availabilityZone>
              <status>{{ volume.status }}</status>
              <createTime>{{ volume.create_time}}</createTime>
