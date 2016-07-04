@@ -1534,7 +1534,7 @@ class VolumeAttachment(object):
 
 
 class Volume(TaggedEC2Resource):
-    def __init__(self, ec2_backend, volume_id, size, zone, snapshot_id=None):
+    def __init__(self, ec2_backend, volume_id, size, zone, snapshot_id=None, encrypted=False):
         self.id = volume_id
         self.size = size
         self.zone = zone
@@ -1542,6 +1542,7 @@ class Volume(TaggedEC2Resource):
         self.attachment = None
         self.snapshot_id = snapshot_id
         self.ec2_backend = ec2_backend
+        self.encrypted = encrypted
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1590,6 +1591,9 @@ class Volume(TaggedEC2Resource):
 
         if filter_name == 'volume-id':
             return self.id
+
+        if filter_name == 'encrypted':
+            return str(self.encrypted).lower()
 
         filter_value = super(Volume, self).get_filter_value(filter_name)
 
