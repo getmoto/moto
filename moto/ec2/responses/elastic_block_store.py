@@ -29,7 +29,8 @@ class ElasticBlockStore(BaseResponse):
         size = self._get_param('Size')
         zone = self._get_param('AvailabilityZone')
         snapshot_id = self._get_param('SnapshotId')
-        volume = self.ec2_backend.create_volume(size, zone, snapshot_id)
+        encrypted = self._get_param('Encrypted')
+        volume = self.ec2_backend.create_volume(size, zone, snapshot_id, encrypted)
         template = self.response_template(CREATE_VOLUME_RESPONSE)
         return template.render(volume=volume)
 

@@ -1645,14 +1645,14 @@ class EBSBackend(object):
         self.snapshots = {}
         super(EBSBackend, self).__init__()
 
-    def create_volume(self, size, zone_name, snapshot_id=None):
+    def create_volume(self, size, zone_name, snapshot_id=None, encrypted=False):
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)
         if snapshot_id:
             snapshot = self.get_snapshot(snapshot_id)
             if size is None:
                 size = snapshot.volume.size
-        volume = Volume(self, volume_id, size, zone, snapshot_id)
+        volume = Volume(self, volume_id, size, zone, snapshot_id, encrypted)
         self.volumes[volume_id] = volume
         return volume
 
