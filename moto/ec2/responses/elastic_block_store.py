@@ -117,6 +117,7 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   {% else %}
     <snapshotId/>
   {% endif %}
+  <encrypted>{{ volume.encrypted }}</encrypted>
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
   <createTime>{{ volume.create_time}}</createTime>
