@@ -1656,6 +1656,8 @@ class EBSBackend(object):
             snapshot = self.get_snapshot(snapshot_id)
             if size is None:
                 size = snapshot.volume.size
+            if snapshot.encrypted:
+                encrypted = snapshot.encrypted
         volume = Volume(self, volume_id, size, zone, snapshot_id, encrypted)
         self.volumes[volume_id] = volume
         return volume
