@@ -69,7 +69,7 @@ def test_volume_filters():
 
     volume1 = conn.create_volume(80, "us-east-1a", encrypted=True)
     volume2 = conn.create_volume(36, "us-east-1b", encrypted=False)
-    volume3 = conn.create_volume(20, "us-east-1c", encrypted=False)
+    volume3 = conn.create_volume(20, "us-east-1c", encrypted=True)
 
     snapshot = volume3.create_snapshot(description='testsnap')
     volume4 = conn.create_volume(25, "us-east-1a", snapshot=snapshot)
@@ -117,8 +117,15 @@ def test_volume_filters():
     volumes_by_tag = conn.get_all_volumes(filters={'tag:testkey1': 'testvalue1'})
     set([vol.id for vol in volumes_by_tag]).should.equal(set([volume1.id]))
 
+    volumes_by_unencrypted = conn.get_all_volumes(filters={'encrypted': 'false'})
+    set([vol.id for vol in volumes_by_unencrypted]).should.equal(
+        set([block_mapping.volume_id, volume2.id])
+    )
+
     volumes_by_encrypted = conn.get_all_volumes(filters={'encrypted': 'true'})
-    set([vol.id for vol in volumes_by_encrypted]).should.equal(set([volume1.id]))
+    set([vol.id for vol in volumes_by_encrypted]).should.equal(
+        set([volume1.id, volume3.id, volume4.id])
+    )
 
 
 @mock_ec2
