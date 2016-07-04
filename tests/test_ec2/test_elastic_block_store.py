@@ -20,6 +20,7 @@ def test_create_and_delete_volume():
     all_volumes.should.have.length_of(1)
     all_volumes[0].size.should.equal(80)
     all_volumes[0].zone.should.equal("us-east-1a")
+    all_volumes[0].encrypted.should.equal(False)
 
     volume = all_volumes[0]
     volume.delete()
@@ -32,6 +33,15 @@ def test_create_and_delete_volume():
     cm.exception.code.should.equal('InvalidVolume.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_create_encrypted_volume():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn.create_volume(80, "us-east-1a", encrypted=True)
+
+    all_volumes = conn.get_all_volumes()
+    all_volumes[0].encrypted.should.equal(True)
 
 
 @mock_ec2
@@ -57,9 +67,9 @@ def test_volume_filters():
 
     instance.update()
 
-    volume1 = conn.create_volume(80, "us-east-1a")
-    volume2 = conn.create_volume(36, "us-east-1b")
-    volume3 = conn.create_volume(20, "us-east-1c")
+    volume1 = conn.create_volume(80, "us-east-1a", encrypted=True)
+    volume2 = conn.create_volume(36, "us-east-1b", encrypted=False)
+    volume3 = conn.create_volume(20, "us-east-1c", encrypted=False)
 
     snapshot = volume3.create_snapshot(description='testsnap')
     volume4 = conn.create_volume(25, "us-east-1a", snapshot=snapshot)
@@ -106,6 +116,9 @@ def test_volume_filters():
 
     volumes_by_tag = conn.get_all_volumes(filters={'tag:testkey1': 'testvalue1'})
     set([vol.id for vol in volumes_by_tag]).should.equal(set([volume1.id]))
+
+    volumes_by_encrypted = conn.get_all_volumes(filters={'encrypted': 'true'})
+    set([vol.id for vol in volumes_by_encrypted]).should.equal(set([volume1.id]))
 
 
 @mock_ec2
@@ -208,7 +221,7 @@ def test_snapshot_filters():
     snapshot1 = volume1.create_snapshot(description='testsnapshot1')
     snapshot2 = volume1.create_snapshot(description='testsnapshot2')
     snapshot3 = volume2.create_snapshot(description='testsnapshot3')
-    
+
     conn.create_tags([snapshot1.id], {'testkey1': 'testvalue1'})
     conn.create_tags([snapshot2.id], {'testkey2': 'testvalue2'})
 
