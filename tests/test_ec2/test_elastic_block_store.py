@@ -20,7 +20,7 @@ def test_create_and_delete_volume():
     all_volumes.should.have.length_of(1)
     all_volumes[0].size.should.equal(80)
     all_volumes[0].zone.should.equal("us-east-1a")
-    all_volumes[0].encrypted.should.equal(False)
+    all_volumes[0].encrypted.should.be(False)
 
     volume = all_volumes[0]
     volume.delete()
@@ -41,7 +41,7 @@ def test_create_encrypted_volume():
     conn.create_volume(80, "us-east-1a", encrypted=True)
 
     all_volumes = conn.get_all_volumes()
-    all_volumes[0].encrypted.should.equal(True)
+    all_volumes[0].encrypted.should.be(True)
 
 
 @mock_ec2
