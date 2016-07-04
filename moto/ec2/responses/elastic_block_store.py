@@ -202,6 +202,7 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   <ownerId>111122223333</ownerId>
   <volumeSize>{{ snapshot.volume.size }}</volumeSize>
   <description>{{ snapshot.description }}</description>
+  <encrypted>{{ snapshot.encrypted }}</encrypted>
 </CreateSnapshotResponse>"""
 
 DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -217,6 +218,7 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
              <ownerId>111122223333</ownerId>
              <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
+             <encrypted>{{ snapshot.encrypted }}</encrypted>
              <tagSet>
                {% for tag in snapshot.get_tags() %}
                  <item>

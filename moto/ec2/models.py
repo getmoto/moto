@@ -1604,7 +1604,7 @@ class Volume(TaggedEC2Resource):
 
 
 class Snapshot(TaggedEC2Resource):
-    def __init__(self, ec2_backend, snapshot_id, volume, description):
+    def __init__(self, ec2_backend, snapshot_id, volume, description, encrypted=False):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
@@ -1612,6 +1612,7 @@ class Snapshot(TaggedEC2Resource):
         self.create_volume_permission_groups = set()
         self.ec2_backend = ec2_backend
         self.status = 'completed'
+        self.encrypted = encrypted
 
     def get_filter_value(self, filter_name):
 
@@ -1629,6 +1630,9 @@ class Snapshot(TaggedEC2Resource):
 
         if filter_name == 'volume-size':
             return self.volume.size
+
+        if filter_name == 'encrypted':
+            return str(self.encrypted).lower()
 
         filter_value = super(Snapshot, self).get_filter_value(filter_name)
 
@@ -1701,7 +1705,7 @@ class EBSBackend(object):
     def create_snapshot(self, volume_id, description):
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
-        snapshot = Snapshot(self, snapshot_id, volume, description)
+        snapshot = Snapshot(self, snapshot_id, volume, description, volume.encrypted)
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
