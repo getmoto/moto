@@ -341,17 +341,19 @@ def get_obj_tag_values(obj):
     return tags
 
 def tag_filter_matches(obj, filter_name, filter_values):
+    regex_filters = [re.compile(simple_aws_filter_to_re(f)) for f in filter_values]
     if filter_name == 'tag-key':
-        tag_names = get_obj_tag_names(obj)
-        return len(set(filter_values).intersection(tag_names)) > 0
+        tag_values = get_obj_tag_names(obj)
     elif filter_name == 'tag-value':
         tag_values = get_obj_tag_values(obj)
-        return len(set(filter_values).intersection(tag_values)) > 0
     else:
-        import re
-        tag_value = get_obj_tag(obj, filter_name) or ''
-        regex_filters = [re.compile(simple_aws_filter_to_re(f)) for f in filter_values]
-        return any(regex.match(tag_value) for regex in regex_filters)
+        tag_values = [get_obj_tag(obj, filter_name) or '']
+
+    for tag_value in tag_values:
+        if any(regex.match(tag_value) for regex in regex_filters):
+            return True
+
+    return False
 
 
 filter_dict_attribute_mapping = {
