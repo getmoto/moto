@@ -348,8 +348,10 @@ def tag_filter_matches(obj, filter_name, filter_values):
         tag_values = get_obj_tag_values(obj)
         return len(set(filter_values).intersection(tag_values)) > 0
     else:
-        tag_value = get_obj_tag(obj, filter_name)
-        return tag_value in filter_values
+        import re
+        tag_value = get_obj_tag(obj, filter_name) or ''
+        regex_filters = [re.compile(simple_aws_filter_to_re(f)) for f in filter_values]
+        return any(regex.match(tag_value) for regex in regex_filters)
 
 
 filter_dict_attribute_mapping = {
