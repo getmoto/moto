@@ -2,17 +2,20 @@ from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 
-ERROR_WITH_BUCKET_NAME = """{% extends 'error' %}
+ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}
 {% block extra %}<BucketName>{{ bucket }}</BucketName>{% endblock %}
 """
 
-ERROR_WITH_KEY_NAME = """{% extends 'error' %}
+ERROR_WITH_KEY_NAME = """{% extends 'single_error' %}
 {% block extra %}<KeyName>{{ key_name }}</KeyName>{% endblock %}
 """
 
 
 class S3ClientError(RESTError):
-    pass
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('template', 'single_error')
+        self.templates['bucket_error'] = ERROR_WITH_BUCKET_NAME
+        super(S3ClientError, self).__init__(*args, **kwargs)
 
 
 class BucketError(S3ClientError):

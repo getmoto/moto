@@ -1014,6 +1014,21 @@ def test_boto3_head_object():
 
 
 @mock_s3
+def test_boto3_get_object():
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket="blah")
+
+    s3.Object('blah', 'hello.txt').put(Body="some text")
+
+    s3.Object('blah', 'hello.txt').meta.client.head_object(Bucket='blah', Key='hello.txt')
+
+    with assert_raises(ClientError) as e:
+        s3.Object('blah', 'hello2.txt').get()
+
+    e.exception.response['Error']['Code'].should.equal('NoSuchKey')
+
+
+@mock_s3
 def test_boto3_head_object_with_versioning():
     s3 = boto3.resource('s3', region_name='us-east-1')
     bucket = s3.create_bucket(Bucket='blah')

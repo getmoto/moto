@@ -3,6 +3,15 @@ from jinja2 import DictLoader, Environment
 from six import text_type
 
 
+SINGLE_ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+    <Code>{{error_type}}</Code>
+    <Message>{{message}}</Message>
+    {% block extra %}{% endblock %}
+    <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
+</Error>
+"""
+
 ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
   <Response>
     <Errors>
@@ -24,6 +33,7 @@ ERROR_JSON_RESPONSE = u"""{
 
 class RESTError(HTTPException):
     templates = {
+        'single_error': SINGLE_ERROR_RESPONSE,
         'error': ERROR_RESPONSE,
         'error_json': ERROR_JSON_RESPONSE,
     }
