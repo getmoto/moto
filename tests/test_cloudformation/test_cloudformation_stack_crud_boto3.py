@@ -312,3 +312,42 @@ def test_stack_tags():
     expected_tag_items = set(
         item for items in [tag.items() for tag in tags] for item in items)
     observed_tag_items.should.equal(expected_tag_items)
+
+@mock_cloudformation
+def test_stack_events():
+    cf = boto3.resource('cloudformation', region_name='us-east-1')
+    stack = cf.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_json,
+    )
+    stack.update(TemplateBody=dummy_update_template_json)
+    stack = cf.Stack(stack.stack_id)
+    stack.delete()
+
+    # assert begins and ends with stack events
+    events = list(stack.events.all())
+    events[0].resource_type.should.equal("AWS::CloudFormation::Stack")
+    events[-1].resource_type.should.equal("AWS::CloudFormation::Stack")
+
+    # testing ordering of stack events without assuming resource events will not exist
+    stack_events_to_look_for = iter([
+        ("CREATE_IN_PROGRESS", "User Initiated"), ("CREATE_COMPLETE", None),
+        ("UPDATE_IN_PROGRESS", "User Initiated"), ("UPDATE_COMPLETE", None),
+        ("DELETE_IN_PROGRESS", "User Initiated"), ("DELETE_COMPLETE", None)])
+    try:
+        for event in events:
+            event.stack_id.should.equal(stack.stack_id)
+            event.stack_name.should.equal("test_stack")
+
+            if event.resource_type == "AWS::CloudFormation::Stack":
+                event.logical_resource_id.should.equal("test_stack")
+                event.physical_resource_id.should.equal(stack.stack_id)
+
+                status_to_look_for, reason_to_look_for = next(stack_events_to_look_for)
+                event.resource_status.should.equal(status_to_look_for)
+                if reason_to_look_for is not None:
+                    event.resource_status_reason.should.equal(reason_to_look_for)
+    except StopIteration:
+        assert False, "Too many stack events"
+
+    list(stack_events_to_look_for).should.be.empty
