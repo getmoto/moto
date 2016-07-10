@@ -16,7 +16,6 @@ install:
   - travis_retry pip install .
   - travis_retry pip install -r requirements-dev.txt
   - travis_retry pip install coveralls
-  - make init
 script:
   - make test
 after_success:

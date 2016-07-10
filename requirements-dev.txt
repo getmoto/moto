@@ -1,7 +1,7 @@
 -r requirements.txt
 mock
 nose
-sure>=1.2.24
+sure==1.2.24
 coverage
 freezegun
 flask
