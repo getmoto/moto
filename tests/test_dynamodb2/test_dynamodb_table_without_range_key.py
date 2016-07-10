@@ -435,7 +435,7 @@ def test_update_item_remove():
     }
 
     # Then remove the SentBy field
-    conn.update_item("messages", key_map, update_expression="REMOVE :SentBy, :SentTo")
+    conn.update_item("messages", key_map, update_expression="REMOVE SentBy, SentTo")
 
     returned_item = table.get_item(username="steve")
     dict(returned_item).should.equal({
@@ -459,7 +459,7 @@ def test_update_item_set():
         'username': {"S": "steve"}
     }
 
-    conn.update_item("messages", key_map, update_expression="SET foo=:bar, blah=:baz REMOVE :SentBy")
+    conn.update_item("messages", key_map, update_expression="SET foo=bar, blah=baz REMOVE SentBy")
 
     returned_item = table.get_item(username="steve")
     dict(returned_item).should.equal({

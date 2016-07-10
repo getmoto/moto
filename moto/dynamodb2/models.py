@@ -109,8 +109,8 @@ class Item(object):
             "Item": included
         }
 
-    def update(self, update_expression):
-        ACTION_VALUES = ['SET', 'REMOVE']
+    def update(self, update_expression, expression_attribute_names, expression_attribute_values):
+        ACTION_VALUES = ['SET', 'set', 'REMOVE', 'remove']
 
         action = None
         for value in update_expression.split():
@@ -121,13 +121,16 @@ class Item(object):
             else:
                 # A Real value
                 value = value.lstrip(":").rstrip(",")
-
-            if action == "REMOVE":
+            for k, v in expression_attribute_names.items():
+                value = value.replace(k, v)
+            if action == "REMOVE" or action == 'remove':
                 self.attrs.pop(value, None)
-            elif action == 'SET':
-                key, value = value.split("=:")
-                # TODO deal with other types
-                self.attrs[key] = DynamoType({"S": value})
+            elif action == 'SET' or action == 'set':
+                key, value = value.split("=")
+                if value in expression_attribute_values:
+                    self.attrs[key] = DynamoType(expression_attribute_values[value])
+                else:
+                    self.attrs[key] = DynamoType({"S": value})
 
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
@@ -583,7 +586,7 @@ class DynamoDBBackend(BaseBackend):
 
         return table.scan(scan_filters, limit, exclusive_start_key)
 
-    def update_item(self, table_name, key, update_expression, attribute_updates):
+    def update_item(self, table_name, key, update_expression, attribute_updates, expression_attribute_names, expression_attribute_values):
         table = self.get_table(table_name)
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
@@ -618,7 +621,7 @@ class DynamoDBBackend(BaseBackend):
             item = table.get_item(hash_value, range_value)
 
         if update_expression:
-            item.update(update_expression)
+            item.update(update_expression, expression_attribute_names, expression_attribute_values)
         else:
             item.update_with_attribute_updates(attribute_updates)
         return item
