@@ -345,3 +345,23 @@ def test_retrieved_snapshots_must_contain_their_tags():
 
     # Check whether tag is present with correct value
     retrieved_tags[tag_key].should.equal(tag_value)
+
+
+@mock_ec2
+def test_filter_instances_by_wildcard_tags():
+    conn = boto.connect_ec2(aws_access_key_id='the_key', aws_secret_access_key='the_secret')
+    reservation = conn.run_instances('ami-1234abcd')
+    instance_a = reservation.instances[0]
+    instance_a.add_tag("Key1", "Value1")
+    reservation_b = conn.run_instances('ami-1234abcd')
+    instance_b = reservation_b.instances[0]
+    instance_b.add_tag("Key1", "Value2")
+
+    reservations = conn.get_all_instances(filters={'tag:Key1': 'Value*'})
+    reservations.should.have.length_of(2)
+
+    reservations = conn.get_all_instances(filters={'tag-key': 'Key*'})
+    reservations.should.have.length_of(2)
+
+    reservations = conn.get_all_instances(filters={'tag-value': 'Value*'})
+    reservations.should.have.length_of(2)
