@@ -20,6 +20,7 @@ def test_create_and_delete_volume():
     all_volumes.should.have.length_of(1)
     all_volumes[0].size.should.equal(80)
     all_volumes[0].zone.should.equal("us-east-1a")
+    all_volumes[0].encrypted.should.be(False)
 
     volume = all_volumes[0]
     volume.delete()
@@ -32,6 +33,15 @@ def test_create_and_delete_volume():
     cm.exception.code.should.equal('InvalidVolume.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_create_encrypted_volume():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn.create_volume(80, "us-east-1a", encrypted=True)
+
+    all_volumes = conn.get_all_volumes()
+    all_volumes[0].encrypted.should.be(True)
 
 
 @mock_ec2
@@ -57,9 +67,9 @@ def test_volume_filters():
 
     instance.update()
 
-    volume1 = conn.create_volume(80, "us-east-1a")
-    volume2 = conn.create_volume(36, "us-east-1b")
-    volume3 = conn.create_volume(20, "us-east-1c")
+    volume1 = conn.create_volume(80, "us-east-1a", encrypted=True)
+    volume2 = conn.create_volume(36, "us-east-1b", encrypted=False)
+    volume3 = conn.create_volume(20, "us-east-1c", encrypted=True)
 
     snapshot = volume3.create_snapshot(description='testsnap')
     volume4 = conn.create_volume(25, "us-east-1a", snapshot=snapshot)
@@ -106,6 +116,16 @@ def test_volume_filters():
 
     volumes_by_tag = conn.get_all_volumes(filters={'tag:testkey1': 'testvalue1'})
     set([vol.id for vol in volumes_by_tag]).should.equal(set([volume1.id]))
+
+    volumes_by_unencrypted = conn.get_all_volumes(filters={'encrypted': 'false'})
+    set([vol.id for vol in volumes_by_unencrypted]).should.equal(
+        set([block_mapping.volume_id, volume2.id])
+    )
+
+    volumes_by_encrypted = conn.get_all_volumes(filters={'encrypted': 'true'})
+    set([vol.id for vol in volumes_by_encrypted]).should.equal(
+        set([volume1.id, volume3.id, volume4.id])
+    )
 
 
 @mock_ec2
@@ -162,6 +182,7 @@ def test_create_snapshot():
     snapshots.should.have.length_of(1)
     snapshots[0].description.should.equal('a test snapshot')
     snapshots[0].start_time.should_not.be.none
+    snapshots[0].encrypted.should.be(False)
 
     # Create snapshot without description
     snapshot = volume.create_snapshot()
@@ -176,6 +197,21 @@ def test_create_snapshot():
     cm.exception.code.should.equal('InvalidSnapshot.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_create_encrypted_snapshot():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    volume = conn.create_volume(80, "us-east-1a", encrypted=True)
+    snapshot = volume.create_snapshot('a test snapshot')
+    snapshot.update()
+    snapshot.status.should.equal('completed')
+
+    snapshots = conn.get_all_snapshots()
+    snapshots.should.have.length_of(1)
+    snapshots[0].description.should.equal('a test snapshot')
+    snapshots[0].start_time.should_not.be.none
+    snapshots[0].encrypted.should.be(True)
 
 
 @mock_ec2
@@ -202,13 +238,13 @@ def test_filter_snapshot_by_id():
 @mock_ec2
 def test_snapshot_filters():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    volume1 = conn.create_volume(20, "us-east-1a")
-    volume2 = conn.create_volume(25, "us-east-1a")
+    volume1 = conn.create_volume(20, "us-east-1a", encrypted=False)
+    volume2 = conn.create_volume(25, "us-east-1a", encrypted=True)
 
     snapshot1 = volume1.create_snapshot(description='testsnapshot1')
     snapshot2 = volume1.create_snapshot(description='testsnapshot2')
     snapshot3 = volume2.create_snapshot(description='testsnapshot3')
-    
+
     conn.create_tags([snapshot1.id], {'testkey1': 'testvalue1'})
     conn.create_tags([snapshot2.id], {'testkey2': 'testvalue2'})
 
@@ -235,6 +271,9 @@ def test_snapshot_filters():
 
     snapshots_by_tag = conn.get_all_snapshots(filters={'tag:testkey1': 'testvalue1'})
     set([snap.id for snap in snapshots_by_tag]).should.equal(set([snapshot1.id]))
+
+    snapshots_by_encrypted = conn.get_all_snapshots(filters={'encrypted': 'true'})
+    set([snap.id for snap in snapshots_by_encrypted]).should.equal(set([snapshot3.id]))
 
 
 @mock_ec2
@@ -330,6 +369,21 @@ def test_create_volume_from_snapshot():
     new_volume = snapshot.create_volume('us-east-1a')
     new_volume.size.should.equal(80)
     new_volume.snapshot_id.should.equal(snapshot.id)
+
+
+@mock_ec2
+def test_create_volume_from_encrypted_snapshot():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    volume = conn.create_volume(80, "us-east-1a", encrypted=True)
+
+    snapshot = volume.create_snapshot('a test snapshot')
+    snapshot.update()
+    snapshot.status.should.equal('completed')
+
+    new_volume = snapshot.create_volume('us-east-1a')
+    new_volume.size.should.equal(80)
+    new_volume.snapshot_id.should.equal(snapshot.id)
+    new_volume.encrypted.should.be(True)
 
 
 @mock_ec2

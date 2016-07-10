@@ -29,7 +29,8 @@ class ElasticBlockStore(BaseResponse):
         size = self._get_param('Size')
         zone = self._get_param('AvailabilityZone')
         snapshot_id = self._get_param('SnapshotId')
-        volume = self.ec2_backend.create_volume(size, zone, snapshot_id)
+        encrypted = self._get_param('Encrypted') or 'false'
+        volume = self.ec2_backend.create_volume(size, zone, snapshot_id, encrypted)
         template = self.response_template(CREATE_VOLUME_RESPONSE)
         return template.render(volume=volume)
 
@@ -117,6 +118,7 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   {% else %}
     <snapshotId/>
   {% endif %}
+  <encrypted>{{ volume.encrypted }}</encrypted>
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
   <createTime>{{ volume.create_time}}</createTime>
@@ -135,6 +137,7 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
              {% else %}
                <snapshotId/>
              {% endif %}
+             <encrypted>{{ volume.encrypted }}</encrypted>
              <availabilityZone>{{ volume.zone.name }}</availabilityZone>
              <status>{{ volume.status }}</status>
              <createTime>{{ volume.create_time}}</createTime>
@@ -199,6 +202,7 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   <ownerId>111122223333</ownerId>
   <volumeSize>{{ snapshot.volume.size }}</volumeSize>
   <description>{{ snapshot.description }}</description>
+  <encrypted>{{ snapshot.encrypted }}</encrypted>
 </CreateSnapshotResponse>"""
 
 DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -214,6 +218,7 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
              <ownerId>111122223333</ownerId>
              <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
+             <encrypted>{{ snapshot.encrypted }}</encrypted>
              <tagSet>
                {% for tag in snapshot.get_tags() %}
                  <item>
