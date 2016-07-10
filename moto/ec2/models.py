@@ -1226,6 +1226,8 @@ class SecurityGroup(TaggedEC2Resource):
                     return True
         elif is_tag_filter(key):
             tag_value = self.get_filter_value(key)
+            if isinstance(filter_value, list):
+                return any(v in tag_value for v in filter_value)
             return tag_value in filter_value
         else:
             attr_name = to_attr(key)

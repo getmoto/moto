@@ -326,3 +326,19 @@ def test_authorize_all_protocols_with_no_port_specification():
     sg = conn.get_all_security_groups('test')[0]
     sg.rules[0].from_port.should.equal(None)
     sg.rules[0].to_port.should.equal(None)
+
+  
+'''
+Boto3
+'''
+
+
+@mock_ec2
+def test_security_group_tagging_boto3():
+    conn = boto3.client('ec2', region_name='us-east-1')
+    sg = conn.create_security_group(GroupName="test-sg", Description="Test SG")
+    conn.create_tags(Resources=[sg['GroupId']], Tags=[{'Key': 'Test', 'Value': 'Tag'}])
+    describe = conn.describe_security_groups(Filters=[{'Name': 'tag-value', 'Values': ['Tag']}])
+    tag = describe["SecurityGroups"][0]['Tags'][0]
+    tag['Value'].should.equal("Tag")
+    tag['Key'].should.equal("Test")
