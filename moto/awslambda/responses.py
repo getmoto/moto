@@ -28,6 +28,25 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    @classmethod
+    def invoke(cls, request, full_url, headers):
+        if request.method == 'POST':
+            return cls()._invoke(request, full_url, headers)
+        else:
+            raise ValueError("Cannot handle request")
+
+    def _invoke(self, request, full_url, headers):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        function_name = request.path.split('/')[-2]
+
+        if lambda_backend.has_function(function_name):
+            fn = lambda_backend.get_function(function_name)
+            payload = fn.invoke(request, headers)
+            return 200, headers, payload
+        else:
+            return 404, headers, "{}"
+
     def _list_functions(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
         return 200, headers, json.dumps({

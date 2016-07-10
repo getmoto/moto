@@ -33,6 +33,43 @@ def test_list_functions():
 
 
 @mock_lambda
+@mock_s3
+@freeze_time('2015-01-01 00:00:00')
+def test_invoke_function():
+    conn = boto3.client('lambda', 'us-west-2')
+
+    zip_content = get_test_zip_file()
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': zip_content,
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload='{}')
+    success_result["StatusCode"].should.equal(200)
+
+    conn.invoke.when.called_with(
+        FunctionName='notAFunction',
+        InvocationType='Event',
+        Payload='{}'
+    ).should.throw(botocore.client.ClientError)
+
+    success_result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse', Payload='{}')
+    success_result["StatusCode"].should.equal(200)
+
+    import base64
+    base64.b64decode(success_result["LogResult"]).decode('utf-8').should.equal("Some log file output...")
+
+
+@mock_lambda
 @freeze_time('2015-01-01 00:00:00')
 def test_create_based_on_s3_with_missing_bucket():
     conn = boto3.client('lambda', 'us-west-2')
