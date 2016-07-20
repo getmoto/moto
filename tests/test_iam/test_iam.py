@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 import sure  # noqa
 
 from nose.tools import assert_raises, assert_equals, assert_not_equals
@@ -175,6 +176,13 @@ def test_get_user():
     conn.create_user('my-user')
     conn.get_user('my-user')
 
+@mock_iam()
+def test_list_users():
+    path_prefix = '/'
+    max_items = 10
+    conn = boto3.client('iam')
+    conn.create_user(UserName='my-user')
+    conn.list_users(PathPrefix=path_prefix, MaxItems=max_items)
 
 @mock_iam()
 def test_create_login_profile():

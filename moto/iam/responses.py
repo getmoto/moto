@@ -165,6 +165,14 @@ class IamResponse(BaseResponse):
         template = self.response_template(USER_TEMPLATE)
         return template.render(action='Get', user=user)
 
+    def list_users(self):
+        path_prefix = self._get_param('PathPrefix')
+        marker = self._get_param('Marker')
+        max_items = self._get_param('MaxItems')
+        user = iam_backend.list_users(path_prefix, marker, max_items)
+        template = self.response_template(LIST_USERS_TEMPLATE)
+        return template.render(action='List', user=user)
+
     def create_login_profile(self):
         user_name = self._get_param('UserName')
         password = self._get_param('Password')
@@ -591,6 +599,24 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </{{ action }}UserResponse>"""
+
+LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
+   <{{ action }}UsersResult>
+      <Users>
+         {% for user in users %}
+         <member>
+             <UserId>{{ user.id }}</UserId>
+             <Path>{{ user.path }}</Path>
+             <UserName>{{ user.name }}</UserName>
+             <Arn>arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name }}</Arn>
+         </member>
+         {% endfor %}
+     </Users>
+   </{{ action }}UsersResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</{{ action }}UsersResponse>"""
 
 CREATE_LOGIN_PROFILE_TEMPLATE = """
 <CreateLoginProfileResponse>
