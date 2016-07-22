@@ -93,6 +93,9 @@ def test_volume_filters():
     volumes_by_attach_instance_id = conn.get_all_volumes(filters={'attachment.instance-id': instance.id})
     set([vol.id for vol in volumes_by_attach_instance_id]).should.equal(set([block_mapping.volume_id]))
 
+    volumes_by_attach_status = conn.get_all_volumes(filters={'attachment.status': 'attached'})
+    set([vol.id for vol in volumes_by_attach_status]).should.equal(set([block_mapping.volume_id]))
+
     volumes_by_create_time = conn.get_all_volumes(filters={'create-time': volume4.create_time})
     set([vol.create_time for vol in volumes_by_create_time]).should.equal(set([volume4.create_time]))
 
@@ -142,6 +145,7 @@ def test_volume_attach_and_detach():
 
     volume.update()
     volume.volume_state().should.equal('in-use')
+    volume.attachment_state().should.equal('attached')
 
     volume.attach_data.instance_id.should.equal(instance.id)
 
