@@ -1513,11 +1513,12 @@ class SecurityGroupIngress(object):
 
 
 class VolumeAttachment(object):
-    def __init__(self, volume, instance, device):
+    def __init__(self, volume, instance, device, status):
         self.volume = volume
         self.attach_time = utc_date_and_time()
         self.instance = instance
         self.device = device
+        self.status = status
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1578,6 +1579,8 @@ class Volume(TaggedEC2Resource):
             return self.attachment.device
         if filter_name == 'attachment.instance-id':
             return self.attachment.instance.id
+        if filter_name == 'attachment.status':
+            return self.attachment.status
 
         if filter_name == 'create-time':
             return self.create_time
@@ -1688,7 +1691,7 @@ class EBSBackend(object):
         if not volume or not instance:
             return False
 
-        volume.attachment = VolumeAttachment(volume, instance, device_path)
+        volume.attachment = VolumeAttachment(volume, instance, device_path, 'attached')
         # Modify instance to capture mount of block device.
         bdt = BlockDeviceType(volume_id=volume_id, status=volume.status, size=volume.size,
                               attach_time=utc_date_and_time())
@@ -1702,6 +1705,7 @@ class EBSBackend(object):
         old_attachment = volume.attachment
         if not old_attachment:
             raise InvalidVolumeAttachmentError(volume_id, instance_id)
+        old_attachment.status = 'detached'
 
         volume.attachment = None
         return old_attachment
