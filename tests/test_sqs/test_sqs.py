@@ -395,7 +395,7 @@ def test_queue_attributes():
     attributes = queue.get_attributes()
 
     attributes['QueueArn'].should.look_like(
-        'arn:aws:sqs:sqs.us-east-1:123456789012:%s' % queue_name)
+        'arn:aws:sqs:us-east-1:123456789012:%s' % queue_name)
 
     attributes['VisibilityTimeout'].should.look_like(str(visibility_timeout))
 
