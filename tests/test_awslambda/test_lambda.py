@@ -123,7 +123,7 @@ def test_create_function_from_aws_bucket():
             "SubnetIds": ["subnet-123abc"],
         },
     )
-    result['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     result.should.equal({
         'FunctionName': 'testFunction',
         'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
@@ -166,7 +166,7 @@ def test_create_function_from_zipfile():
         MemorySize=128,
         Publish=True,
     )
-    result['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     result.should.equal({
         'FunctionName': 'testFunction',
         'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
@@ -216,7 +216,7 @@ def test_get_function():
     )
 
     result = conn.get_function(FunctionName='testFunction')
-    result['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
 
     result.should.equal({
         "Code": {
@@ -272,7 +272,7 @@ def test_delete_function():
     )
 
     success_result = conn.delete_function(FunctionName='testFunction')
-    success_result['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    success_result['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     success_result.should.equal({'ResponseMetadata': {'HTTPStatusCode': 204}})
 
     conn.delete_function.when.called_with(FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
@@ -337,7 +337,7 @@ def test_list_create_list_get_delete_list():
     conn.list_functions()['Functions'].should.equal([expected_function_result['Configuration']])
 
     func = conn.get_function(FunctionName='testFunction')
-    func['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    func['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     func.should.equal(expected_function_result)
     conn.delete_function(FunctionName='testFunction')
 

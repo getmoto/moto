@@ -76,7 +76,7 @@ def test_create_resource():
         restApiId=api_id,
         resourceId=root_id,
     )
-    root_resource['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    root_resource['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     root_resource.should.equal({
         'path': '/',
         'id': root_id,
@@ -134,7 +134,7 @@ def test_child_resource():
         restApiId=api_id,
         resourceId=tags_id,
     )
-    child_resource['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    child_resource['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     child_resource.should.equal({
         'path': '/users/tags',
         'pathPart': 'tags',
@@ -170,7 +170,7 @@ def test_create_method():
         httpMethod='GET'
     )
 
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response.should.equal({
         'httpMethod': 'GET',
         'authorizationType': 'none',
@@ -209,7 +209,7 @@ def test_create_method_response():
         httpMethod='GET',
         statusCode='200',
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'statusCode': '200'
@@ -221,7 +221,7 @@ def test_create_method_response():
         httpMethod='GET',
         statusCode='200',
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'statusCode': '200'
@@ -233,7 +233,7 @@ def test_create_method_response():
         httpMethod='GET',
         statusCode='200',
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response.should.equal({'ResponseMetadata': {'HTTPStatusCode': 200}})
 
 
@@ -270,7 +270,7 @@ def test_integrations():
         type='HTTP',
         uri='http://httpbin.org/robots.txt',
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'httpMethod': 'GET',
@@ -291,7 +291,7 @@ def test_integrations():
         resourceId=root_id,
         httpMethod='GET'
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'httpMethod': 'GET',
@@ -311,7 +311,7 @@ def test_integrations():
         restApiId=api_id,
         resourceId=root_id,
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response['resourceMethods']['GET']['methodIntegration'].should.equal({
         'httpMethod': 'GET',
         'integrationResponses': {
@@ -380,7 +380,7 @@ def test_integration_response():
         statusCode='200',
         selectionPattern='foobar',
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response.should.equal({
         'statusCode': '200',
         'selectionPattern': 'foobar',
@@ -396,7 +396,7 @@ def test_integration_response():
         httpMethod='GET',
         statusCode='200',
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response.should.equal({
         'statusCode': '200',
         'selectionPattern': 'foobar',
@@ -411,7 +411,7 @@ def test_integration_response():
         resourceId=root_id,
         httpMethod='GET',
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response['methodIntegration']['integrationResponses'].should.equal({
         '200': {
             'responseTemplates': {
@@ -456,7 +456,7 @@ def test_deployment():
         restApiId=api_id,
         deploymentId=deployment_id,
     )
-    response['ResponseMetadata'].pop('HTTPHeaders') # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
     response.should.equal({
         'id': deployment_id,
         'ResponseMetadata': {'HTTPStatusCode': 200}
