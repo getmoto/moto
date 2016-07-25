@@ -182,7 +182,12 @@ def test_list_users():
     max_items = 10
     conn = boto3.client('iam')
     conn.create_user(UserName='my-user')
-    conn.list_users(PathPrefix=path_prefix, MaxItems=max_items)
+    response = conn.list_users(PathPrefix=path_prefix, MaxItems=max_items)
+    assert_equals(
+        response['Users'],
+        []
+    )
+
 
 @mock_iam()
 def test_create_login_profile():
