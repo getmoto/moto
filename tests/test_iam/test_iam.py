@@ -153,10 +153,31 @@ def test_put_role_policy():
 def test_put_user_policy():
     conn = boto.connect_iam()
     conn.create_user("my-user", path="my-path")
-    conn.put_user_policy("my-user", "test policy", "my policy")
-    policy = conn.get_user_policy("my-user", "test policy")['get_user_policy_response']['get_user_policy_result']['']
-    policy.should.equal("test policy")
+    conn.put_user_policy("my-user", "my-policy", "test policy")
+    policy = conn.get_user_policy("my-user", "my-policy")['get_user_policy_response']['get_user_policy_result']
+    policy['policy_name'].should.equal("my-policy")
+    policy['policy_document'].should.equal("test policy")
+    policy['user_name'].should.equal("my-user")
 
+@mock_iam()
+def test_create_policy():
+    conn = boto.connect_iam()
+    conn.create_user('my-user')
+    policy = conn.create_policy("my-policy", "test policy")['create_policy_response']['create_policy_result']['policy']
+    policy = conn.get_policy("my-policy")['get_policy_response']['get_policy_result']['policy']
+    policy['policy_name'].should.equal("my-policy")
+
+
+@mock_iam()
+def test_attach_user_policy():
+    conn = boto.connect_iam()
+    conn.create_user("my-user", path="my-path")
+    conn.create_policy("my-policy", "test policy")
+    conn.attach_user_policy("my-user", "my-policy")
+    policy = conn.get_user_policy("my-user", "my-policy")['get_user_policy_response']['get_user_policy_result']
+    policy['policy_name'].should.equal("my-policy")
+    policy['policy_document'].should.equal("test policy")
+    policy['user_name'].should.equal("my-user")
 
 @mock_iam()
 def test_update_assume_role_policy():
