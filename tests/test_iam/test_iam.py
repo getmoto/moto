@@ -149,6 +149,14 @@ def test_put_role_policy():
     policy = conn.get_role_policy("my-role", "test policy")['get_role_policy_response']['get_role_policy_result']['policy_name']
     policy.should.equal("test policy")
 
+@mock_iam()
+def test_put_user_policy():
+    conn = boto.connect_iam()
+    conn.create_user("my-user", path="my-path")
+    conn.put_user_policy("my-user", "test policy", "my policy")
+    policy = conn.get_user_policy("my-user", "test policy")['get_user_policy_response']['get_user_policy_result']['']
+    policy.should.equal("test policy")
+
 
 @mock_iam()
 def test_update_assume_role_policy():
