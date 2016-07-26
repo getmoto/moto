@@ -378,6 +378,15 @@ class IAMBackend(BaseBackend):
 
         return user
 
+    def list_users(self, path_prefix, marker, max_items):
+        users = None
+        try:
+            users = self.users
+        except KeyError:
+            raise IAMNotFoundException("Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
+
+        return users
+
     def create_login_profile(self, user_name, password):
         # This does not currently deal with PasswordPolicyViolation.
         user = self.get_user(user_name)
