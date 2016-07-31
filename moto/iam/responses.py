@@ -15,12 +15,29 @@ class IamResponse(BaseResponse):
         template = self.response_template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
+    def create_policy(self):
+        policy_name = self._get_param('PolicyName')
+        path = self._get_param('Path')
+        policy_document = self._get_param('PolicyDocument')
+        description = self._get_param('Description')
+
+        policy = iam_backend.create_policy(policy_name, path, policy_document, description)
+        template = self.response_template(CREATE_POLICY_TEMPLATE)
+        return template.render(policy=policy)
+
     def get_role(self):
         role_name = self._get_param('RoleName')
         role = iam_backend.get_role(role_name)
 
         template = self.response_template(GET_ROLE_TEMPLATE)
         return template.render(role=role)
+
+    def get_policy(self):
+        policy_name = self._get_param('PolicyArn')
+        policy = iam_backend.get_policy(policy_name)
+
+        template = self.response_template(GET_POLICY_TEMPLATE)
+        return template.render(policy=policy)
 
     def list_role_policies(self):
         role_name = self._get_param('RoleName')
@@ -324,6 +341,23 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
   </ResponseMetadata>
 </CreateRoleResponse>"""
 
+CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <CreatePolicyResult>
+    <Policy>
+      <Path>{{ policy.path }}</Path>
+      <Arn>arn:aws:iam::123456789012:policy/application_abc/component_xyz/S3Access</Arn>
+      <PolicyName>{{ policy.policy_name }}</PolicyName>
+      <PolicyDocument>{{ policy.policy_document }}</PolicyDocument>
+      <CreateDate>2012-05-08T23:34:01.495Z</CreateDate>
+      <PolicyId>{{ policy.id }}</PolicyId>
+      <Description>{{ policy.description }}</Description>
+    </Policy>
+  </CreatePolicyResult>
+  <ResponseMetadata>
+    <RequestId>4a93ceee-9966-11e1-b624-b1aEXAMPLE7c</RequestId>
+  </ResponseMetadata>
+</CreatePolicyResponse>"""
+
 GET_ROLE_POLICY_TEMPLATE = """<GetRolePolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
 <GetRolePolicyResult>
   <PolicyName>{{ policy_name }}</PolicyName>
@@ -350,6 +384,23 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
     <RequestId>df37e965-9967-11e1-a4c3-270EXAMPLE04</RequestId>
   </ResponseMetadata>
 </GetRoleResponse>"""
+
+GET_POLICY_TEMPLATE = """<GetPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetPolicyResult>
+    <Policy>
+      <Path>{{ policy.path }}</Path>
+      <Arn>arn:aws:iam::123456789012:policy/application_abc/component_xyz/S3Access</Arn>
+      <PolicyName>{{ policy.policy_name }}</PolicyName>
+      <PolicyDocument>{{ policy.policy_document }}</PolicyDocument>
+      <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+      <PolicyId>{{ policy.id }}</PolicyId>
+      <Description>{{ policy.description }}</Description>
+    </Policy>
+  </GetPolicyResult>
+  <ResponseMetadata>
+    <RequestId>df37e965-9967-11e1-a4c3-270EXAMPLE04</RequestId>
+  </ResponseMetadata>
+</GetPolicyResponse>"""
 
 ADD_ROLE_TO_INSTANCE_PROFILE_TEMPLATE = """<AddRoleToInstanceProfileResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ResponseMetadata>

@@ -48,6 +48,38 @@ class Role(object):
         raise UnformattedGetAttTemplateException()
 
 
+class Policy(object):
+    def __init__(self, policy_id, policy_name, path, policy_document, description):
+        self.id = policy_id
+        self.policy_name = policy_name
+        self.path = path
+        self.policy_document = policy_document
+        self.description = description
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        policy = iam_backend.create_policy(
+            policy_name=resource_name,
+            policy_document=properties['PolicyDocument'],
+            path=properties['Path'],
+            description=properties['Description']
+        )
+
+        return policy
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+        raise UnformattedGetAttTemplateException()
+
+
 class InstanceProfile(object):
     def __init__(self, instance_profile_id, name, path, roles):
         self.id = instance_profile_id
@@ -230,6 +262,7 @@ class IAMBackend(BaseBackend):
     def __init__(self):
         self.instance_profiles = {}
         self.roles = {}
+        self.policies = {}
         self.certificates = {}
         self.groups = {}
         self.users = {}
@@ -242,6 +275,12 @@ class IAMBackend(BaseBackend):
         self.roles[role_id] = role
         return role
 
+    def create_policy(self, policy_name, path, policy_document, description):
+        policy_id = random_resource_id()
+        policy = Policy(policy_id, policy_name, path, policy_document, description)
+        self.policies[policy_id] = policy
+        return policy
+
     def get_role_by_id(self, role_id):
         return self.roles.get(role_id)
 
@@ -251,8 +290,18 @@ class IAMBackend(BaseBackend):
                 return role
         raise IAMNotFoundException("Role {0} not found".format(role_name))
 
+    def get_policy(self, policy_name):
+        print self.get_policies()
+        for policy in self.get_policies():
+            if policy.policy_name == policy_name:
+                return policy
+        raise IAMNotFoundException("Policy {0} not found".format(policy_name))
+
     def get_roles(self):
         return self.roles.values()
+
+    def get_policies(self):
+        return self.policies.values()
 
     def put_role_policy(self, role_name, policy_name, policy_json):
         role = self.get_role(role_name)

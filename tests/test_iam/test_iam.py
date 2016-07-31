@@ -71,6 +71,17 @@ def test_create_role_and_instance_profile():
 
 
 @mock_iam()
+def test_create_policy():
+    conn = boto.connect_iam()
+    conn.create_policy("my-policy", path="my-path", policy_document="some policy", description="my-description")
+
+    policy = conn.get_policy("my-policy")
+    policy.path.should.equal("my-path")
+    policy.policy_document.should.equal("some policy")
+    policy.description.should.equal("my-description")
+
+
+@mock_iam()
 def test_remove_role_from_instance_profile():
     conn = boto.connect_iam()
     conn.create_instance_profile("my-profile", path="my-path")
