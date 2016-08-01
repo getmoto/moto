@@ -8,6 +8,8 @@ def alarm_fixture(name="tester", action=None):
     action = action or ['arn:alarm']
     return MetricAlarm(
         name=name,
+        namespace="{0}_namespace".format(name),
+        metric="{0}_metric".format(name),
         comparison='>=',
         threshold=2.0,
         period=60,
@@ -32,6 +34,8 @@ def test_create_alarm():
     alarms.should.have.length_of(1)
     alarm = alarms[0]
     alarm.name.should.equal('tester')
+    alarm.namespace.should.equal('tester_namespace')
+    alarm.metric.should.equal('tester_metric')
     alarm.comparison.should.equal('>=')
     alarm.threshold.should.equal(2.0)
     alarm.period.should.equal(60)
