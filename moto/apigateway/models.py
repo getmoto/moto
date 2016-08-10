@@ -27,11 +27,12 @@ class IntegrationResponse(dict):
 
 
 class Integration(dict):
-    def __init__(self, integration_type, uri, http_method):
+    def __init__(self, integration_type, uri, http_method, request_templates=None):
         super(Integration, self).__init__()
         self['type'] = integration_type
         self['uri'] = uri
         self['httpMethod'] = http_method
+        self['requestTemplates'] = request_templates
         self["integrationResponses"] = {
             "200": IntegrationResponse(200)
         }
@@ -136,8 +137,8 @@ class Resource(object):
     def get_method(self, method_type):
         return self.resource_methods[method_type]
 
-    def add_integration(self, method_type, integration_type, uri):
-        integration = Integration(integration_type, uri, method_type)
+    def add_integration(self, method_type, integration_type, uri, request_templates=None):
+        integration = Integration(integration_type, uri, method_type, request_templates=request_templates)
         self.resource_methods[method_type]['methodIntegration'] = integration
         return integration
 
@@ -290,9 +291,11 @@ class APIGatewayBackend(BaseBackend):
         method_response = method.delete_response(response_code)
         return method_response
 
-    def create_integration(self, function_id, resource_id, method_type, integration_type, uri):
+    def create_integration(self, function_id, resource_id, method_type, integration_type, uri,
+            request_templates=None):
         resource = self.get_resource(function_id, resource_id)
-        integration = resource.add_integration(method_type, integration_type, uri)
+        integration = resource.add_integration(method_type, integration_type, uri,
+            request_templates=request_templates)
         return integration
 
     def get_integration(self, function_id, resource_id, method_type):
