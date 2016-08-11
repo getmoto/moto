@@ -149,6 +149,26 @@ class Resource(object):
         return self.resource_methods[method_type].pop('methodIntegration')
 
 
+class Stage(dict):
+    def __init__(self, name=None, deployment_id=None):
+        super(Stage, self).__init__()
+        self['stageName'] = name
+        self['deploymentId'] = deployment_id
+        self['methodSettings'] = {}
+        self['variables'] = {}
+        self['description'] = ''
+
+    def apply_operations(self, patch_operations):
+        for op in patch_operations:
+            if op['op'] == 'replace':
+                # TODO: match the path against the values hash
+                # (e.g., path could be '/*/*/logging/loglevel')
+                self[op['path']] = op['value']
+            else:
+                raise Exception('Patch operation "%s" not implemented' % op['op'])
+        return self
+
+
 class RestAPI(object):
     def __init__(self, id, region_name, name, description):
         self.id = id
@@ -158,6 +178,7 @@ class RestAPI(object):
         self.create_date = datetime.datetime.utcnow()
 
         self.deployments = {}
+        self.stages = {}
 
         self.resources = {}
         self.add_child('/')  # Add default child
@@ -202,6 +223,7 @@ class RestAPI(object):
         deployment_id = create_id()
         deployment = Deployment(deployment_id, name)
         self.deployments[deployment_id] = deployment
+        self.stages[name] = Stage(name=name, deployment_id=deployment_id)
 
         self.update_integration_mocks(name)
 
@@ -275,6 +297,17 @@ class APIGatewayBackend(BaseBackend):
         resource = self.get_resource(function_id, resource_id)
         method = resource.add_method(method_type, authorization_type)
         return method
+
+    def get_stage(self, function_id, stage_name):
+        api = self.get_rest_api(function_id)
+        return api.stages.get(stage_name)
+
+    def update_stage(self, function_id, stage_name, patch_operations):
+        stage = self.get_stage(function_id, stage_name)
+        if not stage:
+            api = self.get_rest_api(function_id)
+            stage = api.stages[stage_name] = Stage()
+        return stage.apply_operations(patch_operations)
 
     def get_method_response(self, function_id, resource_id, method_type, response_code):
         method = self.get_method(function_id, resource_id, method_type)
