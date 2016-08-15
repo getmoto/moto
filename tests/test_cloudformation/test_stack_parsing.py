@@ -7,6 +7,7 @@ import sure  # noqa
 from moto.cloudformation.models import FakeStack
 from moto.cloudformation.parsing import resource_class_from_type, parse_condition
 from moto.sqs.models import Queue
+from moto.s3.models import FakeBucket
 from boto.cloudformation.stack import Output
 from boto.exception import BotoServerError
 
@@ -22,6 +23,10 @@ dummy_template = {
                 "QueueName": "my-queue",
                 "VisibilityTimeout": 60,
             }
+        },
+        "S3Bucket": {
+          "Type": "AWS::S3::Bucket",
+          "DeletionPolicy": "Retain"
         },
     },
 }
@@ -85,11 +90,17 @@ def test_parse_stack_resources():
         parameters={},
         region_name='us-west-1')
 
-    stack.resource_map.should.have.length_of(1)
+    stack.resource_map.should.have.length_of(2)
     list(stack.resource_map.keys())[0].should.equal('Queue')
+    list(stack.resource_map.keys())[1].should.equal('S3Bucket')
+
     queue = list(stack.resource_map.values())[0]
     queue.should.be.a(Queue)
     queue.name.should.equal("my-queue")
+
+    bucket = list(stack.resource_map.values())[1]
+    bucket.should.be.a(FakeBucket)
+    bucket.physical_resource_id.should.equal(bucket.name)
 
 
 @patch("moto.cloudformation.parsing.logger")
