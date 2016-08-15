@@ -288,6 +288,16 @@ class FakeBucket(object):
     def set_acl(self, acl):
         self.acl = acl
 
+    @property
+    def physical_resource_id(self):
+        return self.name
+
+    @classmethod
+    def create_from_cloudformation_json(
+            cls, resource_name, cloudformation_json, region_name):
+        bucket = s3_backend.create_bucket(resource_name, region_name)
+        return bucket
+
 
 class S3Backend(BaseBackend):
 

@@ -14,6 +14,7 @@ from moto.kms import models as kms_models
 from moto.rds import models as rds_models
 from moto.redshift import models as redshift_models
 from moto.route53 import models as route53_models
+from moto.s3 import models as s3_models
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
 from .utils import random_suffix
@@ -57,6 +58,7 @@ MODEL_MAP = {
     "AWS::Route53::RecordSet": route53_models.RecordSet,
     "AWS::Route53::RecordSetGroup": route53_models.RecordSetGroup,
     "AWS::SNS::Topic": sns_models.Topic,
+    "AWS::S3::Bucket": s3_models.FakeBucket,
     "AWS::SQS::Queue": sqs_models.Queue,
 }
 
