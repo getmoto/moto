@@ -91,14 +91,12 @@ def test_parse_stack_resources():
         region_name='us-west-1')
 
     stack.resource_map.should.have.length_of(2)
-    list(stack.resource_map.keys())[0].should.equal('Queue')
-    list(stack.resource_map.keys())[1].should.equal('S3Bucket')
 
-    queue = list(stack.resource_map.values())[0]
+    queue = stack.resource_map['Queue']
     queue.should.be.a(Queue)
     queue.name.should.equal("my-queue")
 
-    bucket = list(stack.resource_map.values())[1]
+    bucket = stack.resource_map['S3Bucket']
     bucket.should.be.a(FakeBucket)
     bucket.physical_resource_id.should.equal(bucket.name)
 
