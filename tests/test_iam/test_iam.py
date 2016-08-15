@@ -22,6 +22,14 @@ def test_get_all_server_certs():
 
 
 @mock_iam()
+def test_get_server_cert_doesnt_exist():
+    conn = boto.connect_iam()
+
+    with assert_raises(BotoServerError):
+        conn.get_server_certificate("NonExistant")
+
+
+@mock_iam()
 def test_get_server_cert():
     conn = boto.connect_iam()
 

@@ -318,6 +318,10 @@ class IAMBackend(BaseBackend):
             if name == cert.cert_name:
                 return cert
 
+        raise IAMNotFoundException(
+            "The Server Certificate with name {0} cannot be "
+            "found.".format(name))
+
     def create_group(self, group_name, path='/'):
         if group_name in self.groups:
             raise IAMConflictException("Group {0} already exists".format(group_name))
