@@ -511,6 +511,7 @@ def test_boto3_get_queue():
     queue = sqs.get_queue_by_name(QueueName='test-queue')
     queue.attributes.get('QueueArn').should_not.be.none
     queue.attributes.get('QueueArn').split(':')[-1].should.equal('test-queue')
+    queue.attributes.get('QueueArn').split(':')[3].should.equal('us-east-1')
     queue.attributes.get('VisibilityTimeout').should_not.be.none
     queue.attributes.get('VisibilityTimeout').should.equal('30')
 
