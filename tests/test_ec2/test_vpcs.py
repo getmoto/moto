@@ -50,6 +50,35 @@ def test_vpc_defaults():
     conn.get_all_route_tables().should.have.length_of(0)
     conn.get_all_security_groups(filters={'vpc-id': [vpc.id]}).should.have.length_of(0)
 
+@mock_ec2
+def test_vpc_isdefault_filter():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    conn.get_all_vpcs(filters={'isDefault': 'true'}).should.have.length_of(1)
+    vpc.delete()
+    conn.get_all_vpcs(filters={'isDefault': 'true'}).should.have.length_of(0)
+
+
+@mock_ec2
+def test_multiple_vpcs_default_filter():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    conn.create_vpc("10.8.0.0/16")
+    conn.create_vpc("10.0.0.0/16")
+    conn.create_vpc("192.168.0.0/16")
+    conn.get_all_vpcs().should.have.length_of(3)
+    vpc = conn.get_all_vpcs(filters={'isDefault': 'true'})
+    vpc.should.have.length_of(1)
+    vpc[0].cidr_block.should.equal('10.8.0.0/16')
+
+
+@mock_ec2
+def test_vpc_state_available_filter():
+    conn = boto.connect_vpc('the_key', 'the_secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+    conn.create_vpc("10.1.0.0/16")
+    conn.get_all_vpcs(filters={'state': 'available'}).should.have.length_of(2)
+    vpc.delete()
+    conn.get_all_vpcs(filters={'state': 'available'}).should.have.length_of(1)
 
 @mock_ec2
 def test_vpc_tagging():

@@ -1791,6 +1791,10 @@ class VPC(TaggedEC2Resource):
             return self.id
         elif filter_name == 'cidr':
             return self.cidr_block
+        elif filter_name == 'isDefault':
+            return self.is_default
+        elif filter_name == 'state':
+            return self.state
         elif filter_name == 'dhcp-options-id':
             if not self.dhcp_options:
                 return None
