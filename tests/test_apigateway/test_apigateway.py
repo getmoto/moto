@@ -338,6 +338,38 @@ def test_integrations():
     )
     response['resourceMethods']['GET'].shouldnt.contain("methodIntegration")
 
+    # Create a new integration with a requestTemplates config
+
+    client.put_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='POST',
+        authorizationType='none',
+    )
+
+    templates = {
+        # example based on http://docs.aws.amazon.com/apigateway/latest/developerguide/api-as-kinesis-proxy-export-swagger-with-extensions.html
+        'application/json': "{\n    \"StreamName\": \"$input.params('stream-name')\",\n    \"Records\": []\n}"
+    }
+    test_uri = 'http://example.com/foobar.txt'
+    response = client.put_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='POST',
+        type='HTTP',
+        uri=test_uri,
+        requestTemplates=templates
+    )
+    response['ResponseMetadata'].should.equal({'HTTPStatusCode': 200})
+
+    response = client.get_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='POST'
+    )
+    response['uri'].should.equal(test_uri)
+    response['requestTemplates'].should.equal(templates)
+
 
 @mock_apigateway
 def test_integration_response():

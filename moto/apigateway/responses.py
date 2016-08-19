@@ -107,7 +107,8 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == 'PUT':
             integration_type = self._get_param('type')
             uri = self._get_param('uri')
-            integration_response = self.backend.create_integration(function_id, resource_id, method_type, integration_type, uri)
+            request_templates = self._get_param('requestTemplates')
+            integration_response = self.backend.create_integration(function_id, resource_id, method_type, integration_type, uri, request_templates=request_templates)
         elif self.method == 'DELETE':
             integration_response = self.backend.delete_integration(function_id, resource_id, method_type)
         return 200, headers, json.dumps(integration_response)
