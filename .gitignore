@@ -11,3 +11,4 @@ build/
 .idea/
 *.swp
 .DS_Store
+python_env
