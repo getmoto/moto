@@ -122,7 +122,7 @@ class Queue(object):
         self.last_modified_timestamp = now
         self.maximum_message_size = 64 << 10
         self.message_retention_period = 86400 * 4  # four days
-        self.queue_arn = 'arn:aws:sqs:us-east-1:123456789012:%s' % self.name
+        self.queue_arn = 'arn:aws:sqs:{0}:123456789012:{1}'.format(self.region, self.name)
         self.receive_message_wait_time_seconds = 0
 
     @classmethod
