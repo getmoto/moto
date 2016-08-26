@@ -911,6 +911,7 @@ class Ami(TaggedEC2Resource):
         self.architecture = None
         self.kernel_id = None
         self.platform = None
+        self.creation_date = datetime.utcnow().isoformat()
 
         if instance:
             self.instance = instance
