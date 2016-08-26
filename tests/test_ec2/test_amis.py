@@ -28,6 +28,7 @@ def test_ami_create_and_delete():
     image.architecture.should.equal(instance.architecture)
     image.kernel_id.should.equal(instance.kernel)
     image.platform.should.equal(instance.platform)
+    image.creationDate.should_not.be.none
     instance.terminate()
 
     # Validate auto-created volume and snapshot
