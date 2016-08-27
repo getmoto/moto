@@ -95,6 +95,19 @@ class APIGatewayResponse(BaseResponse):
             method_response = self.backend.delete_method_response(function_id, resource_id, method_type, response_code)
         return 200, headers, json.dumps(method_response)
 
+    def stages(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        stage_name = url_path_parts[4]
+
+        if self.method == 'GET':
+            stage_response = self.backend.get_stage(function_id, stage_name)
+        elif self.method == 'PATCH':
+            path_operations = self._get_param('patchOperations')
+            stage_response = self.backend.update_stage(function_id, stage_name, path_operations)
+        return 200, headers, json.dumps(stage_response)
+
     def integrations(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")

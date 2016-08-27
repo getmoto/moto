@@ -472,6 +472,7 @@ def test_integration_response():
 @mock_apigateway
 def test_deployment():
     client = boto3.client('apigateway', region_name='us-west-2')
+    stage_name = 'staging'
     response = client.create_rest_api(
         name='my_api',
         description='this is my api',
@@ -480,7 +481,7 @@ def test_deployment():
 
     response = client.create_deployment(
         restApiId=api_id,
-        stageName='staging',
+        stageName=stage_name,
     )
     deployment_id = response['id']
 
@@ -510,6 +511,35 @@ def test_deployment():
         restApiId=api_id,
     )
     len(response['items']).should.equal(0)
+
+    # test deployment stages
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=stage_name
+    )
+    stage['stageName'].should.equal(stage_name)
+    stage['deploymentId'].should.equal(deployment_id)
+
+    stage = client.update_stage(
+        restApiId=api_id,
+        stageName=stage_name,
+        patchOperations=[
+            {
+                'op': 'replace',
+                'path': 'description',
+                'value': '_new_description_'
+            },
+        ]
+    )
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=stage_name
+    )
+    stage['stageName'].should.equal(stage_name)
+    stage['deploymentId'].should.equal(deployment_id)
+    stage['description'].should.equal('_new_description_')
 
 
 @httpretty.activate
