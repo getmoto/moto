@@ -7,6 +7,8 @@ class CloudWatchResponse(BaseResponse):
 
     def put_metric_alarm(self):
         name = self._get_param('AlarmName')
+        namespace = self._get_param('Namespace')
+        metric_name = self._get_param('MetricName')
         comparison_operator = self._get_param('ComparisonOperator')
         evaluation_periods = self._get_param('EvaluationPeriods')
         period = self._get_param('Period')
@@ -19,7 +21,8 @@ class CloudWatchResponse(BaseResponse):
         insufficient_data_actions = self._get_multi_param("InsufficientDataActions.member")
         unit = self._get_param('Unit')
         cloudwatch_backend = cloudwatch_backends[self.region]
-        alarm = cloudwatch_backend.put_metric_alarm(name, comparison_operator,
+        alarm = cloudwatch_backend.put_metric_alarm(name, namespace, metric_name,
+                                                    comparison_operator,
                                                     evaluation_periods, period,
                                                     threshold, statistic,
                                                     description, dimensions,
