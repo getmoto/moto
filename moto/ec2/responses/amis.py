@@ -90,6 +90,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
           <kernelId>{{ image.kernel_id }}</kernelId>
           <ramdiskId>ari-1a2b3c4d</ramdiskId>
           <imageOwnerAlias>amazon</imageOwnerAlias>
+          <creationDate>{{ image.creation_date }}</creationDate>
           <name>{{ image.name }}</name>
           {% if image.platform %}
              <platform>{{ image.platform }}</platform>
