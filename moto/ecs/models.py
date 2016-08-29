@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 import uuid
+from random import randint
 
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
+from copy import copy
 
 
 class BaseObject(object):
@@ -16,7 +18,7 @@ class BaseObject(object):
         return ''.join(words)
 
     def gen_response_object(self):
-        response_object = self.__dict__.copy()
+        response_object = copy(self.__dict__)
         for key, value in response_object.items():
             if '_' in key:
                 response_object[self.camelCase(key)] = value
@@ -60,6 +62,25 @@ class TaskDefinition(BaseObject):
         response_object = self.gen_response_object()
         response_object['taskDefinitionArn'] = response_object['arn']
         del response_object['arn']
+        return response_object
+
+
+class Task(BaseObject):
+    def __init__(self, cluster, task_definition, container_instance_arn, overrides={}, started_by=''):
+        self.cluster_arn = cluster.arn
+        self.task_arn = 'arn:aws:ecs:us-east-1:012345678910:task/{0}'.format(str(uuid.uuid1()))
+        self.container_instance_arn = container_instance_arn
+        self.last_status = 'RUNNING'
+        self.desired_status = 'RUNNING'
+        self.task_definition_arn = task_definition.arn
+        self.overrides = overrides
+        self.containers = []
+        self.started_by = started_by
+        self.stopped_reason = ''
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
         return response_object
 
 
@@ -125,6 +146,7 @@ class EC2ContainerServiceBackend(BaseBackend):
     def __init__(self):
         self.clusters = {}
         self.task_definitions = {}
+        self.tasks = {}
         self.services = {}
         self.container_instances = {}
 
@@ -203,6 +225,106 @@ class EC2ContainerServiceBackend(BaseBackend):
             return self.task_definitions[family].pop(revision - 1)
         else:
             raise Exception("{0} is not a task_definition".format(task_definition_name))
+
+    def run_task(self, cluster_str, task_definition_str, count, overrides, started_by):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name in self.clusters:
+            cluster = self.clusters[cluster_name]
+        else:
+            raise Exception("{0} is not a cluster".format(cluster_name))
+        task_definition = self.fetch_task_definition(task_definition_str)
+        if cluster_name not in self.tasks:
+            self.tasks[cluster_name] = {}
+        tasks = []
+        container_instances = list(self.container_instances.get(cluster_name, {}).keys())
+        if not container_instances:
+            raise Exception("No instances found in cluster {}".format(cluster_name))
+        for _ in range(count or 1):
+            container_instance_arn = self.container_instances[cluster_name][
+                container_instances[randint(0, len(container_instances) - 1)]
+            ].containerInstanceArn
+            task = Task(cluster, task_definition, container_instance_arn, overrides or {}, started_by or '')
+            tasks.append(task)
+            self.tasks[cluster_name][task.task_arn] = task
+        return tasks
+
+    def start_task(self, cluster_str, task_definition_str, container_instances, overrides, started_by):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name in self.clusters:
+            cluster = self.clusters[cluster_name]
+        else:
+            raise Exception("{0} is not a cluster".format(cluster_name))
+        task_definition = self.fetch_task_definition(task_definition_str)
+        if cluster_name not in self.tasks:
+            self.tasks[cluster_name] = {}
+        tasks = []
+        if not container_instances:
+            raise Exception("No container instance list provided")
+
+        container_instance_ids = [x.split('/')[-1] for x in container_instances]
+
+        for container_instance_id in container_instance_ids:
+            container_instance_arn = self.container_instances[cluster_name][
+                container_instance_id
+            ].containerInstanceArn
+            task = Task(cluster, task_definition, container_instance_arn, overrides or {}, started_by or '')
+            tasks.append(task)
+            self.tasks[cluster_name][task.task_arn] = task
+        return tasks
+
+    def describe_tasks(self, cluster_str, tasks):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name in self.clusters:
+            cluster = self.clusters[cluster_name]
+        else:
+            raise Exception("{0} is not a cluster".format(cluster_name))
+        if not tasks:
+            raise Exception("tasks cannot be empty")
+        response = []
+        for cluster, cluster_tasks in self.tasks.items():
+            for task_id, task in cluster_tasks.items():
+                if task_id in tasks or task.task_arn in tasks:
+                    response.append(task)
+        return response
+
+    def list_tasks(self, cluster_str, container_instance, family, started_by, service_name, desiredStatus):
+        filtered_tasks = []
+        for cluster, tasks in self.tasks.items():
+            for arn, task in tasks.items():
+                filtered_tasks.append(task)
+        if cluster_str:
+            cluster_name = cluster_str.split('/')[-1]
+            if cluster_name in self.clusters:
+                cluster = self.clusters[cluster_name]
+            else:
+                raise Exception("{0} is not a cluster".format(cluster_name))
+            filtered_tasks = list(filter(lambda t: cluster_name in t.cluster_arn, filtered_tasks))
+
+        if container_instance:
+            filtered_tasks = list(filter(lambda t: container_instance in t.container_instance_arn, filtered_tasks))
+
+        if started_by:
+            filtered_tasks = list(filter(lambda t: started_by == t.started_by, filtered_tasks))
+        return [t.task_arn for t in filtered_tasks]
+
+    def stop_task(self, cluster_str, task_str, reason):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name not in self.clusters:
+            raise Exception("{0} is not a cluster".format(cluster_name))
+
+        if not task_str:
+            raise Exception("A task ID or ARN is required")
+        task_id = task_str.split('/')[-1]
+        tasks = self.tasks.get(cluster_name, None)
+        if not tasks:
+            raise Exception("Cluster {} has no registered tasks".format(cluster_name))
+        for task in tasks.keys():
+            if task.endswith(task_id):
+                tasks[task].last_status = 'STOPPED'
+                tasks[task].desired_status = 'STOPPED'
+                tasks[task].stopped_reason = reason
+                return tasks[task]
+        raise Exception("Could not find task {} on cluster {}".format(task_str, cluster_name))
 
     def create_service(self, cluster_str, service_name, task_definition_str, desired_count):
         cluster_name = cluster_str.split('/')[-1]
