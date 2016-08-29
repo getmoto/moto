@@ -157,6 +157,10 @@ class User(object):
     def put_policy(self, policy_name, policy_json):
         self.policies[policy_name] = policy_json
 
+    def attach_policy(self, policy_name):
+        policy = self.get_policy(policy_name)
+        self.policies[policy_name] = policy['policy_document']
+
     def delete_policy(self, policy_name):
         if policy_name not in self.policies:
             raise IAMNotFoundException("Policy {0} not found".format(policy_name))
@@ -233,6 +237,7 @@ class IAMBackend(BaseBackend):
         self.certificates = {}
         self.groups = {}
         self.users = {}
+        self.policies = {}
         self.credential_report = None
         super(IAMBackend, self).__init__()
 
@@ -241,6 +246,15 @@ class IAMBackend(BaseBackend):
         role = Role(role_id, role_name, assume_role_policy_document, path)
         self.roles[role_id] = role
         return role
+
+    def create_policy(self, policy_name, policy_document):
+        self.policies[policy_name] = policy_document
+        return self.policies[policy_name]
+
+    def put_user_policy(self, user_name, policy_name, policy_json):
+        user = self.get_user(user_name)
+        user.put_policy(policy_name, policy_json)
+
 
     def get_role_by_id(self, role_id):
         return self.roles.get(role_id)
@@ -405,6 +419,24 @@ class IAMBackend(BaseBackend):
     def put_user_policy(self, user_name, policy_name, policy_json):
         user = self.get_user(user_name)
         user.put_policy(policy_name, policy_json)
+
+    def get_policy(self, policy_name):
+        policy_json = None
+        try:
+            policy_json = self.policies[policy_name]
+        except KeyError:
+            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
+
+        return {
+            'policy_name': policy_name,
+            'policy_document': policy_json
+        }
+
+    def attach_user_policy(self, user_name, policy_name):
+        policy = self.get_policy(policy_name)
+        user = self.get_user(user_name)
+        user.put_policy(policy_name, policy['policy_document'])
+        user.attach_policy(policy_name)
 
     def delete_user_policy(self, user_name, policy_name):
         user = self.get_user(user_name)

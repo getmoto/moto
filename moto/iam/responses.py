@@ -200,8 +200,7 @@ class IamResponse(BaseResponse):
     def get_user_policy(self):
         user_name = self._get_param('UserName')
         policy_name = self._get_param('PolicyName')
-
-        policy_document = iam_backend.get_user_policy(user_name, policy_name)
+        policy_document = iam_backend.get_user_policy(user_name, policy_name)['policy_document']
         template = self.response_template(GET_USER_POLICY_TEMPLATE)
         return template.render(
             user_name=user_name,
@@ -209,11 +208,35 @@ class IamResponse(BaseResponse):
             policy_document=policy_document
         )
 
+    def get_policy(self):
+        policy_name = self._get_param('PolicyArn')
+        policy = iam_backend.get_policy(policy_name)
+        template = self.response_template(GET_POLICY_TEMPLATE)
+        return template.render(
+            policy_name=policy['policy_name'],
+            policy_document=policy['policy_document']
+        )
+
+    def attach_user_policy(self):
+        user_name = self._get_param('PolicyArn')
+        policy_name = self._get_param('UserName')
+        iam_backend.attach_user_policy(user_name, policy_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='AttachUserPolicy')
+
+    def create_policy(self):
+        policy_name = self._get_param('PolicyName')
+        policy_document = self._get_param('PolicyDocument')
+        iam_backend.create_policy(policy_name, policy_document)
+        template = self.response_template(CREATE_POLICY_TEMPLATE)
+        return template.render(
+            policy_name=policy_name
+        )
+
     def put_user_policy(self):
         user_name = self._get_param('UserName')
         policy_name = self._get_param('PolicyName')
         policy_document = self._get_param('PolicyDocument')
-
         iam_backend.put_user_policy(user_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name='PutUserPolicy')
@@ -632,6 +655,17 @@ CREATE_LOGIN_PROFILE_TEMPLATE = """
 </CreateLoginProfileResponse>
 """
 
+CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
+   <CreatePolicyResult>
+      <Policy>
+        <PolicyName>{{ policy_name }}</PolicyName>
+      </Policy>
+   </CreatePolicyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</CreatePolicyResponse>"""
+
 GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>
    <GetUserPolicyResult>
       <UserName>{{ user_name }}</UserName>
@@ -644,6 +678,17 @@ GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </GetUserPolicyResponse>"""
+
+GET_POLICY_TEMPLATE = """<GetPolicyResponse>
+   <GetPolicyResult>
+     <Policy>
+      <PolicyName>{{ policy_name }}</PolicyName>
+     </Policy>
+   </GetPolicyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetPolicyResponse>"""
 
 CREATE_ACCESS_KEY_TEMPLATE = """<CreateAccessKeyResponse>
    <CreateAccessKeyResult>
