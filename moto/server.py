@@ -131,7 +131,7 @@ def main(argv=sys.argv[1:]):
     parser.add_argument(
         '-H', '--host', type=str,
         help='Which host to bind',
-        default='0.0.0.0')
+        default='127.0.0.1')
     parser.add_argument(
         '-p', '--port', type=int,
         help='Port number to use for connection',

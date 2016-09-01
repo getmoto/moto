@@ -107,6 +107,6 @@ Moto comes with a stand-alone server allowing you to mock out an AWS HTTP endpoi
 .. sourcecode:: bash
 
     $ moto_server ec2 -p3000
-     * Running on http://0.0.0.0:3000/
+     * Running on http://127.0.0.1:3000/
 
 This method isn't encouraged if you're using ``boto``, best is to use decorator method.
