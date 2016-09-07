@@ -6,7 +6,7 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 class Token(object):
     def __init__(self, duration, name=None, policy=None):
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.name = name
         self.policy = None
@@ -21,7 +21,7 @@ class AssumedRole(object):
         self.session_name = role_session_name
         self.arn = role_arn
         self.policy = policy
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.external_id = external_id
 
