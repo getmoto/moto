@@ -12,7 +12,7 @@ def bucket_name_from_url(url):
 
 
 def parse_key_name(path):
-    return "/".join(path.rstrip("/").split("/")[2:])
+    return "/".join(path.split("/")[2:])
 
 
 def is_delete_keys(request, path, bucket_name):
