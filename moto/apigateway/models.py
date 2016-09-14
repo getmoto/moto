@@ -155,8 +155,10 @@ class Resource(object):
 class Stage(dict):
 
 
-    def __init__(self, name=None, deployment_id=None, variables={}):
+    def __init__(self, name=None, deployment_id=None, variables=None):
         super(Stage, self).__init__()
+        if variables is None:
+            variables = {}
         self['stageName'] = name
         self['deploymentId'] = deployment_id
         self['methodSettings'] = {}
@@ -322,13 +324,17 @@ class RestAPI(object):
         for method in httpretty.httpretty.METHODS:
             httpretty.register_uri(method, stage_url, body=self.resource_callback)
 
-    def create_stage(self, name, deployment_id,variables={}):
+    def create_stage(self, name, deployment_id,variables=None):
+        if variables is None:
+            variables = {}
         stage = Stage(name=name, deployment_id=deployment_id,variables=variables)
         self.stages[name] = stage
         self.update_integration_mocks(name)
         return stage
 
-    def create_deployment(self, name, description="",stage_variables={}):
+    def create_deployment(self, name, description="",stage_variables=None):
+        if stage_variables is None:
+            stage_variables = {}
         deployment_id = create_id()
         deployment = Deployment(deployment_id, name, description)
         self.deployments[deployment_id] = deployment
@@ -423,7 +429,9 @@ class APIGatewayBackend(BaseBackend):
         return api.get_stages()
 
 
-    def create_stage(self, function_id, stage_name, deploymentId,variables={}):
+    def create_stage(self, function_id, stage_name, deploymentId,variables=None):
+        if variables is None:
+            variables = {}
         api = self.get_rest_api(function_id)
         api.create_stage(stage_name,deploymentId,variables)
         return api.stages.get(stage_name)
@@ -480,7 +488,9 @@ class APIGatewayBackend(BaseBackend):
         integration_response = integration.delete_integration_response(status_code)
         return integration_response
 
-    def create_deployment(self, function_id, name, description ="", stage_variables={}):
+    def create_deployment(self, function_id, name, description ="", stage_variables=None):
+        if stage_variables is None:
+            stage_variables = {}
         api = self.get_rest_api(function_id)
         deployment = api.create_deployment(name, description,stage_variables)
         return deployment
