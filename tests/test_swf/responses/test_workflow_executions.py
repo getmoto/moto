@@ -125,7 +125,7 @@ def test_list_open_workflow_executions():
                                       reason='a more complete reason',
                                       run_id=run_id)
 
-    yesterday = datetime.now() - timedelta(days=1)
+    yesterday = datetime.utcnow() - timedelta(days=1)
     oldest_date = unix_time(yesterday)
     response = conn.list_open_workflow_executions('test-domain',
                                                   oldest_date,
@@ -159,7 +159,7 @@ def test_list_closed_workflow_executions():
                                       reason='a more complete reason',
                                       run_id=run_id)
 
-    yesterday = datetime.now() - timedelta(days=1)
+    yesterday = datetime.utcnow() - timedelta(days=1)
     oldest_date = unix_time(yesterday)
     response = conn.list_closed_workflow_executions(
         'test-domain',

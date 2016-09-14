@@ -87,7 +87,7 @@ class Subscription(object):
             "TopicArn": self.topic.arn,
             "Subject": "my subject",
             "Message": message,
-            "Timestamp": iso_8601_datetime_with_milliseconds(datetime.datetime.now()),
+            "Timestamp": iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
             "SignatureVersion": "1",
             "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",
             "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",

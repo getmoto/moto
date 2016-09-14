@@ -189,7 +189,7 @@ class Table(object):
         self.throughput["NumberOfDecreasesToday"] = 0
         self.indexes = indexes
         self.global_indexes = global_indexes if global_indexes else []
-        self.created_at = datetime.datetime.now()
+        self.created_at = datetime.datetime.utcnow()
         self.items = defaultdict(dict)
 
     def describe(self, base_key='TableDescription'):

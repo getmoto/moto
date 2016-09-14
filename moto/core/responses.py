@@ -269,7 +269,7 @@ def metadata_response(request, full_url, headers):
     http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AESDG-chapter-instancedata.html
     """
     parsed_url = urlparse(full_url)
-    tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
+    tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
     credentials = dict(
         AccessKeyId="test-key",
         SecretAccessKey="test-secret-key",

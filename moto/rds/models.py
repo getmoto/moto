@@ -50,7 +50,7 @@ class Database(object):
         self.availability_zone = kwargs.get("availability_zone")
         self.multi_az = kwargs.get("multi_az")
         self.db_subnet_group_name = kwargs.get("db_subnet_group_name")
-        self.instance_create_time = str(datetime.datetime.now())
+        self.instance_create_time = str(datetime.datetime.utcnow())
         if self.db_subnet_group_name:
             self.db_subnet_group = rds_backends[self.region].describe_subnet_groups(self.db_subnet_group_name)[0]
         else:
