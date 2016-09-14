@@ -1077,3 +1077,20 @@ def test_website_configuration_xml():
     bucket = conn.create_bucket('test-bucket')
     bucket.set_website_configuration_xml(TEST_XML)
     bucket.get_website_configuration_xml().should.equal(TEST_XML)
+
+
+@mock_s3
+def test_key_with_trailing_slash_in_ordinary_calling_format():
+    conn = boto.connect_s3(
+        'access_key',
+        'secret_key',
+        calling_format=boto.s3.connection.OrdinaryCallingFormat()
+    )
+    bucket = conn.create_bucket('test_bucket_name')
+
+    key_name = 'key_with_slash/'
+
+    key = Key(bucket, key_name)
+    key.set_contents_from_string('some value')
+
+    [k.name for k in bucket.get_all_keys()].should.contain(key_name)
