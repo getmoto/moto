@@ -206,20 +206,31 @@ To run a service:
 
 ```console
 $ moto_server ec2
- * Running on http://0.0.0.0:5000/
+ * Running on http://127.0.0.1:5000/
 ```
 
 You can also pass the port as the second argument:
 
 ```console
 $ moto_server ec2 -p3000
- * Running on http://0.0.0.0:3000/
+ * Running on http://127.0.0.1:3000/
 ```
 
+If you want to be able to use the server externally you can pass an IP
+address to bind to as a hostname or allow any of your external
+interfaces with 0.0.0.0:
+
+```console
+$ moto_server ec2 -H 0.0.0.0
+ * Running on http://0.0.0.0:5000/
+```
+
+Please be aware this might allow other network users to access your
+server.
 
 Then go to [localhost](http://localhost:5000/?Action=DescribeInstances) to see a list of running instances (it will be empty since you haven't added any yet).
 
-If you want to use boto with this (using the simpler decorators above instead is strongly encouraged), the easiest way is to create a boto config file (`~/.boto`) with the following values:
+If you want to use boto with this (using the simpler decorators above instead is strongly encouraged), the easiest way is to create a boto config file (`~/.boto`) with the following valuesp:
 
 ```
 [Boto]

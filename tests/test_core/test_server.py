@@ -18,7 +18,7 @@ def test_wrong_arguments():
 def test_right_arguments(run_simple):
     main(["s3"])
     func_call = run_simple.call_args[0]
-    func_call[0].should.equal("0.0.0.0")
+    func_call[0].should.equal("127.0.0.1")
     func_call[1].should.equal(5000)
 
 
@@ -26,7 +26,7 @@ def test_right_arguments(run_simple):
 def test_port_argument(run_simple):
     main(["s3", "--port", "8080"])
     func_call = run_simple.call_args[0]
-    func_call[0].should.equal("0.0.0.0")
+    func_call[0].should.equal("127.0.0.1")
     func_call[1].should.equal(8080)
 
 
