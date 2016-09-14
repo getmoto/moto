@@ -515,6 +515,40 @@ def test_update_stage_configuration():
     )
     stage['stageName'].should.equal(stage_name)
     stage['deploymentId'].should.equal(deployment_id2)
+    stage.shouldnt.have.key('cacheClusterSize')
+
+    client.update_stage(restApiId=api_id,stageName=stage_name,
+                        patchOperations=[
+                            {
+                                "op" : "replace",
+                                "path" : "/cacheClusterEnabled",
+                                "value": "True"
+                            }
+                        ])
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=stage_name
+    )
+
+    stage.should.have.key('cacheClusterSize').which.should.equal("0.5")
+
+    client.update_stage(restApiId=api_id,stageName=stage_name,
+                        patchOperations=[
+                            {
+                                "op" : "replace",
+                                "path" : "/cacheClusterSize",
+                                "value": "1.6"
+                            }
+                        ])
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=stage_name
+    )
+
+    stage.should.have.key('cacheClusterSize').which.should.equal("1.6")
+
 
     client.update_stage(restApiId=api_id,stageName=stage_name,
                         patchOperations=[
@@ -567,7 +601,7 @@ def test_update_stage_configuration():
     stage = client.get_stage(restApiId=api_id,stageName=stage_name)
 
     stage['description'].should.match('stage description update')
-    stage['cacheClusterSize'].should.equal(1.6)
+    stage['cacheClusterSize'].should.equal("1.6")
     stage['variables']['environment'].should.match('dev')
     stage['variables'].should_not.have.key('region')
     stage['cacheClusterEnabled'].should.be.true
@@ -662,9 +696,15 @@ def test_create_stage():
         'variables':{},
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'description':'',
-        'cacheClusterSize':0.5,
         'cacheClusterEnabled':False
     })
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=new_stage_name
+    )
+    stage['stageName'].should.equal(new_stage_name)
+    stage['deploymentId'].should.equal(deployment_id2)
 
     new_stage_name_with_vars = 'stage_with_vars'
     response = client.create_stage(restApiId=api_id,stageName=new_stage_name_with_vars,deploymentId=deployment_id2,variables={
@@ -680,16 +720,8 @@ def test_create_stage():
         'variables':{ "env" : "dev" },
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'description':'',
-        'cacheClusterSize':0.5,
-        'cacheClusterEnabled':False
+        'cacheClusterEnabled': False
     })
-
-    stage = client.get_stage(
-        restApiId=api_id,
-        stageName=new_stage_name
-    )
-    stage['stageName'].should.equal(new_stage_name)
-    stage['deploymentId'].should.equal(deployment_id2)
 
     stage = client.get_stage(
         restApiId=api_id,
@@ -699,6 +731,57 @@ def test_create_stage():
     stage['deploymentId'].should.equal(deployment_id2)
     stage['variables'].should.have.key('env').which.should.match("dev")
 
+    new_stage_name = 'stage_with_vars_and_cache_settings'
+    response = client.create_stage(restApiId=api_id,stageName=new_stage_name,deploymentId=deployment_id2,variables={
+        "env" : "dev"
+    }, cacheClusterEnabled=True,description="hello moto")
+
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+
+    response.should.equal({
+        'stageName':new_stage_name,
+        'deploymentId':deployment_id2,
+        'methodSettings':{},
+        'variables':{ "env" : "dev" },
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'description':'hello moto',
+        'cacheClusterEnabled': True,
+        'cacheClusterSize' : "0.5"
+    })
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=new_stage_name
+    )
+
+    stage['cacheClusterSize'].should.equal("0.5")
+
+    new_stage_name = 'stage_with_vars_and_cache_settings_and_size'
+    response = client.create_stage(restApiId=api_id,stageName=new_stage_name,deploymentId=deployment_id2,variables={
+        "env" : "dev"
+    }, cacheClusterEnabled=True,cacheClusterSize="1.6",description="hello moto")
+
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+
+    response.should.equal({
+        'stageName':new_stage_name,
+        'deploymentId':deployment_id2,
+        'methodSettings':{},
+        'variables':{ "env" : "dev" },
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'description':'hello moto',
+        'cacheClusterEnabled': True,
+        'cacheClusterSize' : "1.6"
+    })
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=new_stage_name
+    )
+    stage['stageName'].should.equal(new_stage_name)
+    stage['deploymentId'].should.equal(deployment_id2)
+    stage['variables'].should.have.key('env').which.should.match("dev")
+    stage['cacheClusterSize'].should.equal("1.6")
 
 
 

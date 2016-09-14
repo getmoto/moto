@@ -155,7 +155,8 @@ class Resource(object):
 class Stage(dict):
 
 
-    def __init__(self, name=None, deployment_id=None, variables=None):
+    def __init__(self, name=None, deployment_id=None, variables=None,
+                 description='',cacheClusterEnabled=False,cacheClusterSize=None):
         super(Stage, self).__init__()
         if variables is None:
             variables = {}
@@ -163,9 +164,13 @@ class Stage(dict):
         self['deploymentId'] = deployment_id
         self['methodSettings'] = {}
         self['variables'] = variables
-        self['description'] = ''
-        self['cacheClusterEnabled'] = False
-        self['cacheClusterSize'] = 0.5
+        self['description'] = description
+        self['cacheClusterEnabled'] = cacheClusterEnabled
+        if self['cacheClusterEnabled']:
+            self['cacheClusterSize'] = str(0.5)
+
+        if cacheClusterSize is not None:
+            self['cacheClusterSize'] = str(cacheClusterSize)
 
     def apply_operations(self, patch_operations):
         for op in patch_operations:
@@ -173,8 +178,10 @@ class Stage(dict):
                 self._apply_operation_to_variables(op)
             elif '/cacheClusterEnabled' in op['path']:
                 self['cacheClusterEnabled'] = self._str2bool(op['value'])
+                if 'cacheClusterSize' not in self and self['cacheClusterEnabled']:
+                    self['cacheClusterSize'] = str(0.5)
             elif '/cacheClusterSize' in op['path']:
-                self['cacheClusterSize'] = float(op['value'])
+                self['cacheClusterSize'] = str(float(op['value']))
             elif '/description' in op['path']:
                 self['description'] = op['value']
             elif '/deploymentId' in op['path']:
@@ -324,10 +331,11 @@ class RestAPI(object):
         for method in httpretty.httpretty.METHODS:
             httpretty.register_uri(method, stage_url, body=self.resource_callback)
 
-    def create_stage(self, name, deployment_id,variables=None):
+    def create_stage(self, name, deployment_id,variables=None,description='',cacheClusterEnabled=None,cacheClusterSize=None):
         if variables is None:
             variables = {}
-        stage = Stage(name=name, deployment_id=deployment_id,variables=variables)
+        stage = Stage(name=name, deployment_id=deployment_id,variables=variables,
+                      description=description,cacheClusterSize=cacheClusterSize,cacheClusterEnabled=cacheClusterEnabled)
         self.stages[name] = stage
         self.update_integration_mocks(name)
         return stage
@@ -429,11 +437,13 @@ class APIGatewayBackend(BaseBackend):
         return api.get_stages()
 
 
-    def create_stage(self, function_id, stage_name, deploymentId,variables=None):
+    def create_stage(self, function_id, stage_name, deploymentId,
+                     variables=None,description='',cacheClusterEnabled=None,cacheClusterSize=None):
         if variables is None:
             variables = {}
         api = self.get_rest_api(function_id)
-        api.create_stage(stage_name,deploymentId,variables)
+        api.create_stage(stage_name,deploymentId,variables=variables,
+                        description=description,cacheClusterEnabled=cacheClusterEnabled,cacheClusterSize=cacheClusterSize)
         return api.stages.get(stage_name)
 
     def update_stage(self, function_id, stage_name, patch_operations):

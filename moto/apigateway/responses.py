@@ -114,8 +114,13 @@ class APIGatewayResponse(BaseResponse):
             stage_name = self._get_param("stageName")
             deployment_id = self._get_param("deploymentId")
             stage_variables = self._get_param_with_default_value('variables',{})
+            description = self._get_param_with_default_value('description','')
+            cacheClusterEnabled = self._get_param_with_default_value('cacheClusterEnabled',False)
+            cacheClusterSize = self._get_param_with_default_value('cacheClusterSize',None)
 
-            stage_response = self.backend.create_stage(function_id, stage_name, deployment_id,variables=stage_variables)
+            stage_response = self.backend.create_stage(function_id, stage_name, deployment_id,
+                                                       variables=stage_variables, description=description,
+                                                       cacheClusterEnabled=cacheClusterEnabled, cacheClusterSize=cacheClusterSize)
         elif self.method == 'GET':
             stages = self.backend.get_stages(function_id)
             return 200, headers, json.dumps({"item": stages})
