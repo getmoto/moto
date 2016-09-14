@@ -846,9 +846,10 @@ def test_unicode_key():
     key = Key(bucket)
     key.key = u'こんにちは.jpg'
     key.set_contents_from_string('Hello world!')
-    list(bucket.list())
-    key = bucket.get_key(key.key)
-    assert key.get_contents_as_string().decode("utf-8") == 'Hello world!'
+    assert [listed_key.key for listed_key in bucket.list()] == [key.key]
+    fetched_key = bucket.get_key(key.key)
+    assert fetched_key.key == key.key
+    assert fetched_key.get_contents_as_string().decode("utf-8") == 'Hello world!'
 
 
 @mock_s3

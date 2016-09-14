@@ -46,6 +46,9 @@ def metadata_from_headers(headers):
 
 
 def clean_key_name(key_name):
+    if six.PY2:
+        return unquote(key_name.encode('utf-8')).decode('utf-8')
+
     return unquote(key_name)
 
 
