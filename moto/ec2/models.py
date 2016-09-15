@@ -846,8 +846,7 @@ class TagBackend(object):
                             resource_id_filters.append(re.compile(simple_aws_filter_to_re(value)))
                     if tag_filter == 'resource-type':
                         for value in filters[tag_filter]:
-                            if value in self.VALID_TAG_RESOURCE_FILTER_TYPES:
-                                resource_type_filters.append(value)
+                            resource_type_filters.append(value)
                     if tag_filter == 'value':
                         for value in filters[tag_filter]:
                             value_filters.append(re.compile(simple_aws_filter_to_re(value)))
