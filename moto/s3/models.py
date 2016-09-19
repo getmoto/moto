@@ -7,12 +7,17 @@ import copy
 import itertools
 import codecs
 import six
+import logging
 
 from bisect import insort
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket, MissingKey, InvalidPart, EntityTooSmall
 from .utils import clean_key_name, _VersionedKeyStore
+
+
+log = logging.getLogger(__name__)
+
 
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
@@ -136,11 +141,13 @@ class FakeMultipart(object):
         count = 0
         for pn, etag in body:
             part = self.parts.get(pn)
-            if part is None or part.etag != etag:
+            if part is None:
+                raise InvalidPart()
+            part_etag = part.etag.replace('"', '')
+            if part_etag != etag:
                 raise InvalidPart()
             if last is not None and len(last.value) < UPLOAD_PART_MIN_SIZE:
                 raise EntityTooSmall()
-            part_etag = part.etag.replace('"', '')
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
             last = part
