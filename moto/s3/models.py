@@ -136,13 +136,11 @@ class FakeMultipart(object):
         count = 0
         for pn, etag in body:
             part = self.parts.get(pn)
-            if part is None:
-                raise InvalidPart()
-            part_etag = part.etag.replace('"', '')
-            if part_etag != etag:
+            if part is None or part.etag != etag:
                 raise InvalidPart()
             if last is not None and len(last.value) < UPLOAD_PART_MIN_SIZE:
                 raise EntityTooSmall()
+            part_etag = part.etag.replace('"', '')
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
             last = part
