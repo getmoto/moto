@@ -92,18 +92,18 @@ def flatten_json_request_body(dict_body):
         if isinstance(value, dict):
             r = flatten_json_request_body(value)
             for k, v in r.items():
-                flat[key + '.' + k] = [v]
+                flat[key + '.' + k] = v
         elif isinstance(value, list):
             for i, v in enumerate(value, 1):
                 memberstr = '.member.' + str(i)
                 if isinstance(v, dict):
                     r = flatten_json_request_body(v)
                     for k, vv in r.items():
-                        flat[key + memberstr + '.' + k] = [vv]
+                        flat[key + memberstr + '.' + k] = vv
                 else:
-                    flat[key + memberstr] = [v]
+                    flat[key + memberstr] = v
         else:
-            flat[key] = [value]
+            flat[key] = value
     return flat
 
 
@@ -141,7 +141,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
                     decoded = json.loads(self.body.decode('utf-8'))
                 else:
                     decoded = json.loads(self.body)
-                querystring.update(flatten_json_request_body(decoded))
+                flat = flatten_json_request_body(decoded)
+                for key, value in flat.items():
+                    querystring[key] = [value]
             else:
                 querystring.update(parse_qs(self.body, keep_blank_values=True))
         if not querystring:
