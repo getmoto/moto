@@ -51,12 +51,51 @@ class ElasticMapReduceResponse(BaseResponse):
     def describe_job_flows(self):
         job_flow_ids = self._get_multi_param("JobFlowIds.member")
         job_flows = self.backend.describe_job_flows(job_flow_ids)
+
+        if self.boto3_request:
+            return json.dumps({'JobFlows': [{
+                'JobFlowId': jobflow.id,
+                'Name': jobflow.name,
+                'LogUri': jobflow.log_uri,
+                'ExecutionStatusDetail': {
+                    'State': jobflow.state,
+                    'LastStateChangeReason': '',
+                },
+                'Instances': {
+                    'MasterInstanceType': jobflow.initial_master_instance_type,
+                    'SlaveInstanceType': jobflow.initial_slave_instance_type,
+                    'InstanceCount': jobflow.initial_instance_count,
+                    'InstanceGroups': [
+                        {'InstanceGroupId': id}
+                        for id in jobflow.instance_group_ids]},
+                'Steps': [{
+                    'StepConfig': {
+                        'Name': step.name,
+                        'ActionOnFailure': step.action_on_failure,
+                        'HadoopJarStep': {
+                            'Jar': step.jar,
+                            'Args': step.args,
+                        }
+                    },
+                    'ExecutionStatusDetail': {
+                        'State': self.state
+                    }
+                } for step in jobflow.steps],
+                'VisibleToAllUsers': jobflow.visible_to_all_users,
+                'JobFlowRole': jobflow.role,
+                'ServiceRole': '',
+            } for jobflow in job_flows]})
+
         template = self.response_template(DESCRIBE_JOB_FLOWS_TEMPLATE)
         return template.render(job_flows=job_flows)
 
     def terminate_job_flows(self):
         job_ids = self._get_multi_param('JobFlowIds.member.')
         job_flows = self.backend.terminate_job_flows(job_ids)
+
+        if self.boto3_request:
+            return json.dumps({})
+
         template = self.response_template(TERMINATE_JOB_FLOWS_TEMPLATE)
         return template.render(job_flows=job_flows)
 
@@ -113,6 +152,38 @@ class ElasticMapReduceResponse(BaseResponse):
     def describe_cluster(self):
         cluster_id = self._get_param('ClusterId')
         cluster = self.backend.get_cluster(cluster_id)
+
+        if self.boto3_request:
+            return json.dumps({'Cluster': {
+                'Id': cluster.id,
+                'Name': cluster.name,
+                'Status': {
+                    'State': cluster.state,
+                    'StateChangeReason': {},
+                    'Timeline': {},
+                },
+                'Ec2InstanceAttributes': {},
+                'LogUri': cluster.log_uri,
+                'RequestedAmiVersion': cluster.requested_ami_version,
+                'RunningAmiVersion': cluster.running_ami_version,
+                'ReleaseLabel': cluster.release_label,
+                'AutoTerminate': cluster.auto_terminate,
+                'TerminationProtected': cluster.termination_protected,
+                'VisibleToAllUsers': cluster.visible_to_all_users,
+                'Applications': [
+                    {'Name': app.name,
+                     'Version': app.version,
+                     'Args': app.args,
+                     'AdditionalInfo': app.additional_info}
+                    for app in cluster.applications],
+                'Tags': [{'Key': k, 'Value': v} for k, v in cluster.tags.items()],
+                'ServiceRole': cluster.service_role,
+                'NormalizedInstanceHours': cluster.normalized_instance_hours,
+                'MasterPublicDnsName': cluster.master_public_dns_name,
+                'Configurations': [],
+                'SecurityConfiguration': ''
+            }})
+
         template = self.response_template(DESCRIBE_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 
