@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import json
 import re
+import base64
 
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -213,6 +214,49 @@ class KmsResponse(BaseResponse):
 
         return json.dumps({'Truncated': False, 'PolicyNames': ['default']})
 
+    def encrypt(self):
+        key_id = self.parameters.get('KeyId')
+        plaintext = base64.b64decode(self.parameters.get('Plaintext'))
+        encryption_context = self.parameters.get('EncryptionContext')
+
+        parsed_key_id = _parse_key_id(key_id)
+        _assert_valid_key_id(parsed_key_id)
+
+        ciphertext_key_id, ciphertext = self.kms_backend.encrypt(key_id, plaintext, encryption_context)
+
+        return json.dumps({'CiphertextBlob': base64.b64encode(ciphertext), 'KeyId': ciphertext_key_id})
+
+    def decrypt(self):
+        ciphertext = base64.b64decode(self.parameters.get('CiphertextBlob'))
+        encryption_context = self.parameters.get('EncryptionContext')
+
+        try:
+            key_id, plaintext = self.kms_backend.decrypt(ciphertext, encryption_context)
+        except KeyError:
+            raise JSONResponseError(400, 'Bad Request', body={
+                'message': 'The specified ciphertext has been corrupted or is otherwise invalid.',
+                '__type': 'InvalidCiphertextException'})
+
+        return json.dumps({'KeyId': key_id, 'Plaintext': base64.b64encode(plaintext)})
+
+    def generate_data_key(self):
+        key_id = self.parameters.get('KeyId')
+        key_spec = self.parameters.get('KeySpec')
+        number_of_bytes = self.parameters.get('NumberOfBytes')
+        encryption_context = self.parameters.get('EncryptionContext')
+
+        parsed_key_id = _parse_key_id(key_id)
+        _assert_valid_key_id(parsed_key_id)
+
+        plaintext, __,  ciphertext = self.kms_backend.generate_data_key(
+            key_id=key_id, key_spec=key_spec, number_of_bytes=number_of_bytes,
+            encryption_context=encryption_context)
+
+        return json.dumps({'CiphertextBlob': base64.b64encode(ciphertext),
+                           'KeyId': key_id,
+                           'Plaintext': base64.b64encode(plaintext)})
+
+
 def _assert_valid_key_id(key_id):
     if not re.match(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$', key_id, re.IGNORECASE):
         raise JSONResponseError(404, 'Not Found', body={'message': ' Invalid keyId', '__type': 'NotFoundException'})
@@ -222,3 +266,10 @@ def _assert_default_policy(policy_name):
         raise JSONResponseError(404, 'Not Found', body={
             'message': "No such policy exists",
             '__type': 'NotFoundException'})
+
+def _parse_key_id(key_id):
+    if 'arn' in key_id:
+        id_str = key_id.split(':')[-1]
+        return id_str.split('/')[-1]
+
+    return key_id

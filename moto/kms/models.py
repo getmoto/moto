@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
 
+import os
+
 import boto.kms
+from boto.exception import JSONResponseError
 from moto.core import BaseBackend
 from .utils import generate_key_id
 from collections import defaultdict
@@ -63,6 +66,7 @@ class KmsBackend(BaseBackend):
     def __init__(self):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
+        self.encryption_map = {}
 
     def create_key(self, policy, key_usage, description, region):
         key = Key(policy, key_usage, description, region)
@@ -113,6 +117,48 @@ class KmsBackend(BaseBackend):
 
     def get_key_policy(self, key_id):
         return self.keys[key_id].policy
+
+    def encrypt(self, key_id, plaintext, encryption_context):
+        ciphertext = os.urandom(512)
+
+        if encryption_context:
+            # The encryption context needs to be turned into a tuple so that it can be used as a
+            # key. It is sorted so that the tuple is always the same, given the same dictionary.
+            immutable_encryption_context = tuple(sorted(encryption_context.items()))
+        else:
+            immutable_encryption_context = None
+
+        self.encryption_map[(ciphertext, immutable_encryption_context)] = (key_id, plaintext)
+
+        return key_id, ciphertext
+
+    def decrypt(self, ciphertext, encryption_context):
+        if encryption_context:
+            immutable_encryption_context = tuple(sorted(encryption_context.items()))
+        else:
+            immutable_encryption_context = None
+
+        return self.encryption_map[(ciphertext, immutable_encryption_context)]
+
+    def generate_data_key(self, key_id, key_spec=None, number_of_bytes=None, encryption_context=None):
+        if number_of_bytes:
+            raise NotImplementedError
+
+        if key_spec == 'AES_128':
+            plaintext = os.urandom(16)
+        elif key_spec == 'AES_256':
+            plaintext = os.urandom(32)
+        else:
+            raise JSONResponseError(400, 'Bad Request', body={
+                'message': "Value '{}' at 'keySpec' failed to satisfy constraint: Member "
+                                    "must satisfy enum value set: "
+                                    "[AES_256, AES_128]".format(key_spec),
+                '__type': 'InvalidCiphertextException'})
+
+        __, ciphertext = self.encrypt(key_id=key_id, plaintext=plaintext, encryption_context=encryption_context)
+
+        return plaintext, key_id, ciphertext
+
 
 
 kms_backends = {}

@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import re
 
+import boto3
 import boto.kms
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -143,6 +144,125 @@ def test_list_key_policies():
 
     policies = conn.list_key_policies(key_id)
     policies['PolicyNames'].should.equal(['default'])
+
+
+@mock_kms
+def test_encrypt():
+    kms = boto3.client('kms', region_name='us-west-2')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    response = kms.encrypt(KeyId=key_id, Plaintext=b'my plaintext',
+                           EncryptionContext={'Key': 'Value'})
+
+    ciphertext = response['CiphertextBlob']
+    key_id = response['KeyId']
+
+    return key_id, ciphertext
+
+
+@mock_kms
+def test_encrypt__no_encryption_context():
+    kms = boto3.client('kms', region_name='us-west-2')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    response = kms.encrypt(KeyId=key_id, Plaintext=b'my plaintext')
+
+    ciphertext = response['CiphertextBlob']
+    key_id = response['KeyId']
+
+    return key_id, ciphertext
+
+
+@mock_kms
+def test_decrypt():
+    kms = boto3.client('kms', region_name='us-west-2')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    encryption_context = {'Key': 'Value'}
+
+    response = kms.encrypt(KeyId=key_id, Plaintext=b'my plaintext',
+                           EncryptionContext=encryption_context)
+
+    ciphertext = response['CiphertextBlob']
+    key_id = response['KeyId']
+
+    response = kms.decrypt(CiphertextBlob=ciphertext, EncryptionContext=encryption_context)
+
+    plaintext = response['Plaintext']
+    response_key_id = response['KeyId']
+
+    assert response_key_id == key_id
+    assert plaintext == b'my plaintext'
+
+
+@mock_kms
+def test_decrypt__wrong_encryption_context():
+    kms = boto3.client('kms', region_name='us-west-2')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    encryption_context = {'Key': 'Value'}
+
+    response = kms.encrypt(KeyId=key_id, Plaintext=b'my plaintext',
+                           EncryptionContext=encryption_context)
+
+    ciphertext = response['CiphertextBlob']
+    key_id = response['KeyId']
+
+    with assert_raises(JSONResponseError):
+        kms.decrypt(CiphertextBlob=ciphertext)
+
+
+@mock_kms
+def test_generate_data_key():
+    kms = boto3.client('kms', region_name='us-west-2')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    response = kms.generate_data_key(KeyId=key_id, KeySpec='AES_256',
+                                     EncryptionContext={'Key': 'Value'})
+
+    plaintext = response['Plaintext']
+    response_key_id = response['KeyId']
+
+    assert len(plaintext) == 32
+    assert response_key_id == key_id
+
+
+@mock_kms
+def test_generate_data_key__AES_128():
+    kms = boto3.client('kms', region_name='us-west-2')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    response = kms.generate_data_key(KeyId=key_id, KeySpec='AES_128',
+                                     EncryptionContext={'Key': 'Value'})
+
+    plaintext = response['Plaintext']
+    response_key_id = response['KeyId']
+
+    assert len(plaintext) == 16
+    assert response_key_id == key_id
+
+
+@mock_kms
+def test_generate_data_key__invalid_key_spec():
+    kms = boto3.client('kms', region_name='us-west-2')
+
+    key = kms.create_key()
+    key_id = key['KeyMetadata']['KeyId']
+
+    with assert_raises(JSONResponseError):
+        kms.generate_data_key(KeyId=key_id, KeySpec='AES_1024', EncryptionContext={'Key': 'Value'})
 
 
 @mock_kms
