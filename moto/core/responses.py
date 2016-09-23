@@ -86,24 +86,32 @@ class _TemplateEnvironmentMixin(object):
         return self.environment.get_template(template_id)
 
 
+def to_str(v):
+    if isinstance(v, bool):
+        return 'true' if v else 'false'
+    elif v is None:
+        return 'null'
+    return str(v)
+
+
 def flatten_json_request_body(dict_body):
     flat = {}
     for key, value in dict_body.items():
         if isinstance(value, dict):
             r = flatten_json_request_body(value)
             for k, v in r.items():
-                flat[key + '.' + k] = v
+                flat[key + '.' + k] = to_str(v)
         elif isinstance(value, list):
             for i, v in enumerate(value, 1):
                 memberstr = '.member.' + str(i)
                 if isinstance(v, dict):
                     r = flatten_json_request_body(v)
                     for k, vv in r.items():
-                        flat[key + memberstr + '.' + k] = vv
+                        flat[key + memberstr + '.' + k] = to_str(vv)
                 else:
-                    flat[key + memberstr] = v
+                    flat[key + memberstr] = to_str(v)
         else:
-            flat[key] = value
+            flat[key] = to_str(value)
     return flat
 
 
