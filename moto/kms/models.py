@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto.kms
+import six
 from moto.core import BaseBackend
 from .utils import generate_key_id
 from collections import defaultdict
@@ -76,8 +77,17 @@ class KmsBackend(BaseBackend):
 
             return self.keys.pop(key_id)
 
-    def describe_key(self, key_id):
-        return self.keys[key_id]
+    def describe_key(self, identifier):
+        try:
+            # check to see if key ARN was passed in
+            key = six.next(six.itervalues(self.keys))
+            if identifier == key.arn:
+                return key
+            else:
+                # key id was passed in
+                return self.keys[identifier]
+        except StopIteration:
+            return self.keys[identifier]
 
     def list_keys(self):
         return self.keys.values()
