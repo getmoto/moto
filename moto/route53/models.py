@@ -238,18 +238,19 @@ class Route53Backend(BaseBackend):
 
     def change_tags_for_resource(self, resource_id, tags):
         if 'Tag' in tags:
-            for key, tag in tags.items():
-                for t in tag:
-                    self.resource_tags[resource_id][t['Key']] = t['Value']
-
+            if isinstance(tags['Tag'], list):
+                for tag in tags['Tag']:
+                    self.resource_tags[resource_id][tag['Key']] = tag['Value']
+            else:
+                key, value = (tags['Tag']['Key'], tags['Tag']['Value'])
+                self.resource_tags[resource_id][key] = value
         else:
-            for _, keys in tags.items():
-                if isinstance(keys, list):
-                    for key in keys:
+            if 'Key' in tags:
+                if isinstance(tags['Key'], list):
+                    for key in tags['Key']:
                         del(self.resource_tags[resource_id][key])
                 else:
-                        del(self.resource_tags[resource_id][keys])
-
+                    del(self.resource_tags[resource_id][tags['Key']])
 
     def list_tags_for_resource(self, resource_id):
         if resource_id in self.resource_tags:
