@@ -86,6 +86,35 @@ class _TemplateEnvironmentMixin(object):
         return self.environment.get_template(template_id)
 
 
+def to_str(v):
+    if isinstance(v, bool):
+        return 'true' if v else 'false'
+    elif v is None:
+        return 'null'
+    return str(v)
+
+
+def flatten_json_request_body(dict_body):
+    flat = {}
+    for key, value in dict_body.items():
+        if isinstance(value, dict):
+            r = flatten_json_request_body(value)
+            for k, v in r.items():
+                flat[key + '.' + k] = to_str(v)
+        elif isinstance(value, list):
+            for i, v in enumerate(value, 1):
+                memberstr = '.member.' + str(i)
+                if isinstance(v, dict):
+                    r = flatten_json_request_body(v)
+                    for k, vv in r.items():
+                        flat[key + memberstr + '.' + k] = to_str(vv)
+                else:
+                    flat[key + memberstr] = to_str(v)
+        else:
+            flat[key] = to_str(value)
+    return flat
+
+
 class BaseResponse(_TemplateEnvironmentMixin):
 
     default_region = 'us-east-1'
@@ -115,7 +144,16 @@ class BaseResponse(_TemplateEnvironmentMixin):
         if not querystring:
             querystring.update(parse_qs(urlparse(full_url).query, keep_blank_values=True))
         if not querystring:
-            querystring.update(parse_qs(self.body, keep_blank_values=True))
+            if 'json' in request.headers.get('content-type', []):
+                if isinstance(self.body, six.binary_type):
+                    decoded = json.loads(self.body.decode('utf-8'))
+                else:
+                    decoded = json.loads(self.body)
+                flat = flatten_json_request_body(decoded)
+                for key, value in flat.items():
+                    querystring[key] = [value]
+            else:
+                querystring.update(parse_qs(self.body, keep_blank_values=True))
         if not querystring:
             querystring.update(headers)
 

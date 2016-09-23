@@ -35,6 +35,7 @@ class Cluster(object):
         self.log_uri = log_uri
         self.master_public_dns_name = ""
         self.normalized_instance_hours = 0
+        self.release_label = 'emr-2.4.2'
         self.requested_ami_version = "2.4.2"
         self.running_ami_version = "2.4.2"
         self.service_role = "my-service-role"
