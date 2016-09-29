@@ -46,7 +46,8 @@ class ElasticNetworkInterfaces(BaseResponse):
     def modify_network_interface_attribute(self):
         # Currently supports modifying one and only one security group
         eni_id = self.querystring.get('NetworkInterfaceId')[0]
-        group_id = self.querystring.get('SecurityGroupId.1')[0]
+        if self.querystring.get('SecurityGroupId.1'):
+            group_id = self.querystring.get('SecurityGroupId.1')[0]
         self.ec2_backend.modify_network_interface_attribute(eni_id, group_id)
         return MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE
 
