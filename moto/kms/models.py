@@ -108,7 +108,7 @@ class KmsBackend(BaseBackend):
         return self.key_to_aliases
 
     def get_key_id_from_alias(self, alias_name):
-        for key_id, aliases in dict(self.key_to_aliases).iteritems():
+        for key_id, aliases in dict(self.key_to_aliases).items():
             if alias_name in ",".join(aliases):
                 return key_id
         return None
