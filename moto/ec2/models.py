@@ -809,7 +809,10 @@ class TagBackend(object):
             raise InvalidParameterValueErrorTagNull()
         for resource_id in resource_ids:
             if resource_id in self.tags:
-                if len(self.tags[resource_id]) + len([tag for tag in tags if not tag.startswith("aws:")]) > 10:
+                extra_tags = [tag for tag in tags if not tag.startswith("aws:") and \
+                              tag not in self.tags[resource_id]]
+
+                if len(self.tags[resource_id]) + len(extra_tags) > 10:
                     raise TagLimitExceeded()
             elif len([tag for tag in tags if not tag.startswith("aws:")]) > 10:
                 raise TagLimitExceeded()
