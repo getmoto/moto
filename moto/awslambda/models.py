@@ -107,8 +107,8 @@ class LambdaFunction(object):
 
     def _invoke_lambda(self, code, event={}, context={}):
         # TO DO: context not yet implemented
-        mycode = "\n".join([self.code, 'print lambda_handler(%s, %s)' % (event, context)])
-        #print "moto_lambda_debug: ", mycode
+        mycode = "\n".join([self.code, 'print(lambda_handler(%s, %s))' % (event, context)])
+        print("moto_lambda_debug: ", mycode)
 
         try:
             codeOut = StringIO()
