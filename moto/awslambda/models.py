@@ -115,7 +115,7 @@ class LambdaFunction(object):
             #print "moto_lambda_debug: ", mycode
             sys.stdout = codeOut
             sys.stderr = codeErr
-            exec mycode
+            exec(mycode)
             exec_err = codeErr.getvalue()
             exec_out = codeOut.getvalue()
             result = "\n".join([exec_out, exec_err])
