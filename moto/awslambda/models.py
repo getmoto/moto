@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import StringIO
 import base64
 import datetime
 import hashlib
