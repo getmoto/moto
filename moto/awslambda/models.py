@@ -3,7 +3,11 @@ from __future__ import unicode_literals
 import base64
 import datetime
 import hashlib
+import io
 import json
+import StringIO
+import sys
+import zipfile
 
 import boto.awslambda
 from moto.core import BaseBackend
@@ -34,9 +38,13 @@ class LambdaFunction(object):
         self.version = '$LATEST'
         self.last_modified = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         if 'ZipFile' in self.code:
-            code = base64.b64decode(self.code['ZipFile'])
-            self.code_size = len(code)
-            self.code_sha_256 = hashlib.sha256(code).hexdigest()
+            to_unzip_code = base64.b64decode(self.code['ZipFile'])
+            zbuffer = io.BytesIO()
+            zbuffer.write(to_unzip_code)
+            zip_file = zipfile.ZipFile(zbuffer, 'r', zipfile.ZIP_DEFLATED)
+            self.code = zip_file.read("".join(zip_file.namelist()))
+            self.code_size = len(to_unzip_code)
+            self.code_sha_256 = hashlib.sha256(to_unzip_code).hexdigest()
         else:
             # validate s3 bucket
             try:
@@ -93,15 +101,47 @@ class LambdaFunction(object):
             "Configuration": self.get_configuration(),
         }
 
+    def _invoke_lambda(self, code, event={}, context={}):
+        # TO DO: context not yet implemented
+        try:
+            codeOut = StringIO.StringIO()
+            codeErr = StringIO.StringIO()
+            mycode = "\n".join([self.code, 'print lambda_handler(%s, %s)'  % (event, context)])
+            #print "moto_lambda_debug: ", mycode
+            sys.stdout = codeOut
+            sys.stderr = codeErr
+            exec(mycode, {'event': event, 'context': context})
+            exec_err = codeErr.getvalue()
+            exec_out = codeOut.getvalue()
+            result = "\n".join([exec_out, exec_err])
+        except Exception as ex:
+            result = 'Exception %s, %s' % (ex, ex.message)
+        finally:
+            codeErr.close()
+            codeOut.close()
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+        return result
+
+    def is_json(self, test_str):
+        try:
+            response = json.loads(test_str)
+        except:
+            response = test_str
+        return response
+
     def invoke(self, request, headers):
         payload = dict()
 
         # Get the invocation type:
+        invoke_type = request.headers.get("x-amz-invocation-type")
+        response = self._invoke_lambda(code=self.code, event=self.is_json(request.body))
         if request.headers.get("x-amz-invocation-type") == "RequestResponse":
-            encoded = base64.b64encode("Some log file output...".encode('utf-8'))
+            encoded = base64.b64encode(response.encode('utf-8'))
+            payload['result'] = encoded
             headers["x-amz-log-result"] = encoded.decode('utf-8')
-
-            payload["result"] = "Good"
+        elif request.headers.get("x-amz-invocation-type") == "Event":
+            payload['result'] = 'good'  # nothing should be sent back possibly headers etc.
 
         return json.dumps(payload, indent=4)
 
@@ -154,3 +194,7 @@ class LambdaBackend(BaseBackend):
 lambda_backends = {}
 for region in boto.awslambda.regions():
     lambda_backends[region.name] = LambdaBackend()
+
+# Handle us forgotten regions, unless Lambda truly only runs out of US and EU?????
+for region in ['ap-southeast-2']:
+    lambda_backends[region] = LambdaBackend()

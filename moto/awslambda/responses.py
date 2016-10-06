@@ -43,7 +43,7 @@ class LambdaResponse(BaseResponse):
         if lambda_backend.has_function(function_name):
             fn = lambda_backend.get_function(function_name)
             payload = fn.invoke(request, headers)
-            return 200, headers, payload
+            return 202, headers, payload
         else:
             return 404, headers, "{}"
 

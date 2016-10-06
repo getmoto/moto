@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import base64
 import botocore.client
 import boto3
 import hashlib
@@ -8,44 +9,57 @@ import zipfile
 import sure  # noqa
 
 from freezegun import freeze_time
-from moto import mock_lambda, mock_s3
+from moto import mock_lambda, mock_s3, mock_ec2
 
 
-def get_test_zip_file():
+def _process_lamda(pfunc):
     zip_output = io.BytesIO()
-    zip_file = zipfile.ZipFile(zip_output, 'w')
-    zip_file.writestr('lambda_function.py', b'''\
-def handler(event, context):
-    return "hello world"
-''')
+    zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
+    zip_file.writestr('lambda_function.zip', pfunc)
     zip_file.close()
     zip_output.seek(0)
     return zip_output.read()
 
 
-@mock_lambda
-def test_list_functions():
-    conn = boto3.client('lambda', 'us-west-2')
+def get_test_zip_file1():
+    pfunc = b"""
+def lambda_handler(event, context):
+    return (event, context)
+"""
+    return _process_lamda(pfunc)
 
-    result = conn.list_functions()
 
-    result['Functions'].should.have.length_of(0)
+def get_test_zip_file2():
+    pfunc = b"""
+def lambda_handler(event, context):
+    volume_id = event.get('volume_id')
+    print 'get volume details for %s' % volume_id
+    import boto3
+    ec2 = boto3.resource('ec2', region_name='us-west-2')
+    vol = ec2.Volume(volume_id)
+    print 'Volume - %s  state=%s, size=%s' % (volume_id, vol.state, vol.size)
+"""
+    return _process_lamda(pfunc)
 
 
 @mock_lambda
 @mock_s3
+def test_list_functions():
+    conn = boto3.client('lambda', 'us-west-2')
+    result = conn.list_functions()
+    result['Functions'].should.have.length_of(0)
+
+@mock_lambda
 @freeze_time('2015-01-01 00:00:00')
 def test_invoke_function():
     conn = boto3.client('lambda', 'us-west-2')
-
-    zip_content = get_test_zip_file()
     conn.create_function(
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
         Handler='lambda_function.handler',
         Code={
-            'ZipFile': zip_content,
+            'ZipFile': get_test_zip_file1(),
         },
         Description='test lambda function',
         Timeout=3,
@@ -53,8 +67,8 @@ def test_invoke_function():
         Publish=True,
     )
 
-    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload='{}')
-    success_result["StatusCode"].should.equal(200)
+    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload="Mostly Harmless")
+    success_result["StatusCode"].should.equal(202)
 
     conn.invoke.when.called_with(
         FunctionName='notAFunction',
@@ -62,11 +76,42 @@ def test_invoke_function():
         Payload='{}'
     ).should.throw(botocore.client.ClientError)
 
-    success_result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse', Payload='{}')
-    success_result["StatusCode"].should.equal(200)
+    success_result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse', Payload='{"msg": "So long and thanks for all the fish"}')
+    success_result["StatusCode"].should.equal(202)
 
     import base64
-    base64.b64decode(success_result["LogResult"]).decode('utf-8').should.equal("Some log file output...")
+    base64.b64decode(success_result["LogResult"]).decode('utf-8').should.equal("({u'msg': u'So long and thanks for all the fish'}, {})\n\n")
+
+@mock_ec2
+@mock_lambda
+@freeze_time('2015-01-01 00:00:00')
+def test_invoke_function_get_ec2_volume():
+    conn = boto3.resource("ec2", "us-west-2")
+    vol = conn.create_volume(Size=99, AvailabilityZone='us-west-2')
+    vol = conn.Volume(vol.id)
+
+    conn = boto3.client('lambda', 'us-west-2')
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': get_test_zip_file2(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    import json
+    success_result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse', Payload=json.dumps({'volume_id': vol.id}))
+    success_result["StatusCode"].should.equal(202)
+
+    import base64
+    msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\nNone\n\n' % (vol.id, vol.id, vol.state, vol.size)
+    base64.b64decode(success_result["LogResult"]).decode('utf-8').should.equal(msg)
 
 
 @mock_lambda
@@ -101,7 +146,7 @@ def test_create_function_from_aws_bucket():
     s3_conn = boto3.client('s3', 'us-west-2')
     s3_conn.create_bucket(Bucket='test-bucket')
 
-    zip_content = get_test_zip_file()
+    zip_content = get_test_zip_file2()
     s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
     conn = boto3.client('lambda', 'us-west-2')
 
@@ -151,8 +196,7 @@ def test_create_function_from_aws_bucket():
 @freeze_time('2015-01-01 00:00:00')
 def test_create_function_from_zipfile():
     conn = boto3.client('lambda', 'us-west-2')
-
-    zip_content = get_test_zip_file()
+    zip_content = get_test_zip_file1()
     result = conn.create_function(
         FunctionName='testFunction',
         Runtime='python2.7',
@@ -196,7 +240,7 @@ def test_get_function():
     s3_conn = boto3.client('s3', 'us-west-2')
     s3_conn.create_bucket(Bucket='test-bucket')
 
-    zip_content = get_test_zip_file()
+    zip_content = get_test_zip_file1()
     s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
     conn = boto3.client('lambda', 'us-west-2')
 
@@ -245,14 +289,13 @@ def test_get_function():
     })
 
 
-
 @mock_lambda
 @mock_s3
 def test_delete_function():
     s3_conn = boto3.client('s3', 'us-west-2')
     s3_conn.create_bucket(Bucket='test-bucket')
 
-    zip_content = get_test_zip_file()
+    zip_content = get_test_zip_file2()
     s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
     conn = boto3.client('lambda', 'us-west-2')
 
@@ -289,7 +332,7 @@ def test_list_create_list_get_delete_list():
     s3_conn = boto3.client('s3', 'us-west-2')
     s3_conn.create_bucket(Bucket='test-bucket')
 
-    zip_content = get_test_zip_file()
+    zip_content = get_test_zip_file2()
     s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
     conn = boto3.client('lambda', 'us-west-2')
 
