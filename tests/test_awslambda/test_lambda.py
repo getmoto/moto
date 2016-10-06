@@ -5,6 +5,7 @@ import botocore.client
 import boto3
 import hashlib
 import io
+import json
 import zipfile
 import sure  # noqa
 
@@ -67,7 +68,7 @@ def test_invoke_function():
         Publish=True,
     )
 
-    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload="Mostly Harmless")
+    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload='Mostly Harmless')
     success_result["StatusCode"].should.equal(202)
 
     conn.invoke.when.called_with(
@@ -76,10 +77,9 @@ def test_invoke_function():
         Payload='{}'
     ).should.throw(botocore.client.ClientError)
 
-    success_result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse', Payload='{"msg": "So long and thanks for all the fish"}')
+    success_result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse',
+                                 Payload=json.dumps({'msg': 'So long and thanks for all the fish'}))
     success_result["StatusCode"].should.equal(202)
-
-    import base64
     base64.b64decode(success_result["LogResult"]).decode('utf-8').should.equal("({u'msg': u'So long and thanks for all the fish'}, {})\n\n")
 
 @mock_ec2

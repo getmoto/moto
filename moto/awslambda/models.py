@@ -1,13 +1,18 @@
 from __future__ import unicode_literals
 
+import StringIO
 import base64
 import datetime
 import hashlib
 import io
 import json
-import StringIO
 import sys
 import zipfile
+
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
 
 import boto.awslambda
 from moto.core import BaseBackend
@@ -104,18 +109,18 @@ class LambdaFunction(object):
     def _invoke_lambda(self, code, event={}, context={}):
         # TO DO: context not yet implemented
         try:
-            codeOut = StringIO.StringIO()
-            codeErr = StringIO.StringIO()
-            mycode = "\n".join([self.code, 'print lambda_handler(%s, %s)'  % (event, context)])
+            codeOut = StringIO()
+            codeErr = StringIO()
+            mycode = "\n".join([self.code, 'print lambda_handler(%s, %s)' % (event, context)])
             #print "moto_lambda_debug: ", mycode
             sys.stdout = codeOut
             sys.stderr = codeErr
-            exec(mycode, {'event': event, 'context': context})
+            exec mycode
             exec_err = codeErr.getvalue()
             exec_out = codeOut.getvalue()
             result = "\n".join([exec_out, exec_err])
         except Exception as ex:
-            result = 'Exception %s, %s' % (ex, ex.message)
+            result = '%s\n\n\nException %s, %s' % (mycode, ex, ex.message)
         finally:
             codeErr.close()
             codeOut.close()
