@@ -354,6 +354,8 @@ def test_list_or_change_tags_for_resource_request():
     response['ResourceTagSet']['Tags'].should.contain(tag1)
     response['ResourceTagSet']['Tags'].should.contain(tag2)
 
+    len(response['ResourceTagSet']['Tags']).should.equal(2)
+
     # Try to remove the tags
     conn.change_tags_for_resource(
         ResourceType='healthcheck',
