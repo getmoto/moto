@@ -179,14 +179,14 @@ class DynamoHandler(BaseResponse):
                     item = dynamodb_backend2.delete_item(table_name, keys)
 
         response = {
-            "Responses": {
-                "Thread": {
-                    "ConsumedCapacityUnits": 1.0
-                },
-                "Reply": {
-                    "ConsumedCapacityUnits": 1.0
-                }
-            },
+            "ConsumedCapacity": [
+                {
+                    'TableName': table_name,
+                    'CapacityUnits': 1.0,
+                    'Table': {'CapacityUnits': 1.0}
+                } for table_name, table_requests in table_batches.items()
+            ],
+            "ItemCollectionMetrics": {},
             "UnprocessedItems": {}
         }
 
