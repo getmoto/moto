@@ -10,8 +10,6 @@ install_requires = [
     "xmltodict",
     "six",
     "werkzeug",
-    "sure",
-    "freezegun"
 ]
 
 extras_require = {
