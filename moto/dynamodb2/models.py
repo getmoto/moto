@@ -275,9 +275,14 @@ class Table(object):
                         raise ValueError("The conditional request failed")
                 elif key not in current_attr:
                     raise ValueError("The conditional request failed")
-                elif DynamoType(val['Value']).value != current_attr[key].value:
+                elif 'Value' in val and DynamoType(val['Value']).value != current_attr[key].value:
                     raise ValueError("The conditional request failed")
-
+                elif 'ComparisonOperator' in val:
+                    comparison_func = get_comparison_func(val['ComparisonOperator'])
+                    dynamo_types = [DynamoType(ele) for ele in val["AttributeValueList"]]
+                    for t in dynamo_types:
+                        if not comparison_func(current_attr[key].value, t.value):
+                            raise ValueError('The conditional request failed')
         if range_value:
             self.items[hash_value][range_value] = item
         else:
