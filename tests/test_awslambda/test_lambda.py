@@ -23,7 +23,7 @@ def _process_lamda(pfunc):
 
 
 def get_test_zip_file1():
-    pfunc = b"""
+    pfunc = """
 def lambda_handler(event, context):
     return (event, context)
 """
@@ -31,14 +31,14 @@ def lambda_handler(event, context):
 
 
 def get_test_zip_file2():
-    pfunc = b"""
+    pfunc = """
 def lambda_handler(event, context):
     volume_id = event.get('volume_id')
-    print 'get volume details for %s' % volume_id
+    print('get volume details for %s' % volume_id)
     import boto3
     ec2 = boto3.resource('ec2', region_name='us-west-2')
     vol = ec2.Volume(volume_id)
-    print 'Volume - %s  state=%s, size=%s' % (volume_id, vol.state, vol.size)
+    print('Volume - %s  state=%s, size=%s' % (volume_id, vol.state, vol.size))
 """
     return _process_lamda(pfunc)
 
@@ -52,7 +52,7 @@ def test_list_functions():
 
 @mock_lambda
 @freeze_time('2015-01-01 00:00:00')
-def test_invoke_function():
+def test_invoke_event_function():
     conn = boto3.client('lambda', 'us-west-2')
     conn.create_function(
         FunctionName='testFunction',
@@ -68,7 +68,7 @@ def test_invoke_function():
         Publish=True,
     )
 
-    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload='Mostly Harmless')
+    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload=json.dumps({'msg': 'Mostly Harmless'}))
     success_result["StatusCode"].should.equal(202)
 
     conn.invoke.when.called_with(
@@ -77,10 +77,31 @@ def test_invoke_function():
         Payload='{}'
     ).should.throw(botocore.client.ClientError)
 
+
+@mock_lambda
+@freeze_time('2015-01-01 00:00:00')
+def test_invoke_requestresponse_function():
+    conn = boto3.client('lambda', 'us-west-2')
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': get_test_zip_file1(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
     success_result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse',
                                  Payload=json.dumps({'msg': 'So long and thanks for all the fish'}))
     success_result["StatusCode"].should.equal(202)
-    base64.b64decode(success_result["LogResult"]).decode('utf-8').should.equal("({u'msg': u'So long and thanks for all the fish'}, {})\n\n")
+
+    #nasty hack - hope someone has better solution dealing with unicode tests working for Py2 and Py3.
+    base64.b64decode(success_result["LogResult"]).decode('utf-8').replace("u'", "'").should.equal("({'msg': 'So long and thanks for all the fish'}, {})\n\n")
 
 @mock_ec2
 @mock_lambda
@@ -111,7 +132,8 @@ def test_invoke_function_get_ec2_volume():
 
     import base64
     msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\nNone\n\n' % (vol.id, vol.id, vol.state, vol.size)
-    base64.b64decode(success_result["LogResult"]).decode('utf-8').should.equal(msg)
+    # yet again hacky solution to allow code to run tests for python2 and python3 - pls someone fix :(
+    base64.b64decode(success_result["LogResult"]).decode('utf-8').replace("u'", "'").should.equal(msg)
 
 
 @mock_lambda
@@ -145,8 +167,8 @@ def test_create_based_on_s3_with_missing_bucket():
 def test_create_function_from_aws_bucket():
     s3_conn = boto3.client('s3', 'us-west-2')
     s3_conn.create_bucket(Bucket='test-bucket')
-
     zip_content = get_test_zip_file2()
+
     s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
     conn = boto3.client('lambda', 'us-west-2')
 
@@ -168,7 +190,8 @@ def test_create_function_from_aws_bucket():
             "SubnetIds": ["subnet-123abc"],
         },
     )
-    result['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
     result.should.equal({
         'FunctionName': 'testFunction',
         'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
@@ -187,7 +210,6 @@ def test_create_function_from_aws_bucket():
             "SubnetIds": ["subnet-123abc"],
             "VpcId": "vpc-123abc"
         },
-
         'ResponseMetadata': {'HTTPStatusCode': 201},
     })
 
@@ -210,7 +232,9 @@ def test_create_function_from_zipfile():
         MemorySize=128,
         Publish=True,
     )
-    result['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+
     result.should.equal({
         'FunctionName': 'testFunction',
         'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
@@ -260,7 +284,8 @@ def test_get_function():
     )
 
     result = conn.get_function(FunctionName='testFunction')
-    result['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
 
     result.should.equal({
         "Code": {
@@ -315,7 +340,9 @@ def test_delete_function():
     )
 
     success_result = conn.delete_function(FunctionName='testFunction')
-    success_result['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    success_result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
+    success_result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+
     success_result.should.equal({'ResponseMetadata': {'HTTPStatusCode': 204}})
 
     conn.delete_function.when.called_with(FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
@@ -380,7 +407,9 @@ def test_list_create_list_get_delete_list():
     conn.list_functions()['Functions'].should.equal([expected_function_result['Configuration']])
 
     func = conn.get_function(FunctionName='testFunction')
-    func['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    func['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
+    func['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+
     func.should.equal(expected_function_result)
     conn.delete_function(FunctionName='testFunction')
 

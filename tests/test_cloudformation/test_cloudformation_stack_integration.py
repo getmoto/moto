@@ -1737,7 +1737,7 @@ def _process_lamda(pfunc):
 
 
 def get_test_zip_file1():
-    pfunc = b"""
+    pfunc = """
 def lambda_handler(event, context):
     return (event, context)
 """
@@ -1756,7 +1756,7 @@ def test_lambda_function():
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
                     "Code": {
-                        "ZipFile": base64.b64encode(get_test_zip_file1())
+                        "ZipFile": base64.b64encode(get_test_zip_file1()).decode('utf-8')
                     },
                     "Handler": "lambda_function.handler",
                     "Description": "Test function",
