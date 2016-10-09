@@ -129,9 +129,9 @@ class LambdaFunction(object):
             mycode = "\n".join(['import json',
                                 self.convert(self.code),
                                 self.convert('print(lambda_handler(%s, %s))' % (self.is_json(self.convert(event)), context))])
-            print("moto_lambda_debug: ", mycode)
+            #print("moto_lambda_debug: ", mycode)
         except Exception as ex:
-            print('fuck ', ex)
+            print("Exception %s", ex)
 
         try:
             codeOut = StringIO()
