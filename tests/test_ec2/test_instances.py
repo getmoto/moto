@@ -73,6 +73,13 @@ def test_instance_launch_and_terminate():
     instance = reservations[0].instances[0]
     instance.state.should.equal('terminated')
 
+
+@mock_ec2
+def test_terminate_empty_instances():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn.terminate_instances.when.called_with([]).should.throw(EC2ResponseError)
+
+
 @freeze_time("2014-01-01 05:00:00")
 @mock_ec2
 def test_instance_attach_volume():
@@ -329,6 +336,7 @@ def test_get_instances_filtering_by_tag():
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance3.id)
+
 
 @mock_ec2
 def test_get_instances_filtering_by_tag_value():

@@ -200,16 +200,24 @@ In general, Moto doesn't rely on anything specific to Boto. It only mocks AWS en
 
 ## Stand-alone Server Mode
 
-Moto also comes with a stand-alone server mode. This allows you to utilize the backend structure of Moto even if you don't use Python.
+Moto also has a stand-alone server mode. This allows you to utilize
+the backend structure of Moto even if you don't use Python.
 
-To run a service:
+It uses flask, which isn't a default dependency. You can install the
+server 'extra' package with:
+
+```python
+pip install moto[server]
+```
+
+You can then start it running a service:
 
 ```console
 $ moto_server ec2
  * Running on http://127.0.0.1:5000/
 ```
 
-You can also pass the port as the second argument:
+You can also pass the port:
 
 ```console
 $ moto_server ec2 -p3000

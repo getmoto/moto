@@ -3,7 +3,15 @@ from __future__ import unicode_literals
 import base64
 import datetime
 import hashlib
+import io
 import json
+import sys
+import zipfile
+
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
 
 import boto.awslambda
 from moto.core import BaseBackend
@@ -34,9 +42,18 @@ class LambdaFunction(object):
         self.version = '$LATEST'
         self.last_modified = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         if 'ZipFile' in self.code:
-            code = base64.b64decode(self.code['ZipFile'])
-            self.code_size = len(code)
-            self.code_sha_256 = hashlib.sha256(code).hexdigest()
+            # more hackery to handle unicode/bytes/str in python3 and python2 - argh!
+            try:
+                to_unzip_code = base64.b64decode(bytes(self.code['ZipFile'], 'utf-8'))
+            except Exception:
+                to_unzip_code = base64.b64decode(self.code['ZipFile'])
+
+            zbuffer = io.BytesIO()
+            zbuffer.write(to_unzip_code)
+            zip_file = zipfile.ZipFile(zbuffer, 'r', zipfile.ZIP_DEFLATED)
+            self.code = zip_file.read("".join(zip_file.namelist()))
+            self.code_size = len(to_unzip_code)
+            self.code_sha_256 = hashlib.sha256(to_unzip_code).hexdigest()
         else:
             # validate s3 bucket
             try:
@@ -93,15 +110,56 @@ class LambdaFunction(object):
             "Configuration": self.get_configuration(),
         }
 
+    def convert(self, s):
+        try:
+            return str(s, encoding='utf8')
+        except:
+            return s
+
+    def is_json(self, test_str):
+        try:
+            response = json.loads(test_str)
+        except:
+            response = test_str
+        return response
+
+    def _invoke_lambda(self, code, event={}, context={}):
+        # TO DO: context not yet implemented
+        try:
+            mycode = "\n".join(['import json',
+                                self.convert(self.code),
+                                self.convert('print(lambda_handler(%s, %s))' % (self.is_json(self.convert(event)), context))])
+            #print("moto_lambda_debug: ", mycode)
+        except Exception as ex:
+            print("Exception %s", ex)
+
+        try:
+            codeOut = StringIO()
+            codeErr = StringIO()
+            sys.stdout = codeOut
+            sys.stderr = codeErr
+            exec(mycode)
+            exec_err = codeErr.getvalue()
+            exec_out = codeOut.getvalue()
+            result = "\n".join([exec_out, self.convert(exec_err)])
+        except Exception as ex:
+            result = '%s\n\n\nException %s' % (mycode, ex)
+        finally:
+            codeErr.close()
+            codeOut.close()
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+        return self.convert(result)
+
     def invoke(self, request, headers):
         payload = dict()
 
         # Get the invocation type:
+        r = self._invoke_lambda(code=self.code, event=request.body)
         if request.headers.get("x-amz-invocation-type") == "RequestResponse":
-            encoded = base64.b64encode("Some log file output...".encode('utf-8'))
+            encoded = base64.b64encode(r.encode('utf-8'))
             headers["x-amz-log-result"] = encoded.decode('utf-8')
-
-            payload["result"] = "Good"
+            payload['result'] = headers["x-amz-log-result"]
 
         return json.dumps(payload, indent=4)
 
@@ -154,3 +212,7 @@ class LambdaBackend(BaseBackend):
 lambda_backends = {}
 for region in boto.awslambda.regions():
     lambda_backends[region.name] = LambdaBackend()
+
+# Handle us forgotten regions, unless Lambda truly only runs out of US and EU?????
+for region in ['ap-southeast-2']:
+    lambda_backends[region] = LambdaBackend()

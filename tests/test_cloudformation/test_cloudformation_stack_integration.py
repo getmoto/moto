@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import json
 
+import base64
 import boto
 import boto.cloudformation
 import boto.datapipeline
@@ -1724,10 +1725,29 @@ def test_datapipeline():
     stack_resources.should.have.length_of(1)
     stack_resources[0].physical_resource_id.should.equal(data_pipelines['pipelineIdList'][0]['id'])
 
+def _process_lamda(pfunc):
+    import io
+    import zipfile
+    zip_output = io.BytesIO()
+    zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
+    zip_file.writestr('lambda_function.zip', pfunc)
+    zip_file.close()
+    zip_output.seek(0)
+    return zip_output.read()
+
+
+def get_test_zip_file1():
+    pfunc = """
+def lambda_handler(event, context):
+    return (event, context)
+"""
+    return _process_lamda(pfunc)
+
 
 @mock_cloudformation
 @mock_lambda
 def test_lambda_function():
+    # switch this to python as backend lambda only supports python execution.
     conn = boto3.client('lambda', 'us-east-1')
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1736,22 +1756,15 @@ def test_lambda_function():
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
                     "Code": {
-                        "ZipFile": {"Fn::Join": [
-                            "\n",
-                            """
-                            exports.handler = function(event, context) {
-                                context.succeed();
-                            }
-                            """.splitlines()
-                        ]}
+                        "ZipFile": base64.b64encode(get_test_zip_file1()).decode('utf-8')
                     },
-                    "Handler": "index.handler",
+                    "Handler": "lambda_function.handler",
                     "Description": "Test function",
                     "MemorySize": 128,
                     "Role": "test-role",
-                    "Runtime": "nodejs",
+                    "Runtime": "python2.7"
                 }
-            },
+            }
         }
     }
 
@@ -1765,10 +1778,10 @@ def test_lambda_function():
     result = conn.list_functions()
     result['Functions'].should.have.length_of(1)
     result['Functions'][0]['Description'].should.equal('Test function')
-    result['Functions'][0]['Handler'].should.equal('index.handler')
+    result['Functions'][0]['Handler'].should.equal('lambda_function.handler')
     result['Functions'][0]['MemorySize'].should.equal(128)
     result['Functions'][0]['Role'].should.equal('test-role')
-    result['Functions'][0]['Runtime'].should.equal('nodejs')
+    result['Functions'][0]['Runtime'].should.equal('python2.7')
 
 
 @mock_cloudformation
