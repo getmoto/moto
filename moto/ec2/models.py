@@ -632,6 +632,8 @@ class InstanceBackend(object):
 
     def terminate_instances(self, instance_ids):
         terminated_instances = []
+        if not instance_ids:
+            raise EC2ClientError("InvalidParameterCombination", "No instances specified")
         for instance in self.get_multi_instances_by_id(instance_ids):
             instance.terminate()
             terminated_instances.append(instance)
