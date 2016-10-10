@@ -321,3 +321,14 @@ def test_vpc_modify_enable_dns_hostnames():
     response = vpc.describe_attribute(Attribute='enableDnsHostnames')
     attr = response.get('EnableDnsHostnames')
     attr.get('Value').should.be.ok
+
+@mock_ec2
+def test_vpc_associate_dhcp_options():
+    conn = boto.connect_vpc()
+    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
+    vpc = conn.create_vpc("10.0.0.0/16")
+
+    conn.associate_dhcp_options(dhcp_options.id, vpc.id)
+
+    vpc.update()
+    dhcp_options.id.should.equal(vpc.dhcp_options_id)
