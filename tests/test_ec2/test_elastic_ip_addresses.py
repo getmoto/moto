@@ -111,6 +111,32 @@ def test_eip_associate_vpc():
     instance.terminate()
 
 @mock_ec2
+def test_eip_new_subnet_associate_vpc():
+    """Associate/Disassociate EIP to VPC instance in a new subnet"""
+    conn = boto.connect_vpc('the_key', 'the_secret')
+
+    vpc = conn.create_vpc('10.0.0.0/24')
+    subnet = conn.create_subnet(vpc.id, '10.0.0.0/24')
+
+    gw = conn.create_internet_gateway()
+    conn.attach_internet_gateway(gw.id, vpc.id)
+
+    rtb = conn.create_route_table(vpc.id)
+    rt = conn.create_route(rtb.id, '0.0.0.0/0', gw.id)
+    conn.associate_route_table(rtb.id, subnet.id)
+
+    reservation = conn.run_instances('ami-1234abcd', subnet_id=subnet.id)
+    instance = reservation.instances[0]
+    eip = conn.allocate_address()
+
+    eip.associate(instance.id)
+
+    instance.ip_address.should_not.be.none
+
+    instance.terminate()
+
+
+@mock_ec2
 def test_eip_associate_network_interface():
     """Associate/Disassociate EIP to NIC"""
     conn = boto.connect_vpc('the_key', 'the_secret')
