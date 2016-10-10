@@ -176,17 +176,23 @@ class FirehoseRecord(object):
 class DeliveryStream(object):
     def __init__(self, stream_name, **stream_kwargs):
         self.name = stream_name
-        self.redshift_username = stream_kwargs['redshift_username']
-        self.redshift_password = stream_kwargs['redshift_password']
-        self.redshift_jdbc_url = stream_kwargs['redshift_jdbc_url']
-        self.redshift_role_arn = stream_kwargs['redshift_role_arn']
-        self.redshift_copy_command = stream_kwargs['redshift_copy_command']
+        self.redshift_username = stream_kwargs.get('redshift_username')
+        self.redshift_password = stream_kwargs.get('redshift_password')
+        self.redshift_jdbc_url = stream_kwargs.get('redshift_jdbc_url')
+        self.redshift_role_arn = stream_kwargs.get('redshift_role_arn')
+        self.redshift_copy_command = stream_kwargs.get('redshift_copy_command')
 
-        self.redshift_s3_role_arn = stream_kwargs['redshift_s3_role_arn']
-        self.redshift_s3_bucket_arn = stream_kwargs['redshift_s3_bucket_arn']
-        self.redshift_s3_prefix = stream_kwargs['redshift_s3_prefix']
+        self.s3_role_arn = stream_kwargs.get('s3_role_arn')
+        self.s3_bucket_arn = stream_kwargs.get('s3_bucket_arn')
+        self.s3_prefix = stream_kwargs.get('s3_prefix')
+        self.s3_compression_format = stream_kwargs.get('s3_compression_format', 'UNCOMPRESSED')
+        self.s3_buffering_hings = stream_kwargs.get('s3_buffering_hings')
+
+        self.redshift_s3_role_arn = stream_kwargs.get('redshift_s3_role_arn')
+        self.redshift_s3_bucket_arn = stream_kwargs.get('redshift_s3_bucket_arn')
+        self.redshift_s3_prefix = stream_kwargs.get('redshift_s3_prefix')
         self.redshift_s3_compression_format = stream_kwargs.get('redshift_s3_compression_format', 'UNCOMPRESSED')
-        self.redshift_s3_buffering_hings = stream_kwargs['redshift_s3_buffering_hings']
+        self.redshift_s3_buffering_hings = stream_kwargs.get('redshift_s3_buffering_hings')
 
         self.records = []
         self.status = 'ACTIVE'
@@ -197,6 +203,38 @@ class DeliveryStream(object):
     def arn(self):
         return 'arn:aws:firehose:us-east-1:123456789012:deliverystream/{0}'.format(self.name)
 
+    def destinations_to_dict(self):
+        if self.s3_role_arn:
+            return [{
+                'DestinationId': 'string',
+                'S3DestinationDescription': {
+                    'RoleARN': self.s3_role_arn,
+                    'BucketARN': self.s3_bucket_arn,
+                    'Prefix': self.s3_prefix,
+                    'BufferingHints': self.s3_buffering_hings,
+                    'CompressionFormat': self.s3_compression_format,
+                }
+            }]
+        else:
+            return [{
+                    "DestinationId": "string",
+                    "RedshiftDestinationDescription": {
+                        "ClusterJDBCURL": self.redshift_jdbc_url,
+                        "CopyCommand": self.redshift_copy_command,
+                        "RoleARN": self.redshift_role_arn,
+                        "S3DestinationDescription": {
+                            "BucketARN": self.redshift_s3_bucket_arn,
+                            "BufferingHints": self.redshift_s3_buffering_hings,
+                            "CompressionFormat": self.redshift_s3_compression_format,
+                            "Prefix": self.redshift_s3_prefix,
+                            "RoleARN": self.redshift_s3_role_arn
+                        },
+                        "Username": self.redshift_username,
+                    },
+                }
+            ]
+
+
     def to_dict(self):
         return {
             "DeliveryStreamDescription": {
@@ -204,24 +242,7 @@ class DeliveryStream(object):
                 "DeliveryStreamARN": self.arn,
                 "DeliveryStreamName": self.name,
                 "DeliveryStreamStatus": self.status,
-                "Destinations": [
-                    {
-                        "DestinationId": "string",
-                        "RedshiftDestinationDescription": {
-                            "ClusterJDBCURL": self.redshift_jdbc_url,
-                            "CopyCommand": self.redshift_copy_command,
-                            "RoleARN": self.redshift_role_arn,
-                            "S3DestinationDescription": {
-                                "BucketARN": self.redshift_s3_bucket_arn,
-                                "BufferingHints": self.redshift_s3_buffering_hings,
-                                "CompressionFormat": self.redshift_s3_compression_format,
-                                "Prefix": self.redshift_s3_prefix,
-                                "RoleARN": self.redshift_s3_role_arn
-                            },
-                            "Username": self.redshift_username,
-                        },
-                    }
-                ],
+                "Destinations": self.destinations_to_dict(),
                 "HasMoreDestinations": False,
                 "LastUpdateTimestamp": time.mktime(self.last_updated.timetuple()),
                 "VersionId": "string",
