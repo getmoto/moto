@@ -4,6 +4,7 @@ import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import boto
+import boto3
 from boto.exception import EC2ResponseError
 import six
 
@@ -108,7 +109,30 @@ def test_eip_associate_vpc():
     eip.release()
     eip = None
 
-    instance.terminate()
+@mock_ec2
+def test_eip_boto3_vpc_association():
+    """Associate EIP to VPC instance in a new subnet with boto3"""
+    session = boto3.session.Session(region_name='us-west-1')
+    service = session.resource('ec2')
+    client = session.client('ec2')
+    vpc_res = client.create_vpc(CidrBlock='10.0.0.0/24')
+    subnet_res = client.create_subnet(
+            VpcId=vpc_res['Vpc']['VpcId'], CidrBlock='10.0.0.0/24')
+    instance = service.create_instances(**{
+        'InstanceType': 't2.micro',
+        'ImageId': 'ami-test',
+        'MinCount': 1,
+        'MaxCount': 1,
+        'SubnetId': subnet_res['Subnet']['SubnetId']
+    })[0]
+    allocation_id = client.allocate_address(Domain='vpc')['AllocationId']
+    association_id = client.associate_address(
+        InstanceId=instance.id,
+        AllocationId=allocation_id,
+        AllowReassociation=False)
+    instance.load()
+    instance.public_ip_address.should_not.be.none
+    instance.public_dns_name.should_not.be.noneinstance.terminate()
 
 @mock_ec2
 def test_eip_associate_network_interface():
