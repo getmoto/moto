@@ -207,6 +207,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           </instanceState>
           <privateDnsName>{{ instance.private_dns }}</privateDnsName>
           <publicDnsName>{{ instance.public_dns }}</publicDnsName>
+          <dnsName>{{ instance.public_dns }}</dnsName>
           <reason/>
           <keyName>{{ instance.key_name }}</keyName>
           <amiLaunchIndex>0</amiLaunchIndex>
@@ -335,6 +336,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     </instanceState>
                     <privateDnsName>{{ instance.private_dns }}</privateDnsName>
                     <publicDnsName>{{ instance.public_dns }}</publicDnsName>
+                    <dnsName>{{ instance.public_dns }}</dnsName>
                     <reason>{{ instance._reason }}</reason>
                     <keyName>{{ instance.key_name }}</keyName>
                     <amiLaunchIndex>0</amiLaunchIndex>
