@@ -2667,7 +2667,8 @@ class ElasticAddressBackend(object):
                 eip.eni.public_ip = eip.public_ip
             if eip.domain == "vpc":
                 eip.association_id = random_eip_association_id()
-            instance.set_ip(eip.public_ip)
+            if instance:
+                instance.set_ip(eip.public_ip)
 
             return eip
 
