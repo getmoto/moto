@@ -4,45 +4,49 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class ElasticBlockStore(BaseResponse):
+
     def attach_volume(self):
         volume_id = self.querystring.get('VolumeId')[0]
         instance_id = self.querystring.get('InstanceId')[0]
         device_path = self.querystring.get('Device')[0]
-
-        attachment = self.ec2_backend.attach_volume(volume_id, instance_id, device_path)
-        template = self.response_template(ATTACHED_VOLUME_RESPONSE)
-        return template.render(attachment=attachment)
+        if self.is_not_dryrun('AttachVolume'):
+            attachment = self.ec2_backend.attach_volume(volume_id, instance_id, device_path)
+            template = self.response_template(ATTACHED_VOLUME_RESPONSE)
+            return template.render(attachment=attachment)
 
     def copy_snapshot(self):
-        raise NotImplementedError('ElasticBlockStore.copy_snapshot is not yet implemented')
+        if self.is_not_dryrun('CopySnapshot'):
+            raise NotImplementedError('ElasticBlockStore.copy_snapshot is not yet implemented')
 
     def create_snapshot(self):
-        description = None
-        if 'Description' in self.querystring:
-            description = self.querystring.get('Description')[0]
+        description = self.querystring.get('Description', [None])[0]
         volume_id = self.querystring.get('VolumeId')[0]
-        snapshot = self.ec2_backend.create_snapshot(volume_id, description)
-        template = self.response_template(CREATE_SNAPSHOT_RESPONSE)
-        return template.render(snapshot=snapshot)
+        if self.is_not_dryrun('CreateSnapshot'):
+            snapshot = self.ec2_backend.create_snapshot(volume_id, description)
+            template = self.response_template(CREATE_SNAPSHOT_RESPONSE)
+            return template.render(snapshot=snapshot)
 
     def create_volume(self):
-        size = self._get_param('Size')
-        zone = self._get_param('AvailabilityZone')
-        snapshot_id = self._get_param('SnapshotId')
-        encrypted = self._get_param('Encrypted') or 'false'
-        volume = self.ec2_backend.create_volume(size, zone, snapshot_id, encrypted)
-        template = self.response_template(CREATE_VOLUME_RESPONSE)
-        return template.render(volume=volume)
+        size = self.querystring.get('Size', [None])[0]
+        zone = self.querystring.get('AvailabilityZone', [None])[0]
+        snapshot_id = self.querystring.get('SnapshotId', [None])[0]
+        encrypted = self.querystring.get('Encrypted', ['false'])[0]
+        if self.is_not_dryrun('CreateVolume'):
+            volume = self.ec2_backend.create_volume(size, zone, snapshot_id, encrypted)
+            template = self.response_template(CREATE_VOLUME_RESPONSE)
+            return template.render(volume=volume)
 
     def delete_snapshot(self):
         snapshot_id = self.querystring.get('SnapshotId')[0]
-        self.ec2_backend.delete_snapshot(snapshot_id)
-        return DELETE_SNAPSHOT_RESPONSE
+        if self.is_not_dryrun('DeleteSnapshot'):
+            self.ec2_backend.delete_snapshot(snapshot_id)
+            return DELETE_SNAPSHOT_RESPONSE
 
     def delete_volume(self):
         volume_id = self.querystring.get('VolumeId')[0]
-        self.ec2_backend.delete_volume(volume_id)
-        return DELETE_VOLUME_RESPONSE
+        if self.is_not_dryrun('DeleteVolume'):
+            self.ec2_backend.delete_volume(volume_id)
+            return DELETE_VOLUME_RESPONSE
 
     def describe_snapshots(self):
         filters = filters_from_querystring(self.querystring)
@@ -74,16 +78,18 @@ class ElasticBlockStore(BaseResponse):
         volume_id = self.querystring.get('VolumeId')[0]
         instance_id = self.querystring.get('InstanceId')[0]
         device_path = self.querystring.get('Device')[0]
-
-        attachment = self.ec2_backend.detach_volume(volume_id, instance_id, device_path)
-        template = self.response_template(DETATCH_VOLUME_RESPONSE)
-        return template.render(attachment=attachment)
+        if self.is_not_dryrun('DetachVolume'):
+            attachment = self.ec2_backend.detach_volume(volume_id, instance_id, device_path)
+            template = self.response_template(DETATCH_VOLUME_RESPONSE)
+            return template.render(attachment=attachment)
 
     def enable_volume_io(self):
-        raise NotImplementedError('ElasticBlockStore.enable_volume_io is not yet implemented')
+        if self.is_not_dryrun('EnableVolumeIO'):
+            raise NotImplementedError('ElasticBlockStore.enable_volume_io is not yet implemented')
 
     def import_volume(self):
-        raise NotImplementedError('ElasticBlockStore.import_volume is not yet implemented')
+        if self.is_not_dryrun('ImportVolume'):
+            raise NotImplementedError('ElasticBlockStore.import_volume is not yet implemented')
 
     def describe_snapshot_attribute(self):
         snapshot_id = self.querystring.get('SnapshotId')[0]
@@ -96,17 +102,20 @@ class ElasticBlockStore(BaseResponse):
         operation_type = self.querystring.get('OperationType')[0]
         group = self.querystring.get('UserGroup.1', [None])[0]
         user_id = self.querystring.get('UserId.1', [None])[0]
-        if (operation_type == 'add'):
-            self.ec2_backend.add_create_volume_permission(snapshot_id, user_id=user_id, group=group)
-        elif (operation_type == 'remove'):
-            self.ec2_backend.remove_create_volume_permission(snapshot_id, user_id=user_id, group=group)
-        return MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE
+        if self.is_not_dryrun('ModifySnapshotAttribute'):
+            if (operation_type == 'add'):
+                self.ec2_backend.add_create_volume_permission(snapshot_id, user_id=user_id, group=group)
+            elif (operation_type == 'remove'):
+                self.ec2_backend.remove_create_volume_permission(snapshot_id, user_id=user_id, group=group)
+            return MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE
 
     def modify_volume_attribute(self):
-        raise NotImplementedError('ElasticBlockStore.modify_volume_attribute is not yet implemented')
+        if self.is_not_dryrun('ModifyVolumeAttribute'):
+            raise NotImplementedError('ElasticBlockStore.modify_volume_attribute is not yet implemented')
 
     def reset_snapshot_attribute(self):
-        raise NotImplementedError('ElasticBlockStore.reset_snapshot_attribute is not yet implemented')
+        if self.is_not_dryrun('ResetSnapshotAttribute'):
+            raise NotImplementedError('ElasticBlockStore.reset_snapshot_attribute is not yet implemented')
 
 
 CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -211,12 +220,12 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
       {% for snapshot in snapshots %}
           <item>
              <snapshotId>{{ snapshot.id }}</snapshotId>
-             <volumeId>{{ snapshot.volume.id }}</volumeId>
+            <volumeId>{{ snapshot.volume.id }}</volumeId>
              <status>{{ snapshot.status }}</status>
              <startTime>{{ snapshot.start_time}}</startTime>
              <progress>100%</progress>
              <ownerId>111122223333</ownerId>
-             <volumeSize>{{ snapshot.volume.size }}</volumeSize>
+            <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
              <encrypted>{{ snapshot.encrypted }}</encrypted>
              <tagSet>

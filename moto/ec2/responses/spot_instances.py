@@ -7,15 +7,18 @@ class SpotInstances(BaseResponse):
 
     def cancel_spot_instance_requests(self):
         request_ids = self._get_multi_param('SpotInstanceRequestId')
-        requests = self.ec2_backend.cancel_spot_instance_requests(request_ids)
-        template = self.response_template(CANCEL_SPOT_INSTANCES_TEMPLATE)
-        return template.render(requests=requests)
+        if self.is_not_dryrun('CancelSpotInstance'):
+            requests = self.ec2_backend.cancel_spot_instance_requests(request_ids)
+            template = self.response_template(CANCEL_SPOT_INSTANCES_TEMPLATE)
+            return template.render(requests=requests)
 
     def create_spot_datafeed_subscription(self):
-        raise NotImplementedError('SpotInstances.create_spot_datafeed_subscription is not yet implemented')
+        if self.is_not_dryrun('CreateSpotDatafeedSubscription'):
+            raise NotImplementedError('SpotInstances.create_spot_datafeed_subscription is not yet implemented')
 
     def delete_spot_datafeed_subscription(self):
-        raise NotImplementedError('SpotInstances.delete_spot_datafeed_subscription is not yet implemented')
+        if self.is_not_dryrun('DeleteSpotDatafeedSubscription'):
+            raise NotImplementedError('SpotInstances.delete_spot_datafeed_subscription is not yet implemented')
 
     def describe_spot_datafeed_subscription(self):
         raise NotImplementedError('SpotInstances.describe_spot_datafeed_subscription is not yet implemented')
@@ -48,28 +51,29 @@ class SpotInstances(BaseResponse):
         monitoring_enabled = self._get_param('LaunchSpecification.Monitoring.Enabled')
         subnet_id = self._get_param('LaunchSpecification.SubnetId')
 
-        requests = self.ec2_backend.request_spot_instances(
-            price=price,
-            image_id=image_id,
-            count=count,
-            type=type,
-            valid_from=valid_from,
-            valid_until=valid_until,
-            launch_group=launch_group,
-            availability_zone_group=availability_zone_group,
-            key_name=key_name,
-            security_groups=security_groups,
-            user_data=user_data,
-            instance_type=instance_type,
-            placement=placement,
-            kernel_id=kernel_id,
-            ramdisk_id=ramdisk_id,
-            monitoring_enabled=monitoring_enabled,
-            subnet_id=subnet_id,
-        )
+        if self.is_not_dryrun('RequestSpotInstance'):
+            requests = self.ec2_backend.request_spot_instances(
+                price=price,
+                image_id=image_id,
+                count=count,
+                type=type,
+                valid_from=valid_from,
+                valid_until=valid_until,
+                launch_group=launch_group,
+                availability_zone_group=availability_zone_group,
+                key_name=key_name,
+                security_groups=security_groups,
+                user_data=user_data,
+                instance_type=instance_type,
+                placement=placement,
+                kernel_id=kernel_id,
+                ramdisk_id=ramdisk_id,
+                monitoring_enabled=monitoring_enabled,
+                subnet_id=subnet_id,
+            )
 
-        template = self.response_template(REQUEST_SPOT_INSTANCES_TEMPLATE)
-        return template.render(requests=requests)
+            template = self.response_template(REQUEST_SPOT_INSTANCES_TEMPLATE)
+            return template.render(requests=requests)
 
 
 REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

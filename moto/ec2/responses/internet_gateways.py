@@ -10,20 +10,23 @@ class InternetGateways(BaseResponse):
     def attach_internet_gateway(self):
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
-        self.ec2_backend.attach_internet_gateway(igw_id, vpc_id)
-        template = self.response_template(ATTACH_INTERNET_GATEWAY_RESPONSE)
-        return template.render()
+        if self.is_not_dryrun('AttachInternetGateway'):
+            self.ec2_backend.attach_internet_gateway(igw_id, vpc_id)
+            template = self.response_template(ATTACH_INTERNET_GATEWAY_RESPONSE)
+            return template.render()
 
     def create_internet_gateway(self):
-        igw = self.ec2_backend.create_internet_gateway()
-        template = self.response_template(CREATE_INTERNET_GATEWAY_RESPONSE)
-        return template.render(internet_gateway=igw)
+        if self.is_not_dryrun('CreateInternetGateway'):
+            igw = self.ec2_backend.create_internet_gateway()
+            template = self.response_template(CREATE_INTERNET_GATEWAY_RESPONSE)
+            return template.render(internet_gateway=igw)
 
     def delete_internet_gateway(self):
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
-        self.ec2_backend.delete_internet_gateway(igw_id)
-        template = self.response_template(DELETE_INTERNET_GATEWAY_RESPONSE)
-        return template.render()
+        if self.is_not_dryrun('DeleteInternetGateway'):
+            self.ec2_backend.delete_internet_gateway(igw_id)
+            template = self.response_template(DELETE_INTERNET_GATEWAY_RESPONSE)
+            return template.render()
 
     def describe_internet_gateways(self):
         filter_dict = filters_from_querystring(self.querystring)
@@ -42,9 +45,10 @@ class InternetGateways(BaseResponse):
         # raise else DependencyViolationError()
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
-        self.ec2_backend.detach_internet_gateway(igw_id, vpc_id)
-        template = self.response_template(DETACH_INTERNET_GATEWAY_RESPONSE)
-        return template.render()
+        if self.is_not_dryrun('DetachInternetGateway'):
+            self.ec2_backend.detach_internet_gateway(igw_id, vpc_id)
+            template = self.response_template(DETACH_INTERNET_GATEWAY_RESPONSE)
+            return template.render()
 
 
 ATTACH_INTERNET_GATEWAY_RESPONSE = u"""<AttachInternetGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

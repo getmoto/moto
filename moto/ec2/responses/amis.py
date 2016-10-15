@@ -13,24 +13,27 @@ class AmisResponse(BaseResponse):
             description = ""
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
-        image = self.ec2_backend.create_image(instance_id, name, description)
-        template = self.response_template(CREATE_IMAGE_RESPONSE)
-        return template.render(image=image)
+        if self.is_not_dryrun('CreateImage'):
+            image = self.ec2_backend.create_image(instance_id, name, description)
+            template = self.response_template(CREATE_IMAGE_RESPONSE)
+            return template.render(image=image)
 
     def copy_image(self):
         source_image_id = self.querystring.get('SourceImageId')[0]
         source_region = self.querystring.get('SourceRegion')[0]
         name = self.querystring.get('Name')[0] if self.querystring.get('Name') else None
         description = self.querystring.get('Description')[0] if self.querystring.get('Description') else None
-        image = self.ec2_backend.copy_image(source_image_id, source_region, name, description)
-        template = self.response_template(COPY_IMAGE_RESPONSE)
-        return template.render(image=image)
+        if self.is_not_dryrun('CopyImage'):
+            image = self.ec2_backend.copy_image(source_image_id, source_region, name, description)
+            template = self.response_template(COPY_IMAGE_RESPONSE)
+            return template.render(image=image)
 
     def deregister_image(self):
         ami_id = self.querystring.get('ImageId')[0]
-        success = self.ec2_backend.deregister_image(ami_id)
-        template = self.response_template(DEREGISTER_IMAGE_RESPONSE)
-        return template.render(success=str(success).lower())
+        if self.is_not_dryrun('DeregisterImage'):
+            success = self.ec2_backend.deregister_image(ami_id)
+            template = self.response_template(DEREGISTER_IMAGE_RESPONSE)
+            return template.render(success=str(success).lower())
 
     def describe_images(self):
         ami_ids = image_ids_from_querystring(self.querystring)
@@ -51,17 +54,20 @@ class AmisResponse(BaseResponse):
         operation_type = self.querystring.get('OperationType')[0]
         group = self.querystring.get('UserGroup.1', [None])[0]
         user_ids = sequence_from_querystring('UserId', self.querystring)
-        if (operation_type == 'add'):
-            self.ec2_backend.add_launch_permission(ami_id, user_ids=user_ids, group=group)
-        elif (operation_type == 'remove'):
-            self.ec2_backend.remove_launch_permission(ami_id, user_ids=user_ids, group=group)
-        return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
+        if self.is_not_dryrun('ModifyImageAttribute'):
+            if (operation_type == 'add'):
+                self.ec2_backend.add_launch_permission(ami_id, user_ids=user_ids, group=group)
+            elif (operation_type == 'remove'):
+                self.ec2_backend.remove_launch_permission(ami_id, user_ids=user_ids, group=group)
+            return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
 
     def register_image(self):
-        raise NotImplementedError('AMIs.register_image is not yet implemented')
+        if self.is_not_dryrun('RegisterImage'):
+            raise NotImplementedError('AMIs.register_image is not yet implemented')
 
     def reset_image_attribute(self):
-        raise NotImplementedError('AMIs.reset_image_attribute is not yet implemented')
+        if self.is_not_dryrun('ResetImageAttribute'):
+            raise NotImplementedError('AMIs.reset_image_attribute is not yet implemented')
 
 
 CREATE_IMAGE_RESPONSE = """<CreateImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
