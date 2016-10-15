@@ -156,11 +156,11 @@ class InstanceResponse(BaseResponse):
                 block_device_type = instance.block_device_mapping[device_name_value]
                 block_device_type.delete_on_termination = del_on_term_value
 
-                # +1 for the next device
-                mapping_counter += 1
+            # +1 for the next device
+            mapping_counter += 1
 
-                if mapping_counter > 1:
-                    return EC2_MODIFY_INSTANCE_ATTRIBUTE
+        if mapping_counter > 1:
+            return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
     def _dot_value_instance_attribute_handler(self):
         attribute_key = None
