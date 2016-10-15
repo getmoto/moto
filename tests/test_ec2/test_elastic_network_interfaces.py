@@ -7,7 +7,7 @@ import boto3
 import boto
 import boto.cloudformation
 import boto.ec2
-from boto.exception import EC2ResponseError
+from boto.exception import EC2ResponseError, JSONResponseError
 import sure  # noqa
 
 from moto import mock_ec2, mock_cloudformation
@@ -21,6 +21,13 @@ def test_elastic_network_interfaces():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
     subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+
+    with assert_raises(JSONResponseError) as ex:
+        eni = conn.create_network_interface(subnet.id, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
+
     eni = conn.create_network_interface(subnet.id)
 
     all_enis = conn.get_all_network_interfaces()
@@ -28,6 +35,12 @@ def test_elastic_network_interfaces():
     eni = all_enis[0]
     eni.groups.should.have.length_of(0)
     eni.private_ip_addresses.should.have.length_of(0)
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.delete_network_interface(eni.id, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
 
     conn.delete_network_interface(eni.id)
 
@@ -104,6 +117,12 @@ def test_elastic_network_interfaces_modify_attribute():
     eni.groups.should.have.length_of(1)
     eni.groups[0].id.should.equal(security_group1.id)
 
+    with assert_raises(JSONResponseError) as ex:
+        conn.modify_network_interface_attribute(eni.id, 'groupset', [security_group2.id], dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
+
     conn.modify_network_interface_attribute(eni.id, 'groupset', [security_group2.id])
 
     all_enis = conn.get_all_network_interfaces()
@@ -163,6 +182,13 @@ def test_elastic_network_interfaces_get_by_tag_name():
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-2a')
 
     eni1 = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress='10.0.10.5')
+
+    with assert_raises(JSONResponseError) as ex:
+        eni1.create_tags(Tags=[{'Key': 'Name', 'Value': 'eni1'}], DryRun=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
+
     eni1.create_tags(Tags=[{'Key': 'Name', 'Value': 'eni1'}])
 
     # The status of the new interface should be 'available'

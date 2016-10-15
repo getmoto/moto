@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
+from nose.tools import assert_raises
 import datetime
 
 import boto
 import sure  # noqa
+from boto.exception import JSONResponseError
 
 from moto import mock_ec2
 from moto.backends import get_model
@@ -18,6 +20,20 @@ def test_request_spot_instances():
 
     start = iso_8601_datetime_with_milliseconds(datetime.datetime(2013, 1, 1))
     end = iso_8601_datetime_with_milliseconds(datetime.datetime(2013, 1, 2))
+
+    with assert_raises(JSONResponseError) as ex:
+        request = conn.request_spot_instances(
+            price=0.5, image_id='ami-abcd1234', count=1, type='one-time',
+            valid_from=start, valid_until=end, launch_group="the-group",
+            availability_zone_group='my-group', key_name="test",
+            security_groups=['group1', 'group2'], user_data=b"some test data",
+            instance_type='m1.small', placement='us-east-1c',
+            kernel_id="test-kernel", ramdisk_id="test-ramdisk",
+            monitoring_enabled=True, subnet_id="subnet123", dry_run=True
+        )
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RequestSpotInstance operation: Request would have succeeded, but DryRun flag is set')
 
     request = conn.request_spot_instances(
         price=0.5, image_id='ami-abcd1234', count=1, type='one-time',
@@ -94,6 +110,13 @@ def test_cancel_spot_instance_request():
 
     requests = conn.get_all_spot_instance_requests()
     requests.should.have.length_of(1)
+
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.cancel_spot_instance_requests([requests[0].id], dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CancelSpotInstance operation: Request would have succeeded, but DryRun flag is set')
 
     conn.cancel_spot_instance_requests([requests[0].id])
 
@@ -195,3 +218,4 @@ def test_request_spot_instances_setting_instance_id():
     request = conn.get_all_spot_instance_requests()[0]
     assert request.state == 'active'
     assert request.instance_id == 'i-12345678'
+

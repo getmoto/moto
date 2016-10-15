@@ -5,7 +5,7 @@ from nose.tools import assert_raises
 
 import boto
 import boto3
-from boto.exception import EC2ResponseError
+from boto.exception import EC2ResponseError, JSONResponseError
 import six
 
 import sure  # noqa
@@ -20,11 +20,24 @@ def test_eip_allocate_classic():
     """Allocate/release Classic EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
 
+    with assert_raises(JSONResponseError) as ex:
+        standard = conn.allocate_address(dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set')
+
     standard = conn.allocate_address()
     standard.should.be.a(boto.ec2.address.Address)
     standard.public_ip.should.be.a(six.text_type)
     standard.instance_id.should.be.none
     standard.domain.should.be.equal("standard")
+
+    with assert_raises(JSONResponseError) as ex:
+        standard.release(dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set')
+
     standard.release()
     standard.should_not.be.within(conn.get_all_addresses())
 
@@ -33,6 +46,12 @@ def test_eip_allocate_classic():
 def test_eip_allocate_vpc():
     """Allocate/release VPC EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
+
+    with assert_raises(JSONResponseError) as ex:
+        vpc = conn.allocate_address(domain="vpc", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set')
 
     vpc = conn.allocate_address(domain="vpc")
     vpc.should.be.a(boto.ec2.address.Address)
@@ -70,9 +89,22 @@ def test_eip_associate_classic():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+    with assert_raises(JSONResponseError) as ex:
+        conn.associate_address(instance_id=instance.id, public_ip=eip.public_ip, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AssociateAddress operation: Request would have succeeded, but DryRun flag is set')
+
     conn.associate_address(instance_id=instance.id, public_ip=eip.public_ip)
     eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
     eip.instance_id.should.be.equal(instance.id)
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.disassociate_address(public_ip=eip.public_ip, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DisAssociateAddress operation: Request would have succeeded, but DryRun flag is set')
+
     conn.disassociate_address(public_ip=eip.public_ip)
     eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
     eip.instance_id.should.be.equal(u'')
@@ -106,6 +138,13 @@ def test_eip_associate_vpc():
     eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
     eip.instance_id.should.be.equal(u'')
     eip.association_id.should.be.none
+
+    with assert_raises(JSONResponseError) as ex:
+        eip.release(dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set')
+
     eip.release()
     eip = None
 
