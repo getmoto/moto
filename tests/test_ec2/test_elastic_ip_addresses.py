@@ -196,6 +196,7 @@ def test_eip_associate_network_interface():
     conn.associate_address(network_interface_id=eni.id, allocation_id=eip.allocation_id)
     eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
     eip.network_interface_id.should.be.equal(eni.id)
+
     conn.disassociate_address(association_id=eip.association_id)
     eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
     eip.network_interface_id.should.be.equal(u'')
