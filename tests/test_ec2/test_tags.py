@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
+from nose.tools import assert_raises
+
 import itertools
 
 import boto
-from boto.exception import EC2ResponseError
+from boto.exception import EC2ResponseError, JSONResponseError
 from boto.ec2.instance import Reservation
 import sure  # noqa
 
@@ -15,6 +17,12 @@ def test_add_tag():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
+
+    with assert_raises(JSONResponseError) as ex:
+        instance.add_tag("a key", "some value", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
 
     instance.add_tag("a key", "some value")
     chain = itertools.chain.from_iterable
@@ -36,6 +44,12 @@ def test_remove_tag():
     tag = tags[0]
     tag.name.should.equal("a key")
     tag.value.should.equal("some value")
+
+    with assert_raises(JSONResponseError) as ex:
+        instance.remove_tag("a key", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteTags operation: Request would have succeeded, but DryRun flag is set')
 
     instance.remove_tag("a key")
     conn.get_all_tags().should.have.length_of(0)
@@ -81,6 +95,12 @@ def test_create_tags():
     tag_dict = {'a key': 'some value',
                 'another key': 'some other value',
                 'blank key': ''}
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.create_tags(instance.id, tag_dict, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
 
     conn.create_tags(instance.id, tag_dict)
     tags = conn.get_all_tags()

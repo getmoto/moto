@@ -31,20 +31,24 @@ def process_rules_from_querystring(querystring):
 
 class SecurityGroups(BaseResponse):
     def authorize_security_group_egress(self):
-        self.ec2_backend.authorize_security_group_egress(*process_rules_from_querystring(self.querystring))
-        return AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE
+        if self.is_not_dryrun('GrantSecurityGroupEgress'):
+            self.ec2_backend.authorize_security_group_egress(*process_rules_from_querystring(self.querystring))
+            return AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE
 
     def authorize_security_group_ingress(self):
-        self.ec2_backend.authorize_security_group_ingress(*process_rules_from_querystring(self.querystring))
-        return AUTHORIZE_SECURITY_GROUP_INGRESS_REPONSE
+        if self.is_not_dryrun('GrantSecurityGroupIngress'):
+            self.ec2_backend.authorize_security_group_ingress(*process_rules_from_querystring(self.querystring))
+            return AUTHORIZE_SECURITY_GROUP_INGRESS_REPONSE
 
     def create_security_group(self):
         name = self.querystring.get('GroupName')[0]
         description = self.querystring.get('GroupDescription', [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
-        group = self.ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
-        template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
-        return template.render(group=group)
+
+        if self.is_not_dryrun('CreateSecurityGroup'):
+            group = self.ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
+            template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
+            return template.render(group=group)
 
     def delete_security_group(self):
         # TODO this should raise an error if there are instances in the group. See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DeleteSecurityGroup.html
@@ -52,12 +56,13 @@ class SecurityGroups(BaseResponse):
         name = self.querystring.get('GroupName')
         sg_id = self.querystring.get('GroupId')
 
-        if name:
-            self.ec2_backend.delete_security_group(name[0])
-        elif sg_id:
-            self.ec2_backend.delete_security_group(group_id=sg_id[0])
+        if self.is_not_dryrun('DeleteSecurityGroup'):
+            if name:
+                self.ec2_backend.delete_security_group(name[0])
+            elif sg_id:
+                self.ec2_backend.delete_security_group(group_id=sg_id[0])
 
-        return DELETE_GROUP_RESPONSE
+            return DELETE_GROUP_RESPONSE
 
     def describe_security_groups(self):
         groupnames = self._get_multi_param("GroupName")
@@ -74,14 +79,16 @@ class SecurityGroups(BaseResponse):
         return template.render(groups=groups)
 
     def revoke_security_group_egress(self):
-        success = self.ec2_backend.revoke_security_group_egress(*process_rules_from_querystring(self.querystring))
-        if not success:
-            return "Could not find a matching egress rule", dict(status=404)
-        return REVOKE_SECURITY_GROUP_EGRESS_RESPONSE
+        if self.is_not_dryrun('RevokeSecurityGroupEgress'):
+            success = self.ec2_backend.revoke_security_group_egress(*process_rules_from_querystring(self.querystring))
+            if not success:
+                return "Could not find a matching egress rule", dict(status=404)
+            return REVOKE_SECURITY_GROUP_EGRESS_RESPONSE
 
     def revoke_security_group_ingress(self):
-        self.ec2_backend.revoke_security_group_ingress(*process_rules_from_querystring(self.querystring))
-        return REVOKE_SECURITY_GROUP_INGRESS_REPONSE
+        if self.is_not_dryrun('RevokeSecurityGroupIngress'):
+            self.ec2_backend.revoke_security_group_ingress(*process_rules_from_querystring(self.querystring))
+            return REVOKE_SECURITY_GROUP_INGRESS_REPONSE
 
 
 CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

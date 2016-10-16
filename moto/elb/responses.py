@@ -223,6 +223,7 @@ class ELBResponse(BaseResponse):
         return template.render(instance_ids=instance_ids)
 
     def add_tags(self):
+
         for key, value in self.querystring.items():
             if "LoadBalancerNames.member" in key:
                 number = key.split('.')[2]

@@ -3,6 +3,8 @@ import datetime
 import json
 import re
 
+from boto.exception import JSONResponseError
+
 from jinja2 import Environment, DictLoader, TemplateNotFound
 
 import six
@@ -309,6 +311,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
     def request_json(self):
         return 'JSON' in self.querystring.get('ContentType', [])
 
+    def is_not_dryrun(self, action):
+        if 'true' in self.querystring.get('DryRun', ['false']):
+            raise JSONResponseError(400, 'DryRunOperation', body={'message': 'An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set' % action})
+        return True
 
 def metadata_response(request, full_url, headers):
     """
