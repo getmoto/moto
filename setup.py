@@ -10,6 +10,7 @@ install_requires = [
     "xmltodict",
     "six",
     "werkzeug",
+    "pytz"
 ]
 
 extras_require = {
