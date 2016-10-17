@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import datetime
 import json
+import logging
 import re
 
 from boto.exception import JSONResponseError
@@ -15,6 +16,9 @@ from pkg_resources import resource_filename
 from werkzeug.exceptions import HTTPException
 from moto.compat import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
+
+
+log = logging.getLogger(__name__)
 
 
 def _decode_dict(d):
@@ -544,11 +548,20 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
 
         od = OrderedDict()
         for k, v in value.items():
-            if k.startswith('@') or v is None:
+            if k.startswith('@'):
+                continue
+
+            if k not in spec:
+                # this can happen when with an older version of
+                # botocore for which the node in XML template is not
+                # defined in service spec.
+                log.warning('Field %s is not defined by the botocore version in use', k)
                 continue
 
             if spec[k]['type'] == 'list':
-                if len(spec[k]['member']) == 1:
+                if v is None:
+                    od[k] = []
+                elif len(spec[k]['member']) == 1:
                     if isinstance(v['member'], list):
                         od[k] = transform(v['member'], spec[k]['member'])
                     else:
@@ -560,11 +573,17 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
                 else:
                     raise ValueError('Malformatted input')
             elif spec[k]['type'] == 'map':
-                key = from_str(v['entry']['key'], spec[k]['key'])
-                val = from_str(v['entry']['value'], spec[k]['value'])
-                od[k] = {key: val}
+                if v is None:
+                    od[k] = {}
+                else:
+                    key = from_str(v['entry']['key'], spec[k]['key'])
+                    val = from_str(v['entry']['value'], spec[k]['value'])
+                    od[k] = {key: val}
             else:
-                od[k] = transform(v, spec[k])
+                if v is None:
+                    od[k] = None
+                else:
+                    od[k] = transform(v, spec[k])
         return od
 
     dic = xmltodict.parse(xml)

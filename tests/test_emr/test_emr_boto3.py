@@ -194,8 +194,8 @@ def test_describe_job_flow():
     jf['LogUri'].should.equal(args['LogUri'])
     jf['Name'].should.equal(args['Name'])
     jf['ServiceRole'].should.equal(args['ServiceRole'])
-    jf.shouldnt.have.key('Steps')
-    jf.shouldnt.have.key('SupportedProducts')
+    jf['Steps'].should.equal([])
+    jf['SupportedProducts'].should.equal([])
     jf['VisibleToAllUsers'].should.equal(True)
 
 
@@ -254,7 +254,7 @@ def test_run_job_flow():
     resp['LogUri'].should.equal(args['LogUri'])
     resp['VisibleToAllUsers'].should.equal(args['VisibleToAllUsers'])
     resp['Instances']['NormalizedInstanceHours'].should.equal(0)
-    resp.shouldnt.have.key('Steps')
+    resp['Steps'].should.equal([])
 
 
 @mock_emr
@@ -379,10 +379,11 @@ def test_bootstrap_actions():
         {'Name': 'bs1',
          'ScriptBootstrapAction': {
              'Args': ['arg1', 'arg2'],
-             'Path': 'path/to/script'}},
+             'Path': 's3://path/to/script'}},
         {'Name': 'bs2',
          'ScriptBootstrapAction': {
-             'Path': 'path/to/anotherscript'}}
+             'Args': [],
+             'Path': 's3://path/to/anotherscript'}}
     ]
 
     client = boto3.client('emr', region_name='us-east-1')
@@ -583,4 +584,4 @@ def test_tags():
 
     client.remove_tags(ResourceId=cluster_id, TagKeys=[t['Key'] for t in input_tags])
     resp = client.describe_cluster(ClusterId=cluster_id)['Cluster']
-    resp.shouldnt.have.key('Tags')
+    resp['Tags'].should.equal([])
