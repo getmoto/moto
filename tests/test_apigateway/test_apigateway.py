@@ -79,6 +79,7 @@ def test_create_resource():
         resourceId=root_id,
     )
     root_resource['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    root_resource['ResponseMetadata'].pop('RetryAttempts', None)
     root_resource.should.equal({
         'path': '/',
         'id': root_id,
@@ -137,6 +138,7 @@ def test_child_resource():
         resourceId=tags_id,
     )
     child_resource['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    child_resource['ResponseMetadata'].pop('RetryAttempts', None)
     child_resource.should.equal({
         'path': '/users/tags',
         'pathPart': 'tags',
@@ -173,6 +175,7 @@ def test_create_method():
     )
 
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'httpMethod': 'GET',
         'authorizationType': 'none',
@@ -212,6 +215,7 @@ def test_create_method_response():
         statusCode='200',
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'statusCode': '200'
@@ -224,6 +228,7 @@ def test_create_method_response():
         statusCode='200',
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'statusCode': '200'
@@ -236,6 +241,7 @@ def test_create_method_response():
         statusCode='200',
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({'ResponseMetadata': {'HTTPStatusCode': 200}})
 
 
@@ -273,6 +279,7 @@ def test_integrations():
         uri='http://httpbin.org/robots.txt',
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'httpMethod': 'GET',
@@ -294,6 +301,7 @@ def test_integrations():
         httpMethod='GET'
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'httpMethod': 'GET',
@@ -314,6 +322,7 @@ def test_integrations():
         resourceId=root_id,
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response['resourceMethods']['GET']['methodIntegration'].should.equal({
         'httpMethod': 'GET',
         'integrationResponses': {
@@ -363,6 +372,7 @@ def test_integrations():
         requestTemplates=templates
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response['ResponseMetadata'].should.equal({'HTTPStatusCode': 200})
 
     response = client.get_integration(
@@ -416,6 +426,7 @@ def test_integration_response():
         selectionPattern='foobar',
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'statusCode': '200',
         'selectionPattern': 'foobar',
@@ -432,6 +443,7 @@ def test_integration_response():
         statusCode='200',
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'statusCode': '200',
         'selectionPattern': 'foobar',
@@ -447,6 +459,7 @@ def test_integration_response():
         httpMethod='GET',
     )
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response['methodIntegration']['integrationResponses'].should.equal({
         '200': {
             'responseTemplates': {
@@ -495,6 +508,7 @@ def test_update_stage_configuration():
     )
     response.pop('createdDate',None) # createdDate is hard to match against, remove it
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'id': deployment_id,
         'ResponseMetadata': {'HTTPStatusCode': 200},
@@ -658,6 +672,7 @@ def test_create_stage():
     )
     response.pop('createdDate',None) # createdDate is hard to match against, remove it
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'id': deployment_id,
         'ResponseMetadata': {'HTTPStatusCode': 200},
@@ -677,6 +692,7 @@ def test_create_stage():
     )
 
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
 
     response['items'][0].pop('createdDate')
     response['items'][1].pop('createdDate')
@@ -688,6 +704,7 @@ def test_create_stage():
     response = client.create_stage(restApiId=api_id,stageName=new_stage_name,deploymentId=deployment_id2)
 
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
 
     response.should.equal({
         'stageName':new_stage_name,
@@ -712,6 +729,7 @@ def test_create_stage():
     })
 
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
 
     response.should.equal({
         'stageName':new_stage_name_with_vars,
@@ -737,6 +755,7 @@ def test_create_stage():
     }, cacheClusterEnabled=True,description="hello moto")
 
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
 
     response.should.equal({
         'stageName':new_stage_name,
@@ -762,6 +781,7 @@ def test_create_stage():
     }, cacheClusterEnabled=True,cacheClusterSize="1.6",description="hello moto")
 
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
 
     response.should.equal({
         'stageName':new_stage_name,
@@ -807,6 +827,7 @@ def test_deployment():
     )
     response.pop('createdDate',None) # createdDate is hard to match against, remove it
     response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'id': deployment_id,
         'ResponseMetadata': {'HTTPStatusCode': 200},

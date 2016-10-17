@@ -5,21 +5,6 @@ sure==1.2.24
 coverage
 freezegun
 flask
-# botocore 1.4.29 breaks the following tests:
-# test_nat_gateway.test_delete_nat_gateway
-# test `list -> create -> list -> get -> delete -> list` integration
-# test_lambda.test_get_function
-# test_lambda.test_delete_function
-# test_lambda.test_create_function_from_zipfile
-# test_lambda.test_create_function_from_aws_bucket
-# test_apigateway.test_integrations
-# test_apigateway.test_integration_response
-# test_apigateway.test_deployment
-# test_apigateway.test_create_resource
-# test_apigateway.test_create_method_response
-# test_apigateway.test_create_method
-# test_apigateway.test_child_resource
-# so we need to pin a boto3 and botocore revision pair that we know works
-boto3==1.3.1
-botocore==1.4.28
+boto3>=1.3.1
+botocore>=1.4.28
 six
