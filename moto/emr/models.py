@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 from datetime import datetime
+from datetime import timedelta
 
 import boto.emr
 import pytz
+from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend
 
 from .utils import random_instance_group_id, random_cluster_id, random_step_id
@@ -273,12 +275,24 @@ class ElasticMapReduceBackend(BaseBackend):
         cluster = self.get_cluster(cluster_id)
         cluster.add_tags(tags)
 
-    def describe_job_flows(self, job_flow_ids=None):
+    def describe_job_flows(self, job_flow_ids=None, job_flow_states=None, created_after=None, created_before=None):
         clusters = self.clusters.values()
+
+        within_two_month = datetime.now(pytz.utc) - timedelta(days=60)
+        clusters = [c for c in clusters if c.creation_datetime >= within_two_month]
+
         if job_flow_ids:
-            return [cluster for cluster in clusters if cluster.id in job_flow_ids]
-        else:
-            return clusters
+            clusters = [c for c in clusters if c.id in job_flow_ids]
+        if job_flow_states:
+            clusters = [c for c in clusters if c.state in job_flow_states]
+        if created_after:
+            created_after = dtparse(created_after)
+            clusters = [c for c in clusters if c.creation_datetime > created_after]
+        if created_before:
+            created_before = dtparse(created_before)
+            clusters = [c for c in clusters if c.creation_datetime < created_before]
+
+        return sorted(clusters, key=lambda x: x.id)[:512]
 
     def describe_step(self, cluster_id, step_id):
         cluster = self.clusters[cluster_id]
@@ -296,17 +310,48 @@ class ElasticMapReduceBackend(BaseBackend):
             if group_id in instance_group_ids
         ]
 
-    def list_bootstrap_actions(self, cluster_id):
-        return self.clusters[cluster_id].bootstrap_actions
+    def list_bootstrap_actions(self, cluster_id, marker=None):
+        max_items = 50
+        actions = self.clusters[cluster_id].bootstrap_actions
+        start_idx = 0 if marker is None else int(marker)
+        marker = None if len(actions) <= start_idx + max_items else str(start_idx + max_items)
+        return actions[start_idx:start_idx + max_items], marker
 
-    def list_clusters(self):
-        return self.clusters.values()
+    def list_clusters(self, cluster_states=None, created_after=None,
+                      created_before=None, marker=None):
+        max_items = 50
+        clusters = self.clusters.values()
+        if cluster_states:
+            clusters = [c for c in clusters if c.state in cluster_states]
+        if created_after:
+            created_after = dtparse(created_after)
+            clusters = [c for c in clusters if c.creation_datetime > created_after]
+        if created_before:
+            created_before = dtparse(created_before)
+            clusters = [c for c in clusters if c.creation_datetime < created_before]
+        clusters = sorted(clusters, key=lambda x: x.id)
+        start_idx = 0 if marker is None else int(marker)
+        marker = None if len(clusters) <= start_idx + max_items else str(start_idx + max_items)
+        return clusters[start_idx:start_idx + max_items], marker
 
-    def list_instance_groups(self, cluster_id):
-        return self.clusters[cluster_id].instance_groups
+    def list_instance_groups(self, cluster_id, marker=None):
+        max_items = 50
+        groups = sorted(self.clusters[cluster_id].instance_groups,
+                        key=lambda x: x.id)
+        start_idx = 0 if marker is None else int(marker)
+        marker = None if len(groups) <= start_idx + max_items else str(start_idx + max_items)
+        return groups[start_idx:start_idx + max_items], marker
 
-    def list_steps(self, cluster_id, step_states=None):
-        return self.clusters[cluster_id].steps
+    def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
+        max_items = 50
+        steps = self.clusters[cluster_id].steps
+        if step_ids:
+            steps = [s for s in steps if s.id in step_ids]
+        if step_states:
+            steps = [s for s in steps if s.state in step_states]
+        start_idx = 0 if marker is None else int(marker)
+        marker = None if len(steps) <= start_idx + max_items else str(start_idx + max_items)
+        return steps[start_idx:start_idx + max_items], marker
 
     def modify_instance_groups(self, instance_groups):
         result_groups = []
@@ -333,10 +378,11 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.set_termination_protection(value)
 
     def terminate_job_flows(self, job_flow_ids):
-        clusters = [cluster for cluster in self.describe_job_flows()
-                    if cluster.id in job_flow_ids]
-        for cluster in clusters:
+        clusters = []
+        for job_flow_id in job_flow_ids:
+            cluster = self.clusters[job_flow_id]
             cluster.terminate()
+            clusters.append(cluster)
         return clusters
 
 

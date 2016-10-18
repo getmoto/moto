@@ -3,6 +3,7 @@ import datetime
 import json
 import re
 
+import pytz
 from boto.exception import JSONResponseError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
@@ -477,6 +478,11 @@ def to_str(value, spec):
         return 'true' if value else 'false'
     elif vtype == 'integer':
         return str(value)
+    elif vtype == 'float':
+        return str(value)
+    elif vtype == 'timestamp':
+        return datetime.datetime.utcfromtimestamp(
+            value).replace(tzinfo=pytz.utc).isoformat()
     elif vtype == 'string':
         return str(value)
     elif value is None:

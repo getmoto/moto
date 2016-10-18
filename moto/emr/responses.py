@@ -101,8 +101,11 @@ class ElasticMapReduceResponse(BaseResponse):
 
     @generate_boto3_response('DescribeJobFlows')
     def describe_job_flows(self):
+        created_after = self._get_param('CreatedAfter')
+        created_before = self._get_param('CreatedBefore')
         job_flow_ids = self._get_multi_param("JobFlowIds.member")
-        clusters = self.backend.describe_job_flows(job_flow_ids)
+        job_flow_states = self._get_multi_param('JobFlowStates.member')
+        clusters = self.backend.describe_job_flows(job_flow_ids, job_flow_states, created_after, created_before)
         template = self.response_template(DESCRIBE_JOB_FLOWS_TEMPLATE)
         return template.render(clusters=clusters)
 
@@ -120,22 +123,28 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response('ListBootstrapActions')
     def list_bootstrap_actions(self):
         cluster_id = self._get_param('ClusterId')
-        bootstrap_actions = self.backend.list_bootstrap_actions(cluster_id)
+        marker = self._get_param('Marker')
+        bootstrap_actions, marker = self.backend.list_bootstrap_actions(cluster_id, marker)
         template = self.response_template(LIST_BOOTSTRAP_ACTIONS_TEMPLATE)
-        return template.render(bootstrap_actions=bootstrap_actions)
+        return template.render(bootstrap_actions=bootstrap_actions, marker=marker)
 
     @generate_boto3_response('ListClusters')
     def list_clusters(self):
-        clusters = self.backend.list_clusters()
+        cluster_states = self._get_multi_param('ClusterStates.member')
+        created_after = self._get_param('CreatedAfter')
+        created_before = self._get_param('CreatedBefore')
+        marker = self._get_param('Marker')
+        clusters, marker = self.backend.list_clusters(cluster_states, created_after, created_before, marker)
         template = self.response_template(LIST_CLUSTERS_TEMPLATE)
-        return template.render(clusters=clusters)
+        return template.render(clusters=clusters, marker=marker)
 
     @generate_boto3_response('ListInstanceGroups')
     def list_instance_groups(self):
         cluster_id = self._get_param('ClusterId')
-        instance_groups = self.backend.list_instance_groups(cluster_id)
+        marker = self._get_param('Marker')
+        instance_groups, marker = self.backend.list_instance_groups(cluster_id, marker=marker)
         template = self.response_template(LIST_INSTANCE_GROUPS_TEMPLATE)
-        return template.render(instance_groups=instance_groups)
+        return template.render(instance_groups=instance_groups, marker=marker)
 
     def list_instances(self):
         raise NotImplementedError
@@ -143,9 +152,12 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response('ListSteps')
     def list_steps(self):
         cluster_id = self._get_param('ClusterId')
-        steps = self.backend.list_steps(cluster_id)
+        marker = self._get_param('Marker')
+        step_ids = self._get_multi_param('StepIds.member')
+        step_states = self._get_multi_param('StepStates.member')
+        steps, marker = self.backend.list_steps(cluster_id, marker=marker, step_ids=step_ids, step_states=step_states)
         template = self.response_template(LIST_STEPS_TEMPLATE)
-        return template.render(steps=steps)
+        return template.render(steps=steps, marker=marker)
 
     @generate_boto3_response('ModifyInstanceGroups')
     def modify_instance_groups(self):
@@ -623,6 +635,9 @@ LIST_BOOTSTRAP_ACTIONS_TEMPLATE = """<ListBootstrapActionsResponse xmlns="http:/
       </member>
       {% endfor %}
     </BootstrapActions>
+    {% if marker is not none %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
   </ListBootstrapActionsResult>
   <ResponseMetadata>
     <RequestId>df6f4f4a-ed85-11dd-9877-6fad448a8419</RequestId>
@@ -658,7 +673,9 @@ LIST_CLUSTERS_TEMPLATE = """<ListClustersResponse xmlns="http://elasticmapreduce
       </member>
       {% endfor %}
     </Clusters>
-    <Marker></Marker>
+    {% if marker is not none %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
   </ListClustersResult>
   <ResponseMetadata>
     <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8418</RequestId>
@@ -706,6 +723,9 @@ LIST_INSTANCE_GROUPS_TEMPLATE = """<ListInstanceGroupsResponse xmlns="http://ela
       </member>
       {% endfor %}
     </InstanceGroups>
+    {% if marker is not none %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
   </ListInstanceGroupsResult>
   <ResponseMetadata>
     <RequestId>8296d8b8-ed85-11dd-9877-6fad448a8419</RequestId>
@@ -760,6 +780,9 @@ LIST_STEPS_TEMPLATE = """<ListStepsResponse xmlns="http://elasticmapreduce.amazo
       </member>
       {% endfor %}
     </Steps>
+    {% if marker is not none %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
   </ListStepsResult>
   <ResponseMetadata>
     <RequestId>df6f4f4a-ed85-11dd-9877-6fad448a8419</RequestId>
