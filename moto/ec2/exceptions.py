@@ -318,3 +318,11 @@ class InvalidCIDRSubnetError(EC2ClientError):
             "InvalidParameterValue",
             "invalid CIDR subnet specification: {0}"
             .format(cidr))
+
+
+class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
+    def __init__(self):
+        super(RulesPerSecurityGroupLimitExceededError, self).__init__(
+            "RulesPerSecurityGroupLimitExceeded",
+            'The maximum number of rules per security group '
+            'has been reached.')

@@ -58,6 +58,7 @@ from .exceptions import (
     InvalidVpnGatewayIdError,
     InvalidVpnConnectionIdError,
     InvalidCustomerGatewayIdError,
+    RulesPerSecurityGroupLimitExceededError,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -1360,6 +1361,18 @@ class SecurityGroupBackend(object):
                 if not is_valid_cidr(cidr):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
+        max_nb_rules = 50 if group.vpc_id else 100
+        future_group_nb_rules = sum(
+            len(rule.ip_ranges) for rule in group.ingress_rules)
+        if ip_ranges:
+            future_group_nb_rules += len(ip_ranges)
+        if source_group_ids:
+            future_group_nb_rules += len(source_group_ids)
+        if source_group_names:
+            future_group_nb_rules += len(source_group_names)
+        if future_group_nb_rules > max_nb_rules:
+            raise RulesPerSecurityGroupLimitExceededError
+
         source_group_names = source_group_names if source_group_names else []
         source_group_ids = source_group_ids if source_group_ids else []
 
@@ -1424,6 +1437,18 @@ class SecurityGroupBackend(object):
             for cidr in ip_ranges:
                 if not is_valid_cidr(cidr):
                     raise InvalidCIDRSubnetError(cidr=cidr)
+
+        max_nb_rules = 50 if group.vpc_id else 100
+        future_group_nb_rules = sum(
+            len(rule.ip_ranges) for rule in group.egress_rules)
+        if ip_ranges:
+            future_group_nb_rules += len(ip_ranges)
+        if source_group_ids:
+            future_group_nb_rules += len(source_group_ids)
+        if source_group_names:
+            future_group_nb_rules += len(source_group_names)
+        if future_group_nb_rules > max_nb_rules:
+            raise RulesPerSecurityGroupLimitExceededError
 
         source_group_names = source_group_names if source_group_names else []
         source_group_ids = source_group_ids if source_group_ids else []

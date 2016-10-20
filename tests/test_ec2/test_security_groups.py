@@ -379,6 +379,80 @@ def test_authorize_all_protocols_with_no_port_specification():
     sg.rules[0].to_port.should.equal(None)
 
 
+@mock_ec2
+def test_sec_group_rule_limit():
+    ec2_conn = boto.connect_ec2()
+    sg = ec2_conn.create_security_group('test', 'test')
+
+    # ingress
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip=['{}.0.0.0/0'.format(i) for i in range(110)])
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+    sg.rules.should.be.empty
+    success = ec2_conn.authorize_security_group(
+        group_id=sg.id, ip_protocol='-1',
+        cidr_ip=['{}.0.0.0/0'.format(i) for i in range(100)])
+    success.should.be.true
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1', cidr_ip=['100.0.0.0/0'])
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+    # egress
+    for i in range(99):
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip='{}.0.0.0/0'.format(i))
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip='101.0.0.0/0')
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+
+@mock_ec2
+def test_sec_group_rule_limit_vpc():
+    ec2_conn = boto.connect_ec2()
+    vpc_conn = boto.connect_vpc()
+
+    vpc = vpc_conn.create_vpc('10.0.0.0/8')
+
+    sg = ec2_conn.create_security_group('test', 'test', vpc_id=vpc.id)
+
+    # ingress
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip=['{}.0.0.0/0'.format(i) for i in range(110)])
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+    sg.rules.should.be.empty
+    success = ec2_conn.authorize_security_group(
+        group_id=sg.id, ip_protocol='-1',
+        cidr_ip=['{}.0.0.0/0'.format(i) for i in range(50)])
+    success.should.be.true
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1', cidr_ip=['100.0.0.0/0'])
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+    # egress
+    for i in range(49):
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip='{}.0.0.0/0'.format(i))
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip='50.0.0.0/0')
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+
+
+
 '''
 Boto3
 '''
