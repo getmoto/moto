@@ -278,7 +278,7 @@ class DynamoHandler(BaseResponse):
 
         result = {
             "Count": len(items),
-            "Items": [item.attrs for item in items],
+            "Items": [item.attrs for item in items if item],
             "ConsumedCapacityUnits": 1,
             "ScannedCount": scanned_count
         }
