@@ -60,7 +60,8 @@ def test_describe_cluster():
     args['Applications'] = [{'Name': 'Spark', 'Version': '2.4.2'}]
     args['Configurations'] = [
         {'Classification': 'yarn-site',
-         'Properties': {'someproperty': 'somevalue'}}]
+         'Properties': {'someproperty': 'somevalue',
+                        'someotherproperty': 'someothervalue'}}]
     args['Instances']['AdditionalMasterSecurityGroups'] = ['additional-master']
     args['Instances']['AdditionalSlaveSecurityGroups'] = ['additional-slave']
     args['Instances']['Ec2KeyName'] = 'mykey'

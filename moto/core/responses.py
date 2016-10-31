@@ -576,9 +576,14 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
                 if v is None:
                     od[k] = {}
                 else:
-                    key = from_str(v['entry']['key'], spec[k]['key'])
-                    val = from_str(v['entry']['value'], spec[k]['value'])
-                    od[k] = {key: val}
+                    items = ([v['entry']] if not isinstance(v['entry'], list) else
+                             v['entry'])
+                    for item in items:
+                        key = from_str(item['key'], spec[k]['key'])
+                        val = from_str(item['value'], spec[k]['value'])
+                        if k not in od:
+                            od[k] = {}
+                        od[k][key] = val
             else:
                 if v is None:
                     od[k] = None
