@@ -113,17 +113,9 @@ def test_tag_limit_exceeded():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
-    tag_dict = {'01': '',
-                '02': '',
-                '03': '',
-                '04': '',
-                '05': '',
-                '06': '',
-                '07': '',
-                '08': '',
-                '09': '',
-                '10': '',
-                '11': ''}
+    tag_dict = {}
+    for i in range(51):
+        tag_dict['{:02}'.format(i)] = ''
 
     with assert_raises(EC2ResponseError) as cm:
         conn.create_tags(instance.id, tag_dict)
