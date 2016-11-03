@@ -115,7 +115,7 @@ def test_tag_limit_exceeded():
     instance = reservation.instances[0]
     tag_dict = {}
     for i in range(51):
-        tag_dict['{:02}'.format(i)] = ''
+        tag_dict['{:02d}'.format(i+1)] = ''
 
     with assert_raises(EC2ResponseError) as cm:
         conn.create_tags(instance.id, tag_dict)
