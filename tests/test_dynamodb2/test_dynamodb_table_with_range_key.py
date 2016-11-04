@@ -1016,6 +1016,63 @@ def test_boto3_conditions():
     results['Count'].should.equal(1)
 
 
+@mock_dynamodb2
+def test_boto3_put_item_with_conditions():
+    import botocore
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123'
+    })
+
+    table.put_item(
+        Item={
+            'forum_name': 'the-key-2',
+            'subject': '1234',
+        },
+        ConditionExpression='attribute_not_exists(forum_name) AND attribute_not_exists(subject)'
+    )
+
+    table.put_item.when.called_with(
+        Item={
+            'forum_name': 'the-key',
+            'subject': '123'
+        },
+        ConditionExpression='attribute_not_exists(forum_name) AND attribute_not_exists(subject)'
+    ).should.throw(botocore.exceptions.ClientError)
+
+
 def _create_table_with_range_key():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
