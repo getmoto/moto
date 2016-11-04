@@ -1072,6 +1072,15 @@ def test_boto3_put_item_with_conditions():
         ConditionExpression='attribute_not_exists(forum_name) AND attribute_not_exists(subject)'
     ).should.throw(botocore.exceptions.ClientError)
 
+    table.put_item.when.called_with(
+        Item={
+            'forum_name': 'bogus-key',
+            'subject': 'bogus',
+            'test': '123'
+        },
+        ConditionExpression='attribute_exists(forum_name) AND attribute_exists(subject)'
+    ).should.throw(botocore.exceptions.ClientError)
+
 
 def _create_table_with_range_key():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
