@@ -418,7 +418,7 @@ class IAMBackend(BaseBackend):
         if path_prefix:
             policies = [p for p in policies if p.path.startswith(path_prefix)]
 
-        policies = sorted(policies)
+        policies = sorted(policies, key=lambda policy: policy.name)
         start_idx = int(marker) if marker else 0
 
         policies = policies[start_idx:start_idx + max_items]
@@ -444,7 +444,7 @@ class IAMBackend(BaseBackend):
         if path_prefix:
             policies = [p for p in policies if p.path.startswith(path_prefix)]
 
-        policies = sorted(policies)
+        policies = sorted(policies, key=lambda policy: policy.name)
         start_idx = int(marker) if marker else 0
 
         policies = policies[start_idx:start_idx + max_items]
