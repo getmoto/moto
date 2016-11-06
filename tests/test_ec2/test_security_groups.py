@@ -1,4 +1,7 @@
 from __future__ import unicode_literals
+
+import copy
+
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
@@ -396,3 +399,62 @@ def test_security_group_tagging_boto3():
     tag = describe["SecurityGroups"][0]['Tags'][0]
     tag['Value'].should.equal("Tag")
     tag['Key'].should.equal("Test")
+
+
+@mock_ec2
+def test_authorize_and_revoke_in_bulk():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    sg01 = ec2.create_security_group(GroupName='sg01', Description='Test security group sg01', VpcId=vpc.id)
+    sg02 = ec2.create_security_group(GroupName='sg02', Description='Test security group sg02', VpcId=vpc.id)
+    sg03 = ec2.create_security_group(GroupName='sg03', Description='Test security group sg03')
+
+    ip_permissions = [
+        {
+            'IpProtocol': 'tcp',
+            'FromPort': 27017,
+            'ToPort': 27017,
+            'UserIdGroupPairs': [{'GroupId': sg02.id, 'GroupName': 'sg02',
+                                  'UserId': sg02.owner_id}],
+            'IpRanges': []
+        },
+        {
+            'IpProtocol': 'tcp',
+            'FromPort': 27017,
+            'ToPort': 27017,
+            'UserIdGroupPairs': [{'GroupId': sg02.id, 'UserId': sg02.owner_id}],
+            'IpRanges': []
+        },
+        {
+            'IpProtocol': 'tcp',
+            'FromPort': 27017,
+            'ToPort': 27017,
+            'UserIdGroupPairs': [{'GroupName': 'sg03', 'UserId': sg03.owner_id}],
+            'IpRanges': []
+        }
+    ]
+    expected_ip_permissions = copy.deepcopy(ip_permissions)
+    expected_ip_permissions[1]['UserIdGroupPairs'][0]['GroupName'] = 'sg02'
+    expected_ip_permissions[2]['UserIdGroupPairs'][0]['GroupId'] = sg03.id
+
+    sg01.authorize_ingress(IpPermissions=ip_permissions)
+    sg01.ip_permissions.should.have.length_of(3)
+    for ip_permission in expected_ip_permissions:
+        sg01.ip_permissions.should.contain(ip_permission)
+
+    sg01.revoke_ingress(IpPermissions=ip_permissions)
+    sg01.ip_permissions.should.be.empty
+    for ip_permission in expected_ip_permissions:
+        sg01.ip_permissions.shouldnt.contain(ip_permission)
+
+    sg01.authorize_egress(IpPermissions=ip_permissions)
+    sg01.ip_permissions_egress.should.have.length_of(4)
+    for ip_permission in expected_ip_permissions:
+        sg01.ip_permissions_egress.should.contain(ip_permission)
+
+    sg01.revoke_egress(IpPermissions=ip_permissions)
+    sg01.ip_permissions_egress.should.have.length_of(1)
+    for ip_permission in expected_ip_permissions:
+        sg01.ip_permissions_egress.shouldnt.contain(ip_permission)
