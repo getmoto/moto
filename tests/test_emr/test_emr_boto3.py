@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import time
 from copy import deepcopy
+from datetime import datetime
 
 import boto3
+import pytz
 import six
 import sure  # noqa
 from botocore.exceptions import ClientError
@@ -121,19 +124,54 @@ def test_describe_cluster():
 @mock_emr
 def test_describe_job_flows():
     client = boto3.client('emr', region_name='us-east-1')
-    cluster1_id = client.run_job_flow(**run_job_flow_args)['JobFlowId']
-    cluster2_id = client.run_job_flow(**run_job_flow_args)['JobFlowId']
+    args = deepcopy(run_job_flow_args)
+    expected = {}
+
+    for idx in range(400):
+        cluster_name = 'cluster' + str(idx)
+        args['Name'] = cluster_name
+        cluster_id = client.run_job_flow(**args)['JobFlowId']
+        expected[cluster_id] = {
+            'Id': cluster_id,
+            'Name': cluster_name,
+            'State': 'WAITING'
+        }
+
+    # need sleep since it appears the timestamp is always rounded to
+    # the nearest second internally
+    time.sleep(1)
+    timestamp = datetime.now(pytz.utc)
+    time.sleep(1)
+
+    for idx in range(400, 600):
+        cluster_name = 'cluster' + str(idx)
+        args['Name'] = cluster_name
+        cluster_id = client.run_job_flow(**args)['JobFlowId']
+        client.terminate_job_flows(JobFlowIds=[cluster_id])
+        expected[cluster_id] = {
+            'Id': cluster_id,
+            'Name': cluster_name,
+            'State': 'TERMINATED'
+        }
 
     resp = client.describe_job_flows()
-    resp['JobFlows'].should.have.length_of(2)
+    resp['JobFlows'].should.have.length_of(512)
 
-    resp = client.describe_job_flows(JobFlowIds=[cluster2_id])
-    resp['JobFlows'].should.have.length_of(1)
-    resp['JobFlows'][0]['JobFlowId'].should.equal(cluster2_id)
+    for cluster_id, y in expected.items():
+        resp = client.describe_job_flows(JobFlowIds=[cluster_id])
+        resp['JobFlows'].should.have.length_of(1)
+        resp['JobFlows'][0]['JobFlowId'].should.equal(cluster_id)
 
-    resp = client.describe_job_flows(JobFlowIds=[cluster1_id])
-    resp['JobFlows'].should.have.length_of(1)
-    resp['JobFlows'][0]['JobFlowId'].should.equal(cluster1_id)
+    resp = client.describe_job_flows(JobFlowStates=['WAITING'])
+    resp['JobFlows'].should.have.length_of(400)
+    for x in resp['JobFlows']:
+        x['ExecutionStatusDetail']['State'].should.equal('WAITING')
+
+    resp = client.describe_job_flows(CreatedBefore=timestamp)
+    resp['JobFlows'].should.have.length_of(400)
+
+    resp = client.describe_job_flows(CreatedAfter=timestamp)
+    resp['JobFlows'].should.have.length_of(200)
 
 
 @mock_emr
@@ -203,41 +241,69 @@ def test_describe_job_flow():
 def test_list_clusters():
     client = boto3.client('emr', region_name='us-east-1')
     args = deepcopy(run_job_flow_args)
-    args['Name'] = 'jobflow1'
-    cluster1_id = client.run_job_flow(**args)['JobFlowId']
-    args['Name'] = 'jobflow2'
-    cluster2_id = client.run_job_flow(**args)['JobFlowId']
-    client.terminate_job_flows(JobFlowIds=[cluster2_id])
+    expected = {}
 
-    summary = client.list_clusters()
-    clusters = summary['Clusters']
-    clusters.should.have.length_of(2)
-
-    expected = {
-        cluster1_id: {
-            'Id': cluster1_id,
-            'Name': 'jobflow1',
+    for idx in range(40):
+        cluster_name = 'jobflow' + str(idx)
+        args['Name'] = cluster_name
+        cluster_id = client.run_job_flow(**args)['JobFlowId']
+        expected[cluster_id] = {
+            'Id': cluster_id,
+            'Name': cluster_name,
             'NormalizedInstanceHours': 0,
-            'State': 'WAITING'},
-        cluster2_id: {
-            'Id': cluster2_id,
-            'Name': 'jobflow2',
-            'NormalizedInstanceHours': 0,
-            'State': 'TERMINATED'},
-    }
+            'State': 'WAITING'
+        }
 
-    for x in clusters:
-        y = expected[x['Id']]
-        x['Id'].should.equal(y['Id'])
-        x['Name'].should.equal(y['Name'])
-        x['NormalizedInstanceHours'].should.equal(y['NormalizedInstanceHours'])
-        x['Status']['State'].should.equal(y['State'])
-        x['Status']['Timeline']['CreationDateTime'].should.be.a('datetime.datetime')
-        if y['State'] == 'TERMINATED':
-            x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
-        else:
-            x['Status']['Timeline'].shouldnt.have.key('EndDateTime')
-        x['Status']['Timeline']['ReadyDateTime'].should.be.a('datetime.datetime')
+    # need sleep since it appears the timestamp is always rounded to
+    # the nearest second internally
+    time.sleep(1)
+    timestamp = datetime.now(pytz.utc)
+    time.sleep(1)
+
+    for idx in range(40, 70):
+        cluster_name = 'jobflow' + str(idx)
+        args['Name'] = cluster_name
+        cluster_id = client.run_job_flow(**args)['JobFlowId']
+        client.terminate_job_flows(JobFlowIds=[cluster_id])
+        expected[cluster_id] = {
+            'Id': cluster_id,
+            'Name': cluster_name,
+            'NormalizedInstanceHours': 0,
+            'State': 'TERMINATED'
+        }
+
+    args = {}
+    while 1:
+        resp = client.list_clusters(**args)
+        clusters = resp['Clusters']
+        len(clusters).should.be.lower_than_or_equal_to(50)
+        for x in clusters:
+            y = expected[x['Id']]
+            x['Id'].should.equal(y['Id'])
+            x['Name'].should.equal(y['Name'])
+            x['NormalizedInstanceHours'].should.equal(y['NormalizedInstanceHours'])
+            x['Status']['State'].should.equal(y['State'])
+            x['Status']['Timeline']['CreationDateTime'].should.be.a('datetime.datetime')
+            if y['State'] == 'TERMINATED':
+                x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
+            else:
+                x['Status']['Timeline'].shouldnt.have.key('EndDateTime')
+            x['Status']['Timeline']['ReadyDateTime'].should.be.a('datetime.datetime')
+        marker = resp.get('Marker')
+        if marker is None:
+            break
+        args = {'Marker': marker}
+
+    resp = client.list_clusters(ClusterStates=['TERMINATED'])
+    resp['Clusters'].should.have.length_of(30)
+    for x in resp['Clusters']:
+        x['Status']['State'].should.equal('TERMINATED')
+
+    resp = client.list_clusters(CreatedBefore=timestamp)
+    resp['Clusters'].should.have.length_of(40)
+
+    resp = client.list_clusters(CreatedAfter=timestamp)
+    resp['Clusters'].should.have.length_of(30)
 
 
 @mock_emr
@@ -566,6 +632,15 @@ def test_steps():
         x['Status']['Timeline']['CreationDateTime'].should.be.a('datetime.datetime')
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
         # x['Status']['Timeline']['StartDateTime'].should.be.a('datetime.datetime')
+
+    step_id = steps[0]['Id']
+    steps = client.list_steps(ClusterId=cluster_id, StepIds=[step_id])['Steps']
+    steps.should.have.length_of(1)
+    steps[0]['Id'].should.equal(step_id)
+
+    steps = client.list_steps(ClusterId=cluster_id, StepStates=['STARTING'])['Steps']
+    steps.should.have.length_of(1)
+    steps[0]['Id'].should.equal(step_id)
 
 
 @mock_emr
