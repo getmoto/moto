@@ -23,7 +23,7 @@ def test_lifecycle_create():
     lifecycle.id.should.equal('myid')
     lifecycle.prefix.should.equal('')
     lifecycle.status.should.equal('Enabled')
-    lifecycle.transition.should.equal(None)
+    list(lifecycle.transition).should.equal([])
 
 
 @mock_s3
