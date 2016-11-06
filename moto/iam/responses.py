@@ -6,6 +6,41 @@ from .models import iam_backend
 
 class IamResponse(BaseResponse):
 
+    def attach_role_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        role_name = self._get_param('RoleName')
+        iam_backend.attach_role_policy(policy_arn, role_name)
+        template = self.response_template(ATTACH_ROLE_POLICY_TEMPLATE)
+        return template.render()
+
+    def create_policy(self):
+        description = self._get_param('Description')
+        path = self._get_param('Path')
+        policy_document = self._get_param('PolicyDocument')
+        policy_name = self._get_param('PolicyName')
+        policy = iam_backend.create_policy(description, path, policy_document, policy_name)
+        template = self.response_template(CREATE_POLICY_TEMPLATE)
+        return template.render(policy=policy)
+
+    def list_attached_role_policies(self):
+        marker = self._get_param('Marker')
+        max_items = self._get_int_param('MaxItems', 100)
+        path_prefix = self._get_param('PathPrefix', '/')
+        role_name = self._get_param('RoleName')
+        policies, marker = iam_backend.list_attached_role_policies(role_name, marker=marker, max_items=max_items, path_prefix=path_prefix)
+        template = self.response_template(LIST_ATTACHED_ROLE_POLICIES_TEMPLATE)
+        return template.render(policies=policies, marker=marker)
+
+    def list_policies(self):
+        marker = self._get_param('Marker')
+        max_items = self._get_int_param('MaxItems', 100)
+        only_attached = self._get_bool_param('OnlyAttached', False)
+        path_prefix = self._get_param('PathPrefix', '/')
+        scope = self._get_param('Scope', 'All')
+        policies, marker = iam_backend.list_policies(marker, max_items, only_attached, path_prefix, scope)
+        template = self.response_template(LIST_POLICIES_TEMPLATE)
+        return template.render(policies=policies, marker=marker)
+
     def create_role(self):
         role_name = self._get_param('RoleName')
         path = self._get_param('Path')
@@ -266,6 +301,81 @@ class IamResponse(BaseResponse):
         report = iam_backend.get_credential_report()
         template = self.response_template(CREDENTIAL_REPORT)
         return template.render(report=report)
+
+
+ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</AttachRolePolicyResponse>"""
+
+CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
+  <CreatePolicyResult>
+    <Policy>
+      <Arn>{{ policy.arn }}</Arn>
+      <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
+      <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
+      <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
+      <Path>{{ policy.path }}</Path>
+      <PolicyId>{{ policy.id }}</PolicyId>
+      <PolicyName>{{ policy.name }}</PolicyName>
+      <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+    </Policy>
+  </CreatePolicyResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreatePolicyResponse>"""
+
+LIST_ATTACHED_ROLE_POLICIES_TEMPLATE = """<ListAttachedRolePoliciesResponse>
+  <ListAttachedRolePoliciesResult>
+    {% if marker is none %}
+    <IsTruncated>false</IsTruncated>
+    {% else %}
+    <IsTruncated>true</IsTruncated>
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <AttachedPolicies>
+      {% for policy in policies %}
+      <member>
+        <PolicyName>{{ policy.name }}</PolicyName>
+        <PolicyArn>{{ policy.arn }}</PolicyArn>
+      </member>
+      {% endfor %}
+    </AttachedPolicies>
+  </ListAttachedRolePoliciesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListAttachedRolePoliciesResponse>"""
+
+LIST_POLICIES_TEMPLATE = """<ListPoliciesResponse>
+  <ListPoliciesResult>
+    {% if marker is none %}
+    <IsTruncated>false</IsTruncated>
+    {% else %}
+    <IsTruncated>true</IsTruncated>
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <Policies>
+      {% for policy in policies %}
+      <member>
+        <Arn>{{ policy.arn }}</Arn>
+        <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
+        <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
+        <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
+        <Path>{{ policy.path }}</Path>
+        <PolicyId>{{ policy.id }}</PolicyId>
+        <PolicyName>{{ policy.name }}</PolicyName>
+        <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+      </member>
+      {% endfor %}
+    </Policies>
+  </ListPoliciesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListPoliciesResponse>"""
 
 GENERIC_EMPTY_TEMPLATE = """<{{ name }}Response>
    <ResponseMetadata>
