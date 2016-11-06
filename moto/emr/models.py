@@ -26,12 +26,19 @@ class FakeBootstrapAction(object):
 
 
 class FakeInstanceGroup(object):
-    def __init__(self, instance_count, instance_role, instance_type, market, name,
-                 id=None, bid_price=None):
+    def __init__(self, instance_count, instance_role, instance_type,
+                 market='ON_DEMAND', name=None, id=None, bid_price=None):
         self.id = id or random_instance_group_id()
 
         self.bid_price = bid_price
         self.market = market
+        if name is None:
+            if instance_role == 'MASTER':
+                name = 'master'
+            elif instance_role == 'CORE':
+                name = 'slave'
+            else:
+                name = 'Task instance group'
         self.name = name
         self.num_instances = instance_count
         self.role = instance_role

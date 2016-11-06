@@ -46,6 +46,8 @@ def test_describe_cluster():
             'Configurations.member.1.Classification': 'yarn-site',
             'Configurations.member.1.Properties.entry.1.key': 'someproperty',
             'Configurations.member.1.Properties.entry.1.value': 'somevalue',
+            'Configurations.member.1.Properties.entry.2.key': 'someotherproperty',
+            'Configurations.member.1.Properties.entry.2.value': 'someothervalue',
             'Instances.EmrManagedMasterSecurityGroup': 'master-security-group',
             'Instances.Ec2SubnetId': 'subnet-8be41cec',
         },
