@@ -15,7 +15,7 @@ from boto.ec2.launchspecification import LaunchSpecification
 
 from moto.core import BaseBackend
 from moto.core.models import Model
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, camelcase_to_underscores
 from .exceptions import (
     EC2ClientError,
     DependencyViolationError,
@@ -2602,20 +2602,46 @@ class SpotFleetRequest(TaggedEC2Resource):
             self.launch_specs.append(SpotFleetLaunchSpec(
                     ebs_optimized=spec['ebs_optimized'],
                     group_set=[val for key, val in spec.items() if key.startswith("group_set")],
-                    iam_instance_profile=spec['iam_instance_profile._arn'],
+                    iam_instance_profile=spec.get('iam_instance_profile._arn'),
                     image_id=spec['image_id'],
                     instance_type=spec['instance_type'],
-                    key_name=spec['key_name'],
-                    monitoring=spec['monitoring._enabled'],
-                    spot_price=spec['spot_price'],
+                    key_name=spec.get('key_name'),
+                    monitoring=spec.get('monitoring._enabled'),
+                    spot_price=spec.get('spot_price', self.spot_price),
                     subnet_id=spec['subnet_id'],
-                    user_data=spec['user_data'],
+                    user_data=spec.get('user_data'),
                     weighted_capacity=spec['weighted_capacity'],
                 )
             )
 
         self.spot_requests = []
         self.create_spot_requests()
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']['SpotFleetRequestConfigData']
+        ec2_backend = ec2_backends[region_name]
+
+        spot_price = properties['SpotPrice']
+        target_capacity = properties['TargetCapacity']
+        iam_fleet_role = properties['IamFleetRole']
+        allocation_strategy = properties['AllocationStrategy']
+        launch_specs = properties["LaunchSpecifications"]
+        launch_specs = [
+            dict([(camelcase_to_underscores(key), val) for key, val in launch_spec.items()])
+            for launch_spec
+            in launch_specs
+        ]
+
+        spot_fleet_request = ec2_backend.request_spot_fleet(spot_price,
+            target_capacity, iam_fleet_role, allocation_strategy, launch_specs)
+
+        return spot_fleet_request
+
 
     def get_launch_spec_counts(self):
         weight_map = defaultdict(int)
