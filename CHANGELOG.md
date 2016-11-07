@@ -4,6 +4,14 @@ Moto Changelog
 Latest
 ------
 
+0.4.28
+------
+
+    * Add basic spot fleet support
+    * IAM Managed Policies
+    * Better EMR coverage
+    * Basic KMS support for encrypt/decrypt
+
 0.4.27
 ------
 
