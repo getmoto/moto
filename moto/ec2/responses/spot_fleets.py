@@ -43,7 +43,6 @@ class SpotFleets(BaseResponse):
         )
 
         template = self.response_template(REQUEST_SPOT_FLEET_TEMPLATE)
-        import pdb;pdb.set_trace()
         return template.render(request=request)
 
 REQUEST_SPOT_FLEET_TEMPLATE = """<RequestSpotFleetResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">

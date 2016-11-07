@@ -2713,7 +2713,11 @@ class SpotFleetBackend(object):
         return spot_fleet.spot_requests
 
     def describe_spot_fleet_requests(self, spot_fleet_request_ids):
-        requests = [request for request in self.spot_fleet_requests.values() if request.id in spot_fleet_request_ids]
+        requests = self.spot_fleet_requests.values()
+
+        if spot_fleet_request_ids:
+            requests = [request for request in requests if request.id in spot_fleet_request_ids]
+
         return requests
 
     def cancel_spot_fleet_requests(self, spot_fleet_request_ids, terminate_instances):
