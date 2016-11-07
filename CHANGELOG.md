@@ -4,6 +4,11 @@ Moto Changelog
 Latest
 ------
 
+0.4.29
+------
+
+    * Nest flask import so that it is not required globally
+
 0.4.28
 ------
 
