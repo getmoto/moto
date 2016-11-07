@@ -15,7 +15,7 @@ from boto.ec2.launchspecification import LaunchSpecification
 
 from moto.core import BaseBackend
 from moto.core.models import Model
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, camelcase_to_underscores
 from .exceptions import (
     EC2ClientError,
     DependencyViolationError,
@@ -81,6 +81,7 @@ from .utils import (
     split_route_id,
     random_security_group_id,
     random_snapshot_id,
+    random_spot_fleet_request_id,
     random_spot_request_id,
     random_subnet_id,
     random_subnet_association_id,
@@ -2565,6 +2566,170 @@ class SpotRequestBackend(object):
         return requests
 
 
+class SpotFleetLaunchSpec(object):
+    def __init__(self, ebs_optimized, group_set, iam_instance_profile, image_id,
+        instance_type, key_name, monitoring, spot_price, subnet_id, user_data,
+        weighted_capacity):
+        self.ebs_optimized = ebs_optimized
+        self.group_set = group_set
+        self.iam_instance_profile = iam_instance_profile
+        self.image_id = image_id
+        self.instance_type = instance_type
+        self.key_name = key_name
+        self.monitoring = monitoring
+        self.spot_price = spot_price
+        self.subnet_id = subnet_id
+        self.user_data = user_data
+        self.weighted_capacity = float(weighted_capacity)
+
+
+class SpotFleetRequest(TaggedEC2Resource):
+
+    def __init__(self, ec2_backend, spot_fleet_request_id, spot_price,
+            target_capacity, iam_fleet_role, allocation_strategy, launch_specs):
+
+        self.ec2_backend = ec2_backend
+        self.id = spot_fleet_request_id
+        self.spot_price = spot_price
+        self.target_capacity = int(target_capacity)
+        self.iam_fleet_role = iam_fleet_role
+        self.allocation_strategy = allocation_strategy
+        self.state = "active"
+        self.fulfilled_capacity = self.target_capacity
+
+        self.launch_specs = []
+        for spec in launch_specs:
+            self.launch_specs.append(SpotFleetLaunchSpec(
+                    ebs_optimized=spec['ebs_optimized'],
+                    group_set=[val for key, val in spec.items() if key.startswith("group_set")],
+                    iam_instance_profile=spec.get('iam_instance_profile._arn'),
+                    image_id=spec['image_id'],
+                    instance_type=spec['instance_type'],
+                    key_name=spec.get('key_name'),
+                    monitoring=spec.get('monitoring._enabled'),
+                    spot_price=spec.get('spot_price', self.spot_price),
+                    subnet_id=spec['subnet_id'],
+                    user_data=spec.get('user_data'),
+                    weighted_capacity=spec['weighted_capacity'],
+                )
+            )
+
+        self.spot_requests = []
+        self.create_spot_requests()
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']['SpotFleetRequestConfigData']
+        ec2_backend = ec2_backends[region_name]
+
+        spot_price = properties['SpotPrice']
+        target_capacity = properties['TargetCapacity']
+        iam_fleet_role = properties['IamFleetRole']
+        allocation_strategy = properties['AllocationStrategy']
+        launch_specs = properties["LaunchSpecifications"]
+        launch_specs = [
+            dict([(camelcase_to_underscores(key), val) for key, val in launch_spec.items()])
+            for launch_spec
+            in launch_specs
+        ]
+
+        spot_fleet_request = ec2_backend.request_spot_fleet(spot_price,
+            target_capacity, iam_fleet_role, allocation_strategy, launch_specs)
+
+        return spot_fleet_request
+
+
+    def get_launch_spec_counts(self):
+        weight_map = defaultdict(int)
+
+        if self.allocation_strategy == 'diversified':
+            weight_so_far = 0
+            launch_spec_index = 0
+            while True:
+                launch_spec = self.launch_specs[launch_spec_index % len(self.launch_specs)]
+                weight_map[launch_spec] += 1
+                weight_so_far += launch_spec.weighted_capacity
+                if weight_so_far >= self.target_capacity:
+                    break
+                launch_spec_index += 1
+        else:  # lowestPrice
+            cheapest_spec = sorted(self.launch_specs, key=lambda spec: float(spec.spot_price))[0]
+            extra = 1 if self.target_capacity % cheapest_spec.weighted_capacity else 0
+            weight_map[cheapest_spec] = int(self.target_capacity // cheapest_spec.weighted_capacity) + extra
+
+        return weight_map.items()
+
+    def create_spot_requests(self):
+        for launch_spec, count in self.get_launch_spec_counts():
+            requests = self.ec2_backend.request_spot_instances(
+                                price=launch_spec.spot_price,
+                                image_id=launch_spec.image_id,
+                                count=count,
+                                type="persistent",
+                                valid_from=None,
+                                valid_until=None,
+                                launch_group=None,
+                                availability_zone_group=None,
+                                key_name=launch_spec.key_name,
+                                security_groups=launch_spec.group_set,
+                                user_data=launch_spec.user_data,
+                                instance_type=launch_spec.instance_type,
+                                placement=None,
+                                kernel_id=None,
+                                ramdisk_id=None,
+                                monitoring_enabled=launch_spec.monitoring,
+                                subnet_id=launch_spec.subnet_id,
+            )
+            self.spot_requests.extend(requests)
+        return self.spot_requests
+
+    def terminate_instances(self):
+        pass
+
+
+class SpotFleetBackend(object):
+    def __init__(self):
+        self.spot_fleet_requests = {}
+        super(SpotFleetBackend, self).__init__()
+
+    def request_spot_fleet(self, spot_price, target_capacity, iam_fleet_role,
+            allocation_strategy, launch_specs):
+
+        spot_fleet_request_id = random_spot_fleet_request_id()
+        request = SpotFleetRequest(self, spot_fleet_request_id, spot_price,
+            target_capacity, iam_fleet_role, allocation_strategy, launch_specs)
+        self.spot_fleet_requests[spot_fleet_request_id] = request
+        return request
+
+    def get_spot_fleet_request(self, spot_fleet_request_id):
+        return self.spot_fleet_requests[spot_fleet_request_id]
+
+    def describe_spot_fleet_instances(self, spot_fleet_request_id):
+        spot_fleet = self.get_spot_fleet_request(spot_fleet_request_id)
+        return spot_fleet.spot_requests
+
+    def describe_spot_fleet_requests(self, spot_fleet_request_ids):
+        requests = self.spot_fleet_requests.values()
+
+        if spot_fleet_request_ids:
+            requests = [request for request in requests if request.id in spot_fleet_request_ids]
+
+        return requests
+
+    def cancel_spot_fleet_requests(self, spot_fleet_request_ids, terminate_instances):
+        spot_requests = []
+        for spot_fleet_request_id in spot_fleet_request_ids:
+            spot_fleet = self.spot_fleet_requests.pop(spot_fleet_request_id)
+            if terminate_instances:
+                spot_fleet.terminate_instances()
+            spot_requests.append(spot_fleet)
+        return spot_requests
+
+
 class ElasticAddress(object):
     def __init__(self, domain):
         self.public_ip = random_ip()
@@ -3189,10 +3354,10 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  NetworkInterfaceBackend, VPNConnectionBackend,
                  VPCPeeringConnectionBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
-                 VPCGatewayAttachmentBackend, SpotRequestBackend,
-                 ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend,
-                 NetworkAclBackend, VpnGatewayBackend, CustomerGatewayBackend,
-                 NatGatewayBackend):
+                 VPCGatewayAttachmentBackend, SpotFleetBackend,
+                 SpotRequestBackend,ElasticAddressBackend, KeyPairBackend,
+                 DHCPOptionsSetBackend, NetworkAclBackend, VpnGatewayBackend,
+                 CustomerGatewayBackend, NatGatewayBackend):
 
     def __init__(self, region_name):
         super(EC2Backend, self).__init__()
