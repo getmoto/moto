@@ -661,13 +661,14 @@ def test_vpc_single_instance_in_subnet():
     )
 
     vpc_conn = boto.vpc.connect_to_region("us-west-1")
-    vpc = vpc_conn.get_all_vpcs()[0]
+
+    vpc = vpc_conn.get_all_vpcs(filters={'cidrBlock': '10.0.0.0/16'})[0]
     vpc.cidr_block.should.equal("10.0.0.0/16")
 
     # Add this once we implement the endpoint
     # vpc_conn.get_all_internet_gateways().should.have.length_of(1)
 
-    subnet = vpc_conn.get_all_subnets()[0]
+    subnet = vpc_conn.get_all_subnets(filters={'vpcId': vpc.id})[0]
     subnet.vpc_id.should.equal(vpc.id)
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
@@ -1355,7 +1356,7 @@ def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
     )
 
     vpc_conn = boto.vpc.connect_to_region("us-west-1")
-    vpc = vpc_conn.get_all_vpcs()[0]
+    vpc = vpc_conn.get_all_vpcs(filters={'cidrBlock': '10.0.0.0/16'})[0]
     igws = vpc_conn.get_all_internet_gateways(
         filters={'attachment.vpc-id': vpc.id}
     )

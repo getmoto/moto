@@ -52,15 +52,12 @@ def test_key_pairs_create_two():
     kp = conn.create_key_pair('bar')
     assert kp.material.startswith('---- BEGIN RSA PRIVATE KEY ----')
     kps = conn.get_all_key_pairs()
-    assert len(kps) == 2
-    # on Python 3, these are reversed for some reason
-    if six.PY3:
-        return
-    assert kps[0].name == 'foo'
-    assert kps[1].name == 'bar'
+    kps.should.have.length_of(2)
+    [i.name for i in kps].should.contain('foo')
+    [i.name for i in kps].should.contain('bar')
     kps = conn.get_all_key_pairs('foo')
-    assert len(kps) == 1
-    assert kps[0].name == 'foo'
+    kps.should.have.length_of(1)
+    kps[0].name.should.equal('foo')
 
 
 @mock_ec2
