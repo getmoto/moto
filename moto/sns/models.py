@@ -120,6 +120,15 @@ class PlatformEndpoint(object):
         self.attributes = attributes
         self.id = uuid.uuid4()
         self.messages = OrderedDict()
+        self.__fixup_attributes()
+
+    def __fixup_attributes(self):
+        # When AWS returns the attributes dict, it always contains these two elements, so we need to
+        # automatically ensure they exist as well.
+        if not 'Token' in self.attributes:
+            self.attributes['Token'] = self.token
+        if not 'Enabled' in self.attributes:
+            self.attributes['Enabled'] = True
 
     @property
     def arn(self):
