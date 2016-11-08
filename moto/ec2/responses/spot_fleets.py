@@ -98,9 +98,9 @@ DESCRIBE_SPOT_FLEET_INSTANCES_TEMPLATE = """<DescribeSpotFleetInstancesResponse 
     <activeInstanceSet>
         {% for spot_request in spot_requests %}
         <item>
-            <instanceId>{{ spot_request.instance_id }}</instanceId>
+            <instanceId>{{ spot_request.instance.id }}</instanceId>
             <spotInstanceRequestId>{{ spot_request.id }}</spotInstanceRequestId>
-            <instanceType>{{ spot_request.instance_type }}</instanceType>
+            <instanceType>{{ spot_request.instance.instance_type }}</instanceType>
         </item>
         {% endfor %}
     </activeInstanceSet>

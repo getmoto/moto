@@ -5,78 +5,87 @@ import sure  # noqa
 
 from moto import mock_ec2
 
-SPOT_REQUEST_CONFIG = {
-    'ClientToken': 'string',
-    'SpotPrice': '0.12',
-    'TargetCapacity': 6,
-    'IamFleetRole': 'arn:aws:iam::123456789012:role/fleet',
-    'LaunchSpecifications': [{
-            'ImageId': 'ami-123',
-            'KeyName': 'my-key',
-            'SecurityGroups': [
-                {
-                    'GroupId': 'sg-123'
-                },
-            ],
-            'UserData': 'some user data',
-            'InstanceType': 't2.small',
-            'BlockDeviceMappings': [
-                {
-                    'VirtualName': 'string',
-                    'DeviceName': 'string',
-                    'Ebs': {
-                        'SnapshotId': 'string',
-                        'VolumeSize': 123,
-                        'DeleteOnTermination': True|False,
-                        'VolumeType': 'standard',
-                        'Iops': 123,
-                        'Encrypted': True|False
+def get_subnet_id(conn):
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    subnet = conn.create_subnet(VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
+    subnet_id = subnet['SubnetId']
+    return subnet_id
+
+
+def spot_config(subnet_id, allocation_strategy="lowestPrice"):
+    return {
+        'ClientToken': 'string',
+        'SpotPrice': '0.12',
+        'TargetCapacity': 6,
+        'IamFleetRole': 'arn:aws:iam::123456789012:role/fleet',
+        'LaunchSpecifications': [{
+                'ImageId': 'ami-123',
+                'KeyName': 'my-key',
+                'SecurityGroups': [
+                    {
+                        'GroupId': 'sg-123'
                     },
-                    'NoDevice': 'string'
+                ],
+                'UserData': 'some user data',
+                'InstanceType': 't2.small',
+                'BlockDeviceMappings': [
+                    {
+                        'VirtualName': 'string',
+                        'DeviceName': 'string',
+                        'Ebs': {
+                            'SnapshotId': 'string',
+                            'VolumeSize': 123,
+                            'DeleteOnTermination': True|False,
+                            'VolumeType': 'standard',
+                            'Iops': 123,
+                            'Encrypted': True|False
+                        },
+                        'NoDevice': 'string'
+                    },
+                ],
+                'Monitoring': {
+                    'Enabled': True
                 },
-            ],
-            'Monitoring': {
-                'Enabled': True
-            },
-            'SubnetId': 'subnet-1234',
-            'IamInstanceProfile': {
-                'Arn': 'arn:aws:iam::123456789012:role/fleet'
-            },
-            'EbsOptimized': False,
-            'WeightedCapacity': 2.0,
-            'SpotPrice': '0.13'
-    }, {
-            'ImageId': 'ami-123',
-            'KeyName': 'my-key',
-            'SecurityGroups': [
-                {
-                    'GroupId': 'sg-123'
+                'SubnetId': subnet_id,
+                'IamInstanceProfile': {
+                    'Arn': 'arn:aws:iam::123456789012:role/fleet'
                 },
-            ],
-            'UserData': 'some user data',
-            'InstanceType': 't2.large',
-            'Monitoring': {
-                'Enabled': True
-            },
-            'SubnetId': 'subnet-1234',
-            'IamInstanceProfile': {
-                'Arn': 'arn:aws:iam::123456789012:role/fleet'
-            },
-            'EbsOptimized': False,
-            'WeightedCapacity': 4.0,
-            'SpotPrice': '10.00',
-    }],
-    'AllocationStrategy': 'lowestPrice',
-    'FulfilledCapacity': 6,
-}
+                'EbsOptimized': False,
+                'WeightedCapacity': 2.0,
+                'SpotPrice': '0.13'
+        }, {
+                'ImageId': 'ami-123',
+                'KeyName': 'my-key',
+                'SecurityGroups': [
+                    {
+                        'GroupId': 'sg-123'
+                    },
+                ],
+                'UserData': 'some user data',
+                'InstanceType': 't2.large',
+                'Monitoring': {
+                    'Enabled': True
+                },
+                'SubnetId': subnet_id,
+                'IamInstanceProfile': {
+                    'Arn': 'arn:aws:iam::123456789012:role/fleet'
+                },
+                'EbsOptimized': False,
+                'WeightedCapacity': 4.0,
+                'SpotPrice': '10.00',
+        }],
+        'AllocationStrategy': allocation_strategy,
+        'FulfilledCapacity': 6,
+    }
 
 
 @mock_ec2
 def test_create_spot_fleet_with_lowest_price():
     conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
 
     spot_fleet_res = conn.request_spot_fleet(
-        SpotFleetRequestConfig=SPOT_REQUEST_CONFIG
+        SpotFleetRequestConfig=spot_config(subnet_id)
     )
     spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
 
@@ -103,7 +112,7 @@ def test_create_spot_fleet_with_lowest_price():
     launch_spec['KeyName'].should.equal("my-key")
     launch_spec['Monitoring'].should.equal({"Enabled": True})
     launch_spec['SpotPrice'].should.equal("0.13")
-    launch_spec['SubnetId'].should.equal("subnet-1234")
+    launch_spec['SubnetId'].should.equal(subnet_id)
     launch_spec['UserData'].should.equal("some user data")
     launch_spec['WeightedCapacity'].should.equal(2.0)
 
@@ -115,8 +124,8 @@ def test_create_spot_fleet_with_lowest_price():
 @mock_ec2
 def test_create_diversified_spot_fleet():
     conn = boto3.client("ec2", region_name='us-west-2')
-    diversified_config = SPOT_REQUEST_CONFIG.copy()
-    diversified_config['AllocationStrategy'] = 'diversified'
+    subnet_id = get_subnet_id(conn)
+    diversified_config = spot_config(subnet_id, allocation_strategy='diversified')
 
     spot_fleet_res = conn.request_spot_fleet(
         SpotFleetRequestConfig=diversified_config
@@ -126,14 +135,17 @@ def test_create_diversified_spot_fleet():
     instance_res = conn.describe_spot_fleet_instances(SpotFleetRequestId=spot_fleet_id)
     instances = instance_res['ActiveInstances']
     len(instances).should.equal(2)
+    instances[0]['InstanceType'].should.equal("t2.small")
+    instances[0]['InstanceId'].should.contain("i-")
 
 
 @mock_ec2
 def test_cancel_spot_fleet_request():
     conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
 
     spot_fleet_res = conn.request_spot_fleet(
-        SpotFleetRequestConfig=SPOT_REQUEST_CONFIG,
+        SpotFleetRequestConfig=spot_config(subnet_id),
     )
     spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
 

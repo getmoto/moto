@@ -1881,6 +1881,12 @@ def test_stack_kms():
 @mock_cloudformation()
 @mock_ec2()
 def test_stack_spot_fleet():
+    conn = boto3.client('ec2', 'us-east-1')
+
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    subnet = conn.create_subnet(VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
+    subnet_id = subnet['SubnetId']
+
     spot_fleet_template = {
         'Resources': {
             "SpotFleet": {
@@ -1896,7 +1902,7 @@ def test_stack_spot_fleet():
                     "EbsOptimized": "false",
                     "InstanceType": 't2.small',
                     "ImageId": "ami-1234",
-                    "SubnetId": "subnet-123",
+                    "SubnetId": subnet_id,
                     "WeightedCapacity": "2",
                     "SpotPrice": "0.13",
                   },
@@ -1906,7 +1912,7 @@ def test_stack_spot_fleet():
                     "ImageId": "ami-1234",
                     "Monitoring": { "Enabled": "true" },
                     "SecurityGroups": [{"GroupId": "sg-123"}],
-                    "SubnetId": "subnet-123",
+                    "SubnetId": subnet_id,
                     "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
                     "WeightedCapacity": "4",
                     "SpotPrice": "10.00",
@@ -1929,7 +1935,6 @@ def test_stack_spot_fleet():
     stack_resources['StackResourceSummaries'].should.have.length_of(1)
     spot_fleet_id = stack_resources['StackResourceSummaries'][0]['PhysicalResourceId']
 
-    conn = boto3.client('ec2', 'us-east-1')
     spot_fleet_requests = conn.describe_spot_fleet_requests(SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs']
     len(spot_fleet_requests).should.equal(1)
     spot_fleet_request = spot_fleet_requests[0]
@@ -1948,6 +1953,6 @@ def test_stack_spot_fleet():
     launch_spec['EbsOptimized'].should.equal(False)
     launch_spec['ImageId'].should.equal("ami-1234")
     launch_spec['InstanceType'].should.equal("t2.small")
-    launch_spec['SubnetId'].should.equal("subnet-123")
+    launch_spec['SubnetId'].should.equal(subnet_id)
     launch_spec['SpotPrice'].should.equal("0.13")
     launch_spec['WeightedCapacity'].should.equal(2.0)

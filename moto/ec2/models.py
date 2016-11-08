@@ -2517,6 +2517,8 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             default_group = self.ec2_backend.get_security_group_from_name("default")
             ls.groups.append(default_group)
 
+        self.instance = self.launch_instance()
+
     def get_filter_value(self, filter_name):
         if filter_name == 'state':
             return self.state
@@ -2528,6 +2530,18 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSpotInstanceRequests".format(filter_name))
 
         return filter_value
+
+    def launch_instance(self):
+        reservation = self.ec2_backend.add_instances(
+            image_id=self.launch_specification.image_id, count=1, user_data=self.user_data,
+            instance_type=self.launch_specification.instance_type,
+            subnet_id=self.launch_specification.subnet_id,
+            key_name=self.launch_specification.key_name,
+            security_group_names=[],
+            security_group_ids=self.launch_specification.groups,
+        )
+        instance = reservation.instances[0]
+        return instance
 
 
 @six.add_metaclass(Model)
