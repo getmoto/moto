@@ -4,6 +4,11 @@ Moto Changelog
 Latest
 ------
 
+0.4.30
+------
+
+    * Change spot requests to launch instances
+
 0.4.29
 ------
 
