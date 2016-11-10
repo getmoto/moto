@@ -46,23 +46,28 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
     def subdomain_based_buckets(self, request):
         host = request.headers.get('host', request.headers.get('Host'))
-        if host.startswith("localhost"):
+
+        if not host or host.startswith("localhost"):
             # For localhost, default to path-based buckets
             return False
 
-        try:
-            socket.inet_pton(socket.AF_INET, host)
-            # For IPv4, default to path-based buckets
-            return False
-        except socket.error:
-            pass
+        match = re.match(r'^([^\[\]:]+)(:\d+)?$', host)
+        if match:
+            try:
+                socket.inet_pton(socket.AF_INET, match.groups()[0])
+                 # For IPv4, default to path-based buckets
+                return False
+            except socket.error:
+                pass
 
-        try:
-            socket.inet_pton(socket.AF_INET6, host)
-            # For IPv6, default to path-based buckets
-            return False
-        except socket.error:
-            pass
+        match = re.match(r'^\[(.+)\])(:\d+)?$', host)
+        if match:
+            try:
+                socket.inet_pton(socket.AF_INET6, match.groups()[0])
+                # For IPv6, default to path-based buckets
+                return False
+            except socket.error:
+                pass
 
         path_based = (host == 's3.amazonaws.com' or re.match(r"s3[\.\-]([^.]*)\.amazonaws\.com", host))
         return not path_based
