@@ -4,6 +4,8 @@ import re
 
 import six
 from six.moves.urllib.parse import parse_qs, urlparse
+
+import socket
 import xmltodict
 
 from moto.core.responses import _TemplateEnvironmentMixin
@@ -47,6 +49,20 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if host.startswith("localhost"):
             # For localhost, default to path-based buckets
             return False
+
+        try:
+            socket.inet_pton(socket.AF_INET, host)
+            # For IPv4, default to path-based buckets
+            return False
+        except socket.error:
+            pass
+
+        try:
+            socket.inet_pton(socket.AF_INET6, host)
+            # For IPv6, default to path-based buckets
+            return False
+        except socket.error:
+            pass
 
         path_based = (host == 's3.amazonaws.com' or re.match(r"s3[\.\-]([^.]*)\.amazonaws\.com", host))
         return not path_based
