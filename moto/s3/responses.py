@@ -60,7 +60,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             except socket.error:
                 pass
 
-        match = re.match(r'^\[(.+)\])(:\d+)?$', host)
+        match = re.match(r'^\[(.+)\](:\d+)?$', host)
         if match:
             try:
                 socket.inet_pton(socket.AF_INET6, match.groups()[0])
