@@ -289,6 +289,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name='DeleteUser')
 
+    def delete_login_profile(self):
+        user_name = self._get_param('UserName')
+        iam_backend.delete_login_profile(user_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeleteLoginProfile')
+
     def generate_credential_report(self):
         if iam_backend.report_generated():
             template = self.response_template(CREDENTIAL_REPORT_GENERATED)

@@ -187,6 +187,7 @@ def test_get_user():
     conn.create_user('my-user')
     conn.get_user('my-user')
 
+
 @mock_iam()
 def test_list_users():
     path_prefix = '/'
@@ -209,6 +210,16 @@ def test_create_login_profile():
     conn.create_login_profile('my-user', 'my-pass')
     with assert_raises(BotoServerError):
         conn.create_login_profile('my-user', 'my-pass')
+
+
+@mock_iam()
+def test_delete_login_profile():
+    conn = boto.connect_iam()
+    conn.create_user('my-user')
+    with assert_raises(BotoServerError):
+        conn.delete_login_profile('my-user')
+    conn.create_login_profile('my-user', 'my-pass')
+    conn.delete_login_profile('my-user')
 
 
 @mock_iam()
