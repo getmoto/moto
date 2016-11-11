@@ -5,6 +5,7 @@ import boto
 import boto3
 import sure  # noqa
 from boto.exception import BotoServerError
+from botocore.exceptions import ClientError
 from moto import mock_iam
 from moto.iam.models import aws_managed_policies
 from nose.tools import assert_raises, assert_equals, assert_not_equals
@@ -324,3 +325,17 @@ def test_managed_policy():
                              {'RoleName': role_name},
                              list_marker='AttachedPolicies')
     resp['list_attached_role_policies_response']['list_attached_role_policies_result']['attached_policies'].should.have.length_of(2)
+
+
+@mock_iam
+def test_boto3_create_login_profile():
+    conn = boto3.client('iam')
+
+    with assert_raises(ClientError):
+        conn.create_login_profile(UserName='my-user', Password='Password')
+
+    conn.create_user(UserName='my-user')
+    conn.create_login_profile(UserName='my-user', Password='Password')
+
+    with assert_raises(ClientError):
+        conn.create_login_profile(UserName='my-user', Password='Password')

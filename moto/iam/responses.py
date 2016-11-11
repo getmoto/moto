@@ -736,12 +736,12 @@ LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
 
 CREATE_LOGIN_PROFILE_TEMPLATE = """
 <CreateLoginProfileResponse>
-   <CreateUserResult>
+   <CreateLoginProfileResult>
       <LoginProfile>
          <UserName>{{ user_name }}</UserName>
          <CreateDate>2011-09-19T23:00:56Z</CreateDate>
       </LoginProfile>
-   </CreateUserResult>
+   </CreateLoginProfileResult>
    <ResponseMetadata>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
