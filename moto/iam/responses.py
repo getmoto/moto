@@ -289,6 +289,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name='DeleteUser')
 
+    def delete_login_profile(self):
+        user_name = self._get_param('UserName')
+        iam_backend.delete_login_profile(user_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeleteLoginProfile')
+
     def generate_credential_report(self):
         if iam_backend.report_generated():
             template = self.response_template(CREDENTIAL_REPORT_GENERATED)
@@ -730,12 +736,12 @@ LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
 
 CREATE_LOGIN_PROFILE_TEMPLATE = """
 <CreateLoginProfileResponse>
-   <CreateUserResult>
+   <CreateLoginProfileResult>
       <LoginProfile>
          <UserName>{{ user_name }}</UserName>
          <CreateDate>2011-09-19T23:00:56Z</CreateDate>
       </LoginProfile>
-   </CreateUserResult>
+   </CreateLoginProfileResult>
    <ResponseMetadata>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>

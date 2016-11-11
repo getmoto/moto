@@ -604,6 +604,12 @@ class IAMBackend(BaseBackend):
             raise IAMConflictException("User {0} already has password".format(user_name))
         user.password = password
 
+    def delete_login_profile(self, user_name):
+        user = self.get_user(user_name)
+        if not user.password:
+            raise IAMNotFoundException("Login profile for {0} not found".format(user_name))
+        user.password = None
+
     def add_user_to_group(self, group_name, user_name):
         user = self.get_user(user_name)
         group = self.get_group(group_name)
