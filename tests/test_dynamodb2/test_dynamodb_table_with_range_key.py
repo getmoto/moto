@@ -1268,6 +1268,39 @@ def test_update_item_add_value_does_not_exist_is_created():
 
 
 @mock_dynamodb2
+def test_update_item_with_expression():
+    table = _create_table_with_range_key()
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'field': '1'
+    })
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+
+    table.update_item(
+        Key=item_key,
+        UpdateExpression='SET field=2',
+    )
+    dict(table.get_item(Key=item_key)['Item']).should.equal({
+        'field': '2',
+        'forum_name': 'the-key',
+        'subject': '123',
+    })
+
+    table.update_item(
+        Key=item_key,
+        UpdateExpression='SET field  = 3',
+    )
+    dict(table.get_item(Key=item_key)['Item']).should.equal({
+        'field': '3',
+        'forum_name': 'the-key',
+        'subject': '123',
+    })
+
+
+@mock_dynamodb2
 def test_boto3_query_gsi_range_comparison():
     table = _create_table_with_range_key()
 

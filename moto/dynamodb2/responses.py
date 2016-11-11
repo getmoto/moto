@@ -419,6 +419,12 @@ class DynamoHandler(BaseResponse):
         expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
         expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
         existing_item = dynamodb_backend2.get_item(name, key)
+
+        # Support spaces between operators in an update expression
+        # E.g. `a = b + c` -> `a=b+c`
+        if update_expression:
+            update_expression = re.sub('\s*([=\+-])\s*', '\\1', update_expression)
+
         item = dynamodb_backend2.update_item(name, key, update_expression, attribute_updates, expression_attribute_names, expression_attribute_values)
 
         item_dict = item.to_json()
