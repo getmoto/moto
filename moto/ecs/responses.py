@@ -164,7 +164,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         service_names = self._get_param('services')
         services = self.ecs_backend.describe_services(cluster_str, service_names)
         return json.dumps({
-            'services': services,
+            'services': [service.response_object for service in services],
             'failures': []
         })
 
