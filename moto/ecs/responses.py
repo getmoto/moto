@@ -70,6 +70,13 @@ class EC2ContainerServiceResponse(BaseResponse):
             #'nextToken': str(uuid.uuid1())
         })
 
+    def describe_task_definition(self):
+        task_definition_str = self._get_param('taskDefinition')
+        task_definition = self.ecs_backend.describe_task_definition(task_definition_str)
+        return json.dumps({
+            'taskDefinition': task_definition.response_object
+        })
+
     def deregister_task_definition(self):
         task_definition_str = self._get_param('taskDefinition')
         task_definition = self.ecs_backend.deregister_task_definition(task_definition_str)

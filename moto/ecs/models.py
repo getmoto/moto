@@ -217,6 +217,20 @@ class EC2ContainerServiceBackend(BaseBackend):
             task_arns.extend([task_definition.arn for task_definition in task_definition_list])
         return task_arns
 
+    def describe_task_definition(self, task_definition_str):
+        task_definition_name = task_definition_str.split('/')[-1]
+        if ':' in task_definition_name:
+            family, revision = task_definition_name.split(':')
+            revision = int(revision)
+        else:
+            family = task_definition_name
+            revision = len(self.task_definitions.get(family, []))
+
+        if family in self.task_definitions and 0 < revision <= len(self.task_definitions[family]):
+            return self.task_definitions[family][revision-1]
+        else:
+            raise Exception("{0} is not a task_definition".format(task_definition_name))
+
     def deregister_task_definition(self, task_definition_str):
         task_definition_name = task_definition_str.split('/')[-1]
         family, revision = task_definition_name.split(':')
