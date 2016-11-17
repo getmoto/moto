@@ -252,6 +252,58 @@ def test_list_services():
 
 
 @mock_ecs
+def test_describe_services():
+    client = boto3.client('ecs', region_name='us-east-1')
+    _ = client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    _ = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service1',
+        taskDefinition='test_ecs_task',
+        desiredCount=2
+    )
+    _ = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service2',
+        taskDefinition='test_ecs_task',
+        desiredCount=2
+    )
+    _ = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service3',
+        taskDefinition='test_ecs_task',
+        desiredCount=2
+    )
+    response = client.describe_services(
+        cluster='test_ecs_cluster',
+        services=['test_ecs_service1', 'test_ecs_service2']
+    )
+    len(response['services']).should.equal(2)
+    response['services'][0]['serviceArn'].should.equal('arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service1')
+    response['services'][0]['serviceName'].should.equal('test_ecs_service1')
+    response['services'][1]['serviceArn'].should.equal('arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2')
+    response['services'][1]['serviceName'].should.equal('test_ecs_service2')
+
+
+@mock_ecs
 def test_update_service():
     client = boto3.client('ecs', region_name='us-east-1')
     _ = client.create_cluster(

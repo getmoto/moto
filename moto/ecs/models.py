@@ -347,6 +347,15 @@ class EC2ContainerServiceBackend(BaseBackend):
                 service_arns.append(self.services[key].arn)
         return sorted(service_arns)
 
+    def describe_services(self, cluster_str, service_names):
+        cluster_name = cluster_str.split('/')[-1]
+        services = []
+        for service_name in service_names:
+            cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
+            if cluster_service_pair in self.services:
+                services.append(self.services[cluster_service_pair].response_object)
+        return services
+
     def update_service(self, cluster_str, service_name, task_definition_str, desired_count):
         cluster_name = cluster_str.split('/')[-1]
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)

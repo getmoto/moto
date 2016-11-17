@@ -152,6 +152,15 @@ class EC2ContainerServiceResponse(BaseResponse):
             # 'nextToken': str(uuid.uuid1())
         })
 
+    def describe_services(self):
+        cluster_str = self._get_param('cluster')
+        service_names = self._get_param('services')
+        services = self.ecs_backend.describe_services(cluster_str, service_names)
+        return json.dumps({
+            'services': services,
+            'failures': []
+        })
+
     def update_service(self):
         cluster_str = self._get_param('cluster')
         service_name = self._get_param('service')
