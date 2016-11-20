@@ -352,8 +352,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
         if cluster_service_pair in self.services:
             if task_definition_str is not None:
-                task_definition = self.fetch_task_definition(task_definition_str)
-                self.services[cluster_service_pair].task_definition = task_definition
+                self.fetch_task_definition(task_definition_str)
+                self.services[cluster_service_pair].task_definition = task_definition_str
             if desired_count is not None:
                 self.services[cluster_service_pair].desired_count = desired_count
             return self.services[cluster_service_pair]
