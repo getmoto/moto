@@ -12,15 +12,17 @@ class TagResponse(BaseResponse):
         validate_resource_ids(resource_ids)
         self.ec2_backend.do_resources_exist(resource_ids)
         tags = tags_from_query_string(self.querystring)
-        self.ec2_backend.create_tags(resource_ids, tags)
-        return CREATE_RESPONSE
+        if self.is_not_dryrun('CreateTags'):
+            self.ec2_backend.create_tags(resource_ids, tags)
+            return CREATE_RESPONSE
 
     def delete_tags(self):
         resource_ids = sequence_from_querystring('ResourceId', self.querystring)
         validate_resource_ids(resource_ids)
         tags = tags_from_query_string(self.querystring)
-        self.ec2_backend.delete_tags(resource_ids, tags)
-        return DELETE_RESPONSE
+        if self.is_not_dryrun('DeleteTags'):
+            self.ec2_backend.delete_tags(resource_ids, tags)
+            return DELETE_RESPONSE
 
     def describe_tags(self):
         filters = filters_from_querystring(querystring_dict=self.querystring)

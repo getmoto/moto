@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from datetime import datetime
 import json
 
 import boto.cloudformation
@@ -19,11 +20,14 @@ class FakeStack(object):
         self.region_name = region_name
         self.notification_arns = notification_arns if notification_arns else []
         self.tags = tags if tags else {}
-        self.status = 'CREATE_COMPLETE'
+        self.events = []
+        self._add_stack_event("CREATE_IN_PROGRESS", resource_status_reason="User Initiated")
 
         self.description = self.template_dict.get('Description')
         self.resource_map = self._create_resource_map()
         self.output_map = self._create_output_map()
+        self._add_stack_event("CREATE_COMPLETE")
+        self.status = 'CREATE_COMPLETE'
 
     def _create_resource_map(self):
         resource_map = ResourceMap(self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict)
@@ -34,6 +38,32 @@ class FakeStack(object):
         output_map = OutputMap(self.resource_map, self.template_dict)
         output_map.create()
         return output_map
+
+    def _add_stack_event(self, resource_status, resource_status_reason=None, resource_properties=None):
+        self.events.append(FakeEvent(
+            stack_id=self.stack_id,
+            stack_name=self.name,
+            logical_resource_id=self.name,
+            physical_resource_id=self.stack_id,
+            resource_type="AWS::CloudFormation::Stack",
+            resource_status=resource_status,
+            resource_status_reason=resource_status_reason,
+            resource_properties=resource_properties,
+        ))
+
+    def _add_resource_event(self, logical_resource_id, resource_status, resource_status_reason=None, resource_properties=None):
+        # not used yet... feel free to help yourself
+        resource = self.resource_map[logical_resource_id]
+        self.events.append(FakeEvent(
+            stack_id=self.stack_id,
+            stack_name=self.name,
+            logical_resource_id=logical_resource_id,
+            physical_resource_id=resource.physical_resource_id,
+            resource_type=resource.type,
+            resource_status=resource_status,
+            resource_status_reason=resource_status_reason,
+            resource_properties=resource_properties,
+        ))
 
     @property
     def stack_parameters(self):
@@ -48,14 +78,31 @@ class FakeStack(object):
         return self.output_map.values()
 
     def update(self, template):
+        self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.template = template
         self.resource_map.update(json.loads(template))
         self.output_map = self._create_output_map()
+        self._add_stack_event("UPDATE_COMPLETE")
         self.status = "UPDATE_COMPLETE"
 
     def delete(self):
+        self._add_stack_event("DELETE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.resource_map.delete()
+        self._add_stack_event("DELETE_COMPLETE")
         self.status = "DELETE_COMPLETE"
+
+
+class FakeEvent(object):
+    def __init__(self, stack_id, stack_name, logical_resource_id, physical_resource_id, resource_type, resource_status, resource_status_reason=None, resource_properties=None):
+        self.stack_id = stack_id
+        self.stack_name = stack_name
+        self.logical_resource_id = logical_resource_id
+        self.physical_resource_id = physical_resource_id
+        self.resource_type = resource_type
+        self.resource_status = resource_status
+        self.resource_status_reason = resource_status_reason
+        self.resource_properties = resource_properties
+        self.timestamp = datetime.utcnow()
 
 
 class CloudFormationBackend(BaseBackend):
@@ -97,12 +144,15 @@ class CloudFormationBackend(BaseBackend):
         return self.stacks.values()
 
     def get_stack(self, name_or_stack_id):
-        if name_or_stack_id in self.stacks:
-            # Lookup by stack id
-            return self.stacks.get(name_or_stack_id)
+        all_stacks = dict(self.deleted_stacks, **self.stacks)
+        if name_or_stack_id in all_stacks:
+            # Lookup by stack id - deleted stacks incldued
+            return all_stacks[name_or_stack_id]
         else:
-            # Lookup by stack name
-            return [stack for stack in self.stacks.values() if stack.name == name_or_stack_id][0]
+            # Lookup by stack name - undeleted stacks only
+            for stack in self.stacks.values():
+                if stack.name == name_or_stack_id:
+                    return stack
 
     def update_stack(self, name, template):
         stack = self.get_stack(name)

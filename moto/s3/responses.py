@@ -400,6 +400,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 200, headers, template.render(obj=key)
 
         headers.update(key.metadata)
+        headers.update(key.response_dict)
         return 200, headers, key.value
 
     def _key_response_put(self, request, body, bucket_name, query, key_name, headers):

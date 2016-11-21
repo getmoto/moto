@@ -89,6 +89,60 @@ def test_create_stream():
 
 @mock_kinesis
 @freeze_time("2015-03-01")
+def test_create_stream_without_redshift():
+    client = boto3.client('firehose', region_name='us-east-1')
+
+    response = client.create_delivery_stream(
+        DeliveryStreamName="stream1",
+        S3DestinationConfiguration={
+            'RoleARN': 'arn:aws:iam::123456789012:role/firehose_delivery_role',
+            'BucketARN': 'arn:aws:s3:::kinesis-test',
+            'Prefix': 'myFolder/',
+            'BufferingHints': {
+                'SizeInMBs': 123,
+                'IntervalInSeconds': 124
+            },
+            'CompressionFormat': 'UNCOMPRESSED',
+        }
+    )
+    stream_arn = response['DeliveryStreamARN']
+
+    response = client.describe_delivery_stream(DeliveryStreamName='stream1')
+    stream_description = response['DeliveryStreamDescription']
+
+    # Sure and Freezegun don't play nicely together
+    created = stream_description.pop('CreateTimestamp')
+    last_updated = stream_description.pop('LastUpdateTimestamp')
+    from dateutil.tz import tzlocal
+    assert created == datetime.datetime(2015, 3, 1, tzinfo=tzlocal())
+    assert last_updated == datetime.datetime(2015, 3, 1, tzinfo=tzlocal())
+
+    stream_description.should.equal({
+        'DeliveryStreamName': 'stream1',
+        'DeliveryStreamARN': stream_arn,
+        'DeliveryStreamStatus': 'ACTIVE',
+        'VersionId': 'string',
+        'Destinations': [
+            {
+                'DestinationId': 'string',
+                'S3DestinationDescription': {
+                    'RoleARN': 'arn:aws:iam::123456789012:role/firehose_delivery_role',
+                    'RoleARN': 'arn:aws:iam::123456789012:role/firehose_delivery_role',
+                    'BucketARN': 'arn:aws:s3:::kinesis-test',
+                    'Prefix': 'myFolder/',
+                    'BufferingHints': {
+                        'SizeInMBs': 123,
+                        'IntervalInSeconds': 124
+                    },
+                    'CompressionFormat': 'UNCOMPRESSED',
+                }
+            },
+        ],
+        "HasMoreDestinations": False,
+    })
+
+@mock_kinesis
+@freeze_time("2015-03-01")
 def test_deescribe_non_existant_stream():
     client = boto3.client('firehose', region_name='us-east-1')
 

@@ -1,456 +1,650 @@
 from __future__ import unicode_literals
+import time
+from datetime import datetime
 
 import boto
+import pytz
+from boto.emr.bootstrap_action import BootstrapAction
 from boto.emr.instance_group import InstanceGroup
-
 from boto.emr.step import StreamingStep
+
+import six
 import sure  # noqa
 
 from moto import mock_emr
 from tests.helpers import requires_boto_gte
 
 
-@mock_emr
-def test_create_job_flow_in_multiple_regions():
-    step = StreamingStep(
-        name='My wordcount example',
-        mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter.py',
-        reducer='aggregate',
-        input='s3n://elasticmapreduce/samples/wordcount/input',
-        output='s3n://output_bucket/output/wordcount_output'
-    )
+run_jobflow_args = dict(
+    job_flow_role='EMR_EC2_DefaultRole',
+    keep_alive=True,
+    log_uri='s3://some_bucket/jobflow_logs',
+    master_instance_type='c1.medium',
+    name='My jobflow',
+    num_instances=2,
+    service_role='EMR_DefaultRole',
+    slave_instance_type='c1.medium',
+)
 
-    west1_conn = boto.emr.connect_to_region('us-east-1')
-    west1_job_id = west1_conn.run_jobflow(
-        name='us-east-1',
-        log_uri='s3://some_bucket/jobflow_logs',
-        master_instance_type='m1.medium',
-        slave_instance_type='m1.small',
-        steps=[step],
-    )
 
-    west2_conn = boto.emr.connect_to_region('eu-west-1')
-    west2_job_id = west2_conn.run_jobflow(
-        name='eu-west-1',
-        log_uri='s3://some_bucket/jobflow_logs',
-        master_instance_type='m1.medium',
-        slave_instance_type='m1.small',
-        steps=[step],
-    )
-
-    west1_job_flow = west1_conn.describe_jobflow(west1_job_id)
-    west1_job_flow.name.should.equal('us-east-1')
-    west2_job_flow = west2_conn.describe_jobflow(west2_job_id)
-    west2_job_flow.name.should.equal('eu-west-1')
+input_instance_groups = [
+    InstanceGroup(1, 'MASTER', 'c1.medium', 'ON_DEMAND', 'master'),
+    InstanceGroup(3, 'CORE', 'c1.medium', 'ON_DEMAND', 'core'),
+    InstanceGroup(6, 'TASK', 'c1.large', 'SPOT', 'task-1', '0.07'),
+    InstanceGroup(10, 'TASK', 'c1.xlarge', 'SPOT', 'task-2', '0.05'),
+]
 
 
 @mock_emr
-def test_create_job_flow():
+def test_describe_cluster():
     conn = boto.connect_emr()
+    args = run_jobflow_args.copy()
+    args.update(dict(
+        api_params={
+            'Applications.member.1.Name': 'Spark',
+            'Applications.member.1.Version': '2.4.2',
+            'Configurations.member.1.Classification': 'yarn-site',
+            'Configurations.member.1.Properties.entry.1.key': 'someproperty',
+            'Configurations.member.1.Properties.entry.1.value': 'somevalue',
+            'Configurations.member.1.Properties.entry.2.key': 'someotherproperty',
+            'Configurations.member.1.Properties.entry.2.value': 'someothervalue',
+            'Instances.EmrManagedMasterSecurityGroup': 'master-security-group',
+            'Instances.Ec2SubnetId': 'subnet-8be41cec',
+        },
+        availability_zone='us-east-2b',
+        ec2_keyname='mykey',
+        job_flow_role='EMR_EC2_DefaultRole',
+        keep_alive=False,
+        log_uri='s3://some_bucket/jobflow_logs',
+        name='My jobflow',
+        service_role='EMR_DefaultRole',
+        visible_to_all_users=True,
+    ))
+    cluster_id = conn.run_jobflow(**args)
+    input_tags = {'tag1': 'val1', 'tag2': 'val2'}
+    conn.add_tags(cluster_id, input_tags)
 
-    step1 = StreamingStep(
-        name='My wordcount example',
-        mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter.py',
-        reducer='aggregate',
-        input='s3n://elasticmapreduce/samples/wordcount/input',
-        output='s3n://output_bucket/output/wordcount_output'
-    )
+    cluster = conn.describe_cluster(cluster_id)
+    cluster.applications[0].name.should.equal('Spark')
+    cluster.applications[0].version.should.equal('2.4.2')
+    cluster.autoterminate.should.equal('true')
 
-    step2 = StreamingStep(
-        name='My wordcount example2',
-        mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter2.py',
-        reducer='aggregate',
-        input='s3n://elasticmapreduce/samples/wordcount/input2',
-        output='s3n://output_bucket/output/wordcount_output2'
-    )
+    # configurations appear not be supplied as attributes?
 
-    job_id = conn.run_jobflow(
+    attrs = cluster.ec2instanceattributes
+    # AdditionalMasterSecurityGroups
+    # AdditionalSlaveSecurityGroups
+    attrs.ec2availabilityzone.should.equal(args['availability_zone'])
+    attrs.ec2keyname.should.equal(args['ec2_keyname'])
+    attrs.ec2subnetid.should.equal(args['api_params']['Instances.Ec2SubnetId'])
+    # EmrManagedMasterSecurityGroups
+    # EmrManagedSlaveSecurityGroups
+    attrs.iaminstanceprofile.should.equal(args['job_flow_role'])
+    # ServiceAccessSecurityGroup
+
+    cluster.id.should.equal(cluster_id)
+    cluster.loguri.should.equal(args['log_uri'])
+    cluster.masterpublicdnsname.should.be.a(six.string_types)
+    cluster.name.should.equal(args['name'])
+    int(cluster.normalizedinstancehours).should.equal(0)
+    # cluster.release_label
+    cluster.shouldnt.have.property('requestedamiversion')
+    cluster.runningamiversion.should.equal('1.0.0')
+    # cluster.securityconfiguration
+    cluster.servicerole.should.equal(args['service_role'])
+
+    cluster.status.state.should.equal('TERMINATED')
+    cluster.status.statechangereason.message.should.be.a(six.string_types)
+    cluster.status.statechangereason.code.should.be.a(six.string_types)
+    cluster.status.timeline.creationdatetime.should.be.a(six.string_types)
+    # cluster.status.timeline.enddatetime.should.be.a(six.string_types)
+    # cluster.status.timeline.readydatetime.should.be.a(six.string_types)
+
+    dict((item.key, item.value) for item in cluster.tags).should.equal(input_tags)
+
+    cluster.terminationprotected.should.equal('false')
+    cluster.visibletoallusers.should.equal('true')
+
+
+@mock_emr
+def test_describe_jobflows():
+    conn = boto.connect_emr()
+    args = run_jobflow_args.copy()
+    expected = {}
+
+    for idx in range(400):
+        cluster_name = 'cluster' + str(idx)
+        args['name'] = cluster_name
+        cluster_id = conn.run_jobflow(**args)
+        expected[cluster_id] = {
+            'id': cluster_id,
+            'name': cluster_name,
+            'state': 'WAITING'
+        }
+
+    # need sleep since it appears the timestamp is always rounded to
+    # the nearest second internally
+    time.sleep(1)
+    timestamp = datetime.now(pytz.utc)
+    time.sleep(1)
+
+    for idx in range(400, 600):
+        cluster_name = 'cluster' + str(idx)
+        args['name'] = cluster_name
+        cluster_id = conn.run_jobflow(**args)
+        conn.terminate_jobflow(cluster_id)
+        expected[cluster_id] = {
+            'id': cluster_id,
+            'name': cluster_name,
+            'state': 'TERMINATED'
+        }
+    jobs = conn.describe_jobflows()
+    jobs.should.have.length_of(512)
+
+    for cluster_id, y in expected.items():
+        resp = conn.describe_jobflows(jobflow_ids=[cluster_id])
+        resp.should.have.length_of(1)
+        resp[0].jobflowid.should.equal(cluster_id)
+
+    resp = conn.describe_jobflows(states=['WAITING'])
+    resp.should.have.length_of(400)
+    for x in resp:
+        x.state.should.equal('WAITING')
+
+    resp = conn.describe_jobflows(created_before=timestamp)
+    resp.should.have.length_of(400)
+
+    resp = conn.describe_jobflows(created_after=timestamp)
+    resp.should.have.length_of(200)
+
+
+@mock_emr
+def test_describe_jobflow():
+    conn = boto.connect_emr()
+    args = run_jobflow_args.copy()
+    args.update(dict(
+        ami_version='3.8.1',
+        api_params={
+            #'Applications.member.1.Name': 'Spark',
+            #'Applications.member.1.Version': '2.4.2',
+            #'Configurations.member.1.Classification': 'yarn-site',
+            #'Configurations.member.1.Properties.entry.1.key': 'someproperty',
+            #'Configurations.member.1.Properties.entry.1.value': 'somevalue',
+            #'Instances.EmrManagedMasterSecurityGroup': 'master-security-group',
+            'Instances.Ec2SubnetId': 'subnet-8be41cec',
+        },
+        ec2_keyname='mykey',
+        hadoop_version='2.4.0',
+
         name='My jobflow',
         log_uri='s3://some_bucket/jobflow_logs',
-        master_instance_type='m1.medium',
-        slave_instance_type='m1.small',
-        steps=[step1, step2],
-    )
+        keep_alive=True,
+        master_instance_type='c1.medium',
+        slave_instance_type='c1.medium',
+        num_instances=2,
 
+        availability_zone='us-west-2b',
+
+        job_flow_role='EMR_EC2_DefaultRole',
+        service_role='EMR_DefaultRole',
+        visible_to_all_users=True,
+    ))
+
+    cluster_id = conn.run_jobflow(**args)
+    jf = conn.describe_jobflow(cluster_id)
+    jf.amiversion.should.equal(args['ami_version'])
+    jf.bootstrapactions.should.equal(None)
+    jf.creationdatetime.should.be.a(six.string_types)
+    jf.should.have.property('laststatechangereason')
+    jf.readydatetime.should.be.a(six.string_types)
+    jf.startdatetime.should.be.a(six.string_types)
+    jf.state.should.equal('WAITING')
+
+    jf.ec2keyname.should.equal(args['ec2_keyname'])
+    # Ec2SubnetId
+    jf.hadoopversion.should.equal(args['hadoop_version'])
+    int(jf.instancecount).should.equal(2)
+
+    for ig in jf.instancegroups:
+        ig.creationdatetime.should.be.a(six.string_types)
+        # ig.enddatetime.should.be.a(six.string_types)
+        ig.should.have.property('instancegroupid').being.a(six.string_types)
+        int(ig.instancerequestcount).should.equal(1)
+        ig.instancerole.should.be.within(['MASTER', 'CORE'])
+        int(ig.instancerunningcount).should.equal(1)
+        ig.instancetype.should.equal('c1.medium')
+        ig.laststatechangereason.should.be.a(six.string_types)
+        ig.market.should.equal('ON_DEMAND')
+        ig.name.should.be.a(six.string_types)
+        ig.readydatetime.should.be.a(six.string_types)
+        ig.startdatetime.should.be.a(six.string_types)
+        ig.state.should.equal('RUNNING')
+
+    jf.keepjobflowalivewhennosteps.should.equal('true')
+    jf.masterinstanceid.should.be.a(six.string_types)
+    jf.masterinstancetype.should.equal(args['master_instance_type'])
+    jf.masterpublicdnsname.should.be.a(six.string_types)
+    int(jf.normalizedinstancehours).should.equal(0)
+    jf.availabilityzone.should.equal(args['availability_zone'])
+    jf.slaveinstancetype.should.equal(args['slave_instance_type'])
+    jf.terminationprotected.should.equal('false')
+
+    jf.jobflowid.should.equal(cluster_id)
+    # jf.jobflowrole.should.equal(args['job_flow_role'])
+    jf.loguri.should.equal(args['log_uri'])
+    jf.name.should.equal(args['name'])
+    # jf.servicerole.should.equal(args['service_role'])
+
+    jf.steps.should.have.length_of(0)
+
+    list(i.value for i in jf.supported_products).should.equal([])
+    jf.visibletoallusers.should.equal('true')
+
+
+@mock_emr
+def test_list_clusters():
+    conn = boto.connect_emr()
+    args = run_jobflow_args.copy()
+    expected = {}
+
+    for idx in range(40):
+        cluster_name = 'jobflow' + str(idx)
+        args['name'] = cluster_name
+        cluster_id = conn.run_jobflow(**args)
+        expected[cluster_id] = {
+            'id': cluster_id,
+            'name': cluster_name,
+            'normalizedinstancehours': '0',
+            'state': 'WAITING'
+        }
+
+    # need sleep since it appears the timestamp is always rounded to
+    # the nearest second internally
+    time.sleep(1)
+    timestamp = datetime.now(pytz.utc)
+    time.sleep(1)
+
+    for idx in range(40, 70):
+        cluster_name = 'jobflow' + str(idx)
+        args['name'] = cluster_name
+        cluster_id = conn.run_jobflow(**args)
+        conn.terminate_jobflow(cluster_id)
+        expected[cluster_id] = {
+            'id': cluster_id,
+            'name': cluster_name,
+            'normalizedinstancehours': '0',
+            'state': 'TERMINATED'
+        }
+
+    args = {}
+    while 1:
+        resp = conn.list_clusters(**args)
+        clusters = resp.clusters
+        len(clusters).should.be.lower_than_or_equal_to(50)
+        for x in clusters:
+            y = expected[x.id]
+            x.id.should.equal(y['id'])
+            x.name.should.equal(y['name'])
+            x.normalizedinstancehours.should.equal(y['normalizedinstancehours'])
+            x.status.state.should.equal(y['state'])
+            x.status.timeline.creationdatetime.should.be.a(six.string_types)
+            if y['state'] == 'TERMINATED':
+                x.status.timeline.enddatetime.should.be.a(six.string_types)
+            else:
+                x.status.timeline.shouldnt.have.property('enddatetime')
+            x.status.timeline.readydatetime.should.be.a(six.string_types)
+        if not hasattr(resp, 'marker'):
+            break
+        args = {'marker': resp.marker}
+
+    resp = conn.list_clusters(cluster_states=['TERMINATED'])
+    resp.clusters.should.have.length_of(30)
+    for x in resp.clusters:
+        x.status.state.should.equal('TERMINATED')
+
+    resp = conn.list_clusters(created_before=timestamp)
+    resp.clusters.should.have.length_of(40)
+
+    resp = conn.list_clusters(created_after=timestamp)
+    resp.clusters.should.have.length_of(30)
+
+
+@mock_emr
+def test_run_jobflow():
+    conn = boto.connect_emr()
+    args = run_jobflow_args.copy()
+    job_id = conn.run_jobflow(**args)
     job_flow = conn.describe_jobflow(job_id)
-    job_flow.state.should.equal('STARTING')
+    job_flow.state.should.equal('WAITING')
     job_flow.jobflowid.should.equal(job_id)
-    job_flow.name.should.equal('My jobflow')
-    job_flow.masterinstancetype.should.equal('m1.medium')
-    job_flow.slaveinstancetype.should.equal('m1.small')
-    job_flow.loguri.should.equal('s3://some_bucket/jobflow_logs')
-    job_flow.visibletoallusers.should.equal('False')
+    job_flow.name.should.equal(args['name'])
+    job_flow.masterinstancetype.should.equal(args['master_instance_type'])
+    job_flow.slaveinstancetype.should.equal(args['slave_instance_type'])
+    job_flow.loguri.should.equal(args['log_uri'])
+    job_flow.visibletoallusers.should.equal('false')
     int(job_flow.normalizedinstancehours).should.equal(0)
-    job_step = job_flow.steps[0]
-    job_step.name.should.equal('My wordcount example')
-    job_step.state.should.equal('STARTING')
-    args = [arg.value for arg in job_step.args]
-    args.should.equal([
-        '-mapper',
-        's3n://elasticmapreduce/samples/wordcount/wordSplitter.py',
-        '-reducer',
-        'aggregate',
-        '-input',
-        's3n://elasticmapreduce/samples/wordcount/input',
-        '-output',
-        's3n://output_bucket/output/wordcount_output',
-    ])
+    job_flow.steps.should.have.length_of(0)
 
-    job_step2 = job_flow.steps[1]
-    job_step2.name.should.equal('My wordcount example2')
-    job_step2.state.should.equal('PENDING')
-    args = [arg.value for arg in job_step2.args]
-    args.should.equal([
-        '-mapper',
-        's3n://elasticmapreduce/samples/wordcount/wordSplitter2.py',
-        '-reducer',
-        'aggregate',
-        '-input',
-        's3n://elasticmapreduce/samples/wordcount/input2',
-        '-output',
-        's3n://output_bucket/output/wordcount_output2',
-    ])
+
+@mock_emr
+def test_run_jobflow_in_multiple_regions():
+    regions = {}
+    for region in ['us-east-1', 'eu-west-1']:
+        conn = boto.emr.connect_to_region(region)
+        args = run_jobflow_args.copy()
+        args['name'] = region
+        cluster_id = conn.run_jobflow(**args)
+        regions[region] = {'conn': conn, 'cluster_id': cluster_id}
+
+    for region in regions.keys():
+        conn = regions[region]['conn']
+        jf = conn.describe_jobflow(regions[region]['cluster_id'])
+        jf.name.should.equal(region)
 
 
 @requires_boto_gte("2.8")
 @mock_emr
-def test_create_job_flow_with_new_params():
+def test_run_jobflow_with_new_params():
     # Test that run_jobflow works with newer params
     conn = boto.connect_emr()
-
-    conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        master_instance_type='m1.medium',
-        slave_instance_type='m1.small',
-        job_flow_role='some-role-arn',
-        steps=[],
-    )
+    conn.run_jobflow(**run_jobflow_args)
 
 
 @requires_boto_gte("2.8")
 @mock_emr
-def test_create_job_flow_visible_to_all_users():
+def test_run_jobflow_with_visible_to_all_users():
     conn = boto.connect_emr()
-
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[],
-        visible_to_all_users=True,
-    )
-    job_flow = conn.describe_jobflow(job_id)
-    job_flow.visibletoallusers.should.equal('True')
+    for expected in (True, False):
+        job_id = conn.run_jobflow(
+            visible_to_all_users=expected,
+            **run_jobflow_args
+        )
+        job_flow = conn.describe_jobflow(job_id)
+        job_flow.visibletoallusers.should.equal(str(expected).lower())
 
 
 @requires_boto_gte("2.8")
 @mock_emr
-def test_create_job_flow_with_instance_groups():
+def test_run_jobflow_with_instance_groups():
+    input_groups = dict((g.name, g) for g in input_instance_groups)
     conn = boto.connect_emr()
-
-    instance_groups = [InstanceGroup(6, 'TASK', 'c1.medium', 'SPOT', 'spot-0.07', '0.07'),
-                       InstanceGroup(6, 'TASK', 'c1.medium', 'SPOT', 'spot-0.07', '0.07')]
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[],
-        instance_groups=instance_groups
-    )
-
+    job_id = conn.run_jobflow(instance_groups=input_instance_groups,
+                              **run_jobflow_args)
     job_flow = conn.describe_jobflow(job_id)
-    int(job_flow.instancecount).should.equal(12)
-    instance_group = job_flow.instancegroups[0]
-    int(instance_group.instancerunningcount).should.equal(6)
-
-
-@mock_emr
-def test_terminate_job_flow():
-    conn = boto.connect_emr()
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[]
-    )
-
-    flow = conn.describe_jobflows()[0]
-    flow.state.should.equal('STARTING')
-    conn.terminate_jobflow(job_id)
-    flow = conn.describe_jobflows()[0]
-    flow.state.should.equal('TERMINATED')
-
-
-@mock_emr
-def test_describe_job_flows():
-    conn = boto.connect_emr()
-    job1_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[]
-    )
-    job2_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[]
-    )
-
-    jobs = conn.describe_jobflows()
-    jobs.should.have.length_of(2)
-
-    jobs = conn.describe_jobflows(jobflow_ids=[job2_id])
-    jobs.should.have.length_of(1)
-    jobs[0].jobflowid.should.equal(job2_id)
-
-    first_job = conn.describe_jobflow(job1_id)
-    first_job.jobflowid.should.equal(job1_id)
-
-
-@mock_emr
-def test_add_steps_to_flow():
-    conn = boto.connect_emr()
-
-    step1 = StreamingStep(
-        name='My wordcount example',
-        mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter.py',
-        reducer='aggregate',
-        input='s3n://elasticmapreduce/samples/wordcount/input',
-        output='s3n://output_bucket/output/wordcount_output'
-    )
-
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[step1]
-    )
-
-    job_flow = conn.describe_jobflow(job_id)
-    job_flow.state.should.equal('STARTING')
-    job_flow.jobflowid.should.equal(job_id)
-    job_flow.name.should.equal('My jobflow')
-    job_flow.loguri.should.equal('s3://some_bucket/jobflow_logs')
-
-    step2 = StreamingStep(
-        name='My wordcount example2',
-        mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter2.py',
-        reducer='aggregate',
-        input='s3n://elasticmapreduce/samples/wordcount/input2',
-        output='s3n://output_bucket/output/wordcount_output2'
-    )
-
-    conn.add_jobflow_steps(job_id, [step2])
-
-    job_flow = conn.describe_jobflow(job_id)
-    job_step = job_flow.steps[0]
-    job_step.name.should.equal('My wordcount example')
-    job_step.state.should.equal('STARTING')
-    args = [arg.value for arg in job_step.args]
-    args.should.equal([
-        '-mapper',
-        's3n://elasticmapreduce/samples/wordcount/wordSplitter.py',
-        '-reducer',
-        'aggregate',
-        '-input',
-        's3n://elasticmapreduce/samples/wordcount/input',
-        '-output',
-        's3n://output_bucket/output/wordcount_output',
-    ])
-
-    job_step2 = job_flow.steps[1]
-    job_step2.name.should.equal('My wordcount example2')
-    job_step2.state.should.equal('PENDING')
-    args = [arg.value for arg in job_step2.args]
-    args.should.equal([
-        '-mapper',
-        's3n://elasticmapreduce/samples/wordcount/wordSplitter2.py',
-        '-reducer',
-        'aggregate',
-        '-input',
-        's3n://elasticmapreduce/samples/wordcount/input2',
-        '-output',
-        's3n://output_bucket/output/wordcount_output2',
-    ])
-
-
-@mock_emr
-def test_create_instance_groups():
-    conn = boto.connect_emr()
-
-    step1 = StreamingStep(
-        name='My wordcount example',
-        mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter.py',
-        reducer='aggregate',
-        input='s3n://elasticmapreduce/samples/wordcount/input',
-        output='s3n://output_bucket/output/wordcount_output'
-    )
-
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[step1],
-    )
-
-    instance_group = InstanceGroup(6, 'TASK', 'c1.medium', 'SPOT', 'spot-0.07', '0.07')
-    instance_group = conn.add_instance_groups(job_id, [instance_group])
-    instance_group_id = instance_group.instancegroupids
-    job_flow = conn.describe_jobflows()[0]
-    int(job_flow.instancecount).should.equal(6)
-    instance_group = job_flow.instancegroups[0]
-    instance_group.instancegroupid.should.equal(instance_group_id)
-    int(instance_group.instancerunningcount).should.equal(6)
-    instance_group.instancerole.should.equal('TASK')
-    instance_group.instancetype.should.equal('c1.medium')
-    instance_group.market.should.equal('SPOT')
-    instance_group.name.should.equal('spot-0.07')
-    instance_group.bidprice.should.equal('0.07')
-
-
-@mock_emr
-def test_modify_instance_groups():
-    conn = boto.connect_emr()
-
-    step1 = StreamingStep(
-        name='My wordcount example',
-        mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter.py',
-        reducer='aggregate',
-        input='s3n://elasticmapreduce/samples/wordcount/input',
-        output='s3n://output_bucket/output/wordcount_output'
-    )
-
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[step1]
-    )
-
-    instance_group1 = InstanceGroup(6, 'TASK', 'c1.medium', 'SPOT', 'spot-0.07', '0.07')
-    instance_group2 = InstanceGroup(6, 'TASK', 'c1.medium', 'SPOT', 'spot-0.07', '0.07')
-    instance_group = conn.add_instance_groups(job_id, [instance_group1, instance_group2])
-    instance_group_ids = instance_group.instancegroupids.split(",")
-
-    job_flow = conn.describe_jobflows()[0]
-    int(job_flow.instancecount).should.equal(12)
-    instance_group = job_flow.instancegroups[0]
-    int(instance_group.instancerunningcount).should.equal(6)
-
-    conn.modify_instance_groups(instance_group_ids, [2, 3])
-
-    job_flow = conn.describe_jobflows()[0]
-    int(job_flow.instancecount).should.equal(5)
-    instance_group1 = [
-        group for group
-        in job_flow.instancegroups
-        if group.instancegroupid == instance_group_ids[0]
-    ][0]
-    int(instance_group1.instancerunningcount).should.equal(2)
-    instance_group2 = [
-        group for group
-        in job_flow.instancegroups
-        if group.instancegroupid == instance_group_ids[1]
-    ][0]
-    int(instance_group2.instancerunningcount).should.equal(3)
-
-
-@requires_boto_gte("2.8")
-@mock_emr
-def test_set_visible_to_all_users():
-    conn = boto.connect_emr()
-
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[],
-        visible_to_all_users=False,
-    )
-    job_flow = conn.describe_jobflow(job_id)
-    job_flow.visibletoallusers.should.equal('False')
-
-    conn.set_visible_to_all_users(job_id, True)
-
-    job_flow = conn.describe_jobflow(job_id)
-    job_flow.visibletoallusers.should.equal('True')
-
-    conn.set_visible_to_all_users(job_id, False)
-
-    job_flow = conn.describe_jobflow(job_id)
-    job_flow.visibletoallusers.should.equal('False')
+    int(job_flow.instancecount).should.equal(sum(g.num_instances for g in input_instance_groups))
+    for instance_group in job_flow.instancegroups:
+        expected = input_groups[instance_group.name]
+        instance_group.should.have.property('instancegroupid')
+        int(instance_group.instancerunningcount).should.equal(expected.num_instances)
+        instance_group.instancerole.should.equal(expected.role)
+        instance_group.instancetype.should.equal(expected.type)
+        instance_group.market.should.equal(expected.market)
+        if hasattr(expected, 'bidprice'):
+            instance_group.bidprice.should.equal(expected.bidprice)
 
 
 @requires_boto_gte("2.8")
 @mock_emr
 def test_set_termination_protection():
     conn = boto.connect_emr()
-
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[]
-    )
+    job_id = conn.run_jobflow(**run_jobflow_args)
     job_flow = conn.describe_jobflow(job_id)
-    job_flow.terminationprotected.should.equal(u'None')
+    job_flow.terminationprotected.should.equal('false')
 
     conn.set_termination_protection(job_id, True)
-
     job_flow = conn.describe_jobflow(job_id)
     job_flow.terminationprotected.should.equal('true')
 
     conn.set_termination_protection(job_id, False)
-
     job_flow = conn.describe_jobflow(job_id)
     job_flow.terminationprotected.should.equal('false')
 
 
+@requires_boto_gte("2.8")
 @mock_emr
-def test_list_clusters():
+def test_set_visible_to_all_users():
     conn = boto.connect_emr()
-    conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[],
-    )
+    args = run_jobflow_args.copy()
+    args['visible_to_all_users'] = False
+    job_id = conn.run_jobflow(**args)
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.visibletoallusers.should.equal('false')
 
-    summary = conn.list_clusters()
-    clusters = summary.clusters
-    clusters.should.have.length_of(1)
-    cluster = clusters[0]
-    cluster.name.should.equal("My jobflow")
-    cluster.normalizedinstancehours.should.equal('0')
-    cluster.status.state.should.equal("RUNNING")
+    conn.set_visible_to_all_users(job_id, True)
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.visibletoallusers.should.equal('true')
 
-
-@mock_emr
-def test_describe_cluster():
-    conn = boto.connect_emr()
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[],
-    )
-
-    cluster = conn.describe_cluster(job_id)
-    cluster.name.should.equal("My jobflow")
-    cluster.normalizedinstancehours.should.equal('0')
-    cluster.status.state.should.equal("RUNNING")
+    conn.set_visible_to_all_users(job_id, False)
+    job_flow = conn.describe_jobflow(job_id)
+    job_flow.visibletoallusers.should.equal('false')
 
 
 @mock_emr
-def test_cluster_tagging():
+def test_terminate_jobflow():
     conn = boto.connect_emr()
-    job_id = conn.run_jobflow(
-        name='My jobflow',
-        log_uri='s3://some_bucket/jobflow_logs',
-        steps=[],
-    )
-    cluster_id = job_id
-    conn.add_tags(cluster_id, {"tag1": "val1", "tag2": "val2"})
+    job_id = conn.run_jobflow(**run_jobflow_args)
+    flow = conn.describe_jobflows()[0]
+    flow.state.should.equal('WAITING')
 
+    conn.terminate_jobflow(job_id)
+    flow = conn.describe_jobflows()[0]
+    flow.state.should.equal('TERMINATED')
+
+
+# testing multiple end points for each feature
+
+@mock_emr
+def test_bootstrap_actions():
+    bootstrap_actions = [
+        BootstrapAction(
+            name='bs1',
+            path='path/to/script',
+            bootstrap_action_args=['arg1', 'arg2']),
+        BootstrapAction(
+            name='bs2',
+            path='path/to/anotherscript',
+            bootstrap_action_args=[])
+    ]
+
+    conn = boto.connect_emr()
+    cluster_id = conn.run_jobflow(
+        bootstrap_actions=bootstrap_actions,
+        **run_jobflow_args
+    )
+
+    jf = conn.describe_jobflow(cluster_id)
+    for x, y in zip(jf.bootstrapactions, bootstrap_actions):
+        x.name.should.equal(y.name)
+        x.path.should.equal(y.path)
+        list(o.value for o in x.args).should.equal(y.args())
+
+    resp = conn.list_bootstrap_actions(cluster_id)
+    for i, y in enumerate(bootstrap_actions):
+        x = resp.actions[i]
+        x.name.should.equal(y.name)
+        x.scriptpath.should.equal(y.path)
+        list(arg.value for arg in x.args).should.equal(y.args())
+
+
+@mock_emr
+def test_instance_groups():
+    input_groups = dict((g.name, g) for g in input_instance_groups)
+
+    conn = boto.connect_emr()
+    args = run_jobflow_args.copy()
+    for key in ['master_instance_type', 'slave_instance_type', 'num_instances']:
+        del args[key]
+    args['instance_groups'] = input_instance_groups[:2]
+    job_id = conn.run_jobflow(**args)
+
+    jf = conn.describe_jobflow(job_id)
+    base_instance_count = int(jf.instancecount)
+
+    conn.add_instance_groups(job_id, input_instance_groups[2:])
+
+    jf = conn.describe_jobflow(job_id)
+    int(jf.instancecount).should.equal(sum(g.num_instances for g in input_instance_groups))
+    for x in jf.instancegroups:
+        y = input_groups[x.name]
+        if hasattr(y, 'bidprice'):
+            x.bidprice.should.equal(y.bidprice)
+        x.creationdatetime.should.be.a(six.string_types)
+        # x.enddatetime.should.be.a(six.string_types)
+        x.should.have.property('instancegroupid')
+        int(x.instancerequestcount).should.equal(y.num_instances)
+        x.instancerole.should.equal(y.role)
+        int(x.instancerunningcount).should.equal(y.num_instances)
+        x.instancetype.should.equal(y.type)
+        x.laststatechangereason.should.be.a(six.string_types)
+        x.market.should.equal(y.market)
+        x.name.should.be.a(six.string_types)
+        x.readydatetime.should.be.a(six.string_types)
+        x.startdatetime.should.be.a(six.string_types)
+        x.state.should.equal('RUNNING')
+
+    for x in conn.list_instance_groups(job_id).instancegroups:
+        y = input_groups[x.name]
+        if hasattr(y, 'bidprice'):
+            x.bidprice.should.equal(y.bidprice)
+        # Configurations
+        # EbsBlockDevices
+        # EbsOptimized
+        x.should.have.property('id')
+        x.instancegrouptype.should.equal(y.role)
+        x.instancetype.should.equal(y.type)
+        x.market.should.equal(y.market)
+        x.name.should.equal(y.name)
+        int(x.requestedinstancecount).should.equal(y.num_instances)
+        int(x.runninginstancecount).should.equal(y.num_instances)
+        # ShrinkPolicy
+        x.status.state.should.equal('RUNNING')
+        x.status.statechangereason.code.should.be.a(six.string_types)
+        x.status.statechangereason.message.should.be.a(six.string_types)
+        x.status.timeline.creationdatetime.should.be.a(six.string_types)
+        # x.status.timeline.enddatetime.should.be.a(six.string_types)
+        x.status.timeline.readydatetime.should.be.a(six.string_types)
+
+    igs = dict((g.name, g) for g in jf.instancegroups)
+
+    conn.modify_instance_groups(
+        [igs['task-1'].instancegroupid, igs['task-2'].instancegroupid],
+        [2, 3])
+    jf = conn.describe_jobflow(job_id)
+    int(jf.instancecount).should.equal(base_instance_count + 5)
+    igs = dict((g.name, g) for g in jf.instancegroups)
+    int(igs['task-1'].instancerunningcount).should.equal(2)
+    int(igs['task-2'].instancerunningcount).should.equal(3)
+
+
+@mock_emr
+def test_steps():
+    input_steps = [
+        StreamingStep(
+            name='My wordcount example',
+            mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter.py',
+            reducer='aggregate',
+            input='s3n://elasticmapreduce/samples/wordcount/input',
+            output='s3n://output_bucket/output/wordcount_output'),
+        StreamingStep(
+            name='My wordcount example2',
+            mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter2.py',
+            reducer='aggregate',
+            input='s3n://elasticmapreduce/samples/wordcount/input2',
+            output='s3n://output_bucket/output/wordcount_output2')
+    ]
+
+    # TODO: implementation and test for cancel_steps
+
+    conn = boto.connect_emr()
+    cluster_id = conn.run_jobflow(
+        steps=[input_steps[0]],
+        **run_jobflow_args)
+
+    jf = conn.describe_jobflow(cluster_id)
+    jf.steps.should.have.length_of(1)
+
+    conn.add_jobflow_steps(cluster_id, [input_steps[1]])
+
+    jf = conn.describe_jobflow(cluster_id)
+    jf.steps.should.have.length_of(2)
+    for step in jf.steps:
+        step.actiononfailure.should.equal('TERMINATE_JOB_FLOW')
+        list(arg.value for arg in step.args).should.have.length_of(8)
+        step.creationdatetime.should.be.a(six.string_types)
+        # step.enddatetime.should.be.a(six.string_types)
+        step.jar.should.equal('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+        step.laststatechangereason.should.be.a(six.string_types)
+        step.mainclass.should.equal('')
+        step.name.should.be.a(six.string_types)
+        # step.readydatetime.should.be.a(six.string_types)
+        # step.startdatetime.should.be.a(six.string_types)
+        step.state.should.be.within(['STARTING', 'PENDING'])
+
+    expected = dict((s.name, s) for s in input_steps)
+
+    steps = conn.list_steps(cluster_id).steps
+    for x in steps:
+        y = expected[x.name]
+        # actiononfailure
+        list(arg.value for arg in x.config.args).should.equal([
+            '-mapper', y.mapper,
+            '-reducer', y.reducer,
+            '-input', y.input,
+            '-output', y.output,
+        ])
+        x.config.jar.should.equal('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+        x.config.mainclass.should.equal('')
+        # properties
+        x.should.have.property('id').should.be.a(six.string_types)
+        x.name.should.equal(y.name)
+        x.status.state.should.be.within(['STARTING', 'PENDING'])
+        # x.status.statechangereason
+        x.status.timeline.creationdatetime.should.be.a(six.string_types)
+        # x.status.timeline.enddatetime.should.be.a(six.string_types)
+        # x.status.timeline.startdatetime.should.be.a(six.string_types)
+
+        x = conn.describe_step(cluster_id, x.id)
+        list(arg.value for arg in x.config.args).should.equal([
+            '-mapper', y.mapper,
+            '-reducer', y.reducer,
+            '-input', y.input,
+            '-output', y.output,
+        ])
+        x.config.jar.should.equal('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+        x.config.mainclass.should.equal('')
+        # properties
+        x.should.have.property('id').should.be.a(six.string_types)
+        x.name.should.equal(y.name)
+        x.status.state.should.be.within(['STARTING', 'PENDING'])
+        # x.status.statechangereason
+        x.status.timeline.creationdatetime.should.be.a(six.string_types)
+        # x.status.timeline.enddatetime.should.be.a(six.string_types)
+        # x.status.timeline.startdatetime.should.be.a(six.string_types)
+
+    @requires_boto_gte('2.39')
+    def test_list_steps_with_states():
+        # boto's list_steps prior to 2.39 has a bug that ignores
+        # step_states argument.
+        steps = conn.list_steps(cluster_id).steps
+        step_id = steps[0].id
+        steps = conn.list_steps(cluster_id, step_states=['STARTING']).steps
+        steps.should.have.length_of(1)
+        steps[0].id.should.equal(step_id)
+    test_list_steps_with_states()
+
+
+@mock_emr
+def test_tags():
+    input_tags = {"tag1": "val1", "tag2": "val2"}
+
+    conn = boto.connect_emr()
+    cluster_id = conn.run_jobflow(**run_jobflow_args)
+
+    conn.add_tags(cluster_id, input_tags)
     cluster = conn.describe_cluster(cluster_id)
     cluster.tags.should.have.length_of(2)
-    tags = dict((tag.key, tag.value) for tag in cluster.tags)
-    tags['tag1'].should.equal('val1')
-    tags['tag2'].should.equal('val2')
+    dict((t.key, t.value) for t in cluster.tags).should.equal(input_tags)
 
-    # Remove a tag
-    conn.remove_tags(cluster_id, ["tag1"])
+    conn.remove_tags(cluster_id, list(input_tags.keys()))
     cluster = conn.describe_cluster(cluster_id)
-    cluster.tags.should.have.length_of(1)
-    tags = dict((tag.key, tag.value) for tag in cluster.tags)
-    tags['tag2'].should.equal('val2')
+    cluster.tags.should.have.length_of(0)

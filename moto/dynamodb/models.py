@@ -100,7 +100,7 @@ class Table(object):
         self.range_key_type = range_key_type
         self.read_capacity = read_capacity
         self.write_capacity = write_capacity
-        self.created_at = datetime.datetime.now()
+        self.created_at = datetime.datetime.utcnow()
         self.items = defaultdict(dict)
 
     @property

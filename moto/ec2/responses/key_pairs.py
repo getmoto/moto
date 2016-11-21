@@ -8,14 +8,16 @@ class KeyPairs(BaseResponse):
 
     def create_key_pair(self):
         name = self.querystring.get('KeyName')[0]
-        keypair = self.ec2_backend.create_key_pair(name)
-        template = self.response_template(CREATE_KEY_PAIR_RESPONSE)
-        return template.render(**keypair)
+        if self.is_not_dryrun('CreateKeyPair'):
+            keypair = self.ec2_backend.create_key_pair(name)
+            template = self.response_template(CREATE_KEY_PAIR_RESPONSE)
+            return template.render(**keypair)
 
     def delete_key_pair(self):
         name = self.querystring.get('KeyName')[0]
-        success = six.text_type(self.ec2_backend.delete_key_pair(name)).lower()
-        return self.response_template(DELETE_KEY_PAIR_RESPONSE).render(success=success)
+        if self.is_not_dryrun('DeleteKeyPair'):
+            success = six.text_type(self.ec2_backend.delete_key_pair(name)).lower()
+            return self.response_template(DELETE_KEY_PAIR_RESPONSE).render(success=success)
 
     def describe_key_pairs(self):
         names = keypair_names_from_querystring(self.querystring)
@@ -30,9 +32,10 @@ class KeyPairs(BaseResponse):
     def import_key_pair(self):
         name = self.querystring.get('KeyName')[0]
         material = self.querystring.get('PublicKeyMaterial')[0]
-        keypair = self.ec2_backend.import_key_pair(name, material)
-        template = self.response_template(IMPORT_KEYPAIR_RESPONSE)
-        return template.render(**keypair)
+        if self.is_not_dryrun('ImportKeyPair'):
+            keypair = self.ec2_backend.import_key_pair(name, material)
+            template = self.response_template(IMPORT_KEYPAIR_RESPONSE)
+            return template.render(**keypair)
 
 
 DESCRIBE_KEY_PAIRS_RESPONSE = """<DescribeKeyPairsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

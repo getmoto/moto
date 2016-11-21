@@ -10,10 +10,12 @@ class Dimension(object):
 
 
 class FakeAlarm(object):
-    def __init__(self, name, comparison_operator, evaluation_periods, period,
-                 threshold, statistic, description, dimensions, alarm_actions,
+    def __init__(self, name, namespace, metric_name, comparison_operator, evaluation_periods,
+                 period, threshold, statistic, description, dimensions, alarm_actions,
                  ok_actions, insufficient_data_actions, unit):
         self.name = name
+        self.namespace = namespace
+        self.metric_name = metric_name
         self.comparison_operator = comparison_operator
         self.evaluation_periods = evaluation_periods
         self.period = period
@@ -25,8 +27,8 @@ class FakeAlarm(object):
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
         self.unit = unit
-        self.state_updated_timestamp = datetime.datetime.now()
-        self.configuration_updated_timestamp = datetime.datetime.now()
+        self.state_updated_timestamp = datetime.datetime.utcnow()
+        self.configuration_updated_timestamp = datetime.datetime.utcnow()
 
 
 class MetricDatum(object):
@@ -43,10 +45,10 @@ class CloudWatchBackend(BaseBackend):
         self.alarms = {}
         self.metric_data = []
 
-    def put_metric_alarm(self, name, comparison_operator, evaluation_periods,
+    def put_metric_alarm(self, name, namespace, metric_name, comparison_operator, evaluation_periods,
                          period, threshold, statistic, description, dimensions,
                          alarm_actions, ok_actions, insufficient_data_actions, unit):
-        alarm = FakeAlarm(name, comparison_operator, evaluation_periods, period,
+        alarm = FakeAlarm(name, namespace, metric_name, comparison_operator, evaluation_periods, period,
                           threshold, statistic, description, dimensions, alarm_actions,
                           ok_actions, insufficient_data_actions, unit)
         self.alarms[name] = alarm

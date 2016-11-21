@@ -20,6 +20,7 @@ EC2_RESOURCE_TO_PREFIX = {
     'security-group': 'sg',
     'snapshot': 'snap',
     'spot-instance-request': 'sir',
+    'spot-fleet-request': 'sfr',
     'subnet': 'subnet',
     'reservation': 'r',
     'volume': 'vol',
@@ -63,6 +64,10 @@ def random_snapshot_id():
 
 def random_spot_request_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['spot-instance-request'])
+
+
+def random_spot_fleet_request_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['spot-fleet-request'])
 
 
 def random_subnet_id():
@@ -341,15 +346,19 @@ def get_obj_tag_values(obj):
     return tags
 
 def tag_filter_matches(obj, filter_name, filter_values):
+    regex_filters = [re.compile(simple_aws_filter_to_re(f)) for f in filter_values]
     if filter_name == 'tag-key':
-        tag_names = get_obj_tag_names(obj)
-        return len(set(filter_values).intersection(tag_names)) > 0
+        tag_values = get_obj_tag_names(obj)
     elif filter_name == 'tag-value':
         tag_values = get_obj_tag_values(obj)
-        return len(set(filter_values).intersection(tag_values)) > 0
     else:
-        tag_value = get_obj_tag(obj, filter_name)
-        return tag_value in filter_values
+        tag_values = [get_obj_tag(obj, filter_name) or '']
+
+    for tag_value in tag_values:
+        if any(regex.match(tag_value) for regex in regex_filters):
+            return True
+
+    return False
 
 
 filter_dict_attribute_mapping = {

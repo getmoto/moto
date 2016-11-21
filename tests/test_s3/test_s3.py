@@ -846,9 +846,10 @@ def test_unicode_key():
     key = Key(bucket)
     key.key = u'こんにちは.jpg'
     key.set_contents_from_string('Hello world!')
-    list(bucket.list())
-    key = bucket.get_key(key.key)
-    assert key.get_contents_as_string().decode("utf-8") == 'Hello world!'
+    assert [listed_key.key for listed_key in bucket.list()] == [key.key]
+    fetched_key = bucket.get_key(key.key)
+    assert fetched_key.key == key.key
+    assert fetched_key.get_contents_as_string().decode("utf-8") == 'Hello world!'
 
 
 @mock_s3
@@ -981,6 +982,15 @@ boto3
 
 
 @mock_s3
+def test_boto3_key_etag():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='steve', Body=b'is awesome')
+    resp = s3.get_object(Bucket='mybucket', Key='steve')
+    resp['ETag'].should.equal('"d32bda93738f7e03adb22e66c90fbc04"')
+
+
+@mock_s3
 def test_boto3_bucket_create():
     s3 = boto3.resource('s3', region_name='us-east-1')
     s3.create_bucket(Bucket="blah")
@@ -1014,6 +1024,21 @@ def test_boto3_head_object():
 
 
 @mock_s3
+def test_boto3_get_object():
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket="blah")
+
+    s3.Object('blah', 'hello.txt').put(Body="some text")
+
+    s3.Object('blah', 'hello.txt').meta.client.head_object(Bucket='blah', Key='hello.txt')
+
+    with assert_raises(ClientError) as e:
+        s3.Object('blah', 'hello2.txt').get()
+
+    e.exception.response['Error']['Code'].should.equal('NoSuchKey')
+
+
+@mock_s3
 def test_boto3_head_object_with_versioning():
     s3 = boto3.resource('s3', region_name='us-east-1')
     bucket = s3.create_bucket(Bucket='blah')
@@ -1033,6 +1058,34 @@ def test_boto3_head_object_with_versioning():
         Bucket='blah', Key='hello.txt', VersionId='0')
     old_head_object['VersionId'].should.equal('0')
     old_head_object['ContentLength'].should.equal(len(old_content))
+
+
+@mock_s3
+@reduced_min_part_size
+def test_boto3_multipart_etag():
+    # Create Bucket so that test can run
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+
+    upload_id = s3.create_multipart_upload(
+        Bucket='mybucket', Key='the-key')['UploadId']
+    part1 = b'0' * REDUCED_PART_SIZE
+    etags = []
+    etags.append(
+        s3.upload_part(Bucket='mybucket', Key='the-key', PartNumber=1,
+                       UploadId=upload_id, Body=part1)['ETag'])
+    # last part, can be less than 5 MB
+    part2 = b'1'
+    etags.append(
+        s3.upload_part(Bucket='mybucket', Key='the-key', PartNumber=2,
+                       UploadId=upload_id, Body=part2)['ETag'])
+    s3.complete_multipart_upload(
+        Bucket='mybucket', Key='the-key', UploadId=upload_id,
+        MultipartUpload={'Parts': [{'ETag': etag, 'PartNumber': i}
+                                   for i, etag in enumerate(etags, 1)]})
+    # we should get both parts as the key contents
+    resp = s3.get_object(Bucket='mybucket', Key='the-key')
+    resp['ETag'].should.equal('"66d1a1a2ed08fd05c137f316af4ff255-2"')
 
 
 TEST_XML = """\
@@ -1061,3 +1114,20 @@ def test_website_configuration_xml():
     bucket = conn.create_bucket('test-bucket')
     bucket.set_website_configuration_xml(TEST_XML)
     bucket.get_website_configuration_xml().should.equal(TEST_XML)
+
+
+@mock_s3
+def test_key_with_trailing_slash_in_ordinary_calling_format():
+    conn = boto.connect_s3(
+        'access_key',
+        'secret_key',
+        calling_format=boto.s3.connection.OrdinaryCallingFormat()
+    )
+    bucket = conn.create_bucket('test_bucket_name')
+
+    key_name = 'key_with_slash/'
+
+    key = Key(bucket, key_name)
+    key.set_contents_from_string('some value')
+
+    [k.name for k in bucket.get_all_keys()].should.contain(key_name)

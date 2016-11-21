@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+
 from datetime import datetime
 from dateutil.tz import tzutc
 import boto3
@@ -7,6 +8,7 @@ from freezegun import freeze_time
 import httpretty
 import requests
 import sure  # noqa
+from botocore.exceptions import ClientError
 
 from moto import mock_apigateway
 
@@ -76,6 +78,8 @@ def test_create_resource():
         restApiId=api_id,
         resourceId=root_id,
     )
+    root_resource['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    root_resource['ResponseMetadata'].pop('RetryAttempts', None)
     root_resource.should.equal({
         'path': '/',
         'id': root_id,
@@ -133,6 +137,8 @@ def test_child_resource():
         restApiId=api_id,
         resourceId=tags_id,
     )
+    child_resource['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    child_resource['ResponseMetadata'].pop('RetryAttempts', None)
     child_resource.should.equal({
         'path': '/users/tags',
         'pathPart': 'tags',
@@ -168,6 +174,8 @@ def test_create_method():
         httpMethod='GET'
     )
 
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'httpMethod': 'GET',
         'authorizationType': 'none',
@@ -206,6 +214,8 @@ def test_create_method_response():
         httpMethod='GET',
         statusCode='200',
     )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'statusCode': '200'
@@ -217,6 +227,8 @@ def test_create_method_response():
         httpMethod='GET',
         statusCode='200',
     )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'statusCode': '200'
@@ -228,6 +240,8 @@ def test_create_method_response():
         httpMethod='GET',
         statusCode='200',
     )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({'ResponseMetadata': {'HTTPStatusCode': 200}})
 
 
@@ -264,6 +278,8 @@ def test_integrations():
         type='HTTP',
         uri='http://httpbin.org/robots.txt',
     )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'httpMethod': 'GET',
@@ -284,6 +300,8 @@ def test_integrations():
         resourceId=root_id,
         httpMethod='GET'
     )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'ResponseMetadata': {'HTTPStatusCode': 200},
         'httpMethod': 'GET',
@@ -303,6 +321,8 @@ def test_integrations():
         restApiId=api_id,
         resourceId=root_id,
     )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response['resourceMethods']['GET']['methodIntegration'].should.equal({
         'httpMethod': 'GET',
         'integrationResponses': {
@@ -328,6 +348,40 @@ def test_integrations():
         resourceId=root_id,
     )
     response['resourceMethods']['GET'].shouldnt.contain("methodIntegration")
+
+    # Create a new integration with a requestTemplates config
+
+    client.put_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='POST',
+        authorizationType='none',
+    )
+
+    templates = {
+        # example based on http://docs.aws.amazon.com/apigateway/latest/developerguide/api-as-kinesis-proxy-export-swagger-with-extensions.html
+        'application/json': "{\n    \"StreamName\": \"$input.params('stream-name')\",\n    \"Records\": []\n}"
+    }
+    test_uri = 'http://example.com/foobar.txt'
+    response = client.put_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='POST',
+        type='HTTP',
+        uri=test_uri,
+        requestTemplates=templates
+    )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
+    response['ResponseMetadata'].should.equal({'HTTPStatusCode': 200})
+
+    response = client.get_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod='POST'
+    )
+    response['uri'].should.equal(test_uri)
+    response['requestTemplates'].should.equal(templates)
 
 
 @mock_apigateway
@@ -371,6 +425,8 @@ def test_integration_response():
         statusCode='200',
         selectionPattern='foobar',
     )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'statusCode': '200',
         'selectionPattern': 'foobar',
@@ -386,6 +442,8 @@ def test_integration_response():
         httpMethod='GET',
         statusCode='200',
     )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'statusCode': '200',
         'selectionPattern': 'foobar',
@@ -400,6 +458,8 @@ def test_integration_response():
         resourceId=root_id,
         httpMethod='GET',
     )
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response['methodIntegration']['integrationResponses'].should.equal({
         '200': {
             'responseTemplates': {
@@ -426,8 +486,9 @@ def test_integration_response():
 
 
 @mock_apigateway
-def test_deployment():
+def test_update_stage_configuration():
     client = boto3.client('apigateway', region_name='us-west-2')
+    stage_name = 'staging'
     response = client.create_rest_api(
         name='my_api',
         description='this is my api',
@@ -436,7 +497,8 @@ def test_deployment():
 
     response = client.create_deployment(
         restApiId=api_id,
-        stageName='staging',
+        stageName=stage_name,
+        description="1.0.1"
     )
     deployment_id = response['id']
 
@@ -444,16 +506,341 @@ def test_deployment():
         restApiId=api_id,
         deploymentId=deployment_id,
     )
+    response.pop('createdDate',None) # createdDate is hard to match against, remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'id': deployment_id,
-        'ResponseMetadata': {'HTTPStatusCode': 200}
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'description' : '1.0.1'
+    })
+
+    response = client.create_deployment(
+            restApiId=api_id,
+            stageName=stage_name,
+            description="1.0.2"
+        )
+    deployment_id2 = response['id']
+
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=stage_name
+    )
+    stage['stageName'].should.equal(stage_name)
+    stage['deploymentId'].should.equal(deployment_id2)
+    stage.shouldnt.have.key('cacheClusterSize')
+
+    client.update_stage(restApiId=api_id,stageName=stage_name,
+                        patchOperations=[
+                            {
+                                "op" : "replace",
+                                "path" : "/cacheClusterEnabled",
+                                "value": "True"
+                            }
+                        ])
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=stage_name
+    )
+
+    stage.should.have.key('cacheClusterSize').which.should.equal("0.5")
+
+    client.update_stage(restApiId=api_id,stageName=stage_name,
+                        patchOperations=[
+                            {
+                                "op" : "replace",
+                                "path" : "/cacheClusterSize",
+                                "value": "1.6"
+                            }
+                        ])
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=stage_name
+    )
+
+    stage.should.have.key('cacheClusterSize').which.should.equal("1.6")
+
+
+    client.update_stage(restApiId=api_id,stageName=stage_name,
+                        patchOperations=[
+                            {
+                                "op" : "replace",
+                                "path" : "/deploymentId",
+                                "value": deployment_id
+                            },
+                            {
+                                "op" : "replace",
+                                "path" : "/variables/environment",
+                                "value" : "dev"
+                            },
+                            {
+                                "op" : "replace",
+                                "path" : "/variables/region",
+                                "value" : "eu-west-1"
+                            },
+                            {
+                                "op" : "replace",
+                                "path" : "/*/*/caching/dataEncrypted",
+                                "value" : "True"
+                            },
+                            {
+                                "op" : "replace",
+                                "path" : "/cacheClusterEnabled",
+                                "value" : "True"
+                            },
+                            {
+                                "op" : "replace",
+                                "path" : "/description",
+                                "value" : "stage description update"
+                            },
+                            {
+                                "op" : "replace",
+                                "path" : "/cacheClusterSize",
+                                "value" : "1.6"
+                            }
+                        ])
+
+    client.update_stage(restApiId=api_id,stageName=stage_name,
+                        patchOperations=[
+                            {
+                                "op" : "remove",
+                                "path" : "/variables/region",
+                                "value" : "eu-west-1"
+                            }
+                        ])
+
+    stage = client.get_stage(restApiId=api_id,stageName=stage_name)
+
+    stage['description'].should.match('stage description update')
+    stage['cacheClusterSize'].should.equal("1.6")
+    stage['variables']['environment'].should.match('dev')
+    stage['variables'].should_not.have.key('region')
+    stage['cacheClusterEnabled'].should.be.true
+    stage['deploymentId'].should.match(deployment_id)
+    stage['methodSettings'].should.have.key('*/*')
+    stage['methodSettings']['*/*'].should.have.key('cacheDataEncrypted').which.should.be.true
+
+    try:
+        client.update_stage(restApiId=api_id,stageName=stage_name,
+                        patchOperations=[
+                            {
+                                "op" : "add",
+                                "path" : "/notasetting",
+                                "value" : "eu-west-1"
+                            }
+                        ])
+        assert False.should.be.ok #Fail, should not be here
+    except Exception:
+        assert True.should.be.ok
+
+@mock_apigateway
+def test_non_existent_stage():
+    client = boto3.client('apigateway', region_name='us-west-2')
+    response = client.create_rest_api(
+        name='my_api',
+        description='this is my api',
+    )
+    api_id = response['id']
+
+
+    client.get_stage.when.called_with(restApiId=api_id,stageName='xxx').should.throw(ClientError)
+
+
+
+@mock_apigateway
+def test_create_stage():
+    client = boto3.client('apigateway', region_name='us-west-2')
+    stage_name = 'staging'
+    response = client.create_rest_api(
+        name='my_api',
+        description='this is my api',
+    )
+    api_id = response['id']
+
+    response = client.create_deployment(
+        restApiId=api_id,
+        stageName=stage_name,
+    )
+    deployment_id = response['id']
+
+    response = client.get_deployment(
+        restApiId=api_id,
+        deploymentId=deployment_id,
+    )
+    response.pop('createdDate',None) # createdDate is hard to match against, remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
+    response.should.equal({
+        'id': deployment_id,
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'description' : ''
+    })
+
+    response = client.create_deployment(
+        restApiId=api_id,
+        stageName=stage_name,
+    )
+
+    deployment_id2 = response['id']
+
+
+    response = client.get_deployments(
+        restApiId=api_id,
+    )
+
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
+
+    response['items'][0].pop('createdDate')
+    response['items'][1].pop('createdDate')
+    response['items'][0]['id'].should.match(r"{0}|{1}".format(deployment_id2,deployment_id))
+    response['items'][1]['id'].should.match(r"{0}|{1}".format(deployment_id2,deployment_id))
+
+
+    new_stage_name = 'current'
+    response = client.create_stage(restApiId=api_id,stageName=new_stage_name,deploymentId=deployment_id2)
+
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
+
+    response.should.equal({
+        'stageName':new_stage_name,
+        'deploymentId':deployment_id2,
+        'methodSettings':{},
+        'variables':{},
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'description':'',
+        'cacheClusterEnabled':False
+    })
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=new_stage_name
+    )
+    stage['stageName'].should.equal(new_stage_name)
+    stage['deploymentId'].should.equal(deployment_id2)
+
+    new_stage_name_with_vars = 'stage_with_vars'
+    response = client.create_stage(restApiId=api_id,stageName=new_stage_name_with_vars,deploymentId=deployment_id2,variables={
+        "env" : "dev"
+    })
+
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
+
+    response.should.equal({
+        'stageName':new_stage_name_with_vars,
+        'deploymentId':deployment_id2,
+        'methodSettings':{},
+        'variables':{ "env" : "dev" },
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'description':'',
+        'cacheClusterEnabled': False
+    })
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=new_stage_name_with_vars
+    )
+    stage['stageName'].should.equal(new_stage_name_with_vars)
+    stage['deploymentId'].should.equal(deployment_id2)
+    stage['variables'].should.have.key('env').which.should.match("dev")
+
+    new_stage_name = 'stage_with_vars_and_cache_settings'
+    response = client.create_stage(restApiId=api_id,stageName=new_stage_name,deploymentId=deployment_id2,variables={
+        "env" : "dev"
+    }, cacheClusterEnabled=True,description="hello moto")
+
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
+
+    response.should.equal({
+        'stageName':new_stage_name,
+        'deploymentId':deployment_id2,
+        'methodSettings':{},
+        'variables':{ "env" : "dev" },
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'description':'hello moto',
+        'cacheClusterEnabled': True,
+        'cacheClusterSize' : "0.5"
+    })
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=new_stage_name
+    )
+
+    stage['cacheClusterSize'].should.equal("0.5")
+
+    new_stage_name = 'stage_with_vars_and_cache_settings_and_size'
+    response = client.create_stage(restApiId=api_id,stageName=new_stage_name,deploymentId=deployment_id2,variables={
+        "env" : "dev"
+    }, cacheClusterEnabled=True,cacheClusterSize="1.6",description="hello moto")
+
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
+
+    response.should.equal({
+        'stageName':new_stage_name,
+        'deploymentId':deployment_id2,
+        'methodSettings':{},
+        'variables':{ "env" : "dev" },
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'description':'hello moto',
+        'cacheClusterEnabled': True,
+        'cacheClusterSize' : "1.6"
+    })
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=new_stage_name
+    )
+    stage['stageName'].should.equal(new_stage_name)
+    stage['deploymentId'].should.equal(deployment_id2)
+    stage['variables'].should.have.key('env').which.should.match("dev")
+    stage['cacheClusterSize'].should.equal("1.6")
+
+
+
+@mock_apigateway
+def test_deployment():
+    client = boto3.client('apigateway', region_name='us-west-2')
+    stage_name = 'staging'
+    response = client.create_rest_api(
+        name='my_api',
+        description='this is my api',
+    )
+    api_id = response['id']
+
+    response = client.create_deployment(
+        restApiId=api_id,
+        stageName=stage_name,
+    )
+    deployment_id = response['id']
+
+    response = client.get_deployment(
+        restApiId=api_id,
+        deploymentId=deployment_id,
+    )
+    response.pop('createdDate',None) # createdDate is hard to match against, remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('RetryAttempts', None)
+    response.should.equal({
+        'id': deployment_id,
+        'ResponseMetadata': {'HTTPStatusCode': 200},
+        'description' : ''
     })
 
     response = client.get_deployments(
         restApiId=api_id,
     )
+
+    response['items'][0].pop('createdDate')
     response['items'].should.equal([
-        {'id': deployment_id}
+        {'id': deployment_id, 'description': ''}
     ])
 
     response = client.delete_deployment(
@@ -465,6 +852,35 @@ def test_deployment():
         restApiId=api_id,
     )
     len(response['items']).should.equal(0)
+
+    # test deployment stages
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=stage_name
+    )
+    stage['stageName'].should.equal(stage_name)
+    stage['deploymentId'].should.equal(deployment_id)
+
+    stage = client.update_stage(
+        restApiId=api_id,
+        stageName=stage_name,
+        patchOperations=[
+            {
+                'op': 'replace',
+                'path': '/description',
+                'value': '_new_description_'
+            },
+        ]
+    )
+
+    stage = client.get_stage(
+        restApiId=api_id,
+        stageName=stage_name
+    )
+    stage['stageName'].should.equal(stage_name)
+    stage['deploymentId'].should.equal(deployment_id)
+    stage['description'].should.equal('_new_description_')
 
 
 @httpretty.activate

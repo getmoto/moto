@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from collections import defaultdict
+
 import uuid
 from jinja2 import Template
 
@@ -226,12 +228,33 @@ class Route53Backend(BaseBackend):
     def __init__(self):
         self.zones = {}
         self.health_checks = {}
+        self.resource_tags = defaultdict(dict)
 
     def create_hosted_zone(self, name, private_zone, comment=None):
         new_id = get_random_hex()
         new_zone = FakeZone(name, new_id, private_zone=private_zone, comment=comment)
         self.zones[new_id] = new_zone
         return new_zone
+
+    def change_tags_for_resource(self, resource_id, tags):
+        if 'Tag' in tags:
+            if isinstance(tags['Tag'], list):
+                for tag in tags['Tag']:
+                    self.resource_tags[resource_id][tag['Key']] = tag['Value']
+            else:
+                key, value = (tags['Tag']['Key'], tags['Tag']['Value'])
+                self.resource_tags[resource_id][key] = value
+        else:
+            if 'Key' in tags:
+                if isinstance(tags['Key'], list):
+                    for key in tags['Key']:
+                        del(self.resource_tags[resource_id][key])
+                else:
+                    del(self.resource_tags[resource_id][tags['Key']])
+
+    def list_tags_for_resource(self, resource_id):
+        if resource_id in self.resource_tags:
+            return self.resource_tags[resource_id]
 
     def get_all_hosted_zones(self):
         return self.zones.values()

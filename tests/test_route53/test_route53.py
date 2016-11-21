@@ -7,6 +7,8 @@ from boto.route53.record import ResourceRecordSets
 
 import sure  # noqa
 
+import uuid
+
 from moto import mock_route53
 
 
@@ -328,3 +330,68 @@ def test_hosted_zone_private_zone_preserved_boto3():
 
     # zone = conn.list_hosted_zones_by_name(DNSName="testdns.aws.com.")
     # zone.config["PrivateZone"].should.equal(True)
+
+@mock_route53
+def test_list_or_change_tags_for_resource_request():
+    conn = boto3.client('route53')
+    healthcheck_id = str(uuid.uuid4())
+
+    tag1 = {"Key": "Deploy", "Value": "True"}
+    tag2 = {"Key": "Name", "Value": "UnitTest"}
+
+    # Test adding a tag for a resource id
+    conn.change_tags_for_resource(
+        ResourceType='healthcheck',
+        ResourceId=healthcheck_id,
+        AddTags=[tag1, tag2]
+    )
+
+    # Check to make sure that the response has the 'ResourceTagSet' key
+    response = conn.list_tags_for_resource(ResourceType='healthcheck', ResourceId=healthcheck_id)
+    response.should.contain('ResourceTagSet')
+
+    # Validate that each key was added
+    response['ResourceTagSet']['Tags'].should.contain(tag1)
+    response['ResourceTagSet']['Tags'].should.contain(tag2)
+
+    len(response['ResourceTagSet']['Tags']).should.equal(2)
+
+    # Try to remove the tags
+    conn.change_tags_for_resource(
+        ResourceType='healthcheck',
+        ResourceId=healthcheck_id,
+        RemoveTagKeys=[tag1['Key']]
+    )
+
+    # Check to make sure that the response has the 'ResourceTagSet' key
+    response = conn.list_tags_for_resource(ResourceType='healthcheck', ResourceId=healthcheck_id)
+    response.should.contain('ResourceTagSet')
+    response['ResourceTagSet']['Tags'].should_not.contain(tag1)
+    response['ResourceTagSet']['Tags'].should.contain(tag2)
+
+    # Remove the second tag
+    conn.change_tags_for_resource(
+        ResourceType='healthcheck',
+        ResourceId=healthcheck_id,
+        RemoveTagKeys=[tag2['Key']]
+    )
+
+    response = conn.list_tags_for_resource(ResourceType='healthcheck', ResourceId=healthcheck_id)
+    response['ResourceTagSet']['Tags'].should_not.contain(tag2)
+
+    # Re-add the tags
+    conn.change_tags_for_resource(
+        ResourceType='healthcheck',
+        ResourceId=healthcheck_id,
+        AddTags=[tag1, tag2]
+    )
+
+    # Remove both
+    conn.change_tags_for_resource(
+        ResourceType='healthcheck',
+        ResourceId=healthcheck_id,
+        RemoveTagKeys=[tag1['Key'], tag2['Key']]
+    )
+
+    response = conn.list_tags_for_resource(ResourceType='healthcheck', ResourceId=healthcheck_id)
+    response['ResourceTagSet']['Tags'].should.be.empty

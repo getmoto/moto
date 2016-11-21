@@ -1,12 +1,17 @@
 from __future__ import unicode_literals
-import boto
-import sure  # noqa
-
-from nose.tools import assert_raises, assert_equals, assert_not_equals
-from boto.exception import BotoServerError
 import base64
+
+import boto
+import boto3
+import sure  # noqa
+from boto.exception import BotoServerError
+from botocore.exceptions import ClientError
 from moto import mock_iam
+from moto.iam.models import aws_managed_policies
+from nose.tools import assert_raises, assert_equals, assert_not_equals
 from nose.tools import raises
+
+from tests.helpers import requires_boto_gte
 
 
 @mock_iam()
@@ -19,6 +24,14 @@ def test_get_all_server_certs():
     cert1 = certs[0]
     cert1.server_certificate_name.should.equal("certname")
     cert1.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+
+
+@mock_iam()
+def test_get_server_cert_doesnt_exist():
+    conn = boto.connect_iam()
+
+    with assert_raises(BotoServerError):
+        conn.get_server_certificate("NonExistant")
 
 
 @mock_iam()
@@ -177,6 +190,19 @@ def test_get_user():
 
 
 @mock_iam()
+def test_list_users():
+    path_prefix = '/'
+    max_items = 10
+    conn = boto3.client('iam')
+    conn.create_user(UserName='my-user')
+    response = conn.list_users(PathPrefix=path_prefix, MaxItems=max_items)
+    assert_equals(
+        response['Users'],
+        []
+    )
+
+
+@mock_iam()
 def test_create_login_profile():
     conn = boto.connect_iam()
     with assert_raises(BotoServerError):
@@ -185,6 +211,16 @@ def test_create_login_profile():
     conn.create_login_profile('my-user', 'my-pass')
     with assert_raises(BotoServerError):
         conn.create_login_profile('my-user', 'my-pass')
+
+
+@mock_iam()
+def test_delete_login_profile():
+    conn = boto.connect_iam()
+    conn.create_user('my-user')
+    with assert_raises(BotoServerError):
+        conn.delete_login_profile('my-user')
+    conn.create_login_profile('my-user', 'my-pass')
+    conn.delete_login_profile('my-user')
 
 
 @mock_iam()
@@ -251,3 +287,55 @@ def test_get_credential_report():
     result = conn.get_credential_report()
     report = base64.b64decode(result['get_credential_report_response']['get_credential_report_result']['content'].encode('ascii')).decode('ascii')
     report.should.match(r'.*my-user.*')
+
+
+@requires_boto_gte('2.39')
+@mock_iam()
+def test_managed_policy():
+    conn = boto.connect_iam()
+
+    conn.create_policy(policy_name='UserManagedPolicy',
+                       policy_document={'mypolicy': 'test'},
+                       path='/mypolicy/',
+                       description='my user managed policy')
+
+    aws_policies = conn.list_policies(scope='AWS')['list_policies_response']['list_policies_result']['policies']
+    set(p.name for p in aws_managed_policies).should.equal(set(p['policy_name'] for p in aws_policies))
+
+    user_policies = conn.list_policies(scope='Local')['list_policies_response']['list_policies_result']['policies']
+    set(['UserManagedPolicy']).should.equal(set(p['policy_name'] for p in user_policies))
+
+    all_policies = conn.list_policies()['list_policies_response']['list_policies_result']['policies']
+    set(p['policy_name'] for p in aws_policies + user_policies).should.equal(set(p['policy_name'] for p in all_policies))
+
+    role_name = 'my-role'
+    conn.create_role(role_name, assume_role_policy_document={'policy': 'test'}, path="my-path")
+    for policy_name in ['AmazonElasticMapReduceRole',
+                        'AmazonElasticMapReduceforEC2Role']:
+        policy_arn = 'arn:aws:iam::aws:policy/service-role/' + policy_name
+        conn.attach_role_policy(policy_arn, role_name)
+
+    rows = conn.list_policies(only_attached=True)['list_policies_response']['list_policies_result']['policies']
+    rows.should.have.length_of(2)
+    for x in rows:
+        int(x['attachment_count']).should.be.greater_than(0)
+
+    # boto has not implemented this end point but accessible this way
+    resp = conn.get_response('ListAttachedRolePolicies',
+                             {'RoleName': role_name},
+                             list_marker='AttachedPolicies')
+    resp['list_attached_role_policies_response']['list_attached_role_policies_result']['attached_policies'].should.have.length_of(2)
+
+
+@mock_iam
+def test_boto3_create_login_profile():
+    conn = boto3.client('iam')
+
+    with assert_raises(ClientError):
+        conn.create_login_profile(UserName='my-user', Password='Password')
+
+    conn.create_user(UserName='my-user')
+    conn.create_login_profile(UserName='my-user', Password='Password')
+
+    with assert_raises(ClientError):
+        conn.create_login_profile(UserName='my-user', Password='Password')

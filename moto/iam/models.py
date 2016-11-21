@@ -1,10 +1,57 @@
 from __future__ import unicode_literals
-
-from moto.core import BaseBackend
-from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
-from .utils import random_access_key, random_alphanumeric, random_resource_id
-from datetime import datetime
 import base64
+from datetime import datetime
+
+import pytz
+from moto.core import BaseBackend
+
+from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
+from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
+
+
+class Policy(object):
+
+    is_attachable = False
+
+    def __init__(self,
+                 name,
+                 default_version_id=None,
+                 description=None,
+                 document=None,
+                 path=None):
+        self.document = document or {}
+        self.name = name
+
+        self.attachment_count = 0
+        self.description = description or ''
+        self.id = random_policy_id()
+        self.path = path or '/'
+        self.default_version_id = default_version_id or 'v1'
+
+        self.create_datetime = datetime.now(pytz.utc)
+        self.update_datetime = datetime.now(pytz.utc)
+
+    @property
+    def arn(self):
+        return 'arn:aws:iam::aws:policy{0}{1}'.format(self.path, self.name)
+
+
+class ManagedPolicy(Policy):
+    """Managed policy."""
+
+    is_attachable = True
+
+    def attach_to_role(self, role):
+        self.attachment_count += 1
+        role.managed_policies[self.name] = self
+
+
+class AWSManagedPolicy(ManagedPolicy):
+    """AWS-managed policy."""
+
+
+class InlinePolicy(Policy):
+    """TODO: is this needed?"""
 
 
 class Role(object):
@@ -15,6 +62,7 @@ class Role(object):
         self.assume_role_policy_document = assume_role_policy_document
         self.path = path
         self.policies = {}
+        self.managed_policies = {}
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -225,6 +273,115 @@ class User(object):
         )
 
 
+# predefine AWS managed policies
+aws_managed_policies = [
+    AWSManagedPolicy(
+        'AmazonElasticMapReduceRole',
+        default_version_id='v6',
+        path='/service-role/',
+        document={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Resource": "*",
+                "Action": [
+                    "ec2:AuthorizeSecurityGroupEgress",
+                    "ec2:AuthorizeSecurityGroupIngress",
+                    "ec2:CancelSpotInstanceRequests",
+                    "ec2:CreateNetworkInterface",
+                    "ec2:CreateSecurityGroup",
+                    "ec2:CreateTags",
+                    "ec2:DeleteNetworkInterface",
+                    "ec2:DeleteSecurityGroup",
+                    "ec2:DeleteTags",
+                    "ec2:DescribeAvailabilityZones",
+                    "ec2:DescribeAccountAttributes",
+                    "ec2:DescribeDhcpOptions",
+                    "ec2:DescribeInstanceStatus",
+                    "ec2:DescribeInstances",
+                    "ec2:DescribeKeyPairs",
+                    "ec2:DescribeNetworkAcls",
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:DescribePrefixLists",
+                    "ec2:DescribeRouteTables",
+                    "ec2:DescribeSecurityGroups",
+                    "ec2:DescribeSpotInstanceRequests",
+                    "ec2:DescribeSpotPriceHistory",
+                    "ec2:DescribeSubnets",
+                    "ec2:DescribeVpcAttribute",
+                    "ec2:DescribeVpcEndpoints",
+                    "ec2:DescribeVpcEndpointServices",
+                    "ec2:DescribeVpcs",
+                    "ec2:DetachNetworkInterface",
+                    "ec2:ModifyImageAttribute",
+                    "ec2:ModifyInstanceAttribute",
+                    "ec2:RequestSpotInstances",
+                    "ec2:RevokeSecurityGroupEgress",
+                    "ec2:RunInstances",
+                    "ec2:TerminateInstances",
+                    "ec2:DeleteVolume",
+                    "ec2:DescribeVolumeStatus",
+                    "ec2:DescribeVolumes",
+                    "ec2:DetachVolume",
+                    "iam:GetRole",
+                    "iam:GetRolePolicy",
+                    "iam:ListInstanceProfiles",
+                    "iam:ListRolePolicies",
+                    "iam:PassRole",
+                    "s3:CreateBucket",
+                    "s3:Get*",
+                    "s3:List*",
+                    "sdb:BatchPutAttributes",
+                    "sdb:Select",
+                    "sqs:CreateQueue",
+                    "sqs:Delete*",
+                    "sqs:GetQueue*",
+                    "sqs:PurgeQueue",
+                    "sqs:ReceiveMessage"
+                ]
+            }]
+        }
+    ),
+    AWSManagedPolicy(
+        'AmazonElasticMapReduceforEC2Role',
+        default_version_id='v2',
+        path='/service-role/',
+        document={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Resource": "*",
+                "Action": [
+                    "cloudwatch:*",
+                    "dynamodb:*",
+                    "ec2:Describe*",
+                    "elasticmapreduce:Describe*",
+                    "elasticmapreduce:ListBootstrapActions",
+                    "elasticmapreduce:ListClusters",
+                    "elasticmapreduce:ListInstanceGroups",
+                    "elasticmapreduce:ListInstances",
+                    "elasticmapreduce:ListSteps",
+                    "kinesis:CreateStream",
+                    "kinesis:DeleteStream",
+                    "kinesis:DescribeStream",
+                    "kinesis:GetRecords",
+                    "kinesis:GetShardIterator",
+                    "kinesis:MergeShards",
+                    "kinesis:PutRecord",
+                    "kinesis:SplitShard",
+                    "rds:Describe*",
+                    "s3:*",
+                    "sdb:*",
+                    "sns:*",
+                    "sqs:*"
+                ]
+            }]
+        }
+    )
+]
+# TODO: add more predefined AWS managed policies
+
+
 class IAMBackend(BaseBackend):
 
     def __init__(self):
@@ -234,7 +391,70 @@ class IAMBackend(BaseBackend):
         self.groups = {}
         self.users = {}
         self.credential_report = None
+        self.managed_policies = self._init_managed_policies()
         super(IAMBackend, self).__init__()
+
+    def _init_managed_policies(self):
+        return dict((p.name, p) for p in aws_managed_policies)
+
+    def attach_role_policy(self, policy_arn, role_name):
+        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        policy = arns[policy_arn]
+        policy.attach_to_role(self.get_role(role_name))
+
+    def create_policy(self, description, path, policy_document, policy_name):
+        policy = ManagedPolicy(
+            policy_name,
+            description=description,
+            document=policy_document,
+            path=path,
+        )
+        self.managed_policies[policy.name] = policy
+        return policy
+
+    def list_attached_role_policies(self, role_name, marker=None, max_items=100, path_prefix='/'):
+        policies = self.get_role(role_name).managed_policies.values()
+
+        if path_prefix:
+            policies = [p for p in policies if p.path.startswith(path_prefix)]
+
+        policies = sorted(policies, key=lambda policy: policy.name)
+        start_idx = int(marker) if marker else 0
+
+        policies = policies[start_idx:start_idx + max_items]
+
+        if len(policies) < max_items:
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        return policies, marker
+
+    def list_policies(self, marker, max_items, only_attached, path_prefix, scope):
+        policies = self.managed_policies.values()
+
+        if only_attached:
+            policies = [p for p in policies if p.attachment_count > 0]
+
+        if scope == 'AWS':
+            policies = [p for p in policies if isinstance(p, AWSManagedPolicy)]
+        elif scope == 'Local':
+            policies = [p for p in policies if not isinstance(p, AWSManagedPolicy)]
+
+        if path_prefix:
+            policies = [p for p in policies if p.path.startswith(path_prefix)]
+
+        policies = sorted(policies, key=lambda policy: policy.name)
+        start_idx = int(marker) if marker else 0
+
+        policies = policies[start_idx:start_idx + max_items]
+
+        if len(policies) < max_items:
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        return policies, marker
 
     def create_role(self, role_name, assume_role_policy_document, path):
         role_id = random_resource_id()
@@ -318,6 +538,10 @@ class IAMBackend(BaseBackend):
             if name == cert.cert_name:
                 return cert
 
+        raise IAMNotFoundException(
+            "The Server Certificate with name {0} cannot be "
+            "found.".format(name))
+
     def create_group(self, group_name, path='/'):
         if group_name in self.groups:
             raise IAMConflictException("Group {0} already exists".format(group_name))
@@ -364,12 +588,27 @@ class IAMBackend(BaseBackend):
 
         return user
 
+    def list_users(self, path_prefix, marker, max_items):
+        users = None
+        try:
+            users = self.users
+        except KeyError:
+            raise IAMNotFoundException("Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
+
+        return users
+
     def create_login_profile(self, user_name, password):
         # This does not currently deal with PasswordPolicyViolation.
         user = self.get_user(user_name)
         if user.password:
             raise IAMConflictException("User {0} already has password".format(user_name))
         user.password = password
+
+    def delete_login_profile(self, user_name):
+        user = self.get_user(user_name)
+        if not user.password:
+            raise IAMNotFoundException("Login profile for {0} not found".format(user_name))
+        user.password = None
 
     def add_user_to_group(self, group_name, user_name):
         user = self.get_user(user_name)

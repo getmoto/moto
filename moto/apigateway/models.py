@@ -7,15 +7,18 @@ import requests
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import create_id
+from .exceptions import StageNotFoundException
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
 
 class Deployment(dict):
-    def __init__(self, deployment_id, name):
+    def __init__(self, deployment_id, name, description=""):
         super(Deployment, self).__init__()
         self['id'] = deployment_id
         self['stageName'] = name
+        self['description'] = description
+        self['createdDate'] = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
 
 class IntegrationResponse(dict):
@@ -27,11 +30,12 @@ class IntegrationResponse(dict):
 
 
 class Integration(dict):
-    def __init__(self, integration_type, uri, http_method):
+    def __init__(self, integration_type, uri, http_method, request_templates=None):
         super(Integration, self).__init__()
         self['type'] = integration_type
         self['uri'] = uri
         self['httpMethod'] = http_method
+        self['requestTemplates'] = request_templates
         self["integrationResponses"] = {
             "200": IntegrationResponse(200)
         }
@@ -136,8 +140,8 @@ class Resource(object):
     def get_method(self, method_type):
         return self.resource_methods[method_type]
 
-    def add_integration(self, method_type, integration_type, uri):
-        integration = Integration(integration_type, uri, method_type)
+    def add_integration(self, method_type, integration_type, uri, request_templates=None):
+        integration = Integration(integration_type, uri, method_type, request_templates=request_templates)
         self.resource_methods[method_type]['methodIntegration'] = integration
         return integration
 
@@ -146,6 +150,135 @@ class Resource(object):
 
     def delete_integration(self, method_type):
         return self.resource_methods[method_type].pop('methodIntegration')
+
+
+class Stage(dict):
+
+
+    def __init__(self, name=None, deployment_id=None, variables=None,
+                 description='',cacheClusterEnabled=False,cacheClusterSize=None):
+        super(Stage, self).__init__()
+        if variables is None:
+            variables = {}
+        self['stageName'] = name
+        self['deploymentId'] = deployment_id
+        self['methodSettings'] = {}
+        self['variables'] = variables
+        self['description'] = description
+        self['cacheClusterEnabled'] = cacheClusterEnabled
+        if self['cacheClusterEnabled']:
+            self['cacheClusterSize'] = str(0.5)
+
+        if cacheClusterSize is not None:
+            self['cacheClusterSize'] = str(cacheClusterSize)
+
+    def apply_operations(self, patch_operations):
+        for op in patch_operations:
+            if 'variables/' in op['path']:
+                self._apply_operation_to_variables(op)
+            elif '/cacheClusterEnabled' in op['path']:
+                self['cacheClusterEnabled'] = self._str2bool(op['value'])
+                if 'cacheClusterSize' not in self and self['cacheClusterEnabled']:
+                    self['cacheClusterSize'] = str(0.5)
+            elif '/cacheClusterSize' in op['path']:
+                self['cacheClusterSize'] = str(float(op['value']))
+            elif '/description' in op['path']:
+                self['description'] = op['value']
+            elif '/deploymentId' in op['path']:
+                self['deploymentId'] = op['value']
+            elif op['op'] == 'replace':
+                # Method Settings drop into here
+                # (e.g., path could be '/*/*/logging/loglevel')
+                split_path = op['path'].split('/',3)
+                if len(split_path)!=4:
+                    continue
+                self._patch_method_setting('/'.join(split_path[1:3]),split_path[3],op['value'])
+            else:
+                raise Exception('Patch operation "%s" not implemented' % op['op'])
+        return self
+
+    def _patch_method_setting(self,resource_path_and_method,key,value):
+        updated_key = self._method_settings_translations(key)
+        if updated_key is not None:
+            if resource_path_and_method not in self['methodSettings']:
+                self['methodSettings'][resource_path_and_method] = self._get_default_method_settings()
+            self['methodSettings'][resource_path_and_method][updated_key] = self._convert_to_type(updated_key,value)
+
+
+    def _get_default_method_settings(self):
+        return {
+            "throttlingRateLimit": 1000.0,
+            "dataTraceEnabled": False,
+            "metricsEnabled": False,
+            "unauthorizedCacheControlHeaderStrategy": "SUCCEED_WITH_RESPONSE_HEADER",
+            "cacheTtlInSeconds": 300,
+            "cacheDataEncrypted": True,
+            "cachingEnabled": False,
+            "throttlingBurstLimit": 2000,
+            "requireAuthorizationForCacheControl": True
+        }
+
+    def _method_settings_translations(self,key):
+        mappings = {
+            'metrics/enabled' :'metricsEnabled',
+            'logging/loglevel' : 'loggingLevel',
+            'logging/dataTrace' : 'dataTraceEnabled' ,
+            'throttling/burstLimit' : 'throttlingBurstLimit',
+            'throttling/rateLimit' : 'throttlingRateLimit',
+            'caching/enabled' : 'cachingEnabled',
+            'caching/ttlInSeconds' : 'cacheTtlInSeconds',
+            'caching/dataEncrypted' : 'cacheDataEncrypted',
+            'caching/requireAuthorizationForCacheControl' : 'requireAuthorizationForCacheControl',
+            'caching/unauthorizedCacheControlHeaderStrategy' : 'unauthorizedCacheControlHeaderStrategy'
+        }
+
+        if key in mappings:
+            return mappings[key]
+        else:
+            None
+
+    def _str2bool(self,v):
+        return v.lower() == "true"
+
+    def _convert_to_type(self,key,val):
+        type_mappings = {
+            'metricsEnabled' : 'bool',
+            'loggingLevel' : 'str',
+            'dataTraceEnabled' : 'bool',
+            'throttlingBurstLimit' :  'int',
+            'throttlingRateLimit' : 'float',
+            'cachingEnabled' : 'bool',
+            'cacheTtlInSeconds' :  'int',
+            'cacheDataEncrypted' :  'bool',
+            'requireAuthorizationForCacheControl' :'bool',
+            'unauthorizedCacheControlHeaderStrategy' : 'str'
+        }
+
+        if key in type_mappings:
+            type_value = type_mappings[key]
+
+            if type_value == 'bool':
+                return self._str2bool(val)
+            elif type_value == 'int':
+                return  int(val)
+            elif type_value == 'float':
+                return float(val)
+            else:
+                return str(val)
+        else:
+            return str(val)
+
+
+
+    def _apply_operation_to_variables(self,op):
+        key = op['path'][op['path'].rindex("variables/")+10:]
+        if op['op'] == 'remove':
+            self['variables'].pop(key, None)
+        elif op['op'] == 'replace':
+            self['variables'][key] = op['value']
+        else:
+            raise Exception('Patch operation "%s" not implemented' % op['op'])
+
 
 
 class RestAPI(object):
@@ -157,6 +290,7 @@ class RestAPI(object):
         self.create_date = datetime.datetime.utcnow()
 
         self.deployments = {}
+        self.stages = {}
 
         self.resources = {}
         self.add_child('/')  # Add default child
@@ -197,17 +331,31 @@ class RestAPI(object):
         for method in httpretty.httpretty.METHODS:
             httpretty.register_uri(method, stage_url, body=self.resource_callback)
 
-    def create_deployment(self, name):
-        deployment_id = create_id()
-        deployment = Deployment(deployment_id, name)
-        self.deployments[deployment_id] = deployment
+    def create_stage(self, name, deployment_id,variables=None,description='',cacheClusterEnabled=None,cacheClusterSize=None):
+        if variables is None:
+            variables = {}
+        stage = Stage(name=name, deployment_id=deployment_id,variables=variables,
+                      description=description,cacheClusterSize=cacheClusterSize,cacheClusterEnabled=cacheClusterEnabled)
+        self.stages[name] = stage
+        self.update_integration_mocks(name)
+        return stage
 
+    def create_deployment(self, name, description="",stage_variables=None):
+        if stage_variables is None:
+            stage_variables = {}
+        deployment_id = create_id()
+        deployment = Deployment(deployment_id, name, description)
+        self.deployments[deployment_id] = deployment
+        self.stages[name] = Stage(name=name, deployment_id=deployment_id,variables=stage_variables)
         self.update_integration_mocks(name)
 
         return deployment
 
     def get_deployment(self, deployment_id):
         return self.deployments[deployment_id]
+
+    def get_stages(self):
+            return list(self.stages.values())
 
     def get_deployments(self):
         return list(self.deployments.values())
@@ -275,6 +423,36 @@ class APIGatewayBackend(BaseBackend):
         method = resource.add_method(method_type, authorization_type)
         return method
 
+    def get_stage(self, function_id, stage_name):
+        api = self.get_rest_api(function_id)
+        stage = api.stages.get(stage_name)
+        if stage is None:
+            raise StageNotFoundException()
+        else:
+            return stage
+
+
+    def get_stages(self, function_id):
+        api = self.get_rest_api(function_id)
+        return api.get_stages()
+
+
+    def create_stage(self, function_id, stage_name, deploymentId,
+                     variables=None,description='',cacheClusterEnabled=None,cacheClusterSize=None):
+        if variables is None:
+            variables = {}
+        api = self.get_rest_api(function_id)
+        api.create_stage(stage_name,deploymentId,variables=variables,
+                        description=description,cacheClusterEnabled=cacheClusterEnabled,cacheClusterSize=cacheClusterSize)
+        return api.stages.get(stage_name)
+
+    def update_stage(self, function_id, stage_name, patch_operations):
+        stage = self.get_stage(function_id, stage_name)
+        if not stage:
+            api = self.get_rest_api(function_id)
+            stage = api.stages[stage_name] = Stage()
+        return stage.apply_operations(patch_operations)
+
     def get_method_response(self, function_id, resource_id, method_type, response_code):
         method = self.get_method(function_id, resource_id, method_type)
         method_response = method.get_response(response_code)
@@ -290,9 +468,11 @@ class APIGatewayBackend(BaseBackend):
         method_response = method.delete_response(response_code)
         return method_response
 
-    def create_integration(self, function_id, resource_id, method_type, integration_type, uri):
+    def create_integration(self, function_id, resource_id, method_type, integration_type, uri,
+            request_templates=None):
         resource = self.get_resource(function_id, resource_id)
-        integration = resource.add_integration(method_type, integration_type, uri)
+        integration = resource.add_integration(method_type, integration_type, uri,
+            request_templates=request_templates)
         return integration
 
     def get_integration(self, function_id, resource_id, method_type):
@@ -318,9 +498,11 @@ class APIGatewayBackend(BaseBackend):
         integration_response = integration.delete_integration_response(status_code)
         return integration_response
 
-    def create_deployment(self, function_id, name):
+    def create_deployment(self, function_id, name, description ="", stage_variables=None):
+        if stage_variables is None:
+            stage_variables = {}
         api = self.get_rest_api(function_id)
-        deployment = api.create_deployment(name)
+        deployment = api.create_deployment(name, description,stage_variables)
         return deployment
 
     def get_deployment(self, function_id, deployment_id):

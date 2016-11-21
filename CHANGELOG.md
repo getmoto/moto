@@ -4,6 +4,29 @@ Moto Changelog
 Latest
 ------
 
+0.4.30
+------
+
+    * Change spot requests to launch instances
+
+0.4.29
+------
+
+    * Nest flask import so that it is not required globally
+
+0.4.28
+------
+
+    * Add basic spot fleet support
+    * IAM Managed Policies
+    * Better EMR coverage
+    * Basic KMS support for encrypt/decrypt
+
+0.4.27
+------
+
+    *
+
 0.4.25
 ------
 

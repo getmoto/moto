@@ -4,12 +4,22 @@ import json
 
 from moto.core.responses import BaseResponse
 from .models import apigateway_backends
+from .exceptions import StageNotFoundException
 
 
 class APIGatewayResponse(BaseResponse):
 
     def _get_param(self, key):
         return json.loads(self.body.decode("ascii")).get(key)
+
+
+    def _get_param_with_default_value(self, key, default):
+        jsonbody = json.loads(self.body.decode("ascii"))
+
+        if key in jsonbody:
+            return jsonbody.get(key)
+        else:
+            return default
 
     @property
     def backend(self):
@@ -95,6 +105,44 @@ class APIGatewayResponse(BaseResponse):
             method_response = self.backend.delete_method_response(function_id, resource_id, method_type, response_code)
         return 200, headers, json.dumps(method_response)
 
+    def restapis_stages(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+
+        if self.method == 'POST':
+            stage_name = self._get_param("stageName")
+            deployment_id = self._get_param("deploymentId")
+            stage_variables = self._get_param_with_default_value('variables',{})
+            description = self._get_param_with_default_value('description','')
+            cacheClusterEnabled = self._get_param_with_default_value('cacheClusterEnabled',False)
+            cacheClusterSize = self._get_param_with_default_value('cacheClusterSize',None)
+
+            stage_response = self.backend.create_stage(function_id, stage_name, deployment_id,
+                                                       variables=stage_variables, description=description,
+                                                       cacheClusterEnabled=cacheClusterEnabled, cacheClusterSize=cacheClusterSize)
+        elif self.method == 'GET':
+            stages = self.backend.get_stages(function_id)
+            return 200, headers, json.dumps({"item": stages})
+
+        return 200, headers, json.dumps(stage_response)
+
+    def stages(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        stage_name = url_path_parts[4]
+
+        if self.method == 'GET':
+            try:
+                stage_response = self.backend.get_stage(function_id, stage_name)
+            except StageNotFoundException as error:
+                return error.code, headers,'{{"message":"{0}","code":"{1}"}}'.format(error.message,error.error_type)
+        elif self.method == 'PATCH':
+            patch_operations = self._get_param('patchOperations')
+            stage_response = self.backend.update_stage(function_id, stage_name, patch_operations)
+        return 200, headers, json.dumps(stage_response)
+
     def integrations(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
@@ -107,7 +155,8 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == 'PUT':
             integration_type = self._get_param('type')
             uri = self._get_param('uri')
-            integration_response = self.backend.create_integration(function_id, resource_id, method_type, integration_type, uri)
+            request_templates = self._get_param('requestTemplates')
+            integration_response = self.backend.create_integration(function_id, resource_id, method_type, integration_type, uri, request_templates=request_templates)
         elif self.method == 'DELETE':
             integration_response = self.backend.delete_integration(function_id, resource_id, method_type)
         return 200, headers, json.dumps(integration_response)
@@ -144,7 +193,9 @@ class APIGatewayResponse(BaseResponse):
             return 200, headers, json.dumps({"item": deployments})
         elif self.method == 'POST':
             name = self._get_param("stageName")
-            deployment = self.backend.create_deployment(function_id, name)
+            description = self._get_param_with_default_value("description","")
+            stage_variables = self._get_param_with_default_value('variables',{})
+            deployment = self.backend.create_deployment(function_id, name, description,stage_variables)
             return 200, headers, json.dumps(deployment)
 
     def individual_deployment(self, request, full_url, headers):

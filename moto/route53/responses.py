@@ -15,7 +15,7 @@ def list_or_create_hostzone_response(request, full_url, headers):
                 # in boto3, this field is set directly in the xml
                 private_zone = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["PrivateZone"]
             except KeyError:
-                # if a VPC subsection is only included in xmls params when private_zone=True, 
+                # if a VPC subsection is only included in xmls params when private_zone=True,
                 # see boto: boto/route53/connection.py
                 private_zone = 'VPC' in elements["CreateHostedZoneRequest"]
         else:
@@ -137,6 +137,52 @@ def not_implemented_response(request, full_url, headers):
         action = 'policies'
     raise NotImplementedError("The action for {0} has not been implemented for route 53".format(action))
 
+
+def list_or_change_tags_for_resource_request(request, full_url, headers):
+    parsed_url = urlparse(full_url)
+    id_ = parsed_url.path.split("/")[-1]
+    type_ = parsed_url.path.split("/")[-2]
+
+    if request.method == "GET":
+        tags = route53_backend.list_tags_for_resource(id_)
+        template = Template(LIST_TAGS_FOR_RESOURCE_RESPONSE)
+        return 200, headers, template.render(
+            resource_type=type_, resource_id=id_, tags=tags)
+
+    if request.method == "POST":
+        tags = xmltodict.parse(
+            request.body)['ChangeTagsForResourceRequest']
+
+        if 'AddTags' in tags:
+            tags = tags['AddTags']
+        elif 'RemoveTagKeys' in tags:
+            tags = tags['RemoveTagKeys']
+
+        route53_backend.change_tags_for_resource(id_, tags)
+        template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
+
+        return 200, headers, template.render()
+
+LIST_TAGS_FOR_RESOURCE_RESPONSE = """
+<ListTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+    <ResourceTagSet>
+        <ResourceType>{{resource_type}}</ResourceType>
+        <ResourceId>{{resource_id}}</ResourceId>
+        <Tags>
+            {% for key, value in tags.items() %}
+            <Tag>
+                <Key>{{key}}</Key>
+                <Value>{{value}}</Value>
+            </Tag>
+            {% endfor %}
+        </Tags>
+    </ResourceTagSet>
+</ListTagsForResourceResponse>
+"""
+
+CHANGE_TAGS_FOR_RESOURCE_RESPONSE = """<ChangeTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+</ChangeTagsForResourceResponse>
+"""
 
 LIST_RRSET_REPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>

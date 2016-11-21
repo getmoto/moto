@@ -15,7 +15,7 @@ from boto.ec2.launchspecification import LaunchSpecification
 
 from moto.core import BaseBackend
 from moto.core.models import Model
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, camelcase_to_underscores
 from .exceptions import (
     EC2ClientError,
     DependencyViolationError,
@@ -81,6 +81,7 @@ from .utils import (
     split_route_id,
     random_security_group_id,
     random_snapshot_id,
+    random_spot_fleet_request_id,
     random_spot_request_id,
     random_subnet_id,
     random_subnet_association_id,
@@ -549,6 +550,10 @@ class Instance(BotoInstance, TaggedEC2Resource):
 
             self.attach_eni(use_nic, device_index)
 
+    def set_ip(self, ip_address):
+        # Should we be creating a new ENI?
+        self.nics[0].public_ip = ip_address
+
     def attach_eni(self, eni, device_index):
         device_index = int(device_index)
         self.nics[device_index] = eni
@@ -632,6 +637,8 @@ class InstanceBackend(object):
 
     def terminate_instances(self, instance_ids):
         terminated_instances = []
+        if not instance_ids:
+            raise EC2ClientError("InvalidParameterCombination", "No instances specified")
         for instance in self.get_multi_instances_by_id(instance_ids):
             instance.terminate()
             terminated_instances.append(instance)
@@ -809,9 +816,9 @@ class TagBackend(object):
             raise InvalidParameterValueErrorTagNull()
         for resource_id in resource_ids:
             if resource_id in self.tags:
-                if len(self.tags[resource_id]) + len([tag for tag in tags if not tag.startswith("aws:")]) > 10:
+                if len(self.tags[resource_id]) + len([tag for tag in tags if not tag.startswith("aws:")]) > 50:
                     raise TagLimitExceeded()
-            elif len([tag for tag in tags if not tag.startswith("aws:")]) > 10:
+            elif len([tag for tag in tags if not tag.startswith("aws:")]) > 50:
                 raise TagLimitExceeded()
         for resource_id in resource_ids:
             for tag in tags:
@@ -846,8 +853,7 @@ class TagBackend(object):
                             resource_id_filters.append(re.compile(simple_aws_filter_to_re(value)))
                     if tag_filter == 'resource-type':
                         for value in filters[tag_filter]:
-                            if value in self.VALID_TAG_RESOURCE_FILTER_TYPES:
-                                resource_type_filters.append(value)
+                            resource_type_filters.append(value)
                     if tag_filter == 'value':
                         for value in filters[tag_filter]:
                             value_filters.append(re.compile(simple_aws_filter_to_re(value)))
@@ -911,6 +917,7 @@ class Ami(TaggedEC2Resource):
         self.architecture = None
         self.kernel_id = None
         self.platform = None
+        self.creation_date = datetime.utcnow().isoformat()
 
         if instance:
             self.instance = instance
@@ -1226,6 +1233,8 @@ class SecurityGroup(TaggedEC2Resource):
                     return True
         elif is_tag_filter(key):
             tag_value = self.get_filter_value(key)
+            if isinstance(filter_value, list):
+                return any(v in tag_value for v in filter_value)
             return tag_value in filter_value
         else:
             attr_name = to_attr(key)
@@ -1511,11 +1520,12 @@ class SecurityGroupIngress(object):
 
 
 class VolumeAttachment(object):
-    def __init__(self, volume, instance, device):
+    def __init__(self, volume, instance, device, status):
         self.volume = volume
         self.attach_time = utc_date_and_time()
         self.instance = instance
         self.device = device
+        self.status = status
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1534,7 +1544,7 @@ class VolumeAttachment(object):
 
 
 class Volume(TaggedEC2Resource):
-    def __init__(self, ec2_backend, volume_id, size, zone, snapshot_id=None):
+    def __init__(self, ec2_backend, volume_id, size, zone, snapshot_id=None, encrypted=False):
         self.id = volume_id
         self.size = size
         self.zone = zone
@@ -1542,6 +1552,7 @@ class Volume(TaggedEC2Resource):
         self.attachment = None
         self.snapshot_id = snapshot_id
         self.ec2_backend = ec2_backend
+        self.encrypted = encrypted
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1575,6 +1586,8 @@ class Volume(TaggedEC2Resource):
             return self.attachment.device
         if filter_name == 'attachment.instance-id':
             return self.attachment.instance.id
+        if filter_name == 'attachment.status':
+            return self.attachment.status
 
         if filter_name == 'create-time':
             return self.create_time
@@ -1591,6 +1604,9 @@ class Volume(TaggedEC2Resource):
         if filter_name == 'volume-id':
             return self.id
 
+        if filter_name == 'encrypted':
+            return str(self.encrypted).lower()
+
         filter_value = super(Volume, self).get_filter_value(filter_name)
 
         if filter_value is None:
@@ -1600,7 +1616,7 @@ class Volume(TaggedEC2Resource):
 
 
 class Snapshot(TaggedEC2Resource):
-    def __init__(self, ec2_backend, snapshot_id, volume, description):
+    def __init__(self, ec2_backend, snapshot_id, volume, description, encrypted=False):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
@@ -1608,6 +1624,7 @@ class Snapshot(TaggedEC2Resource):
         self.create_volume_permission_groups = set()
         self.ec2_backend = ec2_backend
         self.status = 'completed'
+        self.encrypted = encrypted
 
     def get_filter_value(self, filter_name):
 
@@ -1626,6 +1643,9 @@ class Snapshot(TaggedEC2Resource):
         if filter_name == 'volume-size':
             return self.volume.size
 
+        if filter_name == 'encrypted':
+            return str(self.encrypted).lower()
+
         filter_value = super(Snapshot, self).get_filter_value(filter_name)
 
         if filter_value is None:
@@ -1641,14 +1661,16 @@ class EBSBackend(object):
         self.snapshots = {}
         super(EBSBackend, self).__init__()
 
-    def create_volume(self, size, zone_name, snapshot_id=None):
+    def create_volume(self, size, zone_name, snapshot_id=None, encrypted=False):
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)
         if snapshot_id:
             snapshot = self.get_snapshot(snapshot_id)
             if size is None:
                 size = snapshot.volume.size
-        volume = Volume(self, volume_id, size, zone, snapshot_id)
+            if snapshot.encrypted:
+                encrypted = snapshot.encrypted
+        volume = Volume(self, volume_id, size, zone, snapshot_id, encrypted)
         self.volumes[volume_id] = volume
         return volume
 
@@ -1676,7 +1698,7 @@ class EBSBackend(object):
         if not volume or not instance:
             return False
 
-        volume.attachment = VolumeAttachment(volume, instance, device_path)
+        volume.attachment = VolumeAttachment(volume, instance, device_path, 'attached')
         # Modify instance to capture mount of block device.
         bdt = BlockDeviceType(volume_id=volume_id, status=volume.status, size=volume.size,
                               attach_time=utc_date_and_time())
@@ -1690,6 +1712,7 @@ class EBSBackend(object):
         old_attachment = volume.attachment
         if not old_attachment:
             raise InvalidVolumeAttachmentError(volume_id, instance_id)
+        old_attachment.status = 'detached'
 
         volume.attachment = None
         return old_attachment
@@ -1697,7 +1720,7 @@ class EBSBackend(object):
     def create_snapshot(self, volume_id, description):
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
-        snapshot = Snapshot(self, snapshot_id, volume, description)
+        snapshot = Snapshot(self, snapshot_id, volume, description, volume.encrypted)
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
@@ -1775,6 +1798,10 @@ class VPC(TaggedEC2Resource):
             return self.id
         elif filter_name == 'cidr':
             return self.cidr_block
+        elif filter_name == 'isDefault':
+            return self.is_default
+        elif filter_name == 'state':
+            return self.state
         elif filter_name == 'dhcp-options-id':
             if not self.dhcp_options:
                 return None
@@ -2490,6 +2517,8 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             default_group = self.ec2_backend.get_security_group_from_name("default")
             ls.groups.append(default_group)
 
+        self.instance = self.launch_instance()
+
     def get_filter_value(self, filter_name):
         if filter_name == 'state':
             return self.state
@@ -2501,6 +2530,18 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             self.ec2_backend.raise_not_implemented_error("The filter '{0}' for DescribeSpotInstanceRequests".format(filter_name))
 
         return filter_value
+
+    def launch_instance(self):
+        reservation = self.ec2_backend.add_instances(
+            image_id=self.launch_specification.image_id, count=1, user_data=self.user_data,
+            instance_type=self.launch_specification.instance_type,
+            subnet_id=self.launch_specification.subnet_id,
+            key_name=self.launch_specification.key_name,
+            security_group_names=[],
+            security_group_ids=self.launch_specification.groups,
+        )
+        instance = reservation.instances[0]
+        return instance
 
 
 @six.add_metaclass(Model)
@@ -2537,6 +2578,170 @@ class SpotRequestBackend(object):
         for request_id in request_ids:
             requests.append(self.spot_instance_requests.pop(request_id))
         return requests
+
+
+class SpotFleetLaunchSpec(object):
+    def __init__(self, ebs_optimized, group_set, iam_instance_profile, image_id,
+        instance_type, key_name, monitoring, spot_price, subnet_id, user_data,
+        weighted_capacity):
+        self.ebs_optimized = ebs_optimized
+        self.group_set = group_set
+        self.iam_instance_profile = iam_instance_profile
+        self.image_id = image_id
+        self.instance_type = instance_type
+        self.key_name = key_name
+        self.monitoring = monitoring
+        self.spot_price = spot_price
+        self.subnet_id = subnet_id
+        self.user_data = user_data
+        self.weighted_capacity = float(weighted_capacity)
+
+
+class SpotFleetRequest(TaggedEC2Resource):
+
+    def __init__(self, ec2_backend, spot_fleet_request_id, spot_price,
+            target_capacity, iam_fleet_role, allocation_strategy, launch_specs):
+
+        self.ec2_backend = ec2_backend
+        self.id = spot_fleet_request_id
+        self.spot_price = spot_price
+        self.target_capacity = int(target_capacity)
+        self.iam_fleet_role = iam_fleet_role
+        self.allocation_strategy = allocation_strategy
+        self.state = "active"
+        self.fulfilled_capacity = self.target_capacity
+
+        self.launch_specs = []
+        for spec in launch_specs:
+            self.launch_specs.append(SpotFleetLaunchSpec(
+                    ebs_optimized=spec['ebs_optimized'],
+                    group_set=[val for key, val in spec.items() if key.startswith("group_set")],
+                    iam_instance_profile=spec.get('iam_instance_profile._arn'),
+                    image_id=spec['image_id'],
+                    instance_type=spec['instance_type'],
+                    key_name=spec.get('key_name'),
+                    monitoring=spec.get('monitoring._enabled'),
+                    spot_price=spec.get('spot_price', self.spot_price),
+                    subnet_id=spec['subnet_id'],
+                    user_data=spec.get('user_data'),
+                    weighted_capacity=spec['weighted_capacity'],
+                )
+            )
+
+        self.spot_requests = []
+        self.create_spot_requests()
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']['SpotFleetRequestConfigData']
+        ec2_backend = ec2_backends[region_name]
+
+        spot_price = properties['SpotPrice']
+        target_capacity = properties['TargetCapacity']
+        iam_fleet_role = properties['IamFleetRole']
+        allocation_strategy = properties['AllocationStrategy']
+        launch_specs = properties["LaunchSpecifications"]
+        launch_specs = [
+            dict([(camelcase_to_underscores(key), val) for key, val in launch_spec.items()])
+            for launch_spec
+            in launch_specs
+        ]
+
+        spot_fleet_request = ec2_backend.request_spot_fleet(spot_price,
+            target_capacity, iam_fleet_role, allocation_strategy, launch_specs)
+
+        return spot_fleet_request
+
+
+    def get_launch_spec_counts(self):
+        weight_map = defaultdict(int)
+
+        if self.allocation_strategy == 'diversified':
+            weight_so_far = 0
+            launch_spec_index = 0
+            while True:
+                launch_spec = self.launch_specs[launch_spec_index % len(self.launch_specs)]
+                weight_map[launch_spec] += 1
+                weight_so_far += launch_spec.weighted_capacity
+                if weight_so_far >= self.target_capacity:
+                    break
+                launch_spec_index += 1
+        else:  # lowestPrice
+            cheapest_spec = sorted(self.launch_specs, key=lambda spec: float(spec.spot_price))[0]
+            extra = 1 if self.target_capacity % cheapest_spec.weighted_capacity else 0
+            weight_map[cheapest_spec] = int(self.target_capacity // cheapest_spec.weighted_capacity) + extra
+
+        return weight_map.items()
+
+    def create_spot_requests(self):
+        for launch_spec, count in self.get_launch_spec_counts():
+            requests = self.ec2_backend.request_spot_instances(
+                                price=launch_spec.spot_price,
+                                image_id=launch_spec.image_id,
+                                count=count,
+                                type="persistent",
+                                valid_from=None,
+                                valid_until=None,
+                                launch_group=None,
+                                availability_zone_group=None,
+                                key_name=launch_spec.key_name,
+                                security_groups=launch_spec.group_set,
+                                user_data=launch_spec.user_data,
+                                instance_type=launch_spec.instance_type,
+                                placement=None,
+                                kernel_id=None,
+                                ramdisk_id=None,
+                                monitoring_enabled=launch_spec.monitoring,
+                                subnet_id=launch_spec.subnet_id,
+            )
+            self.spot_requests.extend(requests)
+        return self.spot_requests
+
+    def terminate_instances(self):
+        pass
+
+
+class SpotFleetBackend(object):
+    def __init__(self):
+        self.spot_fleet_requests = {}
+        super(SpotFleetBackend, self).__init__()
+
+    def request_spot_fleet(self, spot_price, target_capacity, iam_fleet_role,
+            allocation_strategy, launch_specs):
+
+        spot_fleet_request_id = random_spot_fleet_request_id()
+        request = SpotFleetRequest(self, spot_fleet_request_id, spot_price,
+            target_capacity, iam_fleet_role, allocation_strategy, launch_specs)
+        self.spot_fleet_requests[spot_fleet_request_id] = request
+        return request
+
+    def get_spot_fleet_request(self, spot_fleet_request_id):
+        return self.spot_fleet_requests[spot_fleet_request_id]
+
+    def describe_spot_fleet_instances(self, spot_fleet_request_id):
+        spot_fleet = self.get_spot_fleet_request(spot_fleet_request_id)
+        return spot_fleet.spot_requests
+
+    def describe_spot_fleet_requests(self, spot_fleet_request_ids):
+        requests = self.spot_fleet_requests.values()
+
+        if spot_fleet_request_ids:
+            requests = [request for request in requests if request.id in spot_fleet_request_ids]
+
+        return requests
+
+    def cancel_spot_fleet_requests(self, spot_fleet_request_ids, terminate_instances):
+        spot_requests = []
+        for spot_fleet_request_id in spot_fleet_request_ids:
+            spot_fleet = self.spot_fleet_requests.pop(spot_fleet_request_id)
+            if terminate_instances:
+                spot_fleet.terminate_instances()
+            spot_requests.append(spot_fleet)
+        return spot_requests
 
 
 class ElasticAddress(object):
@@ -2641,6 +2846,8 @@ class ElasticAddressBackend(object):
                 eip.eni.public_ip = eip.public_ip
             if eip.domain == "vpc":
                 eip.association_id = random_eip_association_id()
+            if instance:
+                instance.set_ip(eip.public_ip)
 
             return eip
 
@@ -3161,10 +3368,10 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  NetworkInterfaceBackend, VPNConnectionBackend,
                  VPCPeeringConnectionBackend,
                  RouteTableBackend, RouteBackend, InternetGatewayBackend,
-                 VPCGatewayAttachmentBackend, SpotRequestBackend,
-                 ElasticAddressBackend, KeyPairBackend, DHCPOptionsSetBackend,
-                 NetworkAclBackend, VpnGatewayBackend, CustomerGatewayBackend,
-                 NatGatewayBackend):
+                 VPCGatewayAttachmentBackend, SpotFleetBackend,
+                 SpotRequestBackend,ElasticAddressBackend, KeyPairBackend,
+                 DHCPOptionsSetBackend, NetworkAclBackend, VpnGatewayBackend,
+                 CustomerGatewayBackend, NatGatewayBackend):
 
     def __init__(self, region_name):
         super(EC2Backend, self).__init__()

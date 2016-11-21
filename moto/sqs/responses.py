@@ -50,6 +50,12 @@ class SQSResponse(BaseResponse):
 
         return visibility_timeout
 
+    def call_action(self):
+        status_code, headers, body = super(SQSResponse, self).call_action()
+        if status_code == 404:
+            return 404, headers, ERROR_INEXISTENT_QUEUE
+        return status_code, headers, body
+
     def create_queue(self):
         queue_name = self.querystring.get("QueueName")[0]
         queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=self.attribute.get('VisibilityTimeout'),
@@ -177,7 +183,7 @@ class SQSResponse(BaseResponse):
             message = self.sqs_backend.send_message(queue_name, message_body[0], delay_seconds=delay_seconds)
             message.user_id = message_user_id
 
-            message_attributes = parse_message_attributes(self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index), value_namespace='')
+            message_attributes = parse_message_attributes(self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index))
             if type(message_attributes) == tuple:
                 return message_attributes[0], message_attributes[1]
             message.message_attributes = message_attributes
@@ -438,3 +444,13 @@ ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/do
 </ErrorResponse>"""
 
 ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = "Invalid request, maximum visibility timeout is {0}".format(MAXIMUM_VISIBILTY_TIMEOUT)
+
+ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
+    <Error>
+        <Type>Sender</Type>
+        <Code>AWS.SimpleQueueService.NonExistentQueue</Code>
+        <Message>The specified queue does not exist for this wsdl version.</Message>
+        <Detail/>
+    </Error>
+    <RequestId>b8bc806b-fa6b-53b5-8be8-cfa2f9836bc3</RequestId>
+</ErrorResponse>"""

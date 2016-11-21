@@ -50,7 +50,7 @@ CREATE_VPC_RESPONSE = """
       <vpcId>{{ vpc.id }}</vpcId>
       <state>pending</state>
       <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
-      <dhcpOptionsId>dopt-1a2b3c4d2</dhcpOptionsId>
+      <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-1a2b3c4d2{% endif %}</dhcpOptionsId>
       <instanceTenancy>default</instanceTenancy>
       <tagSet>
         {% for tag in vpc.get_tags() %}
@@ -74,7 +74,7 @@ DESCRIBE_VPCS_RESPONSE = """
         <vpcId>{{ vpc.id }}</vpcId>
         <state>{{ vpc.state }}</state>
         <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
-        <dhcpOptionsId>dopt-7a8b9c2d</dhcpOptionsId>
+        <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-7a8b9c2d{% endif %}</dhcpOptionsId>
         <instanceTenancy>default</instanceTenancy>
         <isDefault>{{ vpc.is_default }}</isDefault>
         <tagSet>
