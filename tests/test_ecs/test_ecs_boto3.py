@@ -832,6 +832,10 @@ def test_describe_tasks():
     set([response['tasks'][0]['taskArn'], response['tasks'][1]['taskArn']]).should.equal(set(tasks_arns))
 
 
+@mock_ecs
+def test_describe_tasks():
+    pass
+
 @mock_ec2
 @mock_ecs
 def test_stop_task():
