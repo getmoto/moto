@@ -98,6 +98,14 @@ class EC2ContainerServiceResponse(BaseResponse):
             'failures': []
         })
 
+    def describe_task_definition(self):
+        task_definition_str = self._get_param('taskDefinition')
+        data = self.ecs_backend.describe_task_definition(task_definition_str)
+        return json.dumps({
+            'taskDefinition': data.response_object,
+            'failures': []
+        })
+
     def start_task(self):
         cluster_str = self._get_param('cluster')
         overrides = self._get_param('overrides')

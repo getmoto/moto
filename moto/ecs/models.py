@@ -287,6 +287,9 @@ class EC2ContainerServiceBackend(BaseBackend):
                     response.append(task)
         return response
 
+    def describe_task_definition(self, task_definition_str):
+        return self.fetch_task_definition(task_definition_str)
+
     def list_tasks(self, cluster_str, container_instance, family, started_by, service_name, desiredStatus):
         filtered_tasks = []
         for cluster, tasks in self.tasks.items():
