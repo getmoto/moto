@@ -130,7 +130,7 @@ class Database(object):
         source_db_identifier = properties.get("SourceDBInstanceIdentifier")
         if source_db_identifier:
             # Replica
-            db_kwargs["source_db_identifier"] = source_db_identifier.db_instance_identifier
+            db_kwargs["source_db_identifier"] = source_db_identifier
             database = rds_backend.create_database_replica(db_kwargs)
         else:
             database = rds_backend.create_database(db_kwargs)
