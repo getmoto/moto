@@ -3,6 +3,10 @@ import boto3
 import sure  # noqa
 import re
 
+from datetime import datetime
+
+from freezegun import freeze_time
+
 from moto import mock_opsworks
 
 
@@ -45,6 +49,7 @@ def test_create_layer_response():
     )
 
 
+@freeze_time(datetime.now())
 @mock_opsworks
 def test_describe_layers():
     client = boto3.client('opsworks', region_name='us-east-1')
