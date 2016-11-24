@@ -38,6 +38,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
         super(ResponseObject, self).__init__()
         self.backend = backend
 
+    @property
+    def should_autoescape(self):
+        return True
+
     def all_buckets(self):
         # No bucket specified. Listing all buckets
         all_buckets = self.backend.get_all_buckets()

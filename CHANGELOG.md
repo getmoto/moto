@@ -4,6 +4,8 @@ Moto Changelog
 Latest
 ------
 
+    * Turn on variable escaping in templates for S3 XML documents
+
 0.4.30
 ------
 
