@@ -213,6 +213,8 @@ def get_canned_acl(acl):
         pass  # TODO: bucket owner ACL
     elif acl == 'bucket-owner-full-control':
         pass  # TODO: bucket owner ACL
+    elif acl == 'aws-exec-read':
+        pass  # TODO: bucket owner, EC2 Read
     elif acl == 'log-delivery-write':
         grants.append(FakeGrant([LOG_DELIVERY_GRANTEE], [PERMISSION_READ_ACP, PERMISSION_WRITE]))
     else:
