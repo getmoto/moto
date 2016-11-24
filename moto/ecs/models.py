@@ -217,6 +217,20 @@ class EC2ContainerServiceBackend(BaseBackend):
             task_arns.extend([task_definition.arn for task_definition in task_definition_list])
         return task_arns
 
+    def describe_task_definition(self, task_definition_str):
+        task_definition_name = task_definition_str.split('/')[-1]
+        if ':' in task_definition_name:
+            family, revision = task_definition_name.split(':')
+            revision = int(revision)
+        else:
+            family = task_definition_name
+            revision = len(self.task_definitions.get(family, []))
+
+        if family in self.task_definitions and 0 < revision <= len(self.task_definitions[family]):
+            return self.task_definitions[family][revision-1]
+        else:
+            raise Exception("{0} is not a task_definition".format(task_definition_name))
+
     def deregister_task_definition(self, task_definition_str):
         task_definition_name = task_definition_str.split('/')[-1]
         family, revision = task_definition_name.split(':')
@@ -346,6 +360,15 @@ class EC2ContainerServiceBackend(BaseBackend):
             if cluster_name + ':' in key:
                 service_arns.append(self.services[key].arn)
         return sorted(service_arns)
+
+    def describe_services(self, cluster_str, service_names):
+        cluster_name = cluster_str.split('/')[-1]
+        services = []
+        for service_name in service_names:
+            cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
+            if cluster_service_pair in self.services:
+                services.append(self.services[cluster_service_pair])
+        return services
 
     def update_service(self, cluster_str, service_name, task_definition_str, desired_count):
         cluster_name = cluster_str.split('/')[-1]
