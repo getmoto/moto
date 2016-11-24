@@ -329,6 +329,8 @@ class ResourceMap(collections.Mapping):
         # Set any input parameters that were passed
         for key, value in self.input_parameters.items():
             if key in self.resolved_parameters:
+                if parameter_slots[key].get('Type', 'String') == 'CommaDelimitedList':
+                    value = value.split(',')
                 self.resolved_parameters[key] = value
 
         # Check if there are any non-default params that were not passed input params
