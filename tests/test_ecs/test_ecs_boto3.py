@@ -398,6 +398,7 @@ def test_update_service():
     response = client.update_service(
         cluster='test_ecs_cluster',
         service='test_ecs_service',
+        taskDefinition='test_ecs_task',
         desiredCount=0
     )
     response['service']['desiredCount'].should.equal(0)
