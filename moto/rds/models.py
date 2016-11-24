@@ -37,7 +37,6 @@ class Database(object):
         self.source_db_identifier = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get('db_instance_class')
         self.port = kwargs.get('port')
-        self.physical_resource_id = kwargs.get('db_instance_identifier')
         self.db_name = kwargs.get("db_name")
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
@@ -64,6 +63,10 @@ class Database(object):
         # OptionGroupName
         # DBParameterGroupName
         # VpcSecurityGroupIds.member.N
+
+    @property
+    def physical_resource_id(self):
+        return self.db_instance_identifier
 
     @property
     def address(self):
