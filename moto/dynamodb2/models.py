@@ -3,6 +3,7 @@ from collections import defaultdict
 import datetime
 import decimal
 import json
+import re
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
@@ -110,27 +111,24 @@ class Item(object):
         }
 
     def update(self, update_expression, expression_attribute_names, expression_attribute_values):
-        ACTION_VALUES = ['SET', 'set', 'REMOVE', 'remove']
-
-        action = None
-        for value in update_expression.split():
-            if value in ACTION_VALUES:
-                # An action
-                action = value
-                continue
-            else:
+        parts = [p for p in re.split(r'\b(SET|REMOVE|ADD|DELETE)\b', update_expression) if p]
+        for action, valstr in zip(parts[:-1:1], parts[1::1]):
+            values = valstr.split(',')
+            for value in values:
                 # A Real value
                 value = value.lstrip(":").rstrip(",")
-            for k, v in expression_attribute_names.items():
-                value = value.replace(k, v)
-            if action == "REMOVE" or action == 'remove':
-                self.attrs.pop(value, None)
-            elif action == 'SET' or action == 'set':
-                key, value = value.split("=")
-                if value in expression_attribute_values:
-                    self.attrs[key] = DynamoType(expression_attribute_values[value])
-                else:
-                    self.attrs[key] = DynamoType({"S": value})
+                for k, v in expression_attribute_names.items():
+                    value = value.replace(k, v)
+                if action == "REMOVE" or action == 'remove':
+                    self.attrs.pop(value, None)
+                elif action == 'SET' or action == 'set':
+                    key, value = value.split("=")
+                    key = key.strip()
+                    value = value.strip()
+                    if value in expression_attribute_values:
+                        self.attrs[key] = DynamoType(expression_attribute_values[value])
+                    else:
+                        self.attrs[key] = DynamoType({"S": value})
 
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
