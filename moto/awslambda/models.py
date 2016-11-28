@@ -112,7 +112,7 @@ class LambdaFunction(object):
 
     def convert(self, s):
         try:
-            return str(s, encoding='utf8')
+            return str(s, encoding='utf-8')
         except:
             return s
 
@@ -128,7 +128,8 @@ class LambdaFunction(object):
         try:
             mycode = "\n".join(['import json',
                                 self.convert(self.code),
-                                self.convert('print(lambda_handler(%s, %s))' % (self.is_json(self.convert(event)), context))])
+                                self.convert('print(json.dumps(lambda_handler(%s, %s)))' % (self.is_json(self.convert(event)), context))])
+
             #print("moto_lambda_debug: ", mycode)
         except Exception as ex:
             print("Exception %s", ex)
@@ -141,7 +142,9 @@ class LambdaFunction(object):
             exec(mycode)
             exec_err = codeErr.getvalue()
             exec_out = codeOut.getvalue()
-            result = "\n".join([exec_out, self.convert(exec_err)])
+            result = self.convert(exec_out.strip())
+            if exec_err:
+                result = "\n".join([exec_out.strip(), self.convert(exec_err)])
         except Exception as ex:
             result = '%s\n\n\nException %s' % (mycode, ex)
         finally:
@@ -160,8 +163,11 @@ class LambdaFunction(object):
             encoded = base64.b64encode(r.encode('utf-8'))
             headers["x-amz-log-result"] = encoded.decode('utf-8')
             payload['result'] = headers["x-amz-log-result"]
+            result = r.encode('utf-8')
+        else:
+            result = json.dumps(payload)
 
-        return json.dumps(payload, indent=4)
+        return result
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
