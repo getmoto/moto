@@ -51,34 +51,6 @@ def test_list_functions():
     result = conn.list_functions()
     result['Functions'].should.have.length_of(0)
 
-@mock_lambda
-@freeze_time('2015-01-01 00:00:00')
-def test_invoke_requestresponse_function():
-    conn = boto3.client('lambda', 'us-west-2')
-    conn.create_function(
-        FunctionName='testFunction',
-        Runtime='python2.7',
-        Role='test-iam-role',
-        Handler='lambda_function.handler',
-        Code={
-            'ZipFile': get_test_zip_file1(),
-        },
-        Description='test lambda function',
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
-
-    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload=json.dumps({'msg': 'Mostly Harmless'}))
-
-    success_result["StatusCode"].should.equal(202)
-
-    conn.invoke.when.called_with(
-        FunctionName='notAFunction',
-        InvocationType='Event',
-        Payload='{}'
-    ).should.throw(botocore.client.ClientError)
-
 
 @mock_lambda
 @freeze_time('2015-01-01 00:00:00')
@@ -124,6 +96,12 @@ def test_invoke_event_function():
         MemorySize=128,
         Publish=True,
     )
+
+    conn.invoke.when.called_with(
+        FunctionName='notAFunction',
+        InvocationType='Event',
+        Payload='{}'
+    ).should.throw(botocore.client.ClientError)
 
     in_data = {'msg': 'So long and thanks for all the fish'}
     success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload=json.dumps(in_data))
