@@ -119,9 +119,9 @@ class Item(object):
                 value = value.lstrip(":").rstrip(",")
                 for k, v in expression_attribute_names.items():
                     value = value.replace(k, v)
-                if action == "REMOVE" or action == 'remove':
+                if action == "REMOVE":
                     self.attrs.pop(value, None)
-                elif action == 'SET' or action == 'set':
+                elif action == 'SET':
                     key, value = value.split("=")
                     key = key.strip()
                     value = value.strip()
@@ -129,6 +129,8 @@ class Item(object):
                         self.attrs[key] = DynamoType(expression_attribute_values[value])
                     else:
                         self.attrs[key] = DynamoType({"S": value})
+                else:
+                    raise NotImplementedError('{} update action not yet supported'.format(action))
 
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
@@ -323,7 +325,6 @@ class Table(object):
     def query(self, hash_key, range_comparison, range_objs, limit,
               exclusive_start_key, scan_index_forward, index_name=None, **filter_kwargs):
         results = []
-
         if index_name:
             all_indexes = (self.global_indexes or []) + (self.indexes or [])
             indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
