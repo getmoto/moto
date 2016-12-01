@@ -5,7 +5,6 @@ import re
 import six
 from six.moves.urllib.parse import parse_qs, urlparse
 
-import socket
 import xmltodict
 
 from moto.core.responses import _TemplateEnvironmentMixin
@@ -53,21 +52,17 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         match = re.match(r'^([^\[\]:]+)(:\d+)?$', host)
         if match:
-            try:
-                socket.inet_pton(socket.AF_INET, match.groups()[0])
-                 # For IPv4, default to path-based buckets
+            match = re.match(r'((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}',
+                             match.groups()[0])
+            if match:
                 return False
-            except socket.error:
-                pass
 
         match = re.match(r'^\[(.+)\](:\d+)?$', host)
         if match:
-            try:
-                socket.inet_pton(socket.AF_INET6, match.groups()[0])
-                # For IPv6, default to path-based buckets
+            match = re.match(r'^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)([\dA-F]{1,4}(\3|:\b)|\2){5}(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z',
+                             match.groups()[0], re.IGNORECASE)
+            if match:
                 return False
-            except socket.error:
-                pass
 
         path_based = (host == 's3.amazonaws.com' or re.match(r"s3[\.\-]([^.]*)\.amazonaws\.com", host))
         return not path_based
