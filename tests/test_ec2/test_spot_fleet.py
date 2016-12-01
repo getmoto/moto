@@ -135,7 +135,8 @@ def test_create_diversified_spot_fleet():
     instance_res = conn.describe_spot_fleet_instances(SpotFleetRequestId=spot_fleet_id)
     instances = instance_res['ActiveInstances']
     len(instances).should.equal(2)
-    instances[0]['InstanceType'].should.equal("t2.small")
+    instance_types = set([instance['InstanceType'] for instance in instances])
+    instance_types.should.equal(set(["t2.small", "t2.large"]))
     instances[0]['InstanceId'].should.contain("i-")
 
 

@@ -188,6 +188,7 @@ def test_get_endpoint_attributes():
 
     attributes = conn.get_endpoint_attributes(EndpointArn=endpoint_arn)['Attributes']
     attributes.should.equal({
+        "Token": "some_unique_id",
         "Enabled": 'false',
         "CustomUserData": "some data",
     })
@@ -225,6 +226,7 @@ def test_set_endpoint_attributes():
     )
     attributes = conn.get_endpoint_attributes(EndpointArn=endpoint_arn)['Attributes']
     attributes.should.equal({
+        "Token": "some_unique_id",
         "Enabled": 'false',
         "CustomUserData": "other data",
     })
