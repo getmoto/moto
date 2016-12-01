@@ -5,8 +5,8 @@ from moto.core.responses import BaseResponse
 
 class EventsHandler(BaseResponse):
 
-    def error(self, type_, status=400):
-        return status, self.response_headers, json.dumps({'__type': type_})
+    def error(self, type_, message='', status=400):
+        return status, self.response_headers, json.dumps({'__type': type_, 'message': message})
 
     def can_paginate(self):
         pass
@@ -46,7 +46,7 @@ class EventsHandler(BaseResponse):
 
     def put_rule(self):
         if 'Name' not in self.body:
-            return self.error("com.amazonaws.events.validate#ValidationException")
+            return self.error('ValidationException', 'Parameter Name is required.')
         pass
 
     def put_targets(self):
