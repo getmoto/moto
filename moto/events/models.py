@@ -1,6 +1,5 @@
 import os
 import re
-from collections import OrderedDict
 
 from moto.core import BaseBackend
 
