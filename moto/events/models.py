@@ -17,7 +17,7 @@ class Rule(object):
         self.state = kwargs.get('State') or 'ENABLED'
         self.description = kwargs.get('Description')
         self.role_arn = kwargs.get('RoleArn')
-        self.targets = {}
+        self.targets = []
 
     def enable(self):
         self.state = 'ENABLED'
@@ -25,22 +25,35 @@ class Rule(object):
     def disable(self):
         self.state = 'DISABLED'
 
+    # This song and dance for targets is because we need order for Limits and NextTokens, but can't use OrderedDicts
+    # with Python 2.6, so tracking it with an array it is.
+    def _check_target_exists(self, target_id):
+        for i in range(0, len(self.targets)):
+            if target_id == self.targets[i]['Id']:
+                return i
+        return None
+
     def put_targets(self, targets):
         # Not testing for valid ARNs.
         for target in targets:
-            self.targets[target['Id']] = target
+            index = self._check_target_exists(target['Id'])
+            if index is not None:
+                self.targets[index] = target
+            else:
+                self.targets.append(target)
 
     def remove_targets(self, ids):
-        for target in ids:
-            if target in self.targets:
-                self.targets.pop(target)
+        for target_id in ids:
+            index = self._check_target_exists(target_id)
+            if index is not None:
+                self.targets.pop(index)
 
 
 class EventsBackend(BaseBackend):
 
     def __init__(self):
         self.rules = {}
-        # This array tracks the order in which the rules have been added, since 2.6 doesn't have OrderedDicts
+        # This array tracks the order in which the rules have been added, since 2.6 doesn't have OrderedDicts.
         self.rules_order = []
         self.next_tokens = {}
 
@@ -98,7 +111,7 @@ class EventsBackend(BaseBackend):
         for i in range(start_index, end_index):
             rule = self._get_rule_by_index(i)
             for target in rule.targets:
-                if rule.targets[target]['Arn'] == target_arn:
+                if target['Arn'] == target_arn:
                     matching_rules.append(rule.name)
 
         return_obj['RuleNames'] = matching_rules
@@ -132,15 +145,15 @@ class EventsBackend(BaseBackend):
 
     def list_targets_by_rule(self, rule, next_token=None, limit=None):
         # We'll let a KeyError exception be thrown for response to handle if rule doesn't exist.
-        targets = self.rules[rule].targets.values()
+        rule = self.rules[rule]
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(len(targets), next_token, limit)
+        start_index, end_index, new_next_token = self._process_token_and_limits(len(rule.targets), next_token, limit)
 
         returned_targets = []
         return_obj = {}
 
         for i in range(start_index, end_index):
-            returned_targets.append(targets[i])
+            returned_targets.append(rule.targets[i])
 
         return_obj['Targets'] = returned_targets
         if new_next_token is not None:
