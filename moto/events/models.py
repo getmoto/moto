@@ -1,4 +1,3 @@
-import binascii
 import os
 import re
 from collections import OrderedDict
@@ -13,12 +12,12 @@ class Rule(object):
 
     def __init__(self, name, **kwargs):
         self.name = name
-        self.arn = kwargs['arn'] if 'arn' in kwargs else self._generate_arn(name)
-        self.event_pattern = kwargs['event_pattern'] if 'event_pattern' in kwargs else None
-        self.schedule_exp = kwargs['schedule_exp'] if 'schedule_exp' in kwargs else None
-        self.state = kwargs['state'] if 'state' in kwargs else 'ENABLED'
-        self.description = kwargs['description'] if 'description' in kwargs else None
-        self.role_arn = kwargs['role_arn'] if 'role_arn' in kwargs else None
+        self.arn = kwargs.get('Arn') or self._generate_arn(name)
+        self.event_pattern = kwargs.get('EventPattern')
+        self.schedule_exp = kwargs.get('ScheduleExpression')
+        self.state = kwargs.get('State') or 'ENABLED'
+        self.description = kwargs.get('Description')
+        self.role_arn = kwargs.get('RoleArn')
         self.targets = {}
 
     def enable(self):
@@ -28,9 +27,9 @@ class Rule(object):
         self.state = 'DISABLED'
 
     def put_targets(self, targets):
-        # TODO: Will need to test for valid ARNs.
+        # Not testing for valid ARNs.
         for target in targets:
-            self.targets[target['TargetId']] = target
+            self.targets[target['Id']] = target
 
     def remove_targets(self, ids):
         for target in ids:
@@ -45,7 +44,7 @@ class EventsBackend(BaseBackend):
         self.next_tokens = {}
 
     def _gen_next_token(self, index):
-        token = binascii.hexlify(os.urandom(16))
+        token = os.urandom(128).encode('base64')
         self.next_tokens[token] = index
         return token
 
@@ -54,15 +53,14 @@ class EventsBackend(BaseBackend):
         end_index = array_len
         new_next_token = None
 
-        if next_token is not None:
-            if next_token in self.next_tokens:
-                start_index = self.next_tokens[next_token]
+        if next_token:
+            start_index = self.next_tokens.pop(next_token, 0)
 
         if limit is not None:
             new_end_index = start_index + int(limit)
             if new_end_index < end_index:
                 end_index = new_end_index
-                new_next_token = self._gen_next_token(end_index - 1)
+                new_next_token = self._gen_next_token(end_index)
 
         return start_index, end_index, new_next_token
 
@@ -70,10 +68,7 @@ class EventsBackend(BaseBackend):
         return self.rules.pop(name) is not None
 
     def describe_rule(self, name):
-        if name in self.rules:
-            return self.rules[name]
-
-        return None
+        return self.rules.get(name)
 
     def disable_rule(self, name):
         if name in self.rules:
@@ -102,8 +97,9 @@ class EventsBackend(BaseBackend):
 
         for i in range(start_index, end_index):
             rule = rules_array[i]
-            if target_arn in rule.targets:
-                matching_rules.append(rule.name)
+            for target in rule.targets:
+                if rule.targets[target]['Arn'] == target_arn:
+                    matching_rules.append(rule.name)
 
         return_obj['RuleNames'] = matching_rules
         if new_next_token is not None:
@@ -165,10 +161,22 @@ class EventsBackend(BaseBackend):
         return rule.arn
 
     def put_targets(self, name, targets):
-        self.rules[name].put_targets(targets)
+        rule = self.rules.get(name)
+
+        if rule:
+            rule.put_targets(targets)
+            return True
+
+        return False
 
     def remove_targets(self, name, ids):
-        self.rules[name].remove_targets(ids)
+        rule = self.rules.get(name)
+
+        if rule:
+            rule.remove_targets(ids)
+            return True
+
+        return False
 
     def test_event_pattern(self):
         raise NotImplementedError()
