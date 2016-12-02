@@ -40,8 +40,13 @@ class Rule(object):
 class EventsBackend(BaseBackend):
 
     def __init__(self):
-        self.rules = OrderedDict()
+        self.rules = {}
+        # This array tracks the order in which the rules have been added, since 2.6 doesn't have OrderedDicts
+        self.rules_order = []
         self.next_tokens = {}
+
+    def _get_rule_by_index(self, i):
+        return self.rules.get(self.rules_order[i])
 
     def _gen_next_token(self, index):
         token = os.urandom(128).encode('base64')
@@ -65,6 +70,7 @@ class EventsBackend(BaseBackend):
         return start_index, end_index, new_next_token
 
     def delete_rule(self, name):
+        self.rules_order.pop(self.rules_order.index(name))
         return self.rules.pop(name) is not None
 
     def describe_rule(self, name):
@@ -84,19 +90,14 @@ class EventsBackend(BaseBackend):
 
         return False
 
-    def generate_presigned_url(self):
-        pass
-
     def list_rule_names_by_target(self, target_arn, next_token=None, limit=None):
-        rules_array = self.rules.values()
-
         matching_rules = []
         return_obj = {}
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(len(rules_array), next_token, limit)
+        start_index, end_index, new_next_token = self._process_token_and_limits(len(self.rules), next_token, limit)
 
         for i in range(start_index, end_index):
-            rule = rules_array[i]
+            rule = self._get_rule_by_index(i)
             for target in rule.targets:
                 if rule.targets[target]['Arn'] == target_arn:
                     matching_rules.append(rule.name)
@@ -108,8 +109,6 @@ class EventsBackend(BaseBackend):
         return return_obj
 
     def list_rules(self, prefix=None, next_token=None, limit=None):
-        rules_array = self.rules.values()
-
         match_string = '.*'
         if prefix is not None:
             match_string = '^' + prefix + match_string
@@ -119,10 +118,10 @@ class EventsBackend(BaseBackend):
         matching_rules = []
         return_obj = {}
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(len(rules_array), next_token, limit)
+        start_index, end_index, new_next_token = self._process_token_and_limits(len(self.rules), next_token, limit)
 
         for i in range(start_index, end_index):
-            rule = rules_array[i]
+            rule = self._get_rule_by_index(i)
             if match_regex.match(rule.name):
                 matching_rules.append(rule)
 
@@ -150,14 +149,10 @@ class EventsBackend(BaseBackend):
 
         return return_obj
 
-    def put_events(self):
-        # For the purposes of this mock, there is no backend action for putting an event.
-        # Response module will deal with replying.
-        pass
-
     def put_rule(self, name, **kwargs):
         rule = Rule(name, **kwargs)
         self.rules[rule.name] = rule
+        self.rules_order.append(rule.name)
         return rule.arn
 
     def put_targets(self, name, targets):

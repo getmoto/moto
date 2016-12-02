@@ -61,9 +61,9 @@ def generate_environment():
         )
 
         targets = []
-        for target, target_attr in TARGETS.iteritems():
-            if rule['Name'] in target_attr.get('Rules'):
-                targets.append({'Id': target, 'Arn': target_attr['Arn']})
+        for target in TARGETS:
+            if rule['Name'] in TARGETS[target].get('Rules'):
+                targets.append({'Id': target, 'Arn': TARGETS[target]['Arn']})
 
         client.put_targets(Rule=rule['Name'], Targets=targets)
 
@@ -140,8 +140,8 @@ def test_list_targets_by_rule():
     targets = client.list_targets_by_rule(Rule=rule_name)
 
     expected_targets = []
-    for target, attrs in TARGETS.iteritems():
-        if rule_name in attrs.get('Rules'):
+    for target in TARGETS:
+        if rule_name in TARGETS[target].get('Rules'):
             expected_targets.append(target)
 
     assert(len(targets['Targets']) == len(expected_targets))
