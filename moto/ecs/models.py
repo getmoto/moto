@@ -150,7 +150,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.services = {}
         self.container_instances = {}
 
-    def fetch_task_definition(self, task_definition_str):
+    def describe_task_definition(self, task_definition_str):
         task_definition_components = task_definition_str.split(':')
         if len(task_definition_components) == 2:
             family, revision = task_definition_components
@@ -246,7 +246,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             cluster = self.clusters[cluster_name]
         else:
             raise Exception("{0} is not a cluster".format(cluster_name))
-        task_definition = self.fetch_task_definition(task_definition_str)
+        task_definition = self.describe_task_definition(task_definition_str)
         if cluster_name not in self.tasks:
             self.tasks[cluster_name] = {}
         tasks = []
@@ -268,7 +268,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             cluster = self.clusters[cluster_name]
         else:
             raise Exception("{0} is not a cluster".format(cluster_name))
-        task_definition = self.fetch_task_definition(task_definition_str)
+        task_definition = self.describe_task_definition(task_definition_str)
         if cluster_name not in self.tasks:
             self.tasks[cluster_name] = {}
         tasks = []
@@ -346,7 +346,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             cluster = self.clusters[cluster_name]
         else:
             raise Exception("{0} is not a cluster".format(cluster_name))
-        task_definition = self.fetch_task_definition(task_definition_str)
+        task_definition = self.describe_task_definition(task_definition_str)
         desired_count = desired_count if desired_count is not None else 0
         service = Service(cluster, service_name, task_definition, desired_count)
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
@@ -375,7 +375,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
         if cluster_service_pair in self.services:
             if task_definition_str is not None:
-                self.fetch_task_definition(task_definition_str)
+                task_definition = self.describe_task_definition(task_definition_str)
                 self.services[cluster_service_pair].task_definition = task_definition_str
             if desired_count is not None:
                 self.services[cluster_service_pair].desired_count = desired_count

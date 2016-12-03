@@ -832,6 +832,31 @@ def test_describe_tasks():
     set([response['tasks'][0]['taskArn'], response['tasks'][1]['taskArn']]).should.equal(set(tasks_arns))
 
 
+@mock_ecs
+def describe_task_definition():
+    client = boto3.client('ecs', region_name='us-east-1')
+    container_definition = {
+        'name': 'hello_world',
+        'image': 'docker/hello-world:latest',
+        'cpu': 1024,
+        'memory': 400,
+        'essential': True,
+        'environment': [{
+            'name': 'AWS_ACCESS_KEY_ID',
+            'value': 'SOME_ACCESS_KEY'
+        }],
+        'logConfiguration': {'logDriver': 'json-file'}
+    }
+    task_definition = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[container_definition]
+    )
+    family = task_definition['family']
+    task = client.describe_task_definition(taskDefinition=family)
+    task['containerDefinitions'][0].should.equal(container_definition)
+    task['taskDefinitionArn'].should.equal('arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task2:1')
+    task['volumes'].should.equal([])
+
 @mock_ec2
 @mock_ecs
 def test_stop_task():
