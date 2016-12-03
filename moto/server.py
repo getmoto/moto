@@ -113,6 +113,7 @@ def create_backend_app(service):
             endpoint=endpoint,
             methods=HTTP_METHODS,
             view_func=convert_flask_to_httpretty_response(handler),
+            strict_slashes=False,
         )
 
     backend_app.test_client_class = AWSTestHelper
