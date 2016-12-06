@@ -118,7 +118,7 @@ class Item(object):
                 # A Real value
                 value = value.lstrip(":").rstrip(",")
                 for k, v in expression_attribute_names.items():
-                    value = value.replace(k, v)
+                    value = re.sub(r'{}\b'.format(k), v, value)
                 if action == "REMOVE":
                     self.attrs.pop(value, None)
                 elif action == 'SET':
