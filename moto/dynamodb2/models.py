@@ -112,11 +112,11 @@ class Item(object):
 
     def update(self, update_expression, expression_attribute_names, expression_attribute_values):
         parts = [p for p in re.split(r'\b(SET|REMOVE|ADD|DELETE)\b', update_expression) if p]
-        for action, valstr in zip(parts[:-1:1], parts[1::1]):
+        for action, valstr in zip(parts[:-1:2], parts[1::2]):
             values = valstr.split(',')
             for value in values:
                 # A Real value
-                value = value.lstrip(":").rstrip(",")
+                value = value.lstrip(":").rstrip(",").strip()
                 for k, v in expression_attribute_names.items():
                     value = re.sub(r'{}\b'.format(k), v, value)
 
