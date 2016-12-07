@@ -286,8 +286,8 @@ class DynamoHandler(BaseResponse):
 
                 index_hash_key = [key for key in index if key['KeyType'] == 'HASH'][0]
                 hash_key_var = reverse_attribute_lookup.get(index_hash_key['AttributeName'], index_hash_key['AttributeName'])
-                hash_key_regex = r'(^|[\s(]){}\b'.format(hash_key_var)
-                i, hash_key_expression = ((i, e) for i, e in enumerate(expressions) if re.search(hash_key_regex, e)).next()
+                hash_key_regex = r'(^|[\s(]){0}\b'.format(hash_key_var)
+                i, hash_key_expression = next((i, e) for i, e in enumerate(expressions) if re.search(hash_key_regex, e))
                 hash_key_expression = hash_key_expression.strip('()')
                 expressions.pop(i)
 
