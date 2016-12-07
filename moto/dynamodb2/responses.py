@@ -279,7 +279,7 @@ class DynamoHandler(BaseResponse):
             else:
                 index = table.schema
 
-            reverse_attribute_lookup = {v: k for k, v in self.body['ExpressionAttributeNames'].iteritems()}
+            reverse_attribute_lookup = dict((v, k) for k, v in six.iteritems(self.body['ExpressionAttributeNames']))
 
             if " AND " in key_condition_expression:
                 expressions = key_condition_expression.split(" AND ", 1)
