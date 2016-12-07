@@ -238,6 +238,32 @@ def test_create_database_replica():
     primary = conn.get_all_dbinstances("db-master-1")[0]
     list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
 
+@disable_on_py3()
+@mock_rds
+def test_create_cross_region_database_replica():
+    west_1_conn = boto.rds.connect_to_region("us-west-1")
+    west_2_conn = boto.rds.connect_to_region("us-west-2")
+
+    primary = west_1_conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
+
+    primary_arn = "arn:aws:rds:us-west-1:1234567890:db:db-master-1"
+    replica = west_2_conn.create_dbinstance_read_replica(
+        "replica",
+        primary_arn,
+        "db.m1.small",
+    )
+
+    primary = west_1_conn.get_all_dbinstances("db-master-1")[0]
+    primary.read_replica_dbinstance_identifiers[0].should.equal("replica")
+
+    replica = west_2_conn.get_all_dbinstances("replica")[0]
+    replica.instance_class.should.equal("db.m1.small")
+
+    west_2_conn.delete_dbinstance("replica")
+
+    primary = west_1_conn.get_all_dbinstances("db-master-1")[0]
+    list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
+
 
 @disable_on_py3()
 @mock_rds

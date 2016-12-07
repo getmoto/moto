@@ -12,7 +12,7 @@ class RDSResponse(BaseResponse):
         return rds_backends[self.region]
 
     def _get_db_kwargs(self):
-        return {
+        args = {
             "auto_minor_version_upgrade": self._get_param('AutoMinorVersionUpgrade'),
             "allocated_storage": self._get_int_param('AllocatedStorage'),
             "availability_zone": self._get_param("AvailabilityZone"),
@@ -25,6 +25,7 @@ class RDSResponse(BaseResponse):
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
             "iops": self._get_int_param("Iops"),
+            "kms_key_id": self._get_param("KmsKeyId"),
             "master_password": self._get_param('MasterUserPassword'),
             "master_username": self._get_param('MasterUsername'),
             "multi_az": self._get_bool_param("MultiAZ"),
@@ -35,9 +36,13 @@ class RDSResponse(BaseResponse):
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "region": self.region,
             "security_groups": self._get_multi_param('DBSecurityGroups.member'),
+            "storage_encrypted": self._get_param("StorageEncrypted"),
             "storage_type": self._get_param("StorageType"),
             # VpcSecurityGroupIds.member.N
+            "tags": list(),
         }
+        args['tags'] = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+        return args
 
     def _get_db_replica_kwargs(self):
         return {
@@ -53,6 +58,17 @@ class RDSResponse(BaseResponse):
             "source_db_identifier": self._get_param('SourceDBInstanceIdentifier'),
             "storage_type": self._get_param("StorageType"),
         }
+
+    def unpack_complex_list_params(self, label, names):
+        unpacked_list = list()
+        count = 1
+        while self._get_param('{0}.{1}.{2}'.format(label, count, names[0])):
+            param = dict()
+            for i in range(len(names)):
+                param[names[i]] = self._get_param('{0}.{1}.{2}'.format(label, count, names[i]))
+            unpacked_list.append(param)
+            count += 1
+        return unpacked_list
 
     def create_dbinstance(self):
         db_kwargs = self._get_db_kwargs()
@@ -90,7 +106,8 @@ class RDSResponse(BaseResponse):
     def create_dbsecurity_group(self):
         group_name = self._get_param('DBSecurityGroupName')
         description = self._get_param('DBSecurityGroupDescription')
-        security_group = self.backend.create_security_group(group_name, description)
+        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+        security_group = self.backend.create_security_group(group_name, description, tags)
         template = self.response_template(CREATE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
@@ -118,7 +135,8 @@ class RDSResponse(BaseResponse):
         description = self._get_param('DBSubnetGroupDescription')
         subnet_ids = self._get_multi_param('SubnetIds.member')
         subnets = [ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids]
-        subnet_group = self.backend.create_subnet_group(subnet_name, description, subnets)
+        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+        subnet_group = self.backend.create_subnet_group(subnet_name, description, subnets, tags)
         template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)
 
