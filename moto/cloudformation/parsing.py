@@ -47,6 +47,7 @@ MODEL_MAP = {
     "AWS::EC2::VPCPeeringConnection": ec2_models.VPCPeeringConnection,
     "AWS::ECS::Cluster": ecs_models.Cluster,
     "AWS::ECS::TaskDefinition": ecs_models.TaskDefinition,
+    "AWS::ECS::Service": ecs_models.Service,
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
     "AWS::DataPipeline::Pipeline": datapipeline_models.Pipeline,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,

@@ -128,6 +128,23 @@ class Service(BaseObject):
         response_object['serviceArn'] = self.arn
         return response_object
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        if isinstance(properties['Cluster'], Cluster):
+            cluster = properties['Cluster'].name
+        else:
+            cluster = properties['Cluster']
+        if isinstance(properties['TaskDefinition'], TaskDefinition):
+            task_definition = properties['TaskDefinition'].family
+        else:
+            task_definition = properties['TaskDefinition']
+        service_name = '{0}Service{1}'.format(cluster, int(random() * 10 ** 6))
+        desired_count = properties['DesiredCount']
+
+        ecs_backend = ecs_backends[region_name]
+        return ecs_backend.create_service(
+            cluster, service_name, task_definition, desired_count)
 
 class ContainerInstance(BaseObject):
     def __init__(self, ec2_instance_id):
