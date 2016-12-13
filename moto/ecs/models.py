@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import uuid
-from random import randint
+from random import randint, random
 
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
@@ -47,6 +47,16 @@ class Cluster(BaseObject):
         response_object['clusterName'] = self.name
         del response_object['arn'], response_object['name']
         return response_object
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        ecs_backend = ecs_backends[region_name]
+        return ecs_backend.create_cluster(
+            # ClusterName is optional in CloudFormation, thus create a random name if necessary
+            cluster_name=properties.get('ClusterName', 'ecscluster{0}'.format(int(random() * 10 ** 6))),
+        )
 
 
 class TaskDefinition(BaseObject):

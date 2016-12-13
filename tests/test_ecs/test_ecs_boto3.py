@@ -5,6 +5,7 @@ import json
 from moto.ec2 import utils as ec2_utils
 from uuid import UUID
 
+from moto import mock_cloudformation
 from moto import mock_ecs
 from moto import mock_ec2
 
@@ -918,3 +919,30 @@ def test_stop_task():
     stop_response['task']['lastStatus'].should.equal('STOPPED')
     stop_response['task']['desiredStatus'].should.equal('STOPPED')
     stop_response['task']['stoppedReason'].should.equal('moto testing')
+
+
+@mock_ecs
+@mock_cloudformation
+def test_create_cluster_through_cloudformation():
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testCluster": {
+                "Type": "AWS::ECS::Cluster",
+                "Properties": {
+                    "ClusterName": "testcluster"
+                }
+            }
+        }
+    }
+    template_json = json.dumps(template)
+    cfn_conn = boto3.client('cloudformation', region_name='us-west-1')
+    cfn_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=template_json,
+    )
+
+    ecs_conn = boto3.client('ecs', region_name='us-west-1')
+    resp = ecs_conn.list_clusters()
+    len(resp['clusterArns']).should.equal(1)
