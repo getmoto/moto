@@ -1,4 +1,7 @@
 from __future__ import unicode_literals
+
+from copy import deepcopy
+
 import boto3
 import sure  # noqa
 import json
@@ -946,6 +949,41 @@ def test_create_cluster_through_cloudformation():
     ecs_conn = boto3.client('ecs', region_name='us-west-1')
     resp = ecs_conn.list_clusters()
     len(resp['clusterArns']).should.equal(1)
+
+
+@mock_ecs
+@mock_cloudformation
+def test_update_cluster_name_through_cloudformation_should_trigger_a_replacement():
+    template1 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testCluster": {
+                "Type": "AWS::ECS::Cluster",
+                "Properties": {
+                    "ClusterName": "testcluster1"
+                }
+            }
+        }
+    }
+    template2 = deepcopy(template1)
+    template2['Resources']['testCluster']['Properties']['ClusterName'] = 'testcluster2'
+    template1_json = json.dumps(template1)
+    cfn_conn = boto3.client('cloudformation', region_name='us-west-1')
+    stack_resp = cfn_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=template1_json,
+    )
+
+    template2_json = json.dumps(template2)
+    cfn_conn.update_stack(
+        StackName=stack_resp['StackId'],
+        TemplateBody=template2_json
+    )
+    ecs_conn = boto3.client('ecs', region_name='us-west-1')
+    resp = ecs_conn.list_clusters()
+    len(resp['clusterArns']).should.equal(1)
+    resp['clusterArns'][0].endswith('testcluster2').should.be.true
 
 
 @mock_ecs

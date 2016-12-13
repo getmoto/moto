@@ -57,6 +57,20 @@ class Cluster(BaseObject):
             # ClusterName is optional in CloudFormation, thus create a random name if necessary
             cluster_name=properties.get('ClusterName', 'ecscluster{0}'.format(int(random() * 10 ** 6))),
         )
+    @classmethod
+    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        if original_resource.name != properties['ClusterName']:
+            ecs_backend = ecs_backends[region_name]
+            ecs_backend.delete_cluster(original_resource.arn)
+            return ecs_backend.create_cluster(
+                # ClusterName is optional in CloudFormation, thus create a random name if necessary
+                cluster_name=properties.get('ClusterName', 'ecscluster{0}'.format(int(random() * 10 ** 6))),
+            )
+        else:
+            # no-op when nothing changed between old and new resources
+            pass
 
 
 class TaskDefinition(BaseObject):
