@@ -74,6 +74,19 @@ class TaskDefinition(BaseObject):
         del response_object['arn']
         return response_object
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        family = properties.get('Family', 'task-definition-{0}'.format(int(random() * 10 ** 6)))
+        container_definitions = properties['ContainerDefinitions']
+        volumes = properties['Volumes']
+
+        ecs_backend = ecs_backends[region_name]
+        return ecs_backend.register_task_definition(
+            family=family, container_definitions=container_definitions, volumes=volumes)
+
+
 
 class Task(BaseObject):
     def __init__(self, cluster, task_definition, container_instance_arn, overrides={}, started_by=''):

@@ -946,3 +946,39 @@ def test_create_cluster_through_cloudformation():
     ecs_conn = boto3.client('ecs', region_name='us-west-1')
     resp = ecs_conn.list_clusters()
     len(resp['clusterArns']).should.equal(1)
+
+
+@mock_ecs
+@mock_cloudformation
+def test_create_task_definition_through_cloudformation():
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testTaskDefinition": {
+                "Type" : "AWS::ECS::TaskDefinition",
+                "Properties" : {
+                    "ContainerDefinitions" : [
+                        {
+                            "Name": "ecs-sample",
+                            "Image":"amazon/amazon-ecs-sample",
+                            "Cpu": "200",
+                            "Memory": "500",
+                            "Essential": "true"
+                        }
+                    ],
+                    "Volumes" : [],
+                }
+            }
+        }
+    }
+    template_json = json.dumps(template)
+    cfn_conn = boto3.client('cloudformation', region_name='us-west-1')
+    cfn_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=template_json,
+    )
+
+    ecs_conn = boto3.client('ecs', region_name='us-west-1')
+    resp = ecs_conn.list_task_definitions()
+    len(resp['taskDefinitionArns']).should.equal(1)
