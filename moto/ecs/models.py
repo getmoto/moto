@@ -70,7 +70,7 @@ class Cluster(BaseObject):
             )
         else:
             # no-op when nothing changed between old and new resources
-            pass
+            return original_resource
 
 
 class TaskDefinition(BaseObject):
@@ -78,7 +78,9 @@ class TaskDefinition(BaseObject):
         self.family = family
         self.arn = 'arn:aws:ecs:us-east-1:012345678910:task-definition/{0}:{1}'.format(family, revision)
         self.container_definitions = container_definitions
-        if volumes is not None:
+        if volumes is None:
+            self.volumes = []
+        else:
             self.volumes = volumes
 
     @property
