@@ -175,10 +175,38 @@ class Service(BaseObject):
             task_definition = properties['TaskDefinition']
         service_name = '{0}Service{1}'.format(cluster, int(random() * 10 ** 6))
         desired_count = properties['DesiredCount']
+        # TODO: LoadBalancers
+        # TODO: Role
 
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.create_service(
             cluster, service_name, task_definition, desired_count)
+
+    @classmethod
+    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        if isinstance(properties['Cluster'], Cluster):
+            cluster_name = properties['Cluster'].name
+        else:
+            cluster_name = properties['Cluster']
+        if isinstance(properties['TaskDefinition'], TaskDefinition):
+            task_definition = properties['TaskDefinition'].family
+        else:
+            task_definition = properties['TaskDefinition']
+        desired_count = properties['DesiredCount']
+
+        ecs_backend = ecs_backends[region_name]
+        service_name = original_resource.name
+        if original_resource.cluster_arn != Cluster(cluster_name).arn:
+            # TODO: LoadBalancers
+            # TODO: Role
+            ecs_backend.delete_service(cluster_name, service_name)
+            new_service_name = '{0}Service{1}'.format(cluster_name, int(random() * 10 ** 6))
+            return ecs_backend.create_service(
+                cluster_name, new_service_name, task_definition, desired_count)
+        else:
+            return ecs_backend.update_service(cluster_name, service_name, task_definition, desired_count)
+
 
 class ContainerInstance(BaseObject):
     def __init__(self, ec2_instance_id):
