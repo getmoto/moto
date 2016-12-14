@@ -102,7 +102,25 @@ class TaskDefinition(BaseObject):
         return ecs_backend.register_task_definition(
             family=family, container_definitions=container_definitions, volumes=volumes)
 
+    @classmethod
+    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
 
+        family = properties.get('Family', 'task-definition-{0}'.format(int(random() * 10 ** 6)))
+        container_definitions = properties['ContainerDefinitions']
+        volumes = properties['Volumes']
+        if (original_resource.family != family or
+            original_resource.container_definitions != container_definitions or
+            original_resource.volumes != volumes
+            # currently TaskRoleArn isn't stored at TaskDefinition instances
+        ):
+            ecs_backend = ecs_backends[region_name]
+            ecs_backend.deregister_task_definition(original_resource.arn)
+            return ecs_backend.register_task_definition(
+                family=family, container_definitions=container_definitions, volumes=volumes)
+        else:
+            # no-op when nothing changed between old and new resources
+            return original_resource
 
 class Task(BaseObject):
     def __init__(self, cluster, task_definition, container_instance_arn, overrides={}, started_by=''):

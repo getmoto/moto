@@ -1024,6 +1024,52 @@ def test_create_task_definition_through_cloudformation():
 
 @mock_ecs
 @mock_cloudformation
+def test_update_task_definition_family_through_cloudformation_should_trigger_a_replacement():
+    template1 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testTaskDefinition": {
+                "Type" : "AWS::ECS::TaskDefinition",
+                "Properties" : {
+                    "Family": "testTaskDefinition1",
+                    "ContainerDefinitions" : [
+                        {
+                            "Name": "ecs-sample",
+                            "Image":"amazon/amazon-ecs-sample",
+                            "Cpu": "200",
+                            "Memory": "500",
+                            "Essential": "true"
+                        }
+                    ],
+                    "Volumes" : [],
+                }
+            }
+        }
+    }
+    template1_json = json.dumps(template1)
+    cfn_conn = boto3.client('cloudformation', region_name='us-west-1')
+    cfn_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=template1_json,
+    )
+
+    template2 = deepcopy(template1)
+    template2['Resources']['testTaskDefinition']['Properties']['Family'] = 'testTaskDefinition2'
+    template2_json = json.dumps(template2)
+    cfn_conn.update_stack(
+        StackName="test_stack",
+        TemplateBody=template2_json,
+    )
+
+    ecs_conn = boto3.client('ecs', region_name='us-west-1')
+    resp = ecs_conn.list_task_definitions(familyPrefix='testTaskDefinition')
+    len(resp['taskDefinitionArns']).should.equal(1)
+    resp['taskDefinitionArns'][0].endswith('testTaskDefinition2:1').should.be.true
+
+
+@mock_ecs
+@mock_cloudformation
 def test_create_service_through_cloudformation():
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
