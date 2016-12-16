@@ -361,14 +361,15 @@ class EC2ContainerServiceBackend(BaseBackend):
                 service_arns.append(self.services[key].arn)
         return sorted(service_arns)
 
-    def describe_services(self, cluster_str, service_names):
+    def describe_services(self, cluster_str, service_names_or_arns):
         cluster_name = cluster_str.split('/')[-1]
-        services = []
-        for service_name in service_names:
-            cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
-            if cluster_service_pair in self.services:
-                services.append(self.services[cluster_service_pair])
-        return services
+        result = []
+        for existing_service_name, existing_service_obj in sorted(self.services.items()):
+            for requested_name_or_arn in service_names_or_arns:
+                cluster_service_pair = '{0}:{1}'.format(cluster_name, requested_name_or_arn)
+                if cluster_service_pair == existing_service_name or existing_service_obj.arn == requested_name_or_arn:
+                    result.append(existing_service_obj)
+        return result
 
     def update_service(self, cluster_str, service_name, task_definition_str, desired_count):
         cluster_name = cluster_str.split('/')[-1]
