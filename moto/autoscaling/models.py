@@ -416,8 +416,11 @@ class AutoScalingBackend(BaseBackend):
         self.policies[name] = policy
         return policy
 
-    def describe_policies(self):
-        return list(self.policies.values())
+    def describe_policies(self, autoscaling_group_name=None, policy_names=None, policy_types=None):
+        return [policy for policy in self.policies.values()
+                if (not autoscaling_group_name or policy.as_name == autoscaling_group_name) and
+                    (not policy_names or policy.name in policy_names) and
+                    (not policy_types or policy.policy_type in policy_types)]
 
     def delete_policy(self, group_name):
         self.policies.pop(group_name, None)

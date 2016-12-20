@@ -130,7 +130,10 @@ class AutoScalingResponse(BaseResponse):
         return template.render(policy=policy)
 
     def describe_policies(self):
-        policies = self.autoscaling_backend.describe_policies()
+        policies = self.autoscaling_backend.describe_policies(
+            autoscaling_group_name=self._get_param('AutoScalingGroupName'),
+            policy_names=self._get_multi_param('PolicyNames.member'),
+            policy_types=self._get_multi_param('PolicyTypes.member'))
         template = self.response_template(DESCRIBE_SCALING_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
