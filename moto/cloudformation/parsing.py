@@ -3,11 +3,13 @@ import collections
 import functools
 import logging
 import copy
+import warnings
 
 from moto.autoscaling import models as autoscaling_models
 from moto.awslambda import models as lambda_models
 from moto.datapipeline import models as datapipeline_models
 from moto.ec2 import models as ec2_models
+from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
 from moto.iam import models as iam_models
 from moto.kms import models as kms_models
@@ -43,6 +45,9 @@ MODEL_MAP = {
     "AWS::EC2::VPC": ec2_models.VPC,
     "AWS::EC2::VPCGatewayAttachment": ec2_models.VPCGatewayAttachment,
     "AWS::EC2::VPCPeeringConnection": ec2_models.VPCPeeringConnection,
+    "AWS::ECS::Cluster": ecs_models.Cluster,
+    "AWS::ECS::TaskDefinition": ecs_models.TaskDefinition,
+    "AWS::ECS::Service": ecs_models.Service,
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
     "AWS::DataPipeline::Pipeline": datapipeline_models.Pipeline,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
@@ -175,6 +180,8 @@ def parse_resource(logical_id, resource_json, resources_map):
     resource_type = resource_json['Type']
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
+        warnings.warn(
+            "Tried to parse {0} but it's not supported by moto's CloudFormation implementation".format(resource_type))
         return None
 
     resource_json = clean_json(resource_json, resources_map)
