@@ -359,7 +359,7 @@ def test_describe_services():
     )
     response = client.describe_services(
         cluster='test_ecs_cluster',
-        services=['test_ecs_service1', 'test_ecs_service2']
+        services=['test_ecs_service1', 'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2']
     )
     len(response['services']).should.equal(2)
     response['services'][0]['serviceArn'].should.equal('arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service1')
