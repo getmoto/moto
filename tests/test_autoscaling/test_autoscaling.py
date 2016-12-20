@@ -524,3 +524,57 @@ def test_autoscaling_taqs_update_boto3():
         AutoScalingGroupNames=["test_asg"]
     )
     response['AutoScalingGroups'][0]['Tags'].should.have.length_of(2)
+
+@mock_autoscaling
+def test_autoscaling_describe_policies_boto3():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'test_value',
+            "PropagateAtLaunch": True
+        }]
+    )
+
+    client.put_scaling_policy(
+        AutoScalingGroupName='test_asg',
+        PolicyName='test_policy_down',
+        PolicyType='SimpleScaling',
+        AdjustmentType='PercentChangeInCapacity',
+        ScalingAdjustment=-10,
+        Cooldown=60,
+        MinAdjustmentMagnitude=1)
+    client.put_scaling_policy(
+        AutoScalingGroupName='test_asg',
+        PolicyName='test_policy_up',
+        PolicyType='SimpleScaling',
+        AdjustmentType='PercentChangeInCapacity',
+        ScalingAdjustment=10,
+        Cooldown=60,
+        MinAdjustmentMagnitude=1)
+
+    response = client.describe_policies()
+    response['ScalingPolicies'].should.have.length_of(2)
+
+    response = client.describe_policies(AutoScalingGroupName='test_asg')
+    response['ScalingPolicies'].should.have.length_of(2)
+
+    response = client.describe_policies(PolicyTypes=['StepScaling'])
+    response['ScalingPolicies'].should.have.length_of(0)
+
+    response = client.describe_policies(
+        AutoScalingGroupName='test_asg',
+        PolicyNames=['test_policy_down'],
+        PolicyTypes=['SimpleScaling']
+    )
+    response['ScalingPolicies'].should.have.length_of(1)
+    response['ScalingPolicies'][0]['PolicyName'].should.equal('test_policy_down')
