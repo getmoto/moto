@@ -120,6 +120,7 @@ class AutoScalingResponse(BaseResponse):
     def put_scaling_policy(self):
         policy = self.autoscaling_backend.create_autoscaling_policy(
             name=self._get_param('PolicyName'),
+            policy_type=self._get_param('PolicyType'),
             adjustment_type=self._get_param('AdjustmentType'),
             as_name=self._get_param('AutoScalingGroupName'),
             scaling_adjustment=self._get_int_param('ScalingAdjustment'),
@@ -373,6 +374,7 @@ DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://
         <AdjustmentType>{{ policy.adjustment_type }}</AdjustmentType>
         <ScalingAdjustment>{{ policy.scaling_adjustment }}</ScalingAdjustment>
         <PolicyName>{{ policy.name }}</PolicyName>
+        <PolicyType>{{ policy.policy_type }}</PolicyType>
         <AutoScalingGroupName>{{ policy.as_name }}</AutoScalingGroupName>
         <Cooldown>{{ policy.cooldown }}</Cooldown>
         <Alarms/>
