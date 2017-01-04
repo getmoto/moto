@@ -1363,7 +1363,8 @@ class SecurityGroupBackend(object):
 
         max_nb_rules = 50 if group.vpc_id else 100
         future_group_nb_rules = sum(
-            len(rule.ip_ranges) for rule in group.ingress_rules)
+            len(rule.ip_ranges) + len(rule.source_groups)
+            for rule in group.ingress_rules)
         if ip_ranges:
             future_group_nb_rules += len(ip_ranges)
         if source_group_ids:
@@ -1440,7 +1441,8 @@ class SecurityGroupBackend(object):
 
         max_nb_rules = 50 if group.vpc_id else 100
         future_group_nb_rules = sum(
-            len(rule.ip_ranges) for rule in group.egress_rules)
+            len(rule.ip_ranges) + len(rule.source_groups)
+            for rule in group.egress_rules)
         if ip_ranges:
             future_group_nb_rules += len(ip_ranges)
         if source_group_ids:

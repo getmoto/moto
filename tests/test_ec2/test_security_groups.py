@@ -383,33 +383,61 @@ def test_authorize_all_protocols_with_no_port_specification():
 def test_sec_group_rule_limit():
     ec2_conn = boto.connect_ec2()
     sg = ec2_conn.create_security_group('test', 'test')
+    other_sg = ec2_conn.create_security_group('test_2', 'test_other')
 
-    # ingress
+    # INGRESS
     with assert_raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id, ip_protocol='-1',
-            cidr_ip=['{}.0.0.0/0'.format(i) for i in range(110)])
+            cidr_ip=['{0}.0.0.0/0'.format(i) for i in range(110)])
     cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
 
     sg.rules.should.be.empty
+    # authorize a rule targeting a different sec group (because this count too)
     success = ec2_conn.authorize_security_group(
         group_id=sg.id, ip_protocol='-1',
-        cidr_ip=['{}.0.0.0/0'.format(i) for i in range(100)])
+        src_security_group_group_id=other_sg.id)
     success.should.be.true
+    # fill the rules up the limit
+    success = ec2_conn.authorize_security_group(
+        group_id=sg.id, ip_protocol='-1',
+        cidr_ip=['{0}.0.0.0/0'.format(i) for i in range(99)])
+    success.should.be.true
+    # verify that we cannot authorize past the limit for a CIDR IP
     with assert_raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id, ip_protocol='-1', cidr_ip=['100.0.0.0/0'])
     cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+    # verify that we cannot authorize past the limit for a different sec group
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1',
+            src_security_group_group_id=other_sg.id)
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
 
-    # egress
-    for i in range(99):
+    # EGRESS
+    # authorize a rule targeting a different sec group (because this count too)
+    ec2_conn.authorize_security_group_egress(
+        group_id=sg.id, ip_protocol='-1',
+        src_group_id=other_sg.id)
+    # fill the rules up the limit
+    # remember that by default, when created a sec group contains 1 egress rule
+    # so our other_sg rule + 98 CIDR IP rules + 1 by default == 100 the limit
+    for i in range(98):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol='-1',
-            cidr_ip='{}.0.0.0/0'.format(i))
+            cidr_ip='{0}.0.0.0/0'.format(i))
+    # verify that we cannot authorize past the limit for a CIDR IP
     with assert_raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol='-1',
             cidr_ip='101.0.0.0/0')
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+    # verify that we cannot authorize past the limit for a different sec group
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            src_group_id=other_sg.id)
     cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
 
 
@@ -421,33 +449,61 @@ def test_sec_group_rule_limit_vpc():
     vpc = vpc_conn.create_vpc('10.0.0.0/8')
 
     sg = ec2_conn.create_security_group('test', 'test', vpc_id=vpc.id)
+    other_sg = ec2_conn.create_security_group('test_2', 'test', vpc_id=vpc.id)
 
-    # ingress
+    # INGRESS
     with assert_raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id, ip_protocol='-1',
-            cidr_ip=['{}.0.0.0/0'.format(i) for i in range(110)])
+            cidr_ip=['{0}.0.0.0/0'.format(i) for i in range(110)])
     cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
 
     sg.rules.should.be.empty
+    # authorize a rule targeting a different sec group (because this count too)
     success = ec2_conn.authorize_security_group(
         group_id=sg.id, ip_protocol='-1',
-        cidr_ip=['{}.0.0.0/0'.format(i) for i in range(50)])
+        src_security_group_group_id=other_sg.id)
+    success.should.be.true
+    # fill the rules up the limit
+    success = ec2_conn.authorize_security_group(
+        group_id=sg.id, ip_protocol='-1',
+        cidr_ip=['{0}.0.0.0/0'.format(i) for i in range(49)])
+    # verify that we cannot authorize past the limit for a CIDR IP
     success.should.be.true
     with assert_raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id, ip_protocol='-1', cidr_ip=['100.0.0.0/0'])
     cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+    # verify that we cannot authorize past the limit for a different sec group
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1',
+            src_security_group_group_id=other_sg.id)
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
 
-    # egress
-    for i in range(49):
+    # EGRESS
+    # authorize a rule targeting a different sec group (because this count too)
+    ec2_conn.authorize_security_group_egress(
+        group_id=sg.id, ip_protocol='-1',
+        src_group_id=other_sg.id)
+    # fill the rules up the limit
+    # remember that by default, when created a sec group contains 1 egress rule
+    # so our other_sg rule + 48 CIDR IP rules + 1 by default == 50 the limit
+    for i in range(48):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol='-1',
-            cidr_ip='{}.0.0.0/0'.format(i))
+            cidr_ip='{0}.0.0.0/0'.format(i))
+    # verify that we cannot authorize past the limit for a CIDR IP
     with assert_raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol='-1',
             cidr_ip='50.0.0.0/0')
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+    # verify that we cannot authorize past the limit for a different sec group
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            src_group_id=other_sg.id)
     cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
 
 
