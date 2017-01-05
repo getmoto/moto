@@ -231,7 +231,7 @@ class Route53Backend(BaseBackend):
         self.resource_tags = defaultdict(dict)
 
     def create_hosted_zone(self, name, private_zone, comment=None):
-        new_id = get_random_hex()
+        new_id = '/hostedzones/' + get_random_hex()
         new_zone = FakeZone(name, new_id, private_zone=private_zone, comment=comment)
         self.zones[new_id] = new_zone
         return new_zone
