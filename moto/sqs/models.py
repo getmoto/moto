@@ -8,7 +8,7 @@ from xml.sax.saxutils import escape
 import boto.sqs
 
 from moto.core import BaseBackend
-from moto.core.utils import camelcase_to_underscores, get_random_message_id, unix_time_millis
+from moto.core.utils import camelcase_to_underscores, get_random_message_id, unix_time, unix_time_millis
 from .utils import generate_receipt_handle
 from .exceptions import (
     ReceiptHandleIsInvalid,
@@ -115,7 +115,7 @@ class Queue(object):
         self.wait_time_seconds = wait_time_seconds or 0
         self._messages = []
 
-        now = time.time()
+        now = unix_time()
 
         self.created_timestamp = now
         self.delay_seconds = 0
@@ -281,7 +281,7 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
         result = []
 
-        polling_end = time.time() + wait_seconds_timeout
+        polling_end = unix_time() + wait_seconds_timeout
 
         # queue.messages only contains visible messages
         while True:
@@ -295,7 +295,7 @@ class SQSBackend(BaseBackend):
                 if len(result) >= count:
                     break
 
-            if result or time.time() > polling_end:
+            if result or unix_time() > polling_end:
                 break
 
         return result
