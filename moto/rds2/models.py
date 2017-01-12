@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import copy
 
+from collections import defaultdict
 import boto.rds2
 import json
 from jinja2 import Template
@@ -10,7 +11,12 @@ from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.core import BaseBackend
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
-from .exceptions import RDSClientError, DBInstanceNotFoundError, DBSecurityGroupNotFoundError, DBSubnetGroupNotFoundError
+from .exceptions import (RDSClientError,
+                         DBInstanceNotFoundError,
+                         DBSecurityGroupNotFoundError,
+                         DBSubnetGroupNotFoundError,
+                         DBParameterGroupNotFoundError)
+
 
 
 class Database(object):
@@ -35,6 +41,11 @@ class Database(object):
         if not self.engine_version and self.engine in self.default_engine_versions:
             self.engine_version = self.default_engine_versions[self.engine]
         self.iops = kwargs.get("iops")
+        self.storage_encrypted = kwargs.get("storage_encrypted", False)
+        if self.storage_encrypted:
+            self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
+        else:
+            self.kms_key_id = kwargs.get("kms_key_id")
         self.storage_type = kwargs.get("storage_type")
         self.master_username = kwargs.get('master_username')
         self.master_user_password = kwargs.get('master_user_password')
@@ -64,13 +75,9 @@ class Database(object):
         self.security_groups = kwargs.get('security_groups', [])
         self.vpc_security_group_ids = kwargs.get('vpc_security_group_ids', [])
         self.preferred_maintenance_window = kwargs.get('preferred_maintenance_window', 'wed:06:38-wed:07:08')
-        self.db_parameter_group_name = kwargs.get('db_parameter_group_name', None)
-        self.default_parameter_groups = {"MySQL": "default.mysql5.6",
-                                         "mysql": "default.mysql5.6",
-                                         "postgres": "default.postgres9.3"
-                                         }
-        if not self.db_parameter_group_name and self.engine in self.default_parameter_groups:
-            self.db_parameter_group_name = self.default_parameter_groups[self.engine]
+        self.db_parameter_group_name = kwargs.get('db_parameter_group_name')
+        if self.db_parameter_group_name and self.db_parameter_group_name not in rds2_backends[self.region].db_parameter_groups:
+                raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
 
         self.preferred_backup_window = kwargs.get('preferred_backup_window', '13:14-13:44')
         self.license_model = kwargs.get('license_model', 'general-public-license')
@@ -83,6 +90,120 @@ class Database(object):
             self.option_group_name = self.default_option_groups[self.engine]
         self.character_set_name = kwargs.get('character_set_name', None)
         self.tags = kwargs.get('tags', [])
+
+    @property
+    def physical_resource_id(self):
+        return self.db_instance_identifier
+
+    def db_parameter_groups(self):
+        if not self.db_parameter_group_name:
+            db_family, db_parameter_group_name = self.default_db_parameter_group_details()
+            description = 'Default parameter group for {0}'.format(db_family)
+            return [DBParameterGroup(name=db_parameter_group_name,
+                                    family=db_family,
+                                    description=description,
+                                    tags={})]
+        else:
+            return [rds2_backends[self.region].db_parameter_groups[self.db_parameter_group_name]]
+
+    def default_db_parameter_group_details(self):
+        if not self.engine_version:
+            return (None, None)
+
+        minor_engine_version = '.'.join(self.engine_version.rsplit('.')[:-1])
+        db_family = '{0}{1}'.format(self.engine.lower(), minor_engine_version)
+
+        return db_family, 'default.{0}'.format(db_family)
+
+    def to_xml(self):
+        template = Template("""<DBInstance>
+              <BackupRetentionPeriod>{{ database.backup_retention_period }}</BackupRetentionPeriod>
+              <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
+              <MultiAZ>{{ database.multi_az }}</MultiAZ>
+              <VpcSecurityGroups/>
+              <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
+              <PreferredBackupWindow>03:50-04:20</PreferredBackupWindow>
+              <PreferredMaintenanceWindow>wed:06:38-wed:07:08</PreferredMaintenanceWindow>
+              <ReadReplicaDBInstanceIdentifiers>
+                {% for replica_id in database.replicas %}
+                    <ReadReplicaDBInstanceIdentifier>{{ replica_id }}</ReadReplicaDBInstanceIdentifier>
+                {% endfor %}
+              </ReadReplicaDBInstanceIdentifiers>
+              <StatusInfos>
+                {% if database.is_replica %}
+                <DBInstanceStatusInfo>
+                    <StatusType>read replication</StatusType>
+                    <Status>replicating</Status>
+                    <Normal>true</Normal>
+                    <Message></Message>
+                </DBInstanceStatusInfo>
+                {% endif %}
+              </StatusInfos>
+              {% if database.is_replica %}
+              <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
+              {% endif %}
+              <Engine>{{ database.engine }}</Engine>
+              <LicenseModel>general-public-license</LicenseModel>
+              <EngineVersion>{{ database.engine_version }}</EngineVersion>
+              <OptionGroupMemberships>
+              </OptionGroupMemberships>
+              <DBParameterGroups>
+                {% for db_parameter_group in database.db_parameter_groups() %}
+                <DBParameterGroup>
+                  <ParameterApplyStatus>in-sync</ParameterApplyStatus>
+                  <DBParameterGroupName>{{ db_parameter_group.name }}</DBParameterGroupName>
+                </DBParameterGroup>
+                {% endfor %}
+              </DBParameterGroups>
+              <DBSecurityGroups>
+                {% for security_group in database.security_groups %}
+                <DBSecurityGroup>
+                  <Status>active</Status>
+                  <DBSecurityGroupName>{{ security_group }}</DBSecurityGroupName>
+                </DBSecurityGroup>
+                {% endfor %}
+              </DBSecurityGroups>
+              {% if database.db_subnet_group %}
+              <DBSubnetGroup>
+                <DBSubnetGroupName>{{ database.db_subnet_group.subnet_name }}</DBSubnetGroupName>
+                <DBSubnetGroupDescription>{{ database.db_subnet_group.description }}</DBSubnetGroupDescription>
+                <SubnetGroupStatus>{{ database.db_subnet_group.status }}</SubnetGroupStatus>
+                <Subnets>
+                    {% for subnet in database.db_subnet_group.subnets %}
+                    <Subnet>
+                      <SubnetStatus>Active</SubnetStatus>
+                      <SubnetIdentifier>{{ subnet.id }}</SubnetIdentifier>
+                      <SubnetAvailabilityZone>
+                        <Name>{{ subnet.availability_zone }}</Name>
+                        <ProvisionedIopsCapable>false</ProvisionedIopsCapable>
+                      </SubnetAvailabilityZone>
+                    </Subnet>
+                    {% endfor %}
+                </Subnets>
+                <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
+              </DBSubnetGroup>
+              {% endif %}
+              <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
+              <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+              <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
+              <StorageEncrypted>{{ database.storage_encrypted }}</StorageEncrypted>
+              {% if database.kms_key_id %}
+              <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
+              {% endif %}
+              {% if database.iops %}
+              <Iops>{{ database.iops }}</Iops>
+              <StorageType>io1</StorageType>
+              {% else %}
+              <StorageType>{{ database.storage_type }}</StorageType>
+              {% endif %}
+              <DBInstanceClass>{{ database.db_instance_class }}</DBInstanceClass>
+              <MasterUsername>{{ database.master_username }}</MasterUsername>
+              <Endpoint>
+                <Address>{{ database.address }}</Address>
+                <Port>{{ database.port }}</Port>
+              </Endpoint>
+            </DBInstance>""")
+        return template.render(database=self)
 
     @property
     def address(self):
@@ -135,21 +256,25 @@ class Database(object):
             "engine": properties.get("Engine"),
             "engine_version": properties.get("EngineVersion"),
             "iops": properties.get("Iops"),
+            "kms_key_id": properties.get("KmsKeyId"),
             "master_user_password": properties.get('MasterUserPassword'),
             "master_username": properties.get('MasterUsername'),
             "multi_az": properties.get("MultiAZ"),
+            "db_parameter_group_name": properties.get('DBParameterGroupName'),
             "port": properties.get('Port', 3306),
             "publicly_accessible": properties.get("PubliclyAccessible"),
             "region": region_name,
             "security_groups": security_groups,
+            "storage_encrypted": properties.get("StorageEncrypted"),
             "storage_type": properties.get("StorageType"),
+            "tags": properties.get("Tags"),
         }
 
         rds2_backend = rds2_backends[region_name]
         source_db_identifier = properties.get("SourceDBInstanceIdentifier")
         if source_db_identifier:
             # Replica
-            db_kwargs["source_db_identifier"] = source_db_identifier.db_instance_identifier
+            db_kwargs["source_db_identifier"] = source_db_identifier
             database = rds2_backend.create_database_replica(db_kwargs)
         else:
             database = rds2_backend.create_database(db_kwargs)
@@ -236,15 +361,19 @@ class Database(object):
     def remove_tags(self, tag_keys):
         self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in tag_keys]
 
+    def delete(self, region_name):
+        backend = rds2_backends[region_name]
+        backend.delete_database(self.db_instance_identifier)
+
 
 class SecurityGroup(object):
-    def __init__(self, group_name, description):
+    def __init__(self, group_name, description, tags):
         self.group_name = group_name
         self.description = description
         self.status = "authorized"
         self.ip_ranges = []
         self.ec2_security_groups = []
-        self.tags = []
+        self.tags = tags
         self.owner_id = '1234567890'
         self.vpc_id = None
 
@@ -301,27 +430,29 @@ class SecurityGroup(object):
         properties = cloudformation_json['Properties']
         group_name = resource_name.lower() + get_random_hex(12)
         description = properties['GroupDescription']
-        security_group_ingress = properties['DBSecurityGroupIngress']
+        security_group_ingress_rules = properties.get('DBSecurityGroupIngress', [])
+        tags = properties.get('Tags')
 
         ec2_backend = ec2_backends[region_name]
         rds2_backend = rds2_backends[region_name]
         security_group = rds2_backend.create_security_group(
             group_name,
             description,
+            tags,
         )
-        for ingress_type, ingress_value in security_group_ingress.items():
-            if ingress_type == "CIDRIP":
-                security_group.authorize_cidr(ingress_value)
-            elif ingress_type == "EC2SecurityGroupName":
-                subnet = ec2_backend.get_security_group_from_name(ingress_value)
-                security_group.authorize_security_group(subnet)
-            elif ingress_type == "EC2SecurityGroupId":
-                subnet = ec2_backend.get_security_group_from_id(ingress_value)
-                security_group.authorize_security_group(subnet)
+        for security_group_ingress in security_group_ingress_rules:
+            for ingress_type, ingress_value in security_group_ingress.items():
+                if ingress_type == "CIDRIP":
+                    security_group.authorize_cidr(ingress_value)
+                elif ingress_type == "EC2SecurityGroupName":
+                    subnet = ec2_backend.get_security_group_from_name(ingress_value)
+                    security_group.authorize_security_group(subnet)
+                elif ingress_type == "EC2SecurityGroupId":
+                    subnet = ec2_backend.get_security_group_from_id(ingress_value)
+                    security_group.authorize_security_group(subnet)
         return security_group
 
     def get_tags(self):
-        # TODO: Write tags add/remove/list tests for SecurityGroups
         return self.tags
 
     def add_tags(self, tags):
@@ -333,14 +464,18 @@ class SecurityGroup(object):
     def remove_tags(self, tag_keys):
         self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in tag_keys]
 
+    def delete(self, region_name):
+        backend = rds2_backends[region_name]
+        backend.delete_security_group(self.group_name)
+
 
 class SubnetGroup(object):
-    def __init__(self, subnet_name, description, subnets):
+    def __init__(self, subnet_name, description, subnets, tags):
         self.subnet_name = subnet_name
         self.description = description
         self.subnets = subnets
         self.status = "Complete"
-        self.tags = []
+        self.tags = tags
         self.vpc_id = self.subnets[0].vpc_id
 
     def to_xml(self):
@@ -392,6 +527,7 @@ class SubnetGroup(object):
         subnet_name = resource_name.lower() + get_random_hex(12)
         description = properties['DBSubnetGroupDescription']
         subnet_ids = properties['SubnetIds']
+        tags = properties.get('Tags')
 
         ec2_backend = ec2_backends[region_name]
         subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
@@ -400,11 +536,11 @@ class SubnetGroup(object):
             subnet_name,
             description,
             subnets,
+            tags,
         )
         return subnet_group
 
     def get_tags(self):
-        # TODO: Write tags add/remove/list tests for SubnetGroups
         return self.tags
 
     def add_tags(self, tags):
@@ -416,15 +552,27 @@ class SubnetGroup(object):
     def remove_tags(self, tag_keys):
         self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in tag_keys]
 
+    def delete(self, region_name):
+        backend = rds2_backends[region_name]
+        backend.delete_subnet_group(self.subnet_name)
+
 
 class RDS2Backend(BaseBackend):
 
-    def __init__(self):
+    def __init__(self, region):
+        self.region = region
         self.arn_regex = re_compile(r'^arn:aws:rds:.*:[0-9]*:(db|es|og|pg|ri|secgrp|snapshot|subgrp):.*$')
         self.databases = {}
+        self.db_parameter_groups = {}
+        self.option_groups = {}
         self.security_groups = {}
         self.subnet_groups = {}
-        self.option_groups = {}
+
+    def reset(self):
+        # preserve region
+        region = self.region
+        self.__dict__ = {}
+        self.__init__(region)
 
     def create_database(self, db_kwargs):
         database_id = db_kwargs['db_instance_identifier']
@@ -435,7 +583,10 @@ class RDS2Backend(BaseBackend):
     def create_database_replica(self, db_kwargs):
         database_id = db_kwargs['db_instance_identifier']
         source_database_id = db_kwargs['source_db_identifier']
-        primary = self.describe_databases(source_database_id)[0]
+        primary = self.find_db_from_id(source_database_id)
+        if self.arn_regex.match(source_database_id):
+            db_kwargs['region'] = self.region
+
         replica = copy.deepcopy(primary)
         replica.update(db_kwargs)
         replica.set_as_replica()
@@ -460,18 +611,31 @@ class RDS2Backend(BaseBackend):
         database = self.describe_databases(db_instance_identifier)[0]
         return database
 
+    def find_db_from_id(self, db_id):
+        if self.arn_regex.match(db_id):
+            arn_breakdown = db_id.split(':')
+            region = arn_breakdown[3]
+            backend = rds2_backends[region]
+            db_name = arn_breakdown[-1]
+        else:
+            backend = self
+            db_name = db_id
+
+        return backend.describe_databases(db_name)[0]
+
     def delete_database(self, db_instance_identifier):
         if db_instance_identifier in self.databases:
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
-                primary = self.describe_databases(database.source_db_identifier)[0]
+                primary = self.find_db_from_id(database.source_db_identifier)
                 primary.remove_replica(database)
+            database.status = 'deleting'
             return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)
 
-    def create_security_group(self, group_name, description):
-        security_group = SecurityGroup(group_name, description)
+    def create_security_group(self, group_name, description, tags):
+        security_group = SecurityGroup(group_name, description, tags)
         self.security_groups[group_name] = security_group
         return security_group
 
@@ -489,13 +653,19 @@ class RDS2Backend(BaseBackend):
         else:
             raise DBSecurityGroupNotFoundError(security_group_name)
 
+    def delete_db_parameter_group(self, db_parameter_group_name):
+        if db_parameter_group_name in self.db_parameter_groups:
+            return self.db_parameter_groups.pop(db_parameter_group_name)
+        else:
+            raise DBParameterGroupNotFoundError(db_parameter_group_name)
+
     def authorize_security_group(self, security_group_name, cidr_ip):
         security_group = self.describe_security_groups(security_group_name)[0]
         security_group.authorize_cidr(cidr_ip)
         return security_group
 
-    def create_subnet_group(self, subnet_name, description, subnets):
-        subnet_group = SubnetGroup(subnet_name, description, subnets)
+    def create_subnet_group(self, subnet_name, description, subnets, tags):
+        subnet_group = SubnetGroup(subnet_name, description, subnets, tags)
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
 
@@ -580,24 +750,18 @@ class RDS2Backend(BaseBackend):
 
     @staticmethod
     def describe_option_group_options(engine_name, major_engine_version=None):
-        default_option_group_options = {
-            'mysql': {'all': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "12", "OptionsDependedOn": [], "MajorEngineVersion": "5.6", "Persistent": false, "DefaultPort": 11211, "Permanent": false, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies how many memcached read operations (get) to perform before doing a COMMIT to start a new transaction", "DefaultValue": "1", "AllowedValues": "1-4294967295", "IsModifiable": true, "SettingName": "DAEMON_MEMCACHED_R_BATCH_SIZE", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies how many memcached write operations, such as add, set, or incr, to perform before doing a COMMIT to start a new transaction", "DefaultValue": "1", "AllowedValues": "1-4294967295", "IsModifiable": true, "SettingName": "DAEMON_MEMCACHED_W_BATCH_SIZE", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies how often to auto-commit idle connections that use the InnoDB memcached interface.", "DefaultValue": "5", "AllowedValues": "1-1073741824", "IsModifiable": true, "SettingName": "INNODB_API_BK_COMMIT_INTERVAL", "ApplyType": "DYNAMIC"}, {"SettingDescription": "Disables the use of row locks when using the InnoDB memcached interface.", "DefaultValue": "0", "AllowedValues": "0,1", "IsModifiable": true, "SettingName": "INNODB_API_DISABLE_ROWLOCK", "ApplyType": "STATIC"}, {"SettingDescription": "Locks the table used by the InnoDB memcached plugin, so that it cannot be dropped or altered by DDL through the SQL interface.", "DefaultValue": "0", "AllowedValues": "0,1", "IsModifiable": true, "SettingName": "INNODB_API_ENABLE_MDL", "ApplyType": "STATIC"}, {"SettingDescription": "Lets you control the transaction isolation level on queries processed by the memcached interface.", "DefaultValue": "0", "AllowedValues": "0-3", "IsModifiable": true, "SettingName": "INNODB_API_TRX_LEVEL", "ApplyType": "STATIC"}, {"SettingDescription": "The binding protocol to use which can be either auto, ascii, or binary. The default is auto which means the server automatically negotiates the protocol with the client.", "DefaultValue": "auto", "AllowedValues": "auto,ascii,binary", "IsModifiable": true, "SettingName": "BINDING_PROTOCOL", "ApplyType": "STATIC"}, {"SettingDescription": "The backlog queue configures how many network connections can be waiting to be processed by memcached", "DefaultValue": "1024", "AllowedValues": "1-2048", "IsModifiable": true, "SettingName": "BACKLOG_QUEUE_LIMIT", "ApplyType": "STATIC"}, {"SettingDescription": "Disable the use of compare and swap (CAS) which reduces the per-item size by 8 bytes.", "DefaultValue": "0", "AllowedValues": "0,1", "IsModifiable": true, "SettingName": "CAS_DISABLED", "ApplyType": "STATIC"}, {"SettingDescription": "Minimum chunk size in bytes to allocate for the smallest item\'s key, value, and flags. The default is 48 and you can get a significant memory efficiency gain with a lower value.", "DefaultValue": "48", "AllowedValues": "1-48", "IsModifiable": true, "SettingName": "CHUNK_SIZE", "ApplyType": "STATIC"}, {"SettingDescription": "Chunk size growth factor that controls the size of each successive chunk with each chunk growing times this amount larger than the previous chunk.", "DefaultValue": "1.25", "AllowedValues": "1-2", "IsModifiable": true, "SettingName": "CHUNK_SIZE_GROWTH_FACTOR", "ApplyType": "STATIC"}, {"SettingDescription": "If enabled when there is no more memory to store items, memcached will return an error rather than evicting items.", "DefaultValue": "0", "AllowedValues": "0,1", "IsModifiable": true, "SettingName": "ERROR_ON_MEMORY_EXHAUSTED", "ApplyType": "STATIC"}, {"SettingDescription": "Maximum number of concurrent connections. Setting this value to anything less than 10 prevents MySQL from starting.", "DefaultValue": "1024", "AllowedValues": "10-1024", "IsModifiable": true, "SettingName": "MAX_SIMULTANEOUS_CONNECTIONS", "ApplyType": "STATIC"}, {"SettingDescription": "Verbose level for memcached.", "DefaultValue": "v", "AllowedValues": "v,vv,vvv", "IsModifiable": true, "SettingName": "VERBOSITY", "ApplyType": "STATIC"}], "EngineName": "mysql", "Name": "MEMCACHED", "PortRequired": true, "Description": "Innodb Memcached for MySQL"}]}, "ResponseMetadata": {"RequestId": "c9847a08-9fca-11e4-9084-5754f80d5144"}}}',
-                      '5.6': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "12", "OptionsDependedOn": [], "MajorEngineVersion": "5.6", "Persistent": false, "DefaultPort": 11211, "Permanent": false, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies how many memcached read operations (get) to perform before doing a COMMIT to start a new transaction", "DefaultValue": "1", "AllowedValues": "1-4294967295", "IsModifiable": true, "SettingName": "DAEMON_MEMCACHED_R_BATCH_SIZE", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies how many memcached write operations, such as add, set, or incr, to perform before doing a COMMIT to start a new transaction", "DefaultValue": "1", "AllowedValues": "1-4294967295", "IsModifiable": true, "SettingName": "DAEMON_MEMCACHED_W_BATCH_SIZE", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies how often to auto-commit idle connections that use the InnoDB memcached interface.", "DefaultValue": "5", "AllowedValues": "1-1073741824", "IsModifiable": true, "SettingName": "INNODB_API_BK_COMMIT_INTERVAL", "ApplyType": "DYNAMIC"}, {"SettingDescription": "Disables the use of row locks when using the InnoDB memcached interface.", "DefaultValue": "0", "AllowedValues": "0,1", "IsModifiable": true, "SettingName": "INNODB_API_DISABLE_ROWLOCK", "ApplyType": "STATIC"}, {"SettingDescription": "Locks the table used by the InnoDB memcached plugin, so that it cannot be dropped or altered by DDL through the SQL interface.", "DefaultValue": "0", "AllowedValues": "0,1", "IsModifiable": true, "SettingName": "INNODB_API_ENABLE_MDL", "ApplyType": "STATIC"}, {"SettingDescription": "Lets you control the transaction isolation level on queries processed by the memcached interface.", "DefaultValue": "0", "AllowedValues": "0-3", "IsModifiable": true, "SettingName": "INNODB_API_TRX_LEVEL", "ApplyType": "STATIC"}, {"SettingDescription": "The binding protocol to use which can be either auto, ascii, or binary. The default is auto which means the server automatically negotiates the protocol with the client.", "DefaultValue": "auto", "AllowedValues": "auto,ascii,binary", "IsModifiable": true, "SettingName": "BINDING_PROTOCOL", "ApplyType": "STATIC"}, {"SettingDescription": "The backlog queue configures how many network connections can be waiting to be processed by memcached", "DefaultValue": "1024", "AllowedValues": "1-2048", "IsModifiable": true, "SettingName": "BACKLOG_QUEUE_LIMIT", "ApplyType": "STATIC"}, {"SettingDescription": "Disable the use of compare and swap (CAS) which reduces the per-item size by 8 bytes.", "DefaultValue": "0", "AllowedValues": "0,1", "IsModifiable": true, "SettingName": "CAS_DISABLED", "ApplyType": "STATIC"}, {"SettingDescription": "Minimum chunk size in bytes to allocate for the smallest item\'s key, value, and flags. The default is 48 and you can get a significant memory efficiency gain with a lower value.", "DefaultValue": "48", "AllowedValues": "1-48", "IsModifiable": true, "SettingName": "CHUNK_SIZE", "ApplyType": "STATIC"}, {"SettingDescription": "Chunk size growth factor that controls the size of each successive chunk with each chunk growing times this amount larger than the previous chunk.", "DefaultValue": "1.25", "AllowedValues": "1-2", "IsModifiable": true, "SettingName": "CHUNK_SIZE_GROWTH_FACTOR", "ApplyType": "STATIC"}, {"SettingDescription": "If enabled when there is no more memory to store items, memcached will return an error rather than evicting items.", "DefaultValue": "0", "AllowedValues": "0,1", "IsModifiable": true, "SettingName": "ERROR_ON_MEMORY_EXHAUSTED", "ApplyType": "STATIC"}, {"SettingDescription": "Maximum number of concurrent connections. Setting this value to anything less than 10 prevents MySQL from starting.", "DefaultValue": "1024", "AllowedValues": "10-1024", "IsModifiable": true, "SettingName": "MAX_SIMULTANEOUS_CONNECTIONS", "ApplyType": "STATIC"}, {"SettingDescription": "Verbose level for memcached.", "DefaultValue": "v", "AllowedValues": "v,vv,vvv", "IsModifiable": true, "SettingName": "VERBOSITY", "ApplyType": "STATIC"}], "EngineName": "mysql", "Name": "MEMCACHED", "PortRequired": true, "Description": "Innodb Memcached for MySQL"}]}, "ResponseMetadata": {"RequestId": "c9847a08-9fca-11e4-9084-5754f80d5144"}}}',
-            },
-            'sqlserver-ee': {'all': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "2789.0.v1", "OptionsDependedOn": [], "MajorEngineVersion": "10.50", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "Mirroring", "PortRequired": false, "Description": "SQLServer Database Mirroring"}, {"MinimumRequiredMinorEngineVersion": "2789.0.v1", "OptionsDependedOn": [], "MajorEngineVersion": "10.50", "Persistent": true, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "TDE", "PortRequired": false, "Description": "SQL Server - Transparent Data Encryption"}, {"MinimumRequiredMinorEngineVersion": "2100.60.v1", "OptionsDependedOn": [], "MajorEngineVersion": "11.00", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "Mirroring", "PortRequired": false, "Description": "SQLServer Database Mirroring"}, {"MinimumRequiredMinorEngineVersion": "2100.60.v1", "OptionsDependedOn": [], "MajorEngineVersion": "11.00", "Persistent": true, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "TDE", "PortRequired": false, "Description": "SQL Server - Transparent Data Encryption"}]}, "ResponseMetadata": {"RequestId": "c9f2fd9b-9fcb-11e4-8add-31b6fe33145f"}}}',
-                             '10.50': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "2789.0.v1", "OptionsDependedOn": [], "MajorEngineVersion": "10.50", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "Mirroring", "PortRequired": false, "Description": "SQLServer Database Mirroring"}, {"MinimumRequiredMinorEngineVersion": "2789.0.v1", "OptionsDependedOn": [], "MajorEngineVersion": "10.50", "Persistent": true, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "TDE", "PortRequired": false, "Description": "SQL Server - Transparent Data Encryption"}]}, "ResponseMetadata": {"RequestId": "e6326fd0-9fcb-11e4-99cf-55e92d4bbada"}}}',
-                             '11.00': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "2100.60.v1", "OptionsDependedOn": [], "MajorEngineVersion": "11.00", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "Mirroring", "PortRequired": false, "Description": "SQLServer Database Mirroring"}, {"MinimumRequiredMinorEngineVersion": "2100.60.v1", "OptionsDependedOn": [], "MajorEngineVersion": "11.00", "Persistent": true, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "sqlserver-ee", "Name": "TDE", "PortRequired": false, "Description": "SQL Server - Transparent Data Encryption"}]}, "ResponseMetadata": {"RequestId": "222cbeeb-9fcc-11e4-bb07-576f5bf522b5"}}}'
-            },
-            'oracle-ee': {'all': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["XMLDB"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX", "PortRequired": false, "Description": "Oracle Application Express Runtime Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["APEX"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX-DEV", "PortRequired": false, "Description": "Oracle Application Express Development Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the desired encryption behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies the desired data integrity behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of encryption algorithms in order of intended use", "DefaultValue": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "AllowedValues": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_TYPES_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of checksumming algorithms in order of intended use", "DefaultValue": "SHA1,MD5", "AllowedValues": "SHA1,MD5", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER", "ApplyType": "STATIC"}], "EngineName": "oracle-ee", "Name": "NATIVE_NETWORK_ENCRYPTION", "PortRequired": false, "Description": "Oracle Advanced Security - Native Network Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": 1158, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "OEM", "PortRequired": true, "Description": "Oracle Enterprise Manager (Database Control only)"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "STATSPACK", "PortRequired": false, "Description": "Oracle Statspack"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE", "PortRequired": false, "Description": "Oracle Advanced Security - Transparent Data Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE_HSM", "PortRequired": false, "Description": "Oracle Advanced Security - TDE with HSM"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the timezone the user wants to change the system time to", "DefaultValue": "UTC", "AllowedValues": "Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC", "IsModifiable": true, "SettingName": "TIME_ZONE", "ApplyType": "DYNAMIC"}], "EngineName": "oracle-ee", "Name": "Timezone", "PortRequired": false, "Description": "Change time zone"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "XMLDB", "PortRequired": false, "Description": "Oracle XMLDB Repository"}]}, "ResponseMetadata": {"RequestId": "36a0a612-9fcc-11e4-a07c-e12b0fcebb71"}}}',
-                          '11.2': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["XMLDB"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX", "PortRequired": false, "Description": "Oracle Application Express Runtime Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["APEX"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX-DEV", "PortRequired": false, "Description": "Oracle Application Express Development Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the desired encryption behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies the desired data integrity behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of encryption algorithms in order of intended use", "DefaultValue": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "AllowedValues": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_TYPES_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of checksumming algorithms in order of intended use", "DefaultValue": "SHA1,MD5", "AllowedValues": "SHA1,MD5", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER", "ApplyType": "STATIC"}], "EngineName": "oracle-ee", "Name": "NATIVE_NETWORK_ENCRYPTION", "PortRequired": false, "Description": "Oracle Advanced Security - Native Network Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": 1158, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "OEM", "PortRequired": true, "Description": "Oracle Enterprise Manager (Database Control only)"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "STATSPACK", "PortRequired": false, "Description": "Oracle Statspack"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE", "PortRequired": false, "Description": "Oracle Advanced Security - Transparent Data Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE_HSM", "PortRequired": false, "Description": "Oracle Advanced Security - TDE with HSM"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the timezone the user wants to change the system time to", "DefaultValue": "UTC", "AllowedValues": "Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC", "IsModifiable": true, "SettingName": "TIME_ZONE", "ApplyType": "DYNAMIC"}], "EngineName": "oracle-ee", "Name": "Timezone", "PortRequired": false, "Description": "Change time zone"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "XMLDB", "PortRequired": false, "Description": "Oracle XMLDB Repository"}]}, "ResponseMetadata": {"RequestId": "36a0a612-9fcc-11e4-a07c-e12b0fcebb71"}}}'
-            },
-            'oracle-sa': {'all': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["XMLDB"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX", "PortRequired": false, "Description": "Oracle Application Express Runtime Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["APEX"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX-DEV", "PortRequired": false, "Description": "Oracle Application Express Development Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the desired encryption behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies the desired data integrity behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of encryption algorithms in order of intended use", "DefaultValue": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "AllowedValues": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_TYPES_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of checksumming algorithms in order of intended use", "DefaultValue": "SHA1,MD5", "AllowedValues": "SHA1,MD5", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER", "ApplyType": "STATIC"}], "EngineName": "oracle-ee", "Name": "NATIVE_NETWORK_ENCRYPTION", "PortRequired": false, "Description": "Oracle Advanced Security - Native Network Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": 1158, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "OEM", "PortRequired": true, "Description": "Oracle Enterprise Manager (Database Control only)"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "STATSPACK", "PortRequired": false, "Description": "Oracle Statspack"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE", "PortRequired": false, "Description": "Oracle Advanced Security - Transparent Data Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE_HSM", "PortRequired": false, "Description": "Oracle Advanced Security - TDE with HSM"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the timezone the user wants to change the system time to", "DefaultValue": "UTC", "AllowedValues": "Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC", "IsModifiable": true, "SettingName": "TIME_ZONE", "ApplyType": "DYNAMIC"}], "EngineName": "oracle-ee", "Name": "Timezone", "PortRequired": false, "Description": "Change time zone"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "XMLDB", "PortRequired": false, "Description": "Oracle XMLDB Repository"}]}, "ResponseMetadata": {"RequestId": "36a0a612-9fcc-11e4-a07c-e12b0fcebb71"}}}',
-                          '11.2': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["XMLDB"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX", "PortRequired": false, "Description": "Oracle Application Express Runtime Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["APEX"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX-DEV", "PortRequired": false, "Description": "Oracle Application Express Development Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the desired encryption behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies the desired data integrity behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of encryption algorithms in order of intended use", "DefaultValue": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "AllowedValues": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_TYPES_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of checksumming algorithms in order of intended use", "DefaultValue": "SHA1,MD5", "AllowedValues": "SHA1,MD5", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER", "ApplyType": "STATIC"}], "EngineName": "oracle-ee", "Name": "NATIVE_NETWORK_ENCRYPTION", "PortRequired": false, "Description": "Oracle Advanced Security - Native Network Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": 1158, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "OEM", "PortRequired": true, "Description": "Oracle Enterprise Manager (Database Control only)"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "STATSPACK", "PortRequired": false, "Description": "Oracle Statspack"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE", "PortRequired": false, "Description": "Oracle Advanced Security - Transparent Data Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE_HSM", "PortRequired": false, "Description": "Oracle Advanced Security - TDE with HSM"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the timezone the user wants to change the system time to", "DefaultValue": "UTC", "AllowedValues": "Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC", "IsModifiable": true, "SettingName": "TIME_ZONE", "ApplyType": "DYNAMIC"}], "EngineName": "oracle-ee", "Name": "Timezone", "PortRequired": false, "Description": "Change time zone"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "XMLDB", "PortRequired": false, "Description": "Oracle XMLDB Repository"}]}, "ResponseMetadata": {"RequestId": "36a0a612-9fcc-11e4-a07c-e12b0fcebb71"}}}'
-            },
-            'oracle-sa1': {'all': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["XMLDB"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX", "PortRequired": false, "Description": "Oracle Application Express Runtime Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["APEX"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX-DEV", "PortRequired": false, "Description": "Oracle Application Express Development Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the desired encryption behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies the desired data integrity behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of encryption algorithms in order of intended use", "DefaultValue": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "AllowedValues": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_TYPES_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of checksumming algorithms in order of intended use", "DefaultValue": "SHA1,MD5", "AllowedValues": "SHA1,MD5", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER", "ApplyType": "STATIC"}], "EngineName": "oracle-ee", "Name": "NATIVE_NETWORK_ENCRYPTION", "PortRequired": false, "Description": "Oracle Advanced Security - Native Network Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": 1158, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "OEM", "PortRequired": true, "Description": "Oracle Enterprise Manager (Database Control only)"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "STATSPACK", "PortRequired": false, "Description": "Oracle Statspack"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE", "PortRequired": false, "Description": "Oracle Advanced Security - Transparent Data Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE_HSM", "PortRequired": false, "Description": "Oracle Advanced Security - TDE with HSM"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the timezone the user wants to change the system time to", "DefaultValue": "UTC", "AllowedValues": "Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC", "IsModifiable": true, "SettingName": "TIME_ZONE", "ApplyType": "DYNAMIC"}], "EngineName": "oracle-ee", "Name": "Timezone", "PortRequired": false, "Description": "Change time zone"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "XMLDB", "PortRequired": false, "Description": "Oracle XMLDB Repository"}]}, "ResponseMetadata": {"RequestId": "36a0a612-9fcc-11e4-a07c-e12b0fcebb71"}}}',
-                          '11.2': '{"DescribeOptionGroupOptionsResponse": {"DescribeOptionGroupOptionsResult": {"Marker": null, "OptionGroupOptions": [{"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["XMLDB"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX", "PortRequired": false, "Description": "Oracle Application Express Runtime Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": ["APEX"], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "APEX-DEV", "PortRequired": false, "Description": "Oracle Application Express Development Environment"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the desired encryption behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies the desired data integrity behavior", "DefaultValue": "REQUESTED", "AllowedValues": "ACCEPTED,REJECTED,REQUESTED,REQUIRED", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of encryption algorithms in order of intended use", "DefaultValue": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "AllowedValues": "RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40", "IsModifiable": true, "SettingName": "SQLNET.ENCRYPTION_TYPES_SERVER", "ApplyType": "STATIC"}, {"SettingDescription": "Specifies list of checksumming algorithms in order of intended use", "DefaultValue": "SHA1,MD5", "AllowedValues": "SHA1,MD5", "IsModifiable": true, "SettingName": "SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER", "ApplyType": "STATIC"}], "EngineName": "oracle-ee", "Name": "NATIVE_NETWORK_ENCRYPTION", "PortRequired": false, "Description": "Oracle Advanced Security - Native Network Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": 1158, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "OEM", "PortRequired": true, "Description": "Oracle Enterprise Manager (Database Control only)"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "STATSPACK", "PortRequired": false, "Description": "Oracle Statspack"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE", "PortRequired": false, "Description": "Oracle Advanced Security - Transparent Data Encryption"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "TDE_HSM", "PortRequired": false, "Description": "Oracle Advanced Security - TDE with HSM"}, {"MinimumRequiredMinorEngineVersion": "0.2.v3", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": true, "DefaultPort": null, "Permanent": true, "OptionGroupOptionSettings": [{"SettingDescription": "Specifies the timezone the user wants to change the system time to", "DefaultValue": "UTC", "AllowedValues": "Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC", "IsModifiable": true, "SettingName": "TIME_ZONE", "ApplyType": "DYNAMIC"}], "EngineName": "oracle-ee", "Name": "Timezone", "PortRequired": false, "Description": "Change time zone"}, {"MinimumRequiredMinorEngineVersion": "0.2.v4", "OptionsDependedOn": [], "MajorEngineVersion": "11.2", "Persistent": false, "DefaultPort": null, "Permanent": false, "OptionGroupOptionSettings": [], "EngineName": "oracle-ee", "Name": "XMLDB", "PortRequired": false, "Description": "Oracle XMLDB Repository"}]}, "ResponseMetadata": {"RequestId": "36a0a612-9fcc-11e4-a07c-e12b0fcebb71"}}}'
-            }
-        }
+        default_option_group_options = {'mysql': {'5.6': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>5.6</MajorEngineVersion><DefaultPort>11211</DefaultPort><PortRequired>True</PortRequired><OptionsDependedOn></OptionsDependedOn><Description>Innodb Memcached for MySQL</Description><Name>MEMCACHED</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>1-4294967295</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies how many memcached read operations (get) to perform before doing a COMMIT to start a new transaction</SettingDescription><SettingName>DAEMON_MEMCACHED_R_BATCH_SIZE</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-4294967295</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies how many memcached write operations, such as add, set, or incr, to perform before doing a COMMIT to start a new transaction</SettingDescription><SettingName>DAEMON_MEMCACHED_W_BATCH_SIZE</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-1073741824</AllowedValues><ApplyType>DYNAMIC</ApplyType><DefaultValue>5</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies how often to auto-commit idle connections that use the InnoDB memcached interface.</SettingDescription><SettingName>INNODB_API_BK_COMMIT_INTERVAL</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0,1</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Disables the use of row locks when using the InnoDB memcached interface.</SettingDescription><SettingName>INNODB_API_DISABLE_ROWLOCK</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0,1</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Locks the table used by the InnoDB memcached plugin, so that it cannot be dropped or altered by DDL through the SQL interface.</SettingDescription><SettingName>INNODB_API_ENABLE_MDL</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0-3</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Lets you control the transaction isolation level on queries processed by the memcached interface.</SettingDescription><SettingName>INNODB_API_TRX_LEVEL</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>auto,ascii,binary</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>auto</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>The binding protocol to use which can be either auto, ascii, or binary. The default is auto which means the server automatically negotiates the protocol with the client.</SettingDescription><SettingName>BINDING_PROTOCOL</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-2048</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1024</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>The backlog queue configures how many network connections can be waiting to be processed by memcached</SettingDescription><SettingName>BACKLOG_QUEUE_LIMIT</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0,1</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Disable the use of compare and swap (CAS) which reduces the per-item size by 8 bytes.</SettingDescription><SettingName>CAS_DISABLED</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-48</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>48</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Minimum chunk size in bytes to allocate for the smallest item\'s key, value, and flags. The default is 48 and you can get a significant memory efficiency gain with a lower value.</SettingDescription><SettingName>CHUNK_SIZE</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-2</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1.25</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Chunk size growth factor that controls the size of each successive chunk with each chunk growing times this amount larger than the previous chunk.</SettingDescription><SettingName>CHUNK_SIZE_GROWTH_FACTOR</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0,1</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>If enabled when there is no more memory to store items, memcached will return an error rather than evicting items.</SettingDescription><SettingName>ERROR_ON_MEMORY_EXHAUSTED</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>10-1024</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1024</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Maximum number of concurrent connections. Setting this value to anything less than 10 prevents MySQL from starting.</SettingDescription><SettingName>MAX_SIMULTANEOUS_CONNECTIONS</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>v,vv,vvv</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>v</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Verbose level for memcached.</SettingDescription><SettingName>VERBOSITY</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>mysql</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>',
+           'all': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>5.6</MajorEngineVersion><DefaultPort>11211</DefaultPort><PortRequired>True</PortRequired><OptionsDependedOn></OptionsDependedOn><Description>Innodb Memcached for MySQL</Description><Name>MEMCACHED</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>1-4294967295</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies how many memcached read operations (get) to perform before doing a COMMIT to start a new transaction</SettingDescription><SettingName>DAEMON_MEMCACHED_R_BATCH_SIZE</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-4294967295</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies how many memcached write operations, such as add, set, or incr, to perform before doing a COMMIT to start a new transaction</SettingDescription><SettingName>DAEMON_MEMCACHED_W_BATCH_SIZE</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-1073741824</AllowedValues><ApplyType>DYNAMIC</ApplyType><DefaultValue>5</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies how often to auto-commit idle connections that use the InnoDB memcached interface.</SettingDescription><SettingName>INNODB_API_BK_COMMIT_INTERVAL</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0,1</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Disables the use of row locks when using the InnoDB memcached interface.</SettingDescription><SettingName>INNODB_API_DISABLE_ROWLOCK</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0,1</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Locks the table used by the InnoDB memcached plugin, so that it cannot be dropped or altered by DDL through the SQL interface.</SettingDescription><SettingName>INNODB_API_ENABLE_MDL</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0-3</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Lets you control the transaction isolation level on queries processed by the memcached interface.</SettingDescription><SettingName>INNODB_API_TRX_LEVEL</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>auto,ascii,binary</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>auto</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>The binding protocol to use which can be either auto, ascii, or binary. The default is auto which means the server automatically negotiates the protocol with the client.</SettingDescription><SettingName>BINDING_PROTOCOL</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-2048</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1024</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>The backlog queue configures how many network connections can be waiting to be processed by memcached</SettingDescription><SettingName>BACKLOG_QUEUE_LIMIT</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0,1</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Disable the use of compare and swap (CAS) which reduces the per-item size by 8 bytes.</SettingDescription><SettingName>CAS_DISABLED</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-48</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>48</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Minimum chunk size in bytes to allocate for the smallest item\'s key, value, and flags. The default is 48 and you can get a significant memory efficiency gain with a lower value.</SettingDescription><SettingName>CHUNK_SIZE</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>1-2</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1.25</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Chunk size growth factor that controls the size of each successive chunk with each chunk growing times this amount larger than the previous chunk.</SettingDescription><SettingName>CHUNK_SIZE_GROWTH_FACTOR</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>0,1</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>0</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>If enabled when there is no more memory to store items, memcached will return an error rather than evicting items.</SettingDescription><SettingName>ERROR_ON_MEMORY_EXHAUSTED</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>10-1024</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>1024</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Maximum number of concurrent connections. Setting this value to anything less than 10 prevents MySQL from starting.</SettingDescription><SettingName>MAX_SIMULTANEOUS_CONNECTIONS</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>v,vv,vvv</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>v</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Verbose level for memcached.</SettingDescription><SettingName>VERBOSITY</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>mysql</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>'},
+ 'oracle-ee': {'11.2': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>XMLDB</OptionName></OptionsDependedOn><Description>Oracle Application Express Runtime Environment</Description><Name>APEX</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>APEX</OptionName></OptionsDependedOn><Description>Oracle Application Express Development Environment</Description><Name>APEX-DEV</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Advanced Security - Native Network Encryption</Description><Name>NATIVE_NETWORK_ENCRYPTION</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired encryption behavior</SettingDescription><SettingName>SQLNET.ENCRYPTION_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired data integrity behavior</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of encryption algorithms in order of intended use</SettingDescription><SettingName>SQLNET.ENCRYPTION_TYPES_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>SHA1,MD5</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>SHA1,MD5</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of checksumming algorithms in order of intended use</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><DefaultPort>1158</DefaultPort><PortRequired>True</PortRequired><OptionsDependedOn></OptionsDependedOn><Description>Oracle Enterprise Manager (Database Control only)</Description><Name>OEM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Statspack</Description><Name>STATSPACK</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - TDE with HSM</Description><Name>TDE_HSM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Change time zone</Description><Name>Timezone</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC</AllowedValues><ApplyType>DYNAMIC</ApplyType><DefaultValue>UTC</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the timezone the user wants to change the system time to</SettingDescription><SettingName>TIME_ZONE</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle XMLDB Repository</Description><Name>XMLDB</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>',
+               'all': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>XMLDB</OptionName></OptionsDependedOn><Description>Oracle Application Express Runtime Environment</Description><Name>APEX</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>APEX</OptionName></OptionsDependedOn><Description>Oracle Application Express Development Environment</Description><Name>APEX-DEV</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Advanced Security - Native Network Encryption</Description><Name>NATIVE_NETWORK_ENCRYPTION</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired encryption behavior</SettingDescription><SettingName>SQLNET.ENCRYPTION_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired data integrity behavior</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of encryption algorithms in order of intended use</SettingDescription><SettingName>SQLNET.ENCRYPTION_TYPES_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>SHA1,MD5</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>SHA1,MD5</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of checksumming algorithms in order of intended use</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><DefaultPort>1158</DefaultPort><PortRequired>True</PortRequired><OptionsDependedOn></OptionsDependedOn><Description>Oracle Enterprise Manager (Database Control only)</Description><Name>OEM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Statspack</Description><Name>STATSPACK</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - TDE with HSM</Description><Name>TDE_HSM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Change time zone</Description><Name>Timezone</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC</AllowedValues><ApplyType>DYNAMIC</ApplyType><DefaultValue>UTC</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the timezone the user wants to change the system time to</SettingDescription><SettingName>TIME_ZONE</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle XMLDB Repository</Description><Name>XMLDB</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>'},
+ 'oracle-sa': {'11.2': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>XMLDB</OptionName></OptionsDependedOn><Description>Oracle Application Express Runtime Environment</Description><Name>APEX</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>APEX</OptionName></OptionsDependedOn><Description>Oracle Application Express Development Environment</Description><Name>APEX-DEV</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Advanced Security - Native Network Encryption</Description><Name>NATIVE_NETWORK_ENCRYPTION</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired encryption behavior</SettingDescription><SettingName>SQLNET.ENCRYPTION_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired data integrity behavior</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of encryption algorithms in order of intended use</SettingDescription><SettingName>SQLNET.ENCRYPTION_TYPES_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>SHA1,MD5</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>SHA1,MD5</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of checksumming algorithms in order of intended use</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><DefaultPort>1158</DefaultPort><PortRequired>True</PortRequired><OptionsDependedOn></OptionsDependedOn><Description>Oracle Enterprise Manager (Database Control only)</Description><Name>OEM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Statspack</Description><Name>STATSPACK</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - TDE with HSM</Description><Name>TDE_HSM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Change time zone</Description><Name>Timezone</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC</AllowedValues><ApplyType>DYNAMIC</ApplyType><DefaultValue>UTC</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the timezone the user wants to change the system time to</SettingDescription><SettingName>TIME_ZONE</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle XMLDB Repository</Description><Name>XMLDB</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>',
+               'all': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>XMLDB</OptionName></OptionsDependedOn><Description>Oracle Application Express Runtime Environment</Description><Name>APEX</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>APEX</OptionName></OptionsDependedOn><Description>Oracle Application Express Development Environment</Description><Name>APEX-DEV</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Advanced Security - Native Network Encryption</Description><Name>NATIVE_NETWORK_ENCRYPTION</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired encryption behavior</SettingDescription><SettingName>SQLNET.ENCRYPTION_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired data integrity behavior</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of encryption algorithms in order of intended use</SettingDescription><SettingName>SQLNET.ENCRYPTION_TYPES_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>SHA1,MD5</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>SHA1,MD5</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of checksumming algorithms in order of intended use</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><DefaultPort>1158</DefaultPort><PortRequired>True</PortRequired><OptionsDependedOn></OptionsDependedOn><Description>Oracle Enterprise Manager (Database Control only)</Description><Name>OEM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Statspack</Description><Name>STATSPACK</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - TDE with HSM</Description><Name>TDE_HSM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Change time zone</Description><Name>Timezone</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC</AllowedValues><ApplyType>DYNAMIC</ApplyType><DefaultValue>UTC</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the timezone the user wants to change the system time to</SettingDescription><SettingName>TIME_ZONE</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle XMLDB Repository</Description><Name>XMLDB</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>'},
+ 'oracle-sa1': {'11.2': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>XMLDB</OptionName></OptionsDependedOn><Description>Oracle Application Express Runtime Environment</Description><Name>APEX</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>APEX</OptionName></OptionsDependedOn><Description>Oracle Application Express Development Environment</Description><Name>APEX-DEV</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Advanced Security - Native Network Encryption</Description><Name>NATIVE_NETWORK_ENCRYPTION</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired encryption behavior</SettingDescription><SettingName>SQLNET.ENCRYPTION_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired data integrity behavior</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of encryption algorithms in order of intended use</SettingDescription><SettingName>SQLNET.ENCRYPTION_TYPES_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>SHA1,MD5</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>SHA1,MD5</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of checksumming algorithms in order of intended use</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><DefaultPort>1158</DefaultPort><PortRequired>True</PortRequired><OptionsDependedOn></OptionsDependedOn><Description>Oracle Enterprise Manager (Database Control only)</Description><Name>OEM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Statspack</Description><Name>STATSPACK</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - TDE with HSM</Description><Name>TDE_HSM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Change time zone</Description><Name>Timezone</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC</AllowedValues><ApplyType>DYNAMIC</ApplyType><DefaultValue>UTC</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the timezone the user wants to change the system time to</SettingDescription><SettingName>TIME_ZONE</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle XMLDB Repository</Description><Name>XMLDB</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>',
+                'all': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>XMLDB</OptionName></OptionsDependedOn><Description>Oracle Application Express Runtime Environment</Description><Name>APEX</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn><OptionName>APEX</OptionName></OptionsDependedOn><Description>Oracle Application Express Development Environment</Description><Name>APEX-DEV</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Advanced Security - Native Network Encryption</Description><Name>NATIVE_NETWORK_ENCRYPTION</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired encryption behavior</SettingDescription><SettingName>SQLNET.ENCRYPTION_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>ACCEPTED,REJECTED,REQUESTED,REQUIRED</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>REQUESTED</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the desired data integrity behavior</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>RC4_256,AES256,AES192,3DES168,RC4_128,AES128,3DES112,RC4_56,DES,RC4_40,DES40</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of encryption algorithms in order of intended use</SettingDescription><SettingName>SQLNET.ENCRYPTION_TYPES_SERVER</SettingName></OptionGroupOptionSetting><OptionGroupOptionSetting><AllowedValues>SHA1,MD5</AllowedValues><ApplyType>STATIC</ApplyType><DefaultValue>SHA1,MD5</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies list of checksumming algorithms in order of intended use</SettingDescription><SettingName>SQLNET.CRYPTO_CHECKSUM_TYPES_SERVER</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><DefaultPort>1158</DefaultPort><PortRequired>True</PortRequired><OptionsDependedOn></OptionsDependedOn><Description>Oracle Enterprise Manager (Database Control only)</Description><Name>OEM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle Statspack</Description><Name>STATSPACK</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Oracle Advanced Security - TDE with HSM</Description><Name>TDE_HSM</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Permanent>True</Permanent><Description>Change time zone</Description><Name>Timezone</Name><OptionGroupOptionSettings><OptionGroupOptionSetting><AllowedValues>Africa/Cairo,Africa/Casablanca,Africa/Harare,Africa/Monrovia,Africa/Nairobi,Africa/Tripoli,Africa/Windhoek,America/Araguaina,America/Asuncion,America/Bogota,America/Caracas,America/Chihuahua,America/Cuiaba,America/Denver,America/Fortaleza,America/Guatemala,America/Halifax,America/Manaus,America/Matamoros,America/Monterrey,America/Montevideo,America/Phoenix,America/Santiago,America/Tijuana,Asia/Amman,Asia/Ashgabat,Asia/Baghdad,Asia/Baku,Asia/Bangkok,Asia/Beirut,Asia/Calcutta,Asia/Damascus,Asia/Dhaka,Asia/Irkutsk,Asia/Jerusalem,Asia/Kabul,Asia/Karachi,Asia/Kathmandu,Asia/Krasnoyarsk,Asia/Magadan,Asia/Muscat,Asia/Novosibirsk,Asia/Riyadh,Asia/Seoul,Asia/Shanghai,Asia/Singapore,Asia/Taipei,Asia/Tehran,Asia/Tokyo,Asia/Ulaanbaatar,Asia/Vladivostok,Asia/Yakutsk,Asia/Yerevan,Atlantic/Azores,Australia/Adelaide,Australia/Brisbane,Australia/Darwin,Australia/Hobart,Australia/Perth,Australia/Sydney,Brazil/East,Canada/Newfoundland,Canada/Saskatchewan,Europe/Amsterdam,Europe/Athens,Europe/Dublin,Europe/Helsinki,Europe/Istanbul,Europe/Kaliningrad,Europe/Moscow,Europe/Paris,Europe/Prague,Europe/Sarajevo,Pacific/Auckland,Pacific/Fiji,Pacific/Guam,Pacific/Honolulu,Pacific/Samoa,US/Alaska,US/Central,US/Eastern,US/East-Indiana,US/Pacific,UTC</AllowedValues><ApplyType>DYNAMIC</ApplyType><DefaultValue>UTC</DefaultValue><IsModifiable>True</IsModifiable><SettingDescription>Specifies the timezone the user wants to change the system time to</SettingDescription><SettingName>TIME_ZONE</SettingName></OptionGroupOptionSetting></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.2</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>Oracle XMLDB Repository</Description><Name>XMLDB</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>oracle-ee</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>'},
+ 'sqlserver-ee': {'10.50': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>10.50</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>SQLServer Database Mirroring</Description><Name>Mirroring</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>sqlserver-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>10.50</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Description>SQL Server - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>sqlserver-ee</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>',
+                  '11.00': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>11.00</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>SQLServer Database Mirroring</Description><Name>Mirroring</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>sqlserver-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.00</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Description>SQL Server - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>sqlserver-ee</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>',
+                  'all': '<DescribeOptionGroupOptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">\n  <DescribeOptionGroupOptionsResult>\n    <OptionGroupOptions>\n    \n      <OptionGroupOption><MajorEngineVersion>10.50</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>SQLServer Database Mirroring</Description><Name>Mirroring</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>sqlserver-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>10.50</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Description>SQL Server - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>sqlserver-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.00</MajorEngineVersion><OptionsDependedOn></OptionsDependedOn><Description>SQLServer Database Mirroring</Description><Name>Mirroring</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>sqlserver-ee</EngineName></OptionGroupOption>\n    \n      <OptionGroupOption><MajorEngineVersion>11.00</MajorEngineVersion><Persistent>True</Persistent><OptionsDependedOn></OptionsDependedOn><Description>SQL Server - Transparent Data Encryption</Description><Name>TDE</Name><OptionGroupOptionSettings></OptionGroupOptionSettings><EngineName>sqlserver-ee</EngineName></OptionGroupOption>\n    \n    </OptionGroupOptions>\n  </DescribeOptionGroupOptionsResult>\n  <ResponseMetadata>\n    <RequestId>457f7bb8-9fbf-11e4-9084-5754f80d5144</RequestId>\n  </ResponseMetadata>\n</DescribeOptionGroupOptionsResponse>'}}
+
         if engine_name not in default_option_group_options:
             raise RDSClientError('InvalidParameterValue', 'Invalid DB engine: {0}'.format(engine_name))
         if major_engine_version and major_engine_version not in default_option_group_options[engine_name]:
@@ -620,6 +784,60 @@ class RDS2Backend(BaseBackend):
             self.option_groups[option_group_name].add_options(options_to_include)
         return self.option_groups[option_group_name]
 
+    def create_db_parameter_group(self, db_parameter_group_kwargs):
+        db_parameter_group_id = db_parameter_group_kwargs['name']
+        if db_parameter_group_kwargs['name'] in self.db_parameter_groups:
+            raise RDSClientError('DBParameterGroupAlreadyExistsFault',
+                                 'A DB parameter group named {0} already exists.'.format(db_parameter_group_kwargs['name']))
+        if not db_parameter_group_kwargs.get('description'):
+            raise RDSClientError('InvalidParameterValue',
+                                 'The parameter Description must be provided and must not be blank.')
+        if not db_parameter_group_kwargs.get('family'):
+            raise RDSClientError('InvalidParameterValue',
+                                 'The parameter DBParameterGroupName must be provided and must not be blank.')
+
+        db_parameter_group = DBParameterGroup(**db_parameter_group_kwargs)
+        self.db_parameter_groups[db_parameter_group_id] = db_parameter_group
+        return db_parameter_group
+
+    def describe_db_parameter_groups(self, db_parameter_group_kwargs):
+        db_parameter_group_list = []
+
+        if db_parameter_group_kwargs.get('marker'):
+            marker = db_parameter_group_kwargs['marker']
+        else:
+            marker = 0
+        if db_parameter_group_kwargs.get('max_records'):
+            if db_parameter_group_kwargs['max_records'] < 20 or db_parameter_group_kwargs['max_records'] > 100:
+                raise RDSClientError('InvalidParameterValue',
+                                     'Invalid value for max records. Must be between 20 and 100')
+            max_records = db_parameter_group_kwargs['max_records']
+        else:
+            max_records = 100
+
+        for db_parameter_group_name, db_parameter_group in self.db_parameter_groups.items():
+            if not db_parameter_group_kwargs.get('name') or db_parameter_group.name == db_parameter_group_kwargs.get('name'):
+                db_parameter_group_list.append(db_parameter_group)
+            else:
+                continue
+
+        return db_parameter_group_list[marker:max_records+marker]
+
+    def modify_db_parameter_group(self, db_parameter_group_name, db_parameter_group_parameters):
+        if db_parameter_group_name not in self.db_parameter_groups:
+            raise DBParameterGroupNotFoundError(db_parameter_group_name)
+
+        db_parameter_group = self.db_parameter_groups[db_parameter_group_name]
+        db_parameter_group.update_parameters(db_parameter_group_parameters)
+
+        return db_parameter_group
+
+    def delete_db_parameter_group(self, db_parameter_group_name):
+        if db_parameter_group_name in self.db_parameter_groups:
+            return self.db_parameter_groups.pop(db_parameter_group_name)
+        else:
+            raise DBParameterGroupNotFoundError(db_parameter_group_name)
+
     def list_tags_for_resource(self, arn):
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(':')
@@ -635,19 +853,19 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.option_groups:
                     return self.option_groups[resource_name].get_tags()
             elif resource_type == 'pg':  # Parameter Group
-                # TODO: Complete call to tags on resource type Parameter Group
-                return []
+                if resource_name in self.db_parameter_groups:
+                    return self.db_parameter_groups[resource_name].get_tags()
             elif resource_type == 'ri':  # Reserved DB instance
                 # TODO: Complete call to tags on resource type Reserved DB instance
                 return []
             elif resource_type == 'secgrp':  # DB security group
-                if resource_type in self.security_groups:
+                if resource_name in self.security_groups:
                     return self.security_groups[resource_name].get_tags()
             elif resource_type == 'snapshot':  # DB Snapshot
                 # TODO: Complete call to tags on resource type DB Snapshot
                 return []
             elif resource_type == 'subgrp':  # DB subnet group
-                if resource_type in self.subnet_groups:
+                if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].get_tags()
         else:
             raise RDSClientError('InvalidParameterValue',
@@ -672,16 +890,16 @@ class RDS2Backend(BaseBackend):
             elif resource_type == 'ri':  # Reserved DB instance
                 return None
             elif resource_type == 'secgrp':  # DB security group
-                if resource_type in self.security_groups:
+                if resource_name in self.security_groups:
                     return self.security_groups[resource_name].remove_tags(tag_keys)
             elif resource_type == 'snapshot':  # DB Snapshot
                 return None
             elif resource_type == 'subgrp':  # DB subnet group
-                if resource_type in self.subnet_groups:
+                if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].remove_tags(tag_keys)
         else:
             raise RDSClientError('InvalidParameterValue',
-                                 'Invalid resource name: {}'.format(arn))
+                                 'Invalid resource name: {0}'.format(arn))
 
     def add_tags_to_resource(self, arn, tags):
         if self.arn_regex.match(arn):
@@ -701,16 +919,16 @@ class RDS2Backend(BaseBackend):
             elif resource_type == 'ri':  # Reserved DB instance
                 return []
             elif resource_type == 'secgrp':  # DB security group
-                if resource_type in self.security_groups:
+                if resource_name in self.security_groups:
                     return self.security_groups[resource_name].add_tags(tags)
             elif resource_type == 'snapshot':  # DB Snapshot
                 return []
             elif resource_type == 'subgrp':  # DB subnet group
-                if resource_type in self.subnet_groups:
+                if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].add_tags(tags)
         else:
             raise RDSClientError('InvalidParameterValue',
-                                 'Invalid resource name: {}'.format(arn))
+                                 'Invalid resource name: {0}'.format(arn))
 
 
 class OptionGroup(object):
@@ -736,6 +954,17 @@ class OptionGroup(object):
 }""")
         return template.render(option_group=self)
 
+    def to_xml(self):
+        template = Template("""<OptionGroup>
+          <OptionGroupName>{{ option_group.name }}</OptionGroupName>
+          <AllowsVpcAndNonVpcInstanceMemberships>{{ option_group.vpc_and_non_vpc_instance_memberships }}</AllowsVpcAndNonVpcInstanceMemberships>
+          <MajorEngineVersion>{{ option_group.major_engine_version }}</MajorEngineVersion>
+          <EngineName>{{ option_group.engine_name }}</EngineName>
+          <OptionGroupDescription>{{ option_group.description }}</OptionGroupDescription>
+          <Options/>
+        </OptionGroup>""")
+        return template.render(option_group=self)
+
     def remove_options(self, options_to_remove):
         # TODO: Check for option in self.options and remove if exists. Raise error otherwise
         return
@@ -758,11 +987,20 @@ class OptionGroup(object):
 
 
 class OptionGroupOption(object):
-    def __init__(self, engine_name, major_engine_version):
-        self.engine_name = engine_name
-        self.major_engine_version = major_engine_version
-        #TODO: Create validation for Options
-        #TODO: formulate way to store options settings
+    def __init__(self, **kwargs):
+        self.default_port = kwargs.get('default_port')
+        self.description = kwargs.get('description')
+        self.engine_name = kwargs.get('engine_name')
+        self.major_engine_version = kwargs.get('major_engine_version')
+        self.name = kwargs.get('name')
+        self.option_group_option_settings = self._make_option_group_option_settings(kwargs.get('option_group_option_settings', []))
+        self.options_depended_on = kwargs.get('options_depended_on', [])
+        self.permanent = kwargs.get('permanent')
+        self.persistent = kwargs.get('persistent')
+        self.port_required = kwargs.get('port_required')
+
+    def _make_option_group_option_settings(self, option_group_option_settings_kwargs):
+        return [OptionGroupOptionSetting(**setting_kwargs) for setting_kwargs in option_group_option_settings_kwargs]
 
     def to_json(self):
         template = Template("""{ "MinimumRequiredMinorEngineVersion":
@@ -780,7 +1018,109 @@ class OptionGroupOption(object):
         }""")
         return template.render(option_group=self)
 
+    def to_xml(self):
+        template = Template("""<OptionGroupOption>
+    <MajorEngineVersion>{{ option_group.major_engine_version }}</MajorEngineVersion>
+    <DefaultPort>{{ option_group.default_port }}</DefaultPort>
+    <PortRequired>{{ option_group.port_required }}</PortRequired>
+    <Persistent>{{ option_group.persistent }}</Persistent>
+    <OptionsDependedOn>
+    {%- for option_name in option_group.options_depended_on -%}
+      <OptionName>{{ option_name }}</OptionName>
+    {%- endfor -%}
+    </OptionsDependedOn>
+    <Permanent>{{ option_group.permanent }}</Permanent>
+    <Description>{{ option_group.description }}</Description>
+    <Name>{{ option_group.name }}</Name>
+    <OptionGroupOptionSettings>
+    {%- for setting in option_group.option_group_option_settings -%}
+      {{ setting.to_xml() }}
+    {%- endfor -%}
+    </OptionGroupOptionSettings>
+    <EngineName>{{ option_group.engine_name }}</EngineName>
+    <MinimumRequiredMinorEngineVersion>{{ option_group.minimum_required_minor_engine_version }}</MinimumRequiredMinorEngineVersion>
+</OptionGroupOption>""")
+        return template.render(option_group=self)
 
-rds2_backends = {}
-for region in boto.rds2.regions():
-    rds2_backends[region.name] = RDS2Backend()
+
+class OptionGroupOptionSetting(object):
+    def __init__(self, *kwargs):
+        self.allowed_values = kwargs.get('allowed_values')
+        self.apply_type = kwargs.get('apply_type')
+        self.default_value = kwargs.get('default_value')
+        self.is_modifiable = kwargs.get('is_modifiable')
+        self.setting_description = kwargs.get('setting_description')
+        self.setting_name = kwargs.get('setting_name')
+
+    def to_xml(self):
+        template = Template("""<OptionGroupOptionSetting>
+    <AllowedValues>{{ option_group_option_setting.allowed_values }}</AllowedValues>
+    <ApplyType>{{ option_group_option_setting.apply_type }}</ApplyType>
+    <DefaultValue>{{ option_group_option_setting.default_value }}</DefaultValue>
+    <IsModifiable>{{ option_group_option_setting.is_modifiable }}</IsModifiable>
+    <SettingDescription>{{ option_group_option_setting.setting_description }}</SettingDescription>
+    <SettingName>{{ option_group_option_setting.setting_name }}</SettingName>
+</OptionGroupOptionSetting>""")
+        return template.render(option_group_option_setting=self)
+
+class DBParameterGroup(object):
+    def __init__(self, name, description, family, tags):
+        self.name = name
+        self.description = description
+        self.family = family
+        self.tags = tags
+        self.parameters = defaultdict(dict)
+
+    def to_xml(self):
+        template = Template("""<DBParameterGroup>
+          <DBParameterGroupName>{{ param_group.name }}</DBParameterGroupName>
+          <DBParameterGroupFamily>{{ param_group.family }}</DBParameterGroupFamily>
+          <Description>{{ param_group.description }}</Description>
+        </DBParameterGroup>""")
+        return template.render(param_group=self)
+
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set['Key'] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set['Key'] not in tag_keys]
+
+    def update_parameters(self, new_parameters):
+        for new_parameter in new_parameters:
+            parameter = self.parameters[new_parameter['ParameterName']]
+            parameter.update(new_parameter)
+
+    def delete(self, region_name):
+        backend = rds2_backends[region_name]
+        backend.delete_db_parameter_group(self.name)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        db_parameter_group_kwargs = {
+            'description': properties['Description'],
+            'family': properties['Family'],
+            'name': resource_name.lower(),
+            'tags': properties.get("Tags"),
+        }
+        db_parameter_group_parameters = []
+        for db_parameter, db_parameter_value in properties.get('Parameters', {}).items():
+            db_parameter_group_parameters.append({
+                'ParameterName': db_parameter,
+                'ParameterValue': db_parameter_value,
+            })
+
+        rds2_backend = rds2_backends[region_name]
+        db_parameter_group = rds2_backend.create_db_parameter_group(db_parameter_group_kwargs)
+        db_parameter_group.update_parameters(db_parameter_group_parameters)
+        return db_parameter_group
+
+
+rds2_backends = dict((region.name, RDS2Backend(region.name)) for region in boto.rds2.regions())

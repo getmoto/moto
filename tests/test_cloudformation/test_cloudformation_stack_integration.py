@@ -27,6 +27,7 @@ from moto import (
     mock_kms,
     mock_lambda,
     mock_rds,
+    mock_rds2,
     mock_redshift,
     mock_route53,
     mock_sns,
@@ -36,6 +37,7 @@ from moto import (
 from .fixtures import (
     ec2_classic_eip,
     fn_join,
+    rds_mysql_with_db_parameter_group,
     rds_mysql_with_read_replica,
     redshift,
     route53_ec2_instance_with_public_ip,
@@ -692,6 +694,44 @@ def test_vpc_single_instance_in_subnet():
 
     eip_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
     eip_resource.physical_resource_id.should.equal(eip.allocation_id)
+
+@mock_cloudformation()
+@mock_ec2()
+@mock_rds2()
+def test_rds_db_parameter_groups():
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
+    ec2_conn.create_security_group('application', 'Our Application Group')
+
+    template_json = json.dumps(rds_mysql_with_db_parameter_group.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+        parameters=[
+            ("DBInstanceIdentifier", "master_db"),
+            ("DBName", "my_db"),
+            ("DBUser", "my_user"),
+            ("DBPassword", "my_password"),
+            ("DBAllocatedStorage", "20"),
+            ("DBInstanceClass", "db.m1.medium"),
+            ("EC2SecurityGroup", "application"),
+            ("MultiAZ", "true"),
+        ],
+    )
+
+    rds_conn = boto3.client('rds', region_name="us-west-1")
+
+    db_parameter_groups = rds_conn.describe_db_parameter_groups()
+    len(db_parameter_groups['DBParameterGroups']).should.equal(1)
+    db_parameter_group_name = db_parameter_groups['DBParameterGroups'][0]['DBParameterGroupName']
+
+    found_cloudformation_set_parameter = False
+    for db_parameter in rds_conn.describe_db_parameters(DBParameterGroupName=db_parameter_group_name)['Parameters']:
+        if db_parameter['ParameterName'] == 'BACKLOG_QUEUE_LIMIT' and db_parameter['ParameterValue'] == '2048':
+            found_cloudformation_set_parameter = True
+
+    found_cloudformation_set_parameter.should.equal(True)
+
 
 
 @mock_cloudformation()

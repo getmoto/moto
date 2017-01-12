@@ -82,6 +82,17 @@ template = {
   },
 
   "Resources" : {
+    "DBParameterGroup": {
+      "Type": "AWS::RDS::DBParameterGroup",
+      "Properties" : {
+        "Description": "DB Parameter Goup",
+        "Family" : "MySQL5.1",
+        "Parameters": {
+            "BACKLOG_QUEUE_LIMIT": "2048"
+        }
+      }
+    },
+
     "DBEC2SecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Condition" : "Is-EC2-VPC",
