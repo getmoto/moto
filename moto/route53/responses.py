@@ -21,8 +21,15 @@ def list_or_create_hostzone_response(request, full_url, headers):
         else:
             comment = None
             private_zone = False
+
+
+        name = elements["CreateHostedZoneRequest"]["Name"]
+
+        if name[-1] != ".":
+            name += "."
+
         new_zone = route53_backend.create_hosted_zone(
-            elements["CreateHostedZoneRequest"]["Name"],
+            name,
             comment=comment,
             private_zone=private_zone,
         )
@@ -247,7 +254,7 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
    <HostedZones>
       {% for zone in zones %}
       <HostedZone>
-         <Id>{{ zone.id }}</Id>
+         <Id>/hostedzone/{{ zone.id }}</Id>
          <Name>{{ zone.name }}</Name>
          <Config>
             {% if zone.comment %}

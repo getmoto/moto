@@ -25,7 +25,7 @@ def test_hosted_zone():
 
     id1 = firstzone["CreateHostedZoneResponse"]["HostedZone"]["Id"].split("/")[-1]
     zone = conn.get_hosted_zone(id1)
-    zone["GetHostedZoneResponse"]["HostedZone"]["Name"].should.equal("testdns.aws.com")
+    zone["GetHostedZoneResponse"]["HostedZone"]["Name"].should.equal("testdns.aws.com.")
 
     conn.delete_hosted_zone(id1)
     zones = conn.get_all_hosted_zones()
