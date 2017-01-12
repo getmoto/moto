@@ -11,7 +11,7 @@ from moto import mock_ec2
 def test_describe_regions():
     conn = boto.connect_ec2('the_key', 'the_secret')
     regions = conn.get_all_regions()
-    regions.should.have.length_of(14)
+    regions.should.have.length_of(16)
     for region in regions:
         region.endpoint.should.contain(region.name)
 
@@ -32,7 +32,7 @@ def test_availability_zones():
 def test_boto3_describe_regions():
     ec2 = boto3.client('ec2', 'us-east-1')
     resp = ec2.describe_regions()
-    resp['Regions'].should.have.length_of(14)
+    resp['Regions'].should.have.length_of(16)
     for rec in resp['Regions']:
         rec['Endpoint'].should.contain(rec['RegionName'])
 
