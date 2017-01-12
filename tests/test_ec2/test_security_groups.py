@@ -37,7 +37,7 @@ def test_create_and_describe_security_group():
     cm.exception.request_id.should_not.be.none
 
     all_groups = conn.get_all_security_groups()
-    all_groups.should.have.length_of(2)  # The default group gets created automatically
+    all_groups.should.have.length_of(3)  # The default group gets created automatically
     group_names = [group.name for group in all_groups]
     set(group_names).should.equal(set(["default", "test security group"]))
 
@@ -57,7 +57,7 @@ def test_create_security_group_without_description_raises_error():
 def test_default_security_group():
     conn = boto.ec2.connect_to_region('us-east-1')
     groups = conn.get_all_security_groups()
-    groups.should.have.length_of(1)
+    groups.should.have.length_of(2)
     groups[0].name.should.equal("default")
 
 
@@ -98,7 +98,7 @@ def test_create_two_security_groups_with_same_name_in_different_vpc():
 
     all_groups = conn.get_all_security_groups()
 
-    all_groups.should.have.length_of(3)
+    all_groups.should.have.length_of(4)
     group_names = [group.name for group in all_groups]
     # The default group is created automatically
     set(group_names).should.equal(set(["default", "test security group"]))
@@ -110,7 +110,7 @@ def test_deleting_security_groups():
     security_group1 = conn.create_security_group('test1', 'test1')
     conn.create_security_group('test2', 'test2')
 
-    conn.get_all_security_groups().should.have.length_of(3)  # We need to include the default security group
+    conn.get_all_security_groups().should.have.length_of(4)
 
     # Deleting a group that doesn't exist should throw an error
     with assert_raises(EC2ResponseError) as cm:
@@ -127,11 +127,11 @@ def test_deleting_security_groups():
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set')
 
     conn.delete_security_group('test2')
-    conn.get_all_security_groups().should.have.length_of(2)
+    conn.get_all_security_groups().should.have.length_of(3)
 
     # Delete by group id
     conn.delete_security_group(group_id=security_group1.id)
-    conn.get_all_security_groups().should.have.length_of(1)
+    conn.get_all_security_groups().should.have.length_of(2)
 
 
 @mock_ec2
@@ -267,6 +267,7 @@ def test_authorize_other_group_egress_and_revoke():
     sg01.revoke_egress(IpPermissions=[ip_permission])
     sg01.ip_permissions_egress.should.have.length_of(1)
 
+
 @mock_ec2
 def test_authorize_group_in_vpc():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -316,7 +317,7 @@ def test_get_all_security_groups():
     resp[0].id.should.equal(sg1.id)
 
     resp = conn.get_all_security_groups()
-    resp.should.have.length_of(3)  # We need to include the default group here
+    resp.should.have.length_of(4)
 
 
 @mock_ec2
@@ -376,7 +377,7 @@ def test_authorize_all_protocols_with_no_port_specification():
     sg.rules[0].from_port.should.equal(None)
     sg.rules[0].to_port.should.equal(None)
 
-  
+
 '''
 Boto3
 '''

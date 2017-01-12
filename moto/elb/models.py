@@ -19,6 +19,7 @@ from .exceptions import (
 )
 
 
+
 class FakeHealthCheck(object):
     def __init__(self, timeout, healthy_threshold, unhealthy_threshold,
                  interval, target):
@@ -337,5 +338,5 @@ class ELBBackend(BaseBackend):
 
 
 elb_backends = {}
-for region in boto.ec2.elb.regions():
-    elb_backends[region.name] = ELBBackend(region.name)
+for region in ec2_backends.keys():
+    elb_backends[region] = ELBBackend(region)

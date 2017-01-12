@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import random
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -10,11 +11,12 @@ class Subnets(BaseResponse):
         if 'AvailabilityZone' in self.querystring:
             availability_zone = self.querystring['AvailabilityZone'][0]
         else:
-            availability_zone = None
+            zone = random.choice(self.ec2_backend.describe_availability_zones())
+            availability_zone = zone.name
         subnet = self.ec2_backend.create_subnet(
-          vpc_id,
-          cidr_block,
-          availability_zone,
+            vpc_id,
+            cidr_block,
+            availability_zone,
         )
         template = self.response_template(CREATE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
@@ -27,7 +29,17 @@ class Subnets(BaseResponse):
 
     def describe_subnets(self):
         filters = filters_from_querystring(self.querystring)
-        subnets = self.ec2_backend.get_all_subnets(filters)
+
+        subnet_ids = []
+        idx = 1
+        key = 'SubnetId.{0}'.format(idx)
+        while key in self.querystring:
+            v = self.querystring[key]
+            subnet_ids.append(v[0])
+            idx += 1
+            key = 'SubnetId.{0}'.format(idx)
+
+        subnets = self.ec2_backend.get_all_subnets(subnet_ids, filters)
         template = self.response_template(DESCRIBE_SUBNETS_RESPONSE)
         return template.render(subnets=subnets)
 

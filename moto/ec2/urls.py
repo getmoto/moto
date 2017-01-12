@@ -3,7 +3,7 @@ from .responses import EC2Response
 
 
 url_bases = [
-    "https?://ec2.(.+).amazonaws.com",
+    "https?://ec2.(.+).amazonaws.com(|.cn)",
 ]
 
 url_paths = {

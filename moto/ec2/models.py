@@ -1086,33 +1086,34 @@ class Zone(object):
 
 class RegionsAndZonesBackend(object):
     regions = [
+        Region("ap-northeast-1", "ec2.ap-northeast-1.amazonaws.com"),
+        Region("ap-northeast-2", "ec2.ap-northeast-2.amazonaws.com"),
+        Region("ap-south-1", "ec2.ap-south-1.amazonaws.com"),
+        Region("ap-southeast-1", "ec2.ap-southeast-1.amazonaws.com"),
+        Region("ap-southeast-2", "ec2.ap-southeast-2.amazonaws.com"),
+        Region("cn-north-1", "ec2.cn-north-1.amazonaws.com.cn"),
+        Region("eu-central-1", "ec2.eu-central-1.amazonaws.com"),
         Region("eu-west-1", "ec2.eu-west-1.amazonaws.com"),
         Region("sa-east-1", "ec2.sa-east-1.amazonaws.com"),
         Region("us-east-1", "ec2.us-east-1.amazonaws.com"),
-        Region("ap-northeast-1", "ec2.ap-northeast-1.amazonaws.com"),
-        Region("us-west-2", "ec2.us-west-2.amazonaws.com"),
+        Region("us-east-2", "ec2.us-east-2.amazonaws.com"),
+        Region("us-gov-west-1", "ec2.us-gov-west-1.amazonaws.com"),
         Region("us-west-1", "ec2.us-west-1.amazonaws.com"),
-        Region("ap-southeast-1", "ec2.ap-southeast-1.amazonaws.com"),
-        Region("ap-southeast-2", "ec2.ap-southeast-2.amazonaws.com"),
+        Region("us-west-2", "ec2.us-west-2.amazonaws.com"),
     ]
 
-    # TODO: cleanup. For now, pretend everything is us-east-1. 'merica.
-    zones = [
-        Zone("us-east-1a", "us-east-1"),
-        Zone("us-east-1b", "us-east-1"),
-        Zone("us-east-1c", "us-east-1"),
-        Zone("us-east-1d", "us-east-1"),
-        Zone("us-east-1e", "us-east-1"),
-    ]
+    zones = dict(
+        (region, [Zone(region + c, region) for c in 'abc'])
+        for region in [r.name for r in regions])
 
     def describe_regions(self):
         return self.regions
 
     def describe_availability_zones(self):
-        return self.zones
+        return self.zones[self.region_name]
 
     def get_zone_by_name(self, name):
-        for zone in self.zones:
+        for zone in self.zones[self.region_name]:
             if zone.name == name:
                 return zone
 
@@ -1794,15 +1795,15 @@ class VPC(TaggedEC2Resource):
         return self.id
 
     def get_filter_value(self, filter_name):
-        if filter_name == 'vpc-id':
+        if filter_name in ('vpc-id', 'vpcId'):
             return self.id
-        elif filter_name == 'cidr':
+        elif filter_name in ('cidr', 'cidr-block', 'cidrBlock'):
             return self.cidr_block
-        elif filter_name == 'isDefault':
+        elif filter_name in ('is-default', 'isDefault'):
             return self.is_default
         elif filter_name == 'state':
             return self.state
-        elif filter_name == 'dhcp-options-id':
+        elif filter_name in ('dhcp-options-id', 'dhcpOptionsId'):
             if not self.dhcp_options:
                 return None
 
@@ -2013,12 +2014,7 @@ class Subnet(TaggedEC2Resource):
 
     @property
     def availability_zone(self):
-        if self._availability_zone is None:
-            # This could probably be smarter, but there doesn't appear to be a
-            # way to pull AZs for a region in boto
-            return self.ec2_backend.region_name + "a"
-        else:
-            return self._availability_zone
+        return self._availability_zone
 
     @property
     def physical_resource_id(self):
@@ -2043,11 +2039,11 @@ class Subnet(TaggedEC2Resource):
         """
         if filter_name in ('cidr', 'cidrBlock', 'cidr-block'):
             return self.cidr_block
-        elif filter_name == 'vpc-id':
+        elif filter_name in ('vpc-id', 'vpcId'):
             return self.vpc_id
         elif filter_name == 'subnet-id':
             return self.id
-        elif filter_name == 'availabilityZone':
+        elif filter_name in ('availabilityZone', 'availability-zone'):
             return self.availability_zone
         elif filter_name in ('defaultForAz', 'default-for-az'):
             return self.default_for_az
@@ -2068,37 +2064,49 @@ class Subnet(TaggedEC2Resource):
 
 class SubnetBackend(object):
     def __init__(self):
-        self.subnets = {}
+        # maps availability zone to dict of (subnet_id, subnet)
+        self.subnets = defaultdict(dict)
         super(SubnetBackend, self).__init__()
 
     def get_subnet(self, subnet_id):
-        subnet = self.subnets.get(subnet_id, None)
-        if not subnet:
-            raise InvalidSubnetIdError(subnet_id)
-        return subnet
+        for subnets in self.subnets.values():
+            if subnet_id in subnets:
+                return subnets[subnet_id]
+        raise InvalidSubnetIdError(subnet_id)
 
-    def create_subnet(self, vpc_id, cidr_block, availability_zone=None):
+    def create_subnet(self, vpc_id, cidr_block, availability_zone):
         subnet_id = random_subnet_id()
         vpc = self.get_vpc(vpc_id)  # Validate VPC exists
-        default_for_az = vpc.is_default
-        map_public_ip_on_launch = vpc.is_default
-        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone, default_for_az, map_public_ip_on_launch)
+
+        # if this is the first subnet for an availability zone,
+        # consider it the default
+        default_for_az = str(availability_zone not in self.subnets).lower()
+        map_public_ip_on_launch = default_for_az
+        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone,
+                        default_for_az, map_public_ip_on_launch)
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id)
-        self.subnets[subnet_id] = subnet
+        self.subnets[availability_zone][subnet_id] = subnet
         return subnet
 
-    def get_all_subnets(self, filters=None):
-        subnets = self.subnets.values()
-
+    def get_all_subnets(self, subnet_ids=None, filters=None):
+        subnets = []
+        if subnet_ids:
+            for subnet_id in subnet_ids:
+                for items in self.subnets.values():
+                    if subnet_id in items:
+                        subnets.append(items[subnet_id])
+        else:
+            for items in self.subnets.values():
+                subnets.extend(items.values())
         return generic_filter(filters, subnets)
 
     def delete_subnet(self, subnet_id):
-        deleted = self.subnets.pop(subnet_id, None)
-        if not deleted:
-            raise InvalidSubnetIdError(subnet_id)
-        return deleted
+        for subnets in self.subnets.values():
+            if subnet_id in subnets:
+                return subnets.pop(subnet_id, None)
+        raise InvalidSubnetIdError(subnet_id)
 
     def modify_subnet_attribute(self, subnet_id, map_public_ip):
         subnet = self.get_subnet(subnet_id)
@@ -3377,6 +3385,29 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
         super(EC2Backend, self).__init__()
         self.region_name = region_name
 
+        # Default VPC exists by default, which is the current behavior
+        # of EC2-VPC. See for detail:
+        #
+        #   docs.aws.amazon.com/AmazonVPC/latest/UserGuide/default-vpc.html
+        #
+        if not self.vpcs:
+            vpc = self.create_vpc('172.31.0.0/16')
+        else:
+            # For now this is included for potential
+            # backward-compatibility issues
+            vpc = self.vpcs.values()[0]
+
+        # Create default subnet for each availability zone
+        ip, _ = vpc.cidr_block.split('/')
+        ip = ip.split('.')
+        ip[2] = 0
+
+        for zone in self.describe_availability_zones():
+            az_name = zone.name
+            cidr_block = '.'.join(str(i) for i in ip) + '/20'
+            self.create_subnet(vpc.id, cidr_block, availability_zone=az_name)
+            ip[2] += 16
+
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
@@ -3434,5 +3465,5 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
         return True
 
 ec2_backends = {}
-for region in boto.ec2.regions():
+for region in RegionsAndZonesBackend.regions:
     ec2_backends[region.name] = EC2Backend(region.name)
