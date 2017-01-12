@@ -16,9 +16,10 @@ class InstanceState(object):
 
 
 class FakeScalingPolicy(object):
-    def __init__(self, name, adjustment_type, as_name, scaling_adjustment,
+    def __init__(self, name, policy_type, adjustment_type, as_name, scaling_adjustment,
                  cooldown, autoscaling_backend):
         self.name = name
+        self.policy_type = policy_type
         self.adjustment_type = adjustment_type
         self.as_name = as_name
         self.scaling_adjustment = scaling_adjustment
@@ -407,16 +408,19 @@ class AutoScalingBackend(BaseBackend):
             desired_capacity = int(desired_capacity)
         self.set_desired_capacity(group_name, desired_capacity)
 
-    def create_autoscaling_policy(self, name, adjustment_type, as_name,
+    def create_autoscaling_policy(self, name, policy_type, adjustment_type, as_name,
                                   scaling_adjustment, cooldown):
-        policy = FakeScalingPolicy(name, adjustment_type, as_name,
+        policy = FakeScalingPolicy(name, policy_type, adjustment_type, as_name,
                                    scaling_adjustment, cooldown, self)
 
         self.policies[name] = policy
         return policy
 
-    def describe_policies(self):
-        return list(self.policies.values())
+    def describe_policies(self, autoscaling_group_name=None, policy_names=None, policy_types=None):
+        return [policy for policy in self.policies.values()
+                if (not autoscaling_group_name or policy.as_name == autoscaling_group_name) and
+                    (not policy_names or policy.name in policy_names) and
+                    (not policy_types or policy.policy_type in policy_types)]
 
     def delete_policy(self, group_name):
         self.policies.pop(group_name, None)
