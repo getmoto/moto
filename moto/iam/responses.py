@@ -204,9 +204,9 @@ class IamResponse(BaseResponse):
         path_prefix = self._get_param('PathPrefix')
         marker = self._get_param('Marker')
         max_items = self._get_param('MaxItems')
-        user = iam_backend.list_users(path_prefix, marker, max_items)
+        users = iam_backend.list_users(path_prefix, marker, max_items)
         template = self.response_template(LIST_USERS_TEMPLATE)
-        return template.render(action='List', user=user)
+        return template.render(action='List', users=users)
 
     def create_login_profile(self):
         user_name = self._get_param('UserName')
@@ -724,7 +724,7 @@ LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
              <UserId>{{ user.id }}</UserId>
              <Path>{{ user.path }}</Path>
              <UserName>{{ user.name }}</UserName>
-             <Arn>arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name }}</Arn>
+             <Arn>{{ user.arn }}</Arn>
          </member>
          {% endfor %}
      </Users>

@@ -196,10 +196,10 @@ def test_list_users():
     conn = boto3.client('iam')
     conn.create_user(UserName='my-user')
     response = conn.list_users(PathPrefix=path_prefix, MaxItems=max_items)
-    assert_equals(
-        response['Users'],
-        []
-    )
+    user = response['Users'][0]
+    user['UserName'].should.equal('my-user')
+    user['Path'].should.equal('/')
+    user['Arn'].should.equal('arn:aws:iam::123456789012:user/my-user')
 
 
 @mock_iam()

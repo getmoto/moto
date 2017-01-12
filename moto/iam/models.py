@@ -176,15 +176,15 @@ class Group(object):
 
 
 class User(object):
-    def __init__(self, name, path='/'):
+    def __init__(self, name, path=None):
         self.name = name
         self.id = random_resource_id()
-        self.path = path
+        self.path = path if path else "/"
         self.created = datetime.strftime(
             datetime.utcnow(),
             "%Y-%m-%d-%H-%M-%S"
         )
-        self.arn = 'arn:aws:iam::123456789012:user/{0}'.format(name)
+        self.arn = 'arn:aws:iam::123456789012:user{0}{1}'.format(self.path, name)
         self.policies = {}
         self.access_keys = []
         self.password = None
@@ -591,7 +591,7 @@ class IAMBackend(BaseBackend):
     def list_users(self, path_prefix, marker, max_items):
         users = None
         try:
-            users = self.users
+            users = self.users.values()
         except KeyError:
             raise IAMNotFoundException("Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
 
