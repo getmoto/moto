@@ -1171,7 +1171,7 @@ def test_route53_roundrobin():
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
     zone_id = zone_id.split('/')
-    zone_id = zone_id[1]
+    zone_id = zone_id[2]
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.hosted_zone_id.should.equal(zone_id)
@@ -1218,7 +1218,7 @@ def test_route53_ec2_instance_with_public_ip():
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
     zone_id = zone_id.split('/')
-    zone_id = zone_id[1]
+    zone_id = zone_id[2]
 
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
@@ -1261,7 +1261,7 @@ def test_route53_associate_health_check():
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
     zone_id = zone_id.split('/')
-    zone_id = zone_id[1]
+    zone_id = zone_id[2]
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.should.have.length_of(1)
@@ -1286,7 +1286,7 @@ def test_route53_with_update():
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
     zone_id = zone_id.split('/')
-    zone_id = zone_id[1]
+    zone_id = zone_id[2]
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.should.have.length_of(1)
