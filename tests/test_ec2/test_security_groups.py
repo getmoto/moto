@@ -8,6 +8,7 @@ from nose.tools import assert_raises
 
 import boto3
 import boto
+from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError, JSONResponseError
 import sure  # noqa
 
@@ -382,6 +383,26 @@ def test_authorize_all_protocols_with_no_port_specification():
 Boto3
 '''
 
+@mock_ec2
+def test_add_same_rule_twice_throws_error():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    sg = ec2.create_security_group(GroupName='sg1', Description='Test security group sg1', VpcId=vpc.id)
+
+    ip_permissions = [
+        {
+            'IpProtocol': 'tcp',
+            'FromPort': 27017,
+            'ToPort': 27017,
+            'IpRanges': [{"CidrIp": "1.2.3.4/32"}]
+        },
+    ]
+    sg.authorize_ingress(IpPermissions=ip_permissions)
+
+    with assert_raises(ClientError) as ex:
+        sg.authorize_ingress(IpPermissions=ip_permissions)
+
 
 @mock_ec2
 def test_security_group_tagging_boto3():
@@ -423,8 +444,8 @@ def test_authorize_and_revoke_in_bulk():
         },
         {
             'IpProtocol': 'tcp',
-            'FromPort': 27017,
-            'ToPort': 27017,
+            'FromPort': 27018,
+            'ToPort': 27018,
             'UserIdGroupPairs': [{'GroupId': sg02.id, 'UserId': sg02.owner_id}],
             'IpRanges': []
         },

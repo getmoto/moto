@@ -1255,6 +1255,15 @@ class SecurityGroup(TaggedEC2Resource):
             return self.id
         raise UnformattedGetAttTemplateException()
 
+    def add_ingress_rule(self, rule):
+        if rule in self.ingress_rules:
+            raise InvalidParameterValueError('security_group')
+        else:
+            self.ingress_rules.append(rule)
+
+    def add_egress_rule(self, rule):
+        self.egress_rules.append(rule)
+
 
 class SecurityGroupBackend(object):
 
@@ -1367,7 +1376,7 @@ class SecurityGroupBackend(object):
                 source_groups.append(source_group)
 
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
-        group.ingress_rules.append(security_rule)
+        group.add_ingress_rule(security_rule)
 
     def revoke_security_group_ingress(self,
                                       group_name_or_id,
@@ -1432,7 +1441,7 @@ class SecurityGroupBackend(object):
                 source_groups.append(source_group)
 
         security_rule = SecurityRule(ip_protocol, from_port, to_port, ip_ranges, source_groups)
-        group.egress_rules.append(security_rule)
+        group.add_egress_rule(security_rule)
 
     def revoke_security_group_egress(self,
                                      group_name_or_id,
