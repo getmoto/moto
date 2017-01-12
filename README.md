@@ -248,6 +248,16 @@ proxy_port = 5000
 proxy = 127.0.0.1
 ```
 
+If you want to use boto3 with this, you can pass an `endpoint_url` to the resource
+
+```python
+boto3.resource(
+    service_name='s3',
+    region_name='us-west-1',
+    endpoint_url='http://localhost:5000',
+)
+```
+
 ## Install
 
 ```console
