@@ -16,7 +16,7 @@ from .exceptions import (
 )
 
 DEFAULT_ACCOUNT_ID = 123456789012
-
+DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
 class Message(object):
     def __init__(self, message_id, body):
@@ -24,7 +24,7 @@ class Message(object):
         self._body = body
         self.message_attributes = {}
         self.receipt_handle = None
-        self.sender_id = DEFAULT_ACCOUNT_ID
+        self.sender_id = DEFAULT_SENDER_ID
         self.sent_timestamp = None
         self.approximate_first_receive_timestamp = None
         self.approximate_receive_count = 0
