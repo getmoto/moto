@@ -63,6 +63,14 @@ def test_get_role__should_throw__when_role_does_not_exist():
 
 
 @mock_iam()
+@raises(BotoServerError)
+def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist():
+    conn = boto.connect_iam()
+
+    conn.get_instance_profile('unexisting_instance_profile')
+
+
+@mock_iam()
 def test_create_role_and_instance_profile():
     conn = boto.connect_iam()
     conn.create_instance_profile("my-profile", path="my-path")

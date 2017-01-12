@@ -501,6 +501,8 @@ class IAMBackend(BaseBackend):
             if profile.name == profile_name:
                 return profile
 
+        raise IAMNotFoundException("Instance profile {0} not found".format(profile_name))
+
     def get_instance_profiles(self):
         return self.instance_profiles.values()
 
