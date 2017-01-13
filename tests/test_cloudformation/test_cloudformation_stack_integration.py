@@ -1304,6 +1304,8 @@ def test_route53_with_update():
     zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
+    zone_id = zone_id.split('/')
+    zone_id = zone_id[2]
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.should.have.length_of(1)
