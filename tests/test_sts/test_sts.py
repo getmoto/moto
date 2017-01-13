@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import json
 
 import boto
+import boto3
 from freezegun import freeze_time
 import sure  # noqa
 
@@ -64,3 +65,11 @@ def test_assume_role():
 
     role.user.arn.should.equal("arn:aws:iam::123456789012:role/test-role")
     role.user.assume_role_id.should.contain("session-name")
+
+@mock_sts
+def test_get_caller_identity():
+    identity = boto3.client("sts").get_caller_identity()
+
+    identity['Arn'].should.equal('arn:aws:sts::123456789012:user/moto')
+    identity['UserId'].should.equal('AKIAIOSFODNN7EXAMPLE')
+    identity['Account'].should.equal('123456789012')

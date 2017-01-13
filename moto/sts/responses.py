@@ -39,6 +39,9 @@ class TokenResponse(BaseResponse):
         template = self.response_template(ASSUME_ROLE_RESPONSE)
         return template.render(role=role)
 
+    def get_caller_identity(self):
+        template = self.response_template(GET_CALLER_IDENTITY_RESPONSE)
+        return template.render()
 
 GET_SESSION_TOKEN_RESPONSE = """<GetSessionTokenResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
   <GetSessionTokenResult>
@@ -95,3 +98,15 @@ ASSUME_ROLE_RESPONSE = """<AssumeRoleResponse xmlns="https://sts.amazonaws.com/d
     <RequestId>c6104cbe-af31-11e0-8154-cbc7ccf896c7</RequestId>
   </ResponseMetadata>
 </AssumeRoleResponse>"""
+
+GET_CALLER_IDENTITY_RESPONSE = """<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <GetCallerIdentityResult>
+    <Arn>arn:aws:sts::123456789012:user/moto</Arn>
+    <UserId>AKIAIOSFODNN7EXAMPLE</UserId>
+    <Account>123456789012</Account>
+  </GetCallerIdentityResult>
+  <ResponseMetadata>
+    <RequestId>c6104cbe-af31-11e0-8154-cbc7ccf896c7</RequestId>
+  </ResponseMetadata>
+</GetCallerIdentityResponse>
+"""
