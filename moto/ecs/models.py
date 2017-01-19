@@ -41,6 +41,10 @@ class Cluster(BaseObject):
         self.status = 'ACTIVE'
 
     @property
+    def physical_resource_id(self):
+        return self.name
+
+    @property
     def response_object(self):
         response_object = self.gen_response_object()
         response_object['clusterArn'] = self.arn
@@ -153,6 +157,10 @@ class Service(BaseObject):
         self.events = []
         self.load_balancers = []
         self.pending_count = 0
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
 
     @property
     def response_object(self):
