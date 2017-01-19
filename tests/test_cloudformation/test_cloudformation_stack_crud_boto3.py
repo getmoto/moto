@@ -105,6 +105,19 @@ def test_create_stack_with_notification_arn():
 
 
 @mock_cloudformation
+def test_create_stack_with_role_arn():
+    cf = boto3.resource('cloudformation', region_name='us-east-1')
+    cf.create_stack(
+        StackName="test_stack_with_notifications",
+        TemplateBody=dummy_template_json,
+        RoleARN='arn:aws:iam::123456789012:role/moto',
+    )
+
+    stack = list(cf.stacks.all())[0]
+    stack.role_arn.should.equal('arn:aws:iam::123456789012:role/moto')
+
+
+@mock_cloudformation
 @mock_s3
 def test_create_stack_from_s3_url():
     s3_conn = boto.s3.connect_to_region('us-west-1')
@@ -240,6 +253,7 @@ def test_describe_updated_stack():
 
     cf_conn.update_stack(
         StackName="test_stack",
+        RoleARN='arn:aws:iam::123456789012:role/moto',
         TemplateBody=dummy_update_template_json)
 
     stack = cf_conn.describe_stacks(StackName="test_stack")['Stacks'][0]
@@ -248,6 +262,7 @@ def test_describe_updated_stack():
     stack_by_id['StackId'].should.equal(stack['StackId'])
     stack_by_id['StackName'].should.equal("test_stack")
     stack_by_id['StackStatus'].should.equal("UPDATE_COMPLETE")
+    stack_by_id['RoleARN'].should.equal('arn:aws:iam::123456789012:role/moto')
 
 
 @mock_cloudformation

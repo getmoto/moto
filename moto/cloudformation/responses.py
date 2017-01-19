@@ -27,6 +27,7 @@ class CloudFormationResponse(BaseResponse):
         stack_name = self._get_param('StackName')
         stack_body = self._get_param('TemplateBody')
         template_url = self._get_param('TemplateURL')
+        role_arn = self._get_param('RoleARN')
         parameters_list = self._get_list_prefix("Parameters.member")
         tags = dict((item['key'], item['value']) for item in self._get_list_prefix("Tags.member"))
 
@@ -47,6 +48,7 @@ class CloudFormationResponse(BaseResponse):
             region_name=self.region,
             notification_arns=stack_notification_arns,
             tags=tags,
+            role_arn=role_arn,
         )
         if self.request_json:
             return json.dumps({
@@ -131,6 +133,7 @@ class CloudFormationResponse(BaseResponse):
 
     def update_stack(self):
         stack_name = self._get_param('StackName')
+        role_arn = self._get_param('RoleARN')
         if self._get_param('UsePreviousTemplate') == "true":
             stack_body = self.cloudformation_backend.get_stack(stack_name).template
         else:
@@ -143,6 +146,7 @@ class CloudFormationResponse(BaseResponse):
         stack = self.cloudformation_backend.update_stack(
             name=stack_name,
             template=stack_body,
+            role_arn=role_arn,
         )
         if self.request_json:
             stack_body = {
@@ -227,6 +231,9 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
           </member>
         {% endfor %}
         </Parameters>
+        {% if stack.role_arn %}
+        <RoleARN>{{ stack.role_arn }}</RoleARN>
+        {% endif %}
         <Tags>
           {% for tag_key, tag_value in stack.tags.items() %}
             <member>
