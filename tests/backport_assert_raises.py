@@ -27,6 +27,8 @@ except TypeError:
 
         def __exit__(self, exc_type, exc_val, tb):
             self.exception = exc_val
+            if issubclass(exc_type, self.expected):
+                return True
             nose.tools.assert_equal(exc_type, self.expected)
             # if you get to this line, the last assertion must have passed
             # suppress the propagation of this exception
