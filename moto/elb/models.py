@@ -8,7 +8,10 @@ from boto.ec2.elb.attributes import (
     AccessLogAttribute,
     CrossZoneLoadBalancingAttribute,
 )
-from boto.ec2.elb.policies import Policies
+from boto.ec2.elb.policies import (
+    Policies,
+    OtherPolicy,
+)
 from moto.core import BaseBackend
 from moto.ec2.models import ec2_backends
 from .exceptions import (
@@ -103,6 +106,21 @@ class FakeLoadBalancer(object):
         instance_ids = properties.get('Instances', [])
         for instance_id in instance_ids:
             elb_backend.register_instances(new_elb.name, [instance_id])
+
+        policies = properties.get('Policies', [])
+        port_policies = {}
+        for policy in policies:
+            policy_name = policy["PolicyName"]
+            other_policy = OtherPolicy()
+            other_policy.policy_name = policy_name
+            elb_backend.create_lb_other_policy(new_elb.name, other_policy)
+            for port in policy.get("InstancePorts", []):
+                policies_for_port = port_policies.get(port, set())
+                policies_for_port.add(policy_name)
+                port_policies[port] = policies_for_port
+
+        for port, policies in port_policies.items():
+            elb_backend.set_load_balancer_policies_of_backend_server(new_elb.name, port, list(policies))
 
         health_check = properties.get('HealthCheck')
         if health_check:
@@ -307,7 +325,9 @@ class ELBBackend(BaseBackend):
 
     def create_lb_other_policy(self, load_balancer_name, other_policy):
         load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.policies.other_policies.append(other_policy)
+        if other_policy.policy_name not in [p.policy_name for p in load_balancer.policies.other_policies]:
+            load_balancer.policies.other_policies.append(other_policy)
+
         return load_balancer
 
     def create_app_cookie_stickiness_policy(self, load_balancer_name, policy):
