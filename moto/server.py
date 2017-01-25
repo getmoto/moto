@@ -140,7 +140,7 @@ def main(argv=sys.argv[1:]):
     parser.add_argument(
         '-r', '--reload',
         action='store_true',
-        help='Reload server on a signal',
+        help='Reload server on a file change',
         default=False
     )
 
@@ -151,6 +151,7 @@ def main(argv=sys.argv[1:]):
     main_app.debug = True
 
     run_simple(args.host, args.port, main_app, threaded=True, use_reloader=args.reload)
+
 
 if __name__ == '__main__':
     main()
