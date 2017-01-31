@@ -246,6 +246,7 @@ def test_default_vpc():
     # Create the default VPC
     default_vpc = list(ec2.vpcs.all())[0]
     default_vpc.cidr_block.should.equal('172.31.0.0/16')
+    default_vpc.instance_tenancy.should.equal('default')
     default_vpc.reload()
     default_vpc.is_default.should.be.ok
 
@@ -270,6 +271,9 @@ def test_non_default_vpc():
     vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
     vpc.reload()
     vpc.is_default.shouldnt.be.ok
+
+    # Test default instance_tenancy
+    vpc.instance_tenancy.should.equal('default')
 
     # Test default values for VPC attributes
     response = vpc.describe_attribute(Attribute='enableDnsSupport')
