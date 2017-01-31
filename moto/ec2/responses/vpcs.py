@@ -7,7 +7,8 @@ from moto.ec2.utils import filters_from_querystring, vpc_ids_from_querystring
 class VPCs(BaseResponse):
     def create_vpc(self):
         cidr_block = self.querystring.get('CidrBlock')[0]
-        vpc = self.ec2_backend.create_vpc(cidr_block)
+        instance_tenancy = self.querystring.get('InstanceTenancy', ['default'])[0]
+        vpc = self.ec2_backend.create_vpc(cidr_block, instance_tenancy)
         template = self.response_template(CREATE_VPC_RESPONSE)
         return template.render(vpc=vpc)
 
