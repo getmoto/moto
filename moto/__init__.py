@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 import logging
-logging.getLogger('boto').setLevel(logging.CRITICAL)
+#logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = 'moto'
-__version__ = '0.4.27'
+__version__ = '0.4.31'
 
 from .apigateway import mock_apigateway  # flake8: noqa
 from .autoscaling import mock_autoscaling  # flake8: noqa

@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 import boto3
+from freezegun import freeze_time
 import sure  # noqa
 import re
 
 from moto import mock_opsworks
 
 
+@freeze_time("2015-01-01")
 @mock_opsworks
 def test_create_layer_response():
     client = boto3.client('opsworks', region_name='us-east-1')
@@ -45,6 +47,7 @@ def test_create_layer_response():
     )
 
 
+@freeze_time("2015-01-01")
 @mock_opsworks
 def test_describe_layers():
     client = boto3.client('opsworks', region_name='us-east-1')

@@ -6,7 +6,7 @@ from nose.tools import assert_raises
 import re
 
 import boto
-from boto.exception import EC2ResponseError
+from boto.exception import EC2ResponseError, JSONResponseError
 
 import sure  # noqa
 
@@ -23,6 +23,13 @@ def test_igw_create():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
     conn.get_all_internet_gateways().should.have.length_of(0)
+
+    with assert_raises(JSONResponseError) as ex:
+        igw = conn.create_internet_gateway(dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateInternetGateway operation: Request would have succeeded, but DryRun flag is set')
+
     igw = conn.create_internet_gateway()
     conn.get_all_internet_gateways().should.have.length_of(1)
     igw.id.should.match(r'igw-[0-9a-f]+')
@@ -36,6 +43,13 @@ def test_igw_attach():
     conn = boto.connect_vpc('the_key', 'the_secret')
     igw = conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.attach_internet_gateway(igw.id, vpc.id, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AttachInternetGateway operation: Request would have succeeded, but DryRun flag is set')
+
     conn.attach_internet_gateway(igw.id, vpc.id)
 
     igw = conn.get_all_internet_gateways()[0]
@@ -75,6 +89,13 @@ def test_igw_detach():
     igw = conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw.id, vpc.id)
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.detach_internet_gateway(igw.id, vpc.id, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DetachInternetGateway operation: Request would have succeeded, but DryRun flag is set')
+
     conn.detach_internet_gateway(igw.id, vpc.id)
     igw = conn.get_all_internet_gateways()[0]
     igw.attachments.should.have.length_of(0)
@@ -129,6 +150,13 @@ def test_igw_delete():
     conn.get_all_internet_gateways().should.have.length_of(0)
     igw = conn.create_internet_gateway()
     conn.get_all_internet_gateways().should.have.length_of(1)
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.delete_internet_gateway(igw.id, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteInternetGateway operation: Request would have succeeded, but DryRun flag is set')
+
     conn.delete_internet_gateway(igw.id)
     conn.get_all_internet_gateways().should.have.length_of(0)
 

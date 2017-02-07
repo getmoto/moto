@@ -1,11 +1,15 @@
 from __future__ import unicode_literals
+
+import copy
+
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 import boto3
 import boto
-from boto.exception import EC2ResponseError
+from botocore.exceptions import ClientError
+from boto.exception import EC2ResponseError, JSONResponseError
 import sure  # noqa
 
 from moto import mock_ec2
@@ -14,6 +18,13 @@ from moto import mock_ec2
 @mock_ec2
 def test_create_and_describe_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
+
+    with assert_raises(JSONResponseError) as ex:
+        security_group = conn.create_security_group('test security group', 'this is a test security group', dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set')
+
     security_group = conn.create_security_group('test security group', 'this is a test security group')
 
     security_group.name.should.equal('test security group')
@@ -27,7 +38,7 @@ def test_create_and_describe_security_group():
     cm.exception.request_id.should_not.be.none
 
     all_groups = conn.get_all_security_groups()
-    all_groups.should.have.length_of(2)  # The default group gets created automatically
+    all_groups.should.have.length_of(3)  # The default group gets created automatically
     group_names = [group.name for group in all_groups]
     set(group_names).should.equal(set(["default", "test security group"]))
 
@@ -47,7 +58,7 @@ def test_create_security_group_without_description_raises_error():
 def test_default_security_group():
     conn = boto.ec2.connect_to_region('us-east-1')
     groups = conn.get_all_security_groups()
-    groups.should.have.length_of(1)
+    groups.should.have.length_of(2)
     groups[0].name.should.equal("default")
 
 
@@ -88,7 +99,7 @@ def test_create_two_security_groups_with_same_name_in_different_vpc():
 
     all_groups = conn.get_all_security_groups()
 
-    all_groups.should.have.length_of(3)
+    all_groups.should.have.length_of(4)
     group_names = [group.name for group in all_groups]
     # The default group is created automatically
     set(group_names).should.equal(set(["default", "test security group"]))
@@ -100,7 +111,7 @@ def test_deleting_security_groups():
     security_group1 = conn.create_security_group('test1', 'test1')
     conn.create_security_group('test2', 'test2')
 
-    conn.get_all_security_groups().should.have.length_of(3)  # We need to include the default security group
+    conn.get_all_security_groups().should.have.length_of(4)
 
     # Deleting a group that doesn't exist should throw an error
     with assert_raises(EC2ResponseError) as cm:
@@ -110,12 +121,18 @@ def test_deleting_security_groups():
     cm.exception.request_id.should_not.be.none
 
     # Delete by name
+    with assert_raises(JSONResponseError) as ex:
+        conn.delete_security_group('test2', dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set')
+
     conn.delete_security_group('test2')
-    conn.get_all_security_groups().should.have.length_of(2)
+    conn.get_all_security_groups().should.have.length_of(3)
 
     # Delete by group id
     conn.delete_security_group(group_id=security_group1.id)
-    conn.get_all_security_groups().should.have.length_of(1)
+    conn.get_all_security_groups().should.have.length_of(2)
 
 
 @mock_ec2
@@ -133,6 +150,12 @@ def test_authorize_ip_range_and_revoke():
     conn = boto.connect_ec2('the_key', 'the_secret')
     security_group = conn.create_security_group('test', 'test')
 
+    with assert_raises(JSONResponseError) as ex:
+        success = security_group.authorize(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the GrantSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set')
+
     success = security_group.authorize(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32")
     assert success.should.be.true
 
@@ -148,6 +171,12 @@ def test_authorize_ip_range_and_revoke():
     cm.exception.request_id.should_not.be.none
 
     # Actually revoke
+    with assert_raises(JSONResponseError) as ex:
+        security_group.revoke(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RevokeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set')
+
     security_group.revoke(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32")
 
     security_group = conn.get_all_security_groups()[0]
@@ -155,6 +184,13 @@ def test_authorize_ip_range_and_revoke():
 
     # Test for egress as well
     egress_security_group = conn.create_security_group('testegress', 'testegress', vpc_id='vpc-3432589')
+
+    with assert_raises(JSONResponseError) as ex:
+        success = conn.authorize_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the GrantSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set')
+
     success = conn.authorize_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32")
     assert success.should.be.true
     egress_security_group = conn.get_all_security_groups(groupnames='testegress')[0]
@@ -167,6 +203,12 @@ def test_authorize_ip_range_and_revoke():
     egress_security_group.revoke.when.called_with(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.122/32").should.throw(EC2ResponseError)
 
     # Actually revoke
+    with assert_raises(JSONResponseError) as ex:
+        conn.revoke_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RevokeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set')
+
     conn.revoke_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32")
 
     egress_security_group = conn.get_all_security_groups()[0]
@@ -226,6 +268,7 @@ def test_authorize_other_group_egress_and_revoke():
     sg01.revoke_egress(IpPermissions=[ip_permission])
     sg01.ip_permissions_egress.should.have.length_of(1)
 
+
 @mock_ec2
 def test_authorize_group_in_vpc():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -275,7 +318,7 @@ def test_get_all_security_groups():
     resp[0].id.should.equal(sg1.id)
 
     resp = conn.get_all_security_groups()
-    resp.should.have.length_of(3)  # We need to include the default group here
+    resp.should.have.length_of(4)
 
 
 @mock_ec2
@@ -293,7 +336,15 @@ def test_authorize_bad_cidr_throws_invalid_parameter_value():
 def test_security_group_tagging():
     conn = boto.connect_vpc()
     vpc = conn.create_vpc("10.0.0.0/16")
+
     sg = conn.create_security_group("test-sg", "Test SG", vpc.id)
+
+    with assert_raises(JSONResponseError) as ex:
+        sg.add_tag("Test", "Tag", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
+
     sg.add_tag("Test", "Tag")
 
     tag = conn.get_all_tags()[0]
@@ -327,18 +378,235 @@ def test_authorize_all_protocols_with_no_port_specification():
     sg.rules[0].from_port.should.equal(None)
     sg.rules[0].to_port.should.equal(None)
 
-  
+
+@mock_ec2
+def test_sec_group_rule_limit():
+    ec2_conn = boto.connect_ec2()
+    sg = ec2_conn.create_security_group('test', 'test')
+    other_sg = ec2_conn.create_security_group('test_2', 'test_other')
+
+    # INGRESS
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip=['{0}.0.0.0/0'.format(i) for i in range(110)])
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+    sg.rules.should.be.empty
+    # authorize a rule targeting a different sec group (because this count too)
+    success = ec2_conn.authorize_security_group(
+        group_id=sg.id, ip_protocol='-1',
+        src_security_group_group_id=other_sg.id)
+    success.should.be.true
+    # fill the rules up the limit
+    success = ec2_conn.authorize_security_group(
+        group_id=sg.id, ip_protocol='-1',
+        cidr_ip=['{0}.0.0.0/0'.format(i) for i in range(99)])
+    success.should.be.true
+    # verify that we cannot authorize past the limit for a CIDR IP
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1', cidr_ip=['100.0.0.0/0'])
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+    # verify that we cannot authorize past the limit for a different sec group
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1',
+            src_security_group_group_id=other_sg.id)
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+    # EGRESS
+    # authorize a rule targeting a different sec group (because this count too)
+    ec2_conn.authorize_security_group_egress(
+        group_id=sg.id, ip_protocol='-1',
+        src_group_id=other_sg.id)
+    # fill the rules up the limit
+    # remember that by default, when created a sec group contains 1 egress rule
+    # so our other_sg rule + 98 CIDR IP rules + 1 by default == 100 the limit
+    for i in range(98):
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip='{0}.0.0.0/0'.format(i))
+    # verify that we cannot authorize past the limit for a CIDR IP
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip='101.0.0.0/0')
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+    # verify that we cannot authorize past the limit for a different sec group
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            src_group_id=other_sg.id)
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+
+@mock_ec2
+def test_sec_group_rule_limit_vpc():
+    ec2_conn = boto.connect_ec2()
+    vpc_conn = boto.connect_vpc()
+
+    vpc = vpc_conn.create_vpc('10.0.0.0/8')
+
+    sg = ec2_conn.create_security_group('test', 'test', vpc_id=vpc.id)
+    other_sg = ec2_conn.create_security_group('test_2', 'test', vpc_id=vpc.id)
+
+    # INGRESS
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip=['{0}.0.0.0/0'.format(i) for i in range(110)])
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+    sg.rules.should.be.empty
+    # authorize a rule targeting a different sec group (because this count too)
+    success = ec2_conn.authorize_security_group(
+        group_id=sg.id, ip_protocol='-1',
+        src_security_group_group_id=other_sg.id)
+    success.should.be.true
+    # fill the rules up the limit
+    success = ec2_conn.authorize_security_group(
+        group_id=sg.id, ip_protocol='-1',
+        cidr_ip=['{0}.0.0.0/0'.format(i) for i in range(49)])
+    # verify that we cannot authorize past the limit for a CIDR IP
+    success.should.be.true
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1', cidr_ip=['100.0.0.0/0'])
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+    # verify that we cannot authorize past the limit for a different sec group
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group(
+            group_id=sg.id, ip_protocol='-1',
+            src_security_group_group_id=other_sg.id)
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+    # EGRESS
+    # authorize a rule targeting a different sec group (because this count too)
+    ec2_conn.authorize_security_group_egress(
+        group_id=sg.id, ip_protocol='-1',
+        src_group_id=other_sg.id)
+    # fill the rules up the limit
+    # remember that by default, when created a sec group contains 1 egress rule
+    # so our other_sg rule + 48 CIDR IP rules + 1 by default == 50 the limit
+    for i in range(48):
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip='{0}.0.0.0/0'.format(i))
+    # verify that we cannot authorize past the limit for a CIDR IP
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            cidr_ip='50.0.0.0/0')
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+    # verify that we cannot authorize past the limit for a different sec group
+    with assert_raises(EC2ResponseError) as cm:
+        ec2_conn.authorize_security_group_egress(
+            group_id=sg.id, ip_protocol='-1',
+            src_group_id=other_sg.id)
+    cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
+
+
+
+
 '''
 Boto3
 '''
+
+@mock_ec2
+def test_add_same_rule_twice_throws_error():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    sg = ec2.create_security_group(GroupName='sg1', Description='Test security group sg1', VpcId=vpc.id)
+
+    ip_permissions = [
+        {
+            'IpProtocol': 'tcp',
+            'FromPort': 27017,
+            'ToPort': 27017,
+            'IpRanges': [{"CidrIp": "1.2.3.4/32"}]
+        },
+    ]
+    sg.authorize_ingress(IpPermissions=ip_permissions)
+
+    with assert_raises(ClientError) as ex:
+        sg.authorize_ingress(IpPermissions=ip_permissions)
 
 
 @mock_ec2
 def test_security_group_tagging_boto3():
     conn = boto3.client('ec2', region_name='us-east-1')
+
     sg = conn.create_security_group(GroupName="test-sg", Description="Test SG")
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.create_tags(Resources=[sg['GroupId']], Tags=[{'Key': 'Test', 'Value': 'Tag'}], DryRun=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
+
     conn.create_tags(Resources=[sg['GroupId']], Tags=[{'Key': 'Test', 'Value': 'Tag'}])
     describe = conn.describe_security_groups(Filters=[{'Name': 'tag-value', 'Values': ['Tag']}])
     tag = describe["SecurityGroups"][0]['Tags'][0]
     tag['Value'].should.equal("Tag")
     tag['Key'].should.equal("Test")
+
+
+@mock_ec2
+def test_authorize_and_revoke_in_bulk():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    sg01 = ec2.create_security_group(GroupName='sg01', Description='Test security group sg01', VpcId=vpc.id)
+    sg02 = ec2.create_security_group(GroupName='sg02', Description='Test security group sg02', VpcId=vpc.id)
+    sg03 = ec2.create_security_group(GroupName='sg03', Description='Test security group sg03')
+
+    ip_permissions = [
+        {
+            'IpProtocol': 'tcp',
+            'FromPort': 27017,
+            'ToPort': 27017,
+            'UserIdGroupPairs': [{'GroupId': sg02.id, 'GroupName': 'sg02',
+                                  'UserId': sg02.owner_id}],
+            'IpRanges': []
+        },
+        {
+            'IpProtocol': 'tcp',
+            'FromPort': 27018,
+            'ToPort': 27018,
+            'UserIdGroupPairs': [{'GroupId': sg02.id, 'UserId': sg02.owner_id}],
+            'IpRanges': []
+        },
+        {
+            'IpProtocol': 'tcp',
+            'FromPort': 27017,
+            'ToPort': 27017,
+            'UserIdGroupPairs': [{'GroupName': 'sg03', 'UserId': sg03.owner_id}],
+            'IpRanges': []
+        }
+    ]
+    expected_ip_permissions = copy.deepcopy(ip_permissions)
+    expected_ip_permissions[1]['UserIdGroupPairs'][0]['GroupName'] = 'sg02'
+    expected_ip_permissions[2]['UserIdGroupPairs'][0]['GroupId'] = sg03.id
+
+    sg01.authorize_ingress(IpPermissions=ip_permissions)
+    sg01.ip_permissions.should.have.length_of(3)
+    for ip_permission in expected_ip_permissions:
+        sg01.ip_permissions.should.contain(ip_permission)
+
+    sg01.revoke_ingress(IpPermissions=ip_permissions)
+    sg01.ip_permissions.should.be.empty
+    for ip_permission in expected_ip_permissions:
+        sg01.ip_permissions.shouldnt.contain(ip_permission)
+
+    sg01.authorize_egress(IpPermissions=ip_permissions)
+    sg01.ip_permissions_egress.should.have.length_of(4)
+    for ip_permission in expected_ip_permissions:
+        sg01.ip_permissions_egress.should.contain(ip_permission)
+
+    sg01.revoke_egress(IpPermissions=ip_permissions)
+    sg01.ip_permissions_egress.should.have.length_of(1)
+    for ip_permission in expected_ip_permissions:
+        sg01.ip_permissions_egress.shouldnt.contain(ip_permission)

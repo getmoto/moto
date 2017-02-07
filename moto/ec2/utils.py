@@ -20,6 +20,7 @@ EC2_RESOURCE_TO_PREFIX = {
     'security-group': 'sg',
     'snapshot': 'snap',
     'spot-instance-request': 'sir',
+    'spot-fleet-request': 'sfr',
     'subnet': 'subnet',
     'reservation': 'r',
     'volume': 'vol',
@@ -63,6 +64,10 @@ def random_snapshot_id():
 
 def random_spot_request_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['spot-instance-request'])
+
+
+def random_spot_fleet_request_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['spot-fleet-request'])
 
 
 def random_subnet_id():

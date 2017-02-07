@@ -5,7 +5,7 @@ from nose.tools import assert_raises
 
 from moto.ec2 import ec2_backends
 import boto
-from boto.exception import EC2ResponseError
+from boto.exception import EC2ResponseError, JSONResponseError
 import sure  # noqa
 
 from moto import mock_ec2
@@ -23,6 +23,13 @@ def test_create_and_delete_volume():
     all_volumes[0].encrypted.should.be(False)
 
     volume = all_volumes[0]
+
+    with assert_raises(JSONResponseError) as ex:
+        volume.delete(dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteVolume operation: Request would have succeeded, but DryRun flag is set')
+
     volume.delete()
 
     conn.get_all_volumes().should.have.length_of(0)
@@ -35,10 +42,27 @@ def test_create_and_delete_volume():
     cm.exception.request_id.should_not.be.none
 
 
+
+@mock_ec2
+def test_create_encrypted_volume_dryrun():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    with assert_raises(JSONResponseError) as ex:
+        conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set')
+
+
 @mock_ec2
 def test_create_encrypted_volume():
     conn = boto.connect_ec2('the_key', 'the_secret')
     conn.create_volume(80, "us-east-1a", encrypted=True)
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set')
 
     all_volumes = conn.get_all_volumes()
     all_volumes[0].encrypted.should.be(True)
@@ -141,6 +165,12 @@ def test_volume_attach_and_detach():
     volume.update()
     volume.volume_state().should.equal('available')
 
+    with assert_raises(JSONResponseError) as ex:
+        volume.attach(instance.id, "/dev/sdh", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AttachVolume operation: Request would have succeeded, but DryRun flag is set')
+
     volume.attach(instance.id, "/dev/sdh")
 
     volume.update()
@@ -148,6 +178,12 @@ def test_volume_attach_and_detach():
     volume.attachment_state().should.equal('attached')
 
     volume.attach_data.instance_id.should.equal(instance.id)
+
+    with assert_raises(JSONResponseError) as ex:
+        volume.detach(dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DetachVolume operation: Request would have succeeded, but DryRun flag is set')
 
     volume.detach()
 
@@ -177,6 +213,12 @@ def test_volume_attach_and_detach():
 def test_create_snapshot():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a")
+
+    with assert_raises(JSONResponseError) as ex:
+        snapshot = volume.create_snapshot('a dryrun snapshot', dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set')
 
     snapshot = volume.create_snapshot('a test snapshot')
     snapshot.update()
@@ -282,6 +324,8 @@ def test_snapshot_filters():
 
 @mock_ec2
 def test_snapshot_attribute():
+    import copy
+
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a")
     snapshot = volume.create_snapshot()
@@ -302,6 +346,13 @@ def test_snapshot_attribute():
                          'groups': 'all'}
 
     # Add 'all' group and confirm
+
+    with assert_raises(JSONResponseError) as ex:
+        conn.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{'dry_run': True}))
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set')
+
     conn.modify_snapshot_attribute(**ADD_GROUP_ARGS)
 
     attributes = conn.get_snapshot_attribute(snapshot.id, attribute='createVolumePermission')
@@ -312,6 +363,12 @@ def test_snapshot_attribute():
     conn.modify_snapshot_attribute.when.called_with(**ADD_GROUP_ARGS).should_not.throw(EC2ResponseError)
 
     # Remove 'all' group and confirm
+    with assert_raises(JSONResponseError) as ex:
+        conn.modify_snapshot_attribute(**dict(REMOVE_GROUP_ARGS, **{'dry_run': True}))
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set')
+
     conn.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
 
     attributes = conn.get_snapshot_attribute(snapshot.id, attribute='createVolumePermission')
@@ -365,6 +422,13 @@ def test_snapshot_attribute():
 def test_create_volume_from_snapshot():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a")
+    snapshot = volume.create_snapshot('a test snapshot')
+
+    with assert_raises(JSONResponseError) as ex:
+        snapshot = volume.create_snapshot('a test snapshot', dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set')
 
     snapshot = volume.create_snapshot('a test snapshot')
     snapshot.update()
@@ -404,6 +468,12 @@ def test_modify_attribute_blockDeviceMapping():
 
     instance = reservation.instances[0]
 
+    with assert_raises(JSONResponseError) as ex:
+        instance.modify_attribute('blockDeviceMapping', {'/dev/sda1': True}, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set')
+
     instance.modify_attribute('blockDeviceMapping', {'/dev/sda1': True})
 
     instance = ec2_backends[conn.region.name].get_instance(instance.id)
@@ -416,6 +486,14 @@ def test_volume_tag_escaping():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vol = conn.create_volume(10, 'us-east-1a')
     snapshot = conn.create_snapshot(vol.id, 'Desc')
+
+    with assert_raises(JSONResponseError) as ex:
+        snapshot.add_tags({'key': '</closed>'}, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
+    dict(conn.get_all_snapshots()[0].tags).should_not.be.equal({'key': '</closed>'})
+
     snapshot.add_tags({'key': '</closed>'})
 
     dict(conn.get_all_snapshots()[0].tags).should.equal({'key': '</closed>'})

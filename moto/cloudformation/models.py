@@ -11,7 +11,7 @@ from .exceptions import ValidationError
 
 
 class FakeStack(object):
-    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None):
+    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
         self.stack_id = stack_id
         self.name = name
         self.template = template
@@ -19,6 +19,7 @@ class FakeStack(object):
         self.parameters = parameters
         self.region_name = region_name
         self.notification_arns = notification_arns if notification_arns else []
+        self.role_arn = role_arn
         self.tags = tags if tags else {}
         self.events = []
         self._add_stack_event("CREATE_IN_PROGRESS", resource_status_reason="User Initiated")
@@ -77,13 +78,14 @@ class FakeStack(object):
     def stack_outputs(self):
         return self.output_map.values()
 
-    def update(self, template):
+    def update(self, template, role_arn=None):
         self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.template = template
         self.resource_map.update(json.loads(template))
         self.output_map = self._create_output_map()
         self._add_stack_event("UPDATE_COMPLETE")
         self.status = "UPDATE_COMPLETE"
+        self.role_arn = role_arn
 
     def delete(self):
         self._add_stack_event("DELETE_IN_PROGRESS", resource_status_reason="User Initiated")
@@ -111,7 +113,7 @@ class CloudFormationBackend(BaseBackend):
         self.stacks = {}
         self.deleted_stacks = {}
 
-    def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None):
+    def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
         stack_id = generate_stack_id(name)
         new_stack = FakeStack(
             stack_id=stack_id,
@@ -121,6 +123,7 @@ class CloudFormationBackend(BaseBackend):
             region_name=region_name,
             notification_arns=notification_arns,
             tags=tags,
+            role_arn=role_arn,
         )
         self.stacks[stack_id] = new_stack
         return new_stack
@@ -154,9 +157,9 @@ class CloudFormationBackend(BaseBackend):
                 if stack.name == name_or_stack_id:
                     return stack
 
-    def update_stack(self, name, template):
+    def update_stack(self, name, template, role_arn=None):
         stack = self.get_stack(name)
-        stack.update(template)
+        stack.update(template, role_arn)
         return stack
 
     def list_stack_resources(self, stack_name_or_id):

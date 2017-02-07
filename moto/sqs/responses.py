@@ -183,7 +183,7 @@ class SQSResponse(BaseResponse):
             message = self.sqs_backend.send_message(queue_name, message_body[0], delay_seconds=delay_seconds)
             message.user_id = message_user_id
 
-            message_attributes = parse_message_attributes(self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index), value_namespace='')
+            message_attributes = parse_message_attributes(self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index))
             if type(message_attributes) == tuple:
                 return message_attributes[0], message_attributes[1]
             message.message_attributes = message_attributes

@@ -6,8 +6,6 @@ import random
 import re
 import six
 
-from flask import request
-
 
 def camelcase_to_underscores(argument):
     ''' Converts a camelcase param like theNewAttribute to the equivalent
@@ -82,6 +80,7 @@ def convert_regex_to_flask_path(url_path):
 
 
 class convert_flask_to_httpretty_response(object):
+
     def __init__(self, callback):
         self.callback = callback
 
@@ -96,6 +95,8 @@ class convert_flask_to_httpretty_response(object):
         return "{0}.{1}".format(outer, self.callback.__name__)
 
     def __call__(self, args=None, **kwargs):
+        from flask import request
+
         result = self.callback(request, request.url, {})
         # result is a status, headers, response tuple
         status, headers, response = result

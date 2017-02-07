@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import base64
 import json
 import re
 
@@ -37,7 +38,7 @@ class KmsResponse(BaseResponse):
     def describe_key(self):
         key_id = self.parameters.get('KeyId')
         try:
-            key = self.kms_backend.describe_key(key_id)
+            key = self.kms_backend.describe_key(self.kms_backend.get_key_id(key_id))
         except KeyError:
             headers = dict(self.headers)
             headers['status'] = 404
@@ -140,7 +141,7 @@ class KmsResponse(BaseResponse):
 
     def enable_key_rotation(self):
         key_id = self.parameters.get('KeyId')
-        _assert_valid_key_id(key_id)
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
         try:
             self.kms_backend.enable_key_rotation(key_id)
         except KeyError:
@@ -152,7 +153,7 @@ class KmsResponse(BaseResponse):
 
     def disable_key_rotation(self):
         key_id = self.parameters.get('KeyId')
-        _assert_valid_key_id(key_id)
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
         try:
             self.kms_backend.disable_key_rotation(key_id)
         except KeyError:
@@ -163,7 +164,7 @@ class KmsResponse(BaseResponse):
 
     def get_key_rotation_status(self):
         key_id = self.parameters.get('KeyId')
-        _assert_valid_key_id(key_id)
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
         try:
             rotation_enabled = self.kms_backend.get_key_rotation_status(key_id)
         except KeyError:
@@ -176,7 +177,7 @@ class KmsResponse(BaseResponse):
         key_id = self.parameters.get('KeyId')
         policy_name = self.parameters.get('PolicyName')
         policy = self.parameters.get('Policy')
-        _assert_valid_key_id(key_id)
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
         _assert_default_policy(policy_name)
 
         try:
@@ -191,7 +192,7 @@ class KmsResponse(BaseResponse):
     def get_key_policy(self):
         key_id = self.parameters.get('KeyId')
         policy_name = self.parameters.get('PolicyName')
-        _assert_valid_key_id(key_id)
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
         _assert_default_policy(policy_name)
 
         try:
@@ -203,7 +204,7 @@ class KmsResponse(BaseResponse):
 
     def list_key_policies(self):
         key_id = self.parameters.get('KeyId')
-        _assert_valid_key_id(key_id)
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
         try:
             self.kms_backend.describe_key(key_id)
         except KeyError:
@@ -212,6 +213,19 @@ class KmsResponse(BaseResponse):
                 '__type': 'NotFoundException'})
 
         return json.dumps({'Truncated': False, 'PolicyNames': ['default']})
+
+    def encrypt(self):
+        """
+        We perform no encryption, we just encode the value as base64 and then
+        decode it in decrypt().
+        """
+        value = self.parameters.get("Plaintext")
+        return json.dumps({"CiphertextBlob": base64.b64encode(value).encode("utf-8")})
+
+    def decrypt(self):
+        value = self.parameters.get("CiphertextBlob")
+        return json.dumps({"Plaintext": base64.b64decode(value).encode("utf-8")})
+
 
 def _assert_valid_key_id(key_id):
     if not re.match(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$', key_id, re.IGNORECASE):

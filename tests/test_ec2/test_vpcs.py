@@ -21,12 +21,12 @@ def test_vpcs():
     vpc.cidr_block.should.equal('10.0.0.0/16')
 
     all_vpcs = conn.get_all_vpcs()
-    all_vpcs.should.have.length_of(1)
+    all_vpcs.should.have.length_of(2)
 
     vpc.delete()
 
     all_vpcs = conn.get_all_vpcs()
-    all_vpcs.should.have.length_of(0)
+    all_vpcs.should.have.length_of(1)
 
     with assert_raises(EC2ResponseError) as cm:
         conn.delete_vpc("vpc-1234abcd")
@@ -40,14 +40,14 @@ def test_vpc_defaults():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
 
-    conn.get_all_vpcs().should.have.length_of(1)
-    conn.get_all_route_tables().should.have.length_of(1)
+    conn.get_all_vpcs().should.have.length_of(2)
+    conn.get_all_route_tables().should.have.length_of(2)
     conn.get_all_security_groups(filters={'vpc-id': [vpc.id]}).should.have.length_of(1)
 
     vpc.delete()
 
-    conn.get_all_vpcs().should.have.length_of(0)
-    conn.get_all_route_tables().should.have.length_of(0)
+    conn.get_all_vpcs().should.have.length_of(1)
+    conn.get_all_route_tables().should.have.length_of(1)
     conn.get_all_security_groups(filters={'vpc-id': [vpc.id]}).should.have.length_of(0)
 
 @mock_ec2
@@ -56,7 +56,7 @@ def test_vpc_isdefault_filter():
     vpc = conn.create_vpc("10.0.0.0/16")
     conn.get_all_vpcs(filters={'isDefault': 'true'}).should.have.length_of(1)
     vpc.delete()
-    conn.get_all_vpcs(filters={'isDefault': 'true'}).should.have.length_of(0)
+    conn.get_all_vpcs(filters={'isDefault': 'true'}).should.have.length_of(1)
 
 
 @mock_ec2
@@ -65,10 +65,10 @@ def test_multiple_vpcs_default_filter():
     conn.create_vpc("10.8.0.0/16")
     conn.create_vpc("10.0.0.0/16")
     conn.create_vpc("192.168.0.0/16")
-    conn.get_all_vpcs().should.have.length_of(3)
+    conn.get_all_vpcs().should.have.length_of(4)
     vpc = conn.get_all_vpcs(filters={'isDefault': 'true'})
     vpc.should.have.length_of(1)
-    vpc[0].cidr_block.should.equal('10.8.0.0/16')
+    vpc[0].cidr_block.should.equal('172.31.0.0/16')
 
 
 @mock_ec2
@@ -76,9 +76,9 @@ def test_vpc_state_available_filter():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
     conn.create_vpc("10.1.0.0/16")
-    conn.get_all_vpcs(filters={'state': 'available'}).should.have.length_of(2)
+    conn.get_all_vpcs(filters={'state': 'available'}).should.have.length_of(3)
     vpc.delete()
-    conn.get_all_vpcs(filters={'state': 'available'}).should.have.length_of(1)
+    conn.get_all_vpcs(filters={'state': 'available'}).should.have.length_of(2)
 
 @mock_ec2
 def test_vpc_tagging():
@@ -86,13 +86,12 @@ def test_vpc_tagging():
     vpc = conn.create_vpc("10.0.0.0/16")
 
     vpc.add_tag("a key", "some value")
-
     tag = conn.get_all_tags()[0]
     tag.name.should.equal("a key")
     tag.value.should.equal("some value")
 
     # Refresh the vpc
-    vpc = conn.get_all_vpcs()[0]
+    vpc = conn.get_all_vpcs(vpc_ids=[vpc.id])[0]
     vpc.tags.should.have.length_of(1)
     vpc.tags["a key"].should.equal("some value")
 
@@ -245,7 +244,8 @@ def test_default_vpc():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
 
     # Create the default VPC
-    default_vpc = ec2.create_vpc(CidrBlock='172.31.0.0/16')
+    default_vpc = list(ec2.vpcs.all())[0]
+    default_vpc.cidr_block.should.equal('172.31.0.0/16')
     default_vpc.reload()
     default_vpc.is_default.should.be.ok
 
@@ -321,3 +321,14 @@ def test_vpc_modify_enable_dns_hostnames():
     response = vpc.describe_attribute(Attribute='enableDnsHostnames')
     attr = response.get('EnableDnsHostnames')
     attr.get('Value').should.be.ok
+
+@mock_ec2
+def test_vpc_associate_dhcp_options():
+    conn = boto.connect_vpc()
+    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
+    vpc = conn.create_vpc("10.0.0.0/16")
+
+    conn.associate_dhcp_options(dhcp_options.id, vpc.id)
+
+    vpc.update()
+    dhcp_options.id.should.equal(vpc.dhcp_options_id)

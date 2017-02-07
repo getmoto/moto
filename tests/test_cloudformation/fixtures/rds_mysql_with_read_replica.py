@@ -82,7 +82,6 @@ template = {
   },
 
   "Resources" : {
-
     "DBEC2SecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Condition" : "Is-EC2-VPC",
@@ -101,9 +100,9 @@ template = {
       "Type": "AWS::RDS::DBSecurityGroup",
       "Condition" : "Is-EC2-Classic",
       "Properties": {
-        "DBSecurityGroupIngress": {
+        "DBSecurityGroupIngress": [{
           "EC2SecurityGroupName": { "Ref": "EC2SecurityGroup" }
-        },
+        }],
         "GroupDescription": "database access"
       }
     },

@@ -25,3 +25,10 @@ def random_access_key():
             string.ascii_uppercase + string.digits
         )) for _ in range(16)
     )
+
+
+def random_policy_id():
+    return 'A' + ''.join(
+        random.choice(string.ascii_uppercase + string.digits)
+        for _ in range(20)
+    )

@@ -4,6 +4,7 @@ import re
 
 import six
 from six.moves.urllib.parse import parse_qs, urlparse
+
 import xmltodict
 
 from moto.core.responses import _TemplateEnvironmentMixin
@@ -36,6 +37,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
         super(ResponseObject, self).__init__()
         self.backend = backend
 
+    @property
+    def should_autoescape(self):
+        return True
+
     def all_buckets(self):
         # No bucket specified. Listing all buckets
         all_buckets = self.backend.get_all_buckets()
@@ -44,9 +49,24 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
     def subdomain_based_buckets(self, request):
         host = request.headers.get('host', request.headers.get('Host'))
-        if host.startswith("localhost"):
+
+        if not host or host.startswith("localhost"):
             # For localhost, default to path-based buckets
             return False
+
+        match = re.match(r'^([^\[\]:]+)(:\d+)?$', host)
+        if match:
+            match = re.match(r'((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}',
+                             match.groups()[0])
+            if match:
+                return False
+
+        match = re.match(r'^\[(.+)\](:\d+)?$', host)
+        if match:
+            match = re.match(r'^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)([\dA-F]{1,4}(\3|:\b)|\2){5}(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z',
+                             match.groups()[0], re.IGNORECASE)
+            if match:
+                return False
 
         path_based = (host == 's3.amazonaws.com' or re.match(r"s3[\.\-]([^.]*)\.amazonaws\.com", host))
         return not path_based

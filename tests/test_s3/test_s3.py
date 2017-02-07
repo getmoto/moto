@@ -989,6 +989,14 @@ def test_boto3_key_etag():
     resp = s3.get_object(Bucket='mybucket', Key='steve')
     resp['ETag'].should.equal('"d32bda93738f7e03adb22e66c90fbc04"')
 
+@mock_s3
+def test_boto3_list_keys_xml_escaped():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    key_name = 'Q&A.txt'
+    s3.put_object(Bucket='mybucket', Key=key_name, Body=b'is awesome')
+    resp = s3.list_objects_v2(Bucket='mybucket', Prefix=key_name)
+    assert resp['Contents'][0]['Key'] == key_name
 
 @mock_s3
 def test_boto3_bucket_create():

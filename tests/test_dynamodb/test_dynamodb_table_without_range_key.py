@@ -336,6 +336,17 @@ def test_scan_with_undeclared_table():
 
 
 @mock_dynamodb
+def test_scan_after_has_item():
+    conn = boto.connect_dynamodb()
+    table = create_table(conn)
+    list(table.scan()).should.equal([])
+
+    table.has_item('the-key')
+
+    list(table.scan()).should.equal([])
+
+
+@mock_dynamodb
 def test_write_batch():
     conn = boto.connect_dynamodb()
     table = create_table(conn)

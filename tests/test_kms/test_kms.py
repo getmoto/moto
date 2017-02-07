@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import re
+import six
 
 import boto.kms
 from boto.exception import JSONResponseError
@@ -31,6 +32,39 @@ def test_describe_key():
 
 
 @mock_kms
+def test_describe_key_via_alias():
+    conn = boto.kms.connect_to_region("us-west-2")
+    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    conn.create_alias(alias_name='alias/my-key-alias', target_key_id=key['KeyMetadata']['KeyId'])
+
+    alias_key = conn.describe_key('alias/my-key-alias')
+    alias_key['KeyMetadata']['Description'].should.equal("my key")
+    alias_key['KeyMetadata']['KeyUsage'].should.equal("ENCRYPT_DECRYPT")
+    alias_key['KeyMetadata']['Arn'].should.equal(key['KeyMetadata']['Arn'])
+
+
+@mock_kms
+def test_describe_key_via_alias_not_found():
+    conn = boto.kms.connect_to_region("us-west-2")
+    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    conn.create_alias(alias_name='alias/my-key-alias', target_key_id=key['KeyMetadata']['KeyId'])
+
+    conn.describe_key.when.called_with('alias/not-found-alias').should.throw(JSONResponseError)
+
+
+@mock_kms
+def test_describe_key_via_arn():
+    conn = boto.kms.connect_to_region("us-west-2")
+    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    arn = key['KeyMetadata']['Arn']
+
+    the_key = conn.describe_key(arn)
+    the_key['KeyMetadata']['Description'].should.equal("my key")
+    the_key['KeyMetadata']['KeyUsage'].should.equal("ENCRYPT_DECRYPT")
+    the_key['KeyMetadata']['KeyId'].should.equal(key['KeyMetadata']['KeyId'])
+
+
+@mock_kms
 def test_describe_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.describe_key.when.called_with("not-a-key").should.throw(JSONResponseError)
@@ -58,11 +92,35 @@ def test_enable_key_rotation():
 
     conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(True)
 
+@mock_kms
+def test_enable_key_rotation_via_arn():
+    conn = boto.kms.connect_to_region("us-west-2")
+
+    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key_id = key['KeyMetadata']['Arn']
+
+    conn.enable_key_rotation(key_id)
+
+    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(True)
+
+
 
 @mock_kms
 def test_enable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.enable_key_rotation.when.called_with("not-a-key").should.throw(JSONResponseError)
+
+
+@mock_kms
+def test_enable_key_rotation_with_alias_name_should_fail():
+    conn = boto.kms.connect_to_region("us-west-2")
+    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    conn.create_alias(alias_name='alias/my-key-alias', target_key_id=key['KeyMetadata']['KeyId'])
+
+    alias_key = conn.describe_key('alias/my-key-alias')
+    alias_key['KeyMetadata']['Arn'].should.equal(key['KeyMetadata']['Arn'])
+
+    conn.enable_key_rotation.when.called_with('alias/my-alias').should.throw(JSONResponseError)
 
 
 @mock_kms
@@ -77,6 +135,27 @@ def test_disable_key_rotation():
 
     conn.disable_key_rotation(key_id)
     conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
+
+
+# Scoping encryption/decryption to only Python 2 because our test suite
+# hardcodes a dependency on boto version 2.36.0 which is not compatible with
+# Python 3 (2.40+, however, passes these tests).
+if six.PY2:
+    @mock_kms
+    def test_encrypt():
+        """
+        Using base64 encoding to merely test that the endpoint was called
+        """
+        conn = boto.kms.connect_to_region("us-west-2")
+        response = conn.encrypt('key_id', 'encryptme'.encode('utf-8'))
+        response['CiphertextBlob'].should.equal('ZW5jcnlwdG1l')
+
+
+    @mock_kms
+    def test_decrypt():
+        conn = boto.kms.connect_to_region('us-west-2')
+        response = conn.decrypt('ZW5jcnlwdG1l'.encode('utf-8'))
+        response['Plaintext'].should.equal('encryptme')
 
 
 @mock_kms
@@ -121,6 +200,14 @@ def test_get_key_policy():
     policy = conn.get_key_policy(key_id, 'default')
     policy['Policy'].should.equal('my policy')
 
+@mock_kms
+def test_get_key_policy_via_arn():
+    conn = boto.kms.connect_to_region('us-west-2')
+
+    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    policy = conn.get_key_policy(key['KeyMetadata']['Arn'], 'default')
+
+    policy['Policy'].should.equal('my policy')
 
 @mock_kms
 def test_put_key_policy():
@@ -131,6 +218,42 @@ def test_put_key_policy():
 
     conn.put_key_policy(key_id, 'default', 'new policy')
     policy = conn.get_key_policy(key_id, 'default')
+    policy['Policy'].should.equal('new policy')
+
+
+@mock_kms
+def test_put_key_policy_via_arn():
+    conn = boto.kms.connect_to_region('us-west-2')
+
+    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key_id = key['KeyMetadata']['Arn']
+
+    conn.put_key_policy(key_id, 'default', 'new policy')
+    policy = conn.get_key_policy(key_id, 'default')
+    policy['Policy'].should.equal('new policy')
+
+
+@mock_kms
+def test_put_key_policy_via_alias_should_not_update():
+    conn = boto.kms.connect_to_region('us-west-2')
+
+    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    conn.create_alias(alias_name='alias/my-key-alias', target_key_id=key['KeyMetadata']['KeyId'])
+
+    conn.put_key_policy.when.called_with('alias/my-key-alias', 'default', 'new policy').should.throw(JSONResponseError)
+
+    policy = conn.get_key_policy(key['KeyMetadata']['KeyId'], 'default')
+    policy['Policy'].should.equal('my policy')
+
+
+@mock_kms
+def test_put_key_policy():
+    conn = boto.kms.connect_to_region('us-west-2')
+
+    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    conn.put_key_policy(key['KeyMetadata']['Arn'], 'default', 'new policy')
+
+    policy = conn.get_key_policy(key['KeyMetadata']['KeyId'], 'default')
     policy['Policy'].should.equal('new policy')
 
 

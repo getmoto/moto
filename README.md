@@ -200,16 +200,24 @@ In general, Moto doesn't rely on anything specific to Boto. It only mocks AWS en
 
 ## Stand-alone Server Mode
 
-Moto also comes with a stand-alone server mode. This allows you to utilize the backend structure of Moto even if you don't use Python.
+Moto also has a stand-alone server mode. This allows you to utilize
+the backend structure of Moto even if you don't use Python.
 
-To run a service:
+It uses flask, which isn't a default dependency. You can install the
+server 'extra' package with:
+
+```python
+pip install moto[server]
+```
+
+You can then start it running a service:
 
 ```console
 $ moto_server ec2
  * Running on http://127.0.0.1:5000/
 ```
 
-You can also pass the port as the second argument:
+You can also pass the port:
 
 ```console
 $ moto_server ec2 -p3000
@@ -230,7 +238,7 @@ server.
 
 Then go to [localhost](http://localhost:5000/?Action=DescribeInstances) to see a list of running instances (it will be empty since you haven't added any yet).
 
-If you want to use boto with this (using the simpler decorators above instead is strongly encouraged), the easiest way is to create a boto config file (`~/.boto`) with the following valuesp:
+If you want to use boto with this (using the simpler decorators above instead is strongly encouraged), the easiest way is to create a boto config file (`~/.boto`) with the following values:
 
 ```
 [Boto]
@@ -238,6 +246,16 @@ is_secure = False
 https_validate_certificates = False
 proxy_port = 5000
 proxy = 127.0.0.1
+```
+
+If you want to use boto3 with this, you can pass an `endpoint_url` to the resource
+
+```python
+boto3.resource(
+    service_name='s3',
+    region_name='us-west-1',
+    endpoint_url='http://localhost:5000',
+)
 ```
 
 ## Install

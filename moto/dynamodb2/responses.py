@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import json
 import six
+import re
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -150,6 +151,26 @@ class DynamoHandler(BaseResponse):
         else:
             expected = None
 
+        # Attempt to parse simple ConditionExpressions into an Expected expression
+        if not expected:
+            condition_expression = self.body.get('ConditionExpression')
+            if condition_expression and 'OR' not in condition_expression:
+                cond_items = [c.strip() for c in condition_expression.split('AND')]
+
+                if cond_items:
+                    expected = {}
+                    overwrite = False
+                    exists_re = re.compile('^attribute_exists\((.*)\)$')
+                    not_exists_re = re.compile('^attribute_not_exists\((.*)\)$')
+
+                for cond in cond_items:
+                    exists_m = exists_re.match(cond)
+                    not_exists_m = not_exists_re.match(cond)
+                    if exists_m:
+                        expected[exists_m.group(1)] = {'Exists': True}
+                    elif not_exists_m:
+                        expected[not_exists_m.group(1)] = {'Exists': False}
+
         try:
             result = dynamodb_backend2.put_item(name, item, expected, overwrite)
         except Exception:
@@ -179,14 +200,14 @@ class DynamoHandler(BaseResponse):
                     item = dynamodb_backend2.delete_item(table_name, keys)
 
         response = {
-            "Responses": {
-                "Thread": {
-                    "ConsumedCapacityUnits": 1.0
-                },
-                "Reply": {
-                    "ConsumedCapacityUnits": 1.0
-                }
-            },
+            "ConsumedCapacity": [
+                {
+                    'TableName': table_name,
+                    'CapacityUnits': 1.0,
+                    'Table': {'CapacityUnits': 1.0}
+                } for table_name, table_requests in table_batches.items()
+            ],
+            "ItemCollectionMetrics": {},
             "UnprocessedItems": {}
         }
 
@@ -398,6 +419,12 @@ class DynamoHandler(BaseResponse):
         expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
         expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
         existing_item = dynamodb_backend2.get_item(name, key)
+
+        # Support spaces between operators in an update expression
+        # E.g. `a = b + c` -> `a=b+c`
+        if update_expression:
+            update_expression = re.sub('\s*([=\+-])\s*', '\\1', update_expression)
+
         item = dynamodb_backend2.update_item(name, key, update_expression, attribute_updates, expression_attribute_names, expression_attribute_values)
 
         item_dict = item.to_json()

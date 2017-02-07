@@ -5,7 +5,7 @@ from nose.tools import assert_raises
 
 import boto
 import boto.ec2
-from boto.exception import EC2ResponseError
+from boto.exception import EC2ResponseError, JSONResponseError
 
 import sure  # noqa
 
@@ -18,6 +18,13 @@ def test_ami_create_and_delete():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
+
+    with assert_raises(JSONResponseError) as ex:
+        image_id = conn.create_image(instance.id, "test-ami", "this is a test ami", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateImage operation: Request would have succeeded, but DryRun flag is set')
+
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
 
     all_images = conn.get_all_images()
@@ -45,6 +52,12 @@ def test_ami_create_and_delete():
     snapshot.volume_id.should.equal(volume.id)
 
     # Deregister
+    with assert_raises(JSONResponseError) as ex:
+        success = conn.deregister_image(image_id, dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeregisterImage operation: Request would have succeeded, but DryRun flag is set')
+
     success = conn.deregister_image(image_id)
     success.should.be.true
 
@@ -67,6 +80,12 @@ def test_ami_copy():
     source_image = conn.get_all_images(image_ids=[source_image_id])[0]
 
     # Boto returns a 'CopyImage' object with an image_id attribute here. Use the image_id to fetch the full info.
+    with assert_raises(JSONResponseError) as ex:
+        copy_image_ref = conn.copy_image(source_image.region.name, source_image.id, "test-copy-ami", "this is a test copy ami", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CopyImage operation: Request would have succeeded, but DryRun flag is set')
+
     copy_image_ref = conn.copy_image(source_image.region.name, source_image.id, "test-copy-ami", "this is a test copy ami")
     copy_image_id = copy_image_ref.image_id
     copy_image = conn.get_all_images(image_ids=[copy_image_id])[0]
@@ -107,6 +126,12 @@ def test_ami_tagging():
     instance = reservation.instances[0]
     conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_all_images()[0]
+
+    with assert_raises(JSONResponseError) as ex:
+        image.add_tag("a key", "some value", dry_run=True)
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
 
     image.add_tag("a key", "some value")
 
@@ -264,6 +289,12 @@ def test_ami_attribute_group_permissions():
                          'groups': 'all'}
 
     # Add 'all' group and confirm
+    with assert_raises(JSONResponseError) as ex:
+        conn.modify_image_attribute(**dict(ADD_GROUP_ARGS, **{'dry_run': True}))
+    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyImageAttribute operation: Request would have succeeded, but DryRun flag is set')
+
     conn.modify_image_attribute(**ADD_GROUP_ARGS)
 
     attributes = conn.get_image_attribute(image.id, attribute='launchPermission')

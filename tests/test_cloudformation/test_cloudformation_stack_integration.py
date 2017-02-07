@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import json
 
+import base64
 import boto
 import boto.cloudformation
 import boto.datapipeline
@@ -26,6 +27,7 @@ from moto import (
     mock_kms,
     mock_lambda,
     mock_rds,
+    mock_rds2,
     mock_redshift,
     mock_route53,
     mock_sns,
@@ -35,6 +37,7 @@ from moto import (
 from .fixtures import (
     ec2_classic_eip,
     fn_join,
+    rds_mysql_with_db_parameter_group,
     rds_mysql_with_read_replica,
     redshift,
     route53_ec2_instance_with_public_ip,
@@ -660,13 +663,14 @@ def test_vpc_single_instance_in_subnet():
     )
 
     vpc_conn = boto.vpc.connect_to_region("us-west-1")
-    vpc = vpc_conn.get_all_vpcs()[0]
+
+    vpc = vpc_conn.get_all_vpcs(filters={'cidrBlock': '10.0.0.0/16'})[0]
     vpc.cidr_block.should.equal("10.0.0.0/16")
 
     # Add this once we implement the endpoint
     # vpc_conn.get_all_internet_gateways().should.have.length_of(1)
 
-    subnet = vpc_conn.get_all_subnets()[0]
+    subnet = vpc_conn.get_all_subnets(filters={'vpcId': vpc.id})[0]
     subnet.vpc_id.should.equal(vpc.id)
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
@@ -690,6 +694,44 @@ def test_vpc_single_instance_in_subnet():
 
     eip_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
     eip_resource.physical_resource_id.should.equal(eip.allocation_id)
+
+@mock_cloudformation()
+@mock_ec2()
+@mock_rds2()
+def test_rds_db_parameter_groups():
+    ec2_conn = boto.ec2.connect_to_region("us-west-1")
+    ec2_conn.create_security_group('application', 'Our Application Group')
+
+    template_json = json.dumps(rds_mysql_with_db_parameter_group.template)
+    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn.create_stack(
+        "test_stack",
+        template_body=template_json,
+        parameters=[
+            ("DBInstanceIdentifier", "master_db"),
+            ("DBName", "my_db"),
+            ("DBUser", "my_user"),
+            ("DBPassword", "my_password"),
+            ("DBAllocatedStorage", "20"),
+            ("DBInstanceClass", "db.m1.medium"),
+            ("EC2SecurityGroup", "application"),
+            ("MultiAZ", "true"),
+        ],
+    )
+
+    rds_conn = boto3.client('rds', region_name="us-west-1")
+
+    db_parameter_groups = rds_conn.describe_db_parameter_groups()
+    len(db_parameter_groups['DBParameterGroups']).should.equal(1)
+    db_parameter_group_name = db_parameter_groups['DBParameterGroups'][0]['DBParameterGroupName']
+
+    found_cloudformation_set_parameter = False
+    for db_parameter in rds_conn.describe_db_parameters(DBParameterGroupName=db_parameter_group_name)['Parameters']:
+        if db_parameter['ParameterName'] == 'BACKLOG_QUEUE_LIMIT' and db_parameter['ParameterValue'] == '2048':
+            found_cloudformation_set_parameter = True
+
+    found_cloudformation_set_parameter.should.equal(True)
+
 
 
 @mock_cloudformation()
@@ -1128,6 +1170,8 @@ def test_route53_roundrobin():
     zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
+    zone_id = zone_id.split('/')
+    zone_id = zone_id[2]
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.hosted_zone_id.should.equal(zone_id)
@@ -1173,6 +1217,9 @@ def test_route53_ec2_instance_with_public_ip():
     zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
+    zone_id = zone_id.split('/')
+    zone_id = zone_id[2]
+
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.should.have.length_of(1)
@@ -1213,6 +1260,8 @@ def test_route53_associate_health_check():
     zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
+    zone_id = zone_id.split('/')
+    zone_id = zone_id[2]
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.should.have.length_of(1)
@@ -1236,6 +1285,8 @@ def test_route53_with_update():
     zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
+    zone_id = zone_id.split('/')
+    zone_id = zone_id[2]
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.should.have.length_of(1)
@@ -1253,6 +1304,8 @@ def test_route53_with_update():
     zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
+    zone_id = zone_id.split('/')
+    zone_id = zone_id[2]
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.should.have.length_of(1)
@@ -1354,7 +1407,7 @@ def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
     )
 
     vpc_conn = boto.vpc.connect_to_region("us-west-1")
-    vpc = vpc_conn.get_all_vpcs()[0]
+    vpc = vpc_conn.get_all_vpcs(filters={'cidrBlock': '10.0.0.0/16'})[0]
     igws = vpc_conn.get_all_internet_gateways(
         filters={'attachment.vpc-id': vpc.id}
     )
@@ -1724,10 +1777,29 @@ def test_datapipeline():
     stack_resources.should.have.length_of(1)
     stack_resources[0].physical_resource_id.should.equal(data_pipelines['pipelineIdList'][0]['id'])
 
+def _process_lamda(pfunc):
+    import io
+    import zipfile
+    zip_output = io.BytesIO()
+    zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
+    zip_file.writestr('lambda_function.zip', pfunc)
+    zip_file.close()
+    zip_output.seek(0)
+    return zip_output.read()
+
+
+def get_test_zip_file1():
+    pfunc = """
+def lambda_handler(event, context):
+    return (event, context)
+"""
+    return _process_lamda(pfunc)
+
 
 @mock_cloudformation
 @mock_lambda
 def test_lambda_function():
+    # switch this to python as backend lambda only supports python execution.
     conn = boto3.client('lambda', 'us-east-1')
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1736,22 +1808,15 @@ def test_lambda_function():
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
                     "Code": {
-                        "ZipFile": {"Fn::Join": [
-                            "\n",
-                            """
-                            exports.handler = function(event, context) {
-                                context.succeed();
-                            }
-                            """.splitlines()
-                        ]}
+                        "ZipFile": base64.b64encode(get_test_zip_file1()).decode('utf-8')
                     },
-                    "Handler": "index.handler",
+                    "Handler": "lambda_function.handler",
                     "Description": "Test function",
                     "MemorySize": 128,
                     "Role": "test-role",
-                    "Runtime": "nodejs",
+                    "Runtime": "python2.7"
                 }
-            },
+            }
         }
     }
 
@@ -1765,10 +1830,10 @@ def test_lambda_function():
     result = conn.list_functions()
     result['Functions'].should.have.length_of(1)
     result['Functions'][0]['Description'].should.equal('Test function')
-    result['Functions'][0]['Handler'].should.equal('index.handler')
+    result['Functions'][0]['Handler'].should.equal('lambda_function.handler')
     result['Functions'][0]['MemorySize'].should.equal(128)
     result['Functions'][0]['Role'].should.equal('test-role')
-    result['Functions'][0]['Runtime'].should.equal('nodejs')
+    result['Functions'][0]['Runtime'].should.equal('python2.7')
 
 
 @mock_cloudformation
@@ -1863,3 +1928,83 @@ def test_stack_kms():
 
     result['KeyMetadata']['Enabled'].should.equal(True)
     result['KeyMetadata']['KeyUsage'].should.equal('ENCRYPT_DECRYPT')
+
+
+@mock_cloudformation()
+@mock_ec2()
+def test_stack_spot_fleet():
+    conn = boto3.client('ec2', 'us-east-1')
+
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    subnet = conn.create_subnet(VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
+    subnet_id = subnet['SubnetId']
+
+    spot_fleet_template = {
+        'Resources': {
+            "SpotFleet": {
+              "Type": "AWS::EC2::SpotFleet",
+              "Properties": {
+                "SpotFleetRequestConfigData": {
+                  "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
+                  "SpotPrice": "0.12",
+                  "TargetCapacity": 6,
+                  "AllocationStrategy": "diversified",
+                  "LaunchSpecifications": [
+                  {
+                    "EbsOptimized": "false",
+                    "InstanceType": 't2.small',
+                    "ImageId": "ami-1234",
+                    "SubnetId": subnet_id,
+                    "WeightedCapacity": "2",
+                    "SpotPrice": "0.13",
+                  },
+                  {
+                    "EbsOptimized": "true",
+                    "InstanceType": 't2.large',
+                    "ImageId": "ami-1234",
+                    "Monitoring": { "Enabled": "true" },
+                    "SecurityGroups": [{"GroupId": "sg-123"}],
+                    "SubnetId": subnet_id,
+                    "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
+                    "WeightedCapacity": "4",
+                    "SpotPrice": "10.00",
+                  }
+                  ]
+                }
+              }
+            }
+        }
+    }
+    spot_fleet_template_json = json.dumps(spot_fleet_template)
+
+    cf_conn = boto3.client('cloudformation', 'us-east-1')
+    stack_id = cf_conn.create_stack(
+        StackName='test_stack',
+        TemplateBody=spot_fleet_template_json,
+    )['StackId']
+
+    stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
+    stack_resources['StackResourceSummaries'].should.have.length_of(1)
+    spot_fleet_id = stack_resources['StackResourceSummaries'][0]['PhysicalResourceId']
+
+    spot_fleet_requests = conn.describe_spot_fleet_requests(SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs']
+    len(spot_fleet_requests).should.equal(1)
+    spot_fleet_request = spot_fleet_requests[0]
+    spot_fleet_request['SpotFleetRequestState'].should.equal("active")
+    spot_fleet_config = spot_fleet_request['SpotFleetRequestConfig']
+
+    spot_fleet_config['SpotPrice'].should.equal('0.12')
+    spot_fleet_config['TargetCapacity'].should.equal(6)
+    spot_fleet_config['IamFleetRole'].should.equal('arn:aws:iam::123456789012:role/fleet')
+    spot_fleet_config['AllocationStrategy'].should.equal('diversified')
+    spot_fleet_config['FulfilledCapacity'].should.equal(6.0)
+
+    len(spot_fleet_config['LaunchSpecifications']).should.equal(2)
+    launch_spec = spot_fleet_config['LaunchSpecifications'][0]
+
+    launch_spec['EbsOptimized'].should.equal(False)
+    launch_spec['ImageId'].should.equal("ami-1234")
+    launch_spec['InstanceType'].should.equal("t2.small")
+    launch_spec['SubnetId'].should.equal(subnet_id)
+    launch_spec['SpotPrice'].should.equal("0.13")
+    launch_spec['WeightedCapacity'].should.equal(2.0)

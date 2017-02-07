@@ -120,6 +120,7 @@ class AutoScalingResponse(BaseResponse):
     def put_scaling_policy(self):
         policy = self.autoscaling_backend.create_autoscaling_policy(
             name=self._get_param('PolicyName'),
+            policy_type=self._get_param('PolicyType'),
             adjustment_type=self._get_param('AdjustmentType'),
             as_name=self._get_param('AutoScalingGroupName'),
             scaling_adjustment=self._get_int_param('ScalingAdjustment'),
@@ -129,7 +130,10 @@ class AutoScalingResponse(BaseResponse):
         return template.render(policy=policy)
 
     def describe_policies(self):
-        policies = self.autoscaling_backend.describe_policies()
+        policies = self.autoscaling_backend.describe_policies(
+            autoscaling_group_name=self._get_param('AutoScalingGroupName'),
+            policy_names=self._get_multi_param('PolicyNames.member'),
+            policy_types=self._get_multi_param('PolicyTypes.member'))
         template = self.response_template(DESCRIBE_SCALING_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
@@ -373,6 +377,7 @@ DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://
         <AdjustmentType>{{ policy.adjustment_type }}</AdjustmentType>
         <ScalingAdjustment>{{ policy.scaling_adjustment }}</ScalingAdjustment>
         <PolicyName>{{ policy.name }}</PolicyName>
+        <PolicyType>{{ policy.policy_type }}</PolicyType>
         <AutoScalingGroupName>{{ policy.as_name }}</AutoScalingGroupName>
         <Cooldown>{{ policy.cooldown }}</Cooldown>
         <Alarms/>

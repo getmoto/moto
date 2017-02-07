@@ -3,15 +3,18 @@ import collections
 import functools
 import logging
 import copy
+import warnings
 
 from moto.autoscaling import models as autoscaling_models
 from moto.awslambda import models as lambda_models
 from moto.datapipeline import models as datapipeline_models
 from moto.ec2 import models as ec2_models
+from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
 from moto.iam import models as iam_models
 from moto.kms import models as kms_models
 from moto.rds import models as rds_models
+from moto.rds2 import models as rds2_models
 from moto.redshift import models as redshift_models
 from moto.route53 import models as route53_models
 from moto.s3 import models as s3_models
@@ -35,6 +38,7 @@ MODEL_MAP = {
     "AWS::EC2::RouteTable": ec2_models.RouteTable,
     "AWS::EC2::SecurityGroup": ec2_models.SecurityGroup,
     "AWS::EC2::SecurityGroupIngress": ec2_models.SecurityGroupIngress,
+    "AWS::EC2::SpotFleet": ec2_models.SpotFleetRequest,
     "AWS::EC2::Subnet": ec2_models.Subnet,
     "AWS::EC2::SubnetRouteTableAssociation": ec2_models.SubnetRouteTableAssociation,
     "AWS::EC2::Volume": ec2_models.Volume,
@@ -42,6 +46,9 @@ MODEL_MAP = {
     "AWS::EC2::VPC": ec2_models.VPC,
     "AWS::EC2::VPCGatewayAttachment": ec2_models.VPCGatewayAttachment,
     "AWS::EC2::VPCPeeringConnection": ec2_models.VPCPeeringConnection,
+    "AWS::ECS::Cluster": ecs_models.Cluster,
+    "AWS::ECS::TaskDefinition": ecs_models.TaskDefinition,
+    "AWS::ECS::Service": ecs_models.Service,
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
     "AWS::DataPipeline::Pipeline": datapipeline_models.Pipeline,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
@@ -50,6 +57,7 @@ MODEL_MAP = {
     "AWS::RDS::DBInstance": rds_models.Database,
     "AWS::RDS::DBSecurityGroup": rds_models.SecurityGroup,
     "AWS::RDS::DBSubnetGroup": rds_models.SubnetGroup,
+    "AWS::RDS::DBParameterGroup": rds2_models.DBParameterGroup,
     "AWS::Redshift::Cluster": redshift_models.Cluster,
     "AWS::Redshift::ClusterParameterGroup": redshift_models.ParameterGroup,
     "AWS::Redshift::ClusterSubnetGroup": redshift_models.SubnetGroup,
@@ -174,6 +182,8 @@ def parse_resource(logical_id, resource_json, resources_map):
     resource_type = resource_json['Type']
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
+        warnings.warn(
+            "Tried to parse {0} but it's not supported by moto's CloudFormation implementation".format(resource_type))
         return None
 
     resource_json = clean_json(resource_json, resources_map)
@@ -303,7 +313,8 @@ class ResourceMap(collections.Mapping):
             if not resource_json:
                 raise KeyError(resource_logical_id)
             new_resource = parse_and_create_resource(resource_logical_id, resource_json, self, self._region_name)
-            self._parsed_resources[resource_logical_id] = new_resource
+            if new_resource is not None:
+                self._parsed_resources[resource_logical_id] = new_resource
             return new_resource
 
     def __iter__(self):
@@ -328,6 +339,8 @@ class ResourceMap(collections.Mapping):
         # Set any input parameters that were passed
         for key, value in self.input_parameters.items():
             if key in self.resolved_parameters:
+                if parameter_slots[key].get('Type', 'String') == 'CommaDelimitedList':
+                    value = value.split(',')
                 self.resolved_parameters[key] = value
 
         # Check if there are any non-default params that were not passed input params

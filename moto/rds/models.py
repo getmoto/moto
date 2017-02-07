@@ -10,6 +10,7 @@ from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.core import BaseBackend
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
+from moto.rds2.models import rds2_backends
 from .exceptions import DBInstanceNotFoundError, DBSecurityGroupNotFoundError, DBSubnetGroupNotFoundError
 
 
@@ -26,6 +27,11 @@ class Database(object):
         if self.engine_version is None:
             self.engine_version = "5.6.21"
         self.iops = kwargs.get("iops")
+        self.storage_encrypted = kwargs.get("storage_encrypted", False)
+        if self.storage_encrypted:
+            self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
+        else:
+            self.kms_key_id = kwargs.get("kms_key_id")
         self.storage_type = kwargs.get("storage_type")
         self.master_username = kwargs.get('master_username')
         self.master_password = kwargs.get('master_password')
@@ -37,7 +43,6 @@ class Database(object):
         self.source_db_identifier = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get('db_instance_class')
         self.port = kwargs.get('port')
-        self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.db_name = kwargs.get("db_name")
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
@@ -64,6 +69,10 @@ class Database(object):
         # OptionGroupName
         # DBParameterGroupName
         # VpcSecurityGroupIds.member.N
+
+    @property
+    def physical_resource_id(self):
+        return self.db_instance_identifier
 
     @property
     def address(self):
@@ -116,6 +125,7 @@ class Database(object):
             "engine": properties.get("Engine"),
             "engine_version": properties.get("EngineVersion"),
             "iops": properties.get("Iops"),
+            "kms_key_id": properties.get("KmsKeyId"),
             "master_password": properties.get('MasterUserPassword'),
             "master_username": properties.get('MasterUsername'),
             "multi_az": properties.get("MultiAZ"),
@@ -123,14 +133,16 @@ class Database(object):
             "publicly_accessible": properties.get("PubliclyAccessible"),
             "region": region_name,
             "security_groups": security_groups,
+            "storage_encrypted": properties.get("StorageEncrypted"),
             "storage_type": properties.get("StorageType"),
+            "tags": properties.get("Tags"),
         }
 
         rds_backend = rds_backends[region_name]
         source_db_identifier = properties.get("SourceDBInstanceIdentifier")
         if source_db_identifier:
             # Replica
-            db_kwargs["source_db_identifier"] = source_db_identifier.db_instance_identifier
+            db_kwargs["source_db_identifier"] = source_db_identifier
             database = rds_backend.create_database_replica(db_kwargs)
         else:
             database = rds_backend.create_database(db_kwargs)
@@ -201,6 +213,10 @@ class Database(object):
               <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
               <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
+              <StorageEncrypted>{{ database.storage_encrypted }}</StorageEncrypted>
+              {% if database.kms_key_id %}
+              <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
+              {% endif %}
               {% if database.iops %}
               <Iops>{{ database.iops }}</Iops>
               <StorageType>io1</StorageType>
@@ -216,6 +232,10 @@ class Database(object):
               </Endpoint>
             </DBInstance>""")
         return template.render(database=self)
+
+    def delete(self, region_name):
+        backend = rds_backends[region_name]
+        backend.delete_database(self.db_instance_identifier)
 
 
 class SecurityGroup(object):
@@ -264,24 +284,32 @@ class SecurityGroup(object):
         properties = cloudformation_json['Properties']
         group_name = resource_name.lower() + get_random_hex(12)
         description = properties['GroupDescription']
-        security_group_ingress = properties['DBSecurityGroupIngress']
+        security_group_ingress_rules = properties.get('DBSecurityGroupIngress', [])
+        tags = properties.get('Tags')
 
         ec2_backend = ec2_backends[region_name]
         rds_backend = rds_backends[region_name]
         security_group = rds_backend.create_security_group(
             group_name,
             description,
+            tags,
         )
-        for ingress_type, ingress_value in security_group_ingress.items():
-            if ingress_type == "CIDRIP":
-                security_group.authorize_cidr(ingress_value)
-            elif ingress_type == "EC2SecurityGroupName":
-                subnet = ec2_backend.get_security_group_from_name(ingress_value)
-                security_group.authorize_security_group(subnet)
-            elif ingress_type == "EC2SecurityGroupId":
-                subnet = ec2_backend.get_security_group_from_id(ingress_value)
-                security_group.authorize_security_group(subnet)
+
+        for security_group_ingress in security_group_ingress_rules:
+            for ingress_type, ingress_value in security_group_ingress.items():
+                if ingress_type == "CIDRIP":
+                    security_group.authorize_cidr(ingress_value)
+                elif ingress_type == "EC2SecurityGroupName":
+                    subnet = ec2_backend.get_security_group_from_name(ingress_value)
+                    security_group.authorize_security_group(subnet)
+                elif ingress_type == "EC2SecurityGroupId":
+                    subnet = ec2_backend.get_security_group_from_id(ingress_value)
+                    security_group.authorize_security_group(subnet)
         return security_group
+
+    def delete(self, region_name):
+        backend = rds_backends[region_name]
+        backend.delete_security_group(self.group_name)
 
 
 class SubnetGroup(object):
@@ -321,6 +349,7 @@ class SubnetGroup(object):
         subnet_name = resource_name.lower() + get_random_hex(12)
         description = properties['DBSubnetGroupDescription']
         subnet_ids = properties['SubnetIds']
+        tags = properties.get('Tags')
 
         ec2_backend = ec2_backends[region_name]
         subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
@@ -329,102 +358,31 @@ class SubnetGroup(object):
             subnet_name,
             description,
             subnets,
+            tags,
         )
         return subnet_group
+
+    def delete(self, region_name):
+        backend = rds_backends[region_name]
+        backend.delete_subnet_group(self.subnet_name)
 
 
 class RDSBackend(BaseBackend):
 
-    def __init__(self):
-        self.databases = {}
-        self.security_groups = {}
-        self.subnet_groups = {}
+    def __init__(self, region):
+        self.region = region
 
-    def create_database(self, db_kwargs):
-        database_id = db_kwargs['db_instance_identifier']
-        database = Database(**db_kwargs)
-        self.databases[database_id] = database
-        return database
+    def __getattr__(self, attr):
+        return self.rds2_backend().__getattribute__(attr)
 
-    def create_database_replica(self, db_kwargs):
-        database_id = db_kwargs['db_instance_identifier']
-        source_database_id = db_kwargs['source_db_identifier']
-        primary = self.describe_databases(source_database_id)[0]
-        replica = copy.deepcopy(primary)
-        replica.update(db_kwargs)
-        replica.set_as_replica()
-        self.databases[database_id] = replica
-        primary.add_replica(replica)
-        return replica
+    def reset(self):
+        # preserve region
+        region = self.region
+        self.rds2_backend().reset()
+        self.__dict__ = {}
+        self.__init__(region)
 
-    def describe_databases(self, db_instance_identifier=None):
-        if db_instance_identifier:
-            if db_instance_identifier in self.databases:
-                return [self.databases[db_instance_identifier]]
-            else:
-                raise DBInstanceNotFoundError(db_instance_identifier)
-        return self.databases.values()
+    def rds2_backend(self):
+        return rds2_backends[self.region]
 
-    def modify_database(self, db_instance_identifier, db_kwargs):
-        database = self.describe_databases(db_instance_identifier)[0]
-        database.update(db_kwargs)
-        return database
-
-    def delete_database(self, db_instance_identifier):
-        if db_instance_identifier in self.databases:
-            database = self.databases.pop(db_instance_identifier)
-            if database.is_replica:
-                primary = self.describe_databases(database.source_db_identifier)[0]
-                primary.remove_replica(database)
-            database.status = 'deleting'
-            return database
-        else:
-            raise DBInstanceNotFoundError(db_instance_identifier)
-
-    def create_security_group(self, group_name, description):
-        security_group = SecurityGroup(group_name, description)
-        self.security_groups[group_name] = security_group
-        return security_group
-
-    def describe_security_groups(self, security_group_name):
-        if security_group_name:
-            if security_group_name in self.security_groups:
-                return [self.security_groups[security_group_name]]
-            else:
-                raise DBSecurityGroupNotFoundError(security_group_name)
-        return self.security_groups.values()
-
-    def delete_security_group(self, security_group_name):
-        if security_group_name in self.security_groups:
-            return self.security_groups.pop(security_group_name)
-        else:
-            raise DBSecurityGroupNotFoundError(security_group_name)
-
-    def authorize_security_group(self, security_group_name, cidr_ip):
-        security_group = self.describe_security_groups(security_group_name)[0]
-        security_group.authorize_cidr(cidr_ip)
-        return security_group
-
-    def create_subnet_group(self, subnet_name, description, subnets):
-        subnet_group = SubnetGroup(subnet_name, description, subnets)
-        self.subnet_groups[subnet_name] = subnet_group
-        return subnet_group
-
-    def describe_subnet_groups(self, subnet_group_name):
-        if subnet_group_name:
-            if subnet_group_name in self.subnet_groups:
-                return [self.subnet_groups[subnet_group_name]]
-            else:
-                raise DBSubnetGroupNotFoundError(subnet_group_name)
-        return self.subnet_groups.values()
-
-    def delete_subnet_group(self, subnet_name):
-        if subnet_name in self.subnet_groups:
-            return self.subnet_groups.pop(subnet_name)
-        else:
-            raise DBSubnetGroupNotFoundError(subnet_name)
-
-
-rds_backends = {}
-for region in boto.rds.regions():
-    rds_backends[region.name] = RDSBackend()
+rds_backends = dict((region.name, RDSBackend(region.name)) for region in boto.rds.regions())

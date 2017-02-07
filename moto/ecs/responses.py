@@ -70,6 +70,13 @@ class EC2ContainerServiceResponse(BaseResponse):
             #'nextToken': str(uuid.uuid1())
         })
 
+    def describe_task_definition(self):
+        task_definition_str = self._get_param('taskDefinition')
+        task_definition = self.ecs_backend.describe_task_definition(task_definition_str)
+        return json.dumps({
+            'taskDefinition': task_definition.response_object
+        })
+
     def deregister_task_definition(self):
         task_definition_str = self._get_param('taskDefinition')
         task_definition = self.ecs_backend.deregister_task_definition(task_definition_str)
@@ -95,6 +102,14 @@ class EC2ContainerServiceResponse(BaseResponse):
         data = self.ecs_backend.describe_tasks(cluster, tasks)
         return json.dumps({
             'tasks': [task.response_object for task in data],
+            'failures': []
+        })
+
+    def describe_task_definition(self):
+        task_definition_str = self._get_param('taskDefinition')
+        data = self.ecs_backend.describe_task_definition(task_definition_str)
+        return json.dumps({
+            'taskDefinition': data.response_object,
             'failures': []
         })
 
@@ -150,6 +165,15 @@ class EC2ContainerServiceResponse(BaseResponse):
             'serviceArns': service_arns
             # ,
             # 'nextToken': str(uuid.uuid1())
+        })
+
+    def describe_services(self):
+        cluster_str = self._get_param('cluster')
+        service_names = self._get_param('services')
+        services = self.ecs_backend.describe_services(cluster_str, service_names)
+        return json.dumps({
+            'services': [service.response_object for service in services],
+            'failures': []
         })
 
     def update_service(self):
