@@ -1309,10 +1309,12 @@ class SecurityGroupBackend(object):
 
         if group_ids or groupnames or filters:
             for group in all_groups:
-                if ((group_ids and group.id in group_ids) or
-                        (groupnames and group.name in groupnames) or
-                        (filters and group.matches_filters(filters))):
-                    groups.append(group)
+                if ((group_ids and not group.id in group_ids) or
+                        (groupnames and not group.name in groupnames)):
+                    continue
+                if filters and not group.matches_filters(filters):
+                    continue
+                groups.append(group)
         else:
             groups = all_groups
 
