@@ -215,6 +215,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 delimiter='',
                 is_truncated='false',
             )
+        elif querystring.get('list-type', [None])[0] == '2':
+            return 200, headers, self._handle_list_objects_v2(bucket_name, querystring)
 
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get('prefix', [None])[0]
@@ -227,6 +229,49 @@ class ResponseObject(_TemplateEnvironmentMixin):
             delimiter=delimiter,
             result_keys=result_keys,
             result_folders=result_folders
+        )
+
+    def _handle_list_objects_v2(self, bucket_name, querystring):
+        template = self.response_template(S3_BUCKET_GET_RESPONSE_V2)
+        bucket = self.backend.get_bucket(bucket_name)
+
+        prefix = querystring.get('prefix', [None])[0]
+        delimiter = querystring.get('delimiter', [None])[0]
+        result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
+
+        fetch_owner = querystring.get('fetch-owner', [False])[0]
+        max_keys = int(querystring.get('max-keys', [1000])[0])
+        continuation_token = querystring.get('continuation-token', [None])[0]
+        start_after = querystring.get('start-after', [None])[0]
+
+        if continuation_token or start_after:
+            limit = continuation_token or start_after
+            continuation_index = 0
+            for key in result_keys:
+                if key.name > limit:
+                    break
+                continuation_index += 1
+            result_keys = result_keys[continuation_index:]
+
+        if len(result_keys) > max_keys:
+            is_truncated = 'true'
+            result_keys = result_keys[:max_keys]
+            next_continuation_token = result_keys[-1].name
+        else:
+            is_truncated = 'false'
+            next_continuation_token = None
+
+        return template.render(
+            bucket=bucket,
+            prefix=prefix or '',
+            delimiter=delimiter,
+            result_keys=result_keys,
+            result_folders=result_folders,
+            fetch_owner=fetch_owner,
+            max_keys=max_keys,
+            is_truncated=is_truncated,
+            next_continuation_token=next_continuation_token,
+            start_after=None if continuation_token else start_after
         )
 
     def _bucket_response_put(self, request, body, region_name, bucket_name, querystring, headers):
@@ -625,6 +670,46 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
         <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
         <DisplayName>webfile</DisplayName>
       </Owner>
+    </Contents>
+  {% endfor %}
+  {% if delimiter %}
+    {% for folder in result_folders %}
+      <CommonPrefixes>
+        <Prefix>{{ folder }}</Prefix>
+      </CommonPrefixes>
+    {% endfor %}
+  {% endif %}
+  </ListBucketResult>"""
+
+S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>{{ bucket.name }}</Name>
+  <Prefix>{{ prefix }}</Prefix>
+  <MaxKeys>{{ max_keys }}</MaxKeys>
+  <KeyCount>{{ result_keys | length }}</KeyCount>
+{% if delimiter %}
+  <Delimiter>{{ delimiter }}</Delimiter>
+{% endif %}
+  <IsTruncated>{{ is_truncated }}</IsTruncated>
+{% if next_continuation_token %}
+  <NextContinuationToken>{{ next_continuation_token }}</NextContinuationToken>
+{% endif %}
+{% if start_after %}
+  <StartAfter>{{ start_after }}</StartAfter>
+{% endif %}
+  {% for key in result_keys %}
+    <Contents>
+      <Key>{{ key.name }}</Key>
+      <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
+      <ETag>{{ key.etag }}</ETag>
+      <Size>{{ key.size }}</Size>
+      <StorageClass>{{ key.storage_class }}</StorageClass>
+      {% if fetch_owner %}
+      <Owner>
+        <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+        <DisplayName>webfile</DisplayName>
+      </Owner>
+      {% endif %}
     </Contents>
   {% endfor %}
   {% if delimiter %}

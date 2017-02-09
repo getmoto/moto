@@ -995,8 +995,129 @@ def test_boto3_list_keys_xml_escaped():
     s3.create_bucket(Bucket='mybucket')
     key_name = 'Q&A.txt'
     s3.put_object(Bucket='mybucket', Key=key_name, Body=b'is awesome')
+
     resp = s3.list_objects_v2(Bucket='mybucket', Prefix=key_name)
+
     assert resp['Contents'][0]['Key'] == key_name
+    assert resp['KeyCount'] == 1
+    assert resp['MaxKeys'] == 1000
+    assert resp['Prefix'] == key_name
+    assert resp['IsTruncated'] == False
+    assert 'Delimiter' not in resp
+    assert 'StartAfter' not in resp
+    assert 'NextContinuationToken' not in resp
+    assert 'Owner' not in resp['Contents'][0]
+
+
+@mock_s3
+def test_boto3_list_objects_v2_truncated_response():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='one', Body=b'1')
+    s3.put_object(Bucket='mybucket', Key='two', Body=b'22')
+    s3.put_object(Bucket='mybucket', Key='three', Body=b'333')
+
+    # First list
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'one'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == True
+    assert 'Delimiter' not in resp
+    assert 'StartAfter' not in resp
+    assert 'Owner' not in listed_object # owner info was not requested
+
+    next_token = resp['NextContinuationToken']
+
+
+    # Second list
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1, ContinuationToken=next_token)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'three'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == True
+    assert 'Delimiter' not in resp
+    assert 'StartAfter' not in resp
+    assert 'Owner' not in listed_object
+
+    next_token = resp['NextContinuationToken']
+
+
+    # Third list
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1, ContinuationToken=next_token)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'two'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == False
+    assert 'Delimiter' not in resp
+    assert 'Owner' not in listed_object
+    assert 'StartAfter' not in resp
+    assert 'NextContinuationToken' not in resp
+
+
+@mock_s3
+def test_boto3_list_objects_v2_truncated_response_start_after():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='one', Body=b'1')
+    s3.put_object(Bucket='mybucket', Key='two', Body=b'22')
+    s3.put_object(Bucket='mybucket', Key='three', Body=b'333')
+
+    # First list
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1, StartAfter='one')
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'three'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == True
+    assert resp['StartAfter'] == 'one'
+    assert 'Delimiter' not in resp
+    assert 'Owner' not in listed_object
+
+    next_token = resp['NextContinuationToken']
+
+    # Second list
+    # The ContinuationToken must take precedence over StartAfter.
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1, StartAfter='one',
+            ContinuationToken=next_token)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'two'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == False
+    # When ContinuationToken is given, StartAfter is ignored. This also means
+    # AWS does not return it in the response.
+    assert 'StartAfter' not in resp
+    assert 'Delimiter' not in resp
+    assert 'Owner' not in listed_object
+
+
+@mock_s3
+def test_boto3_list_objects_v2_fetch_owner():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='one', Body=b'11')
+
+    resp = s3.list_objects_v2(Bucket='mybucket', FetchOwner=True)
+    owner = resp['Contents'][0]['Owner']
+
+    assert 'ID' in owner
+    assert 'DisplayName' in owner
+    assert len(owner.keys()) == 2
+
 
 @mock_s3
 def test_boto3_bucket_create():
