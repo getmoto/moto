@@ -246,6 +246,7 @@ def test_default_vpc():
     # Create the default VPC
     default_vpc = list(ec2.vpcs.all())[0]
     default_vpc.cidr_block.should.equal('172.31.0.0/16')
+    default_vpc.instance_tenancy.should.equal('default')
     default_vpc.reload()
     default_vpc.is_default.should.be.ok
 
@@ -271,6 +272,9 @@ def test_non_default_vpc():
     vpc.reload()
     vpc.is_default.shouldnt.be.ok
 
+    # Test default instance_tenancy
+    vpc.instance_tenancy.should.equal('default')
+
     # Test default values for VPC attributes
     response = vpc.describe_attribute(Attribute='enableDnsSupport')
     attr = response.get('EnableDnsSupport')
@@ -280,6 +284,19 @@ def test_non_default_vpc():
     attr = response.get('EnableDnsHostnames')
     attr.get('Value').shouldnt.be.ok
 
+@mock_ec2
+def test_vpc_dedicated_tenancy():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock='172.31.0.0/16')
+
+    # Create the non default VPC
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16', InstanceTenancy='dedicated')
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    vpc.instance_tenancy.should.equal('dedicated')
 
 @mock_ec2
 def test_vpc_modify_enable_dns_support():

@@ -1812,12 +1812,13 @@ class EBSBackend(object):
 
 
 class VPC(TaggedEC2Resource):
-    def __init__(self, ec2_backend, vpc_id, cidr_block, is_default):
+    def __init__(self, ec2_backend, vpc_id, cidr_block, is_default, instance_tenancy='default'):
         self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
         self.dhcp_options = None
         self.state = 'available'
+        self.instance_tenancy = instance_tenancy
         self.is_default = 'true' if is_default else 'false'
         self.enable_dns_support = 'true'
         # This attribute is set to 'true' only for default VPCs
@@ -1831,6 +1832,7 @@ class VPC(TaggedEC2Resource):
         ec2_backend = ec2_backends[region_name]
         vpc = ec2_backend.create_vpc(
             cidr_block=properties['CidrBlock'],
+            instance_tenancy=properties.get('InstanceTenancy', 'default')
         )
         return vpc
 
@@ -1843,6 +1845,8 @@ class VPC(TaggedEC2Resource):
             return self.id
         elif filter_name in ('cidr', 'cidr-block', 'cidrBlock'):
             return self.cidr_block
+        elif filter_name in ('instance_tenancy', 'InstanceTenancy'):
+            return self.instance_tenancy
         elif filter_name in ('is-default', 'isDefault'):
             return self.is_default
         elif filter_name == 'state':
@@ -1866,9 +1870,9 @@ class VPCBackend(object):
         self.vpcs = {}
         super(VPCBackend, self).__init__()
 
-    def create_vpc(self, cidr_block):
+    def create_vpc(self, cidr_block, instance_tenancy='default'):
         vpc_id = random_vpc_id()
-        vpc = VPC(self, vpc_id, cidr_block, len(self.vpcs) == 0)
+        vpc = VPC(self, vpc_id, cidr_block, len(self.vpcs) == 0, instance_tenancy)
         self.vpcs[vpc_id] = vpc
 
         # AWS creates a default main route table and security group.
