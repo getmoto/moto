@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import re
-import six
 
 import boto.kms
 from boto.exception import JSONResponseError
@@ -137,25 +136,22 @@ def test_disable_key_rotation():
     conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
 
 
-# Scoping encryption/decryption to only Python 2 because our test suite
-# hardcodes a dependency on boto version 2.36.0 which is not compatible with
-# Python 3 (2.40+, however, passes these tests).
-if six.PY2:
-    @mock_kms
-    def test_encrypt():
-        """
-        Using base64 encoding to merely test that the endpoint was called
-        """
-        conn = boto.kms.connect_to_region("us-west-2")
-        response = conn.encrypt('key_id', 'encryptme'.encode('utf-8'))
-        response['CiphertextBlob'].should.equal('ZW5jcnlwdG1l')
+@mock_kms
+def test_encrypt():
+    """
+    test_encrypt
+    Using base64 encoding to merely test that the endpoint was called
+    """
+    conn = boto.kms.connect_to_region("us-west-2")
+    response = conn.encrypt('key_id', 'encryptme'.encode('utf-8'))
+    response['CiphertextBlob'].should.equal(b'ZW5jcnlwdG1l')
 
 
-    @mock_kms
-    def test_decrypt():
-        conn = boto.kms.connect_to_region('us-west-2')
-        response = conn.decrypt('ZW5jcnlwdG1l'.encode('utf-8'))
-        response['Plaintext'].should.equal('encryptme')
+@mock_kms
+def test_decrypt():
+    conn = boto.kms.connect_to_region('us-west-2')
+    response = conn.decrypt('ZW5jcnlwdG1l'.encode('utf-8'))
+    response['Plaintext'].should.equal(b'encryptme')
 
 
 @mock_kms
