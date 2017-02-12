@@ -1,12 +1,6 @@
 from __future__ import unicode_literals
 from .models import swf_backends
-from ..core.models import MockAWS
+from ..core.models import MockAWS, base_decorator
 
 swf_backend = swf_backends['us-east-1']
-
-
-def mock_swf(func=None):
-    if func:
-        return MockAWS(swf_backends)(func)
-    else:
-        return MockAWS(swf_backends)
+mock_swf = base_decorator(swf_backends)

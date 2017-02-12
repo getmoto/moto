@@ -186,3 +186,16 @@ class BaseBackend(object):
             return MockAWS({'global': self})(func)
         else:
             return MockAWS({'global': self})
+
+
+class base_decorator(object):
+    mock_backend = MockAWS
+
+    def __init__(self, backends):
+        self.backends = backends
+
+    def __call__(self, func=None):
+        if func:
+            return self.mock_backend(self.backends)(func)
+        else:
+            return self.mock_backend(self.backends)
