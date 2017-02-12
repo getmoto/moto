@@ -15,12 +15,11 @@ from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-sqs = boto3.resource('sqs')
+sqs = boto3.resource('sqs', region_name='us-east-1')
 
 
 @mock_sqs
 def test_create_queue():
-    sqs = boto3.resource('sqs', region_name='us-east-1')
     new_queue = sqs.create_queue(QueueName='test-queue')
     new_queue.should_not.be.none
     new_queue.should.have.property('url').should.contain('test-queue')
@@ -35,13 +34,11 @@ def test_create_queue():
 
 @mock_sqs
 def test_get_inexistent_queue():
-    sqs = boto3.resource('sqs', region_name='us-east-1')
     sqs.get_queue_by_name.when.called_with(QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
 
 
 @mock_sqs
 def test_message_send():
-    sqs = boto3.resource('sqs', region_name='us-east-1')
     queue = sqs.create_queue(QueueName="blah")
     msg = queue.send_message(MessageBody="derp")
 
@@ -55,7 +52,6 @@ def test_message_send():
 
 @mock_sqs
 def test_set_queue_attributes():
-    sqs = boto3.resource('sqs', region_name='us-east-1')
     queue = sqs.create_queue(QueueName="blah")
 
     queue.attributes['VisibilityTimeout'].should.equal("30")
@@ -94,7 +90,7 @@ def test_get_queue_with_prefix():
 
 @mock_sqs
 def test_delete_queue():
-    conn = boto3.client("sqs")
+    conn = boto3.client("sqs", region_name='us-east-1')
     conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": "60"})
     queue = sqs.Queue('test-queue')
 
@@ -109,7 +105,7 @@ def test_delete_queue():
 
 @mock_sqs
 def test_set_queue_attribute():
-    conn = boto3.client("sqs")
+    conn = boto3.client("sqs", region_name='us-east-1')
     conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": '60'})
 
     queue = sqs.Queue("test-queue")
@@ -122,7 +118,7 @@ def test_set_queue_attribute():
 
 @mock_sqs
 def test_send_message():
-    conn = boto3.client("sqs")
+    conn = boto3.client("sqs", region_name='us-east-1')
     conn.create_queue(QueueName="test-queue")
     queue = sqs.Queue("test-queue")
 
