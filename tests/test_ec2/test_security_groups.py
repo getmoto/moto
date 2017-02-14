@@ -610,3 +610,16 @@ def test_authorize_and_revoke_in_bulk():
     sg01.ip_permissions_egress.should.have.length_of(1)
     for ip_permission in expected_ip_permissions:
         sg01.ip_permissions_egress.shouldnt.contain(ip_permission)
+
+@mock_ec2
+def test_get_all_security_groups_filter_with_same_vpc_id():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+    vpc_id = 'vpc-5300000c'
+    security_group = conn.create_security_group('test1', 'test1', vpc_id=vpc_id)
+    security_group2 = conn.create_security_group('test2', 'test2', vpc_id=vpc_id)
+
+    security_group.vpc_id.should.equal(vpc_id)
+    security_group2.vpc_id.should.equal(vpc_id)
+
+    security_groups = conn.get_all_security_groups(group_ids=[security_group.id], filters={'vpc-id': [vpc_id]})
+    security_groups.should.have.length_of(1)

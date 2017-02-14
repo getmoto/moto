@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
-from moto.core.responses import BaseResponse, JSONResponseError
+
+from boto.exception import JSONResponseError
+from moto.core.responses import BaseResponse
 
 
 class IPAddresses(BaseResponse):

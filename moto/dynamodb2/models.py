@@ -56,7 +56,10 @@ class DynamoType(object):
     @property
     def cast_value(self):
         if self.type == 'N':
-            return int(self.value)
+            try:
+                return int(self.value)
+            except ValueError:
+                return float(self.value)
         else:
             return self.value
 

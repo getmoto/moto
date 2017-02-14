@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+
 import boto
 import boto3
 import botocore.exceptions
@@ -11,102 +12,126 @@ import time
 
 from moto import mock_sqs
 from tests.helpers import requires_boto_gte
+import tests.backport_assert_raises  # noqa
+from nose.tools import assert_raises
+
+sqs = boto3.resource('sqs', region_name='us-east-1')
 
 
 @mock_sqs
 def test_create_queue():
-    conn = boto.connect_sqs('the_key', 'the_secret')
-    conn.create_queue("test-queue", visibility_timeout=60)
+    new_queue = sqs.create_queue(QueueName='test-queue')
+    new_queue.should_not.be.none
+    new_queue.should.have.property('url').should.contain('test-queue')
 
-    all_queues = conn.get_all_queues()
-    all_queues[0].name.should.equal("test-queue")
+    queue = sqs.get_queue_by_name(QueueName='test-queue')
+    queue.attributes.get('QueueArn').should_not.be.none
+    queue.attributes.get('QueueArn').split(':')[-1].should.equal('test-queue')
+    queue.attributes.get('QueueArn').split(':')[3].should.equal('us-east-1')
+    queue.attributes.get('VisibilityTimeout').should_not.be.none
+    queue.attributes.get('VisibilityTimeout').should.equal('30')
 
-    all_queues[0].get_timeout().should.equal(60)
+
+@mock_sqs
+def test_get_inexistent_queue():
+    sqs.get_queue_by_name.when.called_with(QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
+
+
+@mock_sqs
+def test_message_send():
+    queue = sqs.create_queue(QueueName="blah")
+    msg = queue.send_message(MessageBody="derp")
+
+    msg.get('MD5OfMessageBody').should.equal('58fd9edd83341c29f1aebba81c31e257')
+    msg.get('ResponseMetadata', {}).get('RequestId').should.equal('27daac76-34dd-47df-bd01-1f6e873584a0')
+    msg.get('MessageId').should_not.contain(' \n')
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_set_queue_attributes():
+    queue = sqs.create_queue(QueueName="blah")
+
+    queue.attributes['VisibilityTimeout'].should.equal("30")
+
+    queue.set_attributes(Attributes={"VisibilityTimeout": "45"})
+    queue.attributes['VisibilityTimeout'].should.equal("45")
 
 
 @mock_sqs
 def test_create_queues_in_multiple_region():
-    west1_conn = boto.sqs.connect_to_region("us-west-1")
-    west1_conn.create_queue("test-queue")
+    west1_conn = boto3.client('sqs', region_name='us-west-1')
+    west1_conn.create_queue(QueueName="blah")
 
-    west2_conn = boto.sqs.connect_to_region("us-west-2")
-    west2_conn.create_queue("test-queue")
+    west2_conn = boto3.client('sqs', region_name='us-west-2')
+    west2_conn.create_queue(QueueName="test-queue")
 
-    list(west1_conn.get_all_queues()).should.have.length_of(1)
-    list(west2_conn.get_all_queues()).should.have.length_of(1)
+    list(west1_conn.list_queues()['QueueUrls']).should.have.length_of(1)
+    list(west2_conn.list_queues()['QueueUrls']).should.have.length_of(1)
 
-    west1_conn.get_all_queues()[0].url.should.equal('http://sqs.us-west-1.amazonaws.com/123456789012/test-queue')
-
-
-@mock_sqs
-def test_get_queue():
-    conn = boto.connect_sqs('the_key', 'the_secret')
-    conn.create_queue("test-queue", visibility_timeout=60)
-
-    queue = conn.get_queue("test-queue")
-    queue.name.should.equal("test-queue")
-    queue.get_timeout().should.equal(60)
-
-    nonexisting_queue = conn.get_queue("nonexisting_queue")
-    nonexisting_queue.should.be.none
+    west1_conn.list_queues()['QueueUrls'][0].should.equal('http://sqs.us-west-1.amazonaws.com/123456789012/blah')
 
 
 @mock_sqs
 def test_get_queue_with_prefix():
-    conn = boto.connect_sqs('the_key', 'the_secret')
-    conn.create_queue("prefixa-queue")
-    conn.create_queue("prefixb-queue")
-    conn.create_queue("test-queue")
+    conn = boto3.client("sqs", region_name='us-west-1')
+    conn.create_queue(QueueName="prefixa-queue")
+    conn.create_queue(QueueName="prefixb-queue")
+    conn.create_queue(QueueName="test-queue")
 
-    conn.get_all_queues().should.have.length_of(3)
+    conn.list_queues()['QueueUrls'].should.have.length_of(3)
 
-    queue = conn.get_all_queues("test-")
+    queue = conn.list_queues(QueueNamePrefix="test-")['QueueUrls']
     queue.should.have.length_of(1)
-    queue[0].name.should.equal("test-queue")
+    queue[0].should.equal("http://sqs.us-west-1.amazonaws.com/123456789012/test-queue")
 
 
 @mock_sqs
 def test_delete_queue():
-    conn = boto.connect_sqs('the_key', 'the_secret')
-    queue = conn.create_queue("test-queue", visibility_timeout=60)
+    conn = boto3.client("sqs", region_name='us-east-1')
+    conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": "60"})
+    queue = sqs.Queue('test-queue')
 
-    conn.get_all_queues().should.have.length_of(1)
+    conn.list_queues()['QueueUrls'].should.have.length_of(1)
 
     queue.delete()
-    conn.get_all_queues().should.have.length_of(0)
+    conn.list_queues().get('QueueUrls').should.equal(None)
 
-    queue.delete.when.called_with().should.throw(SQSError)
+    with assert_raises(botocore.exceptions.ClientError):
+        queue.delete()
 
 
 @mock_sqs
 def test_set_queue_attribute():
-    conn = boto.connect_sqs('the_key', 'the_secret')
-    conn.create_queue("test-queue", visibility_timeout=60)
+    conn = boto3.client("sqs", region_name='us-east-1')
+    conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": '60'})
 
-    queue = conn.get_all_queues()[0]
-    queue.get_timeout().should.equal(60)
+    queue = sqs.Queue("test-queue")
+    queue.attributes['VisibilityTimeout'].should.equal('60')
 
-    queue.set_attribute("VisibilityTimeout", 45)
-    queue = conn.get_all_queues()[0]
-    queue.get_timeout().should.equal(45)
+    queue.set_attributes(Attributes={"VisibilityTimeout": '45'})
+    queue = sqs.Queue("test-queue")
+    queue.attributes['VisibilityTimeout'].should.equal('45')
 
 
 @mock_sqs
 def test_send_message():
-    conn = boto.connect_sqs('the_key', 'the_secret')
-    queue = conn.create_queue("test-queue", visibility_timeout=60)
-    queue.set_message_class(RawMessage)
+    conn = boto3.client("sqs", region_name='us-east-1')
+    conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
 
     body_one = 'this is a test message'
     body_two = 'this is another test message'
 
-    queue.write(queue.new_message(body_one))
-    queue.write(queue.new_message(body_two))
+    response = queue.send_message(MessageBody=body_one)
+    response = queue.send_message(MessageBody=body_two)
 
-    messages = conn.receive_message(queue, number_messages=2)
+    messages = conn.receive_message(QueueUrl=queue.url, MaxNumberOfMessages=2)['Messages']
 
-    messages[0].get_body().should.equal(body_one)
-    messages[1].get_body().should.equal(body_two)
+    messages[0]['Body'].should.equal(body_one)
+    messages[1]['Body'].should.equal(body_two)
 
 
 @mock_sqs
@@ -495,53 +520,3 @@ def test_delete_message_after_visibility_timeout():
     m1_retrieved.delete()
 
     assert new_queue.count() == 0
-
-"""
-boto3
-"""
-
-
-@mock_sqs
-def test_boto3_get_queue():
-    sqs = boto3.resource('sqs', region_name='us-east-1')
-    new_queue = sqs.create_queue(QueueName='test-queue')
-    new_queue.should_not.be.none
-    new_queue.should.have.property('url').should.contain('test-queue')
-
-    queue = sqs.get_queue_by_name(QueueName='test-queue')
-    queue.attributes.get('QueueArn').should_not.be.none
-    queue.attributes.get('QueueArn').split(':')[-1].should.equal('test-queue')
-    queue.attributes.get('QueueArn').split(':')[3].should.equal('us-east-1')
-    queue.attributes.get('VisibilityTimeout').should_not.be.none
-    queue.attributes.get('VisibilityTimeout').should.equal('30')
-
-
-@mock_sqs
-def test_boto3_get_inexistent_queue():
-    sqs = boto3.resource('sqs', region_name='us-east-1')
-    sqs.get_queue_by_name.when.called_with(QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
-
-
-@mock_sqs
-def test_boto3_message_send():
-    sqs = boto3.resource('sqs', region_name='us-east-1')
-    queue = sqs.create_queue(QueueName="blah")
-    msg = queue.send_message(MessageBody="derp")
-
-    msg.get('MD5OfMessageBody').should.equal('58fd9edd83341c29f1aebba81c31e257')
-    msg.get('ResponseMetadata', {}).get('RequestId').should.equal('27daac76-34dd-47df-bd01-1f6e873584a0')
-    msg.get('MessageId').should_not.contain(' \n')
-
-    messages = queue.receive_messages()
-    messages.should.have.length_of(1)
-
-
-@mock_sqs
-def test_boto3_set_queue_attributes():
-    sqs = boto3.resource('sqs', region_name='us-east-1')
-    queue = sqs.create_queue(QueueName="blah")
-
-    queue.attributes['VisibilityTimeout'].should.equal("30")
-
-    queue.set_attributes(Attributes={"VisibilityTimeout": "45"})
-    queue.attributes['VisibilityTimeout'].should.equal("45")

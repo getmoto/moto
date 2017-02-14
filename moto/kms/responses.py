@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import base64
 import json
 import re
+import six
 
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -220,11 +221,14 @@ class KmsResponse(BaseResponse):
         decode it in decrypt().
         """
         value = self.parameters.get("Plaintext")
-        return json.dumps({"CiphertextBlob": base64.b64encode(value).encode("utf-8")})
+        if isinstance(value, six.text_type):
+            value = value.encode('utf-8')
+        return json.dumps({"CiphertextBlob": base64.b64encode(value).decode("utf-8")})
 
     def decrypt(self):
         value = self.parameters.get("CiphertextBlob")
-        return json.dumps({"Plaintext": base64.b64decode(value).encode("utf-8")})
+        print("value 3", value)
+        return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8")})
 
 
 def _assert_valid_key_id(key_id):
