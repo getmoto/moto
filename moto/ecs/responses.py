@@ -219,3 +219,13 @@ class EC2ContainerServiceResponse(BaseResponse):
                 'failures': [ci.response_object for ci in failures],
                 'containerInstances': [ci.response_object for ci in container_instances]
         })
+
+    def update_container_instances_state(self):
+        cluster_str = self._get_param('cluster')
+        list_container_instance_arns = self._get_param('containerInstances')
+        status_str = self._get_param('status')
+        container_instances, failures = self.ecs_backend.update_container_instances_state(cluster_str, list_container_instance_arns, status_str)
+        return json.dumps({
+            'failures': [ci.response_object for ci in failures],
+            'containerInstances': [ci.response_object for ci in container_instances]
+        })
