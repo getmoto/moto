@@ -34,7 +34,12 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_arns = self.ecs_backend.list_clusters()
         return json.dumps({
             'clusterArns': cluster_arns
+<<<<<<< HEAD
             #  'nextToken': str(uuid.uuid1())
+=======
+            # ,
+            # 'nextToken': str(uuid.uuid1())
+>>>>>>> PEP8 cleanup
         })
 
     def describe_clusters(self):
@@ -66,6 +71,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition_arns = self.ecs_backend.list_task_definitions()
         return json.dumps({
             'taskDefinitionArns': task_definition_arns
+<<<<<<< HEAD
             #  'nextToken': str(uuid.uuid1())
         })
 
@@ -75,6 +81,10 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({
             'taskDefinition': data.response_object,
             'failures': []
+=======
+            # ,
+            # 'nextToken': str(uuid.uuid1())
+>>>>>>> PEP8 cleanup
         })
 
     def deregister_task_definition(self):
@@ -216,16 +226,6 @@ class EC2ContainerServiceResponse(BaseResponse):
         list_container_instance_arns = self._get_param('containerInstances')
         container_instances, failures = self.ecs_backend.describe_container_instances(
             cluster_str, list_container_instance_arns)
-        return json.dumps({
-            'failures': [ci.response_object for ci in failures],
-            'containerInstances': [ci.response_object for ci in container_instances]
-        })
-
-    def update_container_instances_state(self):
-        cluster_str = self._get_param('cluster')
-        list_container_instance_arns = self._get_param('containerInstances')
-        status_str = self._get_param('status')
-        container_instances, failures = self.ecs_backend.update_container_instances_state(cluster_str, list_container_instance_arns, status_str)
         return json.dumps({
             'failures': [ci.response_object for ci in failures],
             'containerInstances': [ci.response_object for ci in container_instances]
