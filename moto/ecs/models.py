@@ -595,6 +595,24 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return container_instance_objects, failures
 
+    def update_container_instances_state(self, cluster_str, list_container_instance_ids, status):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name not in self.clusters:
+            raise Exception("{0} is not a cluster".format(cluster_name))
+        if status.upper() not in ['ACTIVE', 'DRAINING']:
+            raise Exception("InvalidParameterException: An error occurred (InvalidParameterException) when calling the UpdateContainerInstancesState operation: Container instances status should be one of [ACTIVE,DRAINING]")
+        failures = []
+        container_instance_objects = []
+        for container_instance_id in list_container_instance_ids:
+            container_instance = self.container_instances[cluster_name].get(container_instance_id, None)
+            if container_instance is not None:
+                container_instance.status = status
+                container_instance_objects.append(container_instance)
+            else:
+                failures.append(ContainerInstanceFailure('MISSING', container_instance_id))
+
+        return container_instance_objects, failures
+
     def deregister_container_instance(self, cluster_str, container_instance_str):
         pass
 
