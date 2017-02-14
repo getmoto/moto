@@ -741,7 +741,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
         if status.upper() not in ['ACTIVE', 'DRAINING']:
-            raise Exception("InvalidParameterException: An error occurred (InvalidParameterException) when calling the UpdateContainerInstancesState operation: Container instances status should be one of [ACTIVE,DRAINING]")
+            raise Exception("An error occurred (InvalidParameterException) when calling the UpdateContainerInstancesState operation: Container instances status should be one of [ACTIVE,DRAINING]")
         failures = []
         container_instance_objects = []
         for container_instance_id in list_container_instance_ids:
