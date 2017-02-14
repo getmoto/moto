@@ -363,9 +363,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instances = list(self.container_instances.get(cluster_name, {}).keys())
         if not container_instances:
             raise Exception("No instances found in cluster {}".format(cluster_name))
+        active_container_instances = [x for x in container_instances if self.container_instances[cluster_name][x].status=='ACTIVE']
         for _ in range(count or 1):
             container_instance_arn = self.container_instances[cluster_name][
-                container_instances[randint(0, len(container_instances) - 1)]
+                active_container_instances[randint(0, len(active_container_instances) - 1)]
             ].containerInstanceArn
             task = Task(cluster, task_definition, container_instance_arn, overrides or {}, started_by or '')
             tasks.append(task)
@@ -542,7 +543,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
         if status.upper() not in ['ACTIVE', 'DRAINING']:
-            raise Exception("InvalidParameterException: An error occurred (InvalidParameterException) when calling the UpdateContainerInstancesState operation: Container instances status should be one of [ACTIVE,DRAINING]")
+            raise Exception("An error occurred (InvalidParameterException) when calling the UpdateContainerInstancesState operation: Container instances status should be one of [ACTIVE,DRAINING]")
         failures = []
         container_instance_objects = []
         for container_instance_id in list_container_instance_ids:
