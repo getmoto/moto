@@ -143,7 +143,7 @@ def clean_json(resource_json, resources_map):
 
         if 'Fn::If' in resource_json:
             condition_name, true_value, false_value = resource_json['Fn::If']
-            if resources_map[condition_name]:
+            if resources_map.lazy_condition_map[condition_name]:
                 return clean_json(true_value, resources_map)
             else:
                 return clean_json(false_value, resources_map)
@@ -206,7 +206,7 @@ def parse_resource(logical_id, resource_json, resources_map):
 
 def parse_and_create_resource(logical_id, resource_json, resources_map, region_name):
     condition = resource_json.get('Condition')
-    if condition and not resources_map[condition]:
+    if condition and not resources_map.lazy_condition_map[condition]:
         # If this has a False condition, don't create the resource
         return None
 
@@ -352,13 +352,13 @@ class ResourceMap(collections.Mapping):
 
     def load_conditions(self):
         conditions = self._template.get('Conditions', {})
-        lazy_condition_map = LazyDict()
+        self.lazy_condition_map = LazyDict()
         for condition_name, condition in conditions.items():
-            lazy_condition_map[condition_name] = functools.partial(parse_condition,
-                condition, self._parsed_resources, lazy_condition_map)
+            self.lazy_condition_map[condition_name] = functools.partial(parse_condition,
+                condition, self._parsed_resources, self.lazy_condition_map)
 
-        for condition_name in lazy_condition_map:
-            self._parsed_resources[condition_name] = lazy_condition_map[condition_name]
+        for condition_name in self.lazy_condition_map:
+            _ = self.lazy_condition_map[condition_name]
 
     def create(self):
         self.load_mapping()
