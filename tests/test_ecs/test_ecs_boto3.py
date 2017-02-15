@@ -531,8 +531,8 @@ def test_register_container_instance():
         'arn:aws:ecs:us-east-1:012345678910:container-instance')
     arn_part[1].should.equal(str(UUID(arn_part[1])))
     response['containerInstance']['status'].should.equal('ACTIVE')
-    len(response['containerInstance']['registeredResources']).should.equal(0)
-    len(response['containerInstance']['remainingResources']).should.equal(0)
+    len(response['containerInstance']['registeredResources']).should.equal(4)
+    len(response['containerInstance']['remainingResources']).should.equal(4)
     response['containerInstance']['agentConnected'].should.equal(True)
     response['containerInstance']['versionInfo'][
         'agentVersion'].should.equal('1.0.0')

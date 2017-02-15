@@ -130,7 +130,6 @@ class TaskDefinition(BaseObject):
                 original_resource.volumes != volumes):
                 # currently TaskRoleArn isn't stored at TaskDefinition
                 # instances
-
             ecs_backend = ecs_backends[region_name]
             ecs_backend.deregister_task_definition(original_resource.arn)
             return ecs_backend.register_task_definition(
@@ -240,12 +239,57 @@ class ContainerInstance(BaseObject):
     def __init__(self, ec2_instance_id):
         self.ec2_instance_id = ec2_instance_id
         self.status = 'ACTIVE'
-        self.registeredResources = []
+        self.registeredResources = [
+            {'doubleValue': 0.0,
+             'integerValue': 4096,
+             'longValue': 0,
+             'name': 'CPU',
+             'type': 'INTEGER'},
+            {'doubleValue': 0.0,
+             'integerValue': 7482,
+             'longValue': 0,
+             'name': 'MEMORY',
+             'type': 'INTEGER'},
+            {'doubleValue': 0.0,
+             'integerValue': 0,
+             'longValue': 0,
+             'name': 'PORTS',
+             'stringSetValue': ['22', '2376', '2375', '51678', '51679'],
+             'type': 'STRINGSET'},
+            {'doubleValue': 0.0,
+             'integerValue': 0,
+             'longValue': 0,
+             'name': 'PORTS_UDP',
+             'stringSetValue': [],
+             'type': 'STRINGSET'}]
         self.agentConnected = True
         self.containerInstanceArn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(
             str(uuid.uuid1()))
         self.pendingTaskCount = 0
-        self.remainingResources = []
+        self.remainingResources = [
+            {'doubleValue': 0.0,
+             'integerValue': 4096,
+             'longValue': 0,
+             'name': 'CPU',
+             'type': 'INTEGER'},
+            {'doubleValue': 0.0,
+             'integerValue': 7482,
+             'longValue': 0,
+             'name': 'MEMORY',
+             'type': 'INTEGER'},
+            {'doubleValue': 0.0,
+             'integerValue': 0,
+             'longValue': 0,
+             'name': 'PORTS',
+             'stringSetValue': ['22', '2376', '2375', '51678', '51679'],
+             'type': 'STRINGSET'},
+            {'doubleValue': 0.0,
+             'integerValue': 0,
+             'longValue': 0,
+             'name': 'PORTS_UDP',
+             'stringSetValue': [],
+             'type': 'STRINGSET'}
+        ]
         self.runningTaskCount = 0
         self.versionInfo = {
             'agentVersion': "1.0.0",
@@ -600,7 +644,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("{0} is not a cluster".format(cluster_name))
         status = status.upper()
         if status not in ['ACTIVE', 'DRAINING']:
-            raise Exception("An error occurred (InvalidParameterException) when calling the UpdateContainerInstancesState operation: Container instances status should be one of [ACTIVE,DRAINING]")
+            raise Exception(
+                "An error occurred (InvalidParameterException) when calling the UpdateContainerInstancesState operation: Container instances status should be one of [ACTIVE,DRAINING]")
         failures = []
         container_instance_objects = []
         for container_instance_id in list_container_instance_ids:
