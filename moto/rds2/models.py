@@ -2,9 +2,8 @@ from __future__ import unicode_literals
 
 import copy
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import boto.rds2
-import json
 from jinja2 import Template
 from re import compile as re_compile
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -18,7 +17,6 @@ from .exceptions import (RDSClientError,
                          DBParameterGroupNotFoundError)
 
 
-
 class Database(object):
     def __init__(self, **kwargs):
         self.status = "available"
@@ -27,19 +25,23 @@ class Database(object):
         self.region = kwargs.get('region')
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version", None)
-        self.default_engine_versions = {"MySQL": "5.6.21",
-                                        "mysql": "5.6.21",
-                                        "oracle-se1": "11.2.0.4.v3",
-                                        "oracle-se": "11.2.0.4.v3",
-                                        "oracle-ee": "11.2.0.4.v3",
-                                        "sqlserver-ee": "11.00.2100.60.v1",
-                                        "sqlserver-se": "11.00.2100.60.v1",
-                                        "sqlserver-ex": "11.00.2100.60.v1",
-                                        "sqlserver-web": "11.00.2100.60.v1",
-                                        "postgres": "9.3.3"
-                                        }
-        if not self.engine_version and self.engine in self.default_engine_versions:
-            self.engine_version = self.default_engine_versions[self.engine]
+
+        EngineSettings = namedtuple('EngineSettings', ['version', 'port'])
+        self.default_engine_settings = {
+            "MySQL": EngineSettings(version="5.6.21", port="3306"),
+            "mysql": EngineSettings(version="5.6.21", port="3306"),
+            "oracle-se1": EngineSettings(version="11.2.0.4.v3", port="1521"),
+            "oracle-se": EngineSettings(version="11.2.0.4.v3", port="1521"),
+            "oracle-ee": EngineSettings(version="11.2.0.4.v3", port="1521"),
+            "sqlserver-ee": EngineSettings(version="11.00.2100.60.v1", port="1433"),
+            "sqlserver-se": EngineSettings(version="11.00.2100.60.v1", port="1433"),
+            "sqlserver-ex": EngineSettings(version="11.00.2100.60.v1", port="1433"),
+            "sqlserver-web": EngineSettings(version="11.00.2100.60.v1", port="1433"),
+            "postgres": EngineSettings(version="9.3.3", port="5432")
+        }
+
+        if not self.engine_version and self.engine in self.default_engine_settings:
+            self.engine_version = self.default_engine_settings[self.engine].version
         self.iops = kwargs.get("iops")
         self.storage_encrypted = kwargs.get("storage_encrypted", False)
         if self.storage_encrypted:
@@ -57,6 +59,8 @@ class Database(object):
         self.source_db_identifier = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get('db_instance_class')
         self.port = kwargs.get('port')
+        if not self.port and self.engine in self.default_engine_settings:
+            self.port = self.default_engine_settings[self.engine].port
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.db_name = kwargs.get("db_name")
         self.publicly_accessible = kwargs.get("publicly_accessible")
@@ -90,6 +94,7 @@ class Database(object):
             self.option_group_name = self.default_option_groups[self.engine]
         self.character_set_name = kwargs.get('character_set_name', None)
         self.tags = kwargs.get('tags', [])
+        self.address_gen = lambda instance_id, region: "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(instance_id, region)
 
     @property
     def physical_resource_id(self):
@@ -207,7 +212,7 @@ class Database(object):
 
     @property
     def address(self):
-        return "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(self.db_instance_identifier, self.region)
+        return self.address_gen(self.db_instance_identifier, self.region)
 
     def add_replica(self, replica):
         self.replicas.append(replica.db_instance_identifier)
@@ -578,6 +583,7 @@ class RDS2Backend(BaseBackend):
         database_id = db_kwargs['db_instance_identifier']
         database = Database(**db_kwargs)
         self.databases[database_id] = database
+        self.publisher.notify(self.publisher.events.RDS2_DATABASE_CREATED, database)
         return database
 
     def create_database_replica(self, db_kwargs):
@@ -832,12 +838,6 @@ class RDS2Backend(BaseBackend):
 
         return db_parameter_group
 
-    def delete_db_parameter_group(self, db_parameter_group_name):
-        if db_parameter_group_name in self.db_parameter_groups:
-            return self.db_parameter_groups.pop(db_parameter_group_name)
-        else:
-            raise DBParameterGroupNotFoundError(db_parameter_group_name)
-
     def list_tags_for_resource(self, arn):
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(':')
@@ -1062,6 +1062,7 @@ class OptionGroupOptionSetting(object):
     <SettingName>{{ option_group_option_setting.setting_name }}</SettingName>
 </OptionGroupOptionSetting>""")
         return template.render(option_group_option_setting=self)
+
 
 class DBParameterGroup(object):
     def __init__(self, name, description, family, tags):

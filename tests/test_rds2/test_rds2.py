@@ -1,11 +1,10 @@
 from __future__ import unicode_literals
 
-import boto.rds2
-import boto.vpc
 from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
+from moto.core.publisher import default_publisher, EventTypes
 from tests.helpers import disable_on_py3
 
 
@@ -27,6 +26,32 @@ def test_create_database():
     database['DBInstance']['DBInstanceClass'].should.equal("db.m1.small")
     database['DBInstance']['MasterUsername'].should.equal("root")
     database['DBInstance']['DBSecurityGroups'][0]['DBSecurityGroupName'].should.equal('my_sg')
+
+
+@disable_on_py3()
+@mock_rds2
+def test_create_database_triggers_event():
+    def on_database_created(_event_id, database):
+        database.master_username = database.master_username[::-1]  # reverse
+        database.port = 4567
+        database.address_gen = lambda instance_id, region: "{0}.{1}.somewhere-else.com".format(instance_id, region)
+
+    default_publisher.subscribe(on_database_created, EventTypes.RDS2_DATABASE_CREATED)
+
+    conn = boto3.client('rds', region_name='us-west-2')
+    instance = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+                                       AllocatedStorage=10,
+                                       Engine='postgres',
+                                       DBInstanceClass='db.m1.small',
+                                       MasterUsername='root',
+                                       MasterUserPassword='hunter2',
+                                       Port=1234,
+                                       DBSecurityGroups=["my_sg"])['DBInstance']
+
+    instance['MasterUsername'].should.equal("toor")
+    instance['Endpoint']['Port'].should.equal(4567)
+    instance['Endpoint']['Address'].should.equal("db-master-1.us-west-2.somewhere-else.com")
+    default_publisher.reset()
 
 
 @disable_on_py3()

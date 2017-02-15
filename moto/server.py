@@ -14,9 +14,13 @@ from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
 from moto.backends import BACKENDS
+from moto.compat import load_module
+from moto.core.publisher import default_publisher
 from moto.core.utils import convert_flask_to_httpretty_response
 
+
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
+ADDITIONAL_URL_BASES = [r"https?://{0}\.(.+)\.xip\.io"]  # see http://xip.io/
 
 
 class DomainDispatcherApplication(object):
@@ -36,9 +40,10 @@ class DomainDispatcherApplication(object):
             return self.service
 
         for backend_name, backend in BACKENDS.items():
-            for url_base in backend.url_bases:
-                if re.match(url_base, 'http://%s' % host):
-                    return backend_name
+            url_bases = backend.url_bases + [url_base.format(backend_name)
+                                             for url_base in ADDITIONAL_URL_BASES]
+            if any(re.match(url_base, 'http://%s' % host) for url_base in url_bases):
+                return backend_name
 
         raise RuntimeError('Invalid host: "%s"' % host)
 
@@ -120,6 +125,13 @@ def create_backend_app(service):
     return backend_app
 
 
+def load_script_extension(script_path):
+    mod = load_module('moto.extension', script_path)
+    bootstrap = getattr(mod, 'start')
+    if callable(bootstrap):
+        bootstrap(default_publisher)
+
+
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
 
@@ -143,8 +155,16 @@ def main(argv=sys.argv[1:]):
         help='Reload server on a file change',
         default=False
     )
+    parser.add_argument(
+        '-s', '--script', type=str,
+        help='Path to python script implementing extensions',
+        default=None
+    )
 
     args = parser.parse_args(argv)
+
+    if args.script:
+        load_script_extension(args.script)
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)

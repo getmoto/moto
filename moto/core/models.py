@@ -7,6 +7,7 @@ import re
 from httpretty import HTTPretty
 from .responses import metadata_response
 from .utils import convert_regex_to_flask_path
+from .publisher import default_publisher
 
 
 class MockAWS(object):
@@ -119,6 +120,8 @@ class Model(type):
 
 
 class BaseBackend(object):
+    publisher = default_publisher
+
     def reset(self):
         self.__dict__ = {}
         self.__init__()

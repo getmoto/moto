@@ -5,8 +5,6 @@ from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds2_backends
 from .exceptions import DBParameterGroupNotFoundError
-import json
-import re
 
 
 class RDS2Response(BaseResponse):
