@@ -62,15 +62,6 @@ def test_domain_dispatched_with_service():
     keys.should.contain('ResponseObject.key_response')
 
 
-def start(publisher):
-    def dummy_observer(event_type, data):
-        data['answer'] = 42
-        data['event_type'] = event_type
-        data['module_name'] = __name__
-    event_type = 123
-    publisher.subscribe(dummy_observer, event_type)
-
-
 @patch('moto.server.run_simple')
 def test_extension_script_gets_loaded(run_simple):
     """Setting the 'script' switch results in a python file being loaded
