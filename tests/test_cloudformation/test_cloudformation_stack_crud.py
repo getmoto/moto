@@ -12,7 +12,7 @@ import sure  # noqa
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_cloudformation, mock_s3
+from moto import mock_cloudformation, mock_s3, mock_route53
 from moto.cloudformation import cloudformation_backends
 
 dummy_template = {
@@ -67,6 +67,57 @@ def test_create_stack():
         }
 
     })
+
+
+@mock_cloudformation
+@mock_route53
+def test_create_stack_hosted_zone_by_id():
+    conn = boto.connect_cloudformation()
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack 1",
+        "Parameters": {
+        },
+        "Resources": {
+            "Bar": {
+                "Type" : "AWS::Route53::HostedZone",
+                "Properties" : {
+                    "Name" : "foo.bar.baz",
+                }
+            },
+        },
+    }
+    dummy_template2 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack 2",
+        "Parameters": {
+            "ZoneId": { "Type": "String" }
+        },
+        "Resources": {
+            "Foo": {
+                "Properties": {
+                    "HostedZoneId": {"Ref": "ZoneId"},
+                    "RecordSets": []
+                },
+                "Type": "AWS::Route53::RecordSetGroup"
+            }
+        },
+    }
+    conn.create_stack(
+        "test_stack",
+        template_body=json.dumps(dummy_template),
+        parameters={}.items()
+    )
+    r53_conn = boto.connect_route53()
+    zone_id = r53_conn.get_zones()[0].id
+    conn.create_stack(
+        "test_stack",
+        template_body=json.dumps(dummy_template2),
+        parameters={"ZoneId": zone_id}.items()
+    )
+
+    stack = conn.describe_stacks()[0]
+    assert stack.list_resources()
 
 
 @mock_cloudformation
