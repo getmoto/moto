@@ -11,7 +11,7 @@ from boto.emr.step import StreamingStep
 import six
 import sure  # noqa
 
-from moto import mock_emr
+from moto import mock_emr_deprecated
 from tests.helpers import requires_boto_gte
 
 
@@ -35,7 +35,7 @@ input_instance_groups = [
 ]
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_describe_cluster():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -106,7 +106,7 @@ def test_describe_cluster():
     cluster.visibletoallusers.should.equal('true')
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_describe_jobflows():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -158,7 +158,7 @@ def test_describe_jobflows():
     resp.should.have.length_of(200)
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_describe_jobflow():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -241,7 +241,7 @@ def test_describe_jobflow():
     jf.visibletoallusers.should.equal('true')
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_list_clusters():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -309,7 +309,7 @@ def test_list_clusters():
     resp.clusters.should.have.length_of(30)
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -326,7 +326,7 @@ def test_run_jobflow():
     job_flow.steps.should.have.length_of(0)
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow_in_multiple_regions():
     regions = {}
     for region in ['us-east-1', 'eu-west-1']:
@@ -343,7 +343,7 @@ def test_run_jobflow_in_multiple_regions():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow_with_new_params():
     # Test that run_jobflow works with newer params
     conn = boto.connect_emr()
@@ -351,7 +351,7 @@ def test_run_jobflow_with_new_params():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow_with_visible_to_all_users():
     conn = boto.connect_emr()
     for expected in (True, False):
@@ -364,7 +364,7 @@ def test_run_jobflow_with_visible_to_all_users():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow_with_instance_groups():
     input_groups = dict((g.name, g) for g in input_instance_groups)
     conn = boto.connect_emr()
@@ -384,7 +384,7 @@ def test_run_jobflow_with_instance_groups():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_set_termination_protection():
     conn = boto.connect_emr()
     job_id = conn.run_jobflow(**run_jobflow_args)
@@ -401,7 +401,7 @@ def test_set_termination_protection():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_set_visible_to_all_users():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -419,7 +419,7 @@ def test_set_visible_to_all_users():
     job_flow.visibletoallusers.should.equal('false')
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_terminate_jobflow():
     conn = boto.connect_emr()
     job_id = conn.run_jobflow(**run_jobflow_args)
@@ -433,7 +433,7 @@ def test_terminate_jobflow():
 
 # testing multiple end points for each feature
 
-@mock_emr
+@mock_emr_deprecated
 def test_bootstrap_actions():
     bootstrap_actions = [
         BootstrapAction(
@@ -466,7 +466,7 @@ def test_bootstrap_actions():
         list(arg.value for arg in x.args).should.equal(y.args())
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_instance_groups():
     input_groups = dict((g.name, g) for g in input_instance_groups)
 
@@ -536,7 +536,7 @@ def test_instance_groups():
     int(igs['task-2'].instancerunningcount).should.equal(3)
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_steps():
     input_steps = [
         StreamingStep(
@@ -633,7 +633,7 @@ def test_steps():
     test_list_steps_with_states()
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_tags():
     input_tags = {"tag1": "val1", "tag2": "val2"}
 

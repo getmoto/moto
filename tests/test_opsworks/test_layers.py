@@ -66,7 +66,7 @@ def test_describe_layers():
 
     rv1 = client.describe_layers(StackId=stack_id)
     rv2 = client.describe_layers(LayerIds=[layer_id])
-    rv1.should.equal(rv2)
+    rv1['Layers'].should.equal(rv2['Layers'])
 
     rv1['Layers'][0]['Name'].should.equal("TestLayer")
 

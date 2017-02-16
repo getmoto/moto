@@ -4,10 +4,10 @@ import sure  # noqa
 
 from nose.tools import assert_raises
 from boto.exception import BotoServerError
-from moto import mock_iam
+from moto import mock_iam, mock_iam_deprecated
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_create_group():
     conn = boto.connect_iam()
     conn.create_group('my-group')
@@ -15,7 +15,7 @@ def test_create_group():
         conn.create_group('my-group')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_get_group():
     conn = boto.connect_iam()
     conn.create_group('my-group')
@@ -24,7 +24,7 @@ def test_get_group():
         conn.get_group('not-group')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_get_all_groups():
     conn = boto.connect_iam()
     conn.create_group('my-group1')
@@ -33,7 +33,7 @@ def test_get_all_groups():
     groups.should.have.length_of(2)
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_add_user_to_group():
     conn = boto.connect_iam()
     with assert_raises(BotoServerError):
@@ -45,7 +45,7 @@ def test_add_user_to_group():
     conn.add_user_to_group('my-group', 'my-user')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_remove_user_from_group():
     conn = boto.connect_iam()
     with assert_raises(BotoServerError):
@@ -58,7 +58,7 @@ def test_remove_user_from_group():
     conn.remove_user_from_group('my-group', 'my-user')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_get_groups_for_user():
     conn = boto.connect_iam()
     conn.create_group('my-group1')

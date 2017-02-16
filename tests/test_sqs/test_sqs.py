@@ -10,16 +10,15 @@ import requests
 import sure  # noqa
 import time
 
-from moto import mock_sqs
+from moto import mock_sqs, mock_sqs_deprecated
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-sqs = boto3.resource('sqs', region_name='us-east-1')
-
 
 @mock_sqs
 def test_create_queue():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
     new_queue = sqs.create_queue(QueueName='test-queue')
     new_queue.should_not.be.none
     new_queue.should.have.property('url').should.contain('test-queue')
@@ -34,11 +33,13 @@ def test_create_queue():
 
 @mock_sqs
 def test_get_inexistent_queue():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
     sqs.get_queue_by_name.when.called_with(QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
 
 
 @mock_sqs
 def test_message_send():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
     queue = sqs.create_queue(QueueName="blah")
     msg = queue.send_message(MessageBody="derp")
 
@@ -52,6 +53,8 @@ def test_message_send():
 
 @mock_sqs
 def test_set_queue_attributes():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    conn = boto3.client('sqs', region_name='us-west-1')
     queue = sqs.create_queue(QueueName="blah")
 
     queue.attributes['VisibilityTimeout'].should.equal("30")
@@ -90,6 +93,7 @@ def test_get_queue_with_prefix():
 
 @mock_sqs
 def test_delete_queue():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
     conn = boto3.client("sqs", region_name='us-east-1')
     conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": "60"})
     queue = sqs.Queue('test-queue')
@@ -105,6 +109,7 @@ def test_delete_queue():
 
 @mock_sqs
 def test_set_queue_attribute():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
     conn = boto3.client("sqs", region_name='us-east-1')
     conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": '60'})
 
@@ -118,6 +123,7 @@ def test_set_queue_attribute():
 
 @mock_sqs
 def test_send_message():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
     conn = boto3.client("sqs", region_name='us-east-1')
     conn.create_queue(QueueName="test-queue")
     queue = sqs.Queue("test-queue")
@@ -134,7 +140,7 @@ def test_send_message():
     messages[1]['Body'].should.equal(body_two)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_send_message_with_xml_characters():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -150,7 +156,7 @@ def test_send_message_with_xml_characters():
 
 
 @requires_boto_gte("2.28")
-@mock_sqs
+@mock_sqs_deprecated
 def test_send_message_with_attributes():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -175,7 +181,7 @@ def test_send_message_with_attributes():
         dict(messages[0].message_attributes[name]).should.equal(value)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_send_message_with_delay():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -196,7 +202,7 @@ def test_send_message_with_delay():
     queue.count().should.equal(0)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_send_large_message_fails():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -208,7 +214,7 @@ def test_send_large_message_fails():
     queue.write.when.called_with(huge_message).should.throw(SQSError)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_message_becomes_inflight_when_received():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=2)
@@ -229,7 +235,7 @@ def test_message_becomes_inflight_when_received():
     queue.count().should.equal(1)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_receive_message_with_explicit_visibility_timeout():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -246,7 +252,7 @@ def test_receive_message_with_explicit_visibility_timeout():
     # Message should remain visible
     queue.count().should.equal(1)
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_change_message_visibility():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=2)
@@ -280,7 +286,7 @@ def test_change_message_visibility():
     queue.count().should.equal(0)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_message_attributes():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=2)
@@ -304,7 +310,7 @@ def test_message_attributes():
     assert message_attributes.get('SenderId')
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_read_message_from_queue():
     conn = boto.connect_sqs()
     queue = conn.create_queue('testqueue')
@@ -316,7 +322,7 @@ def test_read_message_from_queue():
     message.get_body().should.equal(body)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_queue_length():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -327,7 +333,7 @@ def test_queue_length():
     queue.count().should.equal(2)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_delete_message():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -348,7 +354,7 @@ def test_delete_message():
     queue.count().should.equal(0)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_send_batch_operation():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -370,7 +376,7 @@ def test_send_batch_operation():
 
 
 @requires_boto_gte("2.28")
-@mock_sqs
+@mock_sqs_deprecated
 def test_send_batch_operation_with_message_attributes():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -386,7 +392,7 @@ def test_send_batch_operation_with_message_attributes():
         dict(messages[0].message_attributes[name]).should.equal(value)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_delete_batch_operation():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=60)
@@ -408,7 +414,7 @@ def test_sqs_method_not_implemented():
     requests.post.when.called_with("https://sqs.amazonaws.com/?Action=[foobar]").should.throw(NotImplementedError)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_queue_attributes():
     conn = boto.connect_sqs('the_key', 'the_secret')
 
@@ -438,7 +444,7 @@ def test_queue_attributes():
     attribute_names.should.contain('QueueArn')
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_change_message_visibility_on_invalid_receipt():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=1)
@@ -465,7 +471,7 @@ def test_change_message_visibility_on_invalid_receipt():
     original_message.change_visibility.when.called_with(100).should.throw(SQSError)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_change_message_visibility_on_visible_message():
     conn = boto.connect_sqs('the_key', 'the_secret')
     queue = conn.create_queue("test-queue", visibility_timeout=1)
@@ -488,7 +494,7 @@ def test_change_message_visibility_on_visible_message():
     original_message.change_visibility.when.called_with(100).should.throw(SQSError)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_purge_action():
     conn = boto.sqs.connect_to_region("us-east-1")
 
@@ -501,7 +507,7 @@ def test_purge_action():
     queue.count().should.equal(0)
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_delete_message_after_visibility_timeout():
     VISIBILITY_TIMEOUT = 1
     conn = boto.sqs.connect_to_region("us-east-1")

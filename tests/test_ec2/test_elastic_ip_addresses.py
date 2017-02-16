@@ -10,12 +10,12 @@ import six
 
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2, mock_ec2_deprecated
 
 import logging
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_allocate_classic():
     """Allocate/release Classic EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -42,7 +42,7 @@ def test_eip_allocate_classic():
     standard.should_not.be.within(conn.get_all_addresses())
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_allocate_vpc():
     """Allocate/release VPC EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -60,7 +60,7 @@ def test_eip_allocate_vpc():
     vpc.release()
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_allocate_invalid_domain():
     """Allocate EIP invalid domain"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -72,7 +72,7 @@ def test_eip_allocate_invalid_domain():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_associate_classic():
     """Associate/Disassociate EIP to classic instance"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -114,7 +114,7 @@ def test_eip_associate_classic():
 
     instance.terminate()
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_associate_vpc():
     """Associate/Disassociate EIP to VPC instance"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -176,7 +176,7 @@ def test_eip_boto3_vpc_association():
     instance.public_dns_name.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_associate_network_interface():
     """Associate/Disassociate EIP to NIC"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -204,7 +204,7 @@ def test_eip_associate_network_interface():
     eip.release()
     eip = None
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_reassociate():
     """reassociate EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -233,7 +233,7 @@ def test_eip_reassociate():
     instance1.terminate()
     instance2.terminate()
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_reassociate_nic():
     """reassociate EIP"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -261,7 +261,7 @@ def test_eip_reassociate_nic():
     eip.release()
     eip = None
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_associate_invalid_args():
     """Associate EIP, invalid args """
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -280,7 +280,7 @@ def test_eip_associate_invalid_args():
     instance.terminate()
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_disassociate_bogus_association():
     """Disassociate bogus EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -291,7 +291,7 @@ def test_eip_disassociate_bogus_association():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_release_bogus_eip():
     """Release bogus EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -303,7 +303,7 @@ def test_eip_release_bogus_eip():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_disassociate_arg_error():
     """Invalid arguments disassociate address"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -315,7 +315,7 @@ def test_eip_disassociate_arg_error():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_release_arg_error():
     """Invalid arguments release address"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -327,7 +327,7 @@ def test_eip_release_arg_error():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_describe():
     """Listing of allocated Elastic IP Addresses."""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -363,7 +363,7 @@ def test_eip_describe():
     len(conn.get_all_addresses()).should.be.equal(0)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_describe_none():
     """Error when search for bogus IP"""
     conn = boto.connect_ec2('the_key', 'the_secret')

@@ -25,7 +25,7 @@ class FakeKey(object):
         self.value = value
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl('private')
-        self._storage_class = storage
+        self._storage_class = storage if storage else "STANDARD"
         self._metadata = {}
         self._expiry = None
         self._etag = etag
@@ -92,6 +92,7 @@ class FakeKey(object):
         r = {
             'etag': self.etag,
             'last-modified': self.last_modified_RFC1123,
+            'content-length': str(len(self.value)),
         }
         if self._storage_class != 'STANDARD':
             r['x-amz-storage-class'] = self._storage_class
@@ -100,7 +101,7 @@ class FakeKey(object):
             r['x-amz-restore'] = rhdr.format(self.expiry_date)
 
         if self._is_versioned:
-            r['x-amz-version-id'] = self._version_id
+            r['x-amz-version-id'] = str(self._version_id)
 
         return r
 

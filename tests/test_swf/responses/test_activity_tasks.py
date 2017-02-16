@@ -1,14 +1,14 @@
 from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
 
-from moto import mock_swf
+from moto import mock_swf_deprecated
 from moto.swf import swf_backend
 
 from ..utils import setup_workflow, SCHEDULE_ACTIVITY_TASK_DECISION
 
 
 # PollForActivityTask endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_poll_for_activity_task_when_one():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
@@ -26,14 +26,14 @@ def test_poll_for_activity_task_when_one():
     )
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_poll_for_activity_task_when_none():
     conn = setup_workflow()
     resp = conn.poll_for_activity_task("test-domain", "activity-task-list")
     resp.should.equal({"startedEventId": 0})
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_poll_for_activity_task_on_non_existent_queue():
     conn = setup_workflow()
     resp = conn.poll_for_activity_task("test-domain", "non-existent-queue")
@@ -41,7 +41,7 @@ def test_poll_for_activity_task_on_non_existent_queue():
 
 
 # CountPendingActivityTasks endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_count_pending_activity_tasks():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
@@ -53,7 +53,7 @@ def test_count_pending_activity_tasks():
     resp.should.equal({"count": 1, "truncated": False})
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_count_pending_decision_tasks_on_non_existent_task_list():
     conn = setup_workflow()
     resp = conn.count_pending_activity_tasks("test-domain", "non-existent")
@@ -61,7 +61,7 @@ def test_count_pending_decision_tasks_on_non_existent_task_list():
 
 
 # RespondActivityTaskCompleted endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_respond_activity_task_completed():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
@@ -80,7 +80,7 @@ def test_respond_activity_task_completed():
     )
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_activity_task_completed_on_closed_workflow_execution():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
@@ -99,7 +99,7 @@ def test_respond_activity_task_completed_on_closed_workflow_execution():
     ).should.throw(SWFResponseError, "WorkflowExecution=")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_activity_task_completed_with_task_already_completed():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
@@ -116,7 +116,7 @@ def test_respond_activity_task_completed_with_task_already_completed():
 
 
 # RespondActivityTaskFailed endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_respond_activity_task_failed():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
@@ -138,7 +138,7 @@ def test_respond_activity_task_failed():
     )
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_activity_task_completed_with_wrong_token():
     # NB: we just test ONE failure case for RespondActivityTaskFailed
     # because the safeguards are shared with RespondActivityTaskCompleted, so
@@ -155,7 +155,7 @@ def test_respond_activity_task_completed_with_wrong_token():
 
 
 # RecordActivityTaskHeartbeat endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_record_activity_task_heartbeat():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
@@ -168,7 +168,7 @@ def test_record_activity_task_heartbeat():
     resp.should.equal({"cancelRequested": False})
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_record_activity_task_heartbeat_with_wrong_token():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
@@ -182,7 +182,7 @@ def test_record_activity_task_heartbeat_with_wrong_token():
     ).should.throw(SWFResponseError)
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout():
     conn = setup_workflow()
     decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]

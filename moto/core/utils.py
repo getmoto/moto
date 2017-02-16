@@ -103,6 +103,28 @@ class convert_flask_to_httpretty_response(object):
         return response, status, headers
 
 
+class convert_flask_to_responses_response(object):
+
+    def __init__(self, callback):
+        self.callback = callback
+
+    @property
+    def __name__(self):
+        # For instance methods, use class and method names. Otherwise
+        # use module and method name
+        if inspect.ismethod(self.callback):
+            outer = self.callback.__self__.__class__.__name__
+        else:
+            outer = self.callback.__module__
+        return "{0}.{1}".format(outer, self.callback.__name__)
+
+    def __call__(self, request, *args, **kwargs):
+        result = self.callback(request, request.url, request.headers)
+        # result is a status, headers, response tuple
+        status, headers, response = result
+        return status, headers, response
+
+
 def iso_8601_datetime_with_milliseconds(datetime):
     return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + 'Z'
 

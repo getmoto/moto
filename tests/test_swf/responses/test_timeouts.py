@@ -1,13 +1,13 @@
 from freezegun import freeze_time
 
-from moto import mock_swf
+from moto import mock_swf_deprecated
 
 from ..utils import setup_workflow, SCHEDULE_ACTIVITY_TASK_DECISION
 
 
 # Activity Task Heartbeat timeout
 # Default value in workflow helpers: 5 mins
-@mock_swf
+@mock_swf_deprecated
 def test_activity_task_heartbeat_timeout():
     with freeze_time("2015-01-01 12:00:00"):
         conn = setup_workflow()
@@ -36,7 +36,7 @@ def test_activity_task_heartbeat_timeout():
 
 # Decision Task Start to Close timeout
 # Default value in workflow helpers: 5 mins
-@mock_swf
+@mock_swf_deprecated
 def test_decision_task_start_to_close_timeout():
     pass
     with freeze_time("2015-01-01 12:00:00"):
@@ -70,7 +70,7 @@ def test_decision_task_start_to_close_timeout():
 
 # Workflow Execution Start to Close timeout
 # Default value in workflow helpers: 2 hours
-@mock_swf
+@mock_swf_deprecated
 def test_workflow_execution_start_to_close_timeout():
     pass
     with freeze_time("2015-01-01 12:00:00"):

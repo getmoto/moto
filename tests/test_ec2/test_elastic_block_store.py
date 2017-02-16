@@ -8,10 +8,10 @@ import boto
 from boto.exception import EC2ResponseError, JSONResponseError
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2_deprecated
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_and_delete_volume():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a")
@@ -43,7 +43,7 @@ def test_create_and_delete_volume():
 
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_encrypted_volume_dryrun():
     conn = boto.connect_ec2('the_key', 'the_secret')
     with assert_raises(JSONResponseError) as ex:
@@ -53,7 +53,7 @@ def test_create_encrypted_volume_dryrun():
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_encrypted_volume():
     conn = boto.connect_ec2('the_key', 'the_secret')
     conn.create_volume(80, "us-east-1a", encrypted=True)
@@ -68,7 +68,7 @@ def test_create_encrypted_volume():
     all_volumes[0].encrypted.should.be(True)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_filter_volume_by_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume1 = conn.create_volume(80, "us-east-1a")
@@ -82,7 +82,7 @@ def test_filter_volume_by_id():
     vol2.should.have.length_of(2)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_volume_filters():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -155,7 +155,7 @@ def test_volume_filters():
     )
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_volume_attach_and_detach():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -209,7 +209,7 @@ def test_volume_attach_and_detach():
     cm3.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_snapshot():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a")
@@ -245,7 +245,7 @@ def test_create_snapshot():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_encrypted_snapshot():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a", encrypted=True)
@@ -260,7 +260,7 @@ def test_create_encrypted_snapshot():
     snapshots[0].encrypted.should.be(True)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_filter_snapshot_by_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume1 = conn.create_volume(36, "us-east-1a")
@@ -281,7 +281,7 @@ def test_filter_snapshot_by_id():
         s.region.name.should.equal(conn.region.name)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_snapshot_filters():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume1 = conn.create_volume(20, "us-east-1a", encrypted=False)
@@ -322,7 +322,7 @@ def test_snapshot_filters():
     set([snap.id for snap in snapshots_by_encrypted]).should.equal(set([snapshot3.id]))
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_snapshot_attribute():
     import copy
 
@@ -418,7 +418,7 @@ def test_snapshot_attribute():
                                                     user_ids=['user']).should.throw(NotImplementedError)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_volume_from_snapshot():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a")
@@ -439,7 +439,7 @@ def test_create_volume_from_snapshot():
     new_volume.snapshot_id.should.equal(snapshot.id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_volume_from_encrypted_snapshot():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a", encrypted=True)
@@ -454,7 +454,7 @@ def test_create_volume_from_encrypted_snapshot():
     new_volume.encrypted.should.be(True)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_modify_attribute_blockDeviceMapping():
     """
     Reproduces the missing feature explained at [0], where we want to mock a
@@ -481,7 +481,7 @@ def test_modify_attribute_blockDeviceMapping():
     instance.block_device_mapping['/dev/sda1'].delete_on_termination.should.be(True)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_volume_tag_escaping():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vol = conn.create_volume(10, 'us-east-1a')

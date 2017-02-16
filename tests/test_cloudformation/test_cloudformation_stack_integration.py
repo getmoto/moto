@@ -18,20 +18,26 @@ import boto3
 import sure  # noqa
 
 from moto import (
-    mock_autoscaling,
+    mock_autoscaling_deprecated,
     mock_cloudformation,
-    mock_datapipeline,
+    mock_cloudformation_deprecated,
+    mock_datapipeline_deprecated,
     mock_ec2,
+    mock_ec2_deprecated,
     mock_elb,
-    mock_iam,
+    mock_elb_deprecated,
+    mock_iam_deprecated,
     mock_kms,
     mock_lambda,
-    mock_rds,
+    mock_rds_deprecated,
     mock_rds2,
+    mock_rds2_deprecated,
     mock_redshift,
-    mock_route53,
-    mock_sns,
+    mock_redshift_deprecated,
+    mock_route53_deprecated,
+    mock_sns_deprecated,
     mock_sqs,
+    mock_sqs_deprecated,
 )
 
 from .fixtures import (
@@ -49,7 +55,7 @@ from .fixtures import (
 )
 
 
-@mock_cloudformation()
+@mock_cloudformation_deprecated()
 def test_stack_sqs_integration():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -79,7 +85,7 @@ def test_stack_sqs_integration():
     queue.physical_resource_id.should.equal("my-queue")
 
 
-@mock_cloudformation()
+@mock_cloudformation_deprecated()
 def test_stack_list_resources():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -110,8 +116,8 @@ def test_stack_list_resources():
     queue.physical_resource_id.should.equal("my-queue")
 
 
-@mock_cloudformation()
-@mock_sqs()
+@mock_cloudformation_deprecated()
+@mock_sqs_deprecated()
 def test_update_stack():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -148,8 +154,8 @@ def test_update_stack():
     queues[0].get_attributes('VisibilityTimeout')['VisibilityTimeout'].should.equal('100')
 
 
-@mock_cloudformation()
-@mock_sqs()
+@mock_cloudformation_deprecated()
+@mock_sqs_deprecated()
 def test_update_stack_and_remove_resource():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -184,8 +190,8 @@ def test_update_stack_and_remove_resource():
     queues.should.have.length_of(0)
 
 
-@mock_cloudformation()
-@mock_sqs()
+@mock_cloudformation_deprecated()
+@mock_sqs_deprecated()
 def test_update_stack_and_add_resource():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -223,8 +229,8 @@ def test_update_stack_and_add_resource():
     queues.should.have.length_of(1)
 
 
-@mock_ec2()
-@mock_cloudformation()
+@mock_ec2_deprecated()
+@mock_cloudformation_deprecated()
 def test_stack_ec2_integration():
     ec2_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -257,9 +263,9 @@ def test_stack_ec2_integration():
     instance.physical_resource_id.should.equal(ec2_instance.id)
 
 
-@mock_ec2()
-@mock_elb()
-@mock_cloudformation()
+@mock_ec2_deprecated()
+@mock_elb_deprecated()
+@mock_cloudformation_deprecated()
 def test_stack_elb_integration_with_attached_ec2_instances():
     elb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -307,8 +313,8 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     list(load_balancer.availability_zones).should.equal(['us-east-1'])
 
 
-@mock_elb()
-@mock_cloudformation()
+@mock_elb_deprecated()
+@mock_cloudformation_deprecated()
 def test_stack_elb_integration_with_health_check():
     elb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -355,8 +361,8 @@ def test_stack_elb_integration_with_health_check():
     health_check.unhealthy_threshold.should.equal(2)
 
 
-@mock_elb()
-@mock_cloudformation()
+@mock_elb_deprecated()
+@mock_cloudformation_deprecated()
 def test_stack_elb_integration_with_update():
     elb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -399,9 +405,9 @@ def test_stack_elb_integration_with_update():
     load_balancer.availability_zones[0].should.equal('us-west-1b')
 
 
-@mock_ec2()
-@mock_redshift()
-@mock_cloudformation()
+@mock_ec2_deprecated()
+@mock_redshift_deprecated()
+@mock_cloudformation_deprecated()
 def test_redshift_stack():
     redshift_template_json = json.dumps(redshift.template)
 
@@ -443,8 +449,8 @@ def test_redshift_stack():
     group.rules[0].grants[0].cidr_ip.should.equal("10.0.0.1/16")
 
 
-@mock_ec2()
-@mock_cloudformation()
+@mock_ec2_deprecated()
+@mock_cloudformation_deprecated()
 def test_stack_security_groups():
     security_group_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -519,9 +525,9 @@ def test_stack_security_groups():
     rule2.grants[0].group_id.should.equal(other_group.id)
 
 
-@mock_autoscaling()
-@mock_elb()
-@mock_cloudformation()
+@mock_autoscaling_deprecated()
+@mock_elb_deprecated()
+@mock_cloudformation_deprecated()
 def test_autoscaling_group_with_elb():
 
     web_setup_template = {
@@ -601,8 +607,8 @@ def test_autoscaling_group_with_elb():
     elb_resource.physical_resource_id.should.contain("my-elb")
 
 
-@mock_autoscaling()
-@mock_cloudformation()
+@mock_autoscaling_deprecated()
+@mock_cloudformation_deprecated()
 def test_autoscaling_group_update():
     asg_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -650,8 +656,8 @@ def test_autoscaling_group_update():
     asg.max_size.should.equal(3)
 
 
-@mock_ec2()
-@mock_cloudformation()
+@mock_ec2_deprecated()
+@mock_cloudformation_deprecated()
 def test_vpc_single_instance_in_subnet():
 
     template_json = json.dumps(vpc_single_instance_in_subnet.template)
@@ -695,8 +701,8 @@ def test_vpc_single_instance_in_subnet():
     eip_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
     eip_resource.physical_resource_id.should.equal(eip.allocation_id)
 
-@mock_cloudformation()
-@mock_ec2()
+@mock_cloudformation_deprecated()
+@mock_ec2_deprecated()
 @mock_rds2()
 def test_rds_db_parameter_groups():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
@@ -734,9 +740,9 @@ def test_rds_db_parameter_groups():
 
 
 
-@mock_cloudformation()
-@mock_ec2()
-@mock_rds()
+@mock_cloudformation_deprecated()
+@mock_ec2_deprecated()
+@mock_rds_deprecated()
 def test_rds_mysql_with_read_replica():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     ec2_conn.create_security_group('application', 'Our Application Group')
@@ -776,9 +782,9 @@ def test_rds_mysql_with_read_replica():
     security_group.ec2_groups[0].name.should.equal("application")
 
 
-@mock_cloudformation()
-@mock_ec2()
-@mock_rds()
+@mock_cloudformation_deprecated()
+@mock_ec2_deprecated()
+@mock_rds_deprecated()
 def test_rds_mysql_with_read_replica_in_vpc():
     template_json = json.dumps(rds_mysql_with_read_replica.template)
     conn = boto.cloudformation.connect_to_region("eu-central-1")
@@ -804,9 +810,9 @@ def test_rds_mysql_with_read_replica_in_vpc():
     subnet_group.description.should.equal("my db subnet group")
 
 
-@mock_autoscaling()
-@mock_iam()
-@mock_cloudformation()
+@mock_autoscaling_deprecated()
+@mock_iam_deprecated()
+@mock_cloudformation_deprecated()
 def test_iam_roles():
     iam_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -923,8 +929,8 @@ def test_iam_roles():
     role_resource.physical_resource_id.should.equal(role.role_id)
 
 
-@mock_ec2()
-@mock_cloudformation()
+@mock_ec2_deprecated()
+@mock_cloudformation_deprecated()
 def test_single_instance_with_ebs_volume():
 
     template_json = json.dumps(single_instance_with_ebs_volume.template)
@@ -951,7 +957,7 @@ def test_single_instance_with_ebs_volume():
     ebs_volumes[0].physical_resource_id.should.equal(volume.id)
 
 
-@mock_cloudformation()
+@mock_cloudformation_deprecated()
 def test_create_template_without_required_param():
     template_json = json.dumps(single_instance_with_ebs_volume.template)
     conn = boto.cloudformation.connect_to_region("us-west-1")
@@ -961,8 +967,8 @@ def test_create_template_without_required_param():
     ).should.throw(BotoServerError)
 
 
-@mock_ec2()
-@mock_cloudformation()
+@mock_ec2_deprecated()
+@mock_cloudformation_deprecated()
 def test_classic_eip():
 
     template_json = json.dumps(ec2_classic_eip.template)
@@ -977,8 +983,8 @@ def test_classic_eip():
     cfn_eip.physical_resource_id.should.equal(eip.public_ip)
 
 
-@mock_ec2()
-@mock_cloudformation()
+@mock_ec2_deprecated()
+@mock_cloudformation_deprecated()
 def test_vpc_eip():
 
     template_json = json.dumps(vpc_eip.template)
@@ -993,8 +999,8 @@ def test_vpc_eip():
     cfn_eip.physical_resource_id.should.equal(eip.allocation_id)
 
 
-@mock_ec2()
-@mock_cloudformation()
+@mock_ec2_deprecated()
+@mock_cloudformation_deprecated()
 def test_fn_join():
 
     template_json = json.dumps(fn_join.template)
@@ -1008,8 +1014,8 @@ def test_fn_join():
     fn_join_output.value.should.equal('test eip:{0}'.format(eip.public_ip))
 
 
-@mock_cloudformation()
-@mock_sqs()
+@mock_cloudformation_deprecated()
+@mock_sqs_deprecated()
 def test_conditional_resources():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1054,8 +1060,8 @@ def test_conditional_resources():
     list(sqs_conn.get_all_queues()).should.have.length_of(1)
 
 
-@mock_cloudformation()
-@mock_ec2()
+@mock_cloudformation_deprecated()
+@mock_ec2_deprecated()
 def test_conditional_if_handling():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1110,8 +1116,8 @@ def test_conditional_if_handling():
     ec2_instance.image_id.should.equal("ami-00000000")
 
 
-@mock_cloudformation()
-@mock_ec2()
+@mock_cloudformation_deprecated()
+@mock_ec2_deprecated()
 def test_cloudformation_mapping():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1155,8 +1161,8 @@ def test_cloudformation_mapping():
     ec2_instance.image_id.should.equal("ami-c9c7978c")
 
 
-@mock_cloudformation()
-@mock_route53()
+@mock_cloudformation_deprecated()
+@mock_route53_deprecated()
 def test_route53_roundrobin():
     route53_conn = boto.connect_route53()
 
@@ -1198,9 +1204,9 @@ def test_route53_roundrobin():
     output.value.should.equal('arn:aws:route53:::hostedzone/{0}'.format(zone_id))
 
 
-@mock_cloudformation()
-@mock_ec2()
-@mock_route53()
+@mock_cloudformation_deprecated()
+@mock_ec2_deprecated()
+@mock_route53_deprecated()
 def test_route53_ec2_instance_with_public_ip():
     route53_conn = boto.connect_route53()
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
@@ -1233,8 +1239,8 @@ def test_route53_ec2_instance_with_public_ip():
     record_set1.resource_records[0].should.equal("10.0.0.25")
 
 
-@mock_cloudformation()
-@mock_route53()
+@mock_cloudformation_deprecated()
+@mock_route53_deprecated()
 def test_route53_associate_health_check():
     route53_conn = boto.connect_route53()
 
@@ -1270,8 +1276,8 @@ def test_route53_associate_health_check():
     record_set.health_check.should.equal(health_check_id)
 
 
-@mock_cloudformation()
-@mock_route53()
+@mock_cloudformation_deprecated()
+@mock_route53_deprecated()
 def test_route53_with_update():
     route53_conn = boto.connect_route53()
 
@@ -1314,8 +1320,8 @@ def test_route53_with_update():
     record_set.resource_records.should.equal(["my_other.example.com"])
 
 
-@mock_cloudformation()
-@mock_sns()
+@mock_cloudformation_deprecated()
+@mock_sns_deprecated()
 def test_sns_topic():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1367,8 +1373,8 @@ def test_sns_topic():
     topic_arn_output.value.should.equal(topic_arn)
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_cloudformation_deprecated
+@mock_ec2_deprecated
 def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1415,8 +1421,8 @@ def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
     igws.should.have.length_of(1)
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_cloudformation_deprecated
+@mock_ec2_deprecated
 def test_vpc_peering_creation():
     vpc_conn = boto.vpc.connect_to_region("us-west-1")
     vpc_source = vpc_conn.create_vpc("10.0.0.0/16")
@@ -1445,8 +1451,8 @@ def test_vpc_peering_creation():
     peering_connections.should.have.length_of(1)
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_cloudformation_deprecated
+@mock_ec2_deprecated
 def test_multiple_security_group_ingress_separate_from_security_group_by_id():
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1507,8 +1513,8 @@ def test_multiple_security_group_ingress_separate_from_security_group_by_id():
     security_group1.rules[0].to_port.should.equal('8080')
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_cloudformation_deprecated
+@mock_ec2_deprecated
 def test_security_group_ingress_separate_from_security_group_by_id():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     ec2_conn.create_security_group("test-security-group1", "test security group")
@@ -1558,8 +1564,8 @@ def test_security_group_ingress_separate_from_security_group_by_id():
     security_group1.rules[0].to_port.should.equal('8080')
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_cloudformation_deprecated
+@mock_ec2_deprecated
 def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
     vpc_conn = boto.vpc.connect_to_region("us-west-1")
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
@@ -1624,8 +1630,8 @@ def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
     security_group1.rules[0].to_port.should.equal('8080')
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_cloudformation_deprecated
+@mock_ec2_deprecated
 def test_security_group_with_update():
     vpc_conn = boto.vpc.connect_to_region("us-west-1")
     vpc1 = vpc_conn.create_vpc("10.0.0.0/16")
@@ -1669,8 +1675,8 @@ def test_security_group_with_update():
     security_group.vpc_id.should.equal(vpc2.id)
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_cloudformation_deprecated
+@mock_ec2_deprecated
 def test_subnets_should_be_created_with_availability_zone():
     vpc_conn = boto.vpc.connect_to_region('us-west-1')
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
@@ -1698,8 +1704,8 @@ def test_subnets_should_be_created_with_availability_zone():
     subnet.availability_zone.should.equal('us-west-1b')
 
 
-@mock_cloudformation
-@mock_datapipeline
+@mock_cloudformation_deprecated
+@mock_datapipeline_deprecated
 def test_datapipeline():
     dp_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1796,11 +1802,10 @@ def lambda_handler(event, context):
     return _process_lamda(pfunc)
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 @mock_lambda
 def test_lambda_function():
     # switch this to python as backend lambda only supports python execution.
-    conn = boto3.client('lambda', 'us-east-1')
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
@@ -1827,6 +1832,7 @@ def test_lambda_function():
         template_body=template_json,
     )
 
+    conn = boto3.client('lambda', 'us-east-1')
     result = conn.list_functions()
     result['Functions'].should.have.length_of(1)
     result['Functions'][0]['Description'].should.equal('Test function')

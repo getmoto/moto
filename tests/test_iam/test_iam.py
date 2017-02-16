@@ -6,7 +6,7 @@ import boto3
 import sure  # noqa
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
-from moto import mock_iam
+from moto import mock_iam, mock_iam_deprecated
 from moto.iam.models import aws_managed_policies
 from nose.tools import assert_raises, assert_equals, assert_not_equals
 from nose.tools import raises
@@ -14,7 +14,7 @@ from nose.tools import raises
 from tests.helpers import requires_boto_gte
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_get_all_server_certs():
     conn = boto.connect_iam()
 
@@ -26,7 +26,7 @@ def test_get_all_server_certs():
     cert1.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_get_server_cert_doesnt_exist():
     conn = boto.connect_iam()
 
@@ -34,7 +34,7 @@ def test_get_server_cert_doesnt_exist():
         conn.get_server_certificate("NonExistant")
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_get_server_cert():
     conn = boto.connect_iam()
 
@@ -44,7 +44,7 @@ def test_get_server_cert():
     cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_upload_server_cert():
     conn = boto.connect_iam()
 
@@ -54,7 +54,7 @@ def test_upload_server_cert():
     cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
 
 
-@mock_iam()
+@mock_iam_deprecated()
 @raises(BotoServerError)
 def test_get_role__should_throw__when_role_does_not_exist():
     conn = boto.connect_iam()
@@ -62,7 +62,7 @@ def test_get_role__should_throw__when_role_does_not_exist():
     conn.get_role('unexisting_role')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 @raises(BotoServerError)
 def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist():
     conn = boto.connect_iam()
@@ -70,7 +70,7 @@ def test_get_instance_profile__should_throw__when_instance_profile_does_not_exis
     conn.get_instance_profile('unexisting_instance_profile')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_create_role_and_instance_profile():
     conn = boto.connect_iam()
     conn.create_instance_profile("my-profile", path="my-path")
@@ -91,7 +91,7 @@ def test_create_role_and_instance_profile():
     conn.list_roles().roles[0].role_name.should.equal('my-role')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_remove_role_from_instance_profile():
     conn = boto.connect_iam()
     conn.create_instance_profile("my-profile", path="my-path")
@@ -108,7 +108,7 @@ def test_remove_role_from_instance_profile():
     dict(profile.roles).should.be.empty
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_list_instance_profiles():
     conn = boto.connect_iam()
     conn.create_instance_profile("my-profile", path="my-path")
@@ -123,7 +123,7 @@ def test_list_instance_profiles():
     profiles[0].roles.role_name.should.equal("my-role")
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_list_instance_profiles_for_role():
     conn = boto.connect_iam()
 
@@ -153,7 +153,7 @@ def test_list_instance_profiles_for_role():
     len(profile_list).should.equal(0)
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_list_role_policies():
     conn = boto.connect_iam()
     conn.create_role("my-role")
@@ -162,7 +162,7 @@ def test_list_role_policies():
     role.policy_names[0].should.equal("test policy")
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_put_role_policy():
     conn = boto.connect_iam()
     conn.create_role("my-role", assume_role_policy_document="some policy", path="my-path")
@@ -171,7 +171,7 @@ def test_put_role_policy():
     policy.should.equal("test policy")
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_update_assume_role_policy():
     conn = boto.connect_iam()
     role = conn.create_role("my-role")
@@ -180,7 +180,7 @@ def test_update_assume_role_policy():
     role.assume_role_policy_document.should.equal("my-policy")
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_create_user():
     conn = boto.connect_iam()
     conn.create_user('my-user')
@@ -188,7 +188,7 @@ def test_create_user():
         conn.create_user('my-user')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_get_user():
     conn = boto.connect_iam()
     with assert_raises(BotoServerError):
@@ -210,7 +210,7 @@ def test_list_users():
     user['Arn'].should.equal('arn:aws:iam::123456789012:user/my-user')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_create_login_profile():
     conn = boto.connect_iam()
     with assert_raises(BotoServerError):
@@ -221,7 +221,7 @@ def test_create_login_profile():
         conn.create_login_profile('my-user', 'my-pass')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_delete_login_profile():
     conn = boto.connect_iam()
     conn.create_user('my-user')
@@ -231,7 +231,7 @@ def test_delete_login_profile():
     conn.delete_login_profile('my-user')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_create_access_key():
     conn = boto.connect_iam()
     with assert_raises(BotoServerError):
@@ -240,7 +240,7 @@ def test_create_access_key():
     conn.create_access_key('my-user')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_get_all_access_keys():
     conn = boto.connect_iam()
     conn.create_user('my-user')
@@ -257,7 +257,7 @@ def test_get_all_access_keys():
     )
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_delete_access_key():
     conn = boto.connect_iam()
     conn.create_user('my-user')
@@ -265,7 +265,7 @@ def test_delete_access_key():
     conn.delete_access_key(access_key_id, 'my-user')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_delete_user():
     conn = boto.connect_iam()
     with assert_raises(BotoServerError):
@@ -274,7 +274,7 @@ def test_delete_user():
     conn.delete_user('my-user')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_generate_credential_report():
     conn = boto.connect_iam()
     result = conn.generate_credential_report()
@@ -283,7 +283,7 @@ def test_generate_credential_report():
     result['generate_credential_report_response']['generate_credential_report_result']['state'].should.equal('COMPLETE')
 
 
-@mock_iam()
+@mock_iam_deprecated()
 def test_get_credential_report():
     conn = boto.connect_iam()
     conn.create_user('my-user')
@@ -298,7 +298,7 @@ def test_get_credential_report():
 
 
 @requires_boto_gte('2.39')
-@mock_iam()
+@mock_iam_deprecated()
 def test_managed_policy():
     conn = boto.connect_iam()
 

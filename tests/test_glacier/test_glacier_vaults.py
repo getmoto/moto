@@ -3,10 +3,10 @@ from __future__ import unicode_literals
 import boto.glacier
 import sure  # noqa
 
-from moto import mock_glacier
+from moto import mock_glacier_deprecated
 
 
-@mock_glacier
+@mock_glacier_deprecated
 def test_create_vault():
     conn = boto.glacier.connect_to_region("us-west-2")
 
@@ -17,7 +17,7 @@ def test_create_vault():
     vaults[0].name.should.equal("my_vault")
 
 
-@mock_glacier
+@mock_glacier_deprecated
 def test_delete_vault():
     conn = boto.glacier.connect_to_region("us-west-2")
 

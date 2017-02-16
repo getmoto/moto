@@ -6,10 +6,10 @@ from boto.s3.lifecycle import Lifecycle, Transition, Expiration, Rule
 
 import sure  # noqa
 
-from moto import mock_s3
+from moto import mock_s3_deprecated
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_lifecycle_create():
     conn = boto.s3.connect_to_region("us-west-1")
     bucket = conn.create_bucket("foobar")
@@ -26,7 +26,7 @@ def test_lifecycle_create():
     list(lifecycle.transition).should.equal([])
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_lifecycle_with_glacier_transition():
     conn = boto.s3.connect_to_region("us-west-1")
     bucket = conn.create_bucket("foobar")
@@ -44,7 +44,7 @@ def test_lifecycle_with_glacier_transition():
     transition.date.should.equal(None)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_lifecycle_multi():
     conn = boto.s3.connect_to_region("us-west-1")
     bucket = conn.create_bucket("foobar")
@@ -86,7 +86,7 @@ def test_lifecycle_multi():
             assert False, "Invalid rule id"
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_lifecycle_delete():
     conn = boto.s3.connect_to_region("us-west-1")
     bucket = conn.create_bucket("foobar")

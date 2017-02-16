@@ -4,10 +4,10 @@ from tempfile import NamedTemporaryFile
 import boto.glacier
 import sure  # noqa
 
-from moto import mock_glacier
+from moto import mock_glacier_deprecated
 
 
-@mock_glacier
+@mock_glacier_deprecated
 def test_create_and_delete_archive():
     the_file = NamedTemporaryFile(delete=False)
     the_file.write(b"some stuff")

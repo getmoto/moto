@@ -8,11 +8,11 @@ import boto3
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2, mock_ec2_deprecated
 from tests.helpers import requires_boto_gte
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_route_tables_defaults():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -37,7 +37,7 @@ def test_route_tables_defaults():
     all_route_tables.should.have.length_of(0)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_route_tables_additional():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -77,7 +77,7 @@ def test_route_tables_additional():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_route_tables_filters_standard():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -115,7 +115,7 @@ def test_route_tables_filters_standard():
     conn.get_all_route_tables.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_route_tables_filters_associations():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -152,7 +152,7 @@ def test_route_tables_filters_associations():
     association1_route_tables[0].associations.should.have.length_of(2)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_route_table_associations():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -219,7 +219,7 @@ def test_route_table_associations():
 
 
 @requires_boto_gte("2.16.0")
-@mock_ec2
+@mock_ec2_deprecated
 def test_route_table_replace_route_table_association():
     """
       Note: Boto has deprecated replace_route_table_assocation (which returns status)
@@ -289,7 +289,7 @@ def test_route_table_replace_route_table_association():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_route_table_get_by_tag():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -326,7 +326,7 @@ def test_route_table_get_by_tag_boto3():
     route_tables[0].tags[0].should.equal({'Key': 'Name', 'Value': 'TestRouteTable'})
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_routes_additional():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -364,7 +364,7 @@ def test_routes_additional():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_routes_replace():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -412,7 +412,7 @@ def test_routes_replace():
 
 
 @requires_boto_gte("2.19.0")
-@mock_ec2
+@mock_ec2_deprecated
 def test_routes_not_supported():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -431,7 +431,7 @@ def test_routes_not_supported():
 
 
 @requires_boto_gte("2.34.0")
-@mock_ec2
+@mock_ec2_deprecated
 def test_routes_vpc_peering_connection():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -458,7 +458,7 @@ def test_routes_vpc_peering_connection():
 
 
 @requires_boto_gte("2.34.0")
-@mock_ec2
+@mock_ec2_deprecated
 def test_routes_vpn_gateway():
 
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -480,7 +480,7 @@ def test_routes_vpn_gateway():
     new_route.vpc_peering_connection_id.should.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_network_acl_tagging():
 
     conn = boto.connect_vpc('the_key', 'the secret')

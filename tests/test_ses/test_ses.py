@@ -6,10 +6,10 @@ from boto.exception import BotoServerError
 
 import sure  # noqa
 
-from moto import mock_ses
+from moto import mock_ses_deprecated
 
 
-@mock_ses
+@mock_ses_deprecated
 def test_verify_email_identity():
     conn = boto.connect_ses('the_key', 'the_secret')
     conn.verify_email_identity("test@example.com")
@@ -19,7 +19,7 @@ def test_verify_email_identity():
     address.should.equal('test@example.com')
 
 
-@mock_ses
+@mock_ses_deprecated
 def test_domain_verify():
     conn = boto.connect_ses('the_key', 'the_secret')
 
@@ -31,7 +31,7 @@ def test_domain_verify():
     domains.should.equal(['domain1.com', 'domain2.com'])
 
 
-@mock_ses
+@mock_ses_deprecated
 def test_delete_identity():
     conn = boto.connect_ses('the_key', 'the_secret')
     conn.verify_email_identity("test@example.com")
@@ -41,7 +41,7 @@ def test_delete_identity():
     conn.list_identities()['ListIdentitiesResponse']['ListIdentitiesResult']['Identities'].should.have.length_of(0)
 
 
-@mock_ses
+@mock_ses_deprecated
 def test_send_email():
     conn = boto.connect_ses('the_key', 'the_secret')
 
@@ -56,7 +56,7 @@ def test_send_email():
     sent_count = int(send_quota['GetSendQuotaResponse']['GetSendQuotaResult']['SentLast24Hours'])
     sent_count.should.equal(1)
 
-@mock_ses
+@mock_ses_deprecated
 def test_send_html_email():
     conn = boto.connect_ses('the_key', 'the_secret')
 
@@ -71,7 +71,7 @@ def test_send_html_email():
     sent_count = int(send_quota['GetSendQuotaResponse']['GetSendQuotaResult']['SentLast24Hours'])
     sent_count.should.equal(1)
 
-@mock_ses
+@mock_ses_deprecated
 def test_send_raw_email():
     conn = boto.connect_ses('the_key', 'the_secret')
 

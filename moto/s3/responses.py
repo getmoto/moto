@@ -49,6 +49,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
     def subdomain_based_buckets(self, request):
         host = request.headers.get('host', request.headers.get('Host'))
+        if not host:
+            host = urlparse(request.url).netloc
 
         if not host or host.startswith("localhost"):
             # For localhost, default to path-based buckets
@@ -130,6 +132,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         else:
             # Flask server
             body = request.data
+        if body is None:
+            body = ''
         body = body.decode('utf-8')
 
         if method == 'HEAD':
@@ -334,7 +338,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 409, headers, template.render(bucket=removed_bucket)
 
     def _bucket_response_post(self, request, body, bucket_name, headers):
-        if self.is_delete_keys(request, request.path, bucket_name):
+        path = request.path if hasattr(request, 'path') else request.path_url
+        if self.is_delete_keys(request, path, bucket_name):
             return self._bucket_response_delete_keys(request, body, bucket_name, headers)
 
         # POST to bucket-url should create file from form
@@ -344,7 +349,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         else:
             # HTTPretty, build new form object
             form = {}
-            for kv in request.body.decode('utf-8').split('&'):
+            for kv in body.decode('utf-8').split('&'):
                 k, v = kv.split('=')
                 form[k] = v
 
@@ -428,9 +433,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if hasattr(request, 'body'):
             # Boto
             body = request.body
+            if hasattr(body, 'read'):
+                body = body.read()
         else:
             # Flask server
             body = request.data
+        if body is None:
+            body = b''
 
         if method == 'GET':
             return self._key_response_get(bucket_name, query, key_name, headers)
@@ -546,7 +555,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if key:
             headers.update(key.metadata)
             headers.update(key.response_dict)
-            return 200, headers, key.value
+            return 200, headers, ""
         else:
             return 404, headers, ""
 

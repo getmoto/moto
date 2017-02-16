@@ -12,10 +12,10 @@ from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError, JSONResponseError
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2, mock_ec2_deprecated
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_and_describe_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -43,7 +43,7 @@ def test_create_and_describe_security_group():
     set(group_names).should.equal(set(["default", "test security group"]))
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_security_group_without_description_raises_error():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -54,7 +54,7 @@ def test_create_security_group_without_description_raises_error():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_default_security_group():
     conn = boto.ec2.connect_to_region('us-east-1')
     groups = conn.get_all_security_groups()
@@ -62,7 +62,7 @@ def test_default_security_group():
     groups[0].name.should.equal("default")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_and_describe_vpc_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vpc_id = 'vpc-5300000c'
@@ -88,7 +88,7 @@ def test_create_and_describe_vpc_security_group():
     all_groups[0].name.should.equal('test security group')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_two_security_groups_with_same_name_in_different_vpc():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vpc_id = 'vpc-5300000c'
@@ -105,7 +105,7 @@ def test_create_two_security_groups_with_same_name_in_different_vpc():
     set(group_names).should.equal(set(["default", "test security group"]))
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_deleting_security_groups():
     conn = boto.connect_ec2('the_key', 'the_secret')
     security_group1 = conn.create_security_group('test1', 'test1')
@@ -135,7 +135,7 @@ def test_deleting_security_groups():
     conn.get_all_security_groups().should.have.length_of(2)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_delete_security_group_in_vpc():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vpc_id = "vpc-12345"
@@ -145,7 +145,7 @@ def test_delete_security_group_in_vpc():
     conn.delete_security_group(group_id=security_group1.id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_authorize_ip_range_and_revoke():
     conn = boto.connect_ec2('the_key', 'the_secret')
     security_group = conn.create_security_group('test', 'test')
@@ -216,7 +216,7 @@ def test_authorize_ip_range_and_revoke():
     egress_security_group.rules_egress.should.have.length_of(1)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_authorize_other_group_and_revoke():
     conn = boto.connect_ec2('the_key', 'the_secret')
     security_group = conn.create_security_group('test', 'test')
@@ -269,7 +269,7 @@ def test_authorize_other_group_egress_and_revoke():
     sg01.ip_permissions_egress.should.have.length_of(1)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_authorize_group_in_vpc():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vpc_id = "vpc-12345"
@@ -295,7 +295,7 @@ def test_authorize_group_in_vpc():
     security_group.rules.should.have.length_of(0)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_all_security_groups():
     conn = boto.connect_ec2()
     sg1 = conn.create_security_group(name='test1', description='test1', vpc_id='vpc-mjm05d27')
@@ -321,7 +321,7 @@ def test_get_all_security_groups():
     resp.should.have.length_of(4)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_authorize_bad_cidr_throws_invalid_parameter_value():
     conn = boto.connect_ec2('the_key', 'the_secret')
     security_group = conn.create_security_group('test', 'test')
@@ -332,7 +332,7 @@ def test_authorize_bad_cidr_throws_invalid_parameter_value():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_security_group_tagging():
     conn = boto.connect_vpc()
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -356,7 +356,7 @@ def test_security_group_tagging():
     group.tags["Test"].should.equal("Tag")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_security_group_tag_filtering():
     conn = boto.connect_ec2()
     sg = conn.create_security_group("test-sg", "Test SG")
@@ -366,7 +366,7 @@ def test_security_group_tag_filtering():
     groups.should.have.length_of(1)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_authorize_all_protocols_with_no_port_specification():
     conn = boto.connect_ec2()
     sg = conn.create_security_group('test', 'test')
@@ -379,7 +379,7 @@ def test_authorize_all_protocols_with_no_port_specification():
     sg.rules[0].to_port.should.equal(None)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_sec_group_rule_limit():
     ec2_conn = boto.connect_ec2()
     sg = ec2_conn.create_security_group('test', 'test')
@@ -441,7 +441,7 @@ def test_sec_group_rule_limit():
     cm.exception.error_code.should.equal('RulesPerSecurityGroupLimitExceeded')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_sec_group_rule_limit_vpc():
     ec2_conn = boto.connect_ec2()
     vpc_conn = boto.connect_vpc()
@@ -611,7 +611,7 @@ def test_authorize_and_revoke_in_bulk():
     for ip_permission in expected_ip_permissions:
         sg01.ip_permissions_egress.shouldnt.contain(ip_permission)
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_all_security_groups_filter_with_same_vpc_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
     vpc_id = 'vpc-5300000c'

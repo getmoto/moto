@@ -3,14 +3,14 @@ from six.moves.urllib.parse import parse_qs
 
 import boto
 from freezegun import freeze_time
-import httpretty
 import sure  # noqa
 
-from moto import mock_sns, mock_sqs
+from moto.packages.responses import responses
+from moto import mock_sns, mock_sns_deprecated, mock_sqs_deprecated
 
 
-@mock_sqs
-@mock_sns
+@mock_sqs_deprecated
+@mock_sns_deprecated
 def test_publish_to_sqs():
     conn = boto.connect_sns()
     conn.create_topic("some-topic")
@@ -29,8 +29,8 @@ def test_publish_to_sqs():
     message.get_body().should.equal('my message')
 
 
-@mock_sqs
-@mock_sns
+@mock_sqs_deprecated
+@mock_sns_deprecated
 def test_publish_to_sqs_in_different_region():
     conn = boto.sns.connect_to_region("us-west-1")
     conn.create_topic("some-topic")
@@ -51,10 +51,11 @@ def test_publish_to_sqs_in_different_region():
 
 @freeze_time("2013-01-01")
 @mock_sns
+@mock_sns_deprecated
 def test_publish_to_http():
-    httpretty.HTTPretty.register_uri(
+    responses.add(
         method="POST",
-        uri="http://example.com/foobar",
+        url="http://example.com/foobar",
     )
 
     conn = boto.connect_sns()
@@ -67,7 +68,7 @@ def test_publish_to_http():
     response = conn.publish(topic=topic_arn, message="my message", subject="my subject")
     message_id = response['PublishResponse']['PublishResult']['MessageId']
 
-    last_request = httpretty.last_request()
+    last_request = responses.calls[-1].request
     last_request.method.should.equal("POST")
     parse_qs(last_request.body.decode('utf-8')).should.equal({
         "Type": ["Notification"],
@@ -81,3 +82,5 @@ def test_publish_to_http():
         "SigningCertURL": ["https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem"],
         "UnsubscribeURL": ["https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55"],
     })
+
+

@@ -5,7 +5,6 @@ from setuptools import setup, find_packages
 install_requires = [
     "Jinja2>=2.8",
     "boto>=2.36.0",
-    "httpretty==0.8.10",
     "requests",
     "xmltodict",
     "six",

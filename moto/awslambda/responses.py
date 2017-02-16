@@ -9,7 +9,7 @@ from .models import lambda_backends
 
 
 class LambdaResponse(BaseResponse):
-    
+
     @classmethod
     def root(cls, request, full_url, headers):
         if request.method == 'GET':
@@ -38,11 +38,13 @@ class LambdaResponse(BaseResponse):
     def _invoke(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
 
-        function_name = request.path.split('/')[-2]
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-2]
 
         if lambda_backend.has_function(function_name):
             fn = lambda_backend.get_function(function_name)
             payload = fn.invoke(request, headers)
+            headers['Content-Length'] = str(len(payload))
             return 202, headers, payload
         else:
             return 404, headers, "{}"
@@ -68,7 +70,8 @@ class LambdaResponse(BaseResponse):
     def _delete_function(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
 
-        function_name = request.path.split('/')[-1]
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-1]
 
         if lambda_backend.has_function(function_name):
             lambda_backend.delete_function(function_name)
@@ -79,7 +82,8 @@ class LambdaResponse(BaseResponse):
     def _get_function(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
 
-        function_name = request.path.split('/')[-1]
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-1]
 
         if lambda_backend.has_function(function_name):
             fn = lambda_backend.get_function(function_name)
@@ -87,7 +91,7 @@ class LambdaResponse(BaseResponse):
             return 200, headers, json.dumps(code)
         else:
             return 404, headers, "{}"
-    
+
     def get_lambda_backend(self, full_url):
         from moto.awslambda.models import lambda_backends
         region = self._get_aws_region(full_url)

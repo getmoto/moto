@@ -9,13 +9,13 @@ from boto.exception import EC2ResponseError
 
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2, mock_ec2_deprecated
 
 SAMPLE_DOMAIN_NAME = u'example.com'
 SAMPLE_NAME_SERVERS = [u'10.0.0.6', u'10.0.0.7']
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_dhcp_options_associate():
     """ associate dhcp option """
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -26,7 +26,7 @@ def test_dhcp_options_associate():
     rval.should.be.equal(True)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_dhcp_options_associate_invalid_dhcp_id():
     """ associate dhcp option bad dhcp options id """
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -39,7 +39,7 @@ def test_dhcp_options_associate_invalid_dhcp_id():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_dhcp_options_associate_invalid_vpc_id():
     """ associate dhcp option invalid vpc id """
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -52,7 +52,7 @@ def test_dhcp_options_associate_invalid_vpc_id():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_dhcp_options_delete_with_vpc():
     """Test deletion of dhcp options with vpc"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -78,7 +78,7 @@ def test_dhcp_options_delete_with_vpc():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_dhcp_options():
     """Create most basic dhcp option"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -89,7 +89,7 @@ def test_create_dhcp_options():
     dhcp_option.options[u'domain-name-servers'][1].should.be.equal(SAMPLE_NAME_SERVERS[1])
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_dhcp_options_invalid_options():
     """Create invalid dhcp options"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -108,7 +108,7 @@ def test_create_dhcp_options_invalid_options():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_describe_dhcp_options():
     """Test dhcp options lookup by id"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -121,7 +121,7 @@ def test_describe_dhcp_options():
     dhcp_options.should.be.length_of(1)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_describe_dhcp_options_invalid_id():
     """get error on invalid dhcp_option_id lookup"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -133,7 +133,7 @@ def test_describe_dhcp_options_invalid_id():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_delete_dhcp_options():
     """delete dhcp option"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -151,7 +151,7 @@ def test_delete_dhcp_options():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_delete_dhcp_options_invalid_id():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -164,7 +164,7 @@ def test_delete_dhcp_options_invalid_id():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_delete_dhcp_options_malformed_id():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -177,7 +177,7 @@ def test_delete_dhcp_options_malformed_id():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_dhcp_tagging():
     conn = boto.connect_vpc('the_key', 'the_secret')
     dhcp_option = conn.create_dhcp_options()
@@ -194,7 +194,7 @@ def test_dhcp_tagging():
     dhcp_option.tags["a key"].should.equal("some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_dhcp_options_get_by_tag():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -230,7 +230,7 @@ def test_dhcp_options_get_by_tag():
     dhcp_options_sets.should.have.length_of(2)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_dhcp_options_get_by_id():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -308,7 +308,7 @@ def test_dhcp_options_get_by_key_filter():
     dhcp_options_sets.should.have.length_of(3)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_dhcp_options_get_by_invalid_filter():
     conn = boto.connect_vpc('the_key', 'the_secret')
 

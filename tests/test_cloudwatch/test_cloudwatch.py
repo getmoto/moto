@@ -2,7 +2,7 @@ import boto
 from boto.ec2.cloudwatch.alarm import MetricAlarm
 import sure  # noqa
 
-from moto import mock_cloudwatch
+from moto import mock_cloudwatch_deprecated
 
 def alarm_fixture(name="tester", action=None):
     action = action or ['arn:alarm']
@@ -23,7 +23,7 @@ def alarm_fixture(name="tester", action=None):
         unit='Seconds',
     )
 
-@mock_cloudwatch
+@mock_cloudwatch_deprecated
 def test_create_alarm():
     conn = boto.connect_cloudwatch()
 
@@ -49,7 +49,7 @@ def test_create_alarm():
     alarm.unit.should.equal('Seconds')
 
 
-@mock_cloudwatch
+@mock_cloudwatch_deprecated
 def test_delete_alarm():
     conn = boto.connect_cloudwatch()
 
@@ -68,7 +68,7 @@ def test_delete_alarm():
     alarms.should.have.length_of(0)
 
 
-@mock_cloudwatch
+@mock_cloudwatch_deprecated
 def test_put_metric_data():
     conn = boto.connect_cloudwatch()
 
@@ -87,7 +87,7 @@ def test_put_metric_data():
     dict(metric.dimensions).should.equal({'InstanceId': ['i-0123456,i-0123457']})
 
 
-@mock_cloudwatch
+@mock_cloudwatch_deprecated
 def test_describe_alarms():
     conn = boto.connect_cloudwatch()
 
@@ -114,7 +114,7 @@ def test_describe_alarms():
     alarms = conn.describe_alarms()
     alarms.should.have.length_of(0)
 
-@mock_cloudwatch
+@mock_cloudwatch_deprecated
 def test_describe_state_value_unimplemented():
     conn = boto.connect_cloudwatch()
 

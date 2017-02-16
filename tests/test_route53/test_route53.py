@@ -9,10 +9,10 @@ import sure  # noqa
 
 import uuid
 
-from moto import mock_route53
+from moto import mock_route53, mock_route53_deprecated
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_hosted_zone():
     conn = boto.connect_route53('the_key', 'the_secret')
     firstzone = conn.create_hosted_zone("testdns.aws.com")
@@ -34,7 +34,7 @@ def test_hosted_zone():
     conn.get_hosted_zone.when.called_with("abcd").should.throw(boto.route53.exception.DNSServerError, "404 Not Found")
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_rrset():
     conn = boto.connect_route53('the_key', 'the_secret')
 
@@ -117,7 +117,7 @@ def test_rrset():
     rrsets.should.have.length_of(0)
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_rrset_with_multiple_values():
     conn = boto.connect_route53('the_key', 'the_secret')
     zone = conn.create_hosted_zone("testdns.aws.com")
@@ -134,7 +134,7 @@ def test_rrset_with_multiple_values():
     set(rrsets[0].resource_records).should.equal(set(['1.2.3.4', '5.6.7.8']))
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_alias_rrset():
     conn = boto.connect_route53('the_key', 'the_secret')
     zone = conn.create_hosted_zone("testdns.aws.com")
@@ -153,7 +153,7 @@ def test_alias_rrset():
     rrsets[0].resource_records[0].should.equal('bar.testdns.aws.com')
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_create_health_check():
     conn = boto.connect_route53('the_key', 'the_secret')
 
@@ -183,7 +183,7 @@ def test_create_health_check():
     config['FailureThreshold'].should.equal("2")
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_delete_health_check():
     conn = boto.connect_route53('the_key', 'the_secret')
 
@@ -204,7 +204,7 @@ def test_delete_health_check():
     list(checks).should.have.length_of(0)
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_use_health_check_in_resource_record_set():
     conn = boto.connect_route53('the_key', 'the_secret')
 
@@ -229,7 +229,7 @@ def test_use_health_check_in_resource_record_set():
     record_sets[0].health_check.should.equal(check_id)
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_hosted_zone_comment_preserved():
     conn = boto.connect_route53('the_key', 'the_secret')
 
@@ -246,7 +246,7 @@ def test_hosted_zone_comment_preserved():
     zone.config["Comment"].should.equal("test comment")
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_deleting_weighted_route():
     conn = boto.connect_route53()
 
@@ -266,7 +266,7 @@ def test_deleting_weighted_route():
     cname.identifier.should.equal('success-test-bar')
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_deleting_latency_route():
     conn = boto.connect_route53()
 
@@ -288,7 +288,7 @@ def test_deleting_latency_route():
     cname.region.should.equal('us-west-1')
 
 
-@mock_route53
+@mock_route53_deprecated
 def test_hosted_zone_private_zone_preserved():
     conn = boto.connect_route53('the_key', 'the_secret')
 

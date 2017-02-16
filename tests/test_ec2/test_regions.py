@@ -3,7 +3,7 @@ import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
 import sure
-from moto import mock_ec2, mock_autoscaling, mock_elb
+from moto import mock_ec2_deprecated, mock_autoscaling_deprecated, mock_elb_deprecated
 
 
 def add_servers_to_region(ami_id, count, region):
@@ -12,7 +12,7 @@ def add_servers_to_region(ami_id, count, region):
         conn.run_instances(ami_id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_add_servers_to_a_single_region():
     region = 'ap-northeast-1'
     add_servers_to_region('ami-1234abcd', 1, region)
@@ -27,7 +27,7 @@ def test_add_servers_to_a_single_region():
     reservations[1].instances[0].image_id.should.equal('ami-5678efgh')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_add_servers_to_multiple_regions():
     region1 = 'us-east-1'
     region2 = 'ap-northeast-1'
@@ -46,8 +46,8 @@ def test_add_servers_to_multiple_regions():
     ap_reservations[0].instances[0].image_id.should.equal('ami-5678efgh')
 
 
-@mock_autoscaling
-@mock_elb
+@mock_autoscaling_deprecated
+@mock_elb_deprecated
 def test_create_autoscaling_group():
     elb_conn = boto.ec2.elb.connect_to_region('us-east-1')
     elb_conn.create_load_balancer('us_test_lb', zones=[], listeners=[(80, 8080, 'http')])

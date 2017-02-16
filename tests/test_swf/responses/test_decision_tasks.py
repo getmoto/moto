@@ -1,14 +1,14 @@
 from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
 
-from moto import mock_swf
+from moto import mock_swf_deprecated
 from moto.swf import swf_backend
 
 from ..utils import setup_workflow
 
 
 # PollForDecisionTask endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_poll_for_decision_task_when_one():
     conn = setup_workflow()
 
@@ -23,7 +23,7 @@ def test_poll_for_decision_task_when_one():
     resp["events"][-1]["decisionTaskStartedEventAttributes"]["identity"].should.equal("srv01")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_poll_for_decision_task_when_none():
     conn = setup_workflow()
     conn.poll_for_decision_task("test-domain", "queue")
@@ -34,14 +34,14 @@ def test_poll_for_decision_task_when_none():
     resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_poll_for_decision_task_on_non_existent_queue():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "non-existent-queue")
     resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_poll_for_decision_task_with_reverse_order():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue", reverse_order=True)
@@ -50,7 +50,7 @@ def test_poll_for_decision_task_with_reverse_order():
 
 
 # CountPendingDecisionTasks endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_count_pending_decision_tasks():
     conn = setup_workflow()
     conn.poll_for_decision_task("test-domain", "queue")
@@ -58,14 +58,14 @@ def test_count_pending_decision_tasks():
     resp.should.equal({"count": 1, "truncated": False})
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_count_pending_decision_tasks_on_non_existent_task_list():
     conn = setup_workflow()
     resp = conn.count_pending_decision_tasks("test-domain", "non-existent")
     resp.should.equal({"count": 0, "truncated": False})
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_count_pending_decision_tasks_after_decision_completes():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -76,7 +76,7 @@ def test_count_pending_decision_tasks_after_decision_completes():
 
 
 # RespondDecisionTaskCompleted endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_with_no_decision():
     conn = setup_workflow()
 
@@ -108,7 +108,7 @@ def test_respond_decision_task_completed_with_no_decision():
     resp["latestExecutionContext"].should.equal("free-form context")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_with_wrong_token():
     conn = setup_workflow()
     conn.poll_for_decision_task("test-domain", "queue")
@@ -117,7 +117,7 @@ def test_respond_decision_task_completed_with_wrong_token():
     ).should.throw(SWFResponseError)
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_on_close_workflow_execution():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -133,7 +133,7 @@ def test_respond_decision_task_completed_on_close_workflow_execution():
     ).should.throw(SWFResponseError)
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_with_task_already_completed():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -145,7 +145,7 @@ def test_respond_decision_task_completed_with_task_already_completed():
     ).should.throw(SWFResponseError)
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_with_complete_workflow_execution():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -170,7 +170,7 @@ def test_respond_decision_task_completed_with_complete_workflow_execution():
     resp["events"][-1]["workflowExecutionCompletedEventAttributes"]["result"].should.equal("foo bar")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_with_close_decision_not_last():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -186,7 +186,7 @@ def test_respond_decision_task_completed_with_close_decision_not_last():
     ).should.throw(SWFResponseError, r"Close must be last decision in list")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_with_invalid_decision_type():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -204,7 +204,7 @@ def test_respond_decision_task_completed_with_invalid_decision_type():
     )
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_with_missing_attributes():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -226,7 +226,7 @@ def test_respond_decision_task_completed_with_missing_attributes():
     )
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_with_missing_attributes_totally():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -245,7 +245,7 @@ def test_respond_decision_task_completed_with_missing_attributes_totally():
     )
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_respond_decision_task_completed_with_fail_workflow_execution():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "queue")
@@ -272,7 +272,7 @@ def test_respond_decision_task_completed_with_fail_workflow_execution():
     attrs["details"].should.equal("foo")
 
 
-@mock_swf
+@mock_swf_deprecated
 @freeze_time("2015-01-01 12:00:00")
 def test_respond_decision_task_completed_with_schedule_activity_task():
     conn = setup_workflow()

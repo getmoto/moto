@@ -8,12 +8,12 @@ from boto.ec2.autoscale import Tag
 import boto.ec2.elb
 import sure  # noqa
 
-from moto import mock_autoscaling, mock_ec2, mock_elb
+from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_autoscaling_deprecated
 from tests.helpers import requires_boto_gte
 
 
-@mock_autoscaling
-@mock_elb
+@mock_autoscaling_deprecated
+@mock_elb_deprecated
 def test_create_autoscaling_group():
     elb_conn = boto.ec2.elb.connect_to_region('us-east-1')
     elb_conn.create_load_balancer('test_lb', zones=[], listeners=[(80, 8080, 'http')])
@@ -73,7 +73,7 @@ def test_create_autoscaling_group():
     tag.propagate_at_launch.should.equal(True)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_autoscaling_groups_defaults():
     """ Test with the minimum inputs and check that all of the proper defaults
     are assigned for the other attributes """
@@ -112,7 +112,7 @@ def test_create_autoscaling_groups_defaults():
     list(group.tags).should.equal([])
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_autoscaling_group_describe_filter():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -138,7 +138,7 @@ def test_autoscaling_group_describe_filter():
     conn.get_all_groups().should.have.length_of(3)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_autoscaling_update():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -169,7 +169,7 @@ def test_autoscaling_update():
     group.vpc_zone_identifier.should.equal('subnet-5678efgh')
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_autoscaling_tags_update():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -211,7 +211,7 @@ def test_autoscaling_tags_update():
     group.tags.should.have.length_of(2)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_autoscaling_group_delete():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -235,8 +235,8 @@ def test_autoscaling_group_delete():
     conn.get_all_groups().should.have.length_of(0)
 
 
-@mock_ec2
-@mock_autoscaling
+@mock_ec2_deprecated
+@mock_autoscaling_deprecated
 def test_autoscaling_group_describe_instances():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -269,7 +269,7 @@ def test_autoscaling_group_describe_instances():
 
 
 @requires_boto_gte("2.8")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_set_desired_capacity_up():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -304,7 +304,7 @@ def test_set_desired_capacity_up():
 
 
 @requires_boto_gte("2.8")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_set_desired_capacity_down():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -339,7 +339,7 @@ def test_set_desired_capacity_down():
 
 
 @requires_boto_gte("2.8")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_set_desired_capacity_the_same():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -372,8 +372,8 @@ def test_set_desired_capacity_the_same():
     instances = list(conn.get_all_autoscaling_instances())
     instances.should.have.length_of(2)
 
-@mock_autoscaling
-@mock_elb
+@mock_autoscaling_deprecated
+@mock_elb_deprecated
 def test_autoscaling_group_with_elb():
     elb_conn = boto.connect_elb()
     zones = ['us-east-1a', 'us-east-1b']

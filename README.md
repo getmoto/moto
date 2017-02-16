@@ -263,7 +263,3 @@ boto3.resource(
 ```console
 $ pip install moto
 ```
-
-## Thanks
-
-A huge thanks to [Gabriel Falcão](https://github.com/gabrielfalcao) and his [HTTPretty](https://github.com/gabrielfalcao/HTTPretty) library. Moto would not exist without it.

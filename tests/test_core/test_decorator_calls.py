@@ -7,19 +7,19 @@ import unittest
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_ec2, mock_s3
+from moto import mock_ec2_deprecated, mock_s3_deprecated
 
 '''
 Test the different ways that the decorator can be used
 '''
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_basic_connect():
     boto.connect_ec2()
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_basic_decorator():
     conn = boto.connect_ec2('the_key', 'the_secret')
     list(conn.get_all_instances()).should.equal([])
@@ -30,7 +30,7 @@ def test_context_manager():
     with assert_raises(EC2ResponseError):
         conn.get_all_instances()
 
-    with mock_ec2():
+    with mock_ec2_deprecated():
         conn = boto.connect_ec2('the_key', 'the_secret')
         list(conn.get_all_instances()).should.equal([])
 
@@ -44,7 +44,7 @@ def test_decorator_start_and_stop():
     with assert_raises(EC2ResponseError):
         conn.get_all_instances()
 
-    mock = mock_ec2()
+    mock = mock_ec2_deprecated()
     mock.start()
     conn = boto.connect_ec2('the_key', 'the_secret')
     list(conn.get_all_instances()).should.equal([])
@@ -54,7 +54,7 @@ def test_decorator_start_and_stop():
         conn.get_all_instances()
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_decorater_wrapped_gets_set():
     """
     Moto decorator's __wrapped__ should get set to the tests function
@@ -62,7 +62,7 @@ def test_decorater_wrapped_gets_set():
     test_decorater_wrapped_gets_set.__wrapped__.__name__.should.equal('test_decorater_wrapped_gets_set')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 class Tester(object):
     def test_the_class(self):
         conn = boto.connect_ec2()
@@ -73,7 +73,7 @@ class Tester(object):
         list(conn.get_all_instances()).should.have.length_of(0)
 
 
-@mock_s3
+@mock_s3_deprecated
 class TesterWithSetup(unittest.TestCase):
     def setUp(self):
         self.conn = boto.connect_s3()

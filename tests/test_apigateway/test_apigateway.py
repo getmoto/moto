@@ -5,11 +5,11 @@ from datetime import datetime
 from dateutil.tz import tzutc
 import boto3
 from freezegun import freeze_time
-import httpretty
 import requests
 import sure  # noqa
 from botocore.exceptions import ClientError
 
+from moto.packages.responses import responses
 from moto import mock_apigateway
 
 
@@ -883,11 +883,10 @@ def test_deployment():
     stage['description'].should.equal('_new_description_')
 
 
-@httpretty.activate
 @mock_apigateway
 def test_http_proxying_integration():
-    httpretty.register_uri(
-        httpretty.GET, "http://httpbin.org/robots.txt", body='a fake response'
+    responses.add(
+        responses.GET, "http://httpbin.org/robots.txt", body='a fake response'
     )
 
     region_name = 'us-west-2'

@@ -5,10 +5,10 @@ import boto.kms
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 import sure  # noqa
-from moto import mock_kms
+from moto import mock_kms_deprecated
 from nose.tools import assert_raises
 
-@mock_kms
+@mock_kms_deprecated
 def test_create_key():
     conn = boto.kms.connect_to_region("us-west-2")
 
@@ -19,7 +19,7 @@ def test_create_key():
     key['KeyMetadata']['Enabled'].should.equal(True)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_describe_key():
     conn = boto.kms.connect_to_region("us-west-2")
     key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
@@ -30,7 +30,7 @@ def test_describe_key():
     key['KeyMetadata']['KeyUsage'].should.equal("ENCRYPT_DECRYPT")
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_describe_key_via_alias():
     conn = boto.kms.connect_to_region("us-west-2")
     key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
@@ -42,7 +42,7 @@ def test_describe_key_via_alias():
     alias_key['KeyMetadata']['Arn'].should.equal(key['KeyMetadata']['Arn'])
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_describe_key_via_alias_not_found():
     conn = boto.kms.connect_to_region("us-west-2")
     key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
@@ -51,7 +51,7 @@ def test_describe_key_via_alias_not_found():
     conn.describe_key.when.called_with('alias/not-found-alias').should.throw(JSONResponseError)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_describe_key_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
     key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
@@ -63,13 +63,13 @@ def test_describe_key_via_arn():
     the_key['KeyMetadata']['KeyId'].should.equal(key['KeyMetadata']['KeyId'])
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_describe_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.describe_key.when.called_with("not-a-key").should.throw(JSONResponseError)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_list_keys():
     conn = boto.kms.connect_to_region("us-west-2")
 
@@ -80,7 +80,7 @@ def test_list_keys():
     keys['Keys'].should.have.length_of(2)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_enable_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
 
@@ -91,7 +91,7 @@ def test_enable_key_rotation():
 
     conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(True)
 
-@mock_kms
+@mock_kms_deprecated
 def test_enable_key_rotation_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
 
@@ -104,13 +104,13 @@ def test_enable_key_rotation_via_arn():
 
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_enable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.enable_key_rotation.when.called_with("not-a-key").should.throw(JSONResponseError)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_enable_key_rotation_with_alias_name_should_fail():
     conn = boto.kms.connect_to_region("us-west-2")
     key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
@@ -122,7 +122,7 @@ def test_enable_key_rotation_with_alias_name_should_fail():
     conn.enable_key_rotation.when.called_with('alias/my-alias').should.throw(JSONResponseError)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_disable_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
 
@@ -136,7 +136,7 @@ def test_disable_key_rotation():
     conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_encrypt():
     """
     test_encrypt
@@ -147,26 +147,26 @@ def test_encrypt():
     response['CiphertextBlob'].should.equal(b'ZW5jcnlwdG1l')
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_decrypt():
     conn = boto.kms.connect_to_region('us-west-2')
     response = conn.decrypt('ZW5jcnlwdG1l'.encode('utf-8'))
     response['Plaintext'].should.equal(b'encryptme')
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_disable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.disable_key_rotation.when.called_with("not-a-key").should.throw(JSONResponseError)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_get_key_rotation_status_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.get_key_rotation_status.when.called_with("not-a-key").should.throw(JSONResponseError)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_get_key_rotation_status():
     conn = boto.kms.connect_to_region("us-west-2")
 
@@ -176,7 +176,7 @@ def test_get_key_rotation_status():
     conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_create_key_defaults_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
 
@@ -186,7 +186,7 @@ def test_create_key_defaults_key_rotation():
     conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_get_key_policy():
     conn = boto.kms.connect_to_region('us-west-2')
 
@@ -196,7 +196,7 @@ def test_get_key_policy():
     policy = conn.get_key_policy(key_id, 'default')
     policy['Policy'].should.equal('my policy')
 
-@mock_kms
+@mock_kms_deprecated
 def test_get_key_policy_via_arn():
     conn = boto.kms.connect_to_region('us-west-2')
 
@@ -205,7 +205,7 @@ def test_get_key_policy_via_arn():
 
     policy['Policy'].should.equal('my policy')
 
-@mock_kms
+@mock_kms_deprecated
 def test_put_key_policy():
     conn = boto.kms.connect_to_region('us-west-2')
 
@@ -217,7 +217,7 @@ def test_put_key_policy():
     policy['Policy'].should.equal('new policy')
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_put_key_policy_via_arn():
     conn = boto.kms.connect_to_region('us-west-2')
 
@@ -229,7 +229,7 @@ def test_put_key_policy_via_arn():
     policy['Policy'].should.equal('new policy')
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_put_key_policy_via_alias_should_not_update():
     conn = boto.kms.connect_to_region('us-west-2')
 
@@ -242,7 +242,7 @@ def test_put_key_policy_via_alias_should_not_update():
     policy['Policy'].should.equal('my policy')
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_put_key_policy():
     conn = boto.kms.connect_to_region('us-west-2')
 
@@ -253,7 +253,7 @@ def test_put_key_policy():
     policy['Policy'].should.equal('new policy')
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_list_key_policies():
     conn = boto.kms.connect_to_region('us-west-2')
 
@@ -264,7 +264,7 @@ def test_list_key_policies():
     policies['PolicyNames'].should.equal(['default'])
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__create_alias__returns_none_if_correct():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -275,7 +275,7 @@ def test__create_alias__returns_none_if_correct():
     resp.should.be.none
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__create_alias__raises_if_reserved_alias():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -300,7 +300,7 @@ def test__create_alias__raises_if_reserved_alias():
         ex.status.should.equal(400)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__create_alias__can_create_multiple_aliases_for_same_key_id():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -311,7 +311,7 @@ def test__create_alias__can_create_multiple_aliases_for_same_key_id():
     kms.create_alias('alias/my-alias5', key_id).should.be.none
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__create_alias__raises_if_wrong_prefix():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -328,7 +328,7 @@ def test__create_alias__raises_if_wrong_prefix():
     ex.status.should.equal(400)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__create_alias__raises_if_duplicate():
     region = 'us-west-2'
     kms = boto.kms.connect_to_region(region)
@@ -354,7 +354,7 @@ def test__create_alias__raises_if_duplicate():
     ex.status.should.equal(400)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__create_alias__raises_if_alias_has_restricted_characters():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -378,7 +378,7 @@ def test__create_alias__raises_if_alias_has_restricted_characters():
         ex.status.should.equal(400)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__create_alias__raises_if_alias_has_colon_character():
     # For some reason, colons are not accepted for an alias, even though they are accepted by regex ^[a-zA-Z0-9:/_-]+$
     kms = boto.connect_kms()
@@ -401,7 +401,7 @@ def test__create_alias__raises_if_alias_has_colon_character():
         ex.status.should.equal(400)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__create_alias__accepted_characters():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -416,7 +416,7 @@ def test__create_alias__accepted_characters():
         kms.create_alias(alias_name, key_id)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__create_alias__raises_if_target_key_id_is_existing_alias():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -437,7 +437,7 @@ def test__create_alias__raises_if_target_key_id_is_existing_alias():
     ex.status.should.equal(400)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__delete_alias():
     kms = boto.connect_kms()
     create_resp = kms.create_key()
@@ -454,7 +454,7 @@ def test__delete_alias():
     kms.create_alias(alias, key_id)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__delete_alias__raises_if_wrong_prefix():
     kms = boto.connect_kms()
 
@@ -470,7 +470,7 @@ def test__delete_alias__raises_if_wrong_prefix():
     ex.status.should.equal(400)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__delete_alias__raises_if_alias_is_not_found():
     region = 'us-west-2'
     kms = boto.kms.connect_to_region(region)
@@ -490,7 +490,7 @@ def test__delete_alias__raises_if_alias_is_not_found():
     ex.status.should.equal(400)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__list_aliases():
     region = "eu-west-1"
     kms = boto.kms.connect_to_region(region)
@@ -532,7 +532,7 @@ def test__list_aliases():
     len(aliases).should.equal(7)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__assert_valid_key_id():
     from moto.kms.responses import _assert_valid_key_id
     import uuid
@@ -541,7 +541,7 @@ def test__assert_valid_key_id():
     _assert_valid_key_id.when.called_with(str(uuid.uuid4())).should_not.throw(JSONResponseError)
 
 
-@mock_kms
+@mock_kms_deprecated
 def test__assert_default_policy():
     from moto.kms.responses import _assert_default_policy
 

@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import datetime
-import httpretty
 import requests
 
+from moto.packages.responses import responses
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import create_id
@@ -315,8 +316,12 @@ class RestAPI(object):
                 return resource
         # TODO deal with no matching resource
 
-    def resource_callback(self, request, full_url, headers):
-        path_after_stage_name = '/'.join(request.path.split("/")[2:])
+    def resource_callback(self, request, full_url=None, headers=None):
+        if not headers:
+            headers = request.headers
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        path_after_stage_name = '/'.join(path.split("/")[2:])
         if not path_after_stage_name:
             path_after_stage_name = '/'
 
@@ -325,11 +330,8 @@ class RestAPI(object):
         return status_code, headers, response
 
     def update_integration_mocks(self, stage_name):
-        httpretty.enable()
-
         stage_url = STAGE_URL.format(api_id=self.id, region_name=self.region_name, stage_name=stage_name)
-        for method in httpretty.httpretty.METHODS:
-            httpretty.register_uri(method, stage_url, body=self.resource_callback)
+        responses.add_callback(responses.GET, stage_url, callback=self.resource_callback)
 
     def create_stage(self, name, deployment_id,variables=None,description='',cacheClusterEnabled=None,cacheClusterSize=None):
         if variables is None:

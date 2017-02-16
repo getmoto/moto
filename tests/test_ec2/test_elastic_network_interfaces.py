@@ -10,13 +10,13 @@ import boto.ec2
 from boto.exception import EC2ResponseError, JSONResponseError
 import sure  # noqa
 
-from moto import mock_ec2, mock_cloudformation
+from moto import mock_ec2, mock_cloudformation_deprecated, mock_ec2_deprecated
 from tests.helpers import requires_boto_gte
 from tests.test_cloudformation.fixtures import vpc_eni
 import json
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_elastic_network_interfaces():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -54,7 +54,7 @@ def test_elastic_network_interfaces():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_elastic_network_interfaces_subnet_validation():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -65,7 +65,7 @@ def test_elastic_network_interfaces_subnet_validation():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_elastic_network_interfaces_with_private_ip():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -83,7 +83,7 @@ def test_elastic_network_interfaces_with_private_ip():
     eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_elastic_network_interfaces_with_groups():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -101,7 +101,7 @@ def test_elastic_network_interfaces_with_groups():
 
 
 @requires_boto_gte("2.12.0")
-@mock_ec2
+@mock_ec2_deprecated
 def test_elastic_network_interfaces_modify_attribute():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -133,7 +133,7 @@ def test_elastic_network_interfaces_modify_attribute():
     eni.groups[0].id.should.equal(security_group2.id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_elastic_network_interfaces_filtering():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -281,8 +281,8 @@ def test_elastic_network_interfaces_get_by_subnet_id():
     enis.should.have.length_of(0)
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_ec2_deprecated
+@mock_cloudformation_deprecated
 def test_elastic_network_interfaces_cloudformation():
     template = vpc_eni.template
     template_json = json.dumps(template)

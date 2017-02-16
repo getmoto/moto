@@ -4,10 +4,10 @@ import boto.kinesis
 from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentException
 import sure  # noqa
 
-from moto import mock_kinesis
+from moto import mock_kinesis_deprecated
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_create_cluster():
     conn = boto.kinesis.connect_to_region("us-west-2")
 
@@ -25,13 +25,13 @@ def test_create_cluster():
     shards.should.have.length_of(2)
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_describe_non_existant_stream():
     conn = boto.kinesis.connect_to_region("us-east-1")
     conn.describe_stream.when.called_with("not-a-stream").should.throw(ResourceNotFoundException)
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_list_and_delete_stream():
     conn = boto.kinesis.connect_to_region("us-west-2")
 
@@ -48,7 +48,7 @@ def test_list_and_delete_stream():
     conn.delete_stream.when.called_with("not-a-stream").should.throw(ResourceNotFoundException)
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_basic_shard_iterator():
     conn = boto.kinesis.connect_to_region("us-west-2")
 
@@ -66,7 +66,7 @@ def test_basic_shard_iterator():
     response['Records'].should.equal([])
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_get_invalid_shard_iterator():
     conn = boto.kinesis.connect_to_region("us-west-2")
 
@@ -76,7 +76,7 @@ def test_get_invalid_shard_iterator():
     conn.get_shard_iterator.when.called_with(stream_name, "123", 'TRIM_HORIZON').should.throw(ResourceNotFoundException)
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_put_records():
     conn = boto.kinesis.connect_to_region("us-west-2")
 
@@ -107,7 +107,7 @@ def test_put_records():
     record["SequenceNumber"].should.equal("1")
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_get_records_limit():
     conn = boto.kinesis.connect_to_region("us-west-2")
 
@@ -136,7 +136,7 @@ def test_get_records_limit():
     response['Records'].should.have.length_of(2)
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_get_records_at_sequence_number():
     # AT_SEQUENCE_NUMBER - Start reading exactly from the position denoted by a specific sequence number.
     conn = boto.kinesis.connect_to_region("us-west-2")
@@ -167,7 +167,7 @@ def test_get_records_at_sequence_number():
     response['Records'][0]['Data'].should.equal('2')
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_get_records_after_sequence_number():
     # AFTER_SEQUENCE_NUMBER - Start reading right after the position denoted by a specific sequence number.
     conn = boto.kinesis.connect_to_region("us-west-2")
@@ -197,7 +197,7 @@ def test_get_records_after_sequence_number():
     response['Records'][0]['Data'].should.equal('3')
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_get_records_latest():
     # LATEST - Start reading just after the most recent record in the shard, so that you always read the most recent data in the shard.
     conn = boto.kinesis.connect_to_region("us-west-2")
@@ -232,7 +232,7 @@ def test_get_records_latest():
     response['Records'][0]['Data'].should.equal('last_record')
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_invalid_shard_iterator_type():
     conn = boto.kinesis.connect_to_region("us-west-2")
     stream_name = "my_stream"
@@ -244,7 +244,7 @@ def test_invalid_shard_iterator_type():
         stream_name, shard_id, 'invalid-type').should.throw(InvalidArgumentException)
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_add_tags():
     conn = boto.kinesis.connect_to_region("us-west-2")
     stream_name = "my_stream"
@@ -257,7 +257,7 @@ def test_add_tags():
     conn.add_tags_to_stream(stream_name, {'tag2':'val4'})
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_list_tags():
     conn = boto.kinesis.connect_to_region("us-west-2")
     stream_name = "my_stream"
@@ -278,7 +278,7 @@ def test_list_tags():
     tags.get('tag2').should.equal('val4')
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_remove_tags():
     conn = boto.kinesis.connect_to_region("us-west-2")
     stream_name = "my_stream"
@@ -300,7 +300,7 @@ def test_remove_tags():
     tags.get('tag2').should.equal(None)
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_split_shard():
     conn = boto.kinesis.connect_to_region("us-west-2")
     stream_name = 'my_stream'
@@ -341,7 +341,7 @@ def test_split_shard():
     sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
 
 
-@mock_kinesis
+@mock_kinesis_deprecated
 def test_merge_shards():
     conn = boto.kinesis.connect_to_region("us-west-2")
     stream_name = 'my_stream'

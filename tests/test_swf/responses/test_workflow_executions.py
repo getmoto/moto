@@ -6,12 +6,12 @@ import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 
-from moto import mock_swf
+from moto import mock_swf_deprecated
 from moto.core.utils import unix_time
 
 
 # Utils
-@mock_swf
+@mock_swf_deprecated
 def setup_swf_environment():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")
@@ -26,7 +26,7 @@ def setup_swf_environment():
 
 
 # StartWorkflowExecution endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_start_workflow_execution():
     conn = setup_swf_environment()
 
@@ -34,7 +34,7 @@ def test_start_workflow_execution():
     wf.should.contain("runId")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_start_already_started_workflow_execution():
     conn = setup_swf_environment()
     conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
@@ -44,7 +44,7 @@ def test_start_already_started_workflow_execution():
     ).should.throw(SWFResponseError)
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_start_workflow_execution_on_deprecated_type():
     conn = setup_swf_environment()
     conn.deprecate_workflow_type("test-domain", "test-workflow", "v1.0")
@@ -55,7 +55,7 @@ def test_start_workflow_execution_on_deprecated_type():
 
 
 # DescribeWorkflowExecution endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_describe_workflow_execution():
     conn = setup_swf_environment()
     hsh = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
@@ -66,7 +66,7 @@ def test_describe_workflow_execution():
     wfe["executionInfo"]["executionStatus"].should.equal("OPEN")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_describe_non_existent_workflow_execution():
     conn = setup_swf_environment()
 
@@ -76,7 +76,7 @@ def test_describe_non_existent_workflow_execution():
 
 
 # GetWorkflowExecutionHistory endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_get_workflow_execution_history():
     conn = setup_swf_environment()
     hsh = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
@@ -87,7 +87,7 @@ def test_get_workflow_execution_history():
     types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_get_workflow_execution_history_with_reverse_order():
     conn = setup_swf_environment()
     hsh = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
@@ -99,7 +99,7 @@ def test_get_workflow_execution_history_with_reverse_order():
     types.should.equal(["DecisionTaskScheduled", "WorkflowExecutionStarted"])
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_get_workflow_execution_history_on_non_existent_workflow_execution():
     conn = setup_swf_environment()
 
@@ -109,7 +109,7 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution():
 
 
 # ListOpenWorkflowExecutions endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_list_open_workflow_executions():
     conn = setup_swf_environment()
     # One open workflow execution
@@ -143,7 +143,7 @@ def test_list_open_workflow_executions():
 
 
 # ListClosedWorkflowExecutions endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_list_closed_workflow_executions():
     conn = setup_swf_environment()
     # Leave one workflow execution open to make sure it isn't displayed
@@ -178,7 +178,7 @@ def test_list_closed_workflow_executions():
 
 
 # TerminateWorkflowExecution endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_terminate_workflow_execution():
     conn = setup_swf_environment()
     run_id = conn.start_workflow_execution(
@@ -200,7 +200,7 @@ def test_terminate_workflow_execution():
     attrs["cause"].should.equal("OPERATOR_INITIATED")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_terminate_workflow_execution_with_wrong_workflow_or_run_id():
     conn = setup_swf_environment()
     run_id = conn.start_workflow_execution(

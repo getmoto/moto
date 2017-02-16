@@ -9,11 +9,11 @@ from boto.exception import EC2ResponseError, JSONResponseError
 
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_emr_deprecated
 from tests.helpers import requires_boto_gte
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_create_and_delete():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -69,7 +69,7 @@ def test_ami_create_and_delete():
 
 
 @requires_boto_gte("2.14.0")
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_copy():
     conn = boto.ec2.connect_to_region("us-west-1")
     reservation = conn.run_instances('ami-1234abcd')
@@ -119,7 +119,7 @@ def test_ami_copy():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_tagging():
     conn = boto.connect_vpc('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -145,7 +145,7 @@ def test_ami_tagging():
     image.tags["a key"].should.equal("some value")
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_create_from_missing_instance():
     conn = boto.connect_ec2('the_key', 'the_secret')
     args = ["i-abcdefg", "test-ami", "this is a test ami"]
@@ -157,7 +157,7 @@ def test_ami_create_from_missing_instance():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_pulls_attributes_from_instance():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -169,7 +169,7 @@ def test_ami_pulls_attributes_from_instance():
     image.kernel_id.should.equal('test-kernel')
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_filters():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -220,7 +220,7 @@ def test_ami_filters():
     set([ami.id for ami in amis_by_nonpublic]).should.equal(set([imageA.id]))
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_filtering_via_tag():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -243,7 +243,7 @@ def test_ami_filtering_via_tag():
     set([ami.id for ami in amis_by_tagB]).should.equal(set([imageB.id]))
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_getting_missing_ami():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -254,7 +254,7 @@ def test_getting_missing_ami():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_getting_malformed_ami():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -265,7 +265,7 @@ def test_getting_malformed_ami():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_attribute_group_permissions():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -318,7 +318,7 @@ def test_ami_attribute_group_permissions():
     conn.modify_image_attribute.when.called_with(**REMOVE_GROUP_ARGS).should_not.throw(EC2ResponseError)
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_attribute_user_permissions():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -383,7 +383,7 @@ def test_ami_attribute_user_permissions():
     conn.modify_image_attribute.when.called_with(**REMOVE_USERS_ARGS).should_not.throw(EC2ResponseError)
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_attribute_user_and_group_permissions():
     """
       Boto supports adding/removing both users and groups at the same time.
@@ -435,7 +435,7 @@ def test_ami_attribute_user_and_group_permissions():
     image.is_public.should.equal(False)
 
 
-@mock_ec2
+@mock_emr_deprecated
 def test_ami_attribute_error_cases():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')

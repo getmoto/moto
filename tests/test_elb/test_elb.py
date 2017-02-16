@@ -18,9 +18,9 @@ from boto.ec2.elb.policies import (
 from boto.exception import BotoServerError
 import sure  # noqa
 
-from moto import mock_elb, mock_ec2
+from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
 
-@mock_elb
+@mock_elb_deprecated
 def test_create_load_balancer():
     conn = boto.connect_elb()
 
@@ -43,13 +43,13 @@ def test_create_load_balancer():
     listener2.protocol.should.equal("TCP")
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_getting_missing_elb():
     conn = boto.connect_elb()
     conn.get_all_load_balancers.when.called_with(load_balancer_names='aaa').should.throw(BotoServerError)
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_create_elb_in_multiple_region():
     zones = ['us-east-1a', 'us-east-1b']
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -63,7 +63,7 @@ def test_create_elb_in_multiple_region():
     list(west1_conn.get_all_load_balancers()).should.have.length_of(1)
     list(west2_conn.get_all_load_balancers()).should.have.length_of(1)
 
-@mock_elb
+@mock_elb_deprecated
 def test_create_load_balancer_with_certificate():
     conn = boto.connect_elb()
 
@@ -99,7 +99,7 @@ def test_create_and_delete_boto3_support():
     )
     list(client.describe_load_balancers()['LoadBalancerDescriptions']).should.have.length_of(0)
 
-@mock_elb
+@mock_elb_deprecated
 def test_add_listener():
     conn = boto.connect_elb()
     zones = ['us-east-1a', 'us-east-1b']
@@ -119,7 +119,7 @@ def test_add_listener():
     listener2.protocol.should.equal("TCP")
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_delete_listener():
     conn = boto.connect_elb()
 
@@ -161,7 +161,7 @@ def test_create_and_delete_listener_boto3_support():
     balancer['ListenerDescriptions'][1]['Listener']['InstancePort'].should.equal(8443)
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_set_sslcertificate():
     conn = boto.connect_elb()
 
@@ -178,7 +178,7 @@ def test_set_sslcertificate():
     listener1.ssl_certificate_id.should.equal("arn:certificate")
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_get_load_balancers_by_name():
     conn = boto.connect_elb()
 
@@ -193,7 +193,7 @@ def test_get_load_balancers_by_name():
     conn.get_all_load_balancers(load_balancer_names=['my-lb1', 'my-lb2']).should.have.length_of(2)
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_delete_load_balancer():
     conn = boto.connect_elb()
 
@@ -209,7 +209,7 @@ def test_delete_load_balancer():
     balancers.should.have.length_of(0)
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_create_health_check():
     conn = boto.connect_elb()
 
@@ -262,8 +262,8 @@ def test_create_health_check_boto3():
     balancer['HealthCheck']['UnhealthyThreshold'].should.equal(5)
 
 
-@mock_ec2
-@mock_elb
+@mock_ec2_deprecated
+@mock_elb_deprecated
 def test_register_instances():
     ec2_conn = boto.connect_ec2()
     reservation = ec2_conn.run_instances('ami-1234abcd', 2)
@@ -307,8 +307,8 @@ def test_register_instances_boto3():
     set(instance_ids).should.equal(set([instance_id1, instance_id2]))
 
 
-@mock_ec2
-@mock_elb
+@mock_ec2_deprecated
+@mock_elb_deprecated
 def test_deregister_instances():
     ec2_conn = boto.connect_ec2()
     reservation = ec2_conn.run_instances('ami-1234abcd', 2)
@@ -365,7 +365,7 @@ def test_deregister_instances_boto3():
     balancer['Instances'][0]['InstanceId'].should.equal(instance_id2)
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_default_attributes():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -378,7 +378,7 @@ def test_default_attributes():
     attributes.connecting_settings.idle_timeout.should.equal(60)
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_cross_zone_load_balancing_attribute():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -393,7 +393,7 @@ def test_cross_zone_load_balancing_attribute():
     attributes.cross_zone_load_balancing.enabled.should.be.false
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_connection_draining_attribute():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -419,7 +419,7 @@ def test_connection_draining_attribute():
     attributes.connection_draining.enabled.should.be.false
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_access_log_attribute():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -444,7 +444,7 @@ def test_access_log_attribute():
     attributes.access_log.enabled.should.be.false
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_connection_settings_attribute():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -462,7 +462,7 @@ def test_connection_settings_attribute():
     attributes = lb.get_attributes(force=True)
     attributes.connecting_settings.idle_timeout.should.equal(60)
 
-@mock_elb
+@mock_elb_deprecated
 def test_create_lb_cookie_stickiness_policy():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -482,7 +482,7 @@ def test_create_lb_cookie_stickiness_policy():
     int(cookie_expiration_period_response_str).should.equal(cookie_expiration_period)
     lb.policies.lb_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
 
-@mock_elb
+@mock_elb_deprecated
 def test_create_lb_cookie_stickiness_policy_no_expiry():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -495,7 +495,7 @@ def test_create_lb_cookie_stickiness_policy_no_expiry():
     lb.policies.lb_cookie_stickiness_policies[0].cookie_expiration_period.should.be.none
     lb.policies.lb_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
 
-@mock_elb
+@mock_elb_deprecated
 def test_create_app_cookie_stickiness_policy():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -509,7 +509,7 @@ def test_create_app_cookie_stickiness_policy():
     lb.policies.app_cookie_stickiness_policies[0].cookie_name.should.equal(cookie_name)
     lb.policies.app_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
 
-@mock_elb
+@mock_elb_deprecated
 def test_create_lb_policy():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -521,7 +521,7 @@ def test_create_lb_policy():
     lb = conn.get_all_load_balancers()[0]
     lb.policies.other_policies[0].policy_name.should.equal(policy_name)
 
-@mock_elb
+@mock_elb_deprecated
 def test_set_policies_of_listener():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -543,7 +543,7 @@ def test_set_policies_of_listener():
     # by contrast to a backend, a listener stores only policy name strings
     listener.policy_names[0].should.equal(policy_name)
 
-@mock_elb
+@mock_elb_deprecated
 def test_set_policies_of_backend_server():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
@@ -562,8 +562,8 @@ def test_set_policies_of_backend_server():
     # by contrast to a listener, a backend stores OtherPolicy objects
     backend.policies[0].policy_name.should.equal(policy_name)
 
-@mock_ec2
-@mock_elb
+@mock_ec2_deprecated
+@mock_elb_deprecated
 def test_describe_instance_health():
     ec2_conn = boto.connect_ec2()
     reservation = ec2_conn.run_instances('ami-1234abcd', 2)
@@ -765,7 +765,7 @@ def test_subnets():
     lb.should.have.key('VPCId').which.should.equal(vpc.id)
 
 
-@mock_elb
+@mock_elb_deprecated
 def test_create_load_balancer_duplicate():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]

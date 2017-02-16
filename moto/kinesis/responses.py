@@ -19,7 +19,10 @@ class KinesisResponse(BaseResponse):
 
     @property
     def is_firehose(self):
-        host = self.headers.get('host') or self.headers['Host']
+        try:
+            host = self.headers.get('host') or self.headers['Host']
+        except KeyError:
+            import pdb;pdb.set_trace()
         return host.startswith('firehose')
 
     def create_stream(self):

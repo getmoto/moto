@@ -122,6 +122,7 @@ class SQSResponse(BaseResponse):
         queue = self.sqs_backend.delete_queue(queue_name)
         if not queue:
             return "A queue with name {0} does not exist".format(queue_name), dict(status=404)
+
         template = self.response_template(DELETE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 

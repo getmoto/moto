@@ -1,22 +1,23 @@
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import functools
 import inspect
 import re
 
-from httpretty import HTTPretty
+from moto.packages.responses import responses
+from moto.packages.httpretty import HTTPretty
 from .responses import metadata_response
-from .utils import convert_regex_to_flask_path
+from .utils import convert_regex_to_flask_path, convert_flask_to_responses_response
 
-
-class MockAWS(object):
+class BaseMockAWS(object):
     nested_count = 0
 
     def __init__(self, backends):
         self.backends = backends
 
         if self.__class__.nested_count == 0:
-            HTTPretty.reset()
+            self.reset()
 
     def __call__(self, func, reset=True):
         if inspect.isclass(func):
@@ -35,24 +36,7 @@ class MockAWS(object):
             for backend in self.backends.values():
                 backend.reset()
 
-        if not HTTPretty.is_enabled():
-            HTTPretty.enable()
-
-        for method in HTTPretty.METHODS:
-            backend = list(self.backends.values())[0]
-            for key, value in backend.urls.items():
-                HTTPretty.register_uri(
-                    method=method,
-                    uri=re.compile(key),
-                    body=value,
-                )
-
-            # Mock out localhost instance metadata
-            HTTPretty.register_uri(
-                method=method,
-                uri=re.compile('http://169.254.169.254/latest/meta-data/.*'),
-                body=metadata_response
-            )
+        self.enable_patching()
 
     def stop(self):
         self.__class__.nested_count -= 1
@@ -60,9 +44,7 @@ class MockAWS(object):
         if self.__class__.nested_count < 0:
             raise RuntimeError('Called stop() before start().')
 
-        if self.__class__.nested_count == 0:
-            HTTPretty.disable()
-            HTTPretty.reset()
+        self.disable_patching()
 
     def decorate_callable(self, func, reset):
         def wrapper(*args, **kwargs):
@@ -96,6 +78,73 @@ class MockAWS(object):
                 continue
         return klass
 
+
+class HttprettyMockAWS(BaseMockAWS):
+    def reset(self):
+        HTTPretty.reset()
+
+    def enable_patching(self):
+        if not HTTPretty.is_enabled():
+            HTTPretty.enable()
+
+        for method in HTTPretty.METHODS:
+            backend = list(self.backends.values())[0]
+            for key, value in backend.urls.items():
+                HTTPretty.register_uri(
+                    method=method,
+                    uri=re.compile(key),
+                    body=value,
+                )
+
+            # Mock out localhost instance metadata
+            HTTPretty.register_uri(
+                method=method,
+                uri=re.compile('http://169.254.169.254/latest/meta-data/.*'),
+                body=metadata_response
+            )
+
+    def disable_patching(self):
+        if self.__class__.nested_count == 0:
+            HTTPretty.disable()
+            HTTPretty.reset()
+
+
+RESPONSES_METHODS = [responses.GET, responses.DELETE, responses.HEAD,
+    responses.OPTIONS, responses.PATCH, responses.POST, responses.PUT]
+
+
+class ResponsesMockAWS(BaseMockAWS):
+    def reset(self):
+        responses.reset()
+
+    def enable_patching(self):
+        responses.start()
+        for method in RESPONSES_METHODS:
+            backend = list(self.backends.values())[0]
+            for key, value in backend.urls.items():
+                responses.add_callback(
+                    method=method,
+                    url=re.compile(key),
+                    callback=convert_flask_to_responses_response(value),
+                )
+
+            # Mock out localhost instance metadata
+            responses.add_callback(
+                method=method,
+                url=re.compile('http://169.254.169.254/latest/meta-data/.*'),
+                callback=convert_flask_to_responses_response(metadata_response),
+            )
+        for pattern in responses.mock._urls:
+            pattern['stream'] = True
+
+    def disable_patching(self):
+        if self.__class__.nested_count == 0:
+            try:
+                responses.stop()
+            except AttributeError:
+                pass
+            responses.reset()
+MockAWS = ResponsesMockAWS
 
 class Model(type):
     def __new__(self, clsname, bases, namespace):
@@ -187,6 +236,12 @@ class BaseBackend(object):
         else:
             return MockAWS({'global': self})
 
+    def deprecated_decorator(self, func=None):
+        if func:
+            return HttprettyMockAWS({'global': self})(func)
+        else:
+            return HttprettyMockAWS({'global': self})
+
 
 class base_decorator(object):
     mock_backend = MockAWS
@@ -199,3 +254,7 @@ class base_decorator(object):
             return self.mock_backend(self.backends)(func)
         else:
             return self.mock_backend(self.backends)
+
+
+class deprecated_base_decorator(base_decorator):
+    mock_backend = HttprettyMockAWS

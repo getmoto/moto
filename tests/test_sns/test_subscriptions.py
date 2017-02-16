@@ -3,11 +3,11 @@ import boto
 
 import sure  # noqa
 
-from moto import mock_sns
+from moto import mock_sns_deprecated
 from moto.sns.models import DEFAULT_PAGE_SIZE
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_creating_subscription():
     conn = boto.connect_sns()
     conn.create_topic("some-topic")
@@ -32,7 +32,7 @@ def test_creating_subscription():
     subscriptions.should.have.length_of(0)
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_getting_subscriptions_by_topic():
     conn = boto.connect_sns()
     conn.create_topic("topic1")
@@ -51,7 +51,7 @@ def test_getting_subscriptions_by_topic():
     topic1_subscriptions[0]['Endpoint'].should.equal("http://example1.com/")
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_subscription_paging():
     conn = boto.connect_sns()
     conn.create_topic("topic1")

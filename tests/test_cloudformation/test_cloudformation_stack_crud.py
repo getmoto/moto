@@ -12,7 +12,7 @@ import sure  # noqa
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_cloudformation, mock_s3
+from moto import mock_cloudformation_deprecated, mock_s3_deprecated
 from moto.cloudformation import cloudformation_backends
 
 dummy_template = {
@@ -46,7 +46,7 @@ dummy_template_json2 = json.dumps(dummy_template2)
 dummy_template_json3 = json.dumps(dummy_template3)
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_create_stack():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -69,7 +69,7 @@ def test_create_stack():
     })
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_creating_stacks_across_regions():
     west1_conn = boto.cloudformation.connect_to_region("us-west-1")
     west1_conn.create_stack("test_stack", template_body=dummy_template_json)
@@ -81,7 +81,7 @@ def test_creating_stacks_across_regions():
     list(west2_conn.describe_stacks()).should.have.length_of(1)
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_create_stack_with_notification_arn():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -94,8 +94,8 @@ def test_create_stack_with_notification_arn():
     [n.value for n in stack.notification_arns].should.contain('arn:aws:sns:us-east-1:123456789012:fake-queue')
 
 
-@mock_cloudformation
-@mock_s3
+@mock_cloudformation_deprecated
+@mock_s3_deprecated
 def test_create_stack_from_s3_url():
     s3_conn = boto.s3.connect_to_region('us-west-1')
     bucket = s3_conn.create_bucket("foobar")
@@ -123,7 +123,7 @@ def test_create_stack_from_s3_url():
     })
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_describe_stack_by_name():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -135,7 +135,7 @@ def test_describe_stack_by_name():
     stack.stack_name.should.equal('test_stack')
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_describe_stack_by_stack_id():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -149,7 +149,7 @@ def test_describe_stack_by_stack_id():
     stack_by_id.stack_name.should.equal("test_stack")
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_describe_deleted_stack():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -166,7 +166,7 @@ def test_describe_deleted_stack():
     stack_by_id.stack_status.should.equal("DELETE_COMPLETE")
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_get_template_by_name():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -188,7 +188,7 @@ def test_get_template_by_name():
     })
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_list_stacks():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -205,7 +205,7 @@ def test_list_stacks():
     stacks[0].template_description.should.equal("Stack 1")
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_delete_stack_by_name():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -218,7 +218,7 @@ def test_delete_stack_by_name():
     conn.list_stacks().should.have.length_of(0)
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_delete_stack_by_id():
     conn = boto.connect_cloudformation()
     stack_id = conn.create_stack(
@@ -235,7 +235,7 @@ def test_delete_stack_by_id():
     conn.describe_stacks(stack_id).should.have.length_of(1)
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_delete_stack_with_resource_missing_delete_attr():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -248,14 +248,14 @@ def test_delete_stack_with_resource_missing_delete_attr():
     conn.list_stacks().should.have.length_of(0)
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_bad_describe_stack():
     conn = boto.connect_cloudformation()
     with assert_raises(BotoServerError):
         conn.describe_stacks("bad_stack")
 
 
-@mock_cloudformation()
+@mock_cloudformation_deprecated()
 def test_cloudformation_params():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -279,7 +279,7 @@ def test_cloudformation_params():
     param.value.should.equal('testing123')
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_stack_tags():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -292,7 +292,7 @@ def test_stack_tags():
     dict(stack.tags).should.equal({"foo": "bar", "baz": "bleh"})
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_update_stack():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -316,7 +316,7 @@ def test_update_stack():
     })
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_update_stack():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -339,7 +339,7 @@ def test_update_stack():
     })
 
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_update_stack_when_rolled_back():
     conn = boto.connect_cloudformation()
     stack_id = conn.create_stack("test_stack", template_body=dummy_template_json)
@@ -355,7 +355,7 @@ def test_update_stack_when_rolled_back():
     ex.reason.should.equal('Bad Request')
     ex.status.should.equal(400)
 
-@mock_cloudformation
+@mock_cloudformation_deprecated
 def test_describe_stack_events_shows_create_update_and_delete():
     conn = boto.connect_cloudformation()
     stack_id = conn.create_stack("test_stack", template_body=dummy_template_json)

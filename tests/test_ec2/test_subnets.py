@@ -11,10 +11,10 @@ from botocore.exceptions import ParamValidationError
 import json
 import sure  # noqa
 
-from moto import mock_cloudformation, mock_ec2
+from moto import mock_cloudformation_deprecated, mock_ec2, mock_ec2_deprecated
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_subnets():
     ec2 = boto.connect_ec2('the_key', 'the_secret')
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -36,7 +36,7 @@ def test_subnets():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_subnet_create_vpc_validation():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -47,7 +47,7 @@ def test_subnet_create_vpc_validation():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_subnet_tagging():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -65,7 +65,7 @@ def test_subnet_tagging():
     subnet.tags["a key"].should.equal("some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_subnet_should_have_proper_availability_zone_set():
     conn = boto.vpc.connect_to_region('us-west-1')
     vpcA = conn.create_vpc("10.0.0.0/16")
@@ -87,7 +87,7 @@ def test_default_subnet():
     subnet.map_public_ip_on_launch.shouldnt.be.ok
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_non_default_subnet():
     vpc_cli = boto.vpc.connect_to_region('us-west-1')
 
@@ -150,7 +150,7 @@ def test_modify_subnet_attribute_validation():
         client.modify_subnet_attribute(SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': 'invalid'})
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_subnets_filtering():
     ec2 = boto.ec2.connect_to_region('us-west-1')
     conn = boto.vpc.connect_to_region('us-west-1')
@@ -205,8 +205,8 @@ def test_get_subnets_filtering():
     conn.get_all_subnets.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_ec2_deprecated
+@mock_cloudformation_deprecated
 def test_subnet_tags_through_cloudformation():
     vpc_conn = boto.vpc.connect_to_region('us-west-1')
     vpc = vpc_conn.create_vpc("10.0.0.0/16")

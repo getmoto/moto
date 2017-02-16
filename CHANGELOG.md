@@ -4,6 +4,10 @@ Moto Changelog
 Latest
 ------
 
+    BACKWARDS INCOMPATIBLE
+    * The normal @mock_<service> decorators will no longer work with boto. It is suggested that you upgrade to boto3 or use the standalone-server mode. If you would still like to use boto, you must use the @mock_<service>_deprecated decorators which will be removed in a future release.
+    * The @mock_s3bucket_path decorator is now deprecated. Use the @mock_s3 decorator instead.
+
 0.4.31
 ------
 

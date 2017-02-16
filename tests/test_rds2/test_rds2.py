@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-import boto.rds2
-import boto.vpc
 from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 import sure  # noqa

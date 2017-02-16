@@ -3,9 +3,9 @@ from six.moves.urllib.parse import parse_qs
 
 import boto3
 from freezegun import freeze_time
-import httpretty
 import sure  # noqa
 
+from moto.packages.responses import responses
 from moto import mock_sns, mock_sqs
 
 
@@ -56,9 +56,9 @@ def test_publish_to_sqs_in_different_region():
 @freeze_time("2013-01-01")
 @mock_sns
 def test_publish_to_http():
-    httpretty.HTTPretty.register_uri(
+    responses.add(
         method="POST",
-        uri="http://example.com/foobar",
+        url="http://example.com/foobar",
     )
 
     conn = boto3.client('sns', region_name='us-east-1')
@@ -73,7 +73,7 @@ def test_publish_to_http():
     response = conn.publish(TopicArn=topic_arn, Message="my message", Subject="my subject")
     message_id = response['MessageId']
 
-    last_request = httpretty.last_request()
+    last_request = responses.calls[-2].request
     last_request.method.should.equal("POST")
     parse_qs(last_request.body.decode('utf-8')).should.equal({
         "Type": ["Notification"],

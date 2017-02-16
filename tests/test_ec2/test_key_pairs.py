@@ -8,16 +8,16 @@ import six
 import sure  # noqa
 
 from boto.exception import EC2ResponseError, JSONResponseError
-from moto import mock_ec2
+from moto import mock_ec2_deprecated
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_empty():
     conn = boto.connect_ec2('the_key', 'the_secret')
     assert len(conn.get_all_key_pairs()) == 0
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_invalid_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -28,7 +28,7 @@ def test_key_pairs_invalid_id():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_create():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -45,7 +45,7 @@ def test_key_pairs_create():
     assert kps[0].name == 'foo'
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_create_two():
     conn = boto.connect_ec2('the_key', 'the_secret')
     kp = conn.create_key_pair('foo')
@@ -60,7 +60,7 @@ def test_key_pairs_create_two():
     kps[0].name.should.equal('foo')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_create_exist():
     conn = boto.connect_ec2('the_key', 'the_secret')
     kp = conn.create_key_pair('foo')
@@ -74,7 +74,7 @@ def test_key_pairs_create_exist():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_delete_no_exist():
     conn = boto.connect_ec2('the_key', 'the_secret')
     assert len(conn.get_all_key_pairs()) == 0
@@ -82,7 +82,7 @@ def test_key_pairs_delete_no_exist():
     r.should.be.ok
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_delete_exist():
     conn = boto.connect_ec2('the_key', 'the_secret')
     conn.create_key_pair('foo')
@@ -98,7 +98,7 @@ def test_key_pairs_delete_exist():
     assert len(conn.get_all_key_pairs()) == 0
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_import():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -115,7 +115,7 @@ def test_key_pairs_import():
     assert kps[0].name == 'foo'
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_import_exist():
     conn = boto.connect_ec2('the_key', 'the_secret')
     kp = conn.import_key_pair('foo', b'content')

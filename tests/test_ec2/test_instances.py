@@ -12,7 +12,7 @@ from boto.exception import EC2ResponseError, JSONResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2_deprecated
 from tests.helpers import requires_boto_gte
 
 
@@ -23,7 +23,7 @@ def add_servers(ami_id, count):
         conn.run_instances(ami_id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_add_servers():
     add_servers('ami-1234abcd', 2)
 
@@ -37,7 +37,7 @@ def test_add_servers():
 
 
 @freeze_time("2014-01-01 05:00:00")
-@mock_ec2
+@mock_ec2_deprecated
 def test_instance_launch_and_terminate():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -87,14 +87,14 @@ def test_instance_launch_and_terminate():
     instance.state.should.equal('terminated')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_terminate_empty_instances():
     conn = boto.connect_ec2('the_key', 'the_secret')
     conn.terminate_instances.when.called_with([]).should.throw(EC2ResponseError)
 
 
 @freeze_time("2014-01-01 05:00:00")
-@mock_ec2
+@mock_ec2_deprecated
 def test_instance_attach_volume():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -123,7 +123,7 @@ def test_instance_attach_volume():
         v.status.should.equal('in-use')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_by_id():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=2)
@@ -150,7 +150,7 @@ def test_get_instances_by_id():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_state():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
@@ -178,7 +178,7 @@ def test_get_instances_filtering_by_state():
 
     conn.get_all_instances.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_instance_id():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
@@ -197,7 +197,7 @@ def test_get_instances_filtering_by_instance_id():
     reservations.should.have.length_of(0)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_instance_type():
     conn = boto.connect_ec2()
     reservation1 = conn.run_instances('ami-1234abcd', instance_type='m1.small')
@@ -238,7 +238,7 @@ def test_get_instances_filtering_by_instance_type():
     #bogus instance-type should return none
     reservations.should.have.length_of(0)
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_reason_code():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
@@ -257,7 +257,7 @@ def test_get_instances_filtering_by_reason_code():
     reservations[0].instances[0].id.should.equal(instance3.id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_source_dest_check():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=2)
@@ -274,7 +274,7 @@ def test_get_instances_filtering_by_source_dest_check():
     source_dest_check_true[0].instances[0].id.should.equal(instance2.id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_vpc_id():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc1 = conn.create_vpc("10.0.0.0/16")
@@ -298,7 +298,7 @@ def test_get_instances_filtering_by_vpc_id():
     reservations2[0].instances[0].id.should.equal(instance2.id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_architecture():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=1)
@@ -309,7 +309,7 @@ def test_get_instances_filtering_by_architecture():
     reservations[0].instances.should.have.length_of(1)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_tag():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
@@ -351,7 +351,7 @@ def test_get_instances_filtering_by_tag():
     reservations[0].instances[1].id.should.equal(instance3.id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_tag_value():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
@@ -388,7 +388,7 @@ def test_get_instances_filtering_by_tag_value():
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance3.id)
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instances_filtering_by_tag_name():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
@@ -418,7 +418,7 @@ def test_get_instances_filtering_by_tag_name():
     reservations[0].instances[1].id.should.equal(instance2.id)
     reservations[0].instances[2].id.should.equal(instance3.id)
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_instance_start_and_stop():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd', min_count=2)
@@ -448,7 +448,7 @@ def test_instance_start_and_stop():
     started_instances[0].state.should.equal('pending')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_instance_reboot():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -464,7 +464,7 @@ def test_instance_reboot():
     instance.state.should.equal('pending')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_instance_attribute_instance_type():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -482,7 +482,7 @@ def test_instance_attribute_instance_type():
     instance_attribute.should.be.a(InstanceAttribute)
     instance_attribute.get('instanceType').should.equal("m1.small")
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_modify_instance_attribute_security_groups():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -506,7 +506,7 @@ def test_modify_instance_attribute_security_groups():
     any(g.id == sg_id2 for g in group_list).should.be.ok
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_instance_attribute_user_data():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -525,7 +525,7 @@ def test_instance_attribute_user_data():
     instance_attribute.get("userData").should.equal("this is my user data")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_instance_attribute_source_dest_check():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -566,7 +566,7 @@ def test_instance_attribute_source_dest_check():
     instance_attribute.get("sourceDestCheck").should.equal(True)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_user_data_with_run_instance():
     user_data = b"some user data"
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -580,7 +580,7 @@ def test_user_data_with_run_instance():
     decoded_user_data.should.equal(b"some user data")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_run_instance_with_security_group_name():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -600,7 +600,7 @@ def test_run_instance_with_security_group_name():
     instance.groups[0].name.should.equal("group1")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_run_instance_with_security_group_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
     group = conn.create_security_group('group1', "some description")
@@ -612,7 +612,7 @@ def test_run_instance_with_security_group_id():
     instance.groups[0].name.should.equal("group1")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_run_instance_with_instance_type():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd', instance_type="t1.micro")
@@ -621,7 +621,7 @@ def test_run_instance_with_instance_type():
     instance.instance_type.should.equal("t1.micro")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_run_instance_with_default_placement():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -630,7 +630,7 @@ def test_run_instance_with_default_placement():
     instance.placement.should.equal("us-east-1a")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_run_instance_with_placement():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd', placement="us-east-1b")
@@ -639,7 +639,7 @@ def test_run_instance_with_placement():
     instance.placement.should.equal("us-east-1b")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_run_instance_with_subnet():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -653,7 +653,7 @@ def test_run_instance_with_subnet():
     all_enis.should.have.length_of(1)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_run_instance_with_nic_autocreated():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -686,7 +686,7 @@ def test_run_instance_with_nic_autocreated():
     eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_run_instance_with_nic_preexisting():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -724,7 +724,7 @@ def test_run_instance_with_nic_preexisting():
 
 
 @requires_boto_gte("2.32.0")
-@mock_ec2
+@mock_ec2_deprecated
 def test_instance_with_nic_attach_detach():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -790,7 +790,7 @@ def test_instance_with_nic_attach_detach():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_ec2_classic_has_public_ip_address():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd', key_name="keypair_name")
@@ -802,7 +802,7 @@ def test_ec2_classic_has_public_ip_address():
     instance.private_dns_name.should.contain(instance.private_ip_address)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_run_instance_with_keypair():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd', key_name="keypair_name")
@@ -811,14 +811,14 @@ def test_run_instance_with_keypair():
     instance.key_name.should.equal("keypair_name")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_describe_instance_status_no_instances():
     conn = boto.connect_ec2('the_key', 'the_secret')
     all_status = conn.get_all_instance_status()
     len(all_status).should.equal(0)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_describe_instance_status_with_instances():
     conn = boto.connect_ec2('the_key', 'the_secret')
     conn.run_instances('ami-1234abcd', key_name="keypair_name")
@@ -829,7 +829,7 @@ def test_describe_instance_status_with_instances():
     all_status[0].system_status.status.should.equal('ok')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_describe_instance_status_with_instance_filter():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -852,7 +852,7 @@ def test_describe_instance_status_with_instance_filter():
     cm.exception.request_id.should_not.be.none
 
 @requires_boto_gte("2.32.0")
-@mock_ec2
+@mock_ec2_deprecated
 def test_describe_instance_status_with_non_running_instances():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
@@ -877,7 +877,7 @@ def test_describe_instance_status_with_non_running_instances():
     status3 = next((s for s in all_status if s.id == instance3.id), None)
     status3.state_name.should.equal('running')
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_instance_by_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
 

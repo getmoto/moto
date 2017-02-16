@@ -5,10 +5,10 @@ import json
 from boto.glacier.layer1 import Layer1
 import sure  # noqa
 
-from moto import mock_glacier
+from moto import mock_glacier_deprecated
 
 
-@mock_glacier
+@mock_glacier_deprecated
 def test_init_glacier_job():
     conn = Layer1(region_name="us-west-2")
     vault_name = "my_vault"
@@ -23,7 +23,7 @@ def test_init_glacier_job():
     job_response['Location'].should.equal("//vaults/my_vault/jobs/{0}".format(job_id))
 
 
-@mock_glacier
+@mock_glacier_deprecated
 def test_describe_job():
     conn = Layer1(region_name="us-west-2")
     vault_name = "my_vault"
@@ -56,7 +56,7 @@ def test_describe_job():
     })
 
 
-@mock_glacier
+@mock_glacier_deprecated
 def test_list_glacier_jobs():
     conn = Layer1(region_name="us-west-2")
     vault_name = "my_vault"
@@ -77,7 +77,7 @@ def test_list_glacier_jobs():
     len(jobs['JobList']).should.equal(2)
 
 
-@mock_glacier
+@mock_glacier_deprecated
 def test_get_job_output():
     conn = Layer1(region_name="us-west-2")
     vault_name = "my_vault"

@@ -5,7 +5,7 @@ import boto
 import boto.s3
 import boto.s3.key
 from botocore.exceptions import ClientError
-from moto import mock_cloudformation, mock_s3
+from moto import mock_cloudformation, mock_s3_deprecated
 
 import json
 import sure  # noqa
@@ -118,7 +118,7 @@ def test_create_stack_with_role_arn():
 
 
 @mock_cloudformation
-@mock_s3
+@mock_s3_deprecated
 def test_create_stack_from_s3_url():
     s3_conn = boto.s3.connect_to_region('us-west-1')
     bucket = s3_conn.create_bucket("foobar")

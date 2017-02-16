@@ -6,7 +6,7 @@ from boto3.dynamodb.conditions import Key
 import sure  # noqa
 from freezegun import freeze_time
 from boto.exception import JSONResponseError
-from moto import mock_dynamodb2
+from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from tests.helpers import requires_boto_gte
 import botocore
 try:
@@ -29,7 +29,7 @@ def create_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")
 def test_create_table():
     create_table()
@@ -62,7 +62,7 @@ def test_create_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_delete_table():
     create_table()
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -75,7 +75,7 @@ def test_delete_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_update_table_throughput():
     table = create_table()
     table.throughput["read"].should.equal(10)
@@ -91,7 +91,7 @@ def test_update_table_throughput():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_item_add_and_describe_and_update():
     table = create_table()
 
@@ -125,7 +125,7 @@ def test_item_add_and_describe_and_update():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_item_partial_save():
     table = create_table()
 
@@ -152,7 +152,7 @@ def test_item_partial_save():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_item_put_without_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -167,7 +167,7 @@ def test_item_put_without_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_item_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -178,7 +178,7 @@ def test_get_item_with_undeclared_table():
 
 
 @requires_boto_gte("2.30.0")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_delete_item():
     table = create_table()
 
@@ -202,7 +202,7 @@ def test_delete_item():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_delete_item_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -213,7 +213,7 @@ def test_delete_item_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query():
     table = create_table()
 
@@ -233,7 +233,7 @@ def test_query():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -244,7 +244,7 @@ def test_query_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_scan():
     table = create_table()
 
@@ -295,7 +295,7 @@ def test_scan():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_scan_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -313,7 +313,7 @@ def test_scan_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_write_batch():
     table = create_table()
 
@@ -344,7 +344,7 @@ def test_write_batch():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_batch_read():
     table = create_table()
 
@@ -385,7 +385,7 @@ def test_batch_read():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_key_fields():
     table = create_table()
     kf = table.get_key_fields()
@@ -393,14 +393,14 @@ def test_get_key_fields():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_missing_item():
     table = create_table()
     table.get_item.when.called_with(forum_name='missing').should.throw(ItemNotFound)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_special_item():
     table = Table.create('messages', schema=[
         HashKey('date-joined')
@@ -418,7 +418,7 @@ def test_get_special_item():
     dict(returned_item).should.equal(data)
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_update_item_remove():
     conn = boto.dynamodb2.connect_to_region("us-west-2")
     table = Table.create('messages', schema=[
@@ -444,7 +444,7 @@ def test_update_item_remove():
     })
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_update_item_set():
     conn = boto.dynamodb2.connect_to_region("us-west-2")
     table = Table.create('messages', schema=[
@@ -471,7 +471,7 @@ def test_update_item_set():
 
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_failed_overwrite():
     table = Table.create('messages', schema=[
         HashKey('id'),
@@ -499,7 +499,7 @@ def test_failed_overwrite():
     dict(returned_item).should.equal(data4)
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_conflicting_writes():
     table = Table.create('messages', schema=[
         HashKey('id'),

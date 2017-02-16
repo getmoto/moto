@@ -8,11 +8,11 @@ from boto.exception import EC2ResponseError, JSONResponseError
 from boto.ec2.instance import Reservation
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2_deprecated
 from nose.tools import assert_raises
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_add_tag():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -32,7 +32,7 @@ def test_add_tag():
     existing_instance.tags["a key"].should.equal("some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_remove_tag():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -59,7 +59,7 @@ def test_remove_tag():
     instance.remove_tag("a key", "some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_all_tags():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -73,7 +73,7 @@ def test_get_all_tags():
     tag.value.should.equal("some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_all_tags_with_special_characters():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -87,7 +87,7 @@ def test_get_all_tags_with_special_characters():
     tag.value.should.equal("some<> value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_create_tags():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -108,7 +108,7 @@ def test_create_tags():
     set([tag_dict[key] for key in tag_dict]).should.equal(set([tag.value for tag in tags]))
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_tag_limit_exceeded():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -137,7 +137,7 @@ def test_tag_limit_exceeded():
     tag.value.should.equal("a value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_invalid_parameter_tag_null():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -150,7 +150,7 @@ def test_invalid_parameter_tag_null():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_invalid_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
     with assert_raises(EC2ResponseError) as cm:
@@ -166,7 +166,7 @@ def test_invalid_id():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_all_tags_resource_id_filter():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -193,7 +193,7 @@ def test_get_all_tags_resource_id_filter():
     tag.value.should.equal("some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_all_tags_resource_type_filter():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -220,7 +220,7 @@ def test_get_all_tags_resource_type_filter():
     tag.value.should.equal("some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_all_tags_key_filter():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -239,7 +239,7 @@ def test_get_all_tags_key_filter():
     tag.value.should.equal("some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_all_tags_value_filter():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -283,7 +283,7 @@ def test_get_all_tags_value_filter():
     tags.should.have.length_of(1)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_retrieved_instances_must_contain_their_tags():
     tag_key = 'Tag name'
     tag_value = 'Tag value'
@@ -314,7 +314,7 @@ def test_retrieved_instances_must_contain_their_tags():
     retrieved_tags[tag_key].should.equal(tag_value)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_retrieved_volumes_must_contain_their_tags():
     tag_key = 'Tag name'
     tag_value = 'Tag value'
@@ -337,7 +337,7 @@ def test_retrieved_volumes_must_contain_their_tags():
     retrieved_tags[tag_key].should.equal(tag_value)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_retrieved_snapshots_must_contain_their_tags():
     tag_key = 'Tag name'
     tag_value = 'Tag value'
@@ -359,7 +359,7 @@ def test_retrieved_snapshots_must_contain_their_tags():
     retrieved_tags[tag_key].should.equal(tag_value)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_filter_instances_by_wildcard_tags():
     conn = boto.connect_ec2(aws_access_key_id='the_key', aws_secret_access_key='the_secret')
     reservation = conn.run_instances('ami-1234abcd')

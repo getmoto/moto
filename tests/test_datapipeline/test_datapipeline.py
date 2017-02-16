@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import boto.datapipeline
 import sure  # noqa
 
-from moto import mock_datapipeline
+from moto import mock_datapipeline_deprecated
 from moto.datapipeline.utils import remove_capitalization_of_dict_keys
 
 
@@ -13,7 +13,7 @@ def get_value_from_fields(key, fields):
             return field['stringValue']
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
 def test_create_pipeline():
     conn = boto.datapipeline.connect_to_region("us-west-2")
 
@@ -78,7 +78,7 @@ PIPELINE_OBJECTS = [
 ]
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
 def test_creating_pipeline_definition():
     conn = boto.datapipeline.connect_to_region("us-west-2")
     res = conn.create_pipeline("mypipeline", "some-unique-id")
@@ -97,7 +97,7 @@ def test_creating_pipeline_definition():
     }])
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
 def test_describing_pipeline_objects():
     conn = boto.datapipeline.connect_to_region("us-west-2")
     res = conn.create_pipeline("mypipeline", "some-unique-id")
@@ -116,7 +116,7 @@ def test_describing_pipeline_objects():
     }])
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
 def test_activate_pipeline():
     conn = boto.datapipeline.connect_to_region("us-west-2")
 
@@ -133,7 +133,7 @@ def test_activate_pipeline():
     get_value_from_fields('@pipelineState', fields).should.equal("SCHEDULED")
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
 def test_listing_pipelines():
     conn = boto.datapipeline.connect_to_region("us-west-2")
     res1 = conn.create_pipeline("mypipeline1", "some-unique-id1")

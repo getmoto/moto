@@ -6,11 +6,11 @@ import boto3
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_sts
+from moto import mock_sts, mock_sts_deprecated
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_sts_deprecated
 def test_get_session_token():
     conn = boto.connect_sts()
     token = conn.get_session_token(duration=123)
@@ -22,7 +22,7 @@ def test_get_session_token():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_sts_deprecated
 def test_get_federation_token():
     conn = boto.connect_sts()
     token = conn.get_federation_token(duration=123, name="Bob")
@@ -36,7 +36,7 @@ def test_get_federation_token():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_sts_deprecated
 def test_assume_role():
     conn = boto.connect_sts()
 

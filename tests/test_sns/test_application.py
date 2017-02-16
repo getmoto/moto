@@ -2,11 +2,11 @@ from __future__ import unicode_literals
 
 import boto
 from boto.exception import BotoServerError
-from moto import mock_sns
+from moto import mock_sns_deprecated
 import sure  # noqa
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_create_platform_application():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(
@@ -21,7 +21,7 @@ def test_create_platform_application():
     application_arn.should.equal('arn:aws:sns:us-east-1:123456789012:app/APNS/my-application')
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_get_platform_application_attributes():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(
@@ -40,13 +40,13 @@ def test_get_platform_application_attributes():
     })
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_get_missing_platform_application_attributes():
     conn = boto.connect_sns()
     conn.get_platform_application_attributes.when.called_with("a-fake-arn").should.throw(BotoServerError)
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_set_platform_application_attributes():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(
@@ -68,7 +68,7 @@ def test_set_platform_application_attributes():
     })
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_list_platform_applications():
     conn = boto.connect_sns()
     conn.create_platform_application(
@@ -85,7 +85,7 @@ def test_list_platform_applications():
     applications.should.have.length_of(2)
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_delete_platform_application():
     conn = boto.connect_sns()
     conn.create_platform_application(
@@ -109,7 +109,7 @@ def test_delete_platform_application():
     applications.should.have.length_of(1)
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_create_platform_endpoint():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(
@@ -131,7 +131,7 @@ def test_create_platform_endpoint():
     endpoint_arn.should.contain("arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application/")
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_get_list_endpoints_by_platform_application():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(
@@ -159,7 +159,7 @@ def test_get_list_endpoints_by_platform_application():
     endpoint_list[0]['EndpointArn'].should.equal(endpoint_arn)
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_get_endpoint_attributes():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(
@@ -187,13 +187,13 @@ def test_get_endpoint_attributes():
     })
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_get_missing_endpoint_attributes():
     conn = boto.connect_sns()
     conn.get_endpoint_attributes.when.called_with("a-fake-arn").should.throw(BotoServerError)
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_set_endpoint_attributes():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(
@@ -224,7 +224,7 @@ def test_set_endpoint_attributes():
     })
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_delete_endpoint():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(
@@ -258,7 +258,7 @@ def test_delete_endpoint():
     endpoint_list.should.have.length_of(0)
 
 
-@mock_sns
+@mock_sns_deprecated
 def test_publish_to_platform_endpoint():
     conn = boto.connect_sns()
     platform_application = conn.create_platform_application(

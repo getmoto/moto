@@ -7,12 +7,13 @@ import boto3
 import sure  # noqa
 from boto.exception import JSONResponseError
 
-from moto import mock_ec2
+from moto import mock_ec2, mock_ec2_deprecated
 from moto.backends import get_model
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 
 @mock_ec2
+@mock_ec2_deprecated
 def test_request_spot_instances():
     conn = boto3.client('ec2', 'us-east-1')
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
@@ -73,7 +74,7 @@ def test_request_spot_instances():
     request.launch_specification.subnet_id.should.equal(subnet_id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_request_spot_instances_default_arguments():
     """
     Test that moto set the correct default arguments
@@ -106,7 +107,7 @@ def test_request_spot_instances_default_arguments():
     request.launch_specification.subnet_id.should.equal(None)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_cancel_spot_instance_request():
     conn = boto.connect_ec2()
 
@@ -130,7 +131,7 @@ def test_cancel_spot_instance_request():
     requests.should.have.length_of(0)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_request_spot_instances_fulfilled():
     """
     Test that moto correctly fullfills a spot instance request
@@ -156,7 +157,7 @@ def test_request_spot_instances_fulfilled():
     request.state.should.equal("active")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_tag_spot_instance_request():
     """
     Test that moto correctly tags a spot instance request
@@ -177,7 +178,7 @@ def test_tag_spot_instance_request():
     tag_dict.should.equal({'tag1': 'value1', 'tag2': 'value2'})
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_all_spot_instance_requests_filtering():
     """
     Test that moto correctly filters spot instance requests
@@ -211,7 +212,7 @@ def test_get_all_spot_instance_requests_filtering():
     requests.should.have.length_of(1)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_request_spot_instances_setting_instance_id():
     conn = boto.ec2.connect_to_region("us-east-1")
     request = conn.request_spot_instances(

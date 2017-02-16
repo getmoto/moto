@@ -10,10 +10,10 @@ from boto.redshift.exceptions import (
 )
 import sure  # noqa
 
-from moto import mock_ec2, mock_redshift
+from moto import mock_ec2_deprecated, mock_redshift_deprecated
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_create_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
     cluster_identifier = 'my_cluster'
@@ -54,7 +54,7 @@ def test_create_cluster():
     cluster['NumberOfNodes'].should.equal(3)
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_create_single_node_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
     cluster_identifier = 'my_cluster'
@@ -78,7 +78,7 @@ def test_create_single_node_cluster():
     cluster['NumberOfNodes'].should.equal(1)
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_default_cluster_attibutes():
     conn = boto.redshift.connect_to_region("us-east-1")
     cluster_identifier = 'my_cluster'
@@ -105,8 +105,8 @@ def test_default_cluster_attibutes():
     cluster['NumberOfNodes'].should.equal(1)
 
 
-@mock_redshift
-@mock_ec2
+@mock_redshift_deprecated
+@mock_ec2_deprecated
 def test_create_cluster_in_subnet_group():
     vpc_conn = boto.connect_vpc()
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
@@ -131,7 +131,7 @@ def test_create_cluster_in_subnet_group():
     cluster['ClusterSubnetGroupName'].should.equal('my_subnet_group')
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_create_cluster_with_security_group():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.create_cluster_security_group(
@@ -158,8 +158,8 @@ def test_create_cluster_with_security_group():
     set(group_names).should.equal(set(["security_group1", "security_group2"]))
 
 
-@mock_redshift
-@mock_ec2
+@mock_redshift_deprecated
+@mock_ec2_deprecated
 def test_create_cluster_with_vpc_security_groups():
     vpc_conn = boto.connect_vpc()
     ec2_conn = boto.connect_ec2()
@@ -181,7 +181,7 @@ def test_create_cluster_with_vpc_security_groups():
     list(group_ids).should.equal([security_group.id])
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_create_cluster_with_parameter_group():
     conn = boto.connect_redshift()
     conn.create_cluster_parameter_group(
@@ -203,13 +203,13 @@ def test_create_cluster_with_parameter_group():
     cluster['ClusterParameterGroups'][0]['ParameterGroupName'].should.equal("my_parameter_group")
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_describe_non_existant_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_clusters.when.called_with("not-a-cluster").should.throw(ClusterNotFound)
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_delete_cluster():
     conn = boto.connect_redshift()
     cluster_identifier = 'my_cluster'
@@ -233,7 +233,7 @@ def test_delete_cluster():
     conn.delete_cluster.when.called_with("not-a-cluster").should.throw(ClusterNotFound)
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_modify_cluster():
     conn = boto.connect_redshift()
     cluster_identifier = 'my_cluster'
@@ -281,8 +281,8 @@ def test_modify_cluster():
     cluster['NumberOfNodes'].should.equal(2)
 
 
-@mock_redshift
-@mock_ec2
+@mock_redshift_deprecated
+@mock_ec2_deprecated
 def test_create_cluster_subnet_group():
     vpc_conn = boto.connect_vpc()
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
@@ -306,8 +306,8 @@ def test_create_cluster_subnet_group():
     set(subnet_ids).should.equal(set([subnet1.id, subnet2.id]))
 
 
-@mock_redshift
-@mock_ec2
+@mock_redshift_deprecated
+@mock_ec2_deprecated
 def test_create_invalid_cluster_subnet_group():
     redshift_conn = boto.connect_redshift()
     redshift_conn.create_cluster_subnet_group.when.called_with(
@@ -317,14 +317,14 @@ def test_create_invalid_cluster_subnet_group():
     ).should.throw(InvalidSubnet)
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_describe_non_existant_subnet_group():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_cluster_subnet_groups.when.called_with("not-a-subnet-group").should.throw(ClusterSubnetGroupNotFound)
 
 
-@mock_redshift
-@mock_ec2
+@mock_redshift_deprecated
+@mock_ec2_deprecated
 def test_delete_cluster_subnet_group():
     vpc_conn = boto.connect_vpc()
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
@@ -351,7 +351,7 @@ def test_delete_cluster_subnet_group():
     redshift_conn.delete_cluster_subnet_group.when.called_with("not-a-subnet-group").should.throw(ClusterSubnetGroupNotFound)
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_create_cluster_security_group():
     conn = boto.connect_redshift()
     conn.create_cluster_security_group(
@@ -367,13 +367,13 @@ def test_create_cluster_security_group():
     list(my_group['IPRanges']).should.equal([])
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_describe_non_existant_security_group():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_cluster_security_groups.when.called_with("not-a-security-group").should.throw(ClusterSecurityGroupNotFound)
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_delete_cluster_security_group():
     conn = boto.connect_redshift()
     conn.create_cluster_security_group(
@@ -395,7 +395,7 @@ def test_delete_cluster_security_group():
     conn.delete_cluster_security_group.when.called_with("not-a-security-group").should.throw(ClusterSecurityGroupNotFound)
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_create_cluster_parameter_group():
     conn = boto.connect_redshift()
     conn.create_cluster_parameter_group(
@@ -412,13 +412,13 @@ def test_create_cluster_parameter_group():
     my_group['Description'].should.equal("This is my parameter group")
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_describe_non_existant_parameter_group():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_cluster_parameter_groups.when.called_with("not-a-parameter-group").should.throw(ClusterParameterGroupNotFound)
 
 
-@mock_redshift
+@mock_redshift_deprecated
 def test_delete_cluster_parameter_group():
     conn = boto.connect_redshift()
     conn.create_cluster_parameter_group(

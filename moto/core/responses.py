@@ -138,7 +138,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 flat = flatten_json_request_body('', decoded, input_spec)
                 for key, value in flat.items():
                     querystring[key] = [value]
-            else:
+            elif self.body:
                 querystring.update(parse_qs(self.body, keep_blank_values=True))
         if not querystring:
             querystring.update(headers)
@@ -152,6 +152,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.region = self.get_region_from_url(full_url)
 
         self.headers = request.headers
+        if 'host' not in self.headers:
+            self.headers['host'] = urlparse(full_url).netloc
         self.response_headers = headers
 
     def get_region_from_url(self, full_url):
@@ -189,6 +191,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 body, new_headers = response
                 status = new_headers.get('status', 200)
                 headers.update(new_headers)
+                # Cast status to string
+                if "status" in headers:
+                    headers['status'] = str(headers['status'])
                 return status, headers, body
         raise NotImplementedError("The {0} action has not been implemented".format(action))
 
@@ -327,6 +332,7 @@ def metadata_response(request, full_url, headers):
 
     http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AESDG-chapter-instancedata.html
     """
+
     parsed_url = urlparse(full_url)
     tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
     credentials = dict(
