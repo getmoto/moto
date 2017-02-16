@@ -1,0 +1,12 @@
+.arcconfig
+.coverage
+.DS_Store
+.idea
+*.db
+*.egg-info
+*.pyc
+/htmlcov
+/dist
+/build
+/.cache
+/.tox
