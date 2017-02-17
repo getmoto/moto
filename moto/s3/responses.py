@@ -104,10 +104,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
         try:
             response = self._bucket_response(request, full_url, headers)
         except S3ClientError as s3error:
-            response = s3error.code, headers, s3error.description
+            response = s3error.code, {}, s3error.description
 
         if isinstance(response, six.string_types):
-            return 200, headers, response.encode("utf-8")
+            return 200, {}, response.encode("utf-8")
         else:
             status_code, headers, response_content = response
             return status_code, headers, response_content.encode("utf-8")
@@ -133,8 +133,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # Flask server
             body = request.data
         if body is None:
-            body = ''
-        body = body.decode('utf-8')
+            body = b''
+        if isinstance(body, six.binary_type):
+            body = body.decode('utf-8')
 
         if method == 'HEAD':
             return self._bucket_response_head(bucket_name, headers)
@@ -151,7 +152,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
     def _bucket_response_head(self, bucket_name, headers):
         self.backend.get_bucket(bucket_name)
-        return 200, headers, ""
+        return 200, {}, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
         if 'uploads' in querystring:
@@ -173,7 +174,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif 'lifecycle' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if not bucket.rules:
-                return 404, headers, "NoSuchLifecycleConfiguration"
+                return 404, {}, "NoSuchLifecycleConfiguration"
             template = self.response_template(S3_BUCKET_LIFECYCLE_CONFIGURATION)
             return template.render(rules=bucket.rules)
         elif 'versioning' in querystring:
@@ -184,8 +185,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             policy = self.backend.get_bucket_policy(bucket_name)
             if not policy:
                 template = self.response_template(S3_NO_POLICY)
-                return 404, headers, template.render(bucket_name=bucket_name)
-            return 200, headers, policy
+                return 404, {}, template.render(bucket_name=bucket_name)
+            return 200, {}, policy
         elif 'website' in querystring:
             website_configuration = self.backend.get_bucket_website_configuration(bucket_name)
             return website_configuration
@@ -211,7 +212,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 version_id_marker=version_id_marker
             )
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
-            return 200, headers, template.render(
+            return 200, {}, template.render(
                 key_list=versions,
                 bucket=bucket,
                 prefix='',
@@ -220,14 +221,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 is_truncated='false',
             )
         elif querystring.get('list-type', [None])[0] == '2':
-            return 200, headers, self._handle_list_objects_v2(bucket_name, querystring)
+            return 200, {}, self._handle_list_objects_v2(bucket_name, querystring)
 
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get('prefix', [None])[0]
         delimiter = querystring.get('delimiter', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
         template = self.response_template(S3_BUCKET_GET_RESPONSE)
-        return 200, headers, template.render(
+        return 200, {}, template.render(
             bucket=bucket,
             prefix=prefix,
             delimiter=delimiter,
@@ -286,7 +287,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 template = self.response_template(S3_BUCKET_VERSIONING)
                 return template.render(bucket_versioning_status=ver.group(1))
             else:
-                return 404, headers, ""
+                return 404, {}, ""
         elif 'lifecycle' in querystring:
             rules = xmltodict.parse(body)['LifecycleConfiguration']['Rule']
             if not isinstance(rules, list):
@@ -315,27 +316,27 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 else:
                     raise
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
-            return 200, headers, template.render(bucket=new_bucket)
+            return 200, {}, template.render(bucket=new_bucket)
 
     def _bucket_response_delete(self, body, bucket_name, querystring, headers):
         if 'policy' in querystring:
             self.backend.delete_bucket_policy(bucket_name, body)
-            return 204, headers, ""
+            return 204, {}, ""
         elif 'lifecycle' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             bucket.delete_lifecycle()
-            return 204, headers, ""
+            return 204, {}, ""
 
         removed_bucket = self.backend.delete_bucket(bucket_name)
 
         if removed_bucket:
             # Bucket exists
             template = self.response_template(S3_DELETE_BUCKET_SUCCESS)
-            return 204, headers, template.render(bucket=removed_bucket)
+            return 204, {}, template.render(bucket=removed_bucket)
         else:
             # Tried to delete a bucket that still has keys
             template = self.response_template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
-            return 409, headers, template.render(bucket=removed_bucket)
+            return 409, {}, template.render(bucket=removed_bucket)
 
     def _bucket_response_post(self, request, body, bucket_name, headers):
         path = request.path if hasattr(request, 'path') else request.path_url
@@ -349,7 +350,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         else:
             # HTTPretty, build new form object
             form = {}
-            for kv in body.decode('utf-8').split('&'):
+            for kv in body.split('&'):
                 k, v = kv.split('=')
                 form[k] = v
 
@@ -365,7 +366,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         metadata = metadata_from_headers(form)
         new_key.set_metadata(metadata)
 
-        return 200, headers, ""
+        return 200, {}, ""
 
     def _bucket_response_delete_keys(self, request, body, bucket_name, headers):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
@@ -382,9 +383,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
             else:
                 error_names.append(key_name)
 
-        return 200, headers, template.render(deleted=deleted_names, delete_errors=error_names)
+        return 200, {}, template.render(deleted=deleted_names, delete_errors=error_names)
 
     def _handle_range_header(self, request, headers, response_content):
+        response_headers = {}
         length = len(response_content)
         last = length - 1
         _, rspec = request.headers.get('range').split('=')
@@ -399,28 +401,29 @@ class ResponseObject(_TemplateEnvironmentMixin):
             begin = length - min(end, length)
             end = last
         else:
-            return 400, headers, ""
+            return 400, response_headers, ""
         if begin < 0 or end > last or begin > min(end, last):
-            return 416, headers, ""
-        headers['content-range'] = "bytes {0}-{1}/{2}".format(
+            return 416, response_headers, ""
+        response_headers['content-range'] = "bytes {0}-{1}/{2}".format(
             begin, end, length)
-        return 206, headers, response_content[begin:end + 1]
+        return 206, response_headers, response_content[begin:end + 1]
 
     def key_response(self, request, full_url, headers):
+        response_headers = {}
         try:
             response = self._key_response(request, full_url, headers)
         except S3ClientError as s3error:
-            response = s3error.code, headers, s3error.description
+            response = s3error.code, {}, s3error.description
 
         if isinstance(response, six.string_types):
             status_code = 200
             response_content = response
         else:
-            status_code, headers, response_content = response
+            status_code, response_headers, response_content = response
 
         if status_code == 200 and 'range' in request.headers:
-            return self._handle_range_header(request, headers, response_content)
-        return status_code, headers, response_content
+            return self._handle_range_header(request, response_headers, response_content)
+        return status_code, response_headers, response_content
 
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
@@ -455,11 +458,12 @@ class ResponseObject(_TemplateEnvironmentMixin):
             raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
 
     def _key_response_get(self, bucket_name, query, key_name, headers):
+        response_headers = {}
         if query.get('uploadId'):
             upload_id = query['uploadId'][0]
             parts = self.backend.list_multipart(bucket_name, upload_id)
             template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
-            return 200, headers, template.render(
+            return 200, response_headers, template.render(
                 bucket_name=bucket_name,
                 key_name=key_name,
                 upload_id=upload_id,
@@ -471,13 +475,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
             bucket_name, key_name, version_id=version_id)
         if 'acl' in query:
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
-            return 200, headers, template.render(obj=key)
+            return 200, response_headers, template.render(obj=key)
 
-        headers.update(key.metadata)
-        headers.update(key.response_dict)
-        return 200, headers, key.value
+        response_headers.update(key.metadata)
+        response_headers.update(key.response_dict)
+        return 200, response_headers, key.value
 
     def _key_response_put(self, request, body, bucket_name, query, key_name, headers):
+        response_headers = {}
         if query.get('uploadId') and query.get('partNumber'):
             upload_id = query['uploadId'][0]
             part_number = int(query['partNumber'][0])
@@ -501,8 +506,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 key = self.backend.set_part(
                     bucket_name, upload_id, part_number, body)
                 response = ""
-            headers.update(key.response_dict)
-            return 200, headers, response
+            response_headers.update(key.response_dict)
+            return 200, response_headers, response
 
         storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
         acl = self._acl_from_headers(request.headers)
@@ -511,7 +516,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             key = self.backend.get_key(bucket_name, key_name)
             # TODO: Support the XML-based ACL format
             key.set_acl(acl)
-            return 200, headers, ""
+            return 200, response_headers, ""
 
         if 'x-amz-copy-source' in request.headers:
             # Copy key
@@ -526,8 +531,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 metadata = metadata_from_headers(request.headers)
                 new_key.set_metadata(metadata, replace=True)
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
-            headers.update(new_key.response_dict)
-            return 200, headers, template.render(key=new_key)
+            response_headers.update(new_key.response_dict)
+            return 200, response_headers, template.render(key=new_key)
         streaming_request = hasattr(request, 'streaming') and request.streaming
         closing_connection = headers.get('connection') == 'close'
         if closing_connection and streaming_request:
@@ -546,18 +551,19 @@ class ResponseObject(_TemplateEnvironmentMixin):
             new_key.set_acl(acl)
 
         template = self.response_template(S3_OBJECT_RESPONSE)
-        headers.update(new_key.response_dict)
-        return 200, headers, template.render(key=new_key)
+        response_headers.update(new_key.response_dict)
+        return 200, response_headers, template.render(key=new_key)
 
     def _key_response_head(self, bucket_name, query, key_name, headers):
+        response_headers = {}
         version_id = query.get('versionId', [None])[0]
         key = self.backend.get_key(bucket_name, key_name, version_id=version_id)
         if key:
-            headers.update(key.metadata)
-            headers.update(key.response_dict)
-            return 200, headers, ""
+            response_headers.update(key.metadata)
+            response_headers.update(key.response_dict)
+            return 200, response_headers, ""
         else:
-            return 404, headers, ""
+            return 404, response_headers, ""
 
     def _acl_from_headers(self, headers):
         canned_acl = headers.get('x-amz-acl', '')
@@ -595,10 +601,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if query.get('uploadId'):
             upload_id = query['uploadId'][0]
             self.backend.cancel_multipart(bucket_name, upload_id)
-            return 204, headers, ""
+            return 204, {}, ""
         self.backend.delete_key(bucket_name, key_name)
         template = self.response_template(S3_DELETE_OBJECT_SUCCESS)
-        return 204, headers, template.render()
+        return 204, {}, template.render()
 
     def _complete_multipart_body(self, body):
         ps = minidom.parseString(body).getElementsByTagName('Part')
@@ -620,7 +626,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 key_name=key_name,
                 upload_id=multipart.id,
             )
-            return 200, headers, response
+            return 200, {}, response
 
         if query.get('uploadId'):
             body = self._complete_multipart_body(body)
@@ -640,7 +646,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             if key.expiry_date is not None:
                 r = 200
             key.restore(int(days))
-            return r, headers, ""
+            return r, {}, ""
         else:
             raise NotImplementedError("Method POST had only been implemented for multipart uploads and restore operations, so far")
 

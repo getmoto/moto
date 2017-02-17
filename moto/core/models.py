@@ -8,7 +8,11 @@ import re
 from moto.packages.responses import responses
 from moto.packages.httpretty import HTTPretty
 from .responses import metadata_response
-from .utils import convert_regex_to_flask_path, convert_flask_to_responses_response
+from .utils import (
+    convert_httpretty_response,
+    convert_regex_to_flask_path,
+    convert_flask_to_responses_response,
+)
 
 class BaseMockAWS(object):
     nested_count = 0
@@ -93,14 +97,14 @@ class HttprettyMockAWS(BaseMockAWS):
                 HTTPretty.register_uri(
                     method=method,
                     uri=re.compile(key),
-                    body=value,
+                    body=convert_httpretty_response(value),
                 )
 
             # Mock out localhost instance metadata
             HTTPretty.register_uri(
                 method=method,
                 uri=re.compile('http://169.254.169.254/latest/meta-data/.*'),
-                body=metadata_response
+                body=convert_httpretty_response(metadata_response),
             )
 
     def disable_patching(self):

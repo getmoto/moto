@@ -19,7 +19,7 @@ class EventsHandler(BaseResponse):
         }
 
     def load_body(self):
-        decoded_body = self.body.decode('utf-8')
+        decoded_body = self.body
         return json.loads(decoded_body or '{}')
 
     def error(self, type_, message='', status=400):

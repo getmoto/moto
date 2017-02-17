@@ -12,7 +12,7 @@ class DataPipelineResponse(BaseResponse):
     def parameters(self):
         # TODO this should really be moved to core/responses.py
         if self.body:
-            return json.loads(self.body.decode("utf-8"))
+            return json.loads(self.body)
         else:
             return self.querystring
 

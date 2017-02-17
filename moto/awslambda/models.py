@@ -196,7 +196,7 @@ class LambdaBackend(BaseBackend):
 
     def __init__(self):
         self._functions = {}
-    
+
     def has_function(self, function_name):
         return function_name in self._functions
 

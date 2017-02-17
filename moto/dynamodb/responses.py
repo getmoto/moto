@@ -51,7 +51,7 @@ class DynamoHandler(BaseResponse):
         return status, self.response_headers, dynamo_json_dump({'__type': type_})
 
     def call_action(self):
-        body = self.body.decode('utf-8')
+        body = self.body
         if 'GetSessionToken' in body:
             return 200, self.response_headers, sts_handler()
 

@@ -36,6 +36,7 @@ class LambdaResponse(BaseResponse):
             raise ValueError("Cannot handle request")
 
     def _invoke(self, request, full_url, headers):
+        response_headers = {}
         lambda_backend = self.get_lambda_backend(full_url)
 
         path = request.path if hasattr(request, 'path') else request.path_url
@@ -43,15 +44,15 @@ class LambdaResponse(BaseResponse):
 
         if lambda_backend.has_function(function_name):
             fn = lambda_backend.get_function(function_name)
-            payload = fn.invoke(request, headers)
-            headers['Content-Length'] = str(len(payload))
-            return 202, headers, payload
+            payload = fn.invoke(request, response_headers)
+            response_headers['Content-Length'] = str(len(payload))
+            return 202, response_headers, payload
         else:
-            return 404, headers, "{}"
+            return 404, response_headers, "{}"
 
     def _list_functions(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
-        return 200, headers, json.dumps({
+        return 200, {}, json.dumps({
             "Functions": [fn.get_configuration() for fn in lambda_backend.list_functions()],
             # "NextMarker": str(uuid.uuid4()),
         })
@@ -62,10 +63,10 @@ class LambdaResponse(BaseResponse):
         try:
             fn = lambda_backend.create_function(spec)
         except ValueError as e:
-            return 400, headers, json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}})
+            return 400, {}, json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}})
         else:
             config = fn.get_configuration()
-            return 201, headers, json.dumps(config)
+            return 201, {}, json.dumps(config)
 
     def _delete_function(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
@@ -75,9 +76,9 @@ class LambdaResponse(BaseResponse):
 
         if lambda_backend.has_function(function_name):
             lambda_backend.delete_function(function_name)
-            return 204, headers, ""
+            return 204, {}, ""
         else:
-            return 404, headers, "{}"
+            return 404, {}, "{}"
 
     def _get_function(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
@@ -88,9 +89,9 @@ class LambdaResponse(BaseResponse):
         if lambda_backend.has_function(function_name):
             fn = lambda_backend.get_function(function_name)
             code = fn.get_code()
-            return 200, headers, json.dumps(code)
+            return 200, {}, json.dumps(code)
         else:
-            return 404, headers, "{}"
+            return 404, {}, "{}"
 
     def get_lambda_backend(self, full_url):
         from moto.awslambda.models import lambda_backends

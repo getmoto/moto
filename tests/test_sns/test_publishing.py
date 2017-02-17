@@ -70,7 +70,7 @@ def test_publish_to_http():
 
     last_request = responses.calls[-1].request
     last_request.method.should.equal("POST")
-    parse_qs(last_request.body.decode('utf-8')).should.equal({
+    parse_qs(last_request.body).should.equal({
         "Type": ["Notification"],
         "MessageId": [message_id],
         "TopicArn": ["arn:aws:sns:{0}:123456789012:some-topic".format(conn.region.name)],

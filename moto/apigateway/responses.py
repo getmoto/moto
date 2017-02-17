@@ -10,11 +10,11 @@ from .exceptions import StageNotFoundException
 class APIGatewayResponse(BaseResponse):
 
     def _get_param(self, key):
-        return json.loads(self.body.decode("ascii")).get(key)
+        return json.loads(self.body).get(key)
 
 
     def _get_param_with_default_value(self, key, default):
-        jsonbody = json.loads(self.body.decode("ascii"))
+        jsonbody = json.loads(self.body)
 
         if key in jsonbody:
             return jsonbody.get(key)
@@ -30,14 +30,14 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == 'GET':
             apis = self.backend.list_apis()
-            return 200, headers, json.dumps({"item": [
+            return 200, {}, json.dumps({"item": [
                 api.to_dict() for api in apis
             ]})
         elif self.method == 'POST':
             name = self._get_param('name')
             description = self._get_param('description')
             rest_api = self.backend.create_rest_api(name, description)
-            return 200, headers, json.dumps(rest_api.to_dict())
+            return 200, {}, json.dumps(rest_api.to_dict())
 
     def restapis_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -45,10 +45,10 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == 'GET':
             rest_api = self.backend.get_rest_api(function_id)
-            return 200, headers, json.dumps(rest_api.to_dict())
+            return 200, {}, json.dumps(rest_api.to_dict())
         elif self.method == 'DELETE':
             rest_api = self.backend.delete_rest_api(function_id)
-            return 200, headers, json.dumps(rest_api.to_dict())
+            return 200, {}, json.dumps(rest_api.to_dict())
 
     def resources(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -56,7 +56,7 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == 'GET':
             resources = self.backend.list_resources(function_id)
-            return 200, headers, json.dumps({"item": [
+            return 200, {}, json.dumps({"item": [
                 resource.to_dict() for resource in resources
             ]})
 
@@ -72,7 +72,7 @@ class APIGatewayResponse(BaseResponse):
             resource = self.backend.create_resource(function_id, resource_id, path_part)
         elif self.method == 'DELETE':
             resource = self.backend.delete_resource(function_id, resource_id)
-        return 200, headers, json.dumps(resource.to_dict())
+        return 200, {}, json.dumps(resource.to_dict())
 
     def resource_methods(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -83,11 +83,11 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == 'GET':
             method = self.backend.get_method(function_id, resource_id, method_type)
-            return 200, headers, json.dumps(method)
+            return 200, {}, json.dumps(method)
         elif self.method == 'PUT':
             authorization_type = self._get_param("authorizationType")
             method = self.backend.create_method(function_id, resource_id, method_type, authorization_type)
-            return 200, headers, json.dumps(method)
+            return 200, {}, json.dumps(method)
 
     def resource_method_responses(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -103,7 +103,7 @@ class APIGatewayResponse(BaseResponse):
             method_response = self.backend.create_method_response(function_id, resource_id, method_type, response_code)
         elif self.method == 'DELETE':
             method_response = self.backend.delete_method_response(function_id, resource_id, method_type, response_code)
-        return 200, headers, json.dumps(method_response)
+        return 200, {}, json.dumps(method_response)
 
     def restapis_stages(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -123,9 +123,9 @@ class APIGatewayResponse(BaseResponse):
                                                        cacheClusterEnabled=cacheClusterEnabled, cacheClusterSize=cacheClusterSize)
         elif self.method == 'GET':
             stages = self.backend.get_stages(function_id)
-            return 200, headers, json.dumps({"item": stages})
+            return 200, {}, json.dumps({"item": stages})
 
-        return 200, headers, json.dumps(stage_response)
+        return 200, {}, json.dumps(stage_response)
 
     def stages(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -137,11 +137,11 @@ class APIGatewayResponse(BaseResponse):
             try:
                 stage_response = self.backend.get_stage(function_id, stage_name)
             except StageNotFoundException as error:
-                return error.code, headers,'{{"message":"{0}","code":"{1}"}}'.format(error.message,error.error_type)
+                return error.code, {},'{{"message":"{0}","code":"{1}"}}'.format(error.message,error.error_type)
         elif self.method == 'PATCH':
             patch_operations = self._get_param('patchOperations')
             stage_response = self.backend.update_stage(function_id, stage_name, patch_operations)
-        return 200, headers, json.dumps(stage_response)
+        return 200, {}, json.dumps(stage_response)
 
     def integrations(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -159,7 +159,7 @@ class APIGatewayResponse(BaseResponse):
             integration_response = self.backend.create_integration(function_id, resource_id, method_type, integration_type, uri, request_templates=request_templates)
         elif self.method == 'DELETE':
             integration_response = self.backend.delete_integration(function_id, resource_id, method_type)
-        return 200, headers, json.dumps(integration_response)
+        return 200, {}, json.dumps(integration_response)
 
     def integration_responses(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -182,7 +182,7 @@ class APIGatewayResponse(BaseResponse):
             integration_response = self.backend.delete_integration_response(
                 function_id, resource_id, method_type, status_code
             )
-        return 200, headers, json.dumps(integration_response)
+        return 200, {}, json.dumps(integration_response)
 
     def deployments(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -190,13 +190,13 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == 'GET':
             deployments = self.backend.get_deployments(function_id)
-            return 200, headers, json.dumps({"item": deployments})
+            return 200, {}, json.dumps({"item": deployments})
         elif self.method == 'POST':
             name = self._get_param("stageName")
             description = self._get_param_with_default_value("description","")
             stage_variables = self._get_param_with_default_value('variables',{})
             deployment = self.backend.create_deployment(function_id, name, description,stage_variables)
-            return 200, headers, json.dumps(deployment)
+            return 200, {}, json.dumps(deployment)
 
     def individual_deployment(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -208,4 +208,4 @@ class APIGatewayResponse(BaseResponse):
             deployment = self.backend.get_deployment(function_id, deployment_id)
         elif self.method == 'DELETE':
             deployment = self.backend.delete_deployment(function_id, deployment_id)
-        return 200, headers, json.dumps(deployment)
+        return 200, {}, json.dumps(deployment)

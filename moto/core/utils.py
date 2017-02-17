@@ -79,6 +79,29 @@ def convert_regex_to_flask_path(url_path):
     return url_path
 
 
+class convert_httpretty_response(object):
+
+    def __init__(self, callback):
+        self.callback = callback
+
+    @property
+    def __name__(self):
+        # For instance methods, use class and method names. Otherwise
+        # use module and method name
+        if inspect.ismethod(self.callback):
+            outer = self.callback.__self__.__class__.__name__
+        else:
+            outer = self.callback.__module__
+        return "{0}.{1}".format(outer, self.callback.__name__)
+
+    def __call__(self, request, url, headers, **kwargs):
+        result = self.callback(request, url, headers)
+        status, headers, response = result
+        if 'server' not in headers:
+             headers["server"] = "amazon.com"
+        return status, headers, response
+
+
 class convert_flask_to_httpretty_response(object):
 
     def __init__(self, callback):
@@ -119,8 +142,11 @@ class convert_flask_to_responses_response(object):
         return "{0}.{1}".format(outer, self.callback.__name__)
 
     def __call__(self, request, *args, **kwargs):
+        for key, val in request.headers.items():
+            if isinstance(val, six.binary_type):
+                request.headers[key] = val.decode("utf-8")
+
         result = self.callback(request, request.url, request.headers)
-        # result is a status, headers, response tuple
         status, headers, response = result
         return status, headers, response
 

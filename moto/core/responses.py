@@ -123,14 +123,14 @@ class BaseResponse(_TemplateEnvironmentMixin):
             for key, value in request.form.items():
                 querystring[key] = [value, ]
 
+        if isinstance(self.body, six.binary_type):
+            self.body = self.body.decode('utf-8')
+
         if not querystring:
             querystring.update(parse_qs(urlparse(full_url).query, keep_blank_values=True))
         if not querystring:
             if 'json' in request.headers.get('content-type', []) and self.aws_service_spec:
-                if isinstance(self.body, six.binary_type):
-                    decoded = json.loads(self.body.decode('utf-8'))
-                else:
-                    decoded = json.loads(self.body)
+                decoded = json.loads(self.body)
 
                 target = request.headers.get('x-amz-target') or request.headers.get('X-Amz-Target')
                 service, method = target.split('.')
@@ -154,7 +154,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.headers = request.headers
         if 'host' not in self.headers:
             self.headers['host'] = urlparse(full_url).netloc
-        self.response_headers = headers
+        self.response_headers = {"server": "amazon.com"}
 
     def get_region_from_url(self, full_url):
         match = re.search(self.region_regex, full_url)

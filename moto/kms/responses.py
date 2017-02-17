@@ -22,7 +22,7 @@ class KmsResponse(BaseResponse):
 
     @property
     def parameters(self):
-        return json.loads(self.body.decode("utf-8"))
+        return json.loads(self.body)
 
     @property
     def kms_backend(self):
