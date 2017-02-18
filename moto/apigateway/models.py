@@ -317,16 +317,13 @@ class RestAPI(object):
         # TODO deal with no matching resource
 
     def resource_callback(self, request):
-        headers = request.headers
-
-        path = request.path if hasattr(request, 'path') else request.path_url
-        path_after_stage_name = '/'.join(path.split("/")[2:])
+        path_after_stage_name = '/'.join(request.path_url.split("/")[2:])
         if not path_after_stage_name:
             path_after_stage_name = '/'
 
         resource = self.get_resource_for_path(path_after_stage_name)
         status_code, response = resource.get_response(request)
-        return status_code, headers, response
+        return status_code, {}, response
 
     def update_integration_mocks(self, stage_name):
         stage_url = STAGE_URL.format(api_id=self.id, region_name=self.region_name, stage_name=stage_name)
