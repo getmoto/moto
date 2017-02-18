@@ -316,9 +316,8 @@ class RestAPI(object):
                 return resource
         # TODO deal with no matching resource
 
-    def resource_callback(self, request, full_url=None, headers=None):
-        if not headers:
-            headers = request.headers
+    def resource_callback(self, request):
+        headers = request.headers
 
         path = request.path if hasattr(request, 'path') else request.path_url
         path_after_stage_name = '/'.join(path.split("/")[2:])
