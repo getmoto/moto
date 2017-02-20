@@ -54,7 +54,6 @@ def test_message_send():
 @mock_sqs
 def test_set_queue_attributes():
     sqs = boto3.resource('sqs', region_name='us-east-1')
-    conn = boto3.client('sqs', region_name='us-west-1')
     queue = sqs.create_queue(QueueName="blah")
 
     queue.attributes['VisibilityTimeout'].should.equal("30")
