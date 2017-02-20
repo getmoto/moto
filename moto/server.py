@@ -35,6 +35,9 @@ class DomainDispatcherApplication(object):
         if self.service:
             return self.service
 
+        if host in BACKENDS:
+            return host
+
         for backend_name, backend in BACKENDS.items():
             for url_base in backend.url_bases:
                 if re.match(url_base, 'http://%s' % host):
@@ -43,7 +46,10 @@ class DomainDispatcherApplication(object):
         raise RuntimeError('Invalid host: "%s"' % host)
 
     def get_application(self, environ):
-        host = environ['HTTP_HOST'].split(':')[0]
+        if environ.get('PATH_INFO', '').startswith("/moto-api"):
+            host = "moto_api"
+        else:
+            host = environ['HTTP_HOST'].split(':')[0]
         if host == "localhost":
             # Fall back to parsing auth header to find service
             # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']

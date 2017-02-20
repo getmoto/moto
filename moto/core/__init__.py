@@ -1,2 +1,2 @@
 from __future__ import unicode_literals
-from .models import BaseBackend  # flake8: noqa
+from .models import BaseBackend, moto_api_backend  # flake8: noqa

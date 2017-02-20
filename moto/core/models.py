@@ -153,6 +153,38 @@ class ResponsesMockAWS(BaseMockAWS):
 MockAWS = ResponsesMockAWS
 
 
+class ServerModeMockAWS(BaseMockAWS):
+
+    def reset(self):
+        import requests
+        requests.post("http://localhost:8086/moto-api/reset")
+
+    def enable_patching(self):
+        if self.__class__.nested_count == 1:
+            # Just started
+            self.reset()
+
+        from boto3 import client as real_boto3_client, resource as real_boto3_resource
+        import mock
+
+        def fake_boto3_client(*args, **kwargs):
+            if 'endpoint_url' not in kwargs:
+                kwargs['endpoint_url'] = "http://localhost:8086"
+            return real_boto3_client(*args, **kwargs)
+        def fake_boto3_resource(*args, **kwargs):
+            if 'endpoint_url' not in kwargs:
+                kwargs['endpoint_url'] = "http://localhost:8086"
+            return real_boto3_resource(*args, **kwargs)
+        self._client_patcher = mock.patch('boto3.client', fake_boto3_client)
+        self._resource_patcher = mock.patch('boto3.resource', fake_boto3_resource)
+        self._client_patcher.start()
+        self._resource_patcher.start()
+
+    def disable_patching(self):
+        if self._client_patcher:
+            self._client_patcher.stop()
+            self._resource_patcher.stop()
+
 class Model(type):
     def __new__(self, clsname, bases, namespace):
         cls = super(Model, self).__new__(self, clsname, bases, namespace)
@@ -257,6 +289,9 @@ class base_decorator(object):
         self.backends = backends
 
     def __call__(self, func=None):
+        if self.mock_backend == MockAWS and os.environ.get('TEST_SERVER_MODE', '0').lower() == 'true':
+            self.mock_backend = ServerModeMockAWS
+
         if func:
             return self.mock_backend(self.backends)(func)
         else:
@@ -265,3 +300,18 @@ class base_decorator(object):
 
 class deprecated_base_decorator(base_decorator):
     mock_backend = HttprettyMockAWS
+
+
+class MotoAPIBackend(BaseBackend):
+    def __init__(self):
+        super(MotoAPIBackend, self).__init__()
+
+    def reset(self):
+        from moto.backends import BACKENDS
+        for name, backend in BACKENDS.items():
+            if name == "moto_api":
+                continue
+            backend.reset()
+        self.__init__()
+
+moto_api_backend = MotoAPIBackend()

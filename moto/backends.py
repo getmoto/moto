@@ -5,10 +5,12 @@ from moto.autoscaling import autoscaling_backend
 from moto.awslambda import lambda_backend
 from moto.cloudformation import cloudformation_backend
 from moto.cloudwatch import cloudwatch_backend
+from moto.core import moto_api_backend
 from moto.datapipeline import datapipeline_backend
 from moto.dynamodb import dynamodb_backend
 from moto.dynamodb2 import dynamodb_backend2
 from moto.ec2 import ec2_backend
+from moto.ecs import ecs_backend
 from moto.elb import elb_backend
 from moto.emr import emr_backend
 from moto.events import events_backend
@@ -35,11 +37,13 @@ BACKENDS = {
     'dynamodb': dynamodb_backend,
     'dynamodb2': dynamodb_backend2,
     'ec2': ec2_backend,
+    'ecs': ecs_backend,
     'elb': elb_backend,
     'events': events_backend,
     'emr': emr_backend,
     'glacier': glacier_backend,
     'iam': iam_backend,
+    'moto_api': moto_api_backend,
     'opsworks': opsworks_backend,
     'kinesis': kinesis_backend,
     'kms': kms_backend,

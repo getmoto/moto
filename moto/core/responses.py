@@ -366,6 +366,14 @@ def metadata_response(request, full_url, headers):
     return 200, headers, result
 
 
+class MotoAPIResponse(BaseResponse):
+
+    def reset_response(self, request, full_url, headers):
+        from .models import moto_api_backend
+        moto_api_backend.reset()
+        return 200, {}, json.dumps({"status": "ok"})
+
+
 class _RecursiveDictRef(object):
     """Store a recursive reference to dict."""
     def __init__(self):
