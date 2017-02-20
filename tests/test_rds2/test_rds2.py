@@ -1043,3 +1043,136 @@ def test_create_parameter_group_with_tags():
                                    }])
     result = conn.list_tags_for_resource(ResourceName='arn:aws:rds:us-west-2:1234567890:pg:test')
     result['TagList'].should.equal([{'Value': 'bar', 'Key': 'foo'}])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_create_event_subscription():
+    conn = boto3.client('rds', region_name='us-east-1')
+
+    sns_topic_arn = "arn:aws:sns:us-east-1:11223344:test-rds-filter-topic"
+    categories =['availability', 'failure', 'low storage']
+    result = conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn=sns_topic_arn,
+                                   SourceType='db-instance',
+                                   EventCategories=categories)
+    event_subscription = result['EventSubscription']
+
+    event_subscription['CustSubscriptionId'].should.equal('test-subscription')
+    event_subscription['Status'].should.equal('active')
+    event_subscription['EventSubscriptionArn'].should.equal('arn:aws:rds:us-east-1:11223344:es:test-subscription')
+    event_subscription['EventCategoriesList'].should.equal(categories)
+    event_subscription['Enabled'].should.equal(True)
+    event_subscription['SourceType'].should.equal('db-instance')
+    event_subscription['CustomerAwsId'].should.equal('11223344')
+    event_subscription['SnsTopicArn'].should.equal(sns_topic_arn)
+    event_subscription['SourceIdsList'].should.equals([])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_describe_event_subscriptions():
+    conn = boto3.client('rds', region_name='us-east-1')
+
+    sns_topic_arn = "arn:aws:sns:us-east-1:11223344:test-rds-filter-topic"
+    categories = ['availability', 'failure', 'low storage']
+    result = conn.create_event_subscription(SubscriptionName='test-subscription',
+                                            SnsTopicArn=sns_topic_arn,
+                                            SourceType='db-instance',
+                                            EventCategories=categories)
+    event_subscription = result['EventSubscription']
+    result = conn.describe_event_subscriptions()
+    result['EventSubscriptionsList'].should.equal([event_subscription])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_add_source_identifier_to_subscription():
+    conn = boto3.client('rds', region_name='us-east-1')
+
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+
+    conn.add_source_identifier_to_subscription(SubscriptionName='test-subscription',
+                                               SourceIdentifier='source3')
+    result = conn.describe_event_subscriptions(SubscriptionName='test-subscription')
+    result['EventSubscriptionsList'][0]['SourceIdsList'].should.equal(['source1', 'source2', 'source3'])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_remove_source_identifier_from_subscription():
+    conn = boto3.client('rds', region_name='us-east-1')
+
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2', 'source3'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+
+    conn.remove_source_identifier_from_subscription(SubscriptionName='test-subscription',
+                                                    SourceIdentifier='source2')
+    result = conn.describe_event_subscriptions(SubscriptionName='test-subscription')
+    result['EventSubscriptionsList'][0]['SourceIdsList'].should.equal(['source1', 'source3'])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_describe_non_existent_subscription():
+    conn = boto3.client('rds', region_name='us-east-1')
+    conn.describe_event_subscriptions.when.called_with(SubscriptionName='four-o-four').should.throw(ClientError)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_subscription_already_exists():
+    conn = boto3.client('rds', region_name='us-east-1')
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2', 'source3'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+
+    conn.create_event_subscription.when.called_with(SubscriptionName='test-subscription',
+                                                    SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                                    SourceType='db-instance',
+                                                    EventCategories=['availability']).should.throw(ClientError)
+
+@disable_on_py3()
+@mock_rds2
+def test_remove_non_existent_source_id():
+    conn = boto3.client('rds', region_name='us-east-1')
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2', 'source3'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+
+    conn.remove_source_identifier_from_subscription.when.called_with(SubscriptionName='test-subscription',
+                                                                     SourceIdentifier='source4').should.throw(ClientError)
+
+
+
+@mock_rds2
+def test_create_event_subscription_triggers_event():
+    data = []
+
+    def on_subscription_created(event_id, event_subscription):
+        data.extend([event_id, event_subscription])
+
+    default_publisher.subscribe(on_subscription_created, EventTypes.RDS2_EVENT_SUBSCRIPTION_CREATED)
+
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-west-2:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2', 'source3'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+    event_id, model = data
+    event_id.should.equal(EventTypes.RDS2_EVENT_SUBSCRIPTION_CREATED)
+    model.name.should.equal('test-subscription')
+    model.categories.should.equal(['availability', 'failure', 'low storage'])
+    default_publisher.reset()

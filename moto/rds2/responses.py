@@ -77,6 +77,16 @@ class RDS2Response(BaseResponse):
             'tags': self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value')),
         }
 
+    def _get_event_subscription_kwargs(self):
+        return {
+            'name': self._get_param('SubscriptionName'),
+            'categories': self.unpack_list_params('EventCategories.EventCategory'),
+            'enabled': self._get_bool_param('Enabled', if_none=True),
+            'sns_topic_arn': self._get_param('SnsTopicArn'),
+            'source_type': self._get_param('SourceType'),
+            'source_ids': self.unpack_list_params('SourceIds.SourceId')
+        }
+
     def unpack_complex_list_params(self, label, names):
         unpacked_list = list()
         count = 1
@@ -361,6 +371,31 @@ class RDS2Response(BaseResponse):
         template = self.response_template(DELETE_DB_PARAMETER_GROUP_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_group)
 
+    def create_event_subscription(self):
+        kwargs = self._get_event_subscription_kwargs()
+        event_subscription = self.backend.create_event_subscription(kwargs)
+        template = self.response_template(CREATE_EVENT_SUBSCRIPTION_TEMPLATE)
+        return template.render(event_subscription=event_subscription)
+
+    def describe_event_subscriptions(self):
+        subscription_name = self._get_param('SubscriptionName')
+        event_subscriptions = self.backend.describe_event_subscriptions(name=subscription_name)
+        template = self.response_template(DESCRIBE_EVENT_SUBSCRIPTIONS_TEMPLATE)
+        return template.render(event_subscriptions=event_subscriptions)
+
+    def add_source_identifier_to_subscription(self):
+        subscription_name = self._get_param('SubscriptionName')
+        source_id = self._get_param('SourceIdentifier')
+        event_subscription = self.backend.add_source_identifier_to_subscription(subscription_name, source_id)
+        template = self.response_template(ADD_SOURCE_IDENTIFIER_TO_SUBSCRIPTION_TEMPLATE)
+        return template.render(event_subscription=event_subscription)
+
+    def remove_source_identifier_from_subscription(self):
+        subscription_name = self._get_param('SubscriptionName')
+        source_id = self._get_param('SourceIdentifier')
+        event_subscription = self.backend.remove_source_identifier_from_subscription(subscription_name, source_id)
+        template = self.response_template(REMOVE_SOURCE_IDENTIFIER_FROM_SUBSCRIPTION_TEMPLATE)
+        return template.render(event_subscription=event_subscription)
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBInstanceResult>
@@ -618,3 +653,44 @@ REMOVE_TAGS_FROM_RESOURCE_TEMPLATE = """<RemoveTagsFromResourceResponse xmlns="h
     <RequestId>b194d9ca-a664-11e4-b688-194eaf8658fa</RequestId>
   </ResponseMetadata>
 </RemoveTagsFromResourceResponse>"""
+
+CREATE_EVENT_SUBSCRIPTION_TEMPLATE = """<CreateEventSubscriptionResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <CreateEventSubscriptionResult>
+    {{ event_subscription.to_xml() }}
+  </CreateEventSubscriptionResult>
+  <ResponseMetadata>
+    <RequestId>fb57df5a-f4d5-11e6-a77f-2980231572f6</RequestId>
+  </ResponseMetadata>
+</CreateEventSubscriptionResponse>
+"""
+
+DESCRIBE_EVENT_SUBSCRIPTIONS_TEMPLATE = """<DescribeEventSubscriptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <DescribeEventSubscriptionsResult>
+    <EventSubscriptionsList>
+    {%- for event_subscription in event_subscriptions -%}
+      {{ event_subscription.to_xml() }}
+    {%- endfor -%}
+    </EventSubscriptionsList>
+  </DescribeEventSubscriptionsResult>
+  <ResponseMetadata>
+    <RequestId>dff20433-f4d5-11e6-8584-efa523682e01</RequestId>
+  </ResponseMetadata>
+</DescribeEventSubscriptionsResponse>"""
+
+ADD_SOURCE_IDENTIFIER_TO_SUBSCRIPTION_TEMPLATE = """<AddSourceIdentifierToSubscriptionResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <AddSourceIdentifierToSubscriptionResult>
+    {{ event_subscription.to_xml() }}
+  </AddSourceIdentifierToSubscriptionResult>
+  <ResponseMetadata>
+    <RequestId>fb57df5a-f4d5-11e6-a77f-2980231572f6</RequestId>
+  </ResponseMetadata>
+</AddSourceIdentifierToSubscriptionResponse>"""
+
+REMOVE_SOURCE_IDENTIFIER_FROM_SUBSCRIPTION_TEMPLATE = """<RemoveSourceIdentifierFromSubscriptionResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <RemoveSourceIdentifierFromSubscriptionResult>
+    {{ event_subscription.to_xml() }}
+  </RemoveSourceIdentifierFromSubscriptionResult>
+  <ResponseMetadata>
+    <RequestId>7e432055-f70e-11e6-af71-15e678502a7f</RequestId>
+  </ResponseMetadata>
+</RemoveSourceIdentifierFromSubscriptionResponse>"""

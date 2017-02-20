@@ -39,8 +39,30 @@ class DBSubnetGroupNotFoundError(RDSClientError):
             'DBSubnetGroupNotFound',
             "Subnet Group {0} not found.".format(subnet_group_name))
 
+
 class DBParameterGroupNotFoundError(RDSClientError):
     def __init__(self, db_parameter_group_name):
         super(DBParameterGroupNotFoundError, self).__init__(
             'DBParameterGroupNotFound',
             'DB Parameter Group {0} not found.'.format(db_parameter_group_name))
+
+
+class SubscriptionNotFound(RDSClientError):
+    def __init__(self, subscription_name):
+        super(SubscriptionNotFound, self).__init__(
+            'SubscriptionNotFound',
+            'Event Subscription {0} not found.'.format(subscription_name))
+
+
+class SubscriptionAlreadyExist(RDSClientError):
+    def __init__(self, subscription_name):
+        super(SubscriptionAlreadyExist, self).__init__(
+            'SubscriptionAlreadyExist',
+            'Event Subscription {0} already exists.'.format(subscription_name))
+
+
+class SourceNotFound(RDSClientError):
+    def __init__(self, source_id):
+        super(SourceNotFound, self).__init__(
+            'SourceNotFound',
+            'Source {0} not found.'.format(source_id))

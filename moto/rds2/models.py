@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import copy
+import datetime
 
 from collections import defaultdict, namedtuple
 import boto.rds2
@@ -8,13 +9,16 @@ from jinja2 import Template
 from re import compile as re_compile
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.core import BaseBackend
-from moto.core.utils import get_random_hex
+from moto.core.utils import get_random_hex, iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from .exceptions import (RDSClientError,
                          DBInstanceNotFoundError,
                          DBSecurityGroupNotFoundError,
                          DBSubnetGroupNotFoundError,
-                         DBParameterGroupNotFoundError)
+                         DBParameterGroupNotFoundError,
+                         SourceNotFound,
+                         SubscriptionNotFound,
+                         SubscriptionAlreadyExist)
 
 
 class Database(object):
@@ -562,6 +566,64 @@ class SubnetGroup(object):
         backend.delete_subnet_group(self.subnet_name)
 
 
+class EventSubscription(object):
+    def __init__(self, name, categories, sns_topic_arn, source_type, source_ids, enabled):
+        self.name = name
+        self.categories = categories
+        self.sns_topic_arn = sns_topic_arn
+        self.source_type = source_type
+        self.source_ids = source_ids
+        self.enabled = enabled
+        self.created = datetime.datetime.now()
+        sns_arn = sns_topic_arn.split(':')
+        self.customer_aws_id = sns_arn[4]
+        self.arn = "arn:aws:rds:{0}:{1}:es:{2}".format(sns_arn[3], self.customer_aws_id, name)
+
+    @property
+    def creation_time(self):
+        return iso_8601_datetime_with_milliseconds(self.created)
+
+    def to_xml(self):
+        enabled = 'true' if self.enabled else 'false'
+        template = Template("""<EventSubscription>
+            <CustSubscriptionId>{{ event_subscription.name }}</CustSubscriptionId>
+            <EventSubscriptionArn>{{ event_subscription.arn }}</EventSubscriptionArn>
+            <SourceType>{{ event_subscription.source_type }}</SourceType>
+            <SnsTopicArn>{{ event_subscription.sns_topic_arn }}</SnsTopicArn>
+            <EventCategoriesList>
+            {% for category in event_subscription.categories %}
+              <EventCategory>{{ category }}</EventCategory>
+            {% endfor %}
+            </EventCategoriesList>
+            <SourceIdsList>
+            {% for source_id in event_subscription.source_ids %}
+              <SourceId>{{ source_id }}</SourceId>
+            {% endfor %}
+            </SourceIdsList>
+            <SubscriptionCreationTime>{{ event_subscription.creation_time }}</SubscriptionCreationTime>
+            <Enabled>{{ enabled }}</Enabled>
+            <Status>active</Status>
+            <CustomerAwsId>{{ event_subscription.customer_aws_id }}</CustomerAwsId>
+          </EventSubscription>""")
+        return template.render(event_subscription=self, enabled=enabled)
+
+    def to_json(self):
+        template = Template(""""EventSubscription": {
+          "CustSubscriptionId": "{{ event_subscription.name }}",
+          "EventSubscriptionArn": "{{ event_subscription.arn }}",
+          "SourceType": "{{ event_subscription.source_type }}",
+          "SnsTopicArn": "{{ event_subscription.sns_topic_arn }}",
+          "EventCategories": [ {{ ", ".join('"%s"' % category for category in event_subscription.categories) }}],
+          "{{ event_subscription. }}",
+          "SourceIds": [[{{ ", ".join('"%s"' % source_id for source_id in event_subscription.source_ids) }}],
+          "SubscriptionCreationTime": "{{ event_subscription.creation_time }}",
+          "Enabled": "{{ event_subscription.enabled }}",
+          "Status": "Active",
+          "CustomerAwsId": "{{ event_subscription.customer_aws_id }}"
+        }""")
+        return template.render(event_subscription=self)
+
+
 class RDS2Backend(BaseBackend):
 
     def __init__(self, region):
@@ -572,6 +634,7 @@ class RDS2Backend(BaseBackend):
         self.option_groups = {}
         self.security_groups = {}
         self.subnet_groups = {}
+        self.event_subscriptions = {}
 
     def reset(self):
         # preserve region
@@ -585,6 +648,41 @@ class RDS2Backend(BaseBackend):
         self.databases[database_id] = database
         self.publisher.notify(self.publisher.events.RDS2_DATABASE_CREATED, database)
         return database
+
+    def create_event_subscription(self, event_kwargs):
+        name = event_kwargs['name']
+        if name in self.event_subscriptions:
+            raise SubscriptionAlreadyExist(name)
+        event_subscription = EventSubscription(**event_kwargs)
+        self.publisher.notify(self.publisher.events.RDS2_EVENT_SUBSCRIPTION_CREATED, event_subscription)
+        self.event_subscriptions[event_subscription.name] = event_subscription
+        return event_subscription
+
+    def describe_event_subscriptions(self, name=None):
+        if name and name not in self.event_subscriptions:
+            raise SubscriptionNotFound(name)
+        elif name:
+            return [self.event_subscriptions[name]]
+        return self.event_subscriptions.values()
+
+    def add_source_identifier_to_subscription(self, name, source_id):
+        event_subscription = self.event_subscriptions.get(name)
+        if not event_subscription:
+            raise SubscriptionNotFound(name)
+        if not source_id:
+            raise RDSClientError('InvalidParameterValue',
+                                 'The parameter SourceIdentifier must be provided and must not be blank.')
+        event_subscription.source_ids.append(source_id)
+        return event_subscription
+
+    def remove_source_identifier_from_subscription(self, name, source_id):
+        event_subscription = self.event_subscriptions.get(name)
+        if not event_subscription:
+            raise SubscriptionNotFound(name)
+        if not source_id or source_id not in event_subscription.source_ids:
+            raise SourceNotFound(source_id)
+        event_subscription.source_ids.remove(source_id)
+        return event_subscription
 
     def create_database_replica(self, db_kwargs):
         database_id = db_kwargs['db_instance_identifier']

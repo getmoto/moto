@@ -20,7 +20,10 @@ from moto.core.utils import convert_flask_to_httpretty_response
 
 
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
-ADDITIONAL_URL_BASES = [r"https?://{0}\.(.+)\.xip\.io"]  # see http://xip.io/
+ADDITIONAL_URL_BASES = [
+    r"https?://{0}\.(.+)\.xip\.io",  # see http://xip.io/
+    r"https?://{0}\.(.+)\.nip\.io"   # see http://nip.io/
+]
 
 
 class DomainDispatcherApplication(object):
