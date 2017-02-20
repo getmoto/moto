@@ -42,8 +42,14 @@ class DomainDispatcherApplication(object):
 
         raise RuntimeError('Invalid host: "%s"' % host)
 
-    def get_application(self, host):
-        host = host.split(':')[0]
+    def get_application(self, environ):
+        host = environ['HTTP_HOST'].split(':')[0]
+        if host == "localhost":
+            # Fall back to parsing auth header to find service
+            # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
+            _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[1].split("/")
+            host = "{service}.{region}.amazonaws.com".format(service=service, region=region)
+
         with self.lock:
             backend = self.get_backend_for_host(host)
             app = self.app_instances.get(backend, None)
@@ -53,7 +59,7 @@ class DomainDispatcherApplication(object):
             return app
 
     def __call__(self, environ, start_response):
-        backend_app = self.get_application(environ['HTTP_HOST'])
+        backend_app = self.get_application(environ)
         return backend_app(environ, start_response)
 
 

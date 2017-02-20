@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import functools
 import inspect
+import os
 import re
 
 from moto.packages.responses import responses
@@ -48,7 +49,9 @@ class BaseMockAWS(object):
         if self.__class__.nested_count < 0:
             raise RuntimeError('Called stop() before start().')
 
-        self.disable_patching()
+
+        if self.__class__.nested_count == 0:
+            self.disable_patching()
 
     def decorate_callable(self, func, reset):
         def wrapper(*args, **kwargs):
@@ -108,9 +111,8 @@ class HttprettyMockAWS(BaseMockAWS):
             )
 
     def disable_patching(self):
-        if self.__class__.nested_count == 0:
-            HTTPretty.disable()
-            HTTPretty.reset()
+        HTTPretty.disable()
+        HTTPretty.reset()
 
 
 RESPONSES_METHODS = [responses.GET, responses.DELETE, responses.HEAD,
@@ -142,13 +144,14 @@ class ResponsesMockAWS(BaseMockAWS):
             pattern['stream'] = True
 
     def disable_patching(self):
-        if self.__class__.nested_count == 0:
-            try:
-                responses.stop()
-            except AttributeError:
-                pass
-            responses.reset()
+        try:
+            responses.stop()
+        except AttributeError:
+            pass
+        responses.reset()
+
 MockAWS = ResponsesMockAWS
+
 
 class Model(type):
     def __new__(self, clsname, bases, namespace):
