@@ -2833,7 +2833,7 @@ class ElasticAddress(object):
 
     @property
     def physical_resource_id(self):
-        return self.allocation_id if self.allocation_id else self.public_ip
+        return self.public_ip
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
