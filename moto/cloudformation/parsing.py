@@ -374,7 +374,9 @@ class ResourceMap(collections.Mapping):
                 self.tags['aws:cloudformation:logical-id'] = resource
                 ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], self.tags)
 
-    def update(self, template):
+    def update(self, template, parameters=None):
+        if parameters:
+            self.input_parameters = parameters
         self.load_mapping()
         self.load_parameters()
         self.load_conditions()
