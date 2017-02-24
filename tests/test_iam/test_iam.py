@@ -201,7 +201,7 @@ def test_get_user():
 def test_list_users():
     path_prefix = '/'
     max_items = 10
-    conn = boto3.client('iam')
+    conn = boto3.client('iam', region_name='us-east-1')
     conn.create_user(UserName='my-user')
     response = conn.list_users(PathPrefix=path_prefix, MaxItems=max_items)
     user = response['Users'][0]
@@ -337,7 +337,7 @@ def test_managed_policy():
 
 @mock_iam
 def test_boto3_create_login_profile():
-    conn = boto3.client('iam')
+    conn = boto3.client('iam', region_name='us-east-1')
 
     with assert_raises(ClientError):
         conn.create_login_profile(UserName='my-user', Password='Password')

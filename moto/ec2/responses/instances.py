@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 from boto.ec2.instancetype import InstanceType
-from boto.exception import JSONResponseError
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, \

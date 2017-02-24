@@ -4,10 +4,11 @@ import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import boto3
+from botocore.exceptions import ClientError
 import boto
 import boto.cloudformation
 import boto.ec2
-from boto.exception import EC2ResponseError, JSONResponseError
+from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2, mock_cloudformation_deprecated, mock_ec2_deprecated
@@ -22,9 +23,9 @@ def test_elastic_network_interfaces():
     vpc = conn.create_vpc("10.0.0.0/16")
     subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         eni = conn.create_network_interface(subnet.id, dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
 
@@ -36,9 +37,9 @@ def test_elastic_network_interfaces():
     eni.groups.should.have.length_of(0)
     eni.private_ip_addresses.should.have.length_of(0)
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.delete_network_interface(eni.id, dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
 
@@ -49,7 +50,7 @@ def test_elastic_network_interfaces():
 
     with assert_raises(EC2ResponseError) as cm:
         conn.delete_network_interface(eni.id)
-    cm.exception.code.should.equal('InvalidNetworkInterfaceID.NotFound')
+    cm.exception.error_code.should.equal('InvalidNetworkInterfaceID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
@@ -60,7 +61,7 @@ def test_elastic_network_interfaces_subnet_validation():
 
     with assert_raises(EC2ResponseError) as cm:
         conn.create_network_interface("subnet-abcd1234")
-    cm.exception.code.should.equal('InvalidSubnetID.NotFound')
+    cm.exception.error_code.should.equal('InvalidSubnetID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
@@ -117,9 +118,9 @@ def test_elastic_network_interfaces_modify_attribute():
     eni.groups.should.have.length_of(1)
     eni.groups[0].id.should.equal(security_group1.id)
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.modify_network_interface_attribute(eni.id, 'groupset', [security_group2.id], dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
 
@@ -183,11 +184,11 @@ def test_elastic_network_interfaces_get_by_tag_name():
 
     eni1 = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress='10.0.10.5')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(ClientError) as ex:
         eni1.create_tags(Tags=[{'Key': 'Name', 'Value': 'eni1'}], DryRun=True)
-    ex.exception.reason.should.equal('DryRunOperation')
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.response['Error']['Code'].should.equal('DryRunOperation')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
 
     eni1.create_tags(Tags=[{'Key': 'Name', 'Value': 'eni1'}])
 

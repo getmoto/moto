@@ -128,7 +128,7 @@ def test_describe_job_flows():
     args = deepcopy(run_job_flow_args)
     expected = {}
 
-    for idx in range(400):
+    for idx in range(4):
         cluster_name = 'cluster' + str(idx)
         args['Name'] = cluster_name
         cluster_id = client.run_job_flow(**args)['JobFlowId']
@@ -144,7 +144,7 @@ def test_describe_job_flows():
     timestamp = datetime.now(pytz.utc)
     time.sleep(1)
 
-    for idx in range(400, 600):
+    for idx in range(4, 6):
         cluster_name = 'cluster' + str(idx)
         args['Name'] = cluster_name
         cluster_id = client.run_job_flow(**args)['JobFlowId']
@@ -156,7 +156,7 @@ def test_describe_job_flows():
         }
 
     resp = client.describe_job_flows()
-    resp['JobFlows'].should.have.length_of(512)
+    resp['JobFlows'].should.have.length_of(6)
 
     for cluster_id, y in expected.items():
         resp = client.describe_job_flows(JobFlowIds=[cluster_id])
@@ -164,15 +164,15 @@ def test_describe_job_flows():
         resp['JobFlows'][0]['JobFlowId'].should.equal(cluster_id)
 
     resp = client.describe_job_flows(JobFlowStates=['WAITING'])
-    resp['JobFlows'].should.have.length_of(400)
+    resp['JobFlows'].should.have.length_of(4)
     for x in resp['JobFlows']:
         x['ExecutionStatusDetail']['State'].should.equal('WAITING')
 
     resp = client.describe_job_flows(CreatedBefore=timestamp)
-    resp['JobFlows'].should.have.length_of(400)
+    resp['JobFlows'].should.have.length_of(4)
 
     resp = client.describe_job_flows(CreatedAfter=timestamp)
-    resp['JobFlows'].should.have.length_of(200)
+    resp['JobFlows'].should.have.length_of(2)
 
 
 @mock_emr
@@ -327,13 +327,13 @@ def test_run_job_flow():
 @mock_emr
 def test_run_job_flow_with_invalid_params():
     client = boto3.client('emr', region_name='us-east-1')
-    with assert_raises(ClientError) as e:
+    with assert_raises(ClientError) as ex:
         # cannot set both AmiVersion and ReleaseLabel
         args = deepcopy(run_job_flow_args)
         args['AmiVersion'] = '2.4'
         args['ReleaseLabel'] = 'emr-5.0.0'
         client.run_job_flow(**args)
-    e.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.contain('ValidationException')
 
 
 @mock_emr

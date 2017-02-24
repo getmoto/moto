@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
 from six import text_type
@@ -45,6 +47,10 @@ class RESTError(HTTPException):
         self.message = message
         self.description = env.get_template(template).render(
             error_type=error_type, message=message, **kwargs)
+
+
+class DryRunClientError(RESTError):
+    code = 400
 
 
 class JsonRESTError(RESTError):

@@ -10,7 +10,7 @@ import zipfile
 import sure  # noqa
 
 from freezegun import freeze_time
-from moto import mock_lambda, mock_s3, mock_ec2
+from moto import mock_lambda, mock_s3, mock_ec2, settings
 
 
 def _process_lamda(pfunc):
@@ -36,16 +36,15 @@ def lambda_handler(event, context):
     volume_id = event.get('volume_id')
     print('get volume details for %s' % volume_id)
     import boto3
-    ec2 = boto3.resource('ec2', region_name='us-west-2')
+    ec2 = boto3.resource('ec2', region_name='us-west-2', endpoint_url="http://{base_url}")
     vol = ec2.Volume(volume_id)
     print('Volume - %s  state=%s, size=%s' % (volume_id, vol.state, vol.size))
     return event
-"""
+""".format(base_url="localhost:8086" if settings.TEST_SERVER_MODE else "ec2.us-west-2.amazonaws.com")
     return _process_lamda(pfunc)
 
 
 @mock_lambda
-@mock_s3
 def test_list_functions():
     conn = boto3.client('lambda', 'us-west-2')
     result = conn.list_functions()
@@ -53,7 +52,6 @@ def test_list_functions():
 
 
 @mock_lambda
-@freeze_time('2015-01-01 00:00:00')
 def test_invoke_requestresponse_function():
     conn = boto3.client('lambda', 'us-west-2')
     conn.create_function(
@@ -80,7 +78,6 @@ def test_invoke_requestresponse_function():
 
 
 @mock_lambda
-@freeze_time('2015-01-01 00:00:00')
 def test_invoke_event_function():
     conn = boto3.client('lambda', 'us-west-2')
     conn.create_function(
@@ -111,7 +108,6 @@ def test_invoke_event_function():
 
 @mock_ec2
 @mock_lambda
-@freeze_time('2015-01-01 00:00:00')
 def test_invoke_function_get_ec2_volume():
     conn = boto3.resource("ec2", "us-west-2")
     vol = conn.create_volume(Size=99, AvailabilityZone='us-west-2')
@@ -141,7 +137,6 @@ def test_invoke_function_get_ec2_volume():
 
 
 @mock_lambda
-@freeze_time('2015-01-01 00:00:00')
 def test_create_based_on_s3_with_missing_bucket():
     conn = boto3.client('lambda', 'us-west-2')
 
@@ -196,6 +191,7 @@ def test_create_function_from_aws_bucket():
     )
     result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
     result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    result.pop('LastModified')
     result.should.equal({
         'FunctionName': 'testFunction',
         'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
@@ -207,7 +203,6 @@ def test_create_function_from_aws_bucket():
         'Description': 'test lambda function',
         'Timeout': 3,
         'MemorySize': 128,
-        'LastModified': '2015-01-01 00:00:00',
         'Version': '$LATEST',
         'VpcConfig': {
             "SecurityGroupIds": ["sg-123abc"],
@@ -238,6 +233,7 @@ def test_create_function_from_zipfile():
     )
     result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
     result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    result.pop('LastModified')
 
     result.should.equal({
         'FunctionName': 'testFunction',
@@ -249,7 +245,6 @@ def test_create_function_from_zipfile():
         'Description': 'test lambda function',
         'Timeout': 3,
         'MemorySize': 128,
-        'LastModified': '2015-01-01 00:00:00',
         'CodeSha256': hashlib.sha256(zip_content).hexdigest(),
         'Version': '$LATEST',
         'VpcConfig': {
@@ -290,6 +285,7 @@ def test_get_function():
     result = conn.get_function(FunctionName='testFunction')
     result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
     result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    result['Configuration'].pop('LastModified')
 
     result.should.equal({
         "Code": {
@@ -303,7 +299,6 @@ def test_get_function():
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
-            "LastModified": "2015-01-01 00:00:00",
             "MemorySize": 128,
             "Role": "test-iam-role",
             "Runtime": "python2.7",
@@ -395,7 +390,6 @@ def test_list_create_list_get_delete_list():
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
-            "LastModified": "2015-01-01 00:00:00",
             "MemorySize": 128,
             "Role": "test-iam-role",
             "Runtime": "python2.7",
@@ -408,11 +402,14 @@ def test_list_create_list_get_delete_list():
         },
         'ResponseMetadata': {'HTTPStatusCode': 200},
     }
-    conn.list_functions()['Functions'].should.equal([expected_function_result['Configuration']])
+    func = conn.list_functions()['Functions'][0]
+    func.pop('LastModified')
+    func.should.equal(expected_function_result['Configuration'])
 
     func = conn.get_function(FunctionName='testFunction')
     func['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
     func['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    func['Configuration'].pop('LastModified')
 
     func.should.equal(expected_function_result)
     conn.delete_function(FunctionName='testFunction')

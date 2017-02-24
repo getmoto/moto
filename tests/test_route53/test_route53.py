@@ -308,7 +308,7 @@ def test_hosted_zone_private_zone_preserved():
 
 @mock_route53
 def test_hosted_zone_private_zone_preserved_boto3():
-    conn = boto3.client('route53')
+    conn = boto3.client('route53', region_name='us-east-1')
     # TODO: actually create_hosted_zone statements with PrivateZone=True, but without
     # a _valid_ vpc-id should fail.
     firstzone = conn.create_hosted_zone(
@@ -333,8 +333,20 @@ def test_hosted_zone_private_zone_preserved_boto3():
 
 @mock_route53
 def test_list_or_change_tags_for_resource_request():
-    conn = boto3.client('route53')
-    healthcheck_id = str(uuid.uuid4())
+    conn = boto3.client('route53', region_name='us-east-1')
+    health_check = conn.create_health_check(
+        CallerReference='foobar',
+        HealthCheckConfig={
+            'IPAddress': '192.0.2.44',
+            'Port': 123,
+            'Type': 'HTTP',
+            'ResourcePath': '/',
+            'RequestInterval': 30,
+            'FailureThreshold': 123,
+            'HealthThreshold': 123,
+        }
+    )
+    healthcheck_id = health_check['HealthCheck']['Id']
 
     tag1 = {"Key": "Deploy", "Value": "True"}
     tag2 = {"Key": "Name", "Value": "UnitTest"}

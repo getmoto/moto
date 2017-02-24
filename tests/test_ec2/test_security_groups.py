@@ -9,7 +9,7 @@ from nose.tools import assert_raises
 import boto3
 import boto
 from botocore.exceptions import ClientError
-from boto.exception import EC2ResponseError, JSONResponseError
+from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated
@@ -19,9 +19,9 @@ from moto import mock_ec2, mock_ec2_deprecated
 def test_create_and_describe_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         security_group = conn.create_security_group('test security group', 'this is a test security group', dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set')
 
@@ -121,9 +121,9 @@ def test_deleting_security_groups():
     cm.exception.request_id.should_not.be.none
 
     # Delete by name
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.delete_security_group('test2', dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set')
 
@@ -150,9 +150,9 @@ def test_authorize_ip_range_and_revoke():
     conn = boto.connect_ec2('the_key', 'the_secret')
     security_group = conn.create_security_group('test', 'test')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         success = security_group.authorize(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the GrantSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set')
 
@@ -171,9 +171,9 @@ def test_authorize_ip_range_and_revoke():
     cm.exception.request_id.should_not.be.none
 
     # Actually revoke
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         security_group.revoke(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RevokeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set')
 
@@ -185,9 +185,9 @@ def test_authorize_ip_range_and_revoke():
     # Test for egress as well
     egress_security_group = conn.create_security_group('testegress', 'testegress', vpc_id='vpc-3432589')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         success = conn.authorize_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the GrantSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set')
 
@@ -203,9 +203,9 @@ def test_authorize_ip_range_and_revoke():
     egress_security_group.revoke.when.called_with(ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.122/32").should.throw(EC2ResponseError)
 
     # Actually revoke
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.revoke_security_group_egress(egress_security_group.id, "tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123/32", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RevokeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set')
 
@@ -339,9 +339,9 @@ def test_security_group_tagging():
 
     sg = conn.create_security_group("test-sg", "Test SG", vpc.id)
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         sg.add_tag("Test", "Tag", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
 
@@ -540,11 +540,11 @@ def test_security_group_tagging_boto3():
 
     sg = conn.create_security_group(GroupName="test-sg", Description="Test SG")
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(ClientError) as ex:
         conn.create_tags(Resources=[sg['GroupId']], Tags=[{'Key': 'Test', 'Value': 'Tag'}], DryRun=True)
-    ex.exception.reason.should.equal('DryRunOperation')
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.response['Error']['Code'].should.equal('DryRunOperation')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
 
     conn.create_tags(Resources=[sg['GroupId']], Tags=[{'Key': 'Test', 'Value': 'Tag'}])
     describe = conn.describe_security_groups(Filters=[{'Name': 'tag-value', 'Values': ['Tag']}])

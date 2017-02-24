@@ -17,8 +17,11 @@ class CloudFormationResponse(BaseResponse):
 
     def _get_stack_from_s3_url(self, template_url):
         template_url_parts = urlparse(template_url)
-        bucket_name = template_url_parts.netloc.split(".")[0]
-        key_name = template_url_parts.path.lstrip("/")
+        if "localhost" in template_url:
+            bucket_name, key_name = template_url_parts.path.lstrip("/").split("/")
+        else:
+            bucket_name = template_url_parts.netloc.split(".")[0]
+            key_name = template_url_parts.path.lstrip("/")
 
         key = s3_backend.get_key(bucket_name, key_name)
         return key.value.decode("utf-8")

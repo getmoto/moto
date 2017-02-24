@@ -408,11 +408,6 @@ def test_delete_batch_operation():
     queue.count().should.equal(1)
 
 
-@mock_sqs
-def test_sqs_method_not_implemented():
-    requests.post.when.called_with("https://sqs.amazonaws.com/?Action=[foobar]").should.throw(NotImplementedError)
-
-
 @mock_sqs_deprecated
 def test_queue_attributes():
     conn = boto.connect_sqs('the_key', 'the_secret')

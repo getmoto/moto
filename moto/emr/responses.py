@@ -5,15 +5,14 @@ from datetime import datetime
 from functools import wraps
 
 import pytz
-from botocore.exceptions import ClientError
 
 from moto.compat import urlparse
 from moto.core.responses import AWSServiceSpec
 from moto.core.responses import BaseResponse
 from moto.core.responses import xml_to_json_response
+from .exceptions import EmrError
 from .models import emr_backends
-from .utils import steps_from_query_string
-from .utils import tags_from_query_string
+from .utils import steps_from_query_string, tags_from_query_string
 
 
 def generate_boto3_response(operation):
@@ -46,7 +45,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     aws_service_spec = AWSServiceSpec('data/emr/2009-03-31/service-2.json')
 
-    def get_region_from_url(self, full_url):
+    def get_region_from_url(self, request, full_url):
         parsed = urlparse(full_url)
         for regex in self.region_regex:
             match = regex.search(parsed.netloc)
@@ -240,9 +239,7 @@ class ElasticMapReduceResponse(BaseResponse):
                     'Only one AMI version and release label may be specified. '
                     'Provided AMI: {0}, release label: {1}.').format(
                         ami_version, release_label)
-                raise ClientError(
-                    {'Error': {'Code': 'ValidationException',
-                               'Message': message}}, 'RunJobFlow')
+                raise EmrError(error_type="ValidationException", message=message, template='single_error')
         else:
             if ami_version:
                 kwargs['requested_ami_version'] = ami_version

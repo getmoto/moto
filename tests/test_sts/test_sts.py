@@ -68,7 +68,7 @@ def test_assume_role():
 
 @mock_sts
 def test_get_caller_identity():
-    identity = boto3.client("sts").get_caller_identity()
+    identity = boto3.client("sts", region_name='us-east-1').get_caller_identity()
 
     identity['Arn'].should.equal('arn:aws:sts::123456789012:user/moto')
     identity['UserId'].should.equal('AKIAIOSFODNN7EXAMPLE')

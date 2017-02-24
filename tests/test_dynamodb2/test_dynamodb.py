@@ -63,11 +63,3 @@ def test_describe_missing_table():
         aws_secret_access_key="sk")
     with assert_raises(JSONResponseError):
         conn.describe_table('messages')
-
-
-@requires_boto_gte("2.9")
-@mock_dynamodb2
-def test_sts_handler():
-    res = requests.post("https://sts.amazonaws.com/", data={"GetSessionToken": ""})
-    res.ok.should.be.ok
-    res.text.should.contain("SecretAccessKey")

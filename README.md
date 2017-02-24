@@ -1,17 +1,16 @@
-# Moto - Mock Boto
+# Moto - Mock AWS Services
 
 [![Build Status](https://travis-ci.org/spulec/moto.png?branch=master)](https://travis-ci.org/spulec/moto)
 [![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.png?branch=master)](https://coveralls.io/r/spulec/moto)
 
 # In a nutshell
 
-Moto is a library that allows your python tests to easily mock out the boto library.
+Moto is a library that allows your tests to easily mock out AWS Services.
 
-Imagine you have the following code that you want to test:
+Imagine you have the following python code that you want to test:
 
 ```python
-import boto
-from boto.s3.key import Key
+import boto3
 
 class MyModel(object):
     def __init__(self, name, value):
@@ -19,11 +18,9 @@ class MyModel(object):
         self.value = value
 
     def save(self):
-        conn = boto.connect_s3()
-        bucket = conn.get_bucket('mybucket')
-        k = Key(bucket)
-        k.key = self.name
-        k.set_contents_from_string(self.value)
+        s3 = boto3.client('s3', region_name='us-east-1')
+        s3.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
+
 ```
 
 Take a minute to think how you would have tested that in the past.
@@ -31,25 +28,28 @@ Take a minute to think how you would have tested that in the past.
 Now see how you could test it with Moto:
 
 ```python
-import boto
+import boto3
 from moto import mock_s3
 from mymodule import MyModel
 
+
 @mock_s3
 def test_my_model_save():
-    conn = boto.connect_s3()
+    conn = boto3.resource('s3', region_name='us-east-1')
     # We need to create the bucket since this is all in Moto's 'virtual' AWS account
-    conn.create_bucket('mybucket')
+    conn.create_bucket(Bucket='mybucket')
 
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+    body = conn.Object('mybucket', 'steve').get()['Body'].read().decode("utf-8")
+
+    assert body == b'is awesome'
 ```
 
 With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps the state of the buckets and keys.
 
-It gets even better! Moto isn't just S3. Here's the status of the other AWS services implemented.
+It gets even better! Moto isn't just for Python code and it isn't just for S3. Look at the [standalone server mode](https://github.com/spulec/moto#stand-alone-server-mode) for more information about running Moto with other languages. Here's the status of the other AWS services implemented:
 
 ```gherkin
 |------------------------------------------------------------------------------|
@@ -192,11 +192,6 @@ def test_my_model_save():
 
     mock.stop()
 ```
-
-## Use with other libraries (boto3) or languages
-
-In general, Moto doesn't rely on anything specific to Boto. It only mocks AWS endpoints, so there should be no issue with boto3 or using other languages. Feel free to open an issue if something isn't working though. If you are using another language, you will need to either use the stand-alone server mode (more below) or monkey patch the HTTP calls yourself.
-
 
 ## Stand-alone Server Mode
 

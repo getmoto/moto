@@ -118,12 +118,16 @@ class convert_flask_to_httpretty_response(object):
         return "{0}.{1}".format(outer, self.callback.__name__)
 
     def __call__(self, args=None, **kwargs):
-        from flask import request
+        from flask import request, Response
 
         result = self.callback(request, request.url, {})
         # result is a status, headers, response tuple
-        status, headers, response = result
-        return response, status, headers
+        status, headers, content = result
+
+        response = Response(response=content, status=status, headers=headers)
+        if request.method == "HEAD" and 'content-length' in headers:
+            response.headers['Content-Length'] = headers['content-length']
+        return response
 
 
 class convert_flask_to_responses_response(object):

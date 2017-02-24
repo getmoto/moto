@@ -211,16 +211,6 @@ def test_post_with_metadata_to_bucket():
     bucket.get_key('the-key').get_metadata('test').should.equal('metadata')
 
 
-@mock_s3
-def test_bucket_method_not_implemented():
-    requests.patch.when.called_with("https://s3.amazonaws.com/foobar").should.throw(NotImplementedError)
-
-
-@mock_s3
-def test_key_method_not_implemented():
-    requests.post.when.called_with("https://s3.amazonaws.com/foobar/foo").should.throw(NotImplementedError)
-
-
 @mock_s3_deprecated
 def test_bucket_name_with_dot():
     conn = create_connection()

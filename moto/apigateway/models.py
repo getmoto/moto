@@ -326,8 +326,8 @@ class RestAPI(object):
         return status_code, {}, response
 
     def update_integration_mocks(self, stage_name):
-        stage_url = STAGE_URL.format(api_id=self.id, region_name=self.region_name, stage_name=stage_name)
-        responses.add_callback(responses.GET, stage_url.lower(), callback=self.resource_callback)
+        stage_url = STAGE_URL.format(api_id=self.id.upper(), region_name=self.region_name, stage_name=stage_name)
+        responses.add_callback(responses.GET, stage_url, callback=self.resource_callback)
 
     def create_stage(self, name, deployment_id,variables=None,description='',cacheClusterEnabled=None,cacheClusterSize=None):
         if variables is None:

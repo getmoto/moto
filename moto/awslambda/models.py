@@ -154,15 +154,15 @@ class LambdaFunction(object):
             sys.stderr = sys.__stderr__
         return self.convert(result)
 
-    def invoke(self, request, headers):
+    def invoke(self, body, request_headers, response_headers):
         payload = dict()
 
         # Get the invocation type:
-        r = self._invoke_lambda(code=self.code, event=request.body)
-        if request.headers.get("x-amz-invocation-type") == "RequestResponse":
+        r = self._invoke_lambda(code=self.code, event=body)
+        if request_headers.get("x-amz-invocation-type") == "RequestResponse":
             encoded = base64.b64encode(r.encode('utf-8'))
-            headers["x-amz-log-result"] = encoded.decode('utf-8')
-            payload['result'] = headers["x-amz-log-result"]
+            response_headers["x-amz-log-result"] = encoded.decode('utf-8')
+            payload['result'] = response_headers["x-amz-log-result"]
             result = r.encode('utf-8')
         else:
             result = json.dumps(payload)

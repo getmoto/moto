@@ -10,32 +10,32 @@ from .models import lambda_backends
 
 class LambdaResponse(BaseResponse):
 
-    @classmethod
-    def root(cls, request, full_url, headers):
+    def root(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
         if request.method == 'GET':
-            return cls()._list_functions(request, full_url, headers)
+            return self._list_functions(request, full_url, headers)
         elif request.method == 'POST':
-            return cls()._create_function(request, full_url, headers)
+            return self._create_function(request, full_url, headers)
         else:
             raise ValueError("Cannot handle request")
 
-    @classmethod
-    def function(cls, request, full_url, headers):
+    def function(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
         if request.method == 'GET':
-            return cls()._get_function(request, full_url, headers)
+            return self._get_function(request, full_url, headers)
         elif request.method == 'DELETE':
-            return cls()._delete_function(request, full_url, headers)
+            return self._delete_function(request, full_url, headers)
         else:
             raise ValueError("Cannot handle request")
 
-    @classmethod
-    def invoke(cls, request, full_url, headers):
+    def invoke(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
         if request.method == 'POST':
-            return cls()._invoke(request, full_url, headers)
+            return self._invoke(request, full_url)
         else:
             raise ValueError("Cannot handle request")
 
-    def _invoke(self, request, full_url, headers):
+    def _invoke(self, request, full_url):
         response_headers = {}
         lambda_backend = self.get_lambda_backend(full_url)
 
@@ -44,7 +44,7 @@ class LambdaResponse(BaseResponse):
 
         if lambda_backend.has_function(function_name):
             fn = lambda_backend.get_function(function_name)
-            payload = fn.invoke(request, response_headers)
+            payload = fn.invoke(self.body, self.headers, response_headers)
             response_headers['Content-Length'] = str(len(payload))
             return 202, response_headers, payload
         else:
@@ -59,7 +59,7 @@ class LambdaResponse(BaseResponse):
 
     def _create_function(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
-        spec = json.loads(request.body.decode('utf-8'))
+        spec = json.loads(self.body.decode('utf-8'))
         try:
             fn = lambda_backend.create_function(spec)
         except ValueError as e:

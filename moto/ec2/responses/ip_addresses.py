@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-from boto.exception import JSONResponseError
 from moto.core.responses import BaseResponse
 
 

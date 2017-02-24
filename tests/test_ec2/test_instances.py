@@ -8,7 +8,7 @@ import datetime
 
 import boto
 from boto.ec2.instance import Reservation, InstanceAttribute
-from boto.exception import EC2ResponseError, JSONResponseError
+from boto.exception import EC2ResponseError, EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
@@ -41,9 +41,9 @@ def test_add_servers():
 def test_instance_launch_and_terminate():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         reservation = conn.run_instances('ami-1234abcd', dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RunInstance operation: Request would have succeeded, but DryRun flag is set')
 
@@ -74,9 +74,9 @@ def test_instance_launch_and_terminate():
     volume.attach_data.instance_id.should.equal(instance.id)
     volume.status.should.equal('in-use')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.terminate_instances([instance.id], dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set')
 
@@ -427,9 +427,9 @@ def test_instance_start_and_stop():
 
     instance_ids = [instance.id for instance in instances]
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         stopped_instances = conn.stop_instances(instance_ids, dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the StopInstance operation: Request would have succeeded, but DryRun flag is set')
 
@@ -438,9 +438,9 @@ def test_instance_start_and_stop():
     for instance in stopped_instances:
         instance.state.should.equal('stopping')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         started_instances = conn.start_instances([instances[0].id], dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the StartInstance operation: Request would have succeeded, but DryRun flag is set')
 
@@ -454,9 +454,9 @@ def test_instance_reboot():
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         instance.reboot(dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RebootInstance operation: Request would have succeeded, but DryRun flag is set')
 
@@ -470,9 +470,9 @@ def test_instance_attribute_instance_type():
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         instance.modify_attribute("instanceType", "m1.small", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyInstanceType operation: Request would have succeeded, but DryRun flag is set')
 
@@ -491,9 +491,9 @@ def test_modify_instance_attribute_security_groups():
     sg_id = 'sg-1234abcd'
     sg_id2 = 'sg-abcd4321'
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         instance.modify_attribute("groupSet", [sg_id, sg_id2], dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set')
 
@@ -512,9 +512,9 @@ def test_instance_attribute_user_data():
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         instance.modify_attribute("userData", "this is my user data", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyUserData operation: Request would have succeeded, but DryRun flag is set')
 
@@ -540,9 +540,9 @@ def test_instance_attribute_source_dest_check():
 
     # Set to false (note: Boto converts bool to string, eg 'false')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         instance.modify_attribute("sourceDestCheck", False, dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifySourceDestCheck operation: Request would have succeeded, but DryRun flag is set')
 
@@ -584,9 +584,9 @@ def test_user_data_with_run_instance():
 def test_run_instance_with_security_group_name():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         group = conn.create_security_group('group1', "some description", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set')
 
@@ -745,9 +745,9 @@ def test_instance_with_nic_attach_detach():
     set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
 
     # Attach
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.attach_network_interface(eni.id, instance.id, device_index=1, dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AttachNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
 
@@ -766,9 +766,9 @@ def test_instance_with_nic_attach_detach():
     set([group.id for group in eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
 
     # Detach
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.detach_network_interface(instance_eni.attachment.id, dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DetachNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
 
@@ -886,9 +886,9 @@ def test_get_instance_by_security_group():
 
     security_group = conn.create_security_group('test', 'test')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.modify_instance_attribute(instance.id, "groupSet", [security_group.id], dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set')
 

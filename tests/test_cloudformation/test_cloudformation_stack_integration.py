@@ -701,27 +701,29 @@ def test_vpc_single_instance_in_subnet():
     eip_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
     eip_resource.physical_resource_id.should.equal(eip.allocation_id)
 
-@mock_cloudformation_deprecated()
-@mock_ec2_deprecated()
+@mock_cloudformation()
+@mock_ec2()
 @mock_rds2()
 def test_rds_db_parameter_groups():
-    ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    ec2_conn.create_security_group('application', 'Our Application Group')
+    ec2_conn = boto3.client("ec2", region_name="us-west-1")
+    ec2_conn.create_security_group(GroupName='application', Description='Our Application Group')
 
     template_json = json.dumps(rds_mysql_with_db_parameter_group.template)
-    conn = boto.cloudformation.connect_to_region("us-west-1")
-    conn.create_stack(
-        "test_stack",
-        template_body=template_json,
-        parameters=[
-            ("DBInstanceIdentifier", "master_db"),
-            ("DBName", "my_db"),
-            ("DBUser", "my_user"),
-            ("DBPassword", "my_password"),
-            ("DBAllocatedStorage", "20"),
-            ("DBInstanceClass", "db.m1.medium"),
-            ("EC2SecurityGroup", "application"),
-            ("MultiAZ", "true"),
+    cf_conn = boto3.client('cloudformation', 'us-west-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=template_json,
+        Parameters=[{'ParameterKey': key, 'ParameterValue': value} for
+            key, value in [
+                ("DBInstanceIdentifier", "master_db"),
+                ("DBName", "my_db"),
+                ("DBUser", "my_user"),
+                ("DBPassword", "my_password"),
+                ("DBAllocatedStorage", "20"),
+                ("DBInstanceClass", "db.m1.medium"),
+                ("EC2SecurityGroup", "application"),
+                ("MultiAZ", "true"),
+            ]
         ],
     )
 
@@ -1802,7 +1804,7 @@ def lambda_handler(event, context):
     return _process_lamda(pfunc)
 
 
-@mock_cloudformation_deprecated
+@mock_cloudformation
 @mock_lambda
 def test_lambda_function():
     # switch this to python as backend lambda only supports python execution.
@@ -1826,10 +1828,10 @@ def test_lambda_function():
     }
 
     template_json = json.dumps(template)
-    cf_conn = boto.cloudformation.connect_to_region("us-east-1")
+    cf_conn = boto3.client('cloudformation', 'us-east-1')
     cf_conn.create_stack(
-        "test_stack",
-        template_body=template_json,
+        StackName="test_stack",
+        TemplateBody=template_json,
     )
 
     conn = boto3.client('lambda', 'us-east-1')

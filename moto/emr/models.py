@@ -299,6 +299,7 @@ class ElasticMapReduceBackend(BaseBackend):
             created_before = dtparse(created_before)
             clusters = [c for c in clusters if c.creation_datetime < created_before]
 
+        # Amazon EMR can return a maximum of 512 job flow descriptions
         return sorted(clusters, key=lambda x: x.id)[:512]
 
     def describe_step(self, cluster_id, step_id):

@@ -1,6 +1,5 @@
 import boto
 
-from moto import mock_swf
 from moto.swf.models import (
     ActivityType,
     Domain,
@@ -76,7 +75,6 @@ def auto_start_decision_tasks(wfe):
 
 
 # Setup a complete example workflow and return the connection object
-@mock_swf
 def setup_workflow():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")

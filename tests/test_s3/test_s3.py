@@ -20,17 +20,21 @@ from nose.tools import assert_raises
 
 import sure  # noqa
 
-from moto import mock_s3, mock_s3_deprecated
+from moto import settings, mock_s3, mock_s3_deprecated
+import moto.s3.models as s3model
 
-
-REDUCED_PART_SIZE = 256
+if settings.TEST_SERVER_MODE:
+    REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE
+    EXPECTED_ETAG = '"140f92a6df9f9e415f74a1463bcee9bb-2"'
+else:
+    REDUCED_PART_SIZE = 256
+    EXPECTED_ETAG = '"66d1a1a2ed08fd05c137f316af4ff255-2"'
 
 
 def reduced_min_part_size(f):
     """ speed up tests by temporarily making the multipart minimum part size
         small
     """
-    import moto.s3.models as s3model
     orig_size = s3model.UPLOAD_PART_MIN_SIZE
 
     @wraps(f)
@@ -49,24 +53,23 @@ class MyModel(object):
         self.value = value
 
     def save(self):
-        conn = boto.connect_s3('the_key', 'the_secret')
-        bucket = conn.get_bucket('mybucket')
-        k = Key(bucket)
-        k.key = self.name
-        k.set_contents_from_string(self.value)
+        s3 = boto3.client('s3', region_name='us-east-1')
+        s3.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
 
 
-@mock_s3_deprecated
+@mock_s3
 def test_my_model_save():
     # Create Bucket so that test can run
-    conn = boto.connect_s3('the_key', 'the_secret')
-    conn.create_bucket('mybucket')
+    conn = boto3.resource('s3', region_name='us-east-1')
+    conn.create_bucket(Bucket='mybucket')
     ####################################
 
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal(b'is awesome')
+    body = conn.Object('mybucket', 'steve').get()['Body'].read().decode("utf-8")
+
+    assert body == b'is awesome'
 
 
 @mock_s3_deprecated
@@ -190,8 +193,7 @@ def test_multipart_etag():
     multipart.upload_part_from_file(BytesIO(part2), 2)
     multipart.complete_upload()
     # we should get both parts as the key contents
-    bucket.get_key("the-key").etag.should.equal(
-        '"66d1a1a2ed08fd05c137f316af4ff255-2"')
+    bucket.get_key("the-key").etag.should.equal(EXPECTED_ETAG)
 
 
 @mock_s3_deprecated
@@ -542,16 +544,6 @@ def test_delete_keys_with_invalid():
     keys = bucket.get_all_keys()
     keys.should.have.length_of(3)
     keys[0].name.should.equal('file1')
-
-
-@mock_s3
-def test_bucket_method_not_implemented():
-    requests.patch.when.called_with("https://foobar.s3.amazonaws.com/").should.throw(NotImplementedError)
-
-
-@mock_s3
-def test_key_method_not_implemented():
-    requests.post.when.called_with("https://foobar.s3.amazonaws.com/foo").should.throw(NotImplementedError)
 
 
 @mock_s3_deprecated
@@ -1241,7 +1233,7 @@ def test_boto3_multipart_etag():
                                    for i, etag in enumerate(etags, 1)]})
     # we should get both parts as the key contents
     resp = s3.get_object(Bucket='mybucket', Key='the-key')
-    resp['ETag'].should.equal('"66d1a1a2ed08fd05c137f316af4ff255-2"')
+    resp['ETag'].should.equal(EXPECTED_ETAG)
 
 
 TEST_XML = """\

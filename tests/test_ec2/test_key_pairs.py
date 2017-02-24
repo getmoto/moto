@@ -7,7 +7,7 @@ import boto
 import six
 import sure  # noqa
 
-from boto.exception import EC2ResponseError, JSONResponseError
+from boto.exception import EC2ResponseError
 from moto import mock_ec2_deprecated
 
 
@@ -32,9 +32,9 @@ def test_key_pairs_invalid_id():
 def test_key_pairs_create():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         kp = conn.create_key_pair('foo', dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set')
 
@@ -87,9 +87,9 @@ def test_key_pairs_delete_exist():
     conn = boto.connect_ec2('the_key', 'the_secret')
     conn.create_key_pair('foo')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         r = conn.delete_key_pair('foo', dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set')
 
@@ -102,9 +102,9 @@ def test_key_pairs_delete_exist():
 def test_key_pairs_import():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         kp = conn.import_key_pair('foo', b'content', dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set')
 

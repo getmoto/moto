@@ -10,7 +10,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 
 from moto.packages.responses import responses
-from moto import mock_apigateway
+from moto import mock_apigateway, settings
 
 
 @freeze_time("2015-01-01")
@@ -29,11 +29,11 @@ def test_create_and_get_rest_api():
     )
 
     response.pop('ResponseMetadata')
+    response.pop('createdDate')
     response.should.equal({
         'id': api_id,
         'name': 'my_api',
         'description': 'this is my api',
-        'createdDate': datetime(2015, 1, 1, tzinfo=tzutc())
     })
 
 
@@ -930,4 +930,5 @@ def test_http_proxying_integration():
 
     deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(api_id=api_id, region_name=region_name, stage_name=stage_name)
 
-    requests.get(deploy_url).content.should.equal(b"a fake response")
+    if not settings.TEST_SERVER_MODE:
+        requests.get(deploy_url).content.should.equal(b"a fake response")

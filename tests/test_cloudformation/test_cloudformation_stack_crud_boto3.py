@@ -5,7 +5,7 @@ import boto
 import boto.s3
 import boto.s3.key
 from botocore.exceptions import ClientError
-from moto import mock_cloudformation, mock_s3_deprecated
+from moto import mock_cloudformation, mock_s3
 
 import json
 import sure  # noqa
@@ -118,14 +118,20 @@ def test_create_stack_with_role_arn():
 
 
 @mock_cloudformation
-@mock_s3_deprecated
+@mock_s3
 def test_create_stack_from_s3_url():
-    s3_conn = boto.s3.connect_to_region('us-west-1')
-    bucket = s3_conn.create_bucket("foobar")
-    key = boto.s3.key.Key(bucket)
-    key.key = "template-key"
-    key.set_contents_from_string(dummy_template_json)
-    key_url = key.generate_url(expires_in=0, query_auth=False)
+    s3 = boto3.client('s3')
+    s3_conn = boto3.resource('s3')
+    bucket = s3_conn.create_bucket(Bucket="foobar")
+
+    key = s3_conn.Object('foobar', 'template-key').put(Body=dummy_template_json)
+    key_url = s3.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': 'foobar',
+            'Key': 'template-key'
+        }
+    )
 
     cf_conn = boto3.client('cloudformation', region_name='us-west-1')
     cf_conn.create_stack(

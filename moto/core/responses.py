@@ -5,7 +5,7 @@ import logging
 import re
 
 import pytz
-from boto.exception import JSONResponseError
+from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
 
@@ -149,17 +149,19 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.path = urlparse(full_url).path
         self.querystring = querystring
         self.method = request.method
-        self.region = self.get_region_from_url(full_url)
+        self.region = self.get_region_from_url(request, full_url)
 
         self.headers = request.headers
         if 'host' not in self.headers:
             self.headers['host'] = urlparse(full_url).netloc
         self.response_headers = {"server": "amazon.com"}
 
-    def get_region_from_url(self, full_url):
+    def get_region_from_url(self, request, full_url):
         match = re.search(self.region_regex, full_url)
         if match:
             region = match.group(1)
+        elif 'Authorization' in request.headers:
+            region = request.headers['Authorization'].split(",")[0].split("/")[2]
         else:
             region = self.default_region
         return region
@@ -195,6 +197,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 if "status" in headers:
                     headers['status'] = str(headers['status'])
                 return status, headers, body
+
         raise NotImplementedError("The {0} action has not been implemented".format(action))
 
     def _get_param(self, param_name, if_none=None):
@@ -323,55 +326,19 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
     def is_not_dryrun(self, action):
         if 'true' in self.querystring.get('DryRun', ['false']):
-            raise JSONResponseError(400, 'DryRunOperation', body={'message': 'An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set' % action})
+            message = 'An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set' % action
+            raise DryRunClientError(error_type="DryRunOperation", message=message)
         return True
-
-def metadata_response(request, full_url, headers):
-    """
-    Mock response for localhost metadata
-
-    http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AESDG-chapter-instancedata.html
-    """
-
-    parsed_url = urlparse(full_url)
-    tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
-    credentials = dict(
-        AccessKeyId="test-key",
-        SecretAccessKey="test-secret-key",
-        Token="test-session-token",
-        Expiration=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ")
-    )
-
-    path = parsed_url.path
-
-    meta_data_prefix = "/latest/meta-data/"
-    # Strip prefix if it is there
-    if path.startswith(meta_data_prefix):
-        path = path[len(meta_data_prefix):]
-
-    if path == '':
-        result = 'iam'
-    elif path == 'iam':
-        result = json.dumps({
-            'security-credentials': {
-                'default-role': credentials
-            }
-        })
-    elif path == 'iam/security-credentials/':
-        result = 'default-role'
-    elif path == 'iam/security-credentials/default-role':
-        result = json.dumps(credentials)
-    else:
-        raise NotImplementedError("The {0} metadata path has not been implemented".format(path))
-    return 200, headers, result
 
 
 class MotoAPIResponse(BaseResponse):
 
     def reset_response(self, request, full_url, headers):
-        from .models import moto_api_backend
-        moto_api_backend.reset()
-        return 200, {}, json.dumps({"status": "ok"})
+        if request.method == "POST":
+            from .models import moto_api_backend
+            moto_api_backend.reset()
+            return 200, {}, json.dumps({"status": "ok"})
+        return 400, {}, json.dumps({"Error": "Need to POST to reset Moto"})
 
 
 class _RecursiveDictRef(object):

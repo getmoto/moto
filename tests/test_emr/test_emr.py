@@ -112,7 +112,7 @@ def test_describe_jobflows():
     args = run_jobflow_args.copy()
     expected = {}
 
-    for idx in range(400):
+    for idx in range(4):
         cluster_name = 'cluster' + str(idx)
         args['name'] = cluster_name
         cluster_id = conn.run_jobflow(**args)
@@ -128,7 +128,7 @@ def test_describe_jobflows():
     timestamp = datetime.now(pytz.utc)
     time.sleep(1)
 
-    for idx in range(400, 600):
+    for idx in range(4, 6):
         cluster_name = 'cluster' + str(idx)
         args['name'] = cluster_name
         cluster_id = conn.run_jobflow(**args)
@@ -139,7 +139,7 @@ def test_describe_jobflows():
             'state': 'TERMINATED'
         }
     jobs = conn.describe_jobflows()
-    jobs.should.have.length_of(512)
+    jobs.should.have.length_of(6)
 
     for cluster_id, y in expected.items():
         resp = conn.describe_jobflows(jobflow_ids=[cluster_id])
@@ -147,15 +147,15 @@ def test_describe_jobflows():
         resp[0].jobflowid.should.equal(cluster_id)
 
     resp = conn.describe_jobflows(states=['WAITING'])
-    resp.should.have.length_of(400)
+    resp.should.have.length_of(4)
     for x in resp:
         x.state.should.equal('WAITING')
 
     resp = conn.describe_jobflows(created_before=timestamp)
-    resp.should.have.length_of(400)
+    resp.should.have.length_of(4)
 
     resp = conn.describe_jobflows(created_after=timestamp)
-    resp.should.have.length_of(200)
+    resp.should.have.length_of(2)
 
 
 @mock_emr_deprecated

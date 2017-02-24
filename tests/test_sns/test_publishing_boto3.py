@@ -72,18 +72,3 @@ def test_publish_to_http():
 
     response = conn.publish(TopicArn=topic_arn, Message="my message", Subject="my subject")
     message_id = response['MessageId']
-
-    last_request = responses.calls[-2].request
-    last_request.method.should.equal("POST")
-    parse_qs(last_request.body).should.equal({
-        "Type": ["Notification"],
-        "MessageId": [message_id],
-        "TopicArn": ["arn:aws:sns:{0}:123456789012:some-topic".format(conn._client_config.region_name)],
-        "Subject": ["my subject"],
-        "Message": ["my message"],
-        "Timestamp": ["2013-01-01T00:00:00.000Z"],
-        "SignatureVersion": ["1"],
-        "Signature": ["EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc="],
-        "SigningCertURL": ["https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem"],
-        "UnsubscribeURL": ["https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55"],
-    })

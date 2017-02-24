@@ -89,21 +89,21 @@ class FakeKey(object):
 
     @property
     def response_dict(self):
-        r = {
+        res = {
             'etag': self.etag,
             'last-modified': self.last_modified_RFC1123,
             'content-length': str(len(self.value)),
         }
         if self._storage_class != 'STANDARD':
-            r['x-amz-storage-class'] = self._storage_class
+            res['x-amz-storage-class'] = self._storage_class
         if self._expiry is not None:
             rhdr = 'ongoing-request="false", expiry-date="{0}"'
-            r['x-amz-restore'] = rhdr.format(self.expiry_date)
+            res['x-amz-restore'] = rhdr.format(self.expiry_date)
 
         if self._is_versioned:
-            r['x-amz-version-id'] = str(self._version_id)
+            res['x-amz-version-id'] = str(self._version_id)
 
-        return r
+        return res
 
     @property
     def size(self):

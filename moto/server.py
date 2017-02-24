@@ -39,21 +39,28 @@ class DomainDispatcherApplication(object):
             return host
 
         for backend_name, backend in BACKENDS.items():
-            for url_base in backend.url_bases:
+            for url_base in backend.values()[0].url_bases:
                 if re.match(url_base, 'http://%s' % host):
                     return backend_name
 
         raise RuntimeError('Invalid host: "%s"' % host)
 
     def get_application(self, environ):
-        if environ.get('PATH_INFO', '').startswith("/moto-api"):
+        path_info = environ.get('PATH_INFO', '')
+        if path_info.startswith("/moto-api"):
             host = "moto_api"
+        elif path_info.startswith("/latest/meta-data/"):
+            host = "instance_metadata"
         else:
             host = environ['HTTP_HOST'].split(':')[0]
         if host == "localhost":
             # Fall back to parsing auth header to find service
             # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
-            _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[1].split("/")
+            try:
+                _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[1].split("/")
+            except ValueError:
+                region = 'us-east-1'
+                service = 's3'
             host = "{service}.{region}.amazonaws.com".format(service=service, region=region)
 
         with self.lock:
@@ -108,7 +115,7 @@ def create_backend_app(service):
     backend_app.view_functions = {}
     backend_app.url_map = Map()
     backend_app.url_map.converters['regex'] = RegexConverter
-    backend = BACKENDS[service]
+    backend = BACKENDS[service].values()[0]
     for url_path, handler in backend.flask_paths.items():
         if handler.__name__ == 'dispatch':
             endpoint = '{0}.dispatch'.format(handler.__self__.__name__)

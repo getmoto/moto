@@ -6,9 +6,9 @@ import inspect
 import os
 import re
 
+from moto import settings
 from moto.packages.responses import responses
 from moto.packages.httpretty import HTTPretty
-from .responses import metadata_response
 from .utils import (
     convert_httpretty_response,
     convert_regex_to_flask_path,
@@ -20,6 +20,15 @@ class BaseMockAWS(object):
 
     def __init__(self, backends):
         self.backends = backends
+
+        self.backends_for_urls = {}
+        from moto.backends import BACKENDS
+        default_backends = {
+            "instance_metadata": BACKENDS['instance_metadata']['global'],
+            "moto_api": BACKENDS['moto_api']['global'],
+        }
+        self.backends_for_urls.update(self.backends)
+        self.backends_for_urls.update(default_backends)
 
         if self.__class__.nested_count == 0:
             self.reset()
@@ -95,20 +104,13 @@ class HttprettyMockAWS(BaseMockAWS):
             HTTPretty.enable()
 
         for method in HTTPretty.METHODS:
-            backend = list(self.backends.values())[0]
-            for key, value in backend.urls.items():
-                HTTPretty.register_uri(
-                    method=method,
-                    uri=re.compile(key),
-                    body=convert_httpretty_response(value),
-                )
-
-            # Mock out localhost instance metadata
-            HTTPretty.register_uri(
-                method=method,
-                uri=re.compile('http://169.254.169.254/latest/meta-data/.*'),
-                body=convert_httpretty_response(metadata_response),
-            )
+            for backend in self.backends_for_urls.values():
+                for key, value in backend.urls.items():
+                    HTTPretty.register_uri(
+                        method=method,
+                        uri=re.compile(key),
+                        body=convert_httpretty_response(value),
+                    )
 
     def disable_patching(self):
         HTTPretty.disable()
@@ -126,20 +128,14 @@ class ResponsesMockAWS(BaseMockAWS):
     def enable_patching(self):
         responses.start()
         for method in RESPONSES_METHODS:
-            backend = list(self.backends.values())[0]
-            for key, value in backend.urls.items():
-                responses.add_callback(
-                    method=method,
-                    url=re.compile(key),
-                    callback=convert_flask_to_responses_response(value),
-                )
+            for backend in self.backends_for_urls.values():
+                for key, value in backend.urls.items():
+                    responses.add_callback(
+                        method=method,
+                        url=re.compile(key),
+                        callback=convert_flask_to_responses_response(value),
+                    )
 
-            # Mock out localhost instance metadata
-            responses.add_callback(
-                method=method,
-                url=re.compile('http://169.254.169.254/latest/meta-data/.*'),
-                callback=convert_flask_to_responses_response(metadata_response),
-            )
         for pattern in responses.mock._urls:
             pattern['stream'] = True
 
@@ -270,10 +266,15 @@ class BaseBackend(object):
         return paths
 
     def decorator(self, func=None):
-        if func:
-            return MockAWS({'global': self})(func)
+        if settings.TEST_SERVER_MODE:
+            mocked_backend = ServerModeMockAWS({'global': self})
         else:
-            return MockAWS({'global': self})
+            mocked_backend = MockAWS({'global': self})
+
+        if func:
+            return mocked_backend(func)
+        else:
+            return mocked_backend
 
     def deprecated_decorator(self, func=None):
         if func:
@@ -289,13 +290,15 @@ class base_decorator(object):
         self.backends = backends
 
     def __call__(self, func=None):
-        if self.mock_backend == MockAWS and os.environ.get('TEST_SERVER_MODE', '0').lower() == 'true':
-            self.mock_backend = ServerModeMockAWS
+        if self.mock_backend != HttprettyMockAWS and settings.TEST_SERVER_MODE:
+            mocked_backend = ServerModeMockAWS(self.backends)
+        else:
+            mocked_backend = self.mock_backend(self.backends)
 
         if func:
-            return self.mock_backend(self.backends)(func)
+            return mocked_backend(func)
         else:
-            return self.mock_backend(self.backends)
+            return mocked_backend
 
 
 class deprecated_base_decorator(base_decorator):
@@ -303,15 +306,13 @@ class deprecated_base_decorator(base_decorator):
 
 
 class MotoAPIBackend(BaseBackend):
-    def __init__(self):
-        super(MotoAPIBackend, self).__init__()
-
     def reset(self):
         from moto.backends import BACKENDS
-        for name, backend in BACKENDS.items():
+        for name, backends in BACKENDS.items():
             if name == "moto_api":
                 continue
-            backend.reset()
+            for region_name, backend in backends.items():
+                backend.reset()
         self.__init__()
 
 moto_api_backend = MotoAPIBackend()

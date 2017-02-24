@@ -42,13 +42,6 @@ def test_describe_missing_table():
         conn.describe_table('messages')
 
 
-@mock_dynamodb
-def test_sts_handler():
-    res = requests.post("https://sts.amazonaws.com/", data={"GetSessionToken": ""})
-    res.ok.should.be.ok
-    res.text.should.contain("SecretAccessKey")
-
-
 @mock_dynamodb_deprecated
 def test_dynamodb_with_connect_to_region():
     # this will work if connected with boto.connect_dynamodb()

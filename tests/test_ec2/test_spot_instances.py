@@ -4,8 +4,10 @@ import datetime
 
 import boto
 import boto3
+from boto.exception import EC2ResponseError
+from botocore.exceptions import ClientError
+import pytz
 import sure  # noqa
-from boto.exception import JSONResponseError
 
 from moto import mock_ec2, mock_ec2_deprecated
 from moto.backends import get_model
@@ -13,98 +15,130 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 
 @mock_ec2
-@mock_ec2_deprecated
 def test_request_spot_instances():
     conn = boto3.client('ec2', 'us-east-1')
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
     subnet = conn.create_subnet(VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
     subnet_id = subnet['SubnetId']
 
-    conn = boto.connect_ec2()
+    conn.create_security_group(GroupName='group1', Description='description')
+    conn.create_security_group(GroupName='group2', Description='description')
 
-    conn.create_security_group('group1', 'description')
-    conn.create_security_group('group2', 'description')
+    start_dt = datetime.datetime(2013, 1, 1).replace(tzinfo=pytz.utc)
+    end_dt = datetime.datetime(2013, 1, 2).replace(tzinfo=pytz.utc)
+    start = iso_8601_datetime_with_milliseconds(start_dt)
+    end = iso_8601_datetime_with_milliseconds(end_dt)
 
-    start = iso_8601_datetime_with_milliseconds(datetime.datetime(2013, 1, 1))
-    end = iso_8601_datetime_with_milliseconds(datetime.datetime(2013, 1, 2))
-
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(ClientError) as ex:
         request = conn.request_spot_instances(
-            price=0.5, image_id='ami-abcd1234', count=1, type='one-time',
-            valid_from=start, valid_until=end, launch_group="the-group",
-            availability_zone_group='my-group', key_name="test",
-            security_groups=['group1', 'group2'], user_data=b"some test data",
-            instance_type='m1.small', placement='us-east-1c',
-            kernel_id="test-kernel", ramdisk_id="test-ramdisk",
-            monitoring_enabled=True, subnet_id=subnet_id, dry_run=True
+            SpotPrice="0.5", InstanceCount=1, Type='one-time',
+            ValidFrom=start, ValidUntil=end, LaunchGroup="the-group",
+            AvailabilityZoneGroup='my-group',
+            LaunchSpecification={
+                "ImageId": 'ami-abcd1234',
+                "KeyName": "test",
+                "SecurityGroups": ['group1', 'group2'],
+                "UserData": b"some test data",
+                "InstanceType": 'm1.small',
+                "Placement": {
+                    "AvailabilityZone": 'us-east-1c',
+                },
+                "KernelId": "test-kernel",
+                "RamdiskId": "test-ramdisk",
+                "Monitoring": {
+                    "Enabled": True,
+                },
+                "SubnetId": subnet_id,
+            },
+            DryRun=True,
         )
-    ex.exception.reason.should.equal('DryRunOperation')
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RequestSpotInstance operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.response['Error']['Code'].should.equal('DryRunOperation')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal('An error occurred (DryRunOperation) when calling the RequestSpotInstance operation: Request would have succeeded, but DryRun flag is set')
 
     request = conn.request_spot_instances(
-        price=0.5, image_id='ami-abcd1234', count=1, type='one-time',
-        valid_from=start, valid_until=end, launch_group="the-group",
-        availability_zone_group='my-group', key_name="test",
-        security_groups=['group1', 'group2'], user_data=b"some test data",
-        instance_type='m1.small', placement='us-east-1c',
-        kernel_id="test-kernel", ramdisk_id="test-ramdisk",
-        monitoring_enabled=True, subnet_id=subnet_id,
+            SpotPrice="0.5", InstanceCount=1, Type='one-time',
+            ValidFrom=start, ValidUntil=end, LaunchGroup="the-group",
+            AvailabilityZoneGroup='my-group',
+            LaunchSpecification={
+                "ImageId": 'ami-abcd1234',
+                "KeyName": "test",
+                "SecurityGroups": ['group1', 'group2'],
+                "UserData": b"some test data",
+                "InstanceType": 'm1.small',
+                "Placement": {
+                    "AvailabilityZone": 'us-east-1c',
+                },
+                "KernelId": "test-kernel",
+                "RamdiskId": "test-ramdisk",
+                "Monitoring": {
+                    "Enabled": True,
+                },
+                "SubnetId": subnet_id,
+            },
     )
 
-    requests = conn.get_all_spot_instance_requests()
+    requests = conn.describe_spot_instance_requests()['SpotInstanceRequests']
     requests.should.have.length_of(1)
     request = requests[0]
 
-    request.state.should.equal("open")
-    request.price.should.equal(0.5)
-    request.launch_specification.image_id.should.equal('ami-abcd1234')
-    request.type.should.equal('one-time')
-    request.valid_from.should.equal(start)
-    request.valid_until.should.equal(end)
-    request.launch_group.should.equal("the-group")
-    request.availability_zone_group.should.equal('my-group')
-    request.launch_specification.key_name.should.equal("test")
-    security_group_names = [group.name for group in request.launch_specification.groups]
+    request['State'].should.equal("open")
+    request['SpotPrice'].should.equal("0.5")
+    request['Type'].should.equal('one-time')
+    request['ValidFrom'].should.equal(start_dt)
+    request['ValidUntil'].should.equal(end_dt)
+    request['LaunchGroup'].should.equal("the-group")
+    request['AvailabilityZoneGroup'].should.equal('my-group')
+
+    launch_spec = request['LaunchSpecification']
+    security_group_names = [group['GroupName'] for group in launch_spec['SecurityGroups']]
     set(security_group_names).should.equal(set(['group1', 'group2']))
-    request.launch_specification.instance_type.should.equal('m1.small')
-    request.launch_specification.placement.should.equal('us-east-1c')
-    request.launch_specification.kernel.should.equal("test-kernel")
-    request.launch_specification.ramdisk.should.equal("test-ramdisk")
-    request.launch_specification.subnet_id.should.equal(subnet_id)
+
+    launch_spec['ImageId'].should.equal('ami-abcd1234')
+    launch_spec['KeyName'].should.equal("test")
+    launch_spec['InstanceType'].should.equal('m1.small')
+    launch_spec['KernelId'].should.equal("test-kernel")
+    launch_spec['RamdiskId'].should.equal("test-ramdisk")
+    launch_spec['SubnetId'].should.equal(subnet_id)
 
 
-@mock_ec2_deprecated
+@mock_ec2
 def test_request_spot_instances_default_arguments():
     """
     Test that moto set the correct default arguments
     """
-    conn = boto.connect_ec2()
+    conn = boto3.client('ec2', 'us-east-1')
 
     request = conn.request_spot_instances(
-        price=0.5, image_id='ami-abcd1234',
+        SpotPrice="0.5",
+        LaunchSpecification={
+                "ImageId": 'ami-abcd1234',
+        }
     )
 
-    requests = conn.get_all_spot_instance_requests()
+    requests = conn.describe_spot_instance_requests()['SpotInstanceRequests']
     requests.should.have.length_of(1)
     request = requests[0]
 
-    request.state.should.equal("open")
-    request.price.should.equal(0.5)
-    request.launch_specification.image_id.should.equal('ami-abcd1234')
-    request.type.should.equal('one-time')
-    request.valid_from.should.equal(None)
-    request.valid_until.should.equal(None)
-    request.launch_group.should.equal(None)
-    request.availability_zone_group.should.equal(None)
-    request.launch_specification.key_name.should.equal(None)
-    security_group_names = [group.name for group in request.launch_specification.groups]
+    request['State'].should.equal("open")
+    request['SpotPrice'].should.equal("0.5")
+    request['Type'].should.equal('one-time')
+    request.shouldnt.contain('ValidFrom')
+    request.shouldnt.contain('ValidUntil')
+    request.shouldnt.contain('LaunchGroup')
+    request.shouldnt.contain('AvailabilityZoneGroup')
+
+    launch_spec = request['LaunchSpecification']
+
+    security_group_names = [group['GroupName'] for group in launch_spec['SecurityGroups']]
     security_group_names.should.equal(["default"])
-    request.launch_specification.instance_type.should.equal('m1.small')
-    request.launch_specification.placement.should.equal(None)
-    request.launch_specification.kernel.should.equal(None)
-    request.launch_specification.ramdisk.should.equal(None)
-    request.launch_specification.subnet_id.should.equal(None)
+
+    launch_spec['ImageId'].should.equal('ami-abcd1234')
+    request.shouldnt.contain('KeyName')
+    launch_spec['InstanceType'].should.equal('m1.small')
+    request.shouldnt.contain('KernelId')
+    request.shouldnt.contain('RamdiskId')
+    request.shouldnt.contain('SubnetId')
 
 
 @mock_ec2_deprecated
@@ -119,9 +153,9 @@ def test_cancel_spot_instance_request():
     requests.should.have.length_of(1)
 
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.cancel_spot_instance_requests([requests[0].id], dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CancelSpotInstance operation: Request would have succeeded, but DryRun flag is set')
 
@@ -148,7 +182,7 @@ def test_request_spot_instances_fulfilled():
 
     request.state.should.equal("open")
 
-    get_model('SpotInstanceRequest')[0].state = 'active'
+    get_model('SpotInstanceRequest', 'us-east-1')[0].state = 'active'
 
     requests = conn.get_all_spot_instance_requests()
     requests.should.have.length_of(1)
@@ -218,7 +252,7 @@ def test_request_spot_instances_setting_instance_id():
     request = conn.request_spot_instances(
         price=0.5, image_id='ami-abcd1234')
 
-    req = get_model('SpotInstanceRequest')[0]
+    req = get_model('SpotInstanceRequest', 'us-east-1')[0]
     req.state = 'active'
     req.instance_id = 'i-12345678'
 

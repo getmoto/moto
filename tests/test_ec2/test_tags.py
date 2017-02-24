@@ -4,7 +4,7 @@ from nose.tools import assert_raises
 import itertools
 
 import boto
-from boto.exception import EC2ResponseError, JSONResponseError
+from boto.exception import EC2ResponseError
 from boto.ec2.instance import Reservation
 import sure  # noqa
 
@@ -18,9 +18,9 @@ def test_add_tag():
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         instance.add_tag("a key", "some value", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
 
@@ -45,9 +45,9 @@ def test_remove_tag():
     tag.name.should.equal("a key")
     tag.value.should.equal("some value")
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         instance.remove_tag("a key", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteTags operation: Request would have succeeded, but DryRun flag is set')
 
@@ -96,9 +96,9 @@ def test_create_tags():
                 'another key': 'some other value',
                 'blank key': ''}
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.create_tags(instance.id, tag_dict, dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
 
