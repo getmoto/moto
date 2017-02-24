@@ -21,9 +21,8 @@ from moto.s3 import models as s3_models
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
 from .utils import random_suffix
-from .exceptions import MissingParameterError, UnformattedGetAttTemplateException
+from .exceptions import MissingParameterError, UnformattedGetAttTemplateException, ValidationError
 from boto.cloudformation.stack import Output
-from boto.exception import BotoServerError
 
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
@@ -137,8 +136,7 @@ def clean_json(resource_json, resources_map):
                 logger.warning(n.message.format(
                     resource_json['Fn::GetAtt'][0]))
             except UnformattedGetAttTemplateException:
-                raise BotoServerError(
-                    UnformattedGetAttTemplateException.status_code,
+                raise ValidationError(
                     'Bad Request',
                     UnformattedGetAttTemplateException.description.format(
                         resource_json['Fn::GetAtt'][0], resource_json['Fn::GetAtt'][1]))

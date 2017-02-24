@@ -39,7 +39,7 @@ class DomainDispatcherApplication(object):
             return host
 
         for backend_name, backend in BACKENDS.items():
-            for url_base in backend.values()[0].url_bases:
+            for url_base in list(backend.values())[0].url_bases:
                 if re.match(url_base, 'http://%s' % host):
                     return backend_name
 
@@ -118,7 +118,7 @@ def create_backend_app(service):
     backend_app.view_functions = {}
     backend_app.url_map = Map()
     backend_app.url_map.converters['regex'] = RegexConverter
-    backend = BACKENDS[service].values()[0]
+    backend = list(BACKENDS[service].values())[0]
     for url_path, handler in backend.flask_paths.items():
         if handler.__name__ == 'dispatch':
             endpoint = '{0}.dispatch'.format(handler.__self__.__name__)

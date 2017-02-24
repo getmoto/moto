@@ -259,7 +259,7 @@ class ElasticMapReduceResponse(BaseResponse):
                     'Provided AMI: {0}, release label: {1}.').format(
                         ami_version, release_label)
                 raise EmrError(error_type="ValidationException",
-                               message=message, template='single_error')
+                               message=message, template='error_json')
         else:
             if ami_version:
                 kwargs['requested_ami_version'] = ami_version

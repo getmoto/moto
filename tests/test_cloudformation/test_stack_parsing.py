@@ -4,12 +4,12 @@ import json
 from mock import patch
 import sure  # noqa
 
+from moto.cloudformation.exceptions import ValidationError
 from moto.cloudformation.models import FakeStack
 from moto.cloudformation.parsing import resource_class_from_type, parse_condition
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from boto.cloudformation.stack import Output
-from boto.exception import BotoServerError
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -158,7 +158,7 @@ def test_parse_stack_with_get_attribute_outputs():
 
 def test_parse_stack_with_bad_get_attribute_outputs():
     FakeStack.when.called_with(
-        "test_id", "test_stack", bad_output_template_json, {}, "us-west-1").should.throw(BotoServerError)
+        "test_id", "test_stack", bad_output_template_json, {}, "us-west-1").should.throw(ValidationError)
 
 
 def test_parse_equals_condition():

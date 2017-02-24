@@ -49,7 +49,6 @@ def get_random_rule():
     return RULES[random.randint(0, len(RULES) - 1)]
 
 
-@mock_events
 def generate_environment():
     client = boto3.client('events', 'us-west-2')
 
@@ -115,12 +114,12 @@ def test_list_rule_names_by_target():
     client = generate_environment()
 
     rules = client.list_rule_names_by_target(TargetArn=test_1_target['Arn'])
-    assert(len(rules) == len(test_1_target['Rules']))
+    assert(len(rules['RuleNames']) == len(test_1_target['Rules']))
     for rule in rules['RuleNames']:
         assert(rule in test_1_target['Rules'])
 
     rules = client.list_rule_names_by_target(TargetArn=test_2_target['Arn'])
-    assert(len(rules) == len(test_2_target['Rules']))
+    assert(len(rules['RuleNames']) == len(test_2_target['Rules']))
     for rule in rules['RuleNames']:
         assert(rule in test_2_target['Rules'])
 

@@ -62,10 +62,10 @@ BACKENDS = {
 }
 
 
-def get_model(name, region):
+def get_model(name, region_name):
     for backends in BACKENDS.values():
         for region, backend in backends.items():
-            if region == region:
+            if region == region_name:
                 models = getattr(backend.__class__, '__models__', {})
                 if name in models:
                     return list(getattr(backend, models[name])())

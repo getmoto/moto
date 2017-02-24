@@ -57,7 +57,7 @@ class LambdaResponse(BaseResponse):
 
     def _create_function(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
-        spec = json.loads(self.body.decode('utf-8'))
+        spec = json.loads(self.body)
         try:
             fn = lambda_backend.create_function(spec)
         except ValueError as e:

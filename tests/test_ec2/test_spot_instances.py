@@ -39,7 +39,7 @@ def test_request_spot_instances():
                 "ImageId": 'ami-abcd1234',
                 "KeyName": "test",
                 "SecurityGroups": ['group1', 'group2'],
-                "UserData": b"some test data",
+                "UserData": "some test data",
                 "InstanceType": 'm1.small',
                 "Placement": {
                     "AvailabilityZone": 'us-east-1c',
@@ -67,7 +67,7 @@ def test_request_spot_instances():
             "ImageId": 'ami-abcd1234',
             "KeyName": "test",
             "SecurityGroups": ['group1', 'group2'],
-            "UserData": b"some test data",
+            "UserData": "some test data",
             "InstanceType": 'm1.small',
             "Placement": {
                 "AvailabilityZone": 'us-east-1c',

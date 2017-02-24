@@ -347,8 +347,7 @@ def test_run_job_flow_with_invalid_params():
         args['AmiVersion'] = '2.4'
         args['ReleaseLabel'] = 'emr-5.0.0'
         client.run_job_flow(**args)
-    ex.exception.response['Error'][
-        'Message'].should.contain('ValidationException')
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
 
 
 @mock_emr

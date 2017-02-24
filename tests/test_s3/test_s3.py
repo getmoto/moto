@@ -71,7 +71,7 @@ def test_my_model_save():
     body = conn.Object('mybucket', 'steve').get()[
         'Body'].read().decode("utf-8")
 
-    assert body == b'is awesome'
+    assert body == 'is awesome'
 
 
 @mock_s3
