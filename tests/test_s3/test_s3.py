@@ -72,17 +72,15 @@ def test_my_model_save():
     assert body == b'is awesome'
 
 
-@mock_s3_deprecated
+@mock_s3
 def test_key_etag():
-    # Create Bucket so that test can run
-    conn = boto.connect_s3('the_key', 'the_secret')
-    conn.create_bucket('mybucket')
-    ####################################
+    conn = boto3.resource('s3', region_name='us-east-1')
+    conn.create_bucket(Bucket='mybucket')
 
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn.get_bucket('mybucket').get_key('steve').etag.should.equal(
+    conn.Bucket('mybucket').Object('steve').e_tag.should.equal(
         '"d32bda93738f7e03adb22e66c90fbc04"')
 
 
