@@ -124,7 +124,8 @@ def test_create_stack_from_s3_url():
     s3_conn = boto3.resource('s3')
     bucket = s3_conn.create_bucket(Bucket="foobar")
 
-    key = s3_conn.Object('foobar', 'template-key').put(Body=dummy_template_json)
+    key = s3_conn.Object(
+        'foobar', 'template-key').put(Body=dummy_template_json)
     key_url = s3.generate_presigned_url(
         ClientMethod='get_object',
         Params={
@@ -159,6 +160,7 @@ def test_describe_stack_resources():
     resource['ResourceStatus'].should.equal('CREATE_COMPLETE')
     resource['ResourceType'].should.equal('AWS::EC2::Instance')
     resource['StackId'].should.equal(stack['StackId'])
+
 
 @mock_cloudformation
 def test_describe_stack_by_name():
@@ -249,6 +251,7 @@ def test_describe_deleted_stack():
     stack_by_id['StackName'].should.equal("test_stack")
     stack_by_id['StackStatus'].should.equal("DELETE_COMPLETE")
 
+
 @mock_cloudformation
 def test_describe_updated_stack():
     cf_conn = boto3.client('cloudformation', region_name='us-east-1')
@@ -299,9 +302,9 @@ def test_cloudformation_params():
         StackName='test_stack',
         TemplateBody=dummy_template_with_params_json,
         Parameters=[{
-                        "ParameterKey": "APPNAME",
-                        "ParameterValue": "testing123",
-                    }],
+            "ParameterKey": "APPNAME",
+            "ParameterValue": "testing123",
+        }],
     )
 
     stack.parameters.should.have.length_of(1)
@@ -334,6 +337,7 @@ def test_stack_tags():
         item for items in [tag.items() for tag in tags] for item in items)
     observed_tag_items.should.equal(expected_tag_items)
 
+
 @mock_cloudformation
 def test_stack_events():
     cf = boto3.resource('cloudformation', region_name='us-east-1')
@@ -350,7 +354,8 @@ def test_stack_events():
     events[0].resource_type.should.equal("AWS::CloudFormation::Stack")
     events[-1].resource_type.should.equal("AWS::CloudFormation::Stack")
 
-    # testing ordering of stack events without assuming resource events will not exist
+    # testing ordering of stack events without assuming resource events will
+    # not exist
     stack_events_to_look_for = iter([
         ("CREATE_IN_PROGRESS", "User Initiated"), ("CREATE_COMPLETE", None),
         ("UPDATE_IN_PROGRESS", "User Initiated"), ("UPDATE_COMPLETE", None),
@@ -364,10 +369,12 @@ def test_stack_events():
                 event.logical_resource_id.should.equal("test_stack")
                 event.physical_resource_id.should.equal(stack.stack_id)
 
-                status_to_look_for, reason_to_look_for = next(stack_events_to_look_for)
+                status_to_look_for, reason_to_look_for = next(
+                    stack_events_to_look_for)
                 event.resource_status.should.equal(status_to_look_for)
                 if reason_to_look_for is not None:
-                    event.resource_status_reason.should.equal(reason_to_look_for)
+                    event.resource_status_reason.should.equal(
+                        reason_to_look_for)
     except StopIteration:
         assert False, "Too many stack events"
 

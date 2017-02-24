@@ -45,7 +45,8 @@ def test_instance_launch_and_terminate():
         reservation = conn.run_instances('ami-1234abcd', dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RunInstance operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the RunInstance operation: Request would have succeeded, but DryRun flag is set')
 
     reservation = conn.run_instances('ami-1234abcd')
     reservation.should.be.a(Reservation)
@@ -66,7 +67,8 @@ def test_instance_launch_and_terminate():
     instance.placement.should.equal('us-east-1a')
 
     root_device_name = instance.root_device_name
-    instance.block_device_mapping[root_device_name].status.should.equal('in-use')
+    instance.block_device_mapping[
+        root_device_name].status.should.equal('in-use')
     volume_id = instance.block_device_mapping[root_device_name].volume_id
     volume_id.should.match(r'vol-\w+')
 
@@ -78,7 +80,8 @@ def test_instance_launch_and_terminate():
         conn.terminate_instances([instance.id], dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set')
 
     conn.terminate_instances([instance.id])
 
@@ -90,7 +93,8 @@ def test_instance_launch_and_terminate():
 @mock_ec2_deprecated
 def test_terminate_empty_instances():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    conn.terminate_instances.when.called_with([]).should.throw(EC2ResponseError)
+    conn.terminate_instances.when.called_with(
+        []).should.throw(EC2ResponseError)
 
 
 @freeze_time("2014-01-01 05:00:00")
@@ -117,8 +121,10 @@ def test_instance_attach_volume():
 
     for v in conn.get_all_volumes(volume_ids=[instance.block_device_mapping['/dev/sdc1'].volume_id]):
         v.attach_data.instance_id.should.equal(instance.id)
-        v.attach_data.attach_time.should.equal(instance.launch_time)    # can do due to freeze_time decorator.
-        v.create_time.should.equal(instance.launch_time)                # can do due to freeze_time decorator.
+        # can do due to freeze_time decorator.
+        v.attach_data.attach_time.should.equal(instance.launch_time)
+        # can do due to freeze_time decorator.
+        v.create_time.should.equal(instance.launch_time)
         v.region.name.should.equal(instance.region.name)
         v.status.should.equal('in-use')
 
@@ -135,7 +141,8 @@ def test_get_instances_by_id():
     reservation.instances.should.have.length_of(1)
     reservation.instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(instance_ids=[instance1.id, instance2.id])
+    reservations = conn.get_all_instances(
+        instance_ids=[instance1.id, instance2.id])
     reservations.should.have.length_of(1)
     reservation = reservations[0]
     reservation.instances.should.have.length_of(2)
@@ -158,25 +165,31 @@ def test_get_instances_filtering_by_state():
 
     conn.terminate_instances([instance1.id])
 
-    reservations = conn.get_all_instances(filters={'instance-state-name': 'running'})
+    reservations = conn.get_all_instances(
+        filters={'instance-state-name': 'running'})
     reservations.should.have.length_of(1)
-    # Since we terminated instance1, only instance2 and instance3 should be returned
+    # Since we terminated instance1, only instance2 and instance3 should be
+    # returned
     instance_ids = [instance.id for instance in reservations[0].instances]
     set(instance_ids).should.equal(set([instance2.id, instance3.id]))
 
-    reservations = conn.get_all_instances([instance2.id], filters={'instance-state-name': 'running'})
+    reservations = conn.get_all_instances(
+        [instance2.id], filters={'instance-state-name': 'running'})
     reservations.should.have.length_of(1)
     instance_ids = [instance.id for instance in reservations[0].instances]
     instance_ids.should.equal([instance2.id])
 
-    reservations = conn.get_all_instances([instance2.id], filters={'instance-state-name': 'terminated'})
+    reservations = conn.get_all_instances(
+        [instance2.id], filters={'instance-state-name': 'terminated'})
     list(reservations).should.equal([])
 
     # get_all_instances should still return all 3
     reservations = conn.get_all_instances()
     reservations[0].instances.should.have.length_of(3)
 
-    conn.get_all_instances.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
+    conn.get_all_instances.when.called_with(
+        filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
+
 
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_instance_id():
@@ -184,16 +197,19 @@ def test_get_instances_filtering_by_instance_id():
     reservation = conn.run_instances('ami-1234abcd', min_count=3)
     instance1, instance2, instance3 = reservation.instances
 
-    reservations = conn.get_all_instances(filters={'instance-id': instance1.id})
+    reservations = conn.get_all_instances(
+        filters={'instance-id': instance1.id})
     # get_all_instances should return just instance1
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(filters={'instance-id': [instance1.id, instance2.id]})
+    reservations = conn.get_all_instances(
+        filters={'instance-id': [instance1.id, instance2.id]})
     # get_all_instances should return two
     reservations[0].instances.should.have.length_of(2)
 
-    reservations = conn.get_all_instances(filters={'instance-id': 'non-existing-id'})
+    reservations = conn.get_all_instances(
+        filters={'instance-id': 'non-existing-id'})
     reservations.should.have.length_of(0)
 
 
@@ -207,22 +223,25 @@ def test_get_instances_filtering_by_instance_type():
     reservation3 = conn.run_instances('ami-1234abcd', instance_type='t1.micro')
     instance3 = reservation3.instances[0]
 
-    reservations = conn.get_all_instances(filters={'instance-type': 'm1.small'})
+    reservations = conn.get_all_instances(
+        filters={'instance-type': 'm1.small'})
     # get_all_instances should return instance1,2
     reservations.should.have.length_of(2)
     reservations[0].instances.should.have.length_of(1)
     reservations[1].instances.should.have.length_of(1)
-    instance_ids = [ reservations[0].instances[0].id,
-                     reservations[1].instances[0].id ]
+    instance_ids = [reservations[0].instances[0].id,
+                    reservations[1].instances[0].id]
     set(instance_ids).should.equal(set([instance1.id, instance2.id]))
 
-    reservations = conn.get_all_instances(filters={'instance-type': 't1.micro'})
+    reservations = conn.get_all_instances(
+        filters={'instance-type': 't1.micro'})
     # get_all_instances should return one
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance3.id)
 
-    reservations = conn.get_all_instances(filters={'instance-type': ['t1.micro', 'm1.small']})
+    reservations = conn.get_all_instances(
+        filters={'instance-type': ['t1.micro', 'm1.small']})
     reservations.should.have.length_of(3)
     reservations[0].instances.should.have.length_of(1)
     reservations[1].instances.should.have.length_of(1)
@@ -231,12 +250,14 @@ def test_get_instances_filtering_by_instance_type():
         reservations[0].instances[0].id,
         reservations[1].instances[0].id,
         reservations[2].instances[0].id,
-        ]
-    set(instance_ids).should.equal(set([instance1.id, instance2.id, instance3.id]))
+    ]
+    set(instance_ids).should.equal(
+        set([instance1.id, instance2.id, instance3.id]))
 
     reservations = conn.get_all_instances(filters={'instance-type': 'bogus'})
-    #bogus instance-type should return none
+    # bogus instance-type should return none
     reservations.should.have.length_of(0)
+
 
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_reason_code():
@@ -246,10 +267,12 @@ def test_get_instances_filtering_by_reason_code():
     instance1.stop()
     instance2.terminate()
 
-    reservations = conn.get_all_instances(filters={'state-reason-code': 'Client.UserInitiatedShutdown'})
+    reservations = conn.get_all_instances(
+        filters={'state-reason-code': 'Client.UserInitiatedShutdown'})
     # get_all_instances should return instance1 and instance2
     reservations[0].instances.should.have.length_of(2)
-    set([instance1.id, instance2.id]).should.equal(set([i.id for i in reservations[0].instances]))
+    set([instance1.id, instance2.id]).should.equal(
+        set([i.id for i in reservations[0].instances]))
 
     reservations = conn.get_all_instances(filters={'state-reason-code': ''})
     # get_all_instances should return instance 3
@@ -262,10 +285,13 @@ def test_get_instances_filtering_by_source_dest_check():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=2)
     instance1, instance2 = reservation.instances
-    conn.modify_instance_attribute(instance1.id, attribute='sourceDestCheck', value=False)
+    conn.modify_instance_attribute(
+        instance1.id, attribute='sourceDestCheck', value=False)
 
-    source_dest_check_false = conn.get_all_instances(filters={'source-dest-check': 'false'})
-    source_dest_check_true = conn.get_all_instances(filters={'source-dest-check': 'true'})
+    source_dest_check_false = conn.get_all_instances(
+        filters={'source-dest-check': 'false'})
+    source_dest_check_true = conn.get_all_instances(
+        filters={'source-dest-check': 'true'})
 
     source_dest_check_false[0].instances.should.have.length_of(1)
     source_dest_check_false[0].instances[0].id.should.equal(instance1.id)
@@ -279,12 +305,14 @@ def test_get_instances_filtering_by_vpc_id():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc1 = conn.create_vpc("10.0.0.0/16")
     subnet1 = conn.create_subnet(vpc1.id, "10.0.0.0/27")
-    reservation1 = conn.run_instances('ami-1234abcd', min_count=1, subnet_id=subnet1.id)
+    reservation1 = conn.run_instances(
+        'ami-1234abcd', min_count=1, subnet_id=subnet1.id)
     instance1 = reservation1.instances[0]
 
     vpc2 = conn.create_vpc("10.1.0.0/16")
     subnet2 = conn.create_subnet(vpc2.id, "10.1.0.0/27")
-    reservation2 = conn.run_instances('ami-1234abcd', min_count=1, subnet_id=subnet2.id)
+    reservation2 = conn.run_instances(
+        'ami-1234abcd', min_count=1, subnet_id=subnet2.id)
     instance2 = reservation2.instances[0]
 
     reservations1 = conn.get_all_instances(filters={'vpc-id': vpc1.id})
@@ -320,31 +348,35 @@ def test_get_instances_filtering_by_tag():
     instance2.add_tag('tag2', 'wrong value')
     instance3.add_tag('tag2', 'value2')
 
-    reservations = conn.get_all_instances(filters={'tag:tag0' : 'value0'})
+    reservations = conn.get_all_instances(filters={'tag:tag0': 'value0'})
     # get_all_instances should return no instances
     reservations.should.have.length_of(0)
 
-    reservations = conn.get_all_instances(filters={'tag:tag1' : 'value1'})
+    reservations = conn.get_all_instances(filters={'tag:tag1': 'value1'})
     # get_all_instances should return both instances with this tag value
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
 
-    reservations = conn.get_all_instances(filters={'tag:tag1' : 'value1', 'tag:tag2' : 'value2'})
+    reservations = conn.get_all_instances(
+        filters={'tag:tag1': 'value1', 'tag:tag2': 'value2'})
     # get_all_instances should return the instance with both tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(filters={'tag:tag1' : 'value1', 'tag:tag2' : 'value2'})
+    reservations = conn.get_all_instances(
+        filters={'tag:tag1': 'value1', 'tag:tag2': 'value2'})
     # get_all_instances should return the instance with both tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(filters={'tag:tag2' : ['value2', 'bogus']})
-    # get_all_instances should return both instances with one of the acceptable tag values
+    reservations = conn.get_all_instances(
+        filters={'tag:tag2': ['value2', 'bogus']})
+    # get_all_instances should return both instances with one of the
+    # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
@@ -362,31 +394,36 @@ def test_get_instances_filtering_by_tag_value():
     instance2.add_tag('tag2', 'wrong value')
     instance3.add_tag('tag2', 'value2')
 
-    reservations = conn.get_all_instances(filters={'tag-value' : 'value0'})
+    reservations = conn.get_all_instances(filters={'tag-value': 'value0'})
     # get_all_instances should return no instances
     reservations.should.have.length_of(0)
 
-    reservations = conn.get_all_instances(filters={'tag-value' : 'value1'})
+    reservations = conn.get_all_instances(filters={'tag-value': 'value1'})
     # get_all_instances should return both instances with this tag value
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
 
-    reservations = conn.get_all_instances(filters={'tag-value' : ['value2', 'value1']})
-    # get_all_instances should return both instances with one of the acceptable tag values
+    reservations = conn.get_all_instances(
+        filters={'tag-value': ['value2', 'value1']})
+    # get_all_instances should return both instances with one of the
+    # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(3)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
     reservations[0].instances[2].id.should.equal(instance3.id)
 
-    reservations = conn.get_all_instances(filters={'tag-value' : ['value2', 'bogus']})
-    # get_all_instances should return both instances with one of the acceptable tag values
+    reservations = conn.get_all_instances(
+        filters={'tag-value': ['value2', 'bogus']})
+    # get_all_instances should return both instances with one of the
+    # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance3.id)
+
 
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_tag_name():
@@ -399,24 +436,27 @@ def test_get_instances_filtering_by_tag_name():
     instance2.add_tag('tag2X')
     instance3.add_tag('tag3')
 
-    reservations = conn.get_all_instances(filters={'tag-key' : 'tagX'})
+    reservations = conn.get_all_instances(filters={'tag-key': 'tagX'})
     # get_all_instances should return no instances
     reservations.should.have.length_of(0)
 
-    reservations = conn.get_all_instances(filters={'tag-key' : 'tag1'})
+    reservations = conn.get_all_instances(filters={'tag-key': 'tag1'})
     # get_all_instances should return both instances with this tag value
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
 
-    reservations = conn.get_all_instances(filters={'tag-key' : ['tag1', 'tag3']})
-    # get_all_instances should return both instances with one of the acceptable tag values
+    reservations = conn.get_all_instances(
+        filters={'tag-key': ['tag1', 'tag3']})
+    # get_all_instances should return both instances with one of the
+    # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(3)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
     reservations[0].instances[2].id.should.equal(instance3.id)
+
 
 @mock_ec2_deprecated
 def test_instance_start_and_stop():
@@ -431,7 +471,8 @@ def test_instance_start_and_stop():
         stopped_instances = conn.stop_instances(instance_ids, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the StopInstance operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the StopInstance operation: Request would have succeeded, but DryRun flag is set')
 
     stopped_instances = conn.stop_instances(instance_ids)
 
@@ -439,10 +480,12 @@ def test_instance_start_and_stop():
         instance.state.should.equal('stopping')
 
     with assert_raises(EC2ResponseError) as ex:
-        started_instances = conn.start_instances([instances[0].id], dry_run=True)
+        started_instances = conn.start_instances(
+            [instances[0].id], dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the StartInstance operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the StartInstance operation: Request would have succeeded, but DryRun flag is set')
 
     started_instances = conn.start_instances([instances[0].id])
     started_instances[0].state.should.equal('pending')
@@ -458,7 +501,8 @@ def test_instance_reboot():
         instance.reboot(dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the RebootInstance operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the RebootInstance operation: Request would have succeeded, but DryRun flag is set')
 
     instance.reboot()
     instance.state.should.equal('pending')
@@ -474,13 +518,15 @@ def test_instance_attribute_instance_type():
         instance.modify_attribute("instanceType", "m1.small", dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyInstanceType operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ModifyInstanceType operation: Request would have succeeded, but DryRun flag is set')
 
     instance.modify_attribute("instanceType", "m1.small")
 
     instance_attribute = instance.get_attribute("instanceType")
     instance_attribute.should.be.a(InstanceAttribute)
     instance_attribute.get('instanceType').should.equal("m1.small")
+
 
 @mock_ec2_deprecated
 def test_modify_instance_attribute_security_groups():
@@ -495,7 +541,8 @@ def test_modify_instance_attribute_security_groups():
         instance.modify_attribute("groupSet", [sg_id, sg_id2], dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set')
 
     instance.modify_attribute("groupSet", [sg_id, sg_id2])
 
@@ -513,10 +560,12 @@ def test_instance_attribute_user_data():
     instance = reservation.instances[0]
 
     with assert_raises(EC2ResponseError) as ex:
-        instance.modify_attribute("userData", "this is my user data", dry_run=True)
+        instance.modify_attribute(
+            "userData", "this is my user data", dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyUserData operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ModifyUserData operation: Request would have succeeded, but DryRun flag is set')
 
     instance.modify_attribute("userData", "this is my user data")
 
@@ -544,7 +593,8 @@ def test_instance_attribute_source_dest_check():
         instance.modify_attribute("sourceDestCheck", False, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifySourceDestCheck operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ModifySourceDestCheck operation: Request would have succeeded, but DryRun flag is set')
 
     instance.modify_attribute("sourceDestCheck", False)
 
@@ -585,10 +635,12 @@ def test_run_instance_with_security_group_name():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
     with assert_raises(EC2ResponseError) as ex:
-        group = conn.create_security_group('group1', "some description", dry_run=True)
+        group = conn.create_security_group(
+            'group1', "some description", dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set')
 
     group = conn.create_security_group('group1', "some description")
 
@@ -658,14 +710,16 @@ def test_run_instance_with_nic_autocreated():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
     subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-    security_group1 = conn.create_security_group('test security group #1', 'this is a test security group')
-    security_group2 = conn.create_security_group('test security group #2', 'this is a test security group')
+    security_group1 = conn.create_security_group(
+        'test security group #1', 'this is a test security group')
+    security_group2 = conn.create_security_group(
+        'test security group #2', 'this is a test security group')
     private_ip = "54.0.0.1"
 
     reservation = conn.run_instances('ami-1234abcd', subnet_id=subnet.id,
-                                                     security_groups=[security_group1.name],
-                                                     security_group_ids=[security_group2.id],
-                                                     private_ip_address=private_ip)
+                                     security_groups=[security_group1.name],
+                                     security_group_ids=[security_group2.id],
+                                     private_ip_address=private_ip)
     instance = reservation.instances[0]
 
     all_enis = conn.get_all_network_interfaces()
@@ -677,11 +731,13 @@ def test_run_instance_with_nic_autocreated():
 
     instance.subnet_id.should.equal(subnet.id)
     instance.groups.should.have.length_of(2)
-    set([group.id for group in instance.groups]).should.equal(set([security_group1.id,security_group2.id]))
+    set([group.id for group in instance.groups]).should.equal(
+        set([security_group1.id, security_group2.id]))
 
     eni.subnet_id.should.equal(subnet.id)
     eni.groups.should.have.length_of(2)
-    set([group.id for group in eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
+    set([group.id for group in eni.groups]).should.equal(
+        set([security_group1.id, security_group2.id]))
     eni.private_ip_addresses.should.have.length_of(1)
     eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
 
@@ -691,20 +747,24 @@ def test_run_instance_with_nic_preexisting():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
     subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-    security_group1 = conn.create_security_group('test security group #1', 'this is a test security group')
-    security_group2 = conn.create_security_group('test security group #2', 'this is a test security group')
+    security_group1 = conn.create_security_group(
+        'test security group #1', 'this is a test security group')
+    security_group2 = conn.create_security_group(
+        'test security group #2', 'this is a test security group')
     private_ip = "54.0.0.1"
-    eni = conn.create_network_interface(subnet.id, private_ip, groups=[security_group1.id])
+    eni = conn.create_network_interface(
+        subnet.id, private_ip, groups=[security_group1.id])
 
     # Boto requires NetworkInterfaceCollection of NetworkInterfaceSpecifications...
     #   annoying, but generates the desired querystring.
     from boto.ec2.networkinterface import NetworkInterfaceSpecification, NetworkInterfaceCollection
-    interface = NetworkInterfaceSpecification(network_interface_id=eni.id, device_index=0)
+    interface = NetworkInterfaceSpecification(
+        network_interface_id=eni.id, device_index=0)
     interfaces = NetworkInterfaceCollection(interface)
     # end Boto objects
 
     reservation = conn.run_instances('ami-1234abcd', network_interfaces=interfaces,
-                                                     security_group_ids=[security_group2.id])
+                                     security_group_ids=[security_group2.id])
     instance = reservation.instances[0]
 
     instance.subnet_id.should.equal(subnet.id)
@@ -718,9 +778,11 @@ def test_run_instance_with_nic_preexisting():
 
     instance_eni.subnet_id.should.equal(subnet.id)
     instance_eni.groups.should.have.length_of(2)
-    set([group.id for group in instance_eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
+    set([group.id for group in instance_eni.groups]).should.equal(
+        set([security_group1.id, security_group2.id]))
     instance_eni.private_ip_addresses.should.have.length_of(1)
-    instance_eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
+    instance_eni.private_ip_addresses[
+        0].private_ip_address.should.equal(private_ip)
 
 
 @requires_boto_gte("2.32.0")
@@ -730,10 +792,13 @@ def test_instance_with_nic_attach_detach():
     vpc = conn.create_vpc("10.0.0.0/16")
     subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
 
-    security_group1 = conn.create_security_group('test security group #1', 'this is a test security group')
-    security_group2 = conn.create_security_group('test security group #2', 'this is a test security group')
+    security_group1 = conn.create_security_group(
+        'test security group #1', 'this is a test security group')
+    security_group2 = conn.create_security_group(
+        'test security group #2', 'this is a test security group')
 
-    reservation = conn.run_instances('ami-1234abcd', security_group_ids=[security_group1.id])
+    reservation = conn.run_instances(
+        'ami-1234abcd', security_group_ids=[security_group1.id])
     instance = reservation.instances[0]
 
     eni = conn.create_network_interface(subnet.id, groups=[security_group2.id])
@@ -742,14 +807,17 @@ def test_instance_with_nic_attach_detach():
     instance.interfaces.should.have.length_of(1)
 
     eni.groups.should.have.length_of(1)
-    set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
+    set([group.id for group in eni.groups]).should.equal(
+        set([security_group2.id]))
 
     # Attach
     with assert_raises(EC2ResponseError) as ex:
-        conn.attach_network_interface(eni.id, instance.id, device_index=1, dry_run=True)
+        conn.attach_network_interface(
+            eni.id, instance.id, device_index=1, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AttachNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the AttachNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
 
     conn.attach_network_interface(eni.id, instance.id, device_index=1)
 
@@ -759,18 +827,22 @@ def test_instance_with_nic_attach_detach():
     instance_eni = instance.interfaces[1]
     instance_eni.id.should.equal(eni.id)
     instance_eni.groups.should.have.length_of(2)
-    set([group.id for group in instance_eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
+    set([group.id for group in instance_eni.groups]).should.equal(
+        set([security_group1.id, security_group2.id]))
 
-    eni = conn.get_all_network_interfaces(filters={'network-interface-id': eni.id})[0]
+    eni = conn.get_all_network_interfaces(
+        filters={'network-interface-id': eni.id})[0]
     eni.groups.should.have.length_of(2)
-    set([group.id for group in eni.groups]).should.equal(set([security_group1.id,security_group2.id]))
+    set([group.id for group in eni.groups]).should.equal(
+        set([security_group1.id, security_group2.id]))
 
     # Detach
     with assert_raises(EC2ResponseError) as ex:
         conn.detach_network_interface(instance_eni.attachment.id, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DetachNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the DetachNetworkInterface operation: Request would have succeeded, but DryRun flag is set')
 
     conn.detach_network_interface(instance_eni.attachment.id)
 
@@ -778,9 +850,11 @@ def test_instance_with_nic_attach_detach():
     instance.update()
     instance.interfaces.should.have.length_of(1)
 
-    eni = conn.get_all_network_interfaces(filters={'network-interface-id': eni.id})[0]
+    eni = conn.get_all_network_interfaces(
+        filters={'network-interface-id': eni.id})[0]
     eni.groups.should.have.length_of(1)
-    set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
+    set([group.id for group in eni.groups]).should.equal(
+        set([security_group2.id]))
 
     # Detach with invalid attachment ID
     with assert_raises(EC2ResponseError) as cm:
@@ -851,6 +925,7 @@ def test_describe_instance_status_with_instance_filter():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
 @requires_boto_gte("2.32.0")
 @mock_ec2_deprecated
 def test_describe_instance_status_with_non_running_instances():
@@ -877,6 +952,7 @@ def test_describe_instance_status_with_non_running_instances():
     status3 = next((s for s in all_status if s.id == instance3.id), None)
     status3.state_name.should.equal('running')
 
+
 @mock_ec2_deprecated
 def test_get_instance_by_security_group():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -887,12 +963,15 @@ def test_get_instance_by_security_group():
     security_group = conn.create_security_group('test', 'test')
 
     with assert_raises(EC2ResponseError) as ex:
-        conn.modify_instance_attribute(instance.id, "groupSet", [security_group.id], dry_run=True)
+        conn.modify_instance_attribute(instance.id, "groupSet", [
+                                       security_group.id], dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set')
 
-    conn.modify_instance_attribute(instance.id, "groupSet", [security_group.id])
+    conn.modify_instance_attribute(
+        instance.id, "groupSet", [security_group.id])
 
     security_group_instances = security_group.instances()
 

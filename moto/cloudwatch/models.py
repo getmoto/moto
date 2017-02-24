@@ -4,12 +4,14 @@ import datetime
 
 
 class Dimension(object):
+
     def __init__(self, name, value):
         self.name = name
         self.value = value
 
 
 class FakeAlarm(object):
+
     def __init__(self, name, namespace, metric_name, comparison_operator, evaluation_periods,
                  period, threshold, statistic, description, dimensions, alarm_actions,
                  ok_actions, insufficient_data_actions, unit):
@@ -22,7 +24,8 @@ class FakeAlarm(object):
         self.threshold = threshold
         self.statistic = statistic
         self.description = description
-        self.dimensions = [Dimension(dimension['name'], dimension['value']) for dimension in dimensions]
+        self.dimensions = [Dimension(dimension['name'], dimension[
+                                     'value']) for dimension in dimensions]
         self.alarm_actions = alarm_actions
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
@@ -32,11 +35,13 @@ class FakeAlarm(object):
 
 
 class MetricDatum(object):
+
     def __init__(self, namespace, name, value, dimensions):
         self.namespace = namespace
         self.name = name
         self.value = value
-        self.dimensions = [Dimension(dimension['name'], dimension['value']) for dimension in dimensions]
+        self.dimensions = [Dimension(dimension['name'], dimension[
+                                     'value']) for dimension in dimensions]
 
 
 class CloudWatchBackend(BaseBackend):
@@ -99,7 +104,8 @@ class CloudWatchBackend(BaseBackend):
 
     def put_metric_data(self, namespace, metric_data):
         for name, value, dimensions in metric_data:
-            self.metric_data.append(MetricDatum(namespace, name, value, dimensions))
+            self.metric_data.append(MetricDatum(
+                namespace, name, value, dimensions))
 
     def get_all_metrics(self):
         return self.metric_data

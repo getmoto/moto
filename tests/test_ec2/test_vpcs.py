@@ -42,13 +42,16 @@ def test_vpc_defaults():
 
     conn.get_all_vpcs().should.have.length_of(2)
     conn.get_all_route_tables().should.have.length_of(2)
-    conn.get_all_security_groups(filters={'vpc-id': [vpc.id]}).should.have.length_of(1)
+    conn.get_all_security_groups(
+        filters={'vpc-id': [vpc.id]}).should.have.length_of(1)
 
     vpc.delete()
 
     conn.get_all_vpcs().should.have.length_of(1)
     conn.get_all_route_tables().should.have.length_of(1)
-    conn.get_all_security_groups(filters={'vpc-id': [vpc.id]}).should.have.length_of(0)
+    conn.get_all_security_groups(
+        filters={'vpc-id': [vpc.id]}).should.have.length_of(0)
+
 
 @mock_ec2_deprecated
 def test_vpc_isdefault_filter():
@@ -79,6 +82,7 @@ def test_vpc_state_available_filter():
     conn.get_all_vpcs(filters={'state': 'available'}).should.have.length_of(3)
     vpc.delete()
     conn.get_all_vpcs(filters={'state': 'available'}).should.have.length_of(2)
+
 
 @mock_ec2_deprecated
 def test_vpc_tagging():
@@ -127,7 +131,8 @@ def test_vpc_get_by_cidr_block():
 @mock_ec2_deprecated
 def test_vpc_get_by_dhcp_options_id():
     conn = boto.connect_vpc()
-    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
+    dhcp_options = conn.create_dhcp_options(
+        SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
     vpc1 = conn.create_vpc("10.0.0.0/16")
     vpc2 = conn.create_vpc("10.0.0.0/16")
     conn.create_vpc("10.0.0.0/24")
@@ -284,6 +289,7 @@ def test_non_default_vpc():
     attr = response.get('EnableDnsHostnames')
     attr.get('Value').shouldnt.be.ok
 
+
 @mock_ec2
 def test_vpc_dedicated_tenancy():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
@@ -297,6 +303,7 @@ def test_vpc_dedicated_tenancy():
     vpc.is_default.shouldnt.be.ok
 
     vpc.instance_tenancy.should.equal('dedicated')
+
 
 @mock_ec2
 def test_vpc_modify_enable_dns_support():
@@ -339,10 +346,12 @@ def test_vpc_modify_enable_dns_hostnames():
     attr = response.get('EnableDnsHostnames')
     attr.get('Value').should.be.ok
 
+
 @mock_ec2_deprecated
 def test_vpc_associate_dhcp_options():
     conn = boto.connect_vpc()
-    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
+    dhcp_options = conn.create_dhcp_options(
+        SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
     vpc = conn.create_vpc("10.0.0.0/16")
 
     conn.associate_dhcp_options(dhcp_options.id, vpc.id)

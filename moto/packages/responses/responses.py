@@ -82,6 +82,7 @@ def get_wrapped(func, wrapper_template, evaldict):
 
 
 class CallList(Sequence, Sized):
+
     def __init__(self):
         self._calls = []
 
@@ -298,10 +299,10 @@ class RequestsMock(object):
         def unbound_on_send(adapter, request, *a, **kwargs):
             return self._on_request(adapter, request, *a, **kwargs)
         self._patcher1 = mock.patch('botocore.vendored.requests.adapters.HTTPAdapter.send',
-                                   unbound_on_send)
+                                    unbound_on_send)
         self._patcher1.start()
         self._patcher2 = mock.patch('requests.adapters.HTTPAdapter.send',
-                                   unbound_on_send)
+                                    unbound_on_send)
         self._patcher2.start()
 
     def stop(self, allow_assert=True):

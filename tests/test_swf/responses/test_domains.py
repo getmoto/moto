@@ -102,7 +102,8 @@ def test_describe_domain():
     conn.register_domain("test-domain", "60", description="A test domain")
 
     domain = conn.describe_domain("test-domain")
-    domain["configuration"]["workflowExecutionRetentionPeriodInDays"].should.equal("60")
+    domain["configuration"][
+        "workflowExecutionRetentionPeriodInDays"].should.equal("60")
     domain["domainInfo"]["description"].should.equal("A test domain")
     domain["domainInfo"]["name"].should.equal("test-domain")
     domain["domainInfo"]["status"].should.equal("REGISTERED")

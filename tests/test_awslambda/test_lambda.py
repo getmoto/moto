@@ -73,8 +73,10 @@ def test_invoke_requestresponse_function():
                                  Payload=json.dumps(in_data))
 
     success_result["StatusCode"].should.equal(202)
-    base64.b64decode(success_result["LogResult"]).decode('utf-8').should.equal(json.dumps(in_data))
-    json.loads(success_result["Payload"].read().decode('utf-8')).should.equal(in_data)
+    base64.b64decode(success_result["LogResult"]).decode(
+        'utf-8').should.equal(json.dumps(in_data))
+    json.loads(success_result["Payload"].read().decode(
+        'utf-8')).should.equal(in_data)
 
 
 @mock_lambda
@@ -101,9 +103,11 @@ def test_invoke_event_function():
     ).should.throw(botocore.client.ClientError)
 
     in_data = {'msg': 'So long and thanks for all the fish'}
-    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload=json.dumps(in_data))
+    success_result = conn.invoke(
+        FunctionName='testFunction', InvocationType='Event', Payload=json.dumps(in_data))
     success_result["StatusCode"].should.equal(202)
-    json.loads(success_result['Payload'].read().decode('utf-8')).should.equal({})
+    json.loads(success_result['Payload'].read().decode(
+        'utf-8')).should.equal({})
 
 
 @mock_ec2
@@ -129,9 +133,11 @@ def test_invoke_function_get_ec2_volume():
     )
 
     in_data = {'volume_id': vol.id}
-    result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse', Payload=json.dumps(in_data))
+    result = conn.invoke(FunctionName='testFunction',
+                         InvocationType='RequestResponse', Payload=json.dumps(in_data))
     result["StatusCode"].should.equal(202)
-    msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s' % (vol.id, vol.id, vol.state, vol.size, json.dumps(in_data))
+    msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s' % (
+        vol.id, vol.id, vol.state, vol.size, json.dumps(in_data))
     base64.b64decode(result["LogResult"]).decode('utf-8').should.equal(msg)
     result['Payload'].read().decode('utf-8').should.equal(msg)
 
@@ -189,8 +195,10 @@ def test_create_function_from_aws_bucket():
             "SubnetIds": ["subnet-123abc"],
         },
     )
-    result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    result['ResponseMetadata'].pop('RetryAttempts', None)
     result.pop('LastModified')
     result.should.equal({
         'FunctionName': 'testFunction',
@@ -231,8 +239,10 @@ def test_create_function_from_zipfile():
         MemorySize=128,
         Publish=True,
     )
-    result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    result['ResponseMetadata'].pop('RetryAttempts', None)
     result.pop('LastModified')
 
     result.should.equal({
@@ -283,8 +293,10 @@ def test_get_function():
     )
 
     result = conn.get_function(FunctionName='testFunction')
-    result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    result['ResponseMetadata'].pop('RetryAttempts', None)
     result['Configuration'].pop('LastModified')
 
     result.should.equal({
@@ -339,12 +351,15 @@ def test_delete_function():
     )
 
     success_result = conn.delete_function(FunctionName='testFunction')
-    success_result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    success_result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    success_result['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    success_result['ResponseMetadata'].pop('RetryAttempts', None)
 
     success_result.should.equal({'ResponseMetadata': {'HTTPStatusCode': 204}})
 
-    conn.delete_function.when.called_with(FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
+    conn.delete_function.when.called_with(
+        FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
 
 
 @mock_lambda
@@ -407,8 +422,10 @@ def test_list_create_list_get_delete_list():
     func.should.equal(expected_function_result['Configuration'])
 
     func = conn.get_function(FunctionName='testFunction')
-    func['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    func['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    func['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    func['ResponseMetadata'].pop('RetryAttempts', None)
     func['Configuration'].pop('LastModified')
 
     func.should.equal(expected_function_result)

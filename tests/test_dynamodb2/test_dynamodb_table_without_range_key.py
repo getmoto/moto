@@ -71,7 +71,8 @@ def test_delete_table():
     conn.delete_table('messages')
     conn.list_tables()["TableNames"].should.have.length_of(0)
 
-    conn.delete_table.when.called_with('messages').should.throw(JSONResponseError)
+    conn.delete_table.when.called_with(
+        'messages').should.throw(JSONResponseError)
 
 
 @requires_boto_gte("2.9")
@@ -239,7 +240,8 @@ def test_query_with_undeclared_table():
 
     conn.query.when.called_with(
         table_name='undeclared-table',
-        key_conditions={"forum_name": {"ComparisonOperator": "EQ", "AttributeValueList": [{"S": "the-key"}]}}
+        key_conditions={"forum_name": {
+            "ComparisonOperator": "EQ", "AttributeValueList": [{"S": "the-key"}]}}
     ).should.throw(JSONResponseError)
 
 
@@ -396,7 +398,8 @@ def test_get_key_fields():
 @mock_dynamodb2_deprecated
 def test_get_missing_item():
     table = create_table()
-    table.get_item.when.called_with(forum_name='missing').should.throw(ItemNotFound)
+    table.get_item.when.called_with(
+        forum_name='missing').should.throw(ItemNotFound)
 
 
 @requires_boto_gte("2.9")
@@ -436,7 +439,8 @@ def test_update_item_remove():
     }
 
     # Then remove the SentBy field
-    conn.update_item("messages", key_map, update_expression="REMOVE SentBy, SentTo")
+    conn.update_item("messages", key_map,
+                     update_expression="REMOVE SentBy, SentTo")
 
     returned_item = table.get_item(username="steve")
     dict(returned_item).should.equal({
@@ -460,7 +464,8 @@ def test_update_item_set():
         'username': {"S": "steve"}
     }
 
-    conn.update_item("messages", key_map, update_expression="SET foo=bar, blah=baz REMOVE SentBy")
+    conn.update_item("messages", key_map,
+                     update_expression="SET foo=bar, blah=baz REMOVE SentBy")
 
     returned_item = table.get_item(username="steve")
     dict(returned_item).should.equal({
@@ -468,7 +473,6 @@ def test_update_item_set():
         'foo': 'bar',
         'blah': 'baz',
     })
-
 
 
 @mock_dynamodb2_deprecated
@@ -487,7 +491,8 @@ def test_failed_overwrite():
     table.put_item(data=data2, overwrite=True)
 
     data3 = {'id': '123', 'data': '812'}
-    table.put_item.when.called_with(data=data3).should.throw(ConditionalCheckFailedException)
+    table.put_item.when.called_with(data=data3).should.throw(
+        ConditionalCheckFailedException)
 
     returned_item = table.lookup('123')
     dict(returned_item).should.equal(data2)
@@ -520,6 +525,7 @@ def test_conflicting_writes():
 """
 boto3
 """
+
 
 @mock_dynamodb2
 def test_boto3_create_table():
@@ -615,7 +621,6 @@ def test_boto3_put_item_conditions_pass():
         })
     returned_item = table.get_item(Key={'username': 'johndoe'})
     assert dict(returned_item)['Item']['foo'].should.equal("baz")
-
 
 
 @mock_dynamodb2

@@ -16,14 +16,16 @@ class KeyPairs(BaseResponse):
     def delete_key_pair(self):
         name = self.querystring.get('KeyName')[0]
         if self.is_not_dryrun('DeleteKeyPair'):
-            success = six.text_type(self.ec2_backend.delete_key_pair(name)).lower()
+            success = six.text_type(
+                self.ec2_backend.delete_key_pair(name)).lower()
             return self.response_template(DELETE_KEY_PAIR_RESPONSE).render(success=success)
 
     def describe_key_pairs(self):
         names = keypair_names_from_querystring(self.querystring)
         filters = filters_from_querystring(self.querystring)
         if len(filters) > 0:
-            raise NotImplementedError('Using filters in KeyPairs.describe_key_pairs is not yet implemented')
+            raise NotImplementedError(
+                'Using filters in KeyPairs.describe_key_pairs is not yet implemented')
 
         keypairs = self.ec2_backend.describe_key_pairs(names)
         template = self.response_template(DESCRIBE_KEY_PAIRS_RESPONSE)

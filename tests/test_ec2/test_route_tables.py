@@ -91,28 +91,34 @@ def test_route_tables_filters_standard():
     all_route_tables.should.have.length_of(5)
 
     # Filter by main route table
-    main_route_tables = conn.get_all_route_tables(filters={'association.main':'true'})
+    main_route_tables = conn.get_all_route_tables(
+        filters={'association.main': 'true'})
     main_route_tables.should.have.length_of(3)
-    main_route_table_ids = [route_table.id for route_table in main_route_tables]
+    main_route_table_ids = [
+        route_table.id for route_table in main_route_tables]
     main_route_table_ids.should_not.contain(route_table1.id)
     main_route_table_ids.should_not.contain(route_table2.id)
 
     # Filter by VPC
-    vpc1_route_tables = conn.get_all_route_tables(filters={'vpc-id':vpc1.id})
+    vpc1_route_tables = conn.get_all_route_tables(filters={'vpc-id': vpc1.id})
     vpc1_route_tables.should.have.length_of(2)
-    vpc1_route_table_ids = [route_table.id for route_table in vpc1_route_tables]
+    vpc1_route_table_ids = [
+        route_table.id for route_table in vpc1_route_tables]
     vpc1_route_table_ids.should.contain(route_table1.id)
     vpc1_route_table_ids.should_not.contain(route_table2.id)
 
     # Filter by VPC and main route table
-    vpc2_main_route_tables = conn.get_all_route_tables(filters={'association.main':'true', 'vpc-id':vpc2.id})
+    vpc2_main_route_tables = conn.get_all_route_tables(
+        filters={'association.main': 'true', 'vpc-id': vpc2.id})
     vpc2_main_route_tables.should.have.length_of(1)
-    vpc2_main_route_table_ids = [route_table.id for route_table in vpc2_main_route_tables]
+    vpc2_main_route_table_ids = [
+        route_table.id for route_table in vpc2_main_route_tables]
     vpc2_main_route_table_ids.should_not.contain(route_table1.id)
     vpc2_main_route_table_ids.should_not.contain(route_table2.id)
 
     # Unsupported filter
-    conn.get_all_route_tables.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
+    conn.get_all_route_tables.when.called_with(
+        filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
 
 
 @mock_ec2_deprecated
@@ -134,19 +140,22 @@ def test_route_tables_filters_associations():
     all_route_tables.should.have.length_of(4)
 
     # Filter by association ID
-    association1_route_tables = conn.get_all_route_tables(filters={'association.route-table-association-id':association_id1})
+    association1_route_tables = conn.get_all_route_tables(
+        filters={'association.route-table-association-id': association_id1})
     association1_route_tables.should.have.length_of(1)
     association1_route_tables[0].id.should.equal(route_table1.id)
     association1_route_tables[0].associations.should.have.length_of(2)
 
     # Filter by route table ID
-    route_table2_route_tables = conn.get_all_route_tables(filters={'association.route-table-id':route_table2.id})
+    route_table2_route_tables = conn.get_all_route_tables(
+        filters={'association.route-table-id': route_table2.id})
     route_table2_route_tables.should.have.length_of(1)
     route_table2_route_tables[0].id.should.equal(route_table2.id)
     route_table2_route_tables[0].associations.should.have.length_of(1)
 
     # Filter by subnet ID
-    subnet_route_tables = conn.get_all_route_tables(filters={'association.subnet-id':subnet1.id})
+    subnet_route_tables = conn.get_all_route_tables(
+        filters={'association.subnet-id': subnet1.id})
     subnet_route_tables.should.have.length_of(1)
     subnet_route_tables[0].id.should.equal(route_table1.id)
     association1_route_tables[0].associations.should.have.length_of(2)
@@ -179,7 +188,8 @@ def test_route_table_associations():
     route_table.associations[0].subnet_id.should.equal(subnet.id)
 
     # Associate is idempotent
-    association_id_idempotent = conn.associate_route_table(route_table.id, subnet.id)
+    association_id_idempotent = conn.associate_route_table(
+        route_table.id, subnet.id)
     association_id_idempotent.should.equal(association_id)
 
     # Error: Attempt delete associated route table.
@@ -255,7 +265,8 @@ def test_route_table_replace_route_table_association():
     route_table1.associations[0].subnet_id.should.equal(subnet.id)
 
     # Replace Association
-    association_id2 = conn.replace_route_table_association_with_assoc(association_id1, route_table2.id)
+    association_id2 = conn.replace_route_table_association_with_assoc(
+        association_id1, route_table2.id)
 
     # Refresh
     route_table1 = conn.get_all_route_tables(route_table1.id)[0]
@@ -271,19 +282,22 @@ def test_route_table_replace_route_table_association():
     route_table2.associations[0].subnet_id.should.equal(subnet.id)
 
     # Replace Association is idempotent
-    association_id_idempotent = conn.replace_route_table_association_with_assoc(association_id2, route_table2.id)
+    association_id_idempotent = conn.replace_route_table_association_with_assoc(
+        association_id2, route_table2.id)
     association_id_idempotent.should.equal(association_id2)
 
     # Error: Replace association with invalid association ID
     with assert_raises(EC2ResponseError) as cm:
-        conn.replace_route_table_association_with_assoc("rtbassoc-1234abcd", route_table1.id)
+        conn.replace_route_table_association_with_assoc(
+            "rtbassoc-1234abcd", route_table1.id)
     cm.exception.code.should.equal('InvalidAssociationID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
     # Error: Replace association with invalid route table ID
     with assert_raises(EC2ResponseError) as cm:
-        conn.replace_route_table_association_with_assoc(association_id2, "rtb-1234abcd")
+        conn.replace_route_table_association_with_assoc(
+            association_id2, "rtb-1234abcd")
     cm.exception.code.should.equal('InvalidRouteTableID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
@@ -298,7 +312,8 @@ def test_route_table_get_by_tag():
     route_table = conn.create_route_table(vpc.id)
     route_table.add_tag('Name', 'TestRouteTable')
 
-    route_tables = conn.get_all_route_tables(filters={'tag:Name': 'TestRouteTable'})
+    route_tables = conn.get_all_route_tables(
+        filters={'tag:Name': 'TestRouteTable'})
 
     route_tables.should.have.length_of(1)
     route_tables[0].vpc_id.should.equal(vpc.id)
@@ -323,7 +338,8 @@ def test_route_table_get_by_tag_boto3():
     route_tables[0].vpc_id.should.equal(vpc.id)
     route_tables[0].id.should.equal(route_table.id)
     route_tables[0].tags.should.have.length_of(1)
-    route_tables[0].tags[0].should.equal({'Key': 'Name', 'Value': 'TestRouteTable'})
+    route_tables[0].tags[0].should.equal(
+        {'Key': 'Name', 'Value': 'TestRouteTable'})
 
 
 @mock_ec2_deprecated
@@ -337,10 +353,12 @@ def test_routes_additional():
 
     conn.create_route(main_route_table.id, ROUTE_CIDR, gateway_id=igw.id)
 
-    main_route_table = conn.get_all_route_tables(filters={'vpc-id': vpc.id})[0] # Refresh route table
+    main_route_table = conn.get_all_route_tables(
+        filters={'vpc-id': vpc.id})[0]  # Refresh route table
 
     main_route_table.routes.should.have.length_of(2)
-    new_routes = [route for route in main_route_table.routes if route.destination_cidr_block != vpc.cidr_block]
+    new_routes = [
+        route for route in main_route_table.routes if route.destination_cidr_block != vpc.cidr_block]
     new_routes.should.have.length_of(1)
 
     new_route = new_routes[0]
@@ -351,10 +369,12 @@ def test_routes_additional():
 
     conn.delete_route(main_route_table.id, ROUTE_CIDR)
 
-    main_route_table = conn.get_all_route_tables(filters={'vpc-id': vpc.id})[0] # Refresh route table
+    main_route_table = conn.get_all_route_tables(
+        filters={'vpc-id': vpc.id})[0]  # Refresh route table
 
     main_route_table.routes.should.have.length_of(1)
-    new_routes = [route for route in main_route_table.routes if route.destination_cidr_block != vpc.cidr_block]
+    new_routes = [
+        route for route in main_route_table.routes if route.destination_cidr_block != vpc.cidr_block]
     new_routes.should.have.length_of(0)
 
     with assert_raises(EC2ResponseError) as cm:
@@ -368,7 +388,8 @@ def test_routes_additional():
 def test_routes_replace():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
-    main_route_table = conn.get_all_route_tables(filters={'association.main':'true','vpc-id':vpc.id})[0]
+    main_route_table = conn.get_all_route_tables(
+        filters={'association.main': 'true', 'vpc-id': vpc.id})[0]
     local_route = main_route_table.routes[0]
     ROUTE_CIDR = "10.0.0.4/24"
 
@@ -384,11 +405,13 @@ def test_routes_replace():
     # Replace...
     def get_target_route():
         route_table = conn.get_all_route_tables(main_route_table.id)[0]
-        routes = [route for route in route_table.routes if route.destination_cidr_block != vpc.cidr_block]
+        routes = [
+            route for route in route_table.routes if route.destination_cidr_block != vpc.cidr_block]
         routes.should.have.length_of(1)
         return routes[0]
 
-    conn.replace_route(main_route_table.id, ROUTE_CIDR, instance_id=instance.id)
+    conn.replace_route(main_route_table.id, ROUTE_CIDR,
+                       instance_id=instance.id)
 
     target_route = get_target_route()
     target_route.gateway_id.should.be.none
@@ -422,12 +445,14 @@ def test_routes_not_supported():
     ROUTE_CIDR = "10.0.0.4/24"
 
     # Create
-    conn.create_route.when.called_with(main_route_table.id, ROUTE_CIDR, interface_id='eni-1234abcd').should.throw(NotImplementedError)
+    conn.create_route.when.called_with(
+        main_route_table.id, ROUTE_CIDR, interface_id='eni-1234abcd').should.throw(NotImplementedError)
 
     # Replace
     igw = conn.create_internet_gateway()
     conn.create_route(main_route_table.id, ROUTE_CIDR, gateway_id=igw.id)
-    conn.replace_route.when.called_with(main_route_table.id, ROUTE_CIDR, interface_id='eni-1234abcd').should.throw(NotImplementedError)
+    conn.replace_route.when.called_with(
+        main_route_table.id, ROUTE_CIDR, interface_id='eni-1234abcd').should.throw(NotImplementedError)
 
 
 @requires_boto_gte("2.34.0")
@@ -435,18 +460,21 @@ def test_routes_not_supported():
 def test_routes_vpc_peering_connection():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
-    main_route_table = conn.get_all_route_tables(filters={'association.main':'true','vpc-id':vpc.id})[0]
+    main_route_table = conn.get_all_route_tables(
+        filters={'association.main': 'true', 'vpc-id': vpc.id})[0]
     local_route = main_route_table.routes[0]
     ROUTE_CIDR = "10.0.0.4/24"
 
     peer_vpc = conn.create_vpc("11.0.0.0/16")
     vpc_pcx = conn.create_vpc_peering_connection(vpc.id, peer_vpc.id)
 
-    conn.create_route(main_route_table.id, ROUTE_CIDR, vpc_peering_connection_id=vpc_pcx.id)
+    conn.create_route(main_route_table.id, ROUTE_CIDR,
+                      vpc_peering_connection_id=vpc_pcx.id)
 
     # Refresh route table
     main_route_table = conn.get_all_route_tables(main_route_table.id)[0]
-    new_routes = [route for route in main_route_table.routes if route.destination_cidr_block != vpc.cidr_block]
+    new_routes = [
+        route for route in main_route_table.routes if route.destination_cidr_block != vpc.cidr_block]
     new_routes.should.have.length_of(1)
 
     new_route = new_routes[0]
@@ -463,7 +491,8 @@ def test_routes_vpn_gateway():
 
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
-    main_route_table = conn.get_all_route_tables(filters={'association.main':'true','vpc-id':vpc.id})[0]
+    main_route_table = conn.get_all_route_tables(
+        filters={'association.main': 'true', 'vpc-id': vpc.id})[0]
     ROUTE_CIDR = "10.0.0.4/24"
 
     vpn_gw = conn.create_vpn_gateway(type="ipsec.1")
@@ -471,7 +500,8 @@ def test_routes_vpn_gateway():
     conn.create_route(main_route_table.id, ROUTE_CIDR, gateway_id=vpn_gw.id)
 
     main_route_table = conn.get_all_route_tables(main_route_table.id)[0]
-    new_routes = [route for route in main_route_table.routes if route.destination_cidr_block != vpc.cidr_block]
+    new_routes = [
+        route for route in main_route_table.routes if route.destination_cidr_block != vpc.cidr_block]
     new_routes.should.have.length_of(1)
 
     new_route = new_routes[0]

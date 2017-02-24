@@ -16,6 +16,7 @@ def test_virtual_private_gateways():
     vpn_gateway.state.should.equal('available')
     vpn_gateway.availability_zone.should.equal('us-east-1a')
 
+
 @mock_ec2_deprecated
 def test_describe_vpn_gateway():
     conn = boto.connect_vpc('the_key', 'the_secret')

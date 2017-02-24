@@ -57,11 +57,13 @@ class DomainDispatcherApplication(object):
             # Fall back to parsing auth header to find service
             # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
             try:
-                _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[1].split("/")
+                _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[
+                    1].split("/")
             except ValueError:
                 region = 'us-east-1'
                 service = 's3'
-            host = "{service}.{region}.amazonaws.com".format(service=service, region=region)
+            host = "{service}.{region}.amazonaws.com".format(
+                service=service, region=region)
 
         with self.lock:
             backend = self.get_backend_for_host(host)
@@ -78,6 +80,7 @@ class DomainDispatcherApplication(object):
 
 class RegexConverter(BaseConverter):
     # http://werkzeug.pocoo.org/docs/routing/#custom-converters
+
     def __init__(self, url_map, *items):
         super(RegexConverter, self).__init__(url_map)
         self.regex = items[0]
@@ -92,7 +95,7 @@ class AWSTestHelper(FlaskClient):
         opts = {"Action": action_name}
         opts.update(kwargs)
         res = self.get("/?{0}".format(urlencode(opts)),
-                headers={"Host": "{0}.us-east-1.amazonaws.com".format(self.application.service)})
+                       headers={"Host": "{0}.us-east-1.amazonaws.com".format(self.application.service)})
         return res.data.decode("utf-8")
 
     def action_json(self, action_name, **kwargs):
@@ -166,10 +169,12 @@ def main(argv=sys.argv[1:]):
     args = parser.parse_args(argv)
 
     # Wrap the main application
-    main_app = DomainDispatcherApplication(create_backend_app, service=args.service)
+    main_app = DomainDispatcherApplication(
+        create_backend_app, service=args.service)
     main_app.debug = True
 
-    run_simple(args.host, args.port, main_app, threaded=True, use_reloader=args.reload)
+    run_simple(args.host, args.port, main_app,
+               threaded=True, use_reloader=args.reload)
 
 
 if __name__ == '__main__':

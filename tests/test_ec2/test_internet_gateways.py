@@ -13,9 +13,10 @@ import sure  # noqa
 from moto import mock_ec2_deprecated
 
 
-VPC_CIDR="10.0.0.0/16"
-BAD_VPC="vpc-deadbeef"
-BAD_IGW="igw-deadbeef"
+VPC_CIDR = "10.0.0.0/16"
+BAD_VPC = "vpc-deadbeef"
+BAD_IGW = "igw-deadbeef"
+
 
 @mock_ec2_deprecated
 def test_igw_create():
@@ -28,7 +29,8 @@ def test_igw_create():
         igw = conn.create_internet_gateway(dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateInternetGateway operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the CreateInternetGateway operation: Request would have succeeded, but DryRun flag is set')
 
     igw = conn.create_internet_gateway()
     conn.get_all_internet_gateways().should.have.length_of(1)
@@ -36,6 +38,7 @@ def test_igw_create():
 
     igw = conn.get_all_internet_gateways()[0]
     igw.attachments.should.have.length_of(0)
+
 
 @mock_ec2_deprecated
 def test_igw_attach():
@@ -48,12 +51,14 @@ def test_igw_attach():
         conn.attach_internet_gateway(igw.id, vpc.id, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AttachInternetGateway operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the AttachInternetGateway operation: Request would have succeeded, but DryRun flag is set')
 
     conn.attach_internet_gateway(igw.id, vpc.id)
 
     igw = conn.get_all_internet_gateways()[0]
     igw.attachments[0].vpc_id.should.be.equal(vpc.id)
+
 
 @mock_ec2_deprecated
 def test_igw_attach_bad_vpc():
@@ -66,6 +71,7 @@ def test_igw_attach_bad_vpc():
     cm.exception.code.should.equal('InvalidVpcID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
 
 @mock_ec2_deprecated
 def test_igw_attach_twice():
@@ -82,6 +88,7 @@ def test_igw_attach_twice():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
 @mock_ec2_deprecated
 def test_igw_detach():
     """ internet gateway detach"""
@@ -94,11 +101,13 @@ def test_igw_detach():
         conn.detach_internet_gateway(igw.id, vpc.id, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DetachInternetGateway operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the DetachInternetGateway operation: Request would have succeeded, but DryRun flag is set')
 
     conn.detach_internet_gateway(igw.id, vpc.id)
     igw = conn.get_all_internet_gateways()[0]
     igw.attachments.should.have.length_of(0)
+
 
 @mock_ec2_deprecated
 def test_igw_detach_wrong_vpc():
@@ -115,6 +124,7 @@ def test_igw_detach_wrong_vpc():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
 @mock_ec2_deprecated
 def test_igw_detach_invalid_vpc():
     """ internet gateway fail to detach w/ invalid vpc """
@@ -129,6 +139,7 @@ def test_igw_detach_invalid_vpc():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
 @mock_ec2_deprecated
 def test_igw_detach_unattached():
     """ internet gateway fail to detach unattached """
@@ -141,6 +152,7 @@ def test_igw_detach_unattached():
     cm.exception.code.should.equal('Gateway.NotAttached')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
 
 @mock_ec2_deprecated
 def test_igw_delete():
@@ -155,10 +167,12 @@ def test_igw_delete():
         conn.delete_internet_gateway(igw.id, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteInternetGateway operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the DeleteInternetGateway operation: Request would have succeeded, but DryRun flag is set')
 
     conn.delete_internet_gateway(igw.id)
     conn.get_all_internet_gateways().should.have.length_of(0)
+
 
 @mock_ec2_deprecated
 def test_igw_delete_attached():
@@ -174,6 +188,7 @@ def test_igw_delete_attached():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+
 @mock_ec2_deprecated
 def test_igw_desribe():
     """ internet gateway fetch by id """
@@ -181,6 +196,7 @@ def test_igw_desribe():
     igw = conn.create_internet_gateway()
     igw_by_search = conn.get_all_internet_gateways([igw.id])[0]
     igw.id.should.equal(igw_by_search.id)
+
 
 @mock_ec2_deprecated
 def test_igw_desribe_bad_id():
@@ -203,7 +219,8 @@ def test_igw_filter_by_vpc_id():
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw1.id, vpc.id)
 
-    result = conn.get_all_internet_gateways(filters={"attachment.vpc-id": vpc.id})
+    result = conn.get_all_internet_gateways(
+        filters={"attachment.vpc-id": vpc.id})
     result.should.have.length_of(1)
     result[0].id.should.equal(igw1.id)
 
@@ -230,7 +247,8 @@ def test_igw_filter_by_internet_gateway_id():
     igw1 = conn.create_internet_gateway()
     igw2 = conn.create_internet_gateway()
 
-    result = conn.get_all_internet_gateways(filters={"internet-gateway-id": igw1.id})
+    result = conn.get_all_internet_gateways(
+        filters={"internet-gateway-id": igw1.id})
     result.should.have.length_of(1)
     result[0].id.should.equal(igw1.id)
 
@@ -245,6 +263,7 @@ def test_igw_filter_by_attachment_state():
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw1.id, vpc.id)
 
-    result = conn.get_all_internet_gateways(filters={"attachment.state": "available"})
+    result = conn.get_all_internet_gateways(
+        filters={"attachment.state": "available"})
     result.should.have.length_of(1)
     result[0].id.should.equal(igw1.id)

@@ -14,6 +14,7 @@ class OpsworkInstance(object):
     This metadata exists before any instance reservations are made, and is
     used to populate a reservation request when "start" is called
     """
+
     def __init__(self, stack_id, layer_ids, instance_type, ec2_backend,
                  auto_scale_type=None,
                  hostname=None,
@@ -154,8 +155,10 @@ class OpsworkInstance(object):
             d.update({"ReportedAgentVersion": "2425-20160406102508 (fixed)"})
             d.update({"RootDeviceVolumeId": "vol-a20e450a (fixed)"})
             if self.ssh_keyname is not None:
-                d.update({"SshHostDsaKeyFingerprint": "24:36:32:fe:d8:5f:9c:18:b1:ad:37:e9:eb:e8:69:58 (fixed)"})
-                d.update({"SshHostRsaKeyFingerprint": "3c:bd:37:52:d7:ca:67:e1:6e:4b:ac:31:86:79:f5:6c (fixed)"})
+                d.update(
+                    {"SshHostDsaKeyFingerprint": "24:36:32:fe:d8:5f:9c:18:b1:ad:37:e9:eb:e8:69:58 (fixed)"})
+                d.update(
+                    {"SshHostRsaKeyFingerprint": "3c:bd:37:52:d7:ca:67:e1:6e:4b:ac:31:86:79:f5:6c (fixed)"})
             d.update({"PrivateDns": self.instance.private_dns})
             d.update({"PrivateIp": self.instance.private_ip})
             d.update({"PublicDns": getattr(self.instance, 'public_dns', None)})
@@ -164,6 +167,7 @@ class OpsworkInstance(object):
 
 
 class Layer(object):
+
     def __init__(self, stack_id, type, name, shortname,
                  attributes=None,
                  custom_instance_profile_arn=None,
@@ -283,11 +287,13 @@ class Layer(object):
         if self.custom_json is not None:
             d.update({"CustomJson": self.custom_json})
         if self.custom_instance_profile_arn is not None:
-            d.update({"CustomInstanceProfileArn": self.custom_instance_profile_arn})
+            d.update(
+                {"CustomInstanceProfileArn": self.custom_instance_profile_arn})
         return d
 
 
 class Stack(object):
+
     def __init__(self, name, region, service_role_arn, default_instance_profile_arn,
                  vpcid="vpc-1f99bf7a",
                  attributes=None,
@@ -393,6 +399,7 @@ class Stack(object):
 
 
 class OpsWorksBackend(BaseBackend):
+
     def __init__(self, ec2_backend):
         self.stacks = {}
         self.layers = {}
@@ -457,9 +464,12 @@ class OpsWorksBackend(BaseBackend):
         kwargs.setdefault("subnet_id", stack.default_subnet_id)
         kwargs.setdefault("root_device_type", stack.default_root_device_type)
         if layer.custom_instance_profile_arn:
-            kwargs.setdefault("instance_profile_arn", layer.custom_instance_profile_arn)
-        kwargs.setdefault("instance_profile_arn", stack.default_instance_profile_arn)
-        kwargs.setdefault("security_group_ids", layer.custom_security_group_ids)
+            kwargs.setdefault("instance_profile_arn",
+                              layer.custom_instance_profile_arn)
+        kwargs.setdefault("instance_profile_arn",
+                          stack.default_instance_profile_arn)
+        kwargs.setdefault("security_group_ids",
+                          layer.custom_security_group_ids)
         kwargs.setdefault("associate_public_ip", layer.auto_assign_public_ips)
         kwargs.setdefault("ebs_optimized", layer.use_ebs_optimized_instances)
         kwargs.update({"ec2_backend": self.ec2_backend})
@@ -507,14 +517,16 @@ class OpsWorksBackend(BaseBackend):
             if layer_id not in self.layers:
                 raise ResourceNotFoundException(
                     "Unable to find layer with ID {0}".format(layer_id))
-            instances = [i.to_dict() for i in self.instances.values() if layer_id in i.layer_ids]
+            instances = [i.to_dict() for i in self.instances.values()
+                         if layer_id in i.layer_ids]
             return instances
 
         if stack_id:
             if stack_id not in self.stacks:
                 raise ResourceNotFoundException(
                     "Unable to find stack with ID {0}".format(stack_id))
-            instances = [i.to_dict() for i in self.instances.values() if stack_id==i.stack_id]
+            instances = [i.to_dict() for i in self.instances.values()
+                         if stack_id == i.stack_id]
             return instances
 
     def start_instance(self, instance_id):

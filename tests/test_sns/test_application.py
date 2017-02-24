@@ -17,8 +17,10 @@ def test_create_platform_application():
             "PlatformPrincipal": "platform_principal",
         },
     )
-    application_arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
-    application_arn.should.equal('arn:aws:sns:us-east-1:123456789012:app/APNS/my-application')
+    application_arn = platform_application['CreatePlatformApplicationResponse'][
+        'CreatePlatformApplicationResult']['PlatformApplicationArn']
+    application_arn.should.equal(
+        'arn:aws:sns:us-east-1:123456789012:app/APNS/my-application')
 
 
 @mock_sns_deprecated
@@ -32,8 +34,10 @@ def test_get_platform_application_attributes():
             "PlatformPrincipal": "platform_principal",
         },
     )
-    arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
-    attributes = conn.get_platform_application_attributes(arn)['GetPlatformApplicationAttributesResponse']['GetPlatformApplicationAttributesResult']['Attributes']
+    arn = platform_application['CreatePlatformApplicationResponse'][
+        'CreatePlatformApplicationResult']['PlatformApplicationArn']
+    attributes = conn.get_platform_application_attributes(arn)['GetPlatformApplicationAttributesResponse'][
+        'GetPlatformApplicationAttributesResult']['Attributes']
     attributes.should.equal({
         "PlatformCredential": "platform_credential",
         "PlatformPrincipal": "platform_principal",
@@ -43,7 +47,8 @@ def test_get_platform_application_attributes():
 @mock_sns_deprecated
 def test_get_missing_platform_application_attributes():
     conn = boto.connect_sns()
-    conn.get_platform_application_attributes.when.called_with("a-fake-arn").should.throw(BotoServerError)
+    conn.get_platform_application_attributes.when.called_with(
+        "a-fake-arn").should.throw(BotoServerError)
 
 
 @mock_sns_deprecated
@@ -57,11 +62,13 @@ def test_set_platform_application_attributes():
             "PlatformPrincipal": "platform_principal",
         },
     )
-    arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
+    arn = platform_application['CreatePlatformApplicationResponse'][
+        'CreatePlatformApplicationResult']['PlatformApplicationArn']
     conn.set_platform_application_attributes(arn,
-        {"PlatformPrincipal": "other"}
-    )
-    attributes = conn.get_platform_application_attributes(arn)['GetPlatformApplicationAttributesResponse']['GetPlatformApplicationAttributesResult']['Attributes']
+                                             {"PlatformPrincipal": "other"}
+                                             )
+    attributes = conn.get_platform_application_attributes(arn)['GetPlatformApplicationAttributesResponse'][
+        'GetPlatformApplicationAttributesResult']['Attributes']
     attributes.should.equal({
         "PlatformCredential": "platform_credential",
         "PlatformPrincipal": "other",
@@ -81,7 +88,8 @@ def test_list_platform_applications():
     )
 
     applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse['ListPlatformApplicationsResponse']['ListPlatformApplicationsResult']['PlatformApplications']
+    applications = applications_repsonse['ListPlatformApplicationsResponse'][
+        'ListPlatformApplicationsResult']['PlatformApplications']
     applications.should.have.length_of(2)
 
 
@@ -98,14 +106,16 @@ def test_delete_platform_application():
     )
 
     applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse['ListPlatformApplicationsResponse']['ListPlatformApplicationsResult']['PlatformApplications']
+    applications = applications_repsonse['ListPlatformApplicationsResponse'][
+        'ListPlatformApplicationsResult']['PlatformApplications']
     applications.should.have.length_of(2)
 
     application_arn = applications[0]['PlatformApplicationArn']
     conn.delete_platform_application(application_arn)
 
     applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse['ListPlatformApplicationsResponse']['ListPlatformApplicationsResult']['PlatformApplications']
+    applications = applications_repsonse['ListPlatformApplicationsResponse'][
+        'ListPlatformApplicationsResult']['PlatformApplications']
     applications.should.have.length_of(1)
 
 
@@ -116,7 +126,8 @@ def test_create_platform_endpoint():
         name="my-application",
         platform="APNS",
     )
-    application_arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
+    application_arn = platform_application['CreatePlatformApplicationResponse'][
+        'CreatePlatformApplicationResult']['PlatformApplicationArn']
 
     endpoint = conn.create_platform_endpoint(
         platform_application_arn=application_arn,
@@ -127,8 +138,10 @@ def test_create_platform_endpoint():
         },
     )
 
-    endpoint_arn = endpoint['CreatePlatformEndpointResponse']['CreatePlatformEndpointResult']['EndpointArn']
-    endpoint_arn.should.contain("arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application/")
+    endpoint_arn = endpoint['CreatePlatformEndpointResponse'][
+        'CreatePlatformEndpointResult']['EndpointArn']
+    endpoint_arn.should.contain(
+        "arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application/")
 
 
 @mock_sns_deprecated
@@ -138,7 +151,8 @@ def test_get_list_endpoints_by_platform_application():
         name="my-application",
         platform="APNS",
     )
-    application_arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
+    application_arn = platform_application['CreatePlatformApplicationResponse'][
+        'CreatePlatformApplicationResult']['PlatformApplicationArn']
 
     endpoint = conn.create_platform_endpoint(
         platform_application_arn=application_arn,
@@ -148,7 +162,8 @@ def test_get_list_endpoints_by_platform_application():
             "CustomUserData": "some data",
         },
     )
-    endpoint_arn = endpoint['CreatePlatformEndpointResponse']['CreatePlatformEndpointResult']['EndpointArn']
+    endpoint_arn = endpoint['CreatePlatformEndpointResponse'][
+        'CreatePlatformEndpointResult']['EndpointArn']
 
     endpoint_list = conn.list_endpoints_by_platform_application(
         platform_application_arn=application_arn
@@ -166,7 +181,8 @@ def test_get_endpoint_attributes():
         name="my-application",
         platform="APNS",
     )
-    application_arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
+    application_arn = platform_application['CreatePlatformApplicationResponse'][
+        'CreatePlatformApplicationResult']['PlatformApplicationArn']
 
     endpoint = conn.create_platform_endpoint(
         platform_application_arn=application_arn,
@@ -177,9 +193,11 @@ def test_get_endpoint_attributes():
             "CustomUserData": "some data",
         },
     )
-    endpoint_arn = endpoint['CreatePlatformEndpointResponse']['CreatePlatformEndpointResult']['EndpointArn']
+    endpoint_arn = endpoint['CreatePlatformEndpointResponse'][
+        'CreatePlatformEndpointResult']['EndpointArn']
 
-    attributes = conn.get_endpoint_attributes(endpoint_arn)['GetEndpointAttributesResponse']['GetEndpointAttributesResult']['Attributes']
+    attributes = conn.get_endpoint_attributes(endpoint_arn)['GetEndpointAttributesResponse'][
+        'GetEndpointAttributesResult']['Attributes']
     attributes.should.equal({
         "Token": "some_unique_id",
         "Enabled": 'False',
@@ -190,7 +208,8 @@ def test_get_endpoint_attributes():
 @mock_sns_deprecated
 def test_get_missing_endpoint_attributes():
     conn = boto.connect_sns()
-    conn.get_endpoint_attributes.when.called_with("a-fake-arn").should.throw(BotoServerError)
+    conn.get_endpoint_attributes.when.called_with(
+        "a-fake-arn").should.throw(BotoServerError)
 
 
 @mock_sns_deprecated
@@ -200,7 +219,8 @@ def test_set_endpoint_attributes():
         name="my-application",
         platform="APNS",
     )
-    application_arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
+    application_arn = platform_application['CreatePlatformApplicationResponse'][
+        'CreatePlatformApplicationResult']['PlatformApplicationArn']
 
     endpoint = conn.create_platform_endpoint(
         platform_application_arn=application_arn,
@@ -211,12 +231,14 @@ def test_set_endpoint_attributes():
             "CustomUserData": "some data",
         },
     )
-    endpoint_arn = endpoint['CreatePlatformEndpointResponse']['CreatePlatformEndpointResult']['EndpointArn']
+    endpoint_arn = endpoint['CreatePlatformEndpointResponse'][
+        'CreatePlatformEndpointResult']['EndpointArn']
 
     conn.set_endpoint_attributes(endpoint_arn,
-        {"CustomUserData": "other data"}
-    )
-    attributes = conn.get_endpoint_attributes(endpoint_arn)['GetEndpointAttributesResponse']['GetEndpointAttributesResult']['Attributes']
+                                 {"CustomUserData": "other data"}
+                                 )
+    attributes = conn.get_endpoint_attributes(endpoint_arn)['GetEndpointAttributesResponse'][
+        'GetEndpointAttributesResult']['Attributes']
     attributes.should.equal({
         "Token": "some_unique_id",
         "Enabled": 'False',
@@ -231,7 +253,8 @@ def test_delete_endpoint():
         name="my-application",
         platform="APNS",
     )
-    application_arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
+    application_arn = platform_application['CreatePlatformApplicationResponse'][
+        'CreatePlatformApplicationResult']['PlatformApplicationArn']
 
     endpoint = conn.create_platform_endpoint(
         platform_application_arn=application_arn,
@@ -242,7 +265,8 @@ def test_delete_endpoint():
             "CustomUserData": "some data",
         },
     )
-    endpoint_arn = endpoint['CreatePlatformEndpointResponse']['CreatePlatformEndpointResult']['EndpointArn']
+    endpoint_arn = endpoint['CreatePlatformEndpointResponse'][
+        'CreatePlatformEndpointResult']['EndpointArn']
 
     endpoint_list = conn.list_endpoints_by_platform_application(
         platform_application_arn=application_arn
@@ -265,7 +289,8 @@ def test_publish_to_platform_endpoint():
         name="my-application",
         platform="APNS",
     )
-    application_arn = platform_application['CreatePlatformApplicationResponse']['CreatePlatformApplicationResult']['PlatformApplicationArn']
+    application_arn = platform_application['CreatePlatformApplicationResponse'][
+        'CreatePlatformApplicationResult']['PlatformApplicationArn']
 
     endpoint = conn.create_platform_endpoint(
         platform_application_arn=application_arn,
@@ -276,6 +301,8 @@ def test_publish_to_platform_endpoint():
         },
     )
 
-    endpoint_arn = endpoint['CreatePlatformEndpointResponse']['CreatePlatformEndpointResult']['EndpointArn']
+    endpoint_arn = endpoint['CreatePlatformEndpointResponse'][
+        'CreatePlatformEndpointResult']['EndpointArn']
 
-    conn.publish(message="some message", message_structure="json", target_arn=endpoint_arn)
+    conn.publish(message="some message", message_structure="json",
+                 target_arn=endpoint_arn)

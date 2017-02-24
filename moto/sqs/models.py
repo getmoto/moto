@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import hashlib
-import time
 import re
 from xml.sax.saxutils import escape
 
@@ -18,7 +17,9 @@ from .exceptions import (
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
+
 class Message(object):
+
     def __init__(self, message_id, body):
         self.id = message_id
         self._body = body
@@ -122,7 +123,8 @@ class Queue(object):
         self.last_modified_timestamp = now
         self.maximum_message_size = 64 << 10
         self.message_retention_period = 86400 * 4  # four days
-        self.queue_arn = 'arn:aws:sqs:{0}:123456789012:{1}'.format(self.region, self.name)
+        self.queue_arn = 'arn:aws:sqs:{0}:123456789012:{1}'.format(
+            self.region, self.name)
         self.receive_message_wait_time_seconds = 0
 
     @classmethod
@@ -177,7 +179,8 @@ class Queue(object):
     def attributes(self):
         result = {}
         for attribute in self.camelcase_attributes:
-            result[attribute] = getattr(self, camelcase_to_underscores(attribute))
+            result[attribute] = getattr(
+                self, camelcase_to_underscores(attribute))
         return result
 
     @property
@@ -201,6 +204,7 @@ class Queue(object):
 
 
 class SQSBackend(BaseBackend):
+
     def __init__(self, region_name):
         self.region_name = region_name
         self.queues = {}
@@ -214,7 +218,8 @@ class SQSBackend(BaseBackend):
     def create_queue(self, name, visibility_timeout, wait_time_seconds):
         queue = self.queues.get(name)
         if queue is None:
-            queue = Queue(name, visibility_timeout, wait_time_seconds, self.region_name)
+            queue = Queue(name, visibility_timeout,
+                          wait_time_seconds, self.region_name)
             self.queues[name] = queue
         return queue
 

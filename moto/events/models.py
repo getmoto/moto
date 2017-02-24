@@ -53,7 +53,8 @@ class EventsBackend(BaseBackend):
 
     def __init__(self):
         self.rules = {}
-        # This array tracks the order in which the rules have been added, since 2.6 doesn't have OrderedDicts.
+        # This array tracks the order in which the rules have been added, since
+        # 2.6 doesn't have OrderedDicts.
         self.rules_order = []
         self.next_tokens = {}
 
@@ -106,7 +107,8 @@ class EventsBackend(BaseBackend):
         matching_rules = []
         return_obj = {}
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(len(self.rules), next_token, limit)
+        start_index, end_index, new_next_token = self._process_token_and_limits(
+            len(self.rules), next_token, limit)
 
         for i in range(start_index, end_index):
             rule = self._get_rule_by_index(i)
@@ -130,7 +132,8 @@ class EventsBackend(BaseBackend):
         matching_rules = []
         return_obj = {}
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(len(self.rules), next_token, limit)
+        start_index, end_index, new_next_token = self._process_token_and_limits(
+            len(self.rules), next_token, limit)
 
         for i in range(start_index, end_index):
             rule = self._get_rule_by_index(i)
@@ -144,10 +147,12 @@ class EventsBackend(BaseBackend):
         return return_obj
 
     def list_targets_by_rule(self, rule, next_token=None, limit=None):
-        # We'll let a KeyError exception be thrown for response to handle if rule doesn't exist.
+        # We'll let a KeyError exception be thrown for response to handle if
+        # rule doesn't exist.
         rule = self.rules[rule]
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(len(rule.targets), next_token, limit)
+        start_index, end_index, new_next_token = self._process_token_and_limits(
+            len(rule.targets), next_token, limit)
 
         returned_targets = []
         return_obj = {}
@@ -187,5 +192,6 @@ class EventsBackend(BaseBackend):
 
     def test_event_pattern(self):
         raise NotImplementedError()
+
 
 events_backend = EventsBackend()

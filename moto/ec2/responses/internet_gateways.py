@@ -7,6 +7,7 @@ from moto.ec2.utils import (
 
 
 class InternetGateways(BaseResponse):
+
     def attach_internet_gateway(self):
         igw_id = self.querystring.get("InternetGatewayId", [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
@@ -33,9 +34,11 @@ class InternetGateways(BaseResponse):
         if "InternetGatewayId.1" in self.querystring:
             igw_ids = sequence_from_querystring(
                 "InternetGatewayId", self.querystring)
-            igws = self.ec2_backend.describe_internet_gateways(igw_ids, filters=filter_dict)
+            igws = self.ec2_backend.describe_internet_gateways(
+                igw_ids, filters=filter_dict)
         else:
-            igws = self.ec2_backend.describe_internet_gateways(filters=filter_dict)
+            igws = self.ec2_backend.describe_internet_gateways(
+                filters=filter_dict)
 
         template = self.response_template(DESCRIBE_INTERNET_GATEWAYS_RESPONSE)
         return template.render(internet_gateways=igws)

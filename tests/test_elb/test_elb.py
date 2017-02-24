@@ -20,6 +20,7 @@ import sure  # noqa
 
 from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
 
+
 @mock_elb_deprecated
 def test_create_load_balancer():
     conn = boto.connect_elb()
@@ -32,7 +33,8 @@ def test_create_load_balancer():
     balancer = balancers[0]
     balancer.name.should.equal("my-lb")
     balancer.scheme.should.equal("internal")
-    set(balancer.availability_zones).should.equal(set(['us-east-1a', 'us-east-1b']))
+    set(balancer.availability_zones).should.equal(
+        set(['us-east-1a', 'us-east-1b']))
     listener1 = balancer.listeners[0]
     listener1.load_balancer_port.should.equal(80)
     listener1.instance_port.should.equal(8080)
@@ -46,7 +48,8 @@ def test_create_load_balancer():
 @mock_elb_deprecated
 def test_getting_missing_elb():
     conn = boto.connect_elb()
-    conn.get_all_load_balancers.when.called_with(load_balancer_names='aaa').should.throw(BotoServerError)
+    conn.get_all_load_balancers.when.called_with(
+        load_balancer_names='aaa').should.throw(BotoServerError)
 
 
 @mock_elb_deprecated
@@ -63,12 +66,14 @@ def test_create_elb_in_multiple_region():
     list(west1_conn.get_all_load_balancers()).should.have.length_of(1)
     list(west2_conn.get_all_load_balancers()).should.have.length_of(1)
 
+
 @mock_elb_deprecated
 def test_create_load_balancer_with_certificate():
     conn = boto.connect_elb()
 
     zones = ['us-east-1a']
-    ports = [(443, 8443, 'https', 'arn:aws:iam:123456789012:server-certificate/test-cert')]
+    ports = [
+        (443, 8443, 'https', 'arn:aws:iam:123456789012:server-certificate/test-cert')]
     conn.create_load_balancer('my-lb', zones, ports)
 
     balancers = conn.get_all_load_balancers()
@@ -80,7 +85,8 @@ def test_create_load_balancer_with_certificate():
     listener.load_balancer_port.should.equal(443)
     listener.instance_port.should.equal(8443)
     listener.protocol.should.equal("HTTPS")
-    listener.ssl_certificate_id.should.equal('arn:aws:iam:123456789012:server-certificate/test-cert')
+    listener.ssl_certificate_id.should.equal(
+        'arn:aws:iam:123456789012:server-certificate/test-cert')
 
 
 @mock_elb
@@ -89,15 +95,19 @@ def test_create_and_delete_boto3_support():
 
     client.create_load_balancer(
         LoadBalancerName='my-lb',
-        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
         AvailabilityZones=['us-east-1a', 'us-east-1b']
     )
-    list(client.describe_load_balancers()['LoadBalancerDescriptions']).should.have.length_of(1)
+    list(client.describe_load_balancers()[
+         'LoadBalancerDescriptions']).should.have.length_of(1)
 
     client.delete_load_balancer(
         LoadBalancerName='my-lb'
     )
-    list(client.describe_load_balancers()['LoadBalancerDescriptions']).should.have.length_of(0)
+    list(client.describe_load_balancers()[
+         'LoadBalancerDescriptions']).should.have.length_of(0)
+
 
 @mock_elb_deprecated
 def test_add_listener():
@@ -142,23 +152,32 @@ def test_create_and_delete_listener_boto3_support():
 
     client.create_load_balancer(
         LoadBalancerName='my-lb',
-        Listeners=[{'Protocol':'http', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Listeners=[{'Protocol': 'http',
+                    'LoadBalancerPort': 80, 'InstancePort': 8080}],
         AvailabilityZones=['us-east-1a', 'us-east-1b']
     )
-    list(client.describe_load_balancers()['LoadBalancerDescriptions']).should.have.length_of(1)
+    list(client.describe_load_balancers()[
+         'LoadBalancerDescriptions']).should.have.length_of(1)
 
     client.create_load_balancer_listeners(
         LoadBalancerName='my-lb',
-        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':443, 'InstancePort':8443}]
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 443, 'InstancePort': 8443}]
     )
     balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
     list(balancer['ListenerDescriptions']).should.have.length_of(2)
-    balancer['ListenerDescriptions'][0]['Listener']['Protocol'].should.equal('HTTP')
-    balancer['ListenerDescriptions'][0]['Listener']['LoadBalancerPort'].should.equal(80)
-    balancer['ListenerDescriptions'][0]['Listener']['InstancePort'].should.equal(8080)
-    balancer['ListenerDescriptions'][1]['Listener']['Protocol'].should.equal('TCP')
-    balancer['ListenerDescriptions'][1]['Listener']['LoadBalancerPort'].should.equal(443)
-    balancer['ListenerDescriptions'][1]['Listener']['InstancePort'].should.equal(8443)
+    balancer['ListenerDescriptions'][0][
+        'Listener']['Protocol'].should.equal('HTTP')
+    balancer['ListenerDescriptions'][0]['Listener'][
+        'LoadBalancerPort'].should.equal(80)
+    balancer['ListenerDescriptions'][0]['Listener'][
+        'InstancePort'].should.equal(8080)
+    balancer['ListenerDescriptions'][1][
+        'Listener']['Protocol'].should.equal('TCP')
+    balancer['ListenerDescriptions'][1]['Listener'][
+        'LoadBalancerPort'].should.equal(443)
+    balancer['ListenerDescriptions'][1]['Listener'][
+        'InstancePort'].should.equal(8443)
 
 
 @mock_elb_deprecated
@@ -189,8 +208,10 @@ def test_get_load_balancers_by_name():
     conn.create_load_balancer('my-lb3', zones, ports)
 
     conn.get_all_load_balancers().should.have.length_of(3)
-    conn.get_all_load_balancers(load_balancer_names=['my-lb1']).should.have.length_of(1)
-    conn.get_all_load_balancers(load_balancer_names=['my-lb1', 'my-lb2']).should.have.length_of(2)
+    conn.get_all_load_balancers(
+        load_balancer_names=['my-lb1']).should.have.length_of(1)
+    conn.get_all_load_balancers(
+        load_balancer_names=['my-lb1', 'my-lb2']).should.have.length_of(2)
 
 
 @mock_elb_deprecated
@@ -240,7 +261,8 @@ def test_create_health_check_boto3():
 
     client.create_load_balancer(
         LoadBalancerName='my-lb',
-        Listeners=[{'Protocol':'http', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Listeners=[{'Protocol': 'http',
+                    'LoadBalancerPort': 80, 'InstancePort': 8080}],
         AvailabilityZones=['us-east-1a', 'us-east-1b']
     )
     client.configure_health_check(
@@ -285,14 +307,16 @@ def test_register_instances():
 @mock_elb
 def test_register_instances_boto3():
     ec2 = boto3.resource('ec2', region_name='us-east-1')
-    response = ec2.create_instances(ImageId='ami-1234abcd', MinCount=2, MaxCount=2)
+    response = ec2.create_instances(
+        ImageId='ami-1234abcd', MinCount=2, MaxCount=2)
     instance_id1 = response[0].id
     instance_id2 = response[1].id
 
     client = boto3.client('elb', region_name='us-east-1')
     client.create_load_balancer(
         LoadBalancerName='my-lb',
-        Listeners=[{'Protocol':'http', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Listeners=[{'Protocol': 'http',
+                    'LoadBalancerPort': 80, 'InstancePort': 8080}],
         AvailabilityZones=['us-east-1a', 'us-east-1b']
     )
     client.register_instances_with_load_balancer(
@@ -303,7 +327,8 @@ def test_register_instances_boto3():
         ]
     )
     balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
-    instance_ids = [instance['InstanceId'] for instance in balancer['Instances']]
+    instance_ids = [instance['InstanceId']
+                    for instance in balancer['Instances']]
     set(instance_ids).should.equal(set([instance_id1, instance_id2]))
 
 
@@ -328,18 +353,21 @@ def test_deregister_instances():
     balancer.instances.should.have.length_of(1)
     balancer.instances[0].id.should.equal(instance_id2)
 
+
 @mock_ec2
 @mock_elb
 def test_deregister_instances_boto3():
     ec2 = boto3.resource('ec2', region_name='us-east-1')
-    response = ec2.create_instances(ImageId='ami-1234abcd', MinCount=2, MaxCount=2)
+    response = ec2.create_instances(
+        ImageId='ami-1234abcd', MinCount=2, MaxCount=2)
     instance_id1 = response[0].id
     instance_id2 = response[1].id
 
     client = boto3.client('elb', region_name='us-east-1')
     client.create_load_balancer(
         LoadBalancerName='my-lb',
-        Listeners=[{'Protocol':'http', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Listeners=[{'Protocol': 'http',
+                    'LoadBalancerPort': 80, 'InstancePort': 8080}],
         AvailabilityZones=['us-east-1a', 'us-east-1b']
     )
     client.register_instances_with_load_balancer(
@@ -403,18 +431,21 @@ def test_connection_draining_attribute():
     connection_draining.enabled = True
     connection_draining.timeout = 60
 
-    conn.modify_lb_attribute("my-lb", "ConnectionDraining", connection_draining)
+    conn.modify_lb_attribute(
+        "my-lb", "ConnectionDraining", connection_draining)
     attributes = lb.get_attributes(force=True)
     attributes.connection_draining.enabled.should.be.true
     attributes.connection_draining.timeout.should.equal(60)
 
     connection_draining.timeout = 30
-    conn.modify_lb_attribute("my-lb", "ConnectionDraining", connection_draining)
+    conn.modify_lb_attribute(
+        "my-lb", "ConnectionDraining", connection_draining)
     attributes = lb.get_attributes(force=True)
     attributes.connection_draining.timeout.should.equal(30)
 
     connection_draining.enabled = False
-    conn.modify_lb_attribute("my-lb", "ConnectionDraining", connection_draining)
+    conn.modify_lb_attribute(
+        "my-lb", "ConnectionDraining", connection_draining)
     attributes = lb.get_attributes(force=True)
     attributes.connection_draining.enabled.should.be.false
 
@@ -453,14 +484,17 @@ def test_connection_settings_attribute():
     connection_settings = ConnectionSettingAttribute(conn)
     connection_settings.idle_timeout = 120
 
-    conn.modify_lb_attribute("my-lb", "ConnectingSettings", connection_settings)
+    conn.modify_lb_attribute(
+        "my-lb", "ConnectingSettings", connection_settings)
     attributes = lb.get_attributes(force=True)
     attributes.connecting_settings.idle_timeout.should.equal(120)
 
     connection_settings.idle_timeout = 60
-    conn.modify_lb_attribute("my-lb", "ConnectingSettings", connection_settings)
+    conn.modify_lb_attribute(
+        "my-lb", "ConnectingSettings", connection_settings)
     attributes = lb.get_attributes(force=True)
     attributes.connecting_settings.idle_timeout.should.equal(60)
+
 
 @mock_elb_deprecated
 def test_create_lb_cookie_stickiness_policy():
@@ -478,9 +512,13 @@ def test_create_lb_cookie_stickiness_policy():
     # documentation to be a long numeric.
     #
     # To work around that, this value is converted to an int and checked.
-    cookie_expiration_period_response_str = lb.policies.lb_cookie_stickiness_policies[0].cookie_expiration_period
-    int(cookie_expiration_period_response_str).should.equal(cookie_expiration_period)
-    lb.policies.lb_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
+    cookie_expiration_period_response_str = lb.policies.lb_cookie_stickiness_policies[
+        0].cookie_expiration_period
+    int(cookie_expiration_period_response_str).should.equal(
+        cookie_expiration_period)
+    lb.policies.lb_cookie_stickiness_policies[
+        0].policy_name.should.equal(policy_name)
+
 
 @mock_elb_deprecated
 def test_create_lb_cookie_stickiness_policy_no_expiry():
@@ -492,8 +530,11 @@ def test_create_lb_cookie_stickiness_policy_no_expiry():
     lb.create_cookie_stickiness_policy(None, policy_name)
 
     lb = conn.get_all_load_balancers()[0]
-    lb.policies.lb_cookie_stickiness_policies[0].cookie_expiration_period.should.be.none
-    lb.policies.lb_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
+    lb.policies.lb_cookie_stickiness_policies[
+        0].cookie_expiration_period.should.be.none
+    lb.policies.lb_cookie_stickiness_policies[
+        0].policy_name.should.equal(policy_name)
+
 
 @mock_elb_deprecated
 def test_create_app_cookie_stickiness_policy():
@@ -506,8 +547,11 @@ def test_create_app_cookie_stickiness_policy():
     lb.create_app_cookie_stickiness_policy(cookie_name, policy_name)
 
     lb = conn.get_all_load_balancers()[0]
-    lb.policies.app_cookie_stickiness_policies[0].cookie_name.should.equal(cookie_name)
-    lb.policies.app_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
+    lb.policies.app_cookie_stickiness_policies[
+        0].cookie_name.should.equal(cookie_name)
+    lb.policies.app_cookie_stickiness_policies[
+        0].policy_name.should.equal(policy_name)
+
 
 @mock_elb_deprecated
 def test_create_lb_policy():
@@ -516,10 +560,12 @@ def test_create_lb_policy():
     lb = conn.create_load_balancer('my-lb', [], ports)
     policy_name = "ProxyPolicy"
 
-    lb.create_lb_policy(policy_name, 'ProxyProtocolPolicyType', {'ProxyProtocol': True})
+    lb.create_lb_policy(policy_name, 'ProxyProtocolPolicyType', {
+                        'ProxyProtocol': True})
 
     lb = conn.get_all_load_balancers()[0]
     lb.policies.other_policies[0].policy_name.should.equal(policy_name)
+
 
 @mock_elb_deprecated
 def test_set_policies_of_listener():
@@ -543,6 +589,7 @@ def test_set_policies_of_listener():
     # by contrast to a backend, a listener stores only policy name strings
     listener.policy_names[0].should.equal(policy_name)
 
+
 @mock_elb_deprecated
 def test_set_policies_of_backend_server():
     conn = boto.connect_elb()
@@ -553,7 +600,8 @@ def test_set_policies_of_backend_server():
 
     # in a real flow, it is necessary first to create a policy,
     # then to set that policy to the backend
-    lb.create_lb_policy(policy_name, 'ProxyProtocolPolicyType', {'ProxyProtocol': True})
+    lb.create_lb_policy(policy_name, 'ProxyProtocolPolicyType', {
+                        'ProxyProtocol': True})
     lb.set_policies_of_backend_server(instance_port, [policy_name])
 
     lb = conn.get_all_load_balancers()[0]
@@ -561,6 +609,7 @@ def test_set_policies_of_backend_server():
     backend.instance_port.should.equal(instance_port)
     # by contrast to a listener, a backend stores OtherPolicy objects
     backend.policies[0].policy_name.should.equal(policy_name)
+
 
 @mock_ec2_deprecated
 @mock_elb_deprecated
@@ -583,7 +632,8 @@ def test_describe_instance_health():
     instances_health = conn.describe_instance_health('my-lb')
     instances_health.should.have.length_of(2)
     for instance_health in instances_health:
-        instance_health.instance_id.should.be.within([instance_id1, instance_id2])
+        instance_health.instance_id.should.be.within(
+            [instance_id1, instance_id2])
         instance_health.state.should.equal('InService')
 
     instances_health = conn.describe_instance_health('my-lb', [instance_id1])
@@ -597,76 +647,78 @@ def test_add_remove_tags():
     client = boto3.client('elb', region_name='us-east-1')
 
     client.add_tags.when.called_with(LoadBalancerNames=['my-lb'],
-                    Tags=[{
-                       'Key': 'a',
-                       'Value': 'b'
-                    }]).should.throw(botocore.exceptions.ClientError)
-
+                                     Tags=[{
+                                         'Key': 'a',
+                                         'Value': 'b'
+                                     }]).should.throw(botocore.exceptions.ClientError)
 
     client.create_load_balancer(
         LoadBalancerName='my-lb',
-        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
         AvailabilityZones=['us-east-1a', 'us-east-1b']
     )
 
-    list(client.describe_load_balancers()['LoadBalancerDescriptions']).should.have.length_of(1)
+    list(client.describe_load_balancers()[
+         'LoadBalancerDescriptions']).should.have.length_of(1)
 
     client.add_tags(LoadBalancerNames=['my-lb'],
                     Tags=[{
-                       'Key': 'a',
-                       'Value': 'b'
+                        'Key': 'a',
+                        'Value': 'b'
                     }])
 
-    tags = dict([(d['Key'], d['Value']) for d in client.describe_tags(LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags']])
+    tags = dict([(d['Key'], d['Value']) for d in client.describe_tags(
+        LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags']])
     tags.should.have.key('a').which.should.equal('b')
 
     client.add_tags(LoadBalancerNames=['my-lb'],
                     Tags=[{
-                       'Key': 'a',
-                       'Value': 'b'
+                        'Key': 'a',
+                        'Value': 'b'
                     }, {
-                       'Key': 'b',
-                       'Value': 'b'
+                        'Key': 'b',
+                        'Value': 'b'
                     }, {
-                       'Key': 'c',
-                       'Value': 'b'
+                        'Key': 'c',
+                        'Value': 'b'
                     }, {
-                       'Key': 'd',
-                       'Value': 'b'
+                        'Key': 'd',
+                        'Value': 'b'
                     }, {
-                       'Key': 'e',
-                       'Value': 'b'
+                        'Key': 'e',
+                        'Value': 'b'
                     }, {
-                       'Key': 'f',
-                       'Value': 'b'
+                        'Key': 'f',
+                        'Value': 'b'
                     }, {
-                       'Key': 'g',
-                       'Value': 'b'
+                        'Key': 'g',
+                        'Value': 'b'
                     }, {
-                       'Key': 'h',
-                       'Value': 'b'
+                        'Key': 'h',
+                        'Value': 'b'
                     }, {
-                       'Key': 'i',
-                       'Value': 'b'
+                        'Key': 'i',
+                        'Value': 'b'
                     }, {
-                       'Key': 'j',
-                       'Value': 'b'
+                        'Key': 'j',
+                        'Value': 'b'
                     }])
 
     client.add_tags.when.called_with(LoadBalancerNames=['my-lb'],
-                    Tags=[{
-                       'Key': 'k',
-                       'Value': 'b'
-                    }]).should.throw(botocore.exceptions.ClientError)
+                                     Tags=[{
+                                         'Key': 'k',
+                                         'Value': 'b'
+                                     }]).should.throw(botocore.exceptions.ClientError)
 
     client.add_tags(LoadBalancerNames=['my-lb'],
                     Tags=[{
-                       'Key': 'j',
-                       'Value': 'c'
+                        'Key': 'j',
+                        'Value': 'c'
                     }])
 
-
-    tags = dict([(d['Key'], d['Value']) for d in client.describe_tags(LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags']])
+    tags = dict([(d['Key'], d['Value']) for d in client.describe_tags(
+        LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags']])
 
     tags.should.have.key('a').which.should.equal('b')
     tags.should.have.key('b').which.should.equal('b')
@@ -681,11 +733,12 @@ def test_add_remove_tags():
     tags.shouldnt.have.key('k')
 
     client.remove_tags(LoadBalancerNames=['my-lb'],
-                    Tags=[{
-                       'Key': 'a'
-                    }])
+                       Tags=[{
+                           'Key': 'a'
+                       }])
 
-    tags = dict([(d['Key'], d['Value']) for d in client.describe_tags(LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags']])
+    tags = dict([(d['Key'], d['Value']) for d in client.describe_tags(
+        LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags']])
 
     tags.shouldnt.have.key('a')
     tags.should.have.key('b').which.should.equal('b')
@@ -698,17 +751,17 @@ def test_add_remove_tags():
     tags.should.have.key('i').which.should.equal('b')
     tags.should.have.key('j').which.should.equal('c')
 
-
     client.create_load_balancer(
         LoadBalancerName='other-lb',
-        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':433, 'InstancePort':8433}],
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 433, 'InstancePort': 8433}],
         AvailabilityZones=['us-east-1a', 'us-east-1b']
     )
 
     client.add_tags(LoadBalancerNames=['other-lb'],
                     Tags=[{
-                       'Key': 'other',
-                       'Value': 'something'
+                        'Key': 'other',
+                        'Value': 'something'
                     }])
 
     lb_tags = dict([(l['LoadBalancerName'], dict([(d['Key'], d['Value']) for d in l['Tags']]))
@@ -718,7 +771,8 @@ def test_add_remove_tags():
     lb_tags.should.have.key('other-lb')
 
     lb_tags['my-lb'].shouldnt.have.key('other')
-    lb_tags['other-lb'].should.have.key('other').which.should.equal('something')
+    lb_tags[
+        'other-lb'].should.have.key('other').which.should.equal('something')
 
 
 @mock_elb
@@ -727,15 +781,17 @@ def test_create_with_tags():
 
     client.create_load_balancer(
         LoadBalancerName='my-lb',
-        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
         AvailabilityZones=['us-east-1a', 'us-east-1b'],
         Tags=[{
-           'Key': 'k',
-           'Value': 'v'
+            'Key': 'k',
+            'Value': 'v'
         }]
     )
 
-    tags = dict((d['Key'], d['Value']) for d in client.describe_tags(LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags'])
+    tags = dict((d['Key'], d['Value']) for d in client.describe_tags(
+        LoadBalancerNames=['my-lb'])['TagDescriptions'][0]['Tags'])
     tags.should.have.key('k').which.should.equal('v')
 
 
@@ -754,7 +810,8 @@ def test_subnets():
     client = boto3.client('elb', region_name='us-east-1')
     client.create_load_balancer(
         LoadBalancerName='my-lb',
-        Listeners=[{'Protocol':'tcp', 'LoadBalancerPort':80, 'InstancePort':8080}],
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
         Subnets=[subnet.id]
     )
 
@@ -770,5 +827,5 @@ def test_create_load_balancer_duplicate():
     conn = boto.connect_elb()
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
     conn.create_load_balancer('my-lb', [], ports)
-    conn.create_load_balancer.when.called_with('my-lb', [], ports).should.throw(BotoServerError)
-
+    conn.create_load_balancer.when.called_with(
+        'my-lb', [], ports).should.throw(BotoServerError)

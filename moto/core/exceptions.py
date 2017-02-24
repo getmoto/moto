@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
-from six import text_type
 
 
 SINGLE_ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
@@ -33,6 +32,7 @@ ERROR_JSON_RESPONSE = u"""{
 }
 """
 
+
 class RESTError(HTTPException):
     templates = {
         'single_error': SINGLE_ERROR_RESPONSE,
@@ -54,8 +54,10 @@ class DryRunClientError(RESTError):
 
 
 class JsonRESTError(RESTError):
+
     def __init__(self, error_type, message, template='error_json', **kwargs):
-        super(JsonRESTError, self).__init__(error_type, message, template, **kwargs)
+        super(JsonRESTError, self).__init__(
+            error_type, message, template, **kwargs)
 
     def get_headers(self, *args, **kwargs):
         return [('Content-Type', 'application/json')]

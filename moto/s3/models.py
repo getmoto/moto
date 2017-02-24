@@ -120,6 +120,7 @@ class FakeKey(object):
 
 
 class FakeMultipart(object):
+
     def __init__(self, key_name, metadata):
         self.key_name = key_name
         self.metadata = metadata
@@ -167,6 +168,7 @@ class FakeMultipart(object):
 
 
 class FakeGrantee(object):
+
     def __init__(self, id='', uri='', display_name=''):
         self.id = id
         self.uri = uri
@@ -177,9 +179,12 @@ class FakeGrantee(object):
         return 'Group' if self.uri else 'CanonicalUser'
 
 
-ALL_USERS_GRANTEE = FakeGrantee(uri='http://acs.amazonaws.com/groups/global/AllUsers')
-AUTHENTICATED_USERS_GRANTEE = FakeGrantee(uri='http://acs.amazonaws.com/groups/global/AuthenticatedUsers')
-LOG_DELIVERY_GRANTEE = FakeGrantee(uri='http://acs.amazonaws.com/groups/s3/LogDelivery')
+ALL_USERS_GRANTEE = FakeGrantee(
+    uri='http://acs.amazonaws.com/groups/global/AllUsers')
+AUTHENTICATED_USERS_GRANTEE = FakeGrantee(
+    uri='http://acs.amazonaws.com/groups/global/AuthenticatedUsers')
+LOG_DELIVERY_GRANTEE = FakeGrantee(
+    uri='http://acs.amazonaws.com/groups/s3/LogDelivery')
 
 PERMISSION_FULL_CONTROL = 'FULL_CONTROL'
 PERMISSION_WRITE = 'WRITE'
@@ -189,27 +194,32 @@ PERMISSION_READ_ACP = 'READ_ACP'
 
 
 class FakeGrant(object):
+
     def __init__(self, grantees, permissions):
         self.grantees = grantees
         self.permissions = permissions
 
 
 class FakeAcl(object):
+
     def __init__(self, grants=[]):
         self.grants = grants
 
 
 def get_canned_acl(acl):
-    owner_grantee = FakeGrantee(id='75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a')
+    owner_grantee = FakeGrantee(
+        id='75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a')
     grants = [FakeGrant([owner_grantee], [PERMISSION_FULL_CONTROL])]
     if acl == 'private':
         pass  # no other permissions
     elif acl == 'public-read':
         grants.append(FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_READ]))
     elif acl == 'public-read-write':
-        grants.append(FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_READ, PERMISSION_WRITE]))
+        grants.append(FakeGrant([ALL_USERS_GRANTEE], [
+                      PERMISSION_READ, PERMISSION_WRITE]))
     elif acl == 'authenticated-read':
-        grants.append(FakeGrant([AUTHENTICATED_USERS_GRANTEE], [PERMISSION_READ]))
+        grants.append(
+            FakeGrant([AUTHENTICATED_USERS_GRANTEE], [PERMISSION_READ]))
     elif acl == 'bucket-owner-read':
         pass  # TODO: bucket owner ACL
     elif acl == 'bucket-owner-full-control':
@@ -217,13 +227,15 @@ def get_canned_acl(acl):
     elif acl == 'aws-exec-read':
         pass  # TODO: bucket owner, EC2 Read
     elif acl == 'log-delivery-write':
-        grants.append(FakeGrant([LOG_DELIVERY_GRANTEE], [PERMISSION_READ_ACP, PERMISSION_WRITE]))
+        grants.append(FakeGrant([LOG_DELIVERY_GRANTEE], [
+                      PERMISSION_READ_ACP, PERMISSION_WRITE]))
     else:
         assert False, 'Unknown canned acl: %s' % (acl,)
     return FakeAcl(grants=grants)
 
 
 class LifecycleRule(object):
+
     def __init__(self, id=None, prefix=None, status=None, expiration_days=None,
                  expiration_date=None, transition_days=None,
                  transition_date=None, storage_class=None):
@@ -271,7 +283,8 @@ class FakeBucket(object):
                 expiration_date=expiration.get('Date') if expiration else None,
                 transition_days=transition.get('Days') if transition else None,
                 transition_date=transition.get('Date') if transition else None,
-                storage_class=transition['StorageClass'] if transition else None,
+                storage_class=transition[
+                    'StorageClass'] if transition else None,
             ))
 
     def delete_lifecycle(self):
@@ -283,9 +296,11 @@ class FakeBucket(object):
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'DomainName':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DomainName" ]"')
+            raise NotImplementedError(
+                '"Fn::GetAtt" : [ "{0}" , "DomainName" ]"')
         elif attribute_name == 'WebsiteURL':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "WebsiteURL" ]"')
+            raise NotImplementedError(
+                '"Fn::GetAtt" : [ "{0}" , "WebsiteURL" ]"')
         raise UnformattedGetAttTemplateException()
 
     def set_acl(self, acl):
@@ -470,20 +485,24 @@ class S3Backend(BaseBackend):
                     key_without_prefix = key_name.replace(prefix, "", 1)
                     if delimiter and delimiter in key_without_prefix:
                         # If delimiter, we need to split out folder_results
-                        key_without_delimiter = key_without_prefix.split(delimiter)[0]
-                        folder_results.add("{0}{1}{2}".format(prefix, key_without_delimiter, delimiter))
+                        key_without_delimiter = key_without_prefix.split(delimiter)[
+                            0]
+                        folder_results.add("{0}{1}{2}".format(
+                            prefix, key_without_delimiter, delimiter))
                     else:
                         key_results.add(key)
         else:
             for key_name, key in bucket.keys.items():
                 if delimiter and delimiter in key_name:
                     # If delimiter, we need to split out folder_results
-                    folder_results.add(key_name.split(delimiter)[0] + delimiter)
+                    folder_results.add(key_name.split(
+                        delimiter)[0] + delimiter)
                 else:
                     key_results.add(key)
 
         key_results = sorted(key_results, key=lambda key: key.name)
-        folder_results = [folder_name for folder_name in sorted(folder_results, key=lambda key: key)]
+        folder_results = [folder_name for folder_name in sorted(
+            folder_results, key=lambda key: key)]
 
         return key_results, folder_results
 
@@ -502,7 +521,8 @@ class S3Backend(BaseBackend):
         src_key_name = clean_key_name(src_key_name)
         dest_key_name = clean_key_name(dest_key_name)
         dest_bucket = self.get_bucket(dest_bucket_name)
-        key = self.get_key(src_bucket_name, src_key_name, version_id=src_version_id)
+        key = self.get_key(src_bucket_name, src_key_name,
+                           version_id=src_version_id)
         if dest_key_name != src_key_name:
             key = key.copy(dest_key_name)
         dest_bucket.keys[dest_key_name] = key

@@ -5,9 +5,11 @@ from moto.ec2.utils import filters_from_querystring, vpc_ids_from_querystring
 
 
 class VPCs(BaseResponse):
+
     def create_vpc(self):
         cidr_block = self.querystring.get('CidrBlock')[0]
-        instance_tenancy = self.querystring.get('InstanceTenancy', ['default'])[0]
+        instance_tenancy = self.querystring.get(
+            'InstanceTenancy', ['default'])[0]
         vpc = self.ec2_backend.create_vpc(cidr_block, instance_tenancy)
         template = self.response_template(CREATE_VPC_RESPONSE)
         return template.render(vpc=vpc)
@@ -40,7 +42,8 @@ class VPCs(BaseResponse):
             if self.querystring.get('%s.Value' % attribute):
                 attr_name = camelcase_to_underscores(attribute)
                 attr_value = self.querystring.get('%s.Value' % attribute)[0]
-                self.ec2_backend.modify_vpc_attribute(vpc_id, attr_name, attr_value)
+                self.ec2_backend.modify_vpc_attribute(
+                    vpc_id, attr_name, attr_value)
                 return MODIFY_VPC_ATTRIBUTE_RESPONSE
 
 

@@ -18,7 +18,8 @@ class CloudFormationResponse(BaseResponse):
     def _get_stack_from_s3_url(self, template_url):
         template_url_parts = urlparse(template_url)
         if "localhost" in template_url:
-            bucket_name, key_name = template_url_parts.path.lstrip("/").split("/")
+            bucket_name, key_name = template_url_parts.path.lstrip(
+                "/").split("/")
         else:
             bucket_name = template_url_parts.netloc.split(".")[0]
             key_name = template_url_parts.path.lstrip("/")
@@ -32,7 +33,8 @@ class CloudFormationResponse(BaseResponse):
         template_url = self._get_param('TemplateURL')
         role_arn = self._get_param('RoleARN')
         parameters_list = self._get_list_prefix("Parameters.member")
-        tags = dict((item['key'], item['value']) for item in self._get_list_prefix("Tags.member"))
+        tags = dict((item['key'], item['value'])
+                    for item in self._get_list_prefix("Tags.member"))
 
         # Hack dict-comprehension
         parameters = dict([
@@ -42,7 +44,8 @@ class CloudFormationResponse(BaseResponse):
         ])
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
-        stack_notification_arns = self._get_multi_param('NotificationARNs.member')
+        stack_notification_arns = self._get_multi_param(
+            'NotificationARNs.member')
 
         stack = self.cloudformation_backend.create_stack(
             name=stack_name,
@@ -86,7 +89,8 @@ class CloudFormationResponse(BaseResponse):
         else:
             raise ValidationError(logical_resource_id)
 
-        template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
+        template = self.response_template(
+            DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
         return template.render(stack=stack, resource=resource)
 
     def describe_stack_resources(self):
@@ -110,7 +114,8 @@ class CloudFormationResponse(BaseResponse):
 
     def list_stack_resources(self):
         stack_name_or_id = self._get_param('StackName')
-        resources = self.cloudformation_backend.list_stack_resources(stack_name_or_id)
+        resources = self.cloudformation_backend.list_stack_resources(
+            stack_name_or_id)
 
         template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
         return template.render(resources=resources)
@@ -138,13 +143,15 @@ class CloudFormationResponse(BaseResponse):
         stack_name = self._get_param('StackName')
         role_arn = self._get_param('RoleARN')
         if self._get_param('UsePreviousTemplate') == "true":
-            stack_body = self.cloudformation_backend.get_stack(stack_name).template
+            stack_body = self.cloudformation_backend.get_stack(
+                stack_name).template
         else:
             stack_body = self._get_param('TemplateBody')
 
         stack = self.cloudformation_backend.get_stack(stack_name)
         if stack.status == 'ROLLBACK_COMPLETE':
-            raise ValidationError(stack.stack_id, message="Stack:{0} is in ROLLBACK_COMPLETE state and can not be updated.".format(stack.stack_id))
+            raise ValidationError(
+                stack.stack_id, message="Stack:{0} is in ROLLBACK_COMPLETE state and can not be updated.".format(stack.stack_id))
 
         stack = self.cloudformation_backend.update_stack(
             name=stack_name,

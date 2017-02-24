@@ -28,10 +28,12 @@ SUPPORTED_HISTORY_EVENT_TYPES = (
 
 
 class HistoryEvent(object):
+
     def __init__(self, event_id, event_type, event_timestamp=None, **kwargs):
         if event_type not in SUPPORTED_HISTORY_EVENT_TYPES:
             raise NotImplementedError(
-                "HistoryEvent does not implement attributes for type '{0}'".format(event_type)
+                "HistoryEvent does not implement attributes for type '{0}'".format(
+                    event_type)
             )
         self.event_id = event_id
         self.event_type = event_type

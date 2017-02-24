@@ -10,6 +10,7 @@ from moto.core.utils import get_random_hex
 
 
 class HealthCheck(object):
+
     def __init__(self, health_check_id, health_check_args):
         self.id = health_check_id
         self.ip_address = health_check_args.get("ip_address")
@@ -63,6 +64,7 @@ class HealthCheck(object):
 
 
 class RecordSet(object):
+
     def __init__(self, kwargs):
         self.name = kwargs.get('Name')
         self._type = kwargs.get('Type')
@@ -83,25 +85,29 @@ class RecordSet(object):
         if zone_name:
             hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
         else:
-            hosted_zone = route53_backend.get_hosted_zone(properties["HostedZoneId"])
+            hosted_zone = route53_backend.get_hosted_zone(
+                properties["HostedZoneId"])
         record_set = hosted_zone.add_rrset(properties)
         return record_set
 
     @classmethod
     def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
-        cls.delete_from_cloudformation_json(original_resource.name, cloudformation_json, region_name)
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name)
         return cls.create_from_cloudformation_json(new_resource_name, cloudformation_json, region_name)
 
     @classmethod
     def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        # this will break if you changed the zone the record is in, unfortunately
+        # this will break if you changed the zone the record is in,
+        # unfortunately
         properties = cloudformation_json['Properties']
 
         zone_name = properties.get("HostedZoneName")
         if zone_name:
             hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
         else:
-            hosted_zone = route53_backend.get_hosted_zone(properties["HostedZoneId"])
+            hosted_zone = route53_backend.get_hosted_zone(
+                properties["HostedZoneId"])
 
         try:
             hosted_zone.delete_rrset_by_name(resource_name)
@@ -141,7 +147,8 @@ class RecordSet(object):
 
     def delete(self, *args, **kwargs):
         ''' Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored '''
-        hosted_zone = route53_backend.get_hosted_zone_by_name(self.hosted_zone_name)
+        hosted_zone = route53_backend.get_hosted_zone_by_name(
+            self.hosted_zone_name)
         if not hosted_zone:
             hosted_zone = route53_backend.get_hosted_zone(self.hosted_zone_id)
         hosted_zone.delete_rrset_by_name(self.name)
@@ -173,17 +180,21 @@ class FakeZone(object):
         return new_rrset
 
     def delete_rrset_by_name(self, name):
-        self.rrsets = [record_set for record_set in self.rrsets if record_set.name != name]
+        self.rrsets = [
+            record_set for record_set in self.rrsets if record_set.name != name]
 
     def delete_rrset_by_id(self, set_identifier):
-        self.rrsets = [record_set for record_set in self.rrsets if record_set.set_identifier != set_identifier]
+        self.rrsets = [
+            record_set for record_set in self.rrsets if record_set.set_identifier != set_identifier]
 
     def get_record_sets(self, type_filter, name_filter):
         record_sets = list(self.rrsets)  # Copy the list
         if type_filter:
-            record_sets = [record_set for record_set in record_sets if record_set._type == type_filter]
+            record_sets = [
+                record_set for record_set in record_sets if record_set._type == type_filter]
         if name_filter:
-            record_sets = [record_set for record_set in record_sets if record_set.name == name_filter]
+            record_sets = [
+                record_set for record_set in record_sets if record_set.name == name_filter]
 
         return record_sets
 
@@ -196,11 +207,13 @@ class FakeZone(object):
         properties = cloudformation_json['Properties']
         name = properties["Name"]
 
-        hosted_zone = route53_backend.create_hosted_zone(name, private_zone=False)
+        hosted_zone = route53_backend.create_hosted_zone(
+            name, private_zone=False)
         return hosted_zone
 
 
 class RecordSetGroup(object):
+
     def __init__(self, hosted_zone_id, record_sets):
         self.hosted_zone_id = hosted_zone_id
         self.record_sets = record_sets
@@ -232,7 +245,8 @@ class Route53Backend(BaseBackend):
 
     def create_hosted_zone(self, name, private_zone, comment=None):
         new_id = get_random_hex()
-        new_zone = FakeZone(name, new_id, private_zone=private_zone, comment=comment)
+        new_zone = FakeZone(
+            name, new_id, private_zone=private_zone, comment=comment)
         self.zones[new_id] = new_zone
         return new_zone
 
@@ -284,5 +298,6 @@ class Route53Backend(BaseBackend):
 
     def delete_health_check(self, health_check_id):
         return self.health_checks.pop(health_check_id, None)
+
 
 route53_backend = Route53Backend()

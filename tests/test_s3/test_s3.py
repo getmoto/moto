@@ -48,6 +48,7 @@ def reduced_min_part_size(f):
 
 
 class MyModel(object):
+
     def __init__(self, name, value):
         self.name = name
         self.value = value
@@ -67,7 +68,8 @@ def test_my_model_save():
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    body = conn.Object('mybucket', 'steve').get()['Body'].read().decode("utf-8")
+    body = conn.Object('mybucket', 'steve').get()[
+        'Body'].read().decode("utf-8")
 
     assert body == b'is awesome'
 
@@ -110,7 +112,8 @@ def test_multipart_upload():
     multipart.upload_part_from_file(BytesIO(part2), 2)
     multipart.complete_upload()
     # we should get both parts as the key contents
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(part1 + part2)
 
 
 @mock_s3_deprecated
@@ -127,7 +130,8 @@ def test_multipart_upload_out_of_order():
     multipart.upload_part_from_file(BytesIO(part1), 2)
     multipart.complete_upload()
     # we should get both parts as the key contents
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(part1 + part2)
 
 
 @mock_s3_deprecated
@@ -136,7 +140,8 @@ def test_multipart_upload_with_headers():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
 
-    multipart = bucket.initiate_multipart_upload("the-key", metadata={"foo": "bar"})
+    multipart = bucket.initiate_multipart_upload(
+        "the-key", metadata={"foo": "bar"})
     part1 = b'0' * 10
     multipart.upload_part_from_file(BytesIO(part1), 1)
     multipart.complete_upload()
@@ -159,7 +164,8 @@ def test_multipart_upload_with_copy_key():
     multipart.upload_part_from_file(BytesIO(part1), 1)
     multipart.copy_part_from_key("foobar", "original-key", 2, 0, 3)
     multipart.complete_upload()
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + b"key_")
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(part1 + b"key_")
 
 
 @mock_s3_deprecated
@@ -229,7 +235,8 @@ def test_multipart_duplicate_upload():
     multipart.upload_part_from_file(BytesIO(part2), 2)
     multipart.complete_upload()
     # We should get only one copy of part 1.
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(part1 + part2)
 
 
 @mock_s3_deprecated
@@ -260,7 +267,8 @@ def test_key_save_to_missing_bucket():
 
     key = Key(bucket)
     key.key = "the-key"
-    key.set_contents_from_string.when.called_with("foobar").should.throw(S3ResponseError)
+    key.set_contents_from_string.when.called_with(
+        "foobar").should.throw(S3ResponseError)
 
 
 @mock_s3_deprecated
@@ -275,7 +283,8 @@ def test_missing_key_urllib2():
     conn = boto.connect_s3('the_key', 'the_secret')
     conn.create_bucket("foobar")
 
-    urlopen.when.called_with("http://foobar.s3.amazonaws.com/the-key").should.throw(HTTPError)
+    urlopen.when.called_with(
+        "http://foobar.s3.amazonaws.com/the-key").should.throw(HTTPError)
 
 
 @mock_s3_deprecated
@@ -315,7 +324,8 @@ def test_large_key_save():
     key.key = "the-key"
     key.set_contents_from_string("foobar" * 100000)
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar' * 100000)
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(b'foobar' * 100000)
 
 
 @mock_s3_deprecated
@@ -328,8 +338,10 @@ def test_copy_key():
 
     bucket.copy_key('new-key', 'foobar', 'the-key')
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b"some value")
-    bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key(
+        "new-key").get_contents_as_string().should.equal(b"some value")
 
 
 @mock_s3_deprecated
@@ -344,8 +356,10 @@ def test_copy_key_with_version():
 
     bucket.copy_key('new-key', 'foobar', 'the-key', src_version_id='0')
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b"another value")
-    bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(b"another value")
+    bucket.get_key(
+        "new-key").get_contents_as_string().should.equal(b"some value")
 
 
 @mock_s3_deprecated
@@ -373,7 +387,8 @@ def test_copy_key_replace_metadata():
                     metadata={'momd': 'Mometadatastring'})
 
     bucket.get_key("new-key").get_metadata('md').should.be.none
-    bucket.get_key("new-key").get_metadata('momd').should.equal('Mometadatastring')
+    bucket.get_key(
+        "new-key").get_metadata('momd').should.equal('Mometadatastring')
 
 
 @freeze_time("2012-01-01 12:00:00")
@@ -389,7 +404,8 @@ def test_last_modified():
     rs = bucket.get_all_keys()
     rs[0].last_modified.should.equal('2012-01-01T12:00:00.000Z')
 
-    bucket.get_key("the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
+    bucket.get_key(
+        "the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
 
 
 @mock_s3_deprecated
@@ -401,7 +417,8 @@ def test_missing_bucket():
 @mock_s3_deprecated
 def test_bucket_with_dash():
     conn = boto.connect_s3('the_key', 'the_secret')
-    conn.get_bucket.when.called_with('mybucket-test').should.throw(S3ResponseError)
+    conn.get_bucket.when.called_with(
+        'mybucket-test').should.throw(S3ResponseError)
 
 
 @mock_s3_deprecated
@@ -432,7 +449,8 @@ def test_create_existing_bucket_in_us_east_1():
 
 @mock_s3_deprecated
 def test_other_region():
-    conn = S3Connection('key', 'secret', host='s3-website-ap-southeast-2.amazonaws.com')
+    conn = S3Connection(
+        'key', 'secret', host='s3-website-ap-southeast-2.amazonaws.com')
     conn.create_bucket("foobar")
     list(conn.get_bucket("foobar").get_all_keys()).should.equal([])
 
@@ -613,7 +631,8 @@ def test_bucket_key_listing_order():
 
     delimiter = None
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
-    keys.should.equal([u'toplevel/x/key', u'toplevel/x/y/key', u'toplevel/x/y/z/key'])
+    keys.should.equal(
+        [u'toplevel/x/key', u'toplevel/x/y/key', u'toplevel/x/y/z/key'])
 
     delimiter = '/'
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
@@ -640,7 +659,8 @@ def test_copy_key_reduced_redundancy():
     key.key = "the-key"
     key.set_contents_from_string("some value")
 
-    bucket.copy_key('new-key', 'foobar', 'the-key', storage_class='REDUCED_REDUNDANCY')
+    bucket.copy_key('new-key', 'foobar', 'the-key',
+                    storage_class='REDUCED_REDUNDANCY')
 
     # we use the bucket iterator because of:
     # https:/github.com/boto/boto/issues/1173
@@ -886,34 +906,54 @@ def test_ranged_get():
     key.set_contents_from_string(rep * 10)
 
     # Implicitly bounded range requests.
-    key.get_contents_as_string(headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=99-'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=99-'}).should.equal(b'9')
 
     # Explicitly bounded range requests starting from the first byte.
-    key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
-    key.get_contents_as_string(headers={'Range': 'bytes=0-49'}).should.equal(rep * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=0-100'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=0-700'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-0'}).should.equal(b'0')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-49'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-100'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-700'}).should.equal(rep * 10)
 
     # Explicitly bounded range requests starting from the / a middle byte.
-    key.get_contents_as_string(headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
-    key.get_contents_as_string(headers={'Range': 'bytes=50-99'}).should.equal(rep * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=50-100'}).should.equal(rep * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=50-700'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-99'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-100'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-700'}).should.equal(rep * 5)
 
     # Explicitly bounded range requests starting from the last byte.
-    key.get_contents_as_string(headers={'Range': 'bytes=99-99'}).should.equal(b'9')
-    key.get_contents_as_string(headers={'Range': 'bytes=99-100'}).should.equal(b'9')
-    key.get_contents_as_string(headers={'Range': 'bytes=99-700'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=99-99'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=99-100'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=99-700'}).should.equal(b'9')
 
     # Suffix range requests.
-    key.get_contents_as_string(headers={'Range': 'bytes=-1'}).should.equal(b'9')
-    key.get_contents_as_string(headers={'Range': 'bytes=-60'}).should.equal(rep * 6)
-    key.get_contents_as_string(headers={'Range': 'bytes=-100'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=-101'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=-700'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-1'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-60'}).should.equal(rep * 6)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-100'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-101'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-700'}).should.equal(rep * 10)
 
     key.size.should.equal(100)
 
@@ -1006,6 +1046,7 @@ def test_boto3_key_etag():
     resp = s3.get_object(Bucket='mybucket', Key='steve')
     resp['ETag'].should.equal('"d32bda93738f7e03adb22e66c90fbc04"')
 
+
 @mock_s3
 def test_boto3_list_keys_xml_escaped():
     s3 = boto3.client('s3', region_name='us-east-1')
@@ -1045,13 +1086,13 @@ def test_boto3_list_objects_v2_truncated_response():
     assert resp['IsTruncated'] == True
     assert 'Delimiter' not in resp
     assert 'StartAfter' not in resp
-    assert 'Owner' not in listed_object # owner info was not requested
+    assert 'Owner' not in listed_object  # owner info was not requested
 
     next_token = resp['NextContinuationToken']
 
-
     # Second list
-    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1, ContinuationToken=next_token)
+    resp = s3.list_objects_v2(
+        Bucket='mybucket', MaxKeys=1, ContinuationToken=next_token)
     listed_object = resp['Contents'][0]
 
     assert listed_object['Key'] == 'three'
@@ -1065,9 +1106,9 @@ def test_boto3_list_objects_v2_truncated_response():
 
     next_token = resp['NextContinuationToken']
 
-
     # Third list
-    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1, ContinuationToken=next_token)
+    resp = s3.list_objects_v2(
+        Bucket='mybucket', MaxKeys=1, ContinuationToken=next_token)
     listed_object = resp['Contents'][0]
 
     assert listed_object['Key'] == 'two'
@@ -1107,7 +1148,7 @@ def test_boto3_list_objects_v2_truncated_response_start_after():
     # Second list
     # The ContinuationToken must take precedence over StartAfter.
     resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1, StartAfter='one',
-            ContinuationToken=next_token)
+                              ContinuationToken=next_token)
     listed_object = resp['Contents'][0]
 
     assert listed_object['Key'] == 'two'
@@ -1143,7 +1184,8 @@ def test_boto3_bucket_create():
 
     s3.Object('blah', 'hello.txt').put(Body="some text")
 
-    s3.Object('blah', 'hello.txt').get()['Body'].read().decode("utf-8").should.equal("some text")
+    s3.Object('blah', 'hello.txt').get()['Body'].read().decode(
+        "utf-8").should.equal("some text")
 
 
 @mock_s3
@@ -1153,7 +1195,8 @@ def test_boto3_bucket_create_eu_central():
 
     s3.Object('blah', 'hello.txt').put(Body="some text")
 
-    s3.Object('blah', 'hello.txt').get()['Body'].read().decode("utf-8").should.equal("some text")
+    s3.Object('blah', 'hello.txt').get()['Body'].read().decode(
+        "utf-8").should.equal("some text")
 
 
 @mock_s3
@@ -1163,10 +1206,12 @@ def test_boto3_head_object():
 
     s3.Object('blah', 'hello.txt').put(Body="some text")
 
-    s3.Object('blah', 'hello.txt').meta.client.head_object(Bucket='blah', Key='hello.txt')
+    s3.Object('blah', 'hello.txt').meta.client.head_object(
+        Bucket='blah', Key='hello.txt')
 
     with assert_raises(ClientError):
-        s3.Object('blah', 'hello2.txt').meta.client.head_object(Bucket='blah', Key='hello_bad.txt')
+        s3.Object('blah', 'hello2.txt').meta.client.head_object(
+            Bucket='blah', Key='hello_bad.txt')
 
 
 @mock_s3
@@ -1176,7 +1221,8 @@ def test_boto3_get_object():
 
     s3.Object('blah', 'hello.txt').put(Body="some text")
 
-    s3.Object('blah', 'hello.txt').meta.client.head_object(Bucket='blah', Key='hello.txt')
+    s3.Object('blah', 'hello.txt').meta.client.head_object(
+        Bucket='blah', Key='hello.txt')
 
     with assert_raises(ClientError) as e:
         s3.Object('blah', 'hello2.txt').get()

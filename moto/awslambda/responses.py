@@ -2,10 +2,8 @@ from __future__ import unicode_literals
 
 import json
 import re
-import uuid
 
 from moto.core.responses import BaseResponse
-from .models import lambda_backends
 
 
 class LambdaResponse(BaseResponse):

@@ -41,7 +41,8 @@ class RDSResponse(BaseResponse):
             # VpcSecurityGroupIds.member.N
             "tags": list(),
         }
-        args['tags'] = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+        args['tags'] = self.unpack_complex_list_params(
+            'Tags.Tag', ('Key', 'Value'))
         return args
 
     def _get_db_replica_kwargs(self):
@@ -65,7 +66,8 @@ class RDSResponse(BaseResponse):
         while self._get_param('{0}.{1}.{2}'.format(label, count, names[0])):
             param = dict()
             for i in range(len(names)):
-                param[names[i]] = self._get_param('{0}.{1}.{2}'.format(label, count, names[i]))
+                param[names[i]] = self._get_param(
+                    '{0}.{1}.{2}'.format(label, count, names[i]))
             unpacked_list.append(param)
             count += 1
         return unpacked_list
@@ -93,7 +95,8 @@ class RDSResponse(BaseResponse):
     def modify_dbinstance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         db_kwargs = self._get_db_kwargs()
-        database = self.backend.modify_database(db_instance_identifier, db_kwargs)
+        database = self.backend.modify_database(
+            db_instance_identifier, db_kwargs)
         template = self.response_template(MODIFY_DATABASE_TEMPLATE)
         return template.render(database=database)
 
@@ -107,26 +110,30 @@ class RDSResponse(BaseResponse):
         group_name = self._get_param('DBSecurityGroupName')
         description = self._get_param('DBSecurityGroupDescription')
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
-        security_group = self.backend.create_security_group(group_name, description, tags)
+        security_group = self.backend.create_security_group(
+            group_name, description, tags)
         template = self.response_template(CREATE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
     def describe_dbsecurity_groups(self):
         security_group_name = self._get_param('DBSecurityGroupName')
-        security_groups = self.backend.describe_security_groups(security_group_name)
+        security_groups = self.backend.describe_security_groups(
+            security_group_name)
         template = self.response_template(DESCRIBE_SECURITY_GROUPS_TEMPLATE)
         return template.render(security_groups=security_groups)
 
     def delete_dbsecurity_group(self):
         security_group_name = self._get_param('DBSecurityGroupName')
-        security_group = self.backend.delete_security_group(security_group_name)
+        security_group = self.backend.delete_security_group(
+            security_group_name)
         template = self.response_template(DELETE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
     def authorize_dbsecurity_group_ingress(self):
         security_group_name = self._get_param('DBSecurityGroupName')
         cidr_ip = self._get_param('CIDRIP')
-        security_group = self.backend.authorize_security_group(security_group_name, cidr_ip)
+        security_group = self.backend.authorize_security_group(
+            security_group_name, cidr_ip)
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
@@ -134,9 +141,11 @@ class RDSResponse(BaseResponse):
         subnet_name = self._get_param('DBSubnetGroupName')
         description = self._get_param('DBSubnetGroupDescription')
         subnet_ids = self._get_multi_param('SubnetIds.member')
-        subnets = [ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids]
+        subnets = [ec2_backends[self.region].get_subnet(
+            subnet_id) for subnet_id in subnet_ids]
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
-        subnet_group = self.backend.create_subnet_group(subnet_name, description, subnets, tags)
+        subnet_group = self.backend.create_subnet_group(
+            subnet_name, description, subnets, tags)
         template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)
 

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from .models import redshift_backends
-from ..core.models import MockAWS, base_decorator, HttprettyMockAWS, deprecated_base_decorator
+from ..core.models import base_decorator, deprecated_base_decorator
 
 redshift_backend = redshift_backends['us-east-1']
 mock_redshift = base_decorator(redshift_backends)

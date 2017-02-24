@@ -8,11 +8,14 @@ def test_base_url():
 
 
 def test_localhost_bucket():
-    expect(bucket_name_from_url('https://wfoobar.localhost:5000/abc')).should.equal("wfoobar")
+    expect(bucket_name_from_url('https://wfoobar.localhost:5000/abc')
+           ).should.equal("wfoobar")
 
 
 def test_localhost_without_bucket():
-    expect(bucket_name_from_url('https://www.localhost:5000/def')).should.equal(None)
+    expect(bucket_name_from_url(
+        'https://www.localhost:5000/def')).should.equal(None)
+
 
 def test_versioned_key_store():
     d = _VersionedKeyStore()

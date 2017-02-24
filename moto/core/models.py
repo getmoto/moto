@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 import functools
 import inspect
-import os
 import re
 
 from moto import settings
@@ -14,6 +13,7 @@ from .utils import (
     convert_regex_to_flask_path,
     convert_flask_to_responses_response,
 )
+
 
 class BaseMockAWS(object):
     nested_count = 0
@@ -58,7 +58,6 @@ class BaseMockAWS(object):
         if self.__class__.nested_count < 0:
             raise RuntimeError('Called stop() before start().')
 
-
         if self.__class__.nested_count == 0:
             self.disable_patching()
 
@@ -96,6 +95,7 @@ class BaseMockAWS(object):
 
 
 class HttprettyMockAWS(BaseMockAWS):
+
     def reset(self):
         HTTPretty.reset()
 
@@ -118,10 +118,11 @@ class HttprettyMockAWS(BaseMockAWS):
 
 
 RESPONSES_METHODS = [responses.GET, responses.DELETE, responses.HEAD,
-    responses.OPTIONS, responses.PATCH, responses.POST, responses.PUT]
+                     responses.OPTIONS, responses.PATCH, responses.POST, responses.PUT]
 
 
 class ResponsesMockAWS(BaseMockAWS):
+
     def reset(self):
         responses.reset()
 
@@ -146,6 +147,7 @@ class ResponsesMockAWS(BaseMockAWS):
             pass
         responses.reset()
 
+
 MockAWS = ResponsesMockAWS
 
 
@@ -167,12 +169,14 @@ class ServerModeMockAWS(BaseMockAWS):
             if 'endpoint_url' not in kwargs:
                 kwargs['endpoint_url'] = "http://localhost:8086"
             return real_boto3_client(*args, **kwargs)
+
         def fake_boto3_resource(*args, **kwargs):
             if 'endpoint_url' not in kwargs:
                 kwargs['endpoint_url'] = "http://localhost:8086"
             return real_boto3_resource(*args, **kwargs)
         self._client_patcher = mock.patch('boto3.client', fake_boto3_client)
-        self._resource_patcher = mock.patch('boto3.resource', fake_boto3_resource)
+        self._resource_patcher = mock.patch(
+            'boto3.resource', fake_boto3_resource)
         self._client_patcher.start()
         self._resource_patcher.start()
 
@@ -181,7 +185,9 @@ class ServerModeMockAWS(BaseMockAWS):
             self._client_patcher.stop()
             self._resource_patcher.stop()
 
+
 class Model(type):
+
     def __new__(self, clsname, bases, namespace):
         cls = super(Model, self).__new__(self, clsname, bases, namespace)
         cls.__models__ = {}
@@ -203,6 +209,7 @@ class Model(type):
 
 
 class BaseBackend(object):
+
     def reset(self):
         self.__dict__ = {}
         self.__init__()
@@ -211,7 +218,8 @@ class BaseBackend(object):
     def _url_module(self):
         backend_module = self.__class__.__module__
         backend_urls_module_name = backend_module.replace("models", "urls")
-        backend_urls_module = __import__(backend_urls_module_name, fromlist=['url_bases', 'url_paths'])
+        backend_urls_module = __import__(backend_urls_module_name, fromlist=[
+                                         'url_bases', 'url_paths'])
         return backend_urls_module
 
     @property
@@ -306,6 +314,7 @@ class deprecated_base_decorator(base_decorator):
 
 
 class MotoAPIBackend(BaseBackend):
+
     def reset(self):
         from moto.backends import BACKENDS
         for name, backends in BACKENDS.items():
@@ -314,5 +323,6 @@ class MotoAPIBackend(BaseBackend):
             for region_name, backend in backends.items():
                 backend.reset()
         self.__init__()
+
 
 moto_api_backend = MotoAPIBackend()

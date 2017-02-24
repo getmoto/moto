@@ -30,10 +30,12 @@ def test_create_launch_configuration():
     launch_config.image_id.should.equal('ami-abcd1234')
     launch_config.instance_type.should.equal('t1.micro')
     launch_config.key_name.should.equal('the_keys')
-    set(launch_config.security_groups).should.equal(set(['default', 'default2']))
+    set(launch_config.security_groups).should.equal(
+        set(['default', 'default2']))
     launch_config.user_data.should.equal(b"This is some user_data")
     launch_config.instance_monitoring.enabled.should.equal('true')
-    launch_config.instance_profile_name.should.equal('arn:aws:iam::123456789012:instance-profile/testing')
+    launch_config.instance_profile_name.should.equal(
+        'arn:aws:iam::123456789012:instance-profile/testing')
     launch_config.spot_price.should.equal(0.1)
 
 
@@ -78,16 +80,19 @@ def test_create_launch_configuration_with_block_device_mappings():
     launch_config.image_id.should.equal('ami-abcd1234')
     launch_config.instance_type.should.equal('m1.small')
     launch_config.key_name.should.equal('the_keys')
-    set(launch_config.security_groups).should.equal(set(['default', 'default2']))
+    set(launch_config.security_groups).should.equal(
+        set(['default', 'default2']))
     launch_config.user_data.should.equal(b"This is some user_data")
     launch_config.instance_monitoring.enabled.should.equal('true')
-    launch_config.instance_profile_name.should.equal('arn:aws:iam::123456789012:instance-profile/testing')
+    launch_config.instance_profile_name.should.equal(
+        'arn:aws:iam::123456789012:instance-profile/testing')
     launch_config.spot_price.should.equal(0.1)
     len(launch_config.block_device_mappings).should.equal(3)
 
     returned_mapping = launch_config.block_device_mappings
 
-    set(returned_mapping.keys()).should.equal(set(['/dev/xvdb', '/dev/xvdp', '/dev/xvdh']))
+    set(returned_mapping.keys()).should.equal(
+        set(['/dev/xvdb', '/dev/xvdp', '/dev/xvdh']))
 
     returned_mapping['/dev/xvdh'].iops.should.equal(1000)
     returned_mapping['/dev/xvdh'].size.should.equal(100)
@@ -198,7 +203,8 @@ def test_launch_configuration_describe_filter():
     config.name = 'tester3'
     conn.create_launch_configuration(config)
 
-    conn.get_all_launch_configurations(names=['tester', 'tester2']).should.have.length_of(2)
+    conn.get_all_launch_configurations(
+        names=['tester', 'tester2']).should.have.length_of(2)
     conn.get_all_launch_configurations().should.have.length_of(3)
 
 

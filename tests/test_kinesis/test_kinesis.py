@@ -18,7 +18,8 @@ def test_create_cluster():
     stream = stream_response["StreamDescription"]
     stream["StreamName"].should.equal("my_stream")
     stream["HasMoreShards"].should.equal(False)
-    stream["StreamARN"].should.equal("arn:aws:kinesis:us-west-2:123456789012:my_stream")
+    stream["StreamARN"].should.equal(
+        "arn:aws:kinesis:us-west-2:123456789012:my_stream")
     stream["StreamStatus"].should.equal("ACTIVE")
 
     shards = stream['Shards']
@@ -28,7 +29,8 @@ def test_create_cluster():
 @mock_kinesis_deprecated
 def test_describe_non_existant_stream():
     conn = boto.kinesis.connect_to_region("us-east-1")
-    conn.describe_stream.when.called_with("not-a-stream").should.throw(ResourceNotFoundException)
+    conn.describe_stream.when.called_with(
+        "not-a-stream").should.throw(ResourceNotFoundException)
 
 
 @mock_kinesis_deprecated
@@ -45,7 +47,8 @@ def test_list_and_delete_stream():
     conn.list_streams()['StreamNames'].should.have.length_of(1)
 
     # Delete invalid id
-    conn.delete_stream.when.called_with("not-a-stream").should.throw(ResourceNotFoundException)
+    conn.delete_stream.when.called_with(
+        "not-a-stream").should.throw(ResourceNotFoundException)
 
 
 @mock_kinesis_deprecated
@@ -73,7 +76,8 @@ def test_get_invalid_shard_iterator():
     stream_name = "my_stream"
     conn.create_stream(stream_name, 1)
 
-    conn.get_shard_iterator.when.called_with(stream_name, "123", 'TRIM_HORIZON').should.throw(ResourceNotFoundException)
+    conn.get_shard_iterator.when.called_with(
+        stream_name, "123", 'TRIM_HORIZON').should.throw(ResourceNotFoundException)
 
 
 @mock_kinesis_deprecated
@@ -138,7 +142,8 @@ def test_get_records_limit():
 
 @mock_kinesis_deprecated
 def test_get_records_at_sequence_number():
-    # AT_SEQUENCE_NUMBER - Start reading exactly from the position denoted by a specific sequence number.
+    # AT_SEQUENCE_NUMBER - Start reading exactly from the position denoted by
+    # a specific sequence number.
     conn = boto.kinesis.connect_to_region("us-west-2")
     stream_name = "my_stream"
     conn.create_stream(stream_name, 1)
@@ -158,7 +163,8 @@ def test_get_records_at_sequence_number():
     second_sequence_id = response['Records'][1]['SequenceNumber']
 
     # Then get a new iterator starting at that id
-    response = conn.get_shard_iterator(stream_name, shard_id, 'AT_SEQUENCE_NUMBER', second_sequence_id)
+    response = conn.get_shard_iterator(
+        stream_name, shard_id, 'AT_SEQUENCE_NUMBER', second_sequence_id)
     shard_iterator = response['ShardIterator']
 
     response = conn.get_records(shard_iterator)
@@ -169,7 +175,8 @@ def test_get_records_at_sequence_number():
 
 @mock_kinesis_deprecated
 def test_get_records_after_sequence_number():
-    # AFTER_SEQUENCE_NUMBER - Start reading right after the position denoted by a specific sequence number.
+    # AFTER_SEQUENCE_NUMBER - Start reading right after the position denoted
+    # by a specific sequence number.
     conn = boto.kinesis.connect_to_region("us-west-2")
     stream_name = "my_stream"
     conn.create_stream(stream_name, 1)
@@ -189,7 +196,8 @@ def test_get_records_after_sequence_number():
     second_sequence_id = response['Records'][1]['SequenceNumber']
 
     # Then get a new iterator starting after that id
-    response = conn.get_shard_iterator(stream_name, shard_id, 'AFTER_SEQUENCE_NUMBER', second_sequence_id)
+    response = conn.get_shard_iterator(
+        stream_name, shard_id, 'AFTER_SEQUENCE_NUMBER', second_sequence_id)
     shard_iterator = response['ShardIterator']
 
     response = conn.get_records(shard_iterator)
@@ -199,7 +207,8 @@ def test_get_records_after_sequence_number():
 
 @mock_kinesis_deprecated
 def test_get_records_latest():
-    # LATEST - Start reading just after the most recent record in the shard, so that you always read the most recent data in the shard.
+    # LATEST - Start reading just after the most recent record in the shard,
+    # so that you always read the most recent data in the shard.
     conn = boto.kinesis.connect_to_region("us-west-2")
     stream_name = "my_stream"
     conn.create_stream(stream_name, 1)
@@ -219,7 +228,8 @@ def test_get_records_latest():
     second_sequence_id = response['Records'][1]['SequenceNumber']
 
     # Then get a new iterator starting after that id
-    response = conn.get_shard_iterator(stream_name, shard_id, 'LATEST', second_sequence_id)
+    response = conn.get_shard_iterator(
+        stream_name, shard_id, 'LATEST', second_sequence_id)
     shard_iterator = response['ShardIterator']
 
     # Write some more data
@@ -251,10 +261,10 @@ def test_add_tags():
     conn.create_stream(stream_name, 1)
 
     conn.describe_stream(stream_name)
-    conn.add_tags_to_stream(stream_name, {'tag1':'val1'})
-    conn.add_tags_to_stream(stream_name, {'tag2':'val2'})
-    conn.add_tags_to_stream(stream_name, {'tag1':'val3'})
-    conn.add_tags_to_stream(stream_name, {'tag2':'val4'})
+    conn.add_tags_to_stream(stream_name, {'tag1': 'val1'})
+    conn.add_tags_to_stream(stream_name, {'tag2': 'val2'})
+    conn.add_tags_to_stream(stream_name, {'tag1': 'val3'})
+    conn.add_tags_to_stream(stream_name, {'tag2': 'val4'})
 
 
 @mock_kinesis_deprecated
@@ -264,17 +274,21 @@ def test_list_tags():
     conn.create_stream(stream_name, 1)
 
     conn.describe_stream(stream_name)
-    conn.add_tags_to_stream(stream_name, {'tag1':'val1'})
-    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    conn.add_tags_to_stream(stream_name, {'tag1': 'val1'})
+    tags = dict([(tag['Key'], tag['Value'])
+                 for tag in conn.list_tags_for_stream(stream_name)['Tags']])
     tags.get('tag1').should.equal('val1')
-    conn.add_tags_to_stream(stream_name, {'tag2':'val2'})
-    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    conn.add_tags_to_stream(stream_name, {'tag2': 'val2'})
+    tags = dict([(tag['Key'], tag['Value'])
+                 for tag in conn.list_tags_for_stream(stream_name)['Tags']])
     tags.get('tag2').should.equal('val2')
-    conn.add_tags_to_stream(stream_name, {'tag1':'val3'})
-    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    conn.add_tags_to_stream(stream_name, {'tag1': 'val3'})
+    tags = dict([(tag['Key'], tag['Value'])
+                 for tag in conn.list_tags_for_stream(stream_name)['Tags']])
     tags.get('tag1').should.equal('val3')
-    conn.add_tags_to_stream(stream_name, {'tag2':'val4'})
-    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    conn.add_tags_to_stream(stream_name, {'tag2': 'val4'})
+    tags = dict([(tag['Key'], tag['Value'])
+                 for tag in conn.list_tags_for_stream(stream_name)['Tags']])
     tags.get('tag2').should.equal('val4')
 
 
@@ -285,18 +299,22 @@ def test_remove_tags():
     conn.create_stream(stream_name, 1)
 
     conn.describe_stream(stream_name)
-    conn.add_tags_to_stream(stream_name, {'tag1':'val1'})
-    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    conn.add_tags_to_stream(stream_name, {'tag1': 'val1'})
+    tags = dict([(tag['Key'], tag['Value'])
+                 for tag in conn.list_tags_for_stream(stream_name)['Tags']])
     tags.get('tag1').should.equal('val1')
     conn.remove_tags_from_stream(stream_name, ['tag1'])
-    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    tags = dict([(tag['Key'], tag['Value'])
+                 for tag in conn.list_tags_for_stream(stream_name)['Tags']])
     tags.get('tag1').should.equal(None)
 
-    conn.add_tags_to_stream(stream_name, {'tag2':'val2'})
-    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    conn.add_tags_to_stream(stream_name, {'tag2': 'val2'})
+    tags = dict([(tag['Key'], tag['Value'])
+                 for tag in conn.list_tags_for_stream(stream_name)['Tags']])
     tags.get('tag2').should.equal('val2')
     conn.remove_tags_from_stream(stream_name, ['tag2'])
-    tags = dict([(tag['Key'], tag['Value']) for tag in conn.list_tags_for_stream(stream_name)['Tags']])
+    tags = dict([(tag['Key'], tag['Value'])
+                 for tag in conn.list_tags_for_stream(stream_name)['Tags']])
     tags.get('tag2').should.equal(None)
 
 
@@ -316,10 +334,12 @@ def test_split_shard():
     stream = stream_response["StreamDescription"]
     shards = stream['Shards']
     shards.should.have.length_of(2)
-    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber']
+         for shard in shards]).should.equal(99)
 
     shard_range = shards[0]['HashKeyRange']
-    new_starting_hash = (int(shard_range['EndingHashKey'])+int(shard_range['StartingHashKey'])) // 2
+    new_starting_hash = (
+        int(shard_range['EndingHashKey']) + int(shard_range['StartingHashKey'])) // 2
     conn.split_shard("my_stream", shards[0]['ShardId'], str(new_starting_hash))
 
     stream_response = conn.describe_stream(stream_name)
@@ -327,10 +347,12 @@ def test_split_shard():
     stream = stream_response["StreamDescription"]
     shards = stream['Shards']
     shards.should.have.length_of(3)
-    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber']
+         for shard in shards]).should.equal(99)
 
     shard_range = shards[2]['HashKeyRange']
-    new_starting_hash = (int(shard_range['EndingHashKey'])+int(shard_range['StartingHashKey'])) // 2
+    new_starting_hash = (
+        int(shard_range['EndingHashKey']) + int(shard_range['StartingHashKey'])) // 2
     conn.split_shard("my_stream", shards[2]['ShardId'], str(new_starting_hash))
 
     stream_response = conn.describe_stream(stream_name)
@@ -338,7 +360,8 @@ def test_split_shard():
     stream = stream_response["StreamDescription"]
     shards = stream['Shards']
     shards.should.have.length_of(4)
-    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber']
+         for shard in shards]).should.equal(99)
 
 
 @mock_kinesis_deprecated
@@ -358,28 +381,34 @@ def test_merge_shards():
     shards = stream['Shards']
     shards.should.have.length_of(4)
 
-    conn.merge_shards.when.called_with(stream_name, 'shardId-000000000000', 'shardId-000000000002').should.throw(InvalidArgumentException)
+    conn.merge_shards.when.called_with(
+        stream_name, 'shardId-000000000000', 'shardId-000000000002').should.throw(InvalidArgumentException)
 
     stream_response = conn.describe_stream(stream_name)
 
     stream = stream_response["StreamDescription"]
     shards = stream['Shards']
     shards.should.have.length_of(4)
-    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber']
+         for shard in shards]).should.equal(99)
 
-    conn.merge_shards(stream_name, 'shardId-000000000000', 'shardId-000000000001')
+    conn.merge_shards(stream_name, 'shardId-000000000000',
+                      'shardId-000000000001')
 
     stream_response = conn.describe_stream(stream_name)
 
     stream = stream_response["StreamDescription"]
     shards = stream['Shards']
     shards.should.have.length_of(3)
-    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
-    conn.merge_shards(stream_name, 'shardId-000000000002', 'shardId-000000000000')
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber']
+         for shard in shards]).should.equal(99)
+    conn.merge_shards(stream_name, 'shardId-000000000002',
+                      'shardId-000000000000')
 
     stream_response = conn.describe_stream(stream_name)
 
     stream = stream_response["StreamDescription"]
     shards = stream['Shards']
     shards.should.have.length_of(2)
-    sum([shard['SequenceNumberRange']['EndingSequenceNumber'] for shard in shards]).should.equal(99)
+    sum([shard['SequenceNumberRange']['EndingSequenceNumber']
+         for shard in shards]).should.equal(99)

@@ -7,12 +7,14 @@ class EC2ClientError(RESTError):
 
 
 class DependencyViolationError(EC2ClientError):
+
     def __init__(self, message):
         super(DependencyViolationError, self).__init__(
             "DependencyViolation", message)
 
 
 class MissingParameterError(EC2ClientError):
+
     def __init__(self, parameter):
         super(MissingParameterError, self).__init__(
             "MissingParameter",
@@ -21,6 +23,7 @@ class MissingParameterError(EC2ClientError):
 
 
 class InvalidDHCPOptionsIdError(EC2ClientError):
+
     def __init__(self, dhcp_options_id):
         super(InvalidDHCPOptionsIdError, self).__init__(
             "InvalidDhcpOptionID.NotFound",
@@ -29,6 +32,7 @@ class InvalidDHCPOptionsIdError(EC2ClientError):
 
 
 class MalformedDHCPOptionsIdError(EC2ClientError):
+
     def __init__(self, dhcp_options_id):
         super(MalformedDHCPOptionsIdError, self).__init__(
             "InvalidDhcpOptionsId.Malformed",
@@ -37,6 +41,7 @@ class MalformedDHCPOptionsIdError(EC2ClientError):
 
 
 class InvalidKeyPairNameError(EC2ClientError):
+
     def __init__(self, key):
         super(InvalidKeyPairNameError, self).__init__(
             "InvalidKeyPair.NotFound",
@@ -45,6 +50,7 @@ class InvalidKeyPairNameError(EC2ClientError):
 
 
 class InvalidKeyPairDuplicateError(EC2ClientError):
+
     def __init__(self, key):
         super(InvalidKeyPairDuplicateError, self).__init__(
             "InvalidKeyPair.Duplicate",
@@ -53,6 +59,7 @@ class InvalidKeyPairDuplicateError(EC2ClientError):
 
 
 class InvalidVPCIdError(EC2ClientError):
+
     def __init__(self, vpc_id):
         super(InvalidVPCIdError, self).__init__(
             "InvalidVpcID.NotFound",
@@ -61,6 +68,7 @@ class InvalidVPCIdError(EC2ClientError):
 
 
 class InvalidSubnetIdError(EC2ClientError):
+
     def __init__(self, subnet_id):
         super(InvalidSubnetIdError, self).__init__(
             "InvalidSubnetID.NotFound",
@@ -69,6 +77,7 @@ class InvalidSubnetIdError(EC2ClientError):
 
 
 class InvalidNetworkAclIdError(EC2ClientError):
+
     def __init__(self, network_acl_id):
         super(InvalidNetworkAclIdError, self).__init__(
             "InvalidNetworkAclID.NotFound",
@@ -77,6 +86,7 @@ class InvalidNetworkAclIdError(EC2ClientError):
 
 
 class InvalidVpnGatewayIdError(EC2ClientError):
+
     def __init__(self, network_acl_id):
         super(InvalidVpnGatewayIdError, self).__init__(
             "InvalidVpnGatewayID.NotFound",
@@ -85,6 +95,7 @@ class InvalidVpnGatewayIdError(EC2ClientError):
 
 
 class InvalidVpnConnectionIdError(EC2ClientError):
+
     def __init__(self, network_acl_id):
         super(InvalidVpnConnectionIdError, self).__init__(
             "InvalidVpnConnectionID.NotFound",
@@ -93,6 +104,7 @@ class InvalidVpnConnectionIdError(EC2ClientError):
 
 
 class InvalidCustomerGatewayIdError(EC2ClientError):
+
     def __init__(self, customer_gateway_id):
         super(InvalidCustomerGatewayIdError, self).__init__(
             "InvalidCustomerGatewayID.NotFound",
@@ -101,6 +113,7 @@ class InvalidCustomerGatewayIdError(EC2ClientError):
 
 
 class InvalidNetworkInterfaceIdError(EC2ClientError):
+
     def __init__(self, eni_id):
         super(InvalidNetworkInterfaceIdError, self).__init__(
             "InvalidNetworkInterfaceID.NotFound",
@@ -109,6 +122,7 @@ class InvalidNetworkInterfaceIdError(EC2ClientError):
 
 
 class InvalidNetworkAttachmentIdError(EC2ClientError):
+
     def __init__(self, attachment_id):
         super(InvalidNetworkAttachmentIdError, self).__init__(
             "InvalidAttachmentID.NotFound",
@@ -117,6 +131,7 @@ class InvalidNetworkAttachmentIdError(EC2ClientError):
 
 
 class InvalidSecurityGroupDuplicateError(EC2ClientError):
+
     def __init__(self, name):
         super(InvalidSecurityGroupDuplicateError, self).__init__(
             "InvalidGroup.Duplicate",
@@ -125,6 +140,7 @@ class InvalidSecurityGroupDuplicateError(EC2ClientError):
 
 
 class InvalidSecurityGroupNotFoundError(EC2ClientError):
+
     def __init__(self, name):
         super(InvalidSecurityGroupNotFoundError, self).__init__(
             "InvalidGroup.NotFound",
@@ -133,6 +149,7 @@ class InvalidSecurityGroupNotFoundError(EC2ClientError):
 
 
 class InvalidPermissionNotFoundError(EC2ClientError):
+
     def __init__(self):
         super(InvalidPermissionNotFoundError, self).__init__(
             "InvalidPermission.NotFound",
@@ -140,6 +157,7 @@ class InvalidPermissionNotFoundError(EC2ClientError):
 
 
 class InvalidRouteTableIdError(EC2ClientError):
+
     def __init__(self, route_table_id):
         super(InvalidRouteTableIdError, self).__init__(
             "InvalidRouteTableID.NotFound",
@@ -148,6 +166,7 @@ class InvalidRouteTableIdError(EC2ClientError):
 
 
 class InvalidRouteError(EC2ClientError):
+
     def __init__(self, route_table_id, cidr):
         super(InvalidRouteError, self).__init__(
             "InvalidRoute.NotFound",
@@ -156,6 +175,7 @@ class InvalidRouteError(EC2ClientError):
 
 
 class InvalidInstanceIdError(EC2ClientError):
+
     def __init__(self, instance_id):
         super(InvalidInstanceIdError, self).__init__(
             "InvalidInstanceID.NotFound",
@@ -164,6 +184,7 @@ class InvalidInstanceIdError(EC2ClientError):
 
 
 class InvalidAMIIdError(EC2ClientError):
+
     def __init__(self, ami_id):
         super(InvalidAMIIdError, self).__init__(
             "InvalidAMIID.NotFound",
@@ -172,6 +193,7 @@ class InvalidAMIIdError(EC2ClientError):
 
 
 class InvalidAMIAttributeItemValueError(EC2ClientError):
+
     def __init__(self, attribute, value):
         super(InvalidAMIAttributeItemValueError, self).__init__(
             "InvalidAMIAttributeItemValue",
@@ -180,6 +202,7 @@ class InvalidAMIAttributeItemValueError(EC2ClientError):
 
 
 class MalformedAMIIdError(EC2ClientError):
+
     def __init__(self, ami_id):
         super(MalformedAMIIdError, self).__init__(
             "InvalidAMIID.Malformed",
@@ -188,6 +211,7 @@ class MalformedAMIIdError(EC2ClientError):
 
 
 class InvalidSnapshotIdError(EC2ClientError):
+
     def __init__(self, snapshot_id):
         super(InvalidSnapshotIdError, self).__init__(
             "InvalidSnapshot.NotFound",
@@ -195,6 +219,7 @@ class InvalidSnapshotIdError(EC2ClientError):
 
 
 class InvalidVolumeIdError(EC2ClientError):
+
     def __init__(self, volume_id):
         super(InvalidVolumeIdError, self).__init__(
             "InvalidVolume.NotFound",
@@ -203,6 +228,7 @@ class InvalidVolumeIdError(EC2ClientError):
 
 
 class InvalidVolumeAttachmentError(EC2ClientError):
+
     def __init__(self, volume_id, instance_id):
         super(InvalidVolumeAttachmentError, self).__init__(
             "InvalidAttachment.NotFound",
@@ -211,6 +237,7 @@ class InvalidVolumeAttachmentError(EC2ClientError):
 
 
 class InvalidDomainError(EC2ClientError):
+
     def __init__(self, domain):
         super(InvalidDomainError, self).__init__(
             "InvalidParameterValue",
@@ -219,6 +246,7 @@ class InvalidDomainError(EC2ClientError):
 
 
 class InvalidAddressError(EC2ClientError):
+
     def __init__(self, ip):
         super(InvalidAddressError, self).__init__(
             "InvalidAddress.NotFound",
@@ -227,6 +255,7 @@ class InvalidAddressError(EC2ClientError):
 
 
 class InvalidAllocationIdError(EC2ClientError):
+
     def __init__(self, allocation_id):
         super(InvalidAllocationIdError, self).__init__(
             "InvalidAllocationID.NotFound",
@@ -235,6 +264,7 @@ class InvalidAllocationIdError(EC2ClientError):
 
 
 class InvalidAssociationIdError(EC2ClientError):
+
     def __init__(self, association_id):
         super(InvalidAssociationIdError, self).__init__(
             "InvalidAssociationID.NotFound",
@@ -243,6 +273,7 @@ class InvalidAssociationIdError(EC2ClientError):
 
 
 class InvalidVPCPeeringConnectionIdError(EC2ClientError):
+
     def __init__(self, vpc_peering_connection_id):
         super(InvalidVPCPeeringConnectionIdError, self).__init__(
             "InvalidVpcPeeringConnectionId.NotFound",
@@ -251,6 +282,7 @@ class InvalidVPCPeeringConnectionIdError(EC2ClientError):
 
 
 class InvalidVPCPeeringConnectionStateTransitionError(EC2ClientError):
+
     def __init__(self, vpc_peering_connection_id):
         super(InvalidVPCPeeringConnectionStateTransitionError, self).__init__(
             "InvalidStateTransition",
@@ -259,6 +291,7 @@ class InvalidVPCPeeringConnectionStateTransitionError(EC2ClientError):
 
 
 class InvalidParameterValueError(EC2ClientError):
+
     def __init__(self, parameter_value):
         super(InvalidParameterValueError, self).__init__(
             "InvalidParameterValue",
@@ -267,6 +300,7 @@ class InvalidParameterValueError(EC2ClientError):
 
 
 class InvalidParameterValueErrorTagNull(EC2ClientError):
+
     def __init__(self):
         super(InvalidParameterValueErrorTagNull, self).__init__(
             "InvalidParameterValue",
@@ -274,6 +308,7 @@ class InvalidParameterValueErrorTagNull(EC2ClientError):
 
 
 class InvalidInternetGatewayIdError(EC2ClientError):
+
     def __init__(self, internet_gateway_id):
         super(InvalidInternetGatewayIdError, self).__init__(
             "InvalidInternetGatewayID.NotFound",
@@ -282,6 +317,7 @@ class InvalidInternetGatewayIdError(EC2ClientError):
 
 
 class GatewayNotAttachedError(EC2ClientError):
+
     def __init__(self, internet_gateway_id, vpc_id):
         super(GatewayNotAttachedError, self).__init__(
             "Gateway.NotAttached",
@@ -290,6 +326,7 @@ class GatewayNotAttachedError(EC2ClientError):
 
 
 class ResourceAlreadyAssociatedError(EC2ClientError):
+
     def __init__(self, resource_id):
         super(ResourceAlreadyAssociatedError, self).__init__(
             "Resource.AlreadyAssociated",
@@ -298,6 +335,7 @@ class ResourceAlreadyAssociatedError(EC2ClientError):
 
 
 class TagLimitExceeded(EC2ClientError):
+
     def __init__(self):
         super(TagLimitExceeded, self).__init__(
             "TagLimitExceeded",
@@ -305,6 +343,7 @@ class TagLimitExceeded(EC2ClientError):
 
 
 class InvalidID(EC2ClientError):
+
     def __init__(self, resource_id):
         super(InvalidID, self).__init__(
             "InvalidID",
@@ -313,6 +352,7 @@ class InvalidID(EC2ClientError):
 
 
 class InvalidCIDRSubnetError(EC2ClientError):
+
     def __init__(self, cidr):
         super(InvalidCIDRSubnetError, self).__init__(
             "InvalidParameterValue",
@@ -321,6 +361,7 @@ class InvalidCIDRSubnetError(EC2ClientError):
 
 
 class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
+
     def __init__(self):
         super(RulesPerSecurityGroupLimitExceededError, self).__init__(
             "RulesPerSecurityGroupLimitExceeded",

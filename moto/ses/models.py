@@ -11,16 +11,19 @@ RECIPIENT_LIMIT = 50
 
 
 class Message(object):
+
     def __init__(self, message_id):
         self.id = message_id
 
 
 class RawMessage(object):
+
     def __init__(self, message_id):
         self.id = message_id
 
 
 class SESQuota(object):
+
     def __init__(self, sent):
         self.sent = sent
 
@@ -30,6 +33,7 @@ class SESQuota(object):
 
 
 class SESBackend(BaseBackend):
+
     def __init__(self):
         self.addresses = []
         self.domains = []
@@ -96,5 +100,6 @@ class SESBackend(BaseBackend):
 
     def get_send_quota(self):
         return SESQuota(self.sent_message_count)
+
 
 ses_backend = SESBackend()

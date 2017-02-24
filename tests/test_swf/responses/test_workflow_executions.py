@@ -30,14 +30,16 @@ def setup_swf_environment():
 def test_start_workflow_execution():
     conn = setup_swf_environment()
 
-    wf = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
+    wf = conn.start_workflow_execution(
+        "test-domain", "uid-abcd1234", "test-workflow", "v1.0")
     wf.should.contain("runId")
 
 
 @mock_swf_deprecated
 def test_start_already_started_workflow_execution():
     conn = setup_swf_environment()
-    conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
+    conn.start_workflow_execution(
+        "test-domain", "uid-abcd1234", "test-workflow", "v1.0")
 
     conn.start_workflow_execution.when.called_with(
         "test-domain", "uid-abcd1234", "test-workflow", "v1.0"
@@ -58,11 +60,14 @@ def test_start_workflow_execution_on_deprecated_type():
 @mock_swf_deprecated
 def test_describe_workflow_execution():
     conn = setup_swf_environment()
-    hsh = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
+    hsh = conn.start_workflow_execution(
+        "test-domain", "uid-abcd1234", "test-workflow", "v1.0")
     run_id = hsh["runId"]
 
-    wfe = conn.describe_workflow_execution("test-domain", run_id, "uid-abcd1234")
-    wfe["executionInfo"]["execution"]["workflowId"].should.equal("uid-abcd1234")
+    wfe = conn.describe_workflow_execution(
+        "test-domain", run_id, "uid-abcd1234")
+    wfe["executionInfo"]["execution"][
+        "workflowId"].should.equal("uid-abcd1234")
     wfe["executionInfo"]["executionStatus"].should.equal("OPEN")
 
 
@@ -79,10 +84,12 @@ def test_describe_non_existent_workflow_execution():
 @mock_swf_deprecated
 def test_get_workflow_execution_history():
     conn = setup_swf_environment()
-    hsh = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
+    hsh = conn.start_workflow_execution(
+        "test-domain", "uid-abcd1234", "test-workflow", "v1.0")
     run_id = hsh["runId"]
 
-    resp = conn.get_workflow_execution_history("test-domain", run_id, "uid-abcd1234")
+    resp = conn.get_workflow_execution_history(
+        "test-domain", run_id, "uid-abcd1234")
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
 
@@ -90,7 +97,8 @@ def test_get_workflow_execution_history():
 @mock_swf_deprecated
 def test_get_workflow_execution_history_with_reverse_order():
     conn = setup_swf_environment()
-    hsh = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
+    hsh = conn.start_workflow_execution(
+        "test-domain", "uid-abcd1234", "test-workflow", "v1.0")
     run_id = hsh["runId"]
 
     resp = conn.get_workflow_execution_history("test-domain", run_id, "uid-abcd1234",
@@ -191,7 +199,8 @@ def test_terminate_workflow_execution():
                                              run_id=run_id)
     resp.should.be.none
 
-    resp = conn.get_workflow_execution_history("test-domain", run_id, "uid-abcd1234")
+    resp = conn.get_workflow_execution_history(
+        "test-domain", run_id, "uid-abcd1234")
     evt = resp["events"][-1]
     evt["eventType"].should.equal("WorkflowExecutionTerminated")
     attrs = evt["workflowExecutionTerminatedEventAttributes"]

@@ -134,7 +134,8 @@ class RedshiftResponse(BaseResponse):
 
     def describe_cluster_subnet_groups(self):
         subnet_identifier = self._get_param("ClusterSubnetGroupName")
-        subnet_groups = self.redshift_backend.describe_cluster_subnet_groups(subnet_identifier)
+        subnet_groups = self.redshift_backend.describe_cluster_subnet_groups(
+            subnet_identifier)
 
         return json.dumps({
             "DescribeClusterSubnetGroupsResponse": {
@@ -160,7 +161,8 @@ class RedshiftResponse(BaseResponse):
         })
 
     def create_cluster_security_group(self):
-        cluster_security_group_name = self._get_param('ClusterSecurityGroupName')
+        cluster_security_group_name = self._get_param(
+            'ClusterSecurityGroupName')
         description = self._get_param('Description')
 
         security_group = self.redshift_backend.create_cluster_security_group(
@@ -180,8 +182,10 @@ class RedshiftResponse(BaseResponse):
         })
 
     def describe_cluster_security_groups(self):
-        cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
-        security_groups = self.redshift_backend.describe_cluster_security_groups(cluster_security_group_name)
+        cluster_security_group_name = self._get_param(
+            "ClusterSecurityGroupName")
+        security_groups = self.redshift_backend.describe_cluster_security_groups(
+            cluster_security_group_name)
 
         return json.dumps({
             "DescribeClusterSecurityGroupsResponse": {
@@ -196,7 +200,8 @@ class RedshiftResponse(BaseResponse):
 
     def delete_cluster_security_group(self):
         security_group_identifier = self._get_param("ClusterSecurityGroupName")
-        self.redshift_backend.delete_cluster_security_group(security_group_identifier)
+        self.redshift_backend.delete_cluster_security_group(
+            security_group_identifier)
 
         return json.dumps({
             "DeleteClusterSecurityGroupResponse": {
@@ -230,7 +235,8 @@ class RedshiftResponse(BaseResponse):
 
     def describe_cluster_parameter_groups(self):
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
-        parameter_groups = self.redshift_backend.describe_cluster_parameter_groups(cluster_parameter_group_name)
+        parameter_groups = self.redshift_backend.describe_cluster_parameter_groups(
+            cluster_parameter_group_name)
 
         return json.dumps({
             "DescribeClusterParameterGroupsResponse": {
@@ -245,7 +251,8 @@ class RedshiftResponse(BaseResponse):
 
     def delete_cluster_parameter_group(self):
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
-        self.redshift_backend.delete_cluster_parameter_group(cluster_parameter_group_name)
+        self.redshift_backend.delete_cluster_parameter_group(
+            cluster_parameter_group_name)
 
         return json.dumps({
             "DeleteClusterParameterGroupResponse": {

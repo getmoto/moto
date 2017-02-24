@@ -63,7 +63,8 @@ def test_delete_table():
     conn.layer1.delete_table('messages')
     conn.list_tables().should.have.length_of(0)
 
-    conn.layer1.delete_table.when.called_with('messages').should.throw(DynamoDBResponseError)
+    conn.layer1.delete_table.when.called_with(
+        'messages').should.throw(DynamoDBResponseError)
 
 
 @mock_dynamodb_deprecated

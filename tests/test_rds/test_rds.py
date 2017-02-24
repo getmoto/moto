@@ -15,14 +15,15 @@ def test_create_database():
     conn = boto.rds.connect_to_region("us-west-2")
 
     database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2',
-        security_groups=["my_sg"])
+                                      security_groups=["my_sg"])
 
     database.status.should.equal('available')
     database.id.should.equal("db-master-1")
     database.allocated_storage.should.equal(10)
     database.instance_class.should.equal("db.m1.small")
     database.master_username.should.equal("root")
-    database.endpoint.should.equal(('db-master-1.aaaaaaaaaa.us-west-2.rds.amazonaws.com', 3306))
+    database.endpoint.should.equal(
+        ('db-master-1.aaaaaaaaaa.us-west-2.rds.amazonaws.com', 3306))
     database.security_groups[0].name.should.equal('my_sg')
 
 
@@ -47,7 +48,8 @@ def test_get_databases():
 @mock_rds_deprecated
 def test_describe_non_existant_database():
     conn = boto.rds.connect_to_region("us-west-2")
-    conn.get_all_dbinstances.when.called_with("not-a-db").should.throw(BotoServerError)
+    conn.get_all_dbinstances.when.called_with(
+        "not-a-db").should.throw(BotoServerError)
 
 
 @disable_on_py3()
@@ -66,7 +68,8 @@ def test_delete_database():
 @mock_rds_deprecated
 def test_delete_non_existant_database():
     conn = boto.rds.connect_to_region("us-west-2")
-    conn.delete_dbinstance.when.called_with("not-a-db").should.throw(BotoServerError)
+    conn.delete_dbinstance.when.called_with(
+        "not-a-db").should.throw(BotoServerError)
 
 
 @mock_rds_deprecated
@@ -99,7 +102,8 @@ def test_get_security_groups():
 @mock_rds_deprecated
 def test_get_non_existant_security_group():
     conn = boto.rds.connect_to_region("us-west-2")
-    conn.get_all_dbsecurity_groups.when.called_with("not-a-sg").should.throw(BotoServerError)
+    conn.get_all_dbsecurity_groups.when.called_with(
+        "not-a-sg").should.throw(BotoServerError)
 
 
 @mock_rds_deprecated
@@ -116,7 +120,8 @@ def test_delete_database_security_group():
 @mock_rds_deprecated
 def test_delete_non_existant_security_group():
     conn = boto.rds.connect_to_region("us-west-2")
-    conn.delete_dbsecurity_group.when.called_with("not-a-db").should.throw(BotoServerError)
+    conn.delete_dbsecurity_group.when.called_with(
+        "not-a-db").should.throw(BotoServerError)
 
 
 @disable_on_py3()
@@ -137,7 +142,8 @@ def test_security_group_authorize():
 def test_add_security_group_to_database():
     conn = boto.rds.connect_to_region("us-west-2")
 
-    database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
+    database = conn.create_dbinstance(
+        "db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
     security_group = conn.create_dbsecurity_group('db_sg', 'DB Security Group')
     database.modify(security_groups=[security_group])
 
@@ -157,7 +163,8 @@ def test_add_database_subnet_group():
 
     subnet_ids = [subnet1.id, subnet2.id]
     conn = boto.rds.connect_to_region("us-west-2")
-    subnet_group = conn.create_db_subnet_group("db_subnet", "my db subnet", subnet_ids)
+    subnet_group = conn.create_db_subnet_group(
+        "db_subnet", "my db subnet", subnet_ids)
     subnet_group.name.should.equal('db_subnet')
     subnet_group.description.should.equal("my db subnet")
     list(subnet_group.subnet_ids).should.equal(subnet_ids)
@@ -177,7 +184,8 @@ def test_describe_database_subnet_group():
     list(conn.get_all_db_subnet_groups()).should.have.length_of(2)
     list(conn.get_all_db_subnet_groups("db_subnet1")).should.have.length_of(1)
 
-    conn.get_all_db_subnet_groups.when.called_with("not-a-subnet").should.throw(BotoServerError)
+    conn.get_all_db_subnet_groups.when.called_with(
+        "not-a-subnet").should.throw(BotoServerError)
 
 
 @mock_ec2_deprecated
@@ -194,7 +202,8 @@ def test_delete_database_subnet_group():
     conn.delete_db_subnet_group("db_subnet1")
     list(conn.get_all_db_subnet_groups()).should.have.length_of(0)
 
-    conn.delete_db_subnet_group.when.called_with("db_subnet1").should.throw(BotoServerError)
+    conn.delete_db_subnet_group.when.called_with(
+        "db_subnet1").should.throw(BotoServerError)
 
 
 @disable_on_py3()
@@ -209,7 +218,7 @@ def test_create_database_in_subnet_group():
     conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
 
     database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small',
-        'root', 'hunter2', db_subnet_group_name="db_subnet1")
+                                      'root', 'hunter2', db_subnet_group_name="db_subnet1")
 
     database = conn.get_all_dbinstances("db-master-1")[0]
     database.subnet_group.name.should.equal("db_subnet1")
@@ -220,9 +229,11 @@ def test_create_database_in_subnet_group():
 def test_create_database_replica():
     conn = boto.rds.connect_to_region("us-west-2")
 
-    primary = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
+    primary = conn.create_dbinstance(
+        "db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
 
-    replica = conn.create_dbinstance_read_replica("replica", "db-master-1", "db.m1.small")
+    replica = conn.create_dbinstance_read_replica(
+        "replica", "db-master-1", "db.m1.small")
     replica.id.should.equal("replica")
     replica.instance_class.should.equal("db.m1.small")
     status_info = replica.status_infos[0]
@@ -238,13 +249,15 @@ def test_create_database_replica():
     primary = conn.get_all_dbinstances("db-master-1")[0]
     list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
 
+
 @disable_on_py3()
 @mock_rds_deprecated
 def test_create_cross_region_database_replica():
     west_1_conn = boto.rds.connect_to_region("us-west-1")
     west_2_conn = boto.rds.connect_to_region("us-west-2")
 
-    primary = west_1_conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
+    primary = west_1_conn.create_dbinstance(
+        "db-master-1", 10, 'db.m1.small', 'root', 'hunter2')
 
     primary_arn = "arn:aws:rds:us-west-1:1234567890:db:db-master-1"
     replica = west_2_conn.create_dbinstance_read_replica(
@@ -274,14 +287,15 @@ def test_connecting_to_us_east_1():
     conn = boto.rds.connect_to_region("us-east-1")
 
     database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2',
-        security_groups=["my_sg"])
+                                      security_groups=["my_sg"])
 
     database.status.should.equal('available')
     database.id.should.equal("db-master-1")
     database.allocated_storage.should.equal(10)
     database.instance_class.should.equal("db.m1.small")
     database.master_username.should.equal("root")
-    database.endpoint.should.equal(('db-master-1.aaaaaaaaaa.us-east-1.rds.amazonaws.com', 3306))
+    database.endpoint.should.equal(
+        ('db-master-1.aaaaaaaaaa.us-east-1.rds.amazonaws.com', 3306))
     database.security_groups[0].name.should.equal('my_sg')
 
 
@@ -290,7 +304,8 @@ def test_connecting_to_us_east_1():
 def test_create_database_with_iops():
     conn = boto.rds.connect_to_region("us-west-2")
 
-    database = conn.create_dbinstance("db-master-1", 10, 'db.m1.small', 'root', 'hunter2', iops=6000)
+    database = conn.create_dbinstance(
+        "db-master-1", 10, 'db.m1.small', 'root', 'hunter2', iops=6000)
 
     database.status.should.equal('available')
     database.iops.should.equal(6000)

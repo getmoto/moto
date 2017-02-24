@@ -94,6 +94,7 @@ logger = logging.getLogger("moto")
 
 
 class LazyDict(dict):
+
     def __getitem__(self, key):
         val = dict.__getitem__(self, key)
         if callable(val):
@@ -133,7 +134,8 @@ def clean_json(resource_json, resources_map):
             try:
                 return resource.get_cfn_attribute(resource_json['Fn::GetAtt'][1])
             except NotImplementedError as n:
-                logger.warning(n.message.format(resource_json['Fn::GetAtt'][0]))
+                logger.warning(n.message.format(
+                    resource_json['Fn::GetAtt'][0]))
             except UnformattedGetAttTemplateException:
                 raise BotoServerError(
                     UnformattedGetAttTemplateException.status_code,
@@ -152,7 +154,8 @@ def clean_json(resource_json, resources_map):
             join_list = []
             for val in resource_json['Fn::Join'][1]:
                 cleaned_val = clean_json(val, resources_map)
-                join_list.append('{0}'.format(cleaned_val) if cleaned_val else '{0}'.format(val))
+                join_list.append('{0}'.format(cleaned_val)
+                                 if cleaned_val else '{0}'.format(val))
             return resource_json['Fn::Join'][0].join(join_list)
 
         cleaned_json = {}
@@ -215,14 +218,16 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
     if not resource_tuple:
         return None
     resource_class, resource_json, resource_name = resource_tuple
-    resource = resource_class.create_from_cloudformation_json(resource_name, resource_json, region_name)
+    resource = resource_class.create_from_cloudformation_json(
+        resource_name, resource_json, region_name)
     resource.type = resource_type
     resource.logical_resource_id = logical_id
     return resource
 
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, new_resource_json, new_resource_name = parse_resource(logical_id, resource_json, resources_map)
+    resource_class, new_resource_json, new_resource_name = parse_resource(
+        logical_id, resource_json, resources_map)
     original_resource = resources_map[logical_id]
     new_resource = resource_class.update_from_cloudformation_json(
         original_resource=original_resource,
@@ -236,8 +241,10 @@ def parse_and_update_resource(logical_id, resource_json, resources_map, region_n
 
 
 def parse_and_delete_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, resource_json, resource_name = parse_resource(logical_id, resource_json, resources_map)
-    resource_class.delete_from_cloudformation_json(resource_name, resource_json, region_name)
+    resource_class, resource_json, resource_name = parse_resource(
+        logical_id, resource_json, resources_map)
+    resource_class.delete_from_cloudformation_json(
+        resource_name, resource_json, region_name)
 
 
 def parse_condition(condition, resources_map, condition_map):
@@ -312,7 +319,8 @@ class ResourceMap(collections.Mapping):
             resource_json = self._resource_json_map.get(resource_logical_id)
             if not resource_json:
                 raise KeyError(resource_logical_id)
-            new_resource = parse_and_create_resource(resource_logical_id, resource_json, self, self._region_name)
+            new_resource = parse_and_create_resource(
+                resource_logical_id, resource_json, self, self._region_name)
             if new_resource is not None:
                 self._parsed_resources[resource_logical_id] = new_resource
             return new_resource
@@ -343,7 +351,8 @@ class ResourceMap(collections.Mapping):
                     value = value.split(',')
                 self.resolved_parameters[key] = value
 
-        # Check if there are any non-default params that were not passed input params
+        # Check if there are any non-default params that were not passed input
+        # params
         for key, value in self.resolved_parameters.items():
             if value is None:
                 raise MissingParameterError(key)
@@ -355,10 +364,11 @@ class ResourceMap(collections.Mapping):
         lazy_condition_map = LazyDict()
         for condition_name, condition in conditions.items():
             lazy_condition_map[condition_name] = functools.partial(parse_condition,
-                condition, self._parsed_resources, lazy_condition_map)
+                                                                   condition, self._parsed_resources, lazy_condition_map)
 
         for condition_name in lazy_condition_map:
-            self._parsed_resources[condition_name] = lazy_condition_map[condition_name]
+            self._parsed_resources[
+                condition_name] = lazy_condition_map[condition_name]
 
     def create(self):
         self.load_mapping()
@@ -368,11 +378,12 @@ class ResourceMap(collections.Mapping):
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.
         self.tags.update({'aws:cloudformation:stack-name': self.get('AWS::StackName'),
-                'aws:cloudformation:stack-id': self.get('AWS::StackId')})
+                          'aws:cloudformation:stack-id': self.get('AWS::StackId')})
         for resource in self.resources:
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 self.tags['aws:cloudformation:logical-id'] = resource
-                ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], self.tags)
+                ec2_models.ec2_backends[self._region_name].create_tags(
+                    [self[resource].physical_resource_id], self.tags)
 
     def update(self, template):
         self.load_mapping()
@@ -386,24 +397,29 @@ class ResourceMap(collections.Mapping):
         new_resource_names = set(new_template) - set(old_template)
         for resource_name in new_resource_names:
             resource_json = new_template[resource_name]
-            new_resource = parse_and_create_resource(resource_name, resource_json, self, self._region_name)
+            new_resource = parse_and_create_resource(
+                resource_name, resource_json, self, self._region_name)
             self._parsed_resources[resource_name] = new_resource
 
         removed_resource_nams = set(old_template) - set(new_template)
         for resource_name in removed_resource_nams:
             resource_json = old_template[resource_name]
-            parse_and_delete_resource(resource_name, resource_json, self, self._region_name)
+            parse_and_delete_resource(
+                resource_name, resource_json, self, self._region_name)
             self._parsed_resources.pop(resource_name)
 
-        resources_to_update = set(name for name in new_template if name in old_template and new_template[name] != old_template[name])
+        resources_to_update = set(name for name in new_template if name in old_template and new_template[
+                                  name] != old_template[name])
         tries = 1
         while resources_to_update and tries < 5:
             for resource_name in resources_to_update.copy():
                 resource_json = new_template[resource_name]
                 try:
-                    changed_resource = parse_and_update_resource(resource_name, resource_json, self, self._region_name)
+                    changed_resource = parse_and_update_resource(
+                        resource_name, resource_json, self, self._region_name)
                 except Exception as e:
-                    # skip over dependency violations, and try again in a second pass
+                    # skip over dependency violations, and try again in a
+                    # second pass
                     last_exception = e
                 else:
                     self._parsed_resources[resource_name] = changed_resource
@@ -422,7 +438,8 @@ class ResourceMap(collections.Mapping):
                     if parsed_resource and hasattr(parsed_resource, 'delete'):
                         parsed_resource.delete(self._region_name)
                 except Exception as e:
-                    # skip over dependency violations, and try again in a second pass
+                    # skip over dependency violations, and try again in a
+                    # second pass
                     last_exception = e
                 else:
                     remaining_resources.remove(resource)
@@ -430,7 +447,9 @@ class ResourceMap(collections.Mapping):
         if tries == 5:
             raise last_exception
 
+
 class OutputMap(collections.Mapping):
+
     def __init__(self, resources, template):
         self._template = template
         self._output_json_map = template.get('Outputs')
@@ -446,7 +465,8 @@ class OutputMap(collections.Mapping):
             return self._parsed_outputs[output_logical_id]
         else:
             output_json = self._output_json_map.get(output_logical_id)
-            new_output = parse_output(output_logical_id, output_json, self._resource_map)
+            new_output = parse_output(
+                output_logical_id, output_json, self._resource_map)
             self._parsed_outputs[output_logical_id] = new_output
             return new_output
 

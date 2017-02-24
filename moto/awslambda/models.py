@@ -32,19 +32,22 @@ class LambdaFunction(object):
         # optional
         self.description = spec.get('Description', '')
         self.memory_size = spec.get('MemorySize', 128)
-        self.publish = spec.get('Publish', False) # this is ignored currently
+        self.publish = spec.get('Publish', False)  # this is ignored currently
         self.timeout = spec.get('Timeout', 3)
 
         # this isn't finished yet. it needs to find out the VpcId value
-        self._vpc_config = spec.get('VpcConfig', {'SubnetIds': [], 'SecurityGroupIds': []})
+        self._vpc_config = spec.get(
+            'VpcConfig', {'SubnetIds': [], 'SecurityGroupIds': []})
 
         # auto-generated
         self.version = '$LATEST'
         self.last_modified = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         if 'ZipFile' in self.code:
-            # more hackery to handle unicode/bytes/str in python3 and python2 - argh!
+            # more hackery to handle unicode/bytes/str in python3 and python2 -
+            # argh!
             try:
-                to_unzip_code = base64.b64decode(bytes(self.code['ZipFile'], 'utf-8'))
+                to_unzip_code = base64.b64decode(
+                    bytes(self.code['ZipFile'], 'utf-8'))
             except Exception:
                 to_unzip_code = base64.b64decode(self.code['ZipFile'])
 
@@ -58,7 +61,8 @@ class LambdaFunction(object):
             # validate s3 bucket
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_key(self.code['S3Bucket'], self.code['S3Key'])
+                key = s3_backend.get_key(
+                    self.code['S3Bucket'], self.code['S3Key'])
             except MissingBucket:
                 raise ValueError(
                     "InvalidParameterValueException",
@@ -72,7 +76,8 @@ class LambdaFunction(object):
                 else:
                     self.code_size = key.size
                     self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
-        self.function_arn = 'arn:aws:lambda:123456789012:function:{0}'.format(self.function_name)
+        self.function_arn = 'arn:aws:lambda:123456789012:function:{0}'.format(
+            self.function_name)
 
     @property
     def vpc_config(self):
@@ -130,7 +135,6 @@ class LambdaFunction(object):
                                 self.convert(self.code),
                                 self.convert('print(json.dumps(lambda_handler(%s, %s)))' % (self.is_json(self.convert(event)), context))])
 
-            #print("moto_lambda_debug: ", mycode)
         except Exception as ex:
             print("Exception %s", ex)
 
@@ -182,7 +186,8 @@ class LambdaFunction(object):
             'Runtime': properties['Runtime'],
         }
         optional_properties = 'Description MemorySize Publish Timeout VpcConfig'.split()
-        # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the default logic
+        # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the
+        # default logic
         for prop in optional_properties:
             if prop in properties:
                 spec[prop] = properties[prop]
@@ -219,6 +224,6 @@ lambda_backends = {}
 for region in boto.awslambda.regions():
     lambda_backends[region.name] = LambdaBackend()
 
-# Handle us forgotten regions, unless Lambda truly only runs out of US and EU?????
+# Handle us forgotten regions, unless Lambda truly only runs out of US and
 for region in ['ap-southeast-2']:
     lambda_backends[region] = LambdaBackend()

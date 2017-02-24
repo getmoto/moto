@@ -5,6 +5,7 @@ from werkzeug.exceptions import BadRequest
 
 
 class RDSClientError(BadRequest):
+
     def __init__(self, code, message):
         super(RDSClientError, self).__init__()
         template = Template("""
@@ -20,6 +21,7 @@ class RDSClientError(BadRequest):
 
 
 class DBInstanceNotFoundError(RDSClientError):
+
     def __init__(self, database_identifier):
         super(DBInstanceNotFoundError, self).__init__(
             'DBInstanceNotFound',
@@ -27,6 +29,7 @@ class DBInstanceNotFoundError(RDSClientError):
 
 
 class DBSecurityGroupNotFoundError(RDSClientError):
+
     def __init__(self, security_group_name):
         super(DBSecurityGroupNotFoundError, self).__init__(
             'DBSecurityGroupNotFound',
@@ -34,12 +37,15 @@ class DBSecurityGroupNotFoundError(RDSClientError):
 
 
 class DBSubnetGroupNotFoundError(RDSClientError):
+
     def __init__(self, subnet_group_name):
         super(DBSubnetGroupNotFoundError, self).__init__(
             'DBSubnetGroupNotFound',
             "Subnet Group {0} not found.".format(subnet_group_name))
 
+
 class DBParameterGroupNotFoundError(RDSClientError):
+
     def __init__(self, db_parameter_group_name):
         super(DBParameterGroupNotFoundError, self).__init__(
             'DBParameterGroupNotFound',

@@ -8,6 +8,7 @@ from ..exceptions import (
 
 
 class Domain(object):
+
     def __init__(self, name, retention, description=None):
         self.name = name
         self.retention = retention

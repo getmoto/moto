@@ -69,7 +69,8 @@ def test_delete_table():
     conn.layer1.delete_table('messages')
     conn.list_tables().should.have.length_of(0)
 
-    conn.layer1.delete_table.when.called_with('messages').should.throw(DynamoDBResponseError)
+    conn.layer1.delete_table.when.called_with(
+        'messages').should.throw(DynamoDBResponseError)
 
 
 @mock_dynamodb_deprecated
@@ -192,7 +193,8 @@ def test_get_item_without_range_key():
     new_item = table.new_item(hash_key=hash_key, range_key=range_key)
     new_item.put()
 
-    table.get_item.when.called_with(hash_key=hash_key).should.throw(DynamoDBValidationError)
+    table.get_item.when.called_with(
+        hash_key=hash_key).should.throw(DynamoDBValidationError)
 
 
 @mock_dynamodb_deprecated
@@ -304,22 +306,28 @@ def test_query():
     )
     item.put()
 
-    results = table.query(hash_key='the-key', range_key_condition=condition.GT('1'))
+    results = table.query(hash_key='the-key',
+                          range_key_condition=condition.GT('1'))
     results.response['Items'].should.have.length_of(3)
 
-    results = table.query(hash_key='the-key', range_key_condition=condition.GT('234'))
+    results = table.query(hash_key='the-key',
+                          range_key_condition=condition.GT('234'))
     results.response['Items'].should.have.length_of(2)
 
-    results = table.query(hash_key='the-key', range_key_condition=condition.GT('9999'))
+    results = table.query(hash_key='the-key',
+                          range_key_condition=condition.GT('9999'))
     results.response['Items'].should.have.length_of(0)
 
-    results = table.query(hash_key='the-key', range_key_condition=condition.CONTAINS('12'))
+    results = table.query(hash_key='the-key',
+                          range_key_condition=condition.CONTAINS('12'))
     results.response['Items'].should.have.length_of(1)
 
-    results = table.query(hash_key='the-key', range_key_condition=condition.BEGINS_WITH('7'))
+    results = table.query(hash_key='the-key',
+                          range_key_condition=condition.BEGINS_WITH('7'))
     results.response['Items'].should.have.length_of(1)
 
-    results = table.query(hash_key='the-key', range_key_condition=condition.BETWEEN('567', '890'))
+    results = table.query(hash_key='the-key',
+                          range_key_condition=condition.BETWEEN('567', '890'))
     results.response['Items'].should.have.length_of(1)
 
 

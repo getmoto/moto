@@ -59,11 +59,13 @@ def test_decorater_wrapped_gets_set():
     """
     Moto decorator's __wrapped__ should get set to the tests function
     """
-    test_decorater_wrapped_gets_set.__wrapped__.__name__.should.equal('test_decorater_wrapped_gets_set')
+    test_decorater_wrapped_gets_set.__wrapped__.__name__.should.equal(
+        'test_decorater_wrapped_gets_set')
 
 
 @mock_ec2_deprecated
 class Tester(object):
+
     def test_the_class(self):
         conn = boto.connect_ec2()
         list(conn.get_all_instances()).should.have.length_of(0)
@@ -75,6 +77,7 @@ class Tester(object):
 
 @mock_s3_deprecated
 class TesterWithSetup(unittest.TestCase):
+
     def setUp(self):
         self.conn = boto.connect_s3()
         self.conn.create_bucket('mybucket')

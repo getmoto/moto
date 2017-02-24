@@ -9,6 +9,7 @@ from .timeout import Timeout
 
 
 class ActivityTask(object):
+
     def __init__(self, activity_id, activity_type, scheduled_event_id,
                  workflow_execution, timeouts, input=None):
         self.activity_id = activity_id

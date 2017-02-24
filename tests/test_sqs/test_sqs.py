@@ -34,7 +34,8 @@ def test_create_queue():
 @mock_sqs
 def test_get_inexistent_queue():
     sqs = boto3.resource('sqs', region_name='us-east-1')
-    sqs.get_queue_by_name.when.called_with(QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
+    sqs.get_queue_by_name.when.called_with(
+        QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
 
 
 @mock_sqs
@@ -43,8 +44,10 @@ def test_message_send():
     queue = sqs.create_queue(QueueName="blah")
     msg = queue.send_message(MessageBody="derp")
 
-    msg.get('MD5OfMessageBody').should.equal('58fd9edd83341c29f1aebba81c31e257')
-    msg.get('ResponseMetadata', {}).get('RequestId').should.equal('27daac76-34dd-47df-bd01-1f6e873584a0')
+    msg.get('MD5OfMessageBody').should.equal(
+        '58fd9edd83341c29f1aebba81c31e257')
+    msg.get('ResponseMetadata', {}).get('RequestId').should.equal(
+        '27daac76-34dd-47df-bd01-1f6e873584a0')
     msg.get('MessageId').should_not.contain(' \n')
 
     messages = queue.receive_messages()
@@ -73,7 +76,8 @@ def test_create_queues_in_multiple_region():
     list(west1_conn.list_queues()['QueueUrls']).should.have.length_of(1)
     list(west2_conn.list_queues()['QueueUrls']).should.have.length_of(1)
 
-    west1_conn.list_queues()['QueueUrls'][0].should.equal('http://sqs.us-west-1.amazonaws.com/123456789012/blah')
+    west1_conn.list_queues()['QueueUrls'][0].should.equal(
+        'http://sqs.us-west-1.amazonaws.com/123456789012/blah')
 
 
 @mock_sqs
@@ -87,14 +91,16 @@ def test_get_queue_with_prefix():
 
     queue = conn.list_queues(QueueNamePrefix="test-")['QueueUrls']
     queue.should.have.length_of(1)
-    queue[0].should.equal("http://sqs.us-west-1.amazonaws.com/123456789012/test-queue")
+    queue[0].should.equal(
+        "http://sqs.us-west-1.amazonaws.com/123456789012/test-queue")
 
 
 @mock_sqs
 def test_delete_queue():
     sqs = boto3.resource('sqs', region_name='us-east-1')
     conn = boto3.client("sqs", region_name='us-east-1')
-    conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": "60"})
+    conn.create_queue(QueueName="test-queue",
+                      Attributes={"VisibilityTimeout": "60"})
     queue = sqs.Queue('test-queue')
 
     conn.list_queues()['QueueUrls'].should.have.length_of(1)
@@ -110,7 +116,8 @@ def test_delete_queue():
 def test_set_queue_attribute():
     sqs = boto3.resource('sqs', region_name='us-east-1')
     conn = boto3.client("sqs", region_name='us-east-1')
-    conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": '60'})
+    conn.create_queue(QueueName="test-queue",
+                      Attributes={"VisibilityTimeout": '60'})
 
     queue = sqs.Queue("test-queue")
     queue.attributes['VisibilityTimeout'].should.equal('60')
@@ -133,7 +140,8 @@ def test_send_message():
     response = queue.send_message(MessageBody=body_one)
     response = queue.send_message(MessageBody=body_two)
 
-    messages = conn.receive_message(QueueUrl=queue.url, MaxNumberOfMessages=2)['Messages']
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2)['Messages']
 
     messages[0]['Body'].should.equal(body_one)
     messages[1]['Body'].should.equal(body_two)
@@ -244,12 +252,14 @@ def test_receive_message_with_explicit_visibility_timeout():
     queue.write(queue.new_message(body_one))
 
     queue.count().should.equal(1)
-    messages = conn.receive_message(queue, number_messages=1, visibility_timeout=0)
+    messages = conn.receive_message(
+        queue, number_messages=1, visibility_timeout=0)
 
     assert len(messages) == 1
 
     # Message should remain visible
     queue.count().should.equal(1)
+
 
 @mock_sqs_deprecated
 def test_change_message_visibility():
@@ -381,7 +391,8 @@ def test_send_batch_operation_with_message_attributes():
     queue = conn.create_queue("test-queue", visibility_timeout=60)
     queue.set_message_class(RawMessage)
 
-    message_tuple = ("my_first_message", 'test message 1', 0, {'name1': {'data_type': 'String', 'string_value': 'foo'}})
+    message_tuple = ("my_first_message", 'test message 1', 0, {
+                     'name1': {'data_type': 'String', 'string_value': 'foo'}})
     queue.write_batch([message_tuple])
 
     messages = queue.get_messages()
@@ -415,7 +426,8 @@ def test_queue_attributes():
     queue_name = 'test-queue'
     visibility_timeout = 60
 
-    queue = conn.create_queue(queue_name, visibility_timeout=visibility_timeout)
+    queue = conn.create_queue(
+        queue_name, visibility_timeout=visibility_timeout)
 
     attributes = queue.get_attributes()
 
@@ -462,7 +474,8 @@ def test_change_message_visibility_on_invalid_receipt():
 
     assert len(messages) == 1
 
-    original_message.change_visibility.when.called_with(100).should.throw(SQSError)
+    original_message.change_visibility.when.called_with(
+        100).should.throw(SQSError)
 
 
 @mock_sqs_deprecated
@@ -485,7 +498,8 @@ def test_change_message_visibility_on_visible_message():
 
     queue.count().should.equal(1)
 
-    original_message.change_visibility.when.called_with(100).should.throw(SQSError)
+    original_message.change_visibility.when.called_with(
+        100).should.throw(SQSError)
 
 
 @mock_sqs_deprecated
@@ -505,7 +519,8 @@ def test_purge_action():
 def test_delete_message_after_visibility_timeout():
     VISIBILITY_TIMEOUT = 1
     conn = boto.sqs.connect_to_region("us-east-1")
-    new_queue = conn.create_queue('new-queue', visibility_timeout=VISIBILITY_TIMEOUT)
+    new_queue = conn.create_queue(
+        'new-queue', visibility_timeout=VISIBILITY_TIMEOUT)
 
     m1 = Message()
     m1.set_body('Message 1!')

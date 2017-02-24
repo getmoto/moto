@@ -15,7 +15,8 @@ def test_verify_email_identity():
     conn.verify_email_identity("test@example.com")
 
     identities = conn.list_identities()
-    address = identities['ListIdentitiesResponse']['ListIdentitiesResult']['Identities'][0]
+    address = identities['ListIdentitiesResponse'][
+        'ListIdentitiesResult']['Identities'][0]
     address.should.equal('test@example.com')
 
 
@@ -27,7 +28,8 @@ def test_domain_verify():
     conn.verify_domain_identity("domain2.com")
 
     identities = conn.list_identities()
-    domains = list(identities['ListIdentitiesResponse']['ListIdentitiesResult']['Identities'])
+    domains = list(identities['ListIdentitiesResponse'][
+                   'ListIdentitiesResult']['Identities'])
     domains.should.equal(['domain1.com', 'domain2.com'])
 
 
@@ -36,9 +38,11 @@ def test_delete_identity():
     conn = boto.connect_ses('the_key', 'the_secret')
     conn.verify_email_identity("test@example.com")
 
-    conn.list_identities()['ListIdentitiesResponse']['ListIdentitiesResult']['Identities'].should.have.length_of(1)
+    conn.list_identities()['ListIdentitiesResponse']['ListIdentitiesResult'][
+        'Identities'].should.have.length_of(1)
     conn.delete_identity("test@example.com")
-    conn.list_identities()['ListIdentitiesResponse']['ListIdentitiesResult']['Identities'].should.have.length_of(0)
+    conn.list_identities()['ListIdentitiesResponse']['ListIdentitiesResult'][
+        'Identities'].should.have.length_of(0)
 
 
 @mock_ses_deprecated
@@ -50,11 +54,14 @@ def test_send_email():
         "test body", "test_to@example.com").should.throw(BotoServerError)
 
     conn.verify_email_identity("test@example.com")
-    conn.send_email("test@example.com", "test subject", "test body", "test_to@example.com")
+    conn.send_email("test@example.com", "test subject",
+                    "test body", "test_to@example.com")
 
     send_quota = conn.get_send_quota()
-    sent_count = int(send_quota['GetSendQuotaResponse']['GetSendQuotaResult']['SentLast24Hours'])
+    sent_count = int(send_quota['GetSendQuotaResponse'][
+                     'GetSendQuotaResult']['SentLast24Hours'])
     sent_count.should.equal(1)
+
 
 @mock_ses_deprecated
 def test_send_html_email():
@@ -65,11 +72,14 @@ def test_send_html_email():
         "<span>test body</span>", "test_to@example.com", format="html").should.throw(BotoServerError)
 
     conn.verify_email_identity("test@example.com")
-    conn.send_email("test@example.com", "test subject", "<span>test body</span>", "test_to@example.com", format="html")
+    conn.send_email("test@example.com", "test subject",
+                    "<span>test body</span>", "test_to@example.com", format="html")
 
     send_quota = conn.get_send_quota()
-    sent_count = int(send_quota['GetSendQuotaResponse']['GetSendQuotaResult']['SentLast24Hours'])
+    sent_count = int(send_quota['GetSendQuotaResponse'][
+                     'GetSendQuotaResult']['SentLast24Hours'])
     sent_count.should.equal(1)
+
 
 @mock_ses_deprecated
 def test_send_raw_email():
@@ -101,5 +111,6 @@ def test_send_raw_email():
     )
 
     send_quota = conn.get_send_quota()
-    sent_count = int(send_quota['GetSendQuotaResponse']['GetSendQuotaResult']['SentLast24Hours'])
+    sent_count = int(send_quota['GetSendQuotaResponse'][
+                     'GetSendQuotaResult']['SentLast24Hours'])
     sent_count.should.equal(1)

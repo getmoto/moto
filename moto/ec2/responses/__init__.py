@@ -66,6 +66,7 @@ class EC2Response(
     Windows,
     NatGateways,
 ):
+
     @property
     def ec2_backend(self):
         from moto.ec2.models import ec2_backends

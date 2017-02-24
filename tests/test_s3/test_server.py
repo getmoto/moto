@@ -31,7 +31,8 @@ def test_s3_server_bucket_create():
     res.status_code.should.equal(200)
     res.data.should.contain(b"ListBucketResult")
 
-    res = test_client.put('/bar', 'http://foobaz.localhost:5000/', data='test value')
+    res = test_client.put(
+        '/bar', 'http://foobaz.localhost:5000/', data='test value')
     res.status_code.should.equal(200)
 
     res = test_client.get('/bar', 'http://foobaz.localhost:5000/')
@@ -45,7 +46,8 @@ def test_s3_server_bucket_versioning():
 
     # Just enough XML to enable versioning
     body = '<Status>Enabled</Status>'
-    res = test_client.put('/?versioning', 'http://foobaz.localhost:5000', data=body)
+    res = test_client.put(
+        '/?versioning', 'http://foobaz.localhost:5000', data=body)
     res.status_code.should.equal(200)
 
 

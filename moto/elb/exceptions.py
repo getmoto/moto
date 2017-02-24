@@ -7,6 +7,7 @@ class ELBClientError(RESTError):
 
 
 class DuplicateTagKeysError(ELBClientError):
+
     def __init__(self, cidr):
         super(DuplicateTagKeysError, self).__init__(
             "DuplicateTagKeys",
@@ -15,6 +16,7 @@ class DuplicateTagKeysError(ELBClientError):
 
 
 class LoadBalancerNotFoundError(ELBClientError):
+
     def __init__(self, cidr):
         super(LoadBalancerNotFoundError, self).__init__(
             "LoadBalancerNotFound",
@@ -23,6 +25,7 @@ class LoadBalancerNotFoundError(ELBClientError):
 
 
 class TooManyTagsError(ELBClientError):
+
     def __init__(self):
         super(TooManyTagsError, self).__init__(
             "LoadBalancerNotFound",
@@ -30,6 +33,7 @@ class TooManyTagsError(ELBClientError):
 
 
 class BadHealthCheckDefinition(ELBClientError):
+
     def __init__(self):
         super(BadHealthCheckDefinition, self).__init__(
             "ValidationError",
@@ -37,9 +41,9 @@ class BadHealthCheckDefinition(ELBClientError):
 
 
 class DuplicateLoadBalancerName(ELBClientError):
+
     def __init__(self, name):
         super(DuplicateLoadBalancerName, self).__init__(
             "DuplicateLoadBalancerName",
             "The specified load balancer name already exists for this account: {0}"
             .format(name))
-

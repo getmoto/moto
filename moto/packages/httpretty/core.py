@@ -138,6 +138,7 @@ class HTTPrettyRequest(BaseHTTPRequestHandler, BaseClass):
     `content-type` headers values: 'application/json' or
     'application/x-www-form-urlencoded'
     """
+
     def __init__(self, headers, body=''):
         # first of all, lets make sure that if headers or body are
         # unicode strings, it must be converted into a utf-8 encoded
@@ -149,8 +150,8 @@ class HTTPrettyRequest(BaseHTTPRequestHandler, BaseClass):
         # `rfile` based on it
         self.rfile = StringIO(b'\r\n\r\n'.join([self.raw_headers, self.body]))
         self.wfile = StringIO()  # Creating `wfile` as an empty
-                                 # StringIO, just to avoid any real
-                                 # I/O calls
+        # StringIO, just to avoid any real
+        # I/O calls
 
         # parsing the request line preemptively
         self.raw_requestline = self.rfile.readline()
@@ -229,12 +230,14 @@ class HTTPrettyRequestEmpty(object):
 
 
 class FakeSockFile(StringIO):
+
     def close(self):
         self.socket.close()
         StringIO.close(self)
 
 
 class FakeSSLSocket(object):
+
     def __init__(self, sock, *args, **kw):
         self._httpretty_sock = sock
 
@@ -243,6 +246,7 @@ class FakeSSLSocket(object):
 
 
 class fakesock(object):
+
     class socket(object):
         _entry = None
         debuglevel = 0
@@ -374,13 +378,15 @@ class fakesock(object):
             self.fd.socket = self
             try:
                 requestline, _ = data.split(b'\r\n', 1)
-                method, path, version = parse_requestline(decode_utf8(requestline))
+                method, path, version = parse_requestline(
+                    decode_utf8(requestline))
                 is_parsing_headers = True
             except ValueError:
                 is_parsing_headers = False
 
                 if not self._entry:
-                    # If the previous request wasn't mocked, don't mock the subsequent sending of data
+                    # If the previous request wasn't mocked, don't mock the
+                    # subsequent sending of data
                     return self.real_sendall(data, *args, **kw)
 
             self.fd.seek(0)
@@ -492,6 +498,7 @@ def fake_getaddrinfo(
 
 
 class Entry(BaseClass):
+
     def __init__(self, method, uri, body,
                  adding_headers=None,
                  forcing_headers=None,
@@ -543,15 +550,15 @@ class Entry(BaseClass):
                 igot = int(got)
             except ValueError:
                 warnings.warn(
-                    'HTTPretty got to register the Content-Length header ' \
+                    'HTTPretty got to register the Content-Length header '
                     'with "%r" which is not a number' % got,
                 )
 
             if igot > self.body_length:
                 raise HTTPrettyError(
-                    'HTTPretty got inconsistent parameters. The header ' \
-                    'Content-Length you registered expects size "%d" but ' \
-                    'the body you registered for that has actually length ' \
+                    'HTTPretty got inconsistent parameters. The header '
+                    'Content-Length you registered expects size "%d" but '
+                    'the body you registered for that has actually length '
                     '"%d".' % (
                         igot, self.body_length,
                     )
@@ -588,7 +595,8 @@ class Entry(BaseClass):
         headers = self.normalize_headers(headers)
         status = headers.get('status', self.status)
         if self.body_is_callable:
-            status, headers, self.body = self.callable_body(self.request, self.info.full_url(), headers)
+            status, headers, self.body = self.callable_body(
+                self.request, self.info.full_url(), headers)
             if self.request.method != "HEAD":
                 headers.update({
                     'content-length': len(self.body)
@@ -641,6 +649,7 @@ def url_fix(s, charset='utf-8'):
 
 
 class URIInfo(BaseClass):
+
     def __init__(self,
                  username='',
                  password='',
@@ -764,7 +773,7 @@ class URIMatcher(object):
 
         self.entries = entries
 
-        #hash of current_entry pointers, per method.
+        # hash of current_entry pointers, per method.
         self.current_entries = {}
 
     def matches(self, info):
@@ -788,7 +797,7 @@ class URIMatcher(object):
         if method not in self.current_entries:
             self.current_entries[method] = 0
 
-        #restrict selection to entries that match the requested method
+        # restrict selection to entries that match the requested method
         entries_for_method = [e for e in self.entries if e.method == method]
 
         if self.current_entries[method] >= len(entries_for_method):
@@ -841,13 +850,14 @@ class httpretty(HttpBaseClass):
         try:
             import urllib3
         except ImportError:
-            raise RuntimeError('HTTPretty requires urllib3 installed for recording actual requests.')
-
+            raise RuntimeError(
+                'HTTPretty requires urllib3 installed for recording actual requests.')
 
         http = urllib3.PoolManager()
 
         cls.enable()
         calls = []
+
         def record_request(request, uri, headers):
             cls.disable()
 
@@ -870,7 +880,8 @@ class httpretty(HttpBaseClass):
             return response.status, response.headers, response.data
 
         for method in cls.METHODS:
-            cls.register_uri(method, re.compile(r'.*', re.M), body=record_request)
+            cls.register_uri(method, re.compile(
+                r'.*', re.M), body=record_request)
 
         yield
         cls.disable()
@@ -886,7 +897,8 @@ class httpretty(HttpBaseClass):
         for item in data:
             uri = item['request']['uri']
             method = item['request']['method']
-            cls.register_uri(method, uri, body=item['response']['body'], forcing_headers=item['response']['headers'])
+            cls.register_uri(method, uri, body=item['response'][
+                             'body'], forcing_headers=item['response']['headers'])
 
         yield
         cls.disable()

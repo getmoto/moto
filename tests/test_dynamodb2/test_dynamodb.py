@@ -15,17 +15,18 @@ try:
 except ImportError:
     print("This boto version is not supported")
 
+
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 def test_list_tables():
     name = 'TestTable'
     #{'schema': }
-    dynamodb_backend2.create_table(name,schema=[
+    dynamodb_backend2.create_table(name, schema=[
         {u'KeyType': u'HASH', u'AttributeName': u'forum_name'},
         {u'KeyType': u'RANGE', u'AttributeName': u'subject'}
     ])
-    conn =  boto.dynamodb2.connect_to_region(
-            'us-west-2',
+    conn = boto.dynamodb2.connect_to_region(
+        'us-west-2',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
     assert conn.list_tables()["TableNames"] == [name]
@@ -34,13 +35,13 @@ def test_list_tables():
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 def test_list_tables_layer_1():
-    dynamodb_backend2.create_table("test_1",schema=[
+    dynamodb_backend2.create_table("test_1", schema=[
         {u'KeyType': u'HASH', u'AttributeName': u'name'}
     ])
-    dynamodb_backend2.create_table("test_2",schema=[
+    dynamodb_backend2.create_table("test_2", schema=[
         {u'KeyType': u'HASH', u'AttributeName': u'name'}
     ])
-    conn =  boto.dynamodb2.connect_to_region(
+    conn = boto.dynamodb2.connect_to_region(
         'us-west-2',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
@@ -57,7 +58,7 @@ def test_list_tables_layer_1():
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 def test_describe_missing_table():
-    conn =  boto.dynamodb2.connect_to_region(
+    conn = boto.dynamodb2.connect_to_region(
         'us-west-2',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")

@@ -52,12 +52,14 @@ class DataPipelineResponse(BaseResponse):
         pipeline_id = self.parameters["pipelineId"]
         pipeline_objects = self.parameters["pipelineObjects"]
 
-        self.datapipeline_backend.put_pipeline_definition(pipeline_id, pipeline_objects)
+        self.datapipeline_backend.put_pipeline_definition(
+            pipeline_id, pipeline_objects)
         return json.dumps({"errored": False})
 
     def get_pipeline_definition(self):
         pipeline_id = self.parameters["pipelineId"]
-        pipeline_definition = self.datapipeline_backend.get_pipeline_definition(pipeline_id)
+        pipeline_definition = self.datapipeline_backend.get_pipeline_definition(
+            pipeline_id)
         return json.dumps({
             "pipelineObjects": [pipeline_object.to_json() for pipeline_object in pipeline_definition]
         })
@@ -66,7 +68,8 @@ class DataPipelineResponse(BaseResponse):
         pipeline_id = self.parameters["pipelineId"]
         object_ids = self.parameters["objectIds"]
 
-        pipeline_objects = self.datapipeline_backend.describe_objects(object_ids, pipeline_id)
+        pipeline_objects = self.datapipeline_backend.describe_objects(
+            object_ids, pipeline_id)
         return json.dumps({
             "hasMoreResults": False,
             "marker": None,

@@ -35,8 +35,8 @@ dummy_template3 = {
         "VPC": {
             "Properties": {
                 "CidrBlock": "192.168.0.0/16",
-        },
-        "Type": "AWS::EC2::VPC"
+            },
+            "Type": "AWS::EC2::VPC"
         }
     },
 }
@@ -91,7 +91,8 @@ def test_create_stack_with_notification_arn():
     )
 
     stack = conn.describe_stacks()[0]
-    [n.value for n in stack.notification_arns].should.contain('arn:aws:sns:us-east-1:123456789012:fake-queue')
+    [n.value for n in stack.notification_arns].should.contain(
+        'arn:aws:sns:us-east-1:123456789012:fake-queue')
 
 
 @mock_cloudformation_deprecated
@@ -111,16 +112,16 @@ def test_create_stack_from_s3_url():
     stack.stack_name.should.equal('new-stack')
     stack.get_template().should.equal(
         {
-        'GetTemplateResponse': {
-            'GetTemplateResult': {
-                'TemplateBody': dummy_template_json,
-                'ResponseMetadata': {
-                    'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
+            'GetTemplateResponse': {
+                'GetTemplateResult': {
+                    'TemplateBody': dummy_template_json,
+                    'ResponseMetadata': {
+                        'RequestId': '2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE'
+                    }
                 }
             }
-        }
 
-    })
+        })
 
 
 @mock_cloudformation_deprecated
@@ -271,7 +272,8 @@ def test_cloudformation_params():
     }
     dummy_template_json = json.dumps(dummy_template)
     cfn = boto.connect_cloudformation()
-    cfn.create_stack('test_stack1', template_body=dummy_template_json, parameters=[('APPNAME', 'testing123')])
+    cfn.create_stack('test_stack1', template_body=dummy_template_json, parameters=[
+                     ('APPNAME', 'testing123')])
     stack = cfn.describe_stacks('test_stack1')[0]
     stack.parameters.should.have.length_of(1)
     param = stack.parameters[0]
@@ -342,23 +344,28 @@ def test_update_stack():
 @mock_cloudformation_deprecated
 def test_update_stack_when_rolled_back():
     conn = boto.connect_cloudformation()
-    stack_id = conn.create_stack("test_stack", template_body=dummy_template_json)
+    stack_id = conn.create_stack(
+        "test_stack", template_body=dummy_template_json)
 
-    cloudformation_backends[conn.region.name].stacks[stack_id].status = 'ROLLBACK_COMPLETE'
+    cloudformation_backends[conn.region.name].stacks[
+        stack_id].status = 'ROLLBACK_COMPLETE'
 
     with assert_raises(BotoServerError) as err:
         conn.update_stack("test_stack", dummy_template_json)
 
     ex = err.exception
-    ex.body.should.match(r'is in ROLLBACK_COMPLETE state and can not be updated')
+    ex.body.should.match(
+        r'is in ROLLBACK_COMPLETE state and can not be updated')
     ex.error_code.should.equal('ValidationError')
     ex.reason.should.equal('Bad Request')
     ex.status.should.equal(400)
 
+
 @mock_cloudformation_deprecated
 def test_describe_stack_events_shows_create_update_and_delete():
     conn = boto.connect_cloudformation()
-    stack_id = conn.create_stack("test_stack", template_body=dummy_template_json)
+    stack_id = conn.create_stack(
+        "test_stack", template_body=dummy_template_json)
     conn.update_stack(stack_id, template_body=dummy_template_json2)
     conn.delete_stack(stack_id)
 
@@ -367,7 +374,8 @@ def test_describe_stack_events_shows_create_update_and_delete():
     events[0].resource_type.should.equal("AWS::CloudFormation::Stack")
     events[-1].resource_type.should.equal("AWS::CloudFormation::Stack")
 
-    # testing ordering of stack events without assuming resource events will not exist
+    # testing ordering of stack events without assuming resource events will
+    # not exist
     stack_events_to_look_for = iter([
         ("CREATE_IN_PROGRESS", "User Initiated"), ("CREATE_COMPLETE", None),
         ("UPDATE_IN_PROGRESS", "User Initiated"), ("UPDATE_COMPLETE", None),
@@ -381,12 +389,13 @@ def test_describe_stack_events_shows_create_update_and_delete():
                 event.logical_resource_id.should.equal("test_stack")
                 event.physical_resource_id.should.equal(stack_id)
 
-                status_to_look_for, reason_to_look_for = next(stack_events_to_look_for)
+                status_to_look_for, reason_to_look_for = next(
+                    stack_events_to_look_for)
                 event.resource_status.should.equal(status_to_look_for)
                 if reason_to_look_for is not None:
-                    event.resource_status_reason.should.equal(reason_to_look_for)
+                    event.resource_status_reason.should.equal(
+                        reason_to_look_for)
     except StopIteration:
         assert False, "Too many stack events"
 
     list(stack_events_to_look_for).should.be.empty
-

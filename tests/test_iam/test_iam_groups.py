@@ -29,7 +29,8 @@ def test_get_all_groups():
     conn = boto.connect_iam()
     conn.create_group('my-group1')
     conn.create_group('my-group2')
-    groups = conn.get_all_groups()['list_groups_response']['list_groups_result']['groups']
+    groups = conn.get_all_groups()['list_groups_response'][
+        'list_groups_result']['groups']
     groups.should.have.length_of(2)
 
 
@@ -68,5 +69,6 @@ def test_get_groups_for_user():
     conn.add_user_to_group('my-group1', 'my-user')
     conn.add_user_to_group('my-group2', 'my-user')
 
-    groups = conn.get_groups_for_user('my-user')['list_groups_for_user_response']['list_groups_for_user_result']['groups']
+    groups = conn.get_groups_for_user(
+        'my-user')['list_groups_for_user_response']['list_groups_for_user_result']['groups']
     groups.should.have.length_of(2)

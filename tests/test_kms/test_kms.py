@@ -8,11 +8,13 @@ import sure  # noqa
 from moto import mock_kms_deprecated
 from nose.tools import assert_raises
 
+
 @mock_kms_deprecated
 def test_create_key():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
 
     key['KeyMetadata']['Description'].should.equal("my key")
     key['KeyMetadata']['KeyUsage'].should.equal("ENCRYPT_DECRYPT")
@@ -22,7 +24,8 @@ def test_create_key():
 @mock_kms_deprecated
 def test_describe_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['KeyId']
 
     key = conn.describe_key(key_id)
@@ -33,8 +36,10 @@ def test_describe_key():
 @mock_kms_deprecated
 def test_describe_key_via_alias():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
-    conn.create_alias(alias_name='alias/my-key-alias', target_key_id=key['KeyMetadata']['KeyId'])
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
+    conn.create_alias(alias_name='alias/my-key-alias',
+                      target_key_id=key['KeyMetadata']['KeyId'])
 
     alias_key = conn.describe_key('alias/my-key-alias')
     alias_key['KeyMetadata']['Description'].should.equal("my key")
@@ -45,16 +50,20 @@ def test_describe_key_via_alias():
 @mock_kms_deprecated
 def test_describe_key_via_alias_not_found():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
-    conn.create_alias(alias_name='alias/my-key-alias', target_key_id=key['KeyMetadata']['KeyId'])
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
+    conn.create_alias(alias_name='alias/my-key-alias',
+                      target_key_id=key['KeyMetadata']['KeyId'])
 
-    conn.describe_key.when.called_with('alias/not-found-alias').should.throw(JSONResponseError)
+    conn.describe_key.when.called_with(
+        'alias/not-found-alias').should.throw(JSONResponseError)
 
 
 @mock_kms_deprecated
 def test_describe_key_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
     arn = key['KeyMetadata']['Arn']
 
     the_key = conn.describe_key(arn)
@@ -66,15 +75,18 @@ def test_describe_key_via_arn():
 @mock_kms_deprecated
 def test_describe_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    conn.describe_key.when.called_with("not-a-key").should.throw(JSONResponseError)
+    conn.describe_key.when.called_with(
+        "not-a-key").should.throw(JSONResponseError)
 
 
 @mock_kms_deprecated
 def test_list_keys():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    conn.create_key(policy="my policy", description="my key1", key_usage='ENCRYPT_DECRYPT')
-    conn.create_key(policy="my policy", description="my key2", key_usage='ENCRYPT_DECRYPT')
+    conn.create_key(policy="my policy", description="my key1",
+                    key_usage='ENCRYPT_DECRYPT')
+    conn.create_key(policy="my policy", description="my key2",
+                    key_usage='ENCRYPT_DECRYPT')
 
     keys = conn.list_keys()
     keys['Keys'].should.have.length_of(2)
@@ -84,56 +96,67 @@ def test_list_keys():
 def test_enable_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['KeyId']
 
     conn.enable_key_rotation(key_id)
 
-    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(True)
+    conn.get_key_rotation_status(
+        key_id)['KeyRotationEnabled'].should.equal(True)
+
 
 @mock_kms_deprecated
 def test_enable_key_rotation_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['Arn']
 
     conn.enable_key_rotation(key_id)
 
-    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(True)
-
+    conn.get_key_rotation_status(
+        key_id)['KeyRotationEnabled'].should.equal(True)
 
 
 @mock_kms_deprecated
 def test_enable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    conn.enable_key_rotation.when.called_with("not-a-key").should.throw(JSONResponseError)
+    conn.enable_key_rotation.when.called_with(
+        "not-a-key").should.throw(JSONResponseError)
 
 
 @mock_kms_deprecated
 def test_enable_key_rotation_with_alias_name_should_fail():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
-    conn.create_alias(alias_name='alias/my-key-alias', target_key_id=key['KeyMetadata']['KeyId'])
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
+    conn.create_alias(alias_name='alias/my-key-alias',
+                      target_key_id=key['KeyMetadata']['KeyId'])
 
     alias_key = conn.describe_key('alias/my-key-alias')
     alias_key['KeyMetadata']['Arn'].should.equal(key['KeyMetadata']['Arn'])
 
-    conn.enable_key_rotation.when.called_with('alias/my-alias').should.throw(JSONResponseError)
+    conn.enable_key_rotation.when.called_with(
+        'alias/my-alias').should.throw(JSONResponseError)
 
 
 @mock_kms_deprecated
 def test_disable_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['KeyId']
 
     conn.enable_key_rotation(key_id)
-    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(True)
+    conn.get_key_rotation_status(
+        key_id)['KeyRotationEnabled'].should.equal(True)
 
     conn.disable_key_rotation(key_id)
-    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
+    conn.get_key_rotation_status(
+        key_id)['KeyRotationEnabled'].should.equal(False)
 
 
 @mock_kms_deprecated
@@ -157,59 +180,70 @@ def test_decrypt():
 @mock_kms_deprecated
 def test_disable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    conn.disable_key_rotation.when.called_with("not-a-key").should.throw(JSONResponseError)
+    conn.disable_key_rotation.when.called_with(
+        "not-a-key").should.throw(JSONResponseError)
 
 
 @mock_kms_deprecated
 def test_get_key_rotation_status_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    conn.get_key_rotation_status.when.called_with("not-a-key").should.throw(JSONResponseError)
+    conn.get_key_rotation_status.when.called_with(
+        "not-a-key").should.throw(JSONResponseError)
 
 
 @mock_kms_deprecated
 def test_get_key_rotation_status():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['KeyId']
 
-    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
+    conn.get_key_rotation_status(
+        key_id)['KeyRotationEnabled'].should.equal(False)
 
 
 @mock_kms_deprecated
 def test_create_key_defaults_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy="my policy",
+                          description="my key", key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['KeyId']
 
-    conn.get_key_rotation_status(key_id)['KeyRotationEnabled'].should.equal(False)
+    conn.get_key_rotation_status(
+        key_id)['KeyRotationEnabled'].should.equal(False)
 
 
 @mock_kms_deprecated
 def test_get_key_policy():
     conn = boto.kms.connect_to_region('us-west-2')
 
-    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy='my policy',
+                          description='my key1', key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['KeyId']
 
     policy = conn.get_key_policy(key_id, 'default')
     policy['Policy'].should.equal('my policy')
 
+
 @mock_kms_deprecated
 def test_get_key_policy_via_arn():
     conn = boto.kms.connect_to_region('us-west-2')
 
-    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy='my policy',
+                          description='my key1', key_usage='ENCRYPT_DECRYPT')
     policy = conn.get_key_policy(key['KeyMetadata']['Arn'], 'default')
 
     policy['Policy'].should.equal('my policy')
+
 
 @mock_kms_deprecated
 def test_put_key_policy():
     conn = boto.kms.connect_to_region('us-west-2')
 
-    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy='my policy',
+                          description='my key1', key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['KeyId']
 
     conn.put_key_policy(key_id, 'default', 'new policy')
@@ -221,7 +255,8 @@ def test_put_key_policy():
 def test_put_key_policy_via_arn():
     conn = boto.kms.connect_to_region('us-west-2')
 
-    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy='my policy',
+                          description='my key1', key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['Arn']
 
     conn.put_key_policy(key_id, 'default', 'new policy')
@@ -233,10 +268,13 @@ def test_put_key_policy_via_arn():
 def test_put_key_policy_via_alias_should_not_update():
     conn = boto.kms.connect_to_region('us-west-2')
 
-    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
-    conn.create_alias(alias_name='alias/my-key-alias', target_key_id=key['KeyMetadata']['KeyId'])
+    key = conn.create_key(policy='my policy',
+                          description='my key1', key_usage='ENCRYPT_DECRYPT')
+    conn.create_alias(alias_name='alias/my-key-alias',
+                      target_key_id=key['KeyMetadata']['KeyId'])
 
-    conn.put_key_policy.when.called_with('alias/my-key-alias', 'default', 'new policy').should.throw(JSONResponseError)
+    conn.put_key_policy.when.called_with(
+        'alias/my-key-alias', 'default', 'new policy').should.throw(JSONResponseError)
 
     policy = conn.get_key_policy(key['KeyMetadata']['KeyId'], 'default')
     policy['Policy'].should.equal('my policy')
@@ -246,7 +284,8 @@ def test_put_key_policy_via_alias_should_not_update():
 def test_put_key_policy():
     conn = boto.kms.connect_to_region('us-west-2')
 
-    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy='my policy',
+                          description='my key1', key_usage='ENCRYPT_DECRYPT')
     conn.put_key_policy(key['KeyMetadata']['Arn'], 'default', 'new policy')
 
     policy = conn.get_key_policy(key['KeyMetadata']['KeyId'], 'default')
@@ -257,7 +296,8 @@ def test_put_key_policy():
 def test_list_key_policies():
     conn = boto.kms.connect_to_region('us-west-2')
 
-    key = conn.create_key(policy='my policy', description='my key1', key_usage='ENCRYPT_DECRYPT')
+    key = conn.create_key(policy='my policy',
+                          description='my key1', key_usage='ENCRYPT_DECRYPT')
     key_id = key['KeyMetadata']['KeyId']
 
     policies = conn.list_key_policies(key_id)
@@ -323,7 +363,8 @@ def test__create_alias__raises_if_wrong_prefix():
     ex = err.exception
     ex.error_message.should.equal('Invalid identifier')
     ex.error_code.should.equal('ValidationException')
-    ex.body.should.equal({'message': 'Invalid identifier', '__type': 'ValidationException'})
+    ex.body.should.equal({'message': 'Invalid identifier',
+                          '__type': 'ValidationException'})
     ex.reason.should.equal('Bad Request')
     ex.status.should.equal(400)
 
@@ -371,16 +412,19 @@ def test__create_alias__raises_if_alias_has_restricted_characters():
             kms.create_alias(alias_name, key_id)
         ex = err.exception
         ex.body['__type'].should.equal('ValidationException')
-        ex.body['message'].should.equal("1 validation error detected: Value '{alias_name}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$".format(**locals()))
+        ex.body['message'].should.equal(
+            "1 validation error detected: Value '{alias_name}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$".format(**locals()))
         ex.error_code.should.equal('ValidationException')
-        ex.message.should.equal("1 validation error detected: Value '{alias_name}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$".format(**locals()))
+        ex.message.should.equal(
+            "1 validation error detected: Value '{alias_name}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$".format(**locals()))
         ex.reason.should.equal('Bad Request')
         ex.status.should.equal(400)
 
 
 @mock_kms_deprecated
 def test__create_alias__raises_if_alias_has_colon_character():
-    # For some reason, colons are not accepted for an alias, even though they are accepted by regex ^[a-zA-Z0-9:/_-]+$
+    # For some reason, colons are not accepted for an alias, even though they
+    # are accepted by regex ^[a-zA-Z0-9:/_-]+$
     kms = boto.connect_kms()
     create_resp = kms.create_key()
     key_id = create_resp['KeyMetadata']['KeyId']
@@ -394,9 +438,11 @@ def test__create_alias__raises_if_alias_has_colon_character():
             kms.create_alias(alias_name, key_id)
         ex = err.exception
         ex.body['__type'].should.equal('ValidationException')
-        ex.body['message'].should.equal("{alias_name} contains invalid characters for an alias".format(**locals()))
+        ex.body['message'].should.equal(
+            "{alias_name} contains invalid characters for an alias".format(**locals()))
         ex.error_code.should.equal('ValidationException')
-        ex.message.should.equal("{alias_name} contains invalid characters for an alias".format(**locals()))
+        ex.message.should.equal(
+            "{alias_name} contains invalid characters for an alias".format(**locals()))
         ex.reason.should.equal('Bad Request')
         ex.status.should.equal(400)
 
@@ -481,10 +527,12 @@ def test__delete_alias__raises_if_alias_is_not_found():
 
     ex = err.exception
     ex.body['__type'].should.equal('NotFoundException')
-    ex.body['message'].should.match(r'Alias arn:aws:kms:{region}:\d{{12}}:{alias_name} is not found.'.format(**locals()))
+    ex.body['message'].should.match(
+        r'Alias arn:aws:kms:{region}:\d{{12}}:{alias_name} is not found.'.format(**locals()))
     ex.box_usage.should.be.none
     ex.error_code.should.be.none
-    ex.message.should.match(r'Alias arn:aws:kms:{region}:\d{{12}}:{alias_name} is not found.'.format(**locals()))
+    ex.message.should.match(
+        r'Alias arn:aws:kms:{region}:\d{{12}}:{alias_name} is not found.'.format(**locals()))
     ex.reason.should.equal('Bad Request')
     ex.request_id.should.be.none
     ex.status.should.equal(400)
@@ -527,7 +575,8 @@ def test__list_aliases():
     len([alias for alias in aliases if
          has_correct_arn(alias) and 'alias/my-alias2' == alias['AliasName']]).should.equal(1)
 
-    len([alias for alias in aliases if 'TargetKeyId' in alias and key_id == alias['TargetKeyId']]).should.equal(3)
+    len([alias for alias in aliases if 'TargetKeyId' in alias and key_id ==
+         alias['TargetKeyId']]).should.equal(3)
 
     len(aliases).should.equal(7)
 
@@ -537,13 +586,17 @@ def test__assert_valid_key_id():
     from moto.kms.responses import _assert_valid_key_id
     import uuid
 
-    _assert_valid_key_id.when.called_with("not-a-key").should.throw(JSONResponseError)
-    _assert_valid_key_id.when.called_with(str(uuid.uuid4())).should_not.throw(JSONResponseError)
+    _assert_valid_key_id.when.called_with(
+        "not-a-key").should.throw(JSONResponseError)
+    _assert_valid_key_id.when.called_with(
+        str(uuid.uuid4())).should_not.throw(JSONResponseError)
 
 
 @mock_kms_deprecated
 def test__assert_default_policy():
     from moto.kms.responses import _assert_default_policy
 
-    _assert_default_policy.when.called_with("not-default").should.throw(JSONResponseError)
-    _assert_default_policy.when.called_with("default").should_not.throw(JSONResponseError)
+    _assert_default_policy.when.called_with(
+        "not-default").should.throw(JSONResponseError)
+    _assert_default_policy.when.called_with(
+        "default").should_not.throw(JSONResponseError)

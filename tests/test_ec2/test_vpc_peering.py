@@ -93,4 +93,3 @@ def test_vpc_peering_connections_delete():
     cm.exception.code.should.equal('InvalidVpcPeeringConnectionId.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
-

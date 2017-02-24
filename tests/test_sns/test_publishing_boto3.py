@@ -70,5 +70,6 @@ def test_publish_to_http():
                    Protocol="http",
                    Endpoint="http://example.com/foobar")
 
-    response = conn.publish(TopicArn=topic_arn, Message="my message", Subject="my subject")
+    response = conn.publish(
+        TopicArn=topic_arn, Message="my message", Subject="my subject")
     message_id = response['MessageId']

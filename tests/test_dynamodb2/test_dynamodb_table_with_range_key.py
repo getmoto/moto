@@ -140,7 +140,8 @@ def test_delete_table():
 
     table.delete()
     conn.list_tables()["TableNames"].should.have.length_of(0)
-    conn.delete_table.when.called_with('messages').should.throw(JSONResponseError)
+    conn.delete_table.when.called_with(
+        'messages').should.throw(JSONResponseError)
 
 
 @requires_boto_gte("2.9")
@@ -181,7 +182,8 @@ def test_item_add_and_describe_and_update():
     })
     ok.should.equal(True)
 
-    table.get_item(forum_name="LOLCat Forum", subject='Check this out!').should_not.be.none
+    table.get_item(forum_name="LOLCat Forum",
+                   subject='Check this out!').should_not.be.none
 
     returned_item = table.get_item(
         forum_name='LOLCat Forum',
@@ -224,7 +226,8 @@ def test_item_partial_save():
     }
 
     table.put_item(data=data)
-    returned_item = table.get_item(forum_name="LOLCat Forum", subject='The LOLz')
+    returned_item = table.get_item(
+        forum_name="LOLCat Forum", subject='The LOLz')
 
     returned_item['SentBy'] = 'User B'
     returned_item.partial_save()
@@ -270,7 +273,8 @@ def test_get_missing_item():
 @mock_dynamodb2_deprecated
 def test_get_item_with_undeclared_table():
     table = Table('undeclared-table')
-    table.get_item.when.called_with(test_hash=3241526475).should.throw(JSONResponseError)
+    table.get_item.when.called_with(
+        test_hash=3241526475).should.throw(JSONResponseError)
 
 
 @requires_boto_gte("2.9")
@@ -287,7 +291,8 @@ def test_get_item_without_range_key():
     hash_key = 3241526475
     range_key = 1234567890987
     table.put_item(data={'test_hash': hash_key, 'test_range': range_key})
-    table.get_item.when.called_with(test_hash=hash_key).should.throw(ValidationException)
+    table.get_item.when.called_with(
+        test_hash=hash_key).should.throw(ValidationException)
 
 
 @requires_boto_gte("2.30.0")
@@ -355,19 +360,23 @@ def test_query():
 
     table.count().should.equal(4)
 
-    results = table.query_2(forum_name__eq='the-key', subject__gt='1', consistent=True)
+    results = table.query_2(forum_name__eq='the-key',
+                            subject__gt='1', consistent=True)
     expected = ["123", "456", "789"]
     for index, item in enumerate(results):
         item["subject"].should.equal(expected[index])
 
-    results = table.query_2(forum_name__eq="the-key", subject__gt='1', reverse=True)
+    results = table.query_2(forum_name__eq="the-key",
+                            subject__gt='1', reverse=True)
     for index, item in enumerate(results):
         item["subject"].should.equal(expected[len(expected) - 1 - index])
 
-    results = table.query_2(forum_name__eq='the-key', subject__gt='1', consistent=True)
+    results = table.query_2(forum_name__eq='the-key',
+                            subject__gt='1', consistent=True)
     sum(1 for _ in results).should.equal(3)
 
-    results = table.query_2(forum_name__eq='the-key', subject__gt='234', consistent=True)
+    results = table.query_2(forum_name__eq='the-key',
+                            subject__gt='234', consistent=True)
     sum(1 for _ in results).should.equal(2)
 
     results = table.query_2(forum_name__eq='the-key', subject__gt='9999')
@@ -379,7 +388,8 @@ def test_query():
     results = table.query_2(forum_name__eq='the-key', subject__beginswith='7')
     sum(1 for _ in results).should.equal(1)
 
-    results = table.query_2(forum_name__eq='the-key', subject__between=['567', '890'])
+    results = table.query_2(forum_name__eq='the-key',
+                            subject__between=['567', '890'])
     sum(1 for _ in results).should.equal(1)
 
 
@@ -558,15 +568,15 @@ def test_create_with_global_indexes():
         RangeKey('version'),
     ], global_indexes=[
         GlobalAllIndex('topic-created_at-index',
-            parts=[
-                HashKey('topic'),
-                RangeKey('created_at', data_type='N')
-            ],
-            throughput={
-                'read': 6,
-                'write': 1
-            }
-        ),
+                       parts=[
+                           HashKey('topic'),
+                           RangeKey('created_at', data_type='N')
+                       ],
+                       throughput={
+                           'read': 6,
+                           'write': 1
+                       }
+                       ),
     ])
 
     table_description = conn.describe_table("messages")
@@ -601,25 +611,25 @@ def test_query_with_global_indexes():
         RangeKey('version'),
     ], global_indexes=[
         GlobalAllIndex('topic-created_at-index',
-            parts=[
-                HashKey('topic'),
-                RangeKey('created_at', data_type='N')
-            ],
-            throughput={
-                'read': 6,
-                'write': 1
-            }
-        ),
+                       parts=[
+                           HashKey('topic'),
+                           RangeKey('created_at', data_type='N')
+                       ],
+                       throughput={
+                           'read': 6,
+                           'write': 1
+                       }
+                       ),
         GlobalAllIndex('status-created_at-index',
-            parts=[
-                HashKey('status'),
-                RangeKey('created_at', data_type='N')
-            ],
-            throughput={
-                'read': 2,
-                'write': 1
-            }
-        )
+                       parts=[
+                           HashKey('status'),
+                           RangeKey('created_at', data_type='N')
+                       ],
+                       throughput={
+                           'read': 2,
+                           'write': 1
+                       }
+                       )
     ])
 
     item_data = {
@@ -653,7 +663,8 @@ def test_query_with_local_indexes():
 
     item['version'] = '2'
     item.save(overwrite=True)
-    results = table.query(forum_name__eq='Cool Forum', index='threads_index', threads__eq=1)
+    results = table.query(forum_name__eq='Cool Forum',
+                          index='threads_index', threads__eq=1)
     list(results).should.have.length_of(1)
 
 
@@ -888,7 +899,8 @@ def test_failed_overwrite():
     table.put_item(data=data2, overwrite=True)
 
     data3 = {'id': '123', 'range': 'abc', 'data': '812'}
-    table.put_item.when.called_with(data=data3).should.throw(ConditionalCheckFailedException)
+    table.put_item.when.called_with(data=data3).should.throw(
+        ConditionalCheckFailedException)
 
     returned_item = table.lookup('123', 'abc')
     dict(returned_item).should.equal(data2)
@@ -972,7 +984,8 @@ def test_boto3_conditions():
 
     # Test a query returning all items
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('1'),
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").gt('1'),
         ScanIndexForward=True,
     )
     expected = ["123", "456", "789"]
@@ -981,7 +994,8 @@ def test_boto3_conditions():
 
     # Return all items again, but in reverse
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('1'),
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").gt('1'),
         ScanIndexForward=False,
     )
     for index, item in enumerate(reversed(results['Items'])):
@@ -989,29 +1003,34 @@ def test_boto3_conditions():
 
     # Filter the subjects to only return some of the results
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('234'),
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").gt('234'),
         ConsistentRead=True,
     )
     results['Count'].should.equal(2)
 
     # Filter to return no results
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('9999')
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").gt('9999')
     )
     results['Count'].should.equal(0)
 
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").begins_with('12')
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").begins_with('12')
     )
     results['Count'].should.equal(1)
 
     results = table.query(
-        KeyConditionExpression=Key("subject").begins_with('7') & Key('forum_name').eq('the-key')
+        KeyConditionExpression=Key("subject").begins_with(
+            '7') & Key('forum_name').eq('the-key')
     )
     results['Count'].should.equal(1)
 
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").between('567', '890')
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").between('567', '890')
     )
     results['Count'].should.equal(1)
 
@@ -1337,7 +1356,8 @@ def test_boto3_query_gsi_range_comparison():
 
     # Test a query returning all johndoe items
     results = table.query(
-        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt(0),
+        KeyConditionExpression=Key('username').eq(
+            'johndoe') & Key("created").gt(0),
         ScanIndexForward=True,
         IndexName='TestGSI',
     )
@@ -1347,7 +1367,8 @@ def test_boto3_query_gsi_range_comparison():
 
     # Return all johndoe items again, but in reverse
     results = table.query(
-        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt(0),
+        KeyConditionExpression=Key('username').eq(
+            'johndoe') & Key("created").gt(0),
         ScanIndexForward=False,
         IndexName='TestGSI',
     )
@@ -1357,7 +1378,8 @@ def test_boto3_query_gsi_range_comparison():
     # Filter the creation to only return some of the results
     # And reverse order of hash + range key
     results = table.query(
-        KeyConditionExpression=Key("created").gt(1) & Key('username').eq('johndoe'),
+        KeyConditionExpression=Key("created").gt(
+            1) & Key('username').eq('johndoe'),
         ConsistentRead=True,
         IndexName='TestGSI',
     )
@@ -1365,20 +1387,23 @@ def test_boto3_query_gsi_range_comparison():
 
     # Filter to return no results
     results = table.query(
-        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").gt(9),
+        KeyConditionExpression=Key('username').eq(
+            'janedoe') & Key("created").gt(9),
         IndexName='TestGSI',
     )
     results['Count'].should.equal(0)
 
     results = table.query(
-        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").eq(5),
+        KeyConditionExpression=Key('username').eq(
+            'janedoe') & Key("created").eq(5),
         IndexName='TestGSI',
     )
     results['Count'].should.equal(1)
 
     # Test range key sorting
     results = table.query(
-        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt(0),
+        KeyConditionExpression=Key('username').eq(
+            'johndoe') & Key("created").gt(0),
         IndexName='TestGSI',
     )
     expected = [Decimal('1'), Decimal('2'), Decimal('3')]
@@ -1514,7 +1539,6 @@ def test_boto3_update_table_gsi_throughput():
     gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
     gsi_throughput['ReadCapacityUnits'].should.equal(10)
     gsi_throughput['WriteCapacityUnits'].should.equal(11)
-
 
 
 @mock_dynamodb2

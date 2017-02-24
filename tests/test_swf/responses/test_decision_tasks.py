@@ -12,15 +12,19 @@ from ..utils import setup_workflow
 def test_poll_for_decision_task_when_one():
     conn = setup_workflow()
 
-    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    resp = conn.get_workflow_execution_history(
+        "test-domain", conn.run_id, "uid-abcd1234")
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
 
-    resp = conn.poll_for_decision_task("test-domain", "queue", identity="srv01")
+    resp = conn.poll_for_decision_task(
+        "test-domain", "queue", identity="srv01")
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled", "DecisionTaskStarted"])
+    types.should.equal(["WorkflowExecutionStarted",
+                        "DecisionTaskScheduled", "DecisionTaskStarted"])
 
-    resp["events"][-1]["decisionTaskStartedEventAttributes"]["identity"].should.equal("srv01")
+    resp[
+        "events"][-1]["decisionTaskStartedEventAttributes"]["identity"].should.equal("srv01")
 
 
 @mock_swf_deprecated
@@ -44,9 +48,11 @@ def test_poll_for_decision_task_on_non_existent_queue():
 @mock_swf_deprecated
 def test_poll_for_decision_task_with_reverse_order():
     conn = setup_workflow()
-    resp = conn.poll_for_decision_task("test-domain", "queue", reverse_order=True)
+    resp = conn.poll_for_decision_task(
+        "test-domain", "queue", reverse_order=True)
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(["DecisionTaskStarted", "DecisionTaskScheduled", "WorkflowExecutionStarted"])
+    types.should.equal(
+        ["DecisionTaskStarted", "DecisionTaskScheduled", "WorkflowExecutionStarted"])
 
 
 # CountPendingDecisionTasks endpoint
@@ -89,7 +95,8 @@ def test_respond_decision_task_completed_with_no_decision():
     )
     resp.should.be.none
 
-    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    resp = conn.get_workflow_execution_history(
+        "test-domain", conn.run_id, "uid-abcd1234")
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal([
         "WorkflowExecutionStarted",
@@ -104,7 +111,8 @@ def test_respond_decision_task_completed_with_no_decision():
         "startedEventId": 3,
     })
 
-    resp = conn.describe_workflow_execution("test-domain", conn.run_id, "uid-abcd1234")
+    resp = conn.describe_workflow_execution(
+        "test-domain", conn.run_id, "uid-abcd1234")
     resp["latestExecutionContext"].should.equal("free-form context")
 
 
@@ -123,7 +131,8 @@ def test_respond_decision_task_completed_on_close_workflow_execution():
     resp = conn.poll_for_decision_task("test-domain", "queue")
     task_token = resp["taskToken"]
 
-    # bad: we're closing workflow execution manually, but endpoints are not coded for now..
+    # bad: we're closing workflow execution manually, but endpoints are not
+    # coded for now..
     wfe = swf_backend.domains[0].workflow_executions[-1]
     wfe.execution_status = "CLOSED"
     # /bad
@@ -155,10 +164,12 @@ def test_respond_decision_task_completed_with_complete_workflow_execution():
         "decisionType": "CompleteWorkflowExecution",
         "completeWorkflowExecutionDecisionAttributes": {"result": "foo bar"}
     }]
-    resp = conn.respond_decision_task_completed(task_token, decisions=decisions)
+    resp = conn.respond_decision_task_completed(
+        task_token, decisions=decisions)
     resp.should.be.none
 
-    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    resp = conn.get_workflow_execution_history(
+        "test-domain", conn.run_id, "uid-abcd1234")
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal([
         "WorkflowExecutionStarted",
@@ -167,7 +178,8 @@ def test_respond_decision_task_completed_with_complete_workflow_execution():
         "DecisionTaskCompleted",
         "WorkflowExecutionCompleted",
     ])
-    resp["events"][-1]["workflowExecutionCompletedEventAttributes"]["result"].should.equal("foo bar")
+    resp["events"][-1]["workflowExecutionCompletedEventAttributes"][
+        "result"].should.equal("foo bar")
 
 
 @mock_swf_deprecated
@@ -255,10 +267,12 @@ def test_respond_decision_task_completed_with_fail_workflow_execution():
         "decisionType": "FailWorkflowExecution",
         "failWorkflowExecutionDecisionAttributes": {"reason": "my rules", "details": "foo"}
     }]
-    resp = conn.respond_decision_task_completed(task_token, decisions=decisions)
+    resp = conn.respond_decision_task_completed(
+        task_token, decisions=decisions)
     resp.should.be.none
 
-    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    resp = conn.get_workflow_execution_history(
+        "test-domain", conn.run_id, "uid-abcd1234")
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal([
         "WorkflowExecutionStarted",
@@ -294,10 +308,12 @@ def test_respond_decision_task_completed_with_schedule_activity_task():
             },
         }
     }]
-    resp = conn.respond_decision_task_completed(task_token, decisions=decisions)
+    resp = conn.respond_decision_task_completed(
+        task_token, decisions=decisions)
     resp.should.be.none
 
-    resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+    resp = conn.get_workflow_execution_history(
+        "test-domain", conn.run_id, "uid-abcd1234")
     types = [evt["eventType"] for evt in resp["events"]]
     types.should.equal([
         "WorkflowExecutionStarted",
@@ -320,5 +336,6 @@ def test_respond_decision_task_completed_with_schedule_activity_task():
         },
     })
 
-    resp = conn.describe_workflow_execution("test-domain", conn.run_id, "uid-abcd1234")
+    resp = conn.describe_workflow_execution(
+        "test-domain", conn.run_id, "uid-abcd1234")
     resp["latestActivityTaskTimestamp"].should.equal(1420113600.0)

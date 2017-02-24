@@ -32,19 +32,22 @@ def test_port_argument(run_simple):
 
 def test_domain_dispatched():
     dispatcher = DomainDispatcherApplication(create_backend_app)
-    backend_app = dispatcher.get_application({"HTTP_HOST": "email.us-east1.amazonaws.com"})
+    backend_app = dispatcher.get_application(
+        {"HTTP_HOST": "email.us-east1.amazonaws.com"})
     keys = list(backend_app.view_functions.keys())
     keys[0].should.equal('EmailResponse.dispatch')
 
 
 def test_domain_without_matches():
     dispatcher = DomainDispatcherApplication(create_backend_app)
-    dispatcher.get_application.when.called_with({"HTTP_HOST": "not-matching-anything.com"}).should.throw(RuntimeError)
+    dispatcher.get_application.when.called_with(
+        {"HTTP_HOST": "not-matching-anything.com"}).should.throw(RuntimeError)
 
 
 def test_domain_dispatched_with_service():
     # If we pass a particular service, always return that.
     dispatcher = DomainDispatcherApplication(create_backend_app, service="s3")
-    backend_app = dispatcher.get_application({"HTTP_HOST": "s3.us-east1.amazonaws.com"})
+    backend_app = dispatcher.get_application(
+        {"HTTP_HOST": "s3.us-east1.amazonaws.com"})
     keys = set(backend_app.view_functions.keys())
     keys.should.contain('ResponseObject.key_response')

@@ -29,7 +29,8 @@ SCHEDULE_ACTIVITY_TASK_DECISION = {
     }
 }
 for key, value in ACTIVITY_TASK_TIMEOUTS.items():
-    SCHEDULE_ACTIVITY_TASK_DECISION["scheduleActivityTaskDecisionAttributes"][key] = value
+    SCHEDULE_ACTIVITY_TASK_DECISION[
+        "scheduleActivityTaskDecisionAttributes"][key] = value
 
 
 # A test Domain
@@ -86,7 +87,8 @@ def setup_workflow():
         default_task_schedule_to_start_timeout="600",
         default_task_start_to_close_timeout="600",
     )
-    wfe = conn.start_workflow_execution("test-domain", "uid-abcd1234", "test-workflow", "v1.0")
+    wfe = conn.start_workflow_execution(
+        "test-domain", "uid-abcd1234", "test-workflow", "v1.0")
     conn.run_id = wfe["runId"]
     return conn
 

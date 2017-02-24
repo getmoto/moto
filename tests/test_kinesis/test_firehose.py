@@ -132,11 +132,13 @@ def test_create_stream_without_redshift():
         "HasMoreDestinations": False,
     })
 
+
 @mock_kinesis
 def test_deescribe_non_existant_stream():
     client = boto3.client('firehose', region_name='us-east-1')
 
-    client.describe_delivery_stream.when.called_with(DeliveryStreamName='not-a-stream').should.throw(ClientError)
+    client.describe_delivery_stream.when.called_with(
+        DeliveryStreamName='not-a-stream').should.throw(ClientError)
 
 
 @mock_kinesis
@@ -146,11 +148,13 @@ def test_list_and_delete_stream():
     create_stream(client, 'stream1')
     create_stream(client, 'stream2')
 
-    set(client.list_delivery_streams()['DeliveryStreamNames']).should.equal(set(['stream1', 'stream2']))
+    set(client.list_delivery_streams()['DeliveryStreamNames']).should.equal(
+        set(['stream1', 'stream2']))
 
     client.delete_delivery_stream(DeliveryStreamName='stream1')
 
-    set(client.list_delivery_streams()['DeliveryStreamNames']).should.equal(set(['stream2']))
+    set(client.list_delivery_streams()[
+        'DeliveryStreamNames']).should.equal(set(['stream2']))
 
 
 @mock_kinesis

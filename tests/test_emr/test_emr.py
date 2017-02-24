@@ -100,7 +100,8 @@ def test_describe_cluster():
     # cluster.status.timeline.enddatetime.should.be.a(six.string_types)
     # cluster.status.timeline.readydatetime.should.be.a(six.string_types)
 
-    dict((item.key, item.value) for item in cluster.tags).should.equal(input_tags)
+    dict((item.key, item.value)
+         for item in cluster.tags).should.equal(input_tags)
 
     cluster.terminationprotected.should.equal('false')
     cluster.visibletoallusers.should.equal('true')
@@ -285,7 +286,8 @@ def test_list_clusters():
             y = expected[x.id]
             x.id.should.equal(y['id'])
             x.name.should.equal(y['name'])
-            x.normalizedinstancehours.should.equal(y['normalizedinstancehours'])
+            x.normalizedinstancehours.should.equal(
+                y['normalizedinstancehours'])
             x.status.state.should.equal(y['state'])
             x.status.timeline.creationdatetime.should.be.a(six.string_types)
             if y['state'] == 'TERMINATED':
@@ -371,11 +373,13 @@ def test_run_jobflow_with_instance_groups():
     job_id = conn.run_jobflow(instance_groups=input_instance_groups,
                               **run_jobflow_args)
     job_flow = conn.describe_jobflow(job_id)
-    int(job_flow.instancecount).should.equal(sum(g.num_instances for g in input_instance_groups))
+    int(job_flow.instancecount).should.equal(
+        sum(g.num_instances for g in input_instance_groups))
     for instance_group in job_flow.instancegroups:
         expected = input_groups[instance_group.name]
         instance_group.should.have.property('instancegroupid')
-        int(instance_group.instancerunningcount).should.equal(expected.num_instances)
+        int(instance_group.instancerunningcount).should.equal(
+            expected.num_instances)
         instance_group.instancerole.should.equal(expected.role)
         instance_group.instancetype.should.equal(expected.type)
         instance_group.market.should.equal(expected.market)
@@ -483,7 +487,8 @@ def test_instance_groups():
     conn.add_instance_groups(job_id, input_instance_groups[2:])
 
     jf = conn.describe_jobflow(job_id)
-    int(jf.instancecount).should.equal(sum(g.num_instances for g in input_instance_groups))
+    int(jf.instancecount).should.equal(
+        sum(g.num_instances for g in input_instance_groups))
     for x in jf.instancegroups:
         y = input_groups[x.name]
         if hasattr(y, 'bidprice'):
@@ -572,7 +577,8 @@ def test_steps():
         list(arg.value for arg in step.args).should.have.length_of(8)
         step.creationdatetime.should.be.a(six.string_types)
         # step.enddatetime.should.be.a(six.string_types)
-        step.jar.should.equal('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+        step.jar.should.equal(
+            '/home/hadoop/contrib/streaming/hadoop-streaming.jar')
         step.laststatechangereason.should.be.a(six.string_types)
         step.mainclass.should.equal('')
         step.name.should.be.a(six.string_types)
@@ -592,7 +598,8 @@ def test_steps():
             '-input', y.input,
             '-output', y.output,
         ])
-        x.config.jar.should.equal('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+        x.config.jar.should.equal(
+            '/home/hadoop/contrib/streaming/hadoop-streaming.jar')
         x.config.mainclass.should.equal('')
         # properties
         x.should.have.property('id').should.be.a(six.string_types)
@@ -610,7 +617,8 @@ def test_steps():
             '-input', y.input,
             '-output', y.output,
         ])
-        x.config.jar.should.equal('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+        x.config.jar.should.equal(
+            '/home/hadoop/contrib/streaming/hadoop-streaming.jar')
         x.config.mainclass.should.equal('')
         # properties
         x.should.have.property('id').should.be.a(six.string_types)

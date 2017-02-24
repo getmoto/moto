@@ -43,7 +43,8 @@ def test_create_layer_response():
         Name="_",
         Shortname="TestLayerShortName"
     ).should.throw(
-        Exception, re.compile(r'already a layer with shortname "TestLayerShortName"')
+        Exception, re.compile(
+            r'already a layer with shortname "TestLayerShortName"')
     )
 
 
@@ -69,4 +70,3 @@ def test_describe_layers():
     rv1['Layers'].should.equal(rv2['Layers'])
 
     rv1['Layers'][0]['Name'].should.equal("TestLayer")
-

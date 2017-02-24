@@ -56,9 +56,9 @@ def test_lifecycle_multi():
     lifecycle.add_rule("2", "2/", "Enabled", Expiration(days=2))
     lifecycle.add_rule("3", "3/", "Enabled", Expiration(date=date))
     lifecycle.add_rule("4", "4/", "Enabled", None,
-        Transition(days=4, storage_class=sc))
+                       Transition(days=4, storage_class=sc))
     lifecycle.add_rule("5", "5/", "Enabled", None,
-        Transition(date=date, storage_class=sc))
+                       Transition(date=date, storage_class=sc))
 
     bucket.configure_lifecycle(lifecycle)
     # read the lifecycle back

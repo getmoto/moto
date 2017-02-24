@@ -8,7 +8,8 @@ def test_base_url():
 
 
 def test_localhost_bucket():
-    expect(bucket_name_from_url('https://localhost:5000/wfoobar/abc')).should.equal("wfoobar")
+    expect(bucket_name_from_url('https://localhost:5000/wfoobar/abc')
+           ).should.equal("wfoobar")
 
 
 def test_localhost_without_bucket():

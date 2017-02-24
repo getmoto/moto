@@ -97,6 +97,7 @@ class Role(object):
 
 
 class InstanceProfile(object):
+
     def __init__(self, instance_profile_id, name, path, roles):
         self.id = instance_profile_id
         self.name = name
@@ -126,6 +127,7 @@ class InstanceProfile(object):
 
 
 class Certificate(object):
+
     def __init__(self, cert_name, cert_body, private_key, cert_chain=None, path=None):
         self.cert_name = cert_name
         self.cert_body = cert_body
@@ -139,6 +141,7 @@ class Certificate(object):
 
 
 class AccessKey(object):
+
     def __init__(self, user_name):
         self.user_name = user_name
         self.access_key_id = random_access_key()
@@ -157,6 +160,7 @@ class AccessKey(object):
 
 
 class Group(object):
+
     def __init__(self, name, path='/'):
         self.name = name
         self.id = random_resource_id()
@@ -176,6 +180,7 @@ class Group(object):
 
 
 class User(object):
+
     def __init__(self, name, path=None):
         self.name = name
         self.id = random_resource_id()
@@ -184,7 +189,8 @@ class User(object):
             datetime.utcnow(),
             "%Y-%m-%d-%H-%M-%S"
         )
-        self.arn = 'arn:aws:iam::123456789012:user{0}{1}'.format(self.path, name)
+        self.arn = 'arn:aws:iam::123456789012:user{0}{1}'.format(
+            self.path, name)
         self.policies = {}
         self.access_keys = []
         self.password = None
@@ -194,7 +200,8 @@ class User(object):
         try:
             policy_json = self.policies[policy_name]
         except KeyError:
-            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
+            raise IAMNotFoundException(
+                "Policy {0} not found".format(policy_name))
 
         return {
             'policy_name': policy_name,
@@ -207,7 +214,8 @@ class User(object):
 
     def delete_policy(self, policy_name):
         if policy_name not in self.policies:
-            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
+            raise IAMNotFoundException(
+                "Policy {0} not found".format(policy_name))
 
         del self.policies[policy_name]
 
@@ -225,7 +233,8 @@ class User(object):
                 self.access_keys.remove(key)
                 break
         else:
-            raise IAMNotFoundException("Key {0} not found".format(access_key_id))
+            raise IAMNotFoundException(
+                "Key {0} not found".format(access_key_id))
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -261,16 +270,18 @@ class User(object):
             access_key_2_last_rotated = date_created.strftime(date_format)
 
         return '{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},{9},false,N/A,false,N/A'.format(self.name,
-            self.arn,
-            date_created.strftime(date_format),
-            password_enabled,
-            password_last_used,
-            date_created.strftime(date_format),
-            access_key_1_active,
-            access_key_1_last_rotated,
-            access_key_2_active,
-            access_key_2_last_rotated
-        )
+                                                                                                        self.arn,
+                                                                                                        date_created.strftime(
+                                                                                                            date_format),
+                                                                                                        password_enabled,
+                                                                                                        password_last_used,
+                                                                                                        date_created.strftime(
+                                                                                                            date_format),
+                                                                                                        access_key_1_active,
+                                                                                                        access_key_1_last_rotated,
+                                                                                                        access_key_2_active,
+                                                                                                        access_key_2_last_rotated
+                                                                                                        )
 
 
 # predefine AWS managed policies
@@ -439,7 +450,8 @@ class IAMBackend(BaseBackend):
         if scope == 'AWS':
             policies = [p for p in policies if isinstance(p, AWSManagedPolicy)]
         elif scope == 'Local':
-            policies = [p for p in policies if not isinstance(p, AWSManagedPolicy)]
+            policies = [p for p in policies if not isinstance(
+                p, AWSManagedPolicy)]
 
         if path_prefix:
             policies = [p for p in policies if p.path.startswith(path_prefix)]
@@ -492,7 +504,8 @@ class IAMBackend(BaseBackend):
         instance_profile_id = random_resource_id()
 
         roles = [iam_backend.get_role_by_id(role_id) for role_id in role_ids]
-        instance_profile = InstanceProfile(instance_profile_id, name, path, roles)
+        instance_profile = InstanceProfile(
+            instance_profile_id, name, path, roles)
         self.instance_profiles[instance_profile_id] = instance_profile
         return instance_profile
 
@@ -501,7 +514,8 @@ class IAMBackend(BaseBackend):
             if profile.name == profile_name:
                 return profile
 
-        raise IAMNotFoundException("Instance profile {0} not found".format(profile_name))
+        raise IAMNotFoundException(
+            "Instance profile {0} not found".format(profile_name))
 
     def get_instance_profiles(self):
         return self.instance_profiles.values()
@@ -546,7 +560,8 @@ class IAMBackend(BaseBackend):
 
     def create_group(self, group_name, path='/'):
         if group_name in self.groups:
-            raise IAMConflictException("Group {0} already exists".format(group_name))
+            raise IAMConflictException(
+                "Group {0} already exists".format(group_name))
 
         group = Group(group_name, path)
         self.groups[group_name] = group
@@ -557,7 +572,8 @@ class IAMBackend(BaseBackend):
         try:
             group = self.groups[group_name]
         except KeyError:
-            raise IAMNotFoundException("Group {0} not found".format(group_name))
+            raise IAMNotFoundException(
+                "Group {0} not found".format(group_name))
 
         return group
 
@@ -575,7 +591,8 @@ class IAMBackend(BaseBackend):
 
     def create_user(self, user_name, path='/'):
         if user_name in self.users:
-            raise IAMConflictException("EntityAlreadyExists", "User {0} already exists".format(user_name))
+            raise IAMConflictException(
+                "EntityAlreadyExists", "User {0} already exists".format(user_name))
 
         user = User(user_name, path)
         self.users[user_name] = user
@@ -595,7 +612,8 @@ class IAMBackend(BaseBackend):
         try:
             users = self.users.values()
         except KeyError:
-            raise IAMNotFoundException("Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
+            raise IAMNotFoundException(
+                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
 
         return users
 
@@ -603,13 +621,15 @@ class IAMBackend(BaseBackend):
         # This does not currently deal with PasswordPolicyViolation.
         user = self.get_user(user_name)
         if user.password:
-            raise IAMConflictException("User {0} already has password".format(user_name))
+            raise IAMConflictException(
+                "User {0} already has password".format(user_name))
         user.password = password
 
     def delete_login_profile(self, user_name):
         user = self.get_user(user_name)
         if not user.password:
-            raise IAMNotFoundException("Login profile for {0} not found".format(user_name))
+            raise IAMNotFoundException(
+                "Login profile for {0} not found".format(user_name))
         user.password = None
 
     def add_user_to_group(self, group_name, user_name):
@@ -623,7 +643,8 @@ class IAMBackend(BaseBackend):
         try:
             group.users.remove(user)
         except ValueError:
-            raise IAMNotFoundException("User {0} not in group {1}".format(user_name, group_name))
+            raise IAMNotFoundException(
+                "User {0} not in group {1}".format(user_name, group_name))
 
     def get_user_policy(self, user_name, policy_name):
         user = self.get_user(user_name)
@@ -671,5 +692,6 @@ class IAMBackend(BaseBackend):
         for user in self.users:
             report += self.users[user].to_csv()
         return base64.b64encode(report.encode('ascii')).decode('ascii')
+
 
 iam_backend = IAMBackend()

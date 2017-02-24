@@ -33,6 +33,7 @@ def is_delete_keys(request, path, bucket_name):
 
 
 class ResponseObject(_TemplateEnvironmentMixin):
+
     def __init__(self, backend):
         super(ResponseObject, self).__init__()
         self.backend = backend
@@ -70,7 +71,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             if match:
                 return False
 
-        path_based = (host == 's3.amazonaws.com' or re.match(r"s3[\.\-]([^.]*)\.amazonaws\.com", host))
+        path_based = (host == 's3.amazonaws.com' or re.match(
+            r"s3[\.\-]([^.]*)\.amazonaws\.com", host))
         return not path_based
 
     def is_delete_keys(self, request, path, bucket_name):
@@ -148,7 +150,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif method == 'POST':
             return self._bucket_response_post(request, body, bucket_name, headers)
         else:
-            raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
+            raise NotImplementedError(
+                "Method {0} has not been impelemented in the S3 backend yet".format(method))
 
     def _bucket_response_head(self, bucket_name, headers):
         self.backend.get_bucket(bucket_name)
@@ -158,11 +161,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if 'uploads' in querystring:
             for unsup in ('delimiter', 'max-uploads'):
                 if unsup in querystring:
-                    raise NotImplementedError("Listing multipart uploads with {} has not been implemented yet.".format(unsup))
-            multiparts = list(self.backend.get_all_multiparts(bucket_name).values())
+                    raise NotImplementedError(
+                        "Listing multipart uploads with {} has not been implemented yet.".format(unsup))
+            multiparts = list(
+                self.backend.get_all_multiparts(bucket_name).values())
             if 'prefix' in querystring:
                 prefix = querystring.get('prefix', [None])[0]
-                multiparts = [upload for upload in multiparts if upload.key_name.startswith(prefix)]
+                multiparts = [
+                    upload for upload in multiparts if upload.key_name.startswith(prefix)]
             template = self.response_template(S3_ALL_MULTIPARTS)
             return template.render(
                 bucket_name=bucket_name,
@@ -175,7 +181,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             bucket = self.backend.get_bucket(bucket_name)
             if not bucket.rules:
                 return 404, {}, "NoSuchLifecycleConfiguration"
-            template = self.response_template(S3_BUCKET_LIFECYCLE_CONFIGURATION)
+            template = self.response_template(
+                S3_BUCKET_LIFECYCLE_CONFIGURATION)
             return template.render(rules=bucket.rules)
         elif 'versioning' in querystring:
             versioning = self.backend.get_bucket_versioning(bucket_name)
@@ -188,7 +195,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return 404, {}, template.render(bucket_name=bucket_name)
             return 200, {}, policy
         elif 'website' in querystring:
-            website_configuration = self.backend.get_bucket_website_configuration(bucket_name)
+            website_configuration = self.backend.get_bucket_website_configuration(
+                bucket_name)
             return website_configuration
         elif 'acl' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
@@ -226,7 +234,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get('prefix', [None])[0]
         delimiter = querystring.get('delimiter', [None])[0]
-        result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
+        result_keys, result_folders = self.backend.prefix_query(
+            bucket, prefix, delimiter)
         template = self.response_template(S3_BUCKET_GET_RESPONSE)
         return 200, {}, template.render(
             bucket=bucket,
@@ -242,7 +251,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         prefix = querystring.get('prefix', [None])[0]
         delimiter = querystring.get('delimiter', [None])[0]
-        result_keys, result_folders = self.backend.prefix_query(bucket, prefix, delimiter)
+        result_keys, result_folders = self.backend.prefix_query(
+            bucket, prefix, delimiter)
 
         fetch_owner = querystring.get('fetch-owner', [False])[0]
         max_keys = int(querystring.get('max-keys', [1000])[0])
@@ -308,7 +318,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return ""
         else:
             try:
-                new_bucket = self.backend.create_bucket(bucket_name, region_name)
+                new_bucket = self.backend.create_bucket(
+                    bucket_name, region_name)
             except BucketAlreadyExists:
                 if region_name == DEFAULT_REGION_NAME:
                     # us-east-1 has different behavior
@@ -335,7 +346,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 204, {}, template.render(bucket=removed_bucket)
         else:
             # Tried to delete a bucket that still has keys
-            template = self.response_template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
+            template = self.response_template(
+                S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
             return 409, {}, template.render(bucket=removed_bucket)
 
     def _bucket_response_post(self, request, body, bucket_name, headers):
@@ -393,7 +405,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if ',' in rspec:
             raise NotImplementedError(
                 "Multiple range specifiers not supported")
-        toint = lambda i: int(i) if i else None
+
+        def toint(i):
+            return int(i) if i else None
         begin, end = map(toint, rspec.split('-'))
         if begin is not None:  # byte range
             end = last if end is None else min(end, last)
@@ -455,7 +469,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif method == 'POST':
             return self._key_response_post(request, body, bucket_name, query, key_name, headers)
         else:
-            raise NotImplementedError("Method {0} has not been impelemented in the S3 backend yet".format(method))
+            raise NotImplementedError(
+                "Method {0} has not been impelemented in the S3 backend yet".format(method))
 
     def _key_response_get(self, bucket_name, query, key_name, headers):
         response_headers = {}
@@ -489,7 +504,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             if 'x-amz-copy-source' in request.headers:
                 src = request.headers.get("x-amz-copy-source")
                 src_bucket, src_key = src.split("/", 1)
-                src_range = request.headers.get('x-amz-copy-source-range', '').split("bytes=")[-1]
+                src_range = request.headers.get(
+                    'x-amz-copy-source-range', '').split("bytes=")[-1]
 
                 try:
                     start_byte, end_byte = src_range.split("-")
@@ -522,7 +538,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # Copy key
             src_key_parsed = urlparse(request.headers.get("x-amz-copy-source"))
             src_bucket, src_key = src_key_parsed.path.split("/", 1)
-            src_version_id = parse_qs(src_key_parsed.query).get('versionId', [None])[0]
+            src_version_id = parse_qs(src_key_parsed.query).get(
+                'versionId', [None])[0]
             self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
                                   storage=storage_class, acl=acl, src_version_id=src_version_id)
             new_key = self.backend.get_key(bucket_name, key_name)
@@ -557,7 +574,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _key_response_head(self, bucket_name, query, key_name, headers):
         response_headers = {}
         version_id = query.get('versionId', [None])[0]
-        key = self.backend.get_key(bucket_name, key_name, version_id=version_id)
+        key = self.backend.get_key(
+            bucket_name, key_name, version_id=version_id)
         if key:
             response_headers.update(key.metadata)
             response_headers.update(key.response_dict)
@@ -585,7 +603,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
             grantees = []
             for key_and_value in value.split(","):
-                key, value = re.match('([^=]+)="([^"]+)"', key_and_value.strip()).groups()
+                key, value = re.match(
+                    '([^=]+)="([^"]+)"', key_and_value.strip()).groups()
                 if key.lower() == 'id':
                     grantees.append(FakeGrantee(id=value))
                 else:
@@ -610,7 +629,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         ps = minidom.parseString(body).getElementsByTagName('Part')
         prev = 0
         for p in ps:
-            pn = int(p.getElementsByTagName('PartNumber')[0].firstChild.wholeText)
+            pn = int(p.getElementsByTagName(
+                'PartNumber')[0].firstChild.wholeText)
             if pn <= prev:
                 raise InvalidPartOrder()
             yield (pn, p.getElementsByTagName('ETag')[0].firstChild.wholeText)
@@ -618,7 +638,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _key_response_post(self, request, body, bucket_name, query, key_name, headers):
         if body == b'' and 'uploads' in query:
             metadata = metadata_from_headers(request.headers)
-            multipart = self.backend.initiate_multipart(bucket_name, key_name, metadata)
+            multipart = self.backend.initiate_multipart(
+                bucket_name, key_name, metadata)
 
             template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(
@@ -648,7 +669,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
             key.restore(int(days))
             return r, {}, ""
         else:
-            raise NotImplementedError("Method POST had only been implemented for multipart uploads and restore operations, so far")
+            raise NotImplementedError(
+                "Method POST had only been implemented for multipart uploads and restore operations, so far")
+
 
 S3ResponseInstance = ResponseObject(s3_backend)
 

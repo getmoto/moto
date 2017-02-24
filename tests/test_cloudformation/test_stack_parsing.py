@@ -25,8 +25,8 @@ dummy_template = {
             }
         },
         "S3Bucket": {
-          "Type": "AWS::S3::Bucket",
-          "DeletionPolicy": "Retain"
+            "Type": "AWS::S3::Bucket",
+            "DeletionPolicy": "Retain"
         },
     },
 }
@@ -71,15 +71,19 @@ get_attribute_output = {
     }
 }
 
-outputs_template = dict(list(dummy_template.items()) + list(output_dict.items()))
-bad_outputs_template = dict(list(dummy_template.items()) + list(bad_output.items()))
-get_attribute_outputs_template = dict(list(dummy_template.items()) + list(get_attribute_output.items()))
+outputs_template = dict(list(dummy_template.items()) +
+                        list(output_dict.items()))
+bad_outputs_template = dict(
+    list(dummy_template.items()) + list(bad_output.items()))
+get_attribute_outputs_template = dict(
+    list(dummy_template.items()) + list(get_attribute_output.items()))
 
 dummy_template_json = json.dumps(dummy_template)
 name_type_template_json = json.dumps(name_type_template)
 output_type_template_json = json.dumps(outputs_template)
 bad_output_template_json = json.dumps(bad_outputs_template)
-get_attribute_outputs_template_json = json.dumps(get_attribute_outputs_template)
+get_attribute_outputs_template_json = json.dumps(
+    get_attribute_outputs_template)
 
 
 def test_parse_stack_resources():
@@ -104,7 +108,8 @@ def test_parse_stack_resources():
 @patch("moto.cloudformation.parsing.logger")
 def test_missing_resource_logs(logger):
     resource_class_from_type("foobar")
-    logger.warning.assert_called_with('No Moto CloudFormation support for %s', 'foobar')
+    logger.warning.assert_called_with(
+        'No Moto CloudFormation support for %s', 'foobar')
 
 
 def test_parse_stack_with_name_type_resource():

@@ -57,6 +57,7 @@ except Exception:
 
 
 class PyTest(TestCommand):
+
     def finalize_options(self):
         TestCommand.finalize_options(self)
         self.test_args = ['test_responses.py']

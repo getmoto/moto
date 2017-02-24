@@ -18,7 +18,8 @@ def test_create_platform_application():
         },
     )
     application_arn = response['PlatformApplicationArn']
-    application_arn.should.equal('arn:aws:sns:us-east-1:123456789012:app/APNS/my-application')
+    application_arn.should.equal(
+        'arn:aws:sns:us-east-1:123456789012:app/APNS/my-application')
 
 
 @mock_sns
@@ -33,7 +34,8 @@ def test_get_platform_application_attributes():
         },
     )
     arn = platform_application['PlatformApplicationArn']
-    attributes = conn.get_platform_application_attributes(PlatformApplicationArn=arn)['Attributes']
+    attributes = conn.get_platform_application_attributes(
+        PlatformApplicationArn=arn)['Attributes']
     attributes.should.equal({
         "PlatformCredential": "platform_credential",
         "PlatformPrincipal": "platform_principal",
@@ -43,7 +45,8 @@ def test_get_platform_application_attributes():
 @mock_sns
 def test_get_missing_platform_application_attributes():
     conn = boto3.client('sns', region_name='us-east-1')
-    conn.get_platform_application_attributes.when.called_with(PlatformApplicationArn="a-fake-arn").should.throw(ClientError)
+    conn.get_platform_application_attributes.when.called_with(
+        PlatformApplicationArn="a-fake-arn").should.throw(ClientError)
 
 
 @mock_sns
@@ -59,9 +62,11 @@ def test_set_platform_application_attributes():
     )
     arn = platform_application['PlatformApplicationArn']
     conn.set_platform_application_attributes(PlatformApplicationArn=arn,
-        Attributes={"PlatformPrincipal": "other"}
-    )
-    attributes = conn.get_platform_application_attributes(PlatformApplicationArn=arn)['Attributes']
+                                             Attributes={
+                                                 "PlatformPrincipal": "other"}
+                                             )
+    attributes = conn.get_platform_application_attributes(
+        PlatformApplicationArn=arn)['Attributes']
     attributes.should.equal({
         "PlatformCredential": "platform_credential",
         "PlatformPrincipal": "other",
@@ -133,7 +138,8 @@ def test_create_platform_endpoint():
     )
 
     endpoint_arn = endpoint['EndpointArn']
-    endpoint_arn.should.contain("arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application/")
+    endpoint_arn.should.contain(
+        "arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application/")
 
 
 @mock_sns
@@ -186,7 +192,8 @@ def test_get_endpoint_attributes():
     )
     endpoint_arn = endpoint['EndpointArn']
 
-    attributes = conn.get_endpoint_attributes(EndpointArn=endpoint_arn)['Attributes']
+    attributes = conn.get_endpoint_attributes(
+        EndpointArn=endpoint_arn)['Attributes']
     attributes.should.equal({
         "Token": "some_unique_id",
         "Enabled": 'false',
@@ -197,7 +204,8 @@ def test_get_endpoint_attributes():
 @mock_sns
 def test_get_missing_endpoint_attributes():
     conn = boto3.client('sns', region_name='us-east-1')
-    conn.get_endpoint_attributes.when.called_with(EndpointArn="a-fake-arn").should.throw(ClientError)
+    conn.get_endpoint_attributes.when.called_with(
+        EndpointArn="a-fake-arn").should.throw(ClientError)
 
 
 @mock_sns
@@ -222,9 +230,10 @@ def test_set_endpoint_attributes():
     endpoint_arn = endpoint['EndpointArn']
 
     conn.set_endpoint_attributes(EndpointArn=endpoint_arn,
-        Attributes={"CustomUserData": "other data"}
-    )
-    attributes = conn.get_endpoint_attributes(EndpointArn=endpoint_arn)['Attributes']
+                                 Attributes={"CustomUserData": "other data"}
+                                 )
+    attributes = conn.get_endpoint_attributes(
+        EndpointArn=endpoint_arn)['Attributes']
     attributes.should.equal({
         "Token": "some_unique_id",
         "Enabled": 'false',
@@ -253,4 +262,5 @@ def test_publish_to_platform_endpoint():
 
     endpoint_arn = endpoint['EndpointArn']
 
-    conn.publish(Message="some message", MessageStructure="json", TargetArn=endpoint_arn)
+    conn.publish(Message="some message",
+                 MessageStructure="json", TargetArn=endpoint_arn)

@@ -38,6 +38,7 @@ if PY3:  # pragma: no cover
     basestring = (str, bytes)
 
     class BaseClass(object):
+
         def __repr__(self):
             return self.__str__()
 else:  # pragma: no cover
@@ -49,6 +50,7 @@ else:  # pragma: no cover
 
 
 class BaseClass(object):
+
     def __repr__(self):
         ret = self.__str__()
         if PY3:  # pragma: no cover
@@ -63,6 +65,7 @@ try:  # pragma: no cover
 except ImportError:  # pragma: no cover
     from urlparse import urlsplit, urlunsplit, parse_qs, unquote
     from urllib import quote, quote_plus
+
     def unquote_utf8(qs):
         if isinstance(qs, text_type):
             qs = qs.encode('utf-8')

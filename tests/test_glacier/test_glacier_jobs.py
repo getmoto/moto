@@ -13,14 +13,16 @@ def test_init_glacier_job():
     conn = Layer1(region_name="us-west-2")
     vault_name = "my_vault"
     conn.create_vault(vault_name)
-    archive_id = conn.upload_archive(vault_name, "some stuff", "", "", "some description")
+    archive_id = conn.upload_archive(
+        vault_name, "some stuff", "", "", "some description")
 
     job_response = conn.initiate_job(vault_name, {
         "ArchiveId": archive_id,
         "Type": "archive-retrieval",
     })
     job_id = job_response['JobId']
-    job_response['Location'].should.equal("//vaults/my_vault/jobs/{0}".format(job_id))
+    job_response['Location'].should.equal(
+        "//vaults/my_vault/jobs/{0}".format(job_id))
 
 
 @mock_glacier_deprecated
@@ -28,7 +30,8 @@ def test_describe_job():
     conn = Layer1(region_name="us-west-2")
     vault_name = "my_vault"
     conn.create_vault(vault_name)
-    archive_id = conn.upload_archive(vault_name, "some stuff", "", "", "some description")
+    archive_id = conn.upload_archive(
+        vault_name, "some stuff", "", "", "some description")
     job_response = conn.initiate_job(vault_name, {
         "ArchiveId": archive_id,
         "Type": "archive-retrieval",
@@ -61,8 +64,10 @@ def test_list_glacier_jobs():
     conn = Layer1(region_name="us-west-2")
     vault_name = "my_vault"
     conn.create_vault(vault_name)
-    archive_id1 = conn.upload_archive(vault_name, "some stuff", "", "", "some description")['ArchiveId']
-    archive_id2 = conn.upload_archive(vault_name, "some other stuff", "", "", "some description")['ArchiveId']
+    archive_id1 = conn.upload_archive(
+        vault_name, "some stuff", "", "", "some description")['ArchiveId']
+    archive_id2 = conn.upload_archive(
+        vault_name, "some other stuff", "", "", "some description")['ArchiveId']
 
     conn.initiate_job(vault_name, {
         "ArchiveId": archive_id1,
@@ -82,7 +87,8 @@ def test_get_job_output():
     conn = Layer1(region_name="us-west-2")
     vault_name = "my_vault"
     conn.create_vault(vault_name)
-    archive_response = conn.upload_archive(vault_name, "some stuff", "", "", "some description")
+    archive_response = conn.upload_archive(
+        vault_name, "some stuff", "", "", "some description")
     archive_id = archive_response['ArchiveId']
     job_response = conn.initiate_job(vault_name, {
         "ArchiveId": archive_id,

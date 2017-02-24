@@ -64,9 +64,12 @@ class WorkflowExecution(object):
         # NB: the order follows boto/SWF order of exceptions appearance (if no
         # param is set, # SWF will raise DefaultUndefinedFault errors in the
         # same order as the few lines that follow)
-        self._set_from_kwargs_or_workflow_type(kwargs, "execution_start_to_close_timeout")
-        self._set_from_kwargs_or_workflow_type(kwargs, "task_list", "task_list")
-        self._set_from_kwargs_or_workflow_type(kwargs, "task_start_to_close_timeout")
+        self._set_from_kwargs_or_workflow_type(
+            kwargs, "execution_start_to_close_timeout")
+        self._set_from_kwargs_or_workflow_type(
+            kwargs, "task_list", "task_list")
+        self._set_from_kwargs_or_workflow_type(
+            kwargs, "task_start_to_close_timeout")
         self._set_from_kwargs_or_workflow_type(kwargs, "child_policy")
         self.input = kwargs.get("input")
         # counters
@@ -368,13 +371,16 @@ class WorkflowExecution(object):
             # check decision types mandatory attributes
             # NB: the real SWF service seems to check attributes even for attributes list
             # that are not in line with the decisionType, so we do the same
-            attrs_to_check = [d for d in dcs.keys() if d.endswith("DecisionAttributes")]
+            attrs_to_check = [
+                d for d in dcs.keys() if d.endswith("DecisionAttributes")]
             if dcs["decisionType"] in self.KNOWN_DECISION_TYPES:
                 decision_type = dcs["decisionType"]
-                decision_attr = "{0}DecisionAttributes".format(decapitalize(decision_type))
+                decision_attr = "{0}DecisionAttributes".format(
+                    decapitalize(decision_type))
                 attrs_to_check.append(decision_attr)
             for attr in attrs_to_check:
-                problems += self._check_decision_attributes(attr, dcs.get(attr, {}), decision_number)
+                problems += self._check_decision_attributes(
+                    attr, dcs.get(attr, {}), decision_number)
             # check decision type is correct
             if dcs["decisionType"] not in self.KNOWN_DECISION_TYPES:
                 problems.append({
@@ -396,12 +402,14 @@ class WorkflowExecution(object):
         # handle each decision separately, in order
         for decision in decisions:
             decision_type = decision["decisionType"]
-            attributes_key = "{0}DecisionAttributes".format(decapitalize(decision_type))
+            attributes_key = "{0}DecisionAttributes".format(
+                decapitalize(decision_type))
             attributes = decision.get(attributes_key, {})
             if decision_type == "CompleteWorkflowExecution":
                 self.complete(event_id, attributes.get("result"))
             elif decision_type == "FailWorkflowExecution":
-                self.fail(event_id, attributes.get("details"), attributes.get("reason"))
+                self.fail(event_id, attributes.get(
+                    "details"), attributes.get("reason"))
             elif decision_type == "ScheduleActivityTask":
                 self.schedule_activity_task(event_id, attributes)
             else:
@@ -415,7 +423,8 @@ class WorkflowExecution(object):
                 # TODO: implement Decision type: SignalExternalWorkflowExecution
                 # TODO: implement Decision type: StartChildWorkflowExecution
                 # TODO: implement Decision type: StartTimer
-                raise NotImplementedError("Cannot handle decision: {0}".format(decision_type))
+                raise NotImplementedError(
+                    "Cannot handle decision: {0}".format(decision_type))
 
         # finally decrement counter if and only if everything went well
         self.open_counts["openDecisionTasks"] -= 1
@@ -447,7 +456,8 @@ class WorkflowExecution(object):
         def fail_schedule_activity_task(_type, _cause):
             # TODO: implement other possible failure mode: OPEN_ACTIVITIES_LIMIT_EXCEEDED
             # NB: some failure modes are not implemented and probably won't be implemented in
-            # the future, such as ACTIVITY_CREATION_RATE_EXCEEDED or OPERATION_NOT_PERMITTED
+            # the future, such as ACTIVITY_CREATION_RATE_EXCEEDED or
+            # OPERATION_NOT_PERMITTED
             self._add_event(
                 "ScheduleActivityTaskFailed",
                 activity_id=attributes["activityId"],
@@ -591,13 +601,15 @@ class WorkflowExecution(object):
     def first_timeout(self):
         if not self.open or not self.start_timestamp:
             return None
-        start_to_close_at = self.start_timestamp + int(self.execution_start_to_close_timeout)
+        start_to_close_at = self.start_timestamp + \
+            int(self.execution_start_to_close_timeout)
         _timeout = Timeout(self, start_to_close_at, "START_TO_CLOSE")
         if _timeout.reached:
             return _timeout
 
     def timeout(self, timeout):
-        # TODO: process child policy on child workflows here or in the triggering function
+        # TODO: process child policy on child workflows here or in the
+        # triggering function
         self.execution_status = "CLOSED"
         self.close_status = "TIMED_OUT"
         self.timeout_type = timeout.kind

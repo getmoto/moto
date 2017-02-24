@@ -240,8 +240,10 @@ def test_workflow_execution_schedule_activity_task():
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ActivityTaskScheduled")
-    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
-    last_event.event_attributes["taskList"]["name"].should.equal("task-list-name")
+    last_event.event_attributes[
+        "decisionTaskCompletedEventId"].should.equal(123)
+    last_event.event_attributes["taskList"][
+        "name"].should.equal("task-list-name")
 
     wfe.activity_tasks.should.have.length_of(1)
     task = wfe.activity_tasks[0]
@@ -288,43 +290,50 @@ def test_workflow_execution_schedule_activity_task_should_fail_if_wrong_attribut
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal("ACTIVITY_TYPE_DOES_NOT_EXIST")
+    last_event.event_attributes["cause"].should.equal(
+        "ACTIVITY_TYPE_DOES_NOT_EXIST")
 
     hsh["activityType"]["name"] = "test-activity"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal("ACTIVITY_TYPE_DEPRECATED")
+    last_event.event_attributes["cause"].should.equal(
+        "ACTIVITY_TYPE_DEPRECATED")
 
     hsh["activityType"]["version"] = "v1.2"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal("DEFAULT_TASK_LIST_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal(
+        "DEFAULT_TASK_LIST_UNDEFINED")
 
     hsh["taskList"] = {"name": "foobar"}
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal("DEFAULT_SCHEDULE_TO_START_TIMEOUT_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal(
+        "DEFAULT_SCHEDULE_TO_START_TIMEOUT_UNDEFINED")
 
     hsh["scheduleToStartTimeout"] = "600"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal("DEFAULT_SCHEDULE_TO_CLOSE_TIMEOUT_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal(
+        "DEFAULT_SCHEDULE_TO_CLOSE_TIMEOUT_UNDEFINED")
 
     hsh["scheduleToCloseTimeout"] = "600"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal("DEFAULT_START_TO_CLOSE_TIMEOUT_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal(
+        "DEFAULT_START_TO_CLOSE_TIMEOUT_UNDEFINED")
 
     hsh["startToCloseTimeout"] = "600"
     wfe.schedule_activity_task(123, hsh)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal("DEFAULT_HEARTBEAT_TIMEOUT_UNDEFINED")
+    last_event.event_attributes["cause"].should.equal(
+        "DEFAULT_HEARTBEAT_TIMEOUT_UNDEFINED")
 
     wfe.open_counts["openActivityTasks"].should.equal(0)
     wfe.activity_tasks.should.have.length_of(0)
@@ -393,7 +402,8 @@ def test_workflow_execution_schedule_activity_task_with_same_activity_id():
     wfe.open_counts["openActivityTasks"].should.equal(1)
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("ScheduleActivityTaskFailed")
-    last_event.event_attributes["cause"].should.equal("ACTIVITY_ID_ALREADY_IN_USE")
+    last_event.event_attributes["cause"].should.equal(
+        "ACTIVITY_ID_ALREADY_IN_USE")
 
 
 def test_workflow_execution_start_activity_task():
@@ -456,7 +466,8 @@ def test_first_timeout():
         wfe.first_timeout().should.be.a(Timeout)
 
 
-# See moto/swf/models/workflow_execution.py "_process_timeouts()" for more details
+# See moto/swf/models/workflow_execution.py "_process_timeouts()" for more
+# details
 def test_timeouts_are_processed_in_order_and_reevaluated():
     # Let's make a Workflow Execution with the following properties:
     # - execution start to close timeout of 8 mins

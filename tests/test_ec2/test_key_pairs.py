@@ -36,7 +36,8 @@ def test_key_pairs_create():
         kp = conn.create_key_pair('foo', dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set')
 
     kp = conn.create_key_pair('foo')
     assert kp.material.startswith('---- BEGIN RSA PRIVATE KEY ----')
@@ -91,7 +92,8 @@ def test_key_pairs_delete_exist():
         r = conn.delete_key_pair('foo', dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set')
 
     r = conn.delete_key_pair('foo')
     r.should.be.ok
@@ -106,7 +108,8 @@ def test_key_pairs_import():
         kp = conn.import_key_pair('foo', b'content', dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set')
 
     kp = conn.import_key_pair('foo', b'content')
     assert kp.name == 'foo'

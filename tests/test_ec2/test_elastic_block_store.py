@@ -28,7 +28,8 @@ def test_create_and_delete_volume():
         volume.delete(dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteVolume operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the DeleteVolume operation: Request would have succeeded, but DryRun flag is set')
 
     volume.delete()
 
@@ -42,7 +43,6 @@ def test_create_and_delete_volume():
     cm.exception.request_id.should_not.be.none
 
 
-
 @mock_ec2_deprecated
 def test_create_encrypted_volume_dryrun():
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -50,7 +50,8 @@ def test_create_encrypted_volume_dryrun():
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set')
 
 
 @mock_ec2_deprecated
@@ -62,7 +63,8 @@ def test_create_encrypted_volume():
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set')
 
     all_volumes = conn.get_all_volumes()
     all_volumes[0].encrypted.should.be(True)
@@ -108,29 +110,42 @@ def test_volume_filters():
 
     block_mapping = instance.block_device_mapping['/dev/sda1']
 
-    volumes_by_attach_time = conn.get_all_volumes(filters={'attachment.attach-time': block_mapping.attach_time})
-    set([vol.id for vol in volumes_by_attach_time]).should.equal(set([block_mapping.volume_id]))
+    volumes_by_attach_time = conn.get_all_volumes(
+        filters={'attachment.attach-time': block_mapping.attach_time})
+    set([vol.id for vol in volumes_by_attach_time]
+        ).should.equal(set([block_mapping.volume_id]))
 
-    volumes_by_attach_device = conn.get_all_volumes(filters={'attachment.device': '/dev/sda1'})
-    set([vol.id for vol in volumes_by_attach_device]).should.equal(set([block_mapping.volume_id]))
+    volumes_by_attach_device = conn.get_all_volumes(
+        filters={'attachment.device': '/dev/sda1'})
+    set([vol.id for vol in volumes_by_attach_device]
+        ).should.equal(set([block_mapping.volume_id]))
 
-    volumes_by_attach_instance_id = conn.get_all_volumes(filters={'attachment.instance-id': instance.id})
-    set([vol.id for vol in volumes_by_attach_instance_id]).should.equal(set([block_mapping.volume_id]))
+    volumes_by_attach_instance_id = conn.get_all_volumes(
+        filters={'attachment.instance-id': instance.id})
+    set([vol.id for vol in volumes_by_attach_instance_id]
+        ).should.equal(set([block_mapping.volume_id]))
 
-    volumes_by_attach_status = conn.get_all_volumes(filters={'attachment.status': 'attached'})
-    set([vol.id for vol in volumes_by_attach_status]).should.equal(set([block_mapping.volume_id]))
+    volumes_by_attach_status = conn.get_all_volumes(
+        filters={'attachment.status': 'attached'})
+    set([vol.id for vol in volumes_by_attach_status]
+        ).should.equal(set([block_mapping.volume_id]))
 
-    volumes_by_create_time = conn.get_all_volumes(filters={'create-time': volume4.create_time})
-    set([vol.create_time for vol in volumes_by_create_time]).should.equal(set([volume4.create_time]))
+    volumes_by_create_time = conn.get_all_volumes(
+        filters={'create-time': volume4.create_time})
+    set([vol.create_time for vol in volumes_by_create_time]
+        ).should.equal(set([volume4.create_time]))
 
     volumes_by_size = conn.get_all_volumes(filters={'size': volume2.size})
     set([vol.id for vol in volumes_by_size]).should.equal(set([volume2.id]))
 
-    volumes_by_snapshot_id = conn.get_all_volumes(filters={'snapshot-id': snapshot.id})
-    set([vol.id for vol in volumes_by_snapshot_id]).should.equal(set([volume4.id]))
+    volumes_by_snapshot_id = conn.get_all_volumes(
+        filters={'snapshot-id': snapshot.id})
+    set([vol.id for vol in volumes_by_snapshot_id]
+        ).should.equal(set([volume4.id]))
 
     volumes_by_status = conn.get_all_volumes(filters={'status': 'in-use'})
-    set([vol.id for vol in volumes_by_status]).should.equal(set([block_mapping.volume_id]))
+    set([vol.id for vol in volumes_by_status]).should.equal(
+        set([block_mapping.volume_id]))
 
     volumes_by_id = conn.get_all_volumes(filters={'volume-id': volume1.id})
     set([vol.id for vol in volumes_by_id]).should.equal(set([volume1.id]))
@@ -138,13 +153,17 @@ def test_volume_filters():
     volumes_by_tag_key = conn.get_all_volumes(filters={'tag-key': 'testkey1'})
     set([vol.id for vol in volumes_by_tag_key]).should.equal(set([volume1.id]))
 
-    volumes_by_tag_value = conn.get_all_volumes(filters={'tag-value': 'testvalue1'})
-    set([vol.id for vol in volumes_by_tag_value]).should.equal(set([volume1.id]))
+    volumes_by_tag_value = conn.get_all_volumes(
+        filters={'tag-value': 'testvalue1'})
+    set([vol.id for vol in volumes_by_tag_value]
+        ).should.equal(set([volume1.id]))
 
-    volumes_by_tag = conn.get_all_volumes(filters={'tag:testkey1': 'testvalue1'})
+    volumes_by_tag = conn.get_all_volumes(
+        filters={'tag:testkey1': 'testvalue1'})
     set([vol.id for vol in volumes_by_tag]).should.equal(set([volume1.id]))
 
-    volumes_by_unencrypted = conn.get_all_volumes(filters={'encrypted': 'false'})
+    volumes_by_unencrypted = conn.get_all_volumes(
+        filters={'encrypted': 'false'})
     set([vol.id for vol in volumes_by_unencrypted]).should.equal(
         set([block_mapping.volume_id, volume2.id])
     )
@@ -169,7 +188,8 @@ def test_volume_attach_and_detach():
         volume.attach(instance.id, "/dev/sdh", dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AttachVolume operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the AttachVolume operation: Request would have succeeded, but DryRun flag is set')
 
     volume.attach(instance.id, "/dev/sdh")
 
@@ -183,7 +203,8 @@ def test_volume_attach_and_detach():
         volume.detach(dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DetachVolume operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the DetachVolume operation: Request would have succeeded, but DryRun flag is set')
 
     volume.detach()
 
@@ -218,7 +239,8 @@ def test_create_snapshot():
         snapshot = volume.create_snapshot('a dryrun snapshot', dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set')
 
     snapshot = volume.create_snapshot('a test snapshot')
     snapshot.update()
@@ -294,32 +316,50 @@ def test_snapshot_filters():
     conn.create_tags([snapshot1.id], {'testkey1': 'testvalue1'})
     conn.create_tags([snapshot2.id], {'testkey2': 'testvalue2'})
 
-    snapshots_by_description = conn.get_all_snapshots(filters={'description': 'testsnapshot1'})
-    set([snap.id for snap in snapshots_by_description]).should.equal(set([snapshot1.id]))
+    snapshots_by_description = conn.get_all_snapshots(
+        filters={'description': 'testsnapshot1'})
+    set([snap.id for snap in snapshots_by_description]
+        ).should.equal(set([snapshot1.id]))
 
-    snapshots_by_id = conn.get_all_snapshots(filters={'snapshot-id': snapshot1.id})
-    set([snap.id for snap in snapshots_by_id]).should.equal(set([snapshot1.id]))
+    snapshots_by_id = conn.get_all_snapshots(
+        filters={'snapshot-id': snapshot1.id})
+    set([snap.id for snap in snapshots_by_id]
+        ).should.equal(set([snapshot1.id]))
 
-    snapshots_by_start_time = conn.get_all_snapshots(filters={'start-time': snapshot1.start_time})
-    set([snap.start_time for snap in snapshots_by_start_time]).should.equal(set([snapshot1.start_time]))
+    snapshots_by_start_time = conn.get_all_snapshots(
+        filters={'start-time': snapshot1.start_time})
+    set([snap.start_time for snap in snapshots_by_start_time]
+        ).should.equal(set([snapshot1.start_time]))
 
-    snapshots_by_volume_id = conn.get_all_snapshots(filters={'volume-id': volume1.id})
-    set([snap.id for snap in snapshots_by_volume_id]).should.equal(set([snapshot1.id, snapshot2.id]))
+    snapshots_by_volume_id = conn.get_all_snapshots(
+        filters={'volume-id': volume1.id})
+    set([snap.id for snap in snapshots_by_volume_id]
+        ).should.equal(set([snapshot1.id, snapshot2.id]))
 
-    snapshots_by_volume_size = conn.get_all_snapshots(filters={'volume-size': volume1.size})
-    set([snap.id for snap in snapshots_by_volume_size]).should.equal(set([snapshot1.id, snapshot2.id]))
+    snapshots_by_volume_size = conn.get_all_snapshots(
+        filters={'volume-size': volume1.size})
+    set([snap.id for snap in snapshots_by_volume_size]
+        ).should.equal(set([snapshot1.id, snapshot2.id]))
 
-    snapshots_by_tag_key = conn.get_all_snapshots(filters={'tag-key': 'testkey1'})
-    set([snap.id for snap in snapshots_by_tag_key]).should.equal(set([snapshot1.id]))
+    snapshots_by_tag_key = conn.get_all_snapshots(
+        filters={'tag-key': 'testkey1'})
+    set([snap.id for snap in snapshots_by_tag_key]
+        ).should.equal(set([snapshot1.id]))
 
-    snapshots_by_tag_value = conn.get_all_snapshots(filters={'tag-value': 'testvalue1'})
-    set([snap.id for snap in snapshots_by_tag_value]).should.equal(set([snapshot1.id]))
+    snapshots_by_tag_value = conn.get_all_snapshots(
+        filters={'tag-value': 'testvalue1'})
+    set([snap.id for snap in snapshots_by_tag_value]
+        ).should.equal(set([snapshot1.id]))
 
-    snapshots_by_tag = conn.get_all_snapshots(filters={'tag:testkey1': 'testvalue1'})
-    set([snap.id for snap in snapshots_by_tag]).should.equal(set([snapshot1.id]))
+    snapshots_by_tag = conn.get_all_snapshots(
+        filters={'tag:testkey1': 'testvalue1'})
+    set([snap.id for snap in snapshots_by_tag]
+        ).should.equal(set([snapshot1.id]))
 
-    snapshots_by_encrypted = conn.get_all_snapshots(filters={'encrypted': 'true'})
-    set([snap.id for snap in snapshots_by_encrypted]).should.equal(set([snapshot3.id]))
+    snapshots_by_encrypted = conn.get_all_snapshots(
+        filters={'encrypted': 'true'})
+    set([snap.id for snap in snapshots_by_encrypted]
+        ).should.equal(set([snapshot3.id]))
 
 
 @mock_ec2_deprecated
@@ -331,7 +371,8 @@ def test_snapshot_attribute():
     snapshot = volume.create_snapshot()
 
     # Baseline
-    attributes = conn.get_snapshot_attribute(snapshot.id, attribute='createVolumePermission')
+    attributes = conn.get_snapshot_attribute(
+        snapshot.id, attribute='createVolumePermission')
     attributes.name.should.equal('create_volume_permission')
     attributes.attrs.should.have.length_of(0)
 
@@ -348,34 +389,42 @@ def test_snapshot_attribute():
     # Add 'all' group and confirm
 
     with assert_raises(EC2ResponseError) as ex:
-        conn.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{'dry_run': True}))
+        conn.modify_snapshot_attribute(
+            **dict(ADD_GROUP_ARGS, **{'dry_run': True}))
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set')
 
     conn.modify_snapshot_attribute(**ADD_GROUP_ARGS)
 
-    attributes = conn.get_snapshot_attribute(snapshot.id, attribute='createVolumePermission')
+    attributes = conn.get_snapshot_attribute(
+        snapshot.id, attribute='createVolumePermission')
     attributes.attrs['groups'].should.have.length_of(1)
     attributes.attrs['groups'].should.equal(['all'])
 
     # Add is idempotent
-    conn.modify_snapshot_attribute.when.called_with(**ADD_GROUP_ARGS).should_not.throw(EC2ResponseError)
+    conn.modify_snapshot_attribute.when.called_with(
+        **ADD_GROUP_ARGS).should_not.throw(EC2ResponseError)
 
     # Remove 'all' group and confirm
     with assert_raises(EC2ResponseError) as ex:
-        conn.modify_snapshot_attribute(**dict(REMOVE_GROUP_ARGS, **{'dry_run': True}))
+        conn.modify_snapshot_attribute(
+            **dict(REMOVE_GROUP_ARGS, **{'dry_run': True}))
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set')
 
     conn.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
 
-    attributes = conn.get_snapshot_attribute(snapshot.id, attribute='createVolumePermission')
+    attributes = conn.get_snapshot_attribute(
+        snapshot.id, attribute='createVolumePermission')
     attributes.attrs.should.have.length_of(0)
 
     # Remove is idempotent
-    conn.modify_snapshot_attribute.when.called_with(**REMOVE_GROUP_ARGS).should_not.throw(EC2ResponseError)
+    conn.modify_snapshot_attribute.when.called_with(
+        **REMOVE_GROUP_ARGS).should_not.throw(EC2ResponseError)
 
     # Error: Add with group != 'all'
     with assert_raises(EC2ResponseError) as cm:
@@ -428,7 +477,8 @@ def test_create_volume_from_snapshot():
         snapshot = volume.create_snapshot('a test snapshot', dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set')
 
     snapshot = volume.create_snapshot('a test snapshot')
     snapshot.update()
@@ -469,16 +519,19 @@ def test_modify_attribute_blockDeviceMapping():
     instance = reservation.instances[0]
 
     with assert_raises(EC2ResponseError) as ex:
-        instance.modify_attribute('blockDeviceMapping', {'/dev/sda1': True}, dry_run=True)
+        instance.modify_attribute('blockDeviceMapping', {
+                                  '/dev/sda1': True}, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set')
 
     instance.modify_attribute('blockDeviceMapping', {'/dev/sda1': True})
 
     instance = ec2_backends[conn.region.name].get_instance(instance.id)
     instance.block_device_mapping.should.have.key('/dev/sda1')
-    instance.block_device_mapping['/dev/sda1'].delete_on_termination.should.be(True)
+    instance.block_device_mapping[
+        '/dev/sda1'].delete_on_termination.should.be(True)
 
 
 @mock_ec2_deprecated
@@ -491,8 +544,10 @@ def test_volume_tag_escaping():
         snapshot.add_tags({'key': '</closed>'}, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
-    dict(conn.get_all_snapshots()[0].tags).should_not.be.equal({'key': '</closed>'})
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
+    dict(conn.get_all_snapshots()[0].tags).should_not.be.equal(
+        {'key': '</closed>'})
 
     snapshot.add_tags({'key': '</closed>'})
 

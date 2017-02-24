@@ -30,13 +30,15 @@ def test_meta_data_iam():
 
 @mock_ec2
 def test_meta_data_security_credentials():
-    res = requests.get("{0}/latest/meta-data/iam/security-credentials/".format(BASE_URL))
+    res = requests.get(
+        "{0}/latest/meta-data/iam/security-credentials/".format(BASE_URL))
     res.content.should.equal(b"default-role")
 
 
 @mock_ec2
 def test_meta_data_default_role():
-    res = requests.get("{0}/latest/meta-data/iam/security-credentials/default-role".format(BASE_URL))
+    res = requests.get(
+        "{0}/latest/meta-data/iam/security-credentials/default-role".format(BASE_URL))
     json_response = res.json()
     json_response.should.contain('AccessKeyId')
     json_response.should.contain('SecretAccessKey')

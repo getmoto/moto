@@ -7,6 +7,7 @@ from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 
 
 class PipelineObject(object):
+
     def __init__(self, object_id, name, fields):
         self.object_id = object_id
         self.name = name
@@ -21,6 +22,7 @@ class PipelineObject(object):
 
 
 class Pipeline(object):
+
     def __init__(self, name, unique_id):
         self.name = name
         self.unique_id = unique_id
@@ -82,7 +84,8 @@ class Pipeline(object):
 
     def set_pipeline_objects(self, pipeline_objects):
         self.objects = [
-            PipelineObject(pipeline_object['id'], pipeline_object['name'], pipeline_object['fields'])
+            PipelineObject(pipeline_object['id'], pipeline_object[
+                           'name'], pipeline_object['fields'])
             for pipeline_object in remove_capitalization_of_dict_keys(pipeline_objects)
         ]
 
@@ -95,8 +98,10 @@ class Pipeline(object):
         properties = cloudformation_json["Properties"]
 
         cloudformation_unique_id = "cf-" + properties["Name"]
-        pipeline = datapipeline_backend.create_pipeline(properties["Name"], cloudformation_unique_id)
-        datapipeline_backend.put_pipeline_definition(pipeline.pipeline_id, properties["PipelineObjects"])
+        pipeline = datapipeline_backend.create_pipeline(
+            properties["Name"], cloudformation_unique_id)
+        datapipeline_backend.put_pipeline_definition(
+            pipeline.pipeline_id, properties["PipelineObjects"])
 
         if properties["Activate"]:
             pipeline.activate()
@@ -117,7 +122,8 @@ class DataPipelineBackend(BaseBackend):
         return self.pipelines.values()
 
     def describe_pipelines(self, pipeline_ids):
-        pipelines = [pipeline for pipeline in self.pipelines.values() if pipeline.pipeline_id in pipeline_ids]
+        pipelines = [pipeline for pipeline in self.pipelines.values(
+        ) if pipeline.pipeline_id in pipeline_ids]
         return pipelines
 
     def get_pipeline(self, pipeline_id):

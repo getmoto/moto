@@ -15,12 +15,14 @@ def test_publish_to_sqs():
     conn = boto.connect_sns()
     conn.create_topic("some-topic")
     topics_json = conn.get_all_topics()
-    topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0]['TopicArn']
+    topic_arn = topics_json["ListTopicsResponse"][
+        "ListTopicsResult"]["Topics"][0]['TopicArn']
 
     sqs_conn = boto.connect_sqs()
     sqs_conn.create_queue("test-queue")
 
-    conn.subscribe(topic_arn, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue")
+    conn.subscribe(topic_arn, "sqs",
+                   "arn:aws:sqs:us-east-1:123456789012:test-queue")
 
     conn.publish(topic=topic_arn, message="my message")
 
@@ -35,12 +37,14 @@ def test_publish_to_sqs_in_different_region():
     conn = boto.sns.connect_to_region("us-west-1")
     conn.create_topic("some-topic")
     topics_json = conn.get_all_topics()
-    topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0]['TopicArn']
+    topic_arn = topics_json["ListTopicsResponse"][
+        "ListTopicsResult"]["Topics"][0]['TopicArn']
 
     sqs_conn = boto.sqs.connect_to_region("us-west-2")
     sqs_conn.create_queue("test-queue")
 
-    conn.subscribe(topic_arn, "sqs", "arn:aws:sqs:us-west-2:123456789012:test-queue")
+    conn.subscribe(topic_arn, "sqs",
+                   "arn:aws:sqs:us-west-2:123456789012:test-queue")
 
     conn.publish(topic=topic_arn, message="my message")
 
@@ -61,9 +65,11 @@ def test_publish_to_http():
     conn = boto.connect_sns()
     conn.create_topic("some-topic")
     topics_json = conn.get_all_topics()
-    topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0]['TopicArn']
+    topic_arn = topics_json["ListTopicsResponse"][
+        "ListTopicsResult"]["Topics"][0]['TopicArn']
 
     conn.subscribe(topic_arn, "http", "http://example.com/foobar")
 
-    response = conn.publish(topic=topic_arn, message="my message", subject="my subject")
+    response = conn.publish(
+        topic=topic_arn, message="my message", subject="my subject")
     message_id = response['PublishResponse']['PublishResult']['MessageId']

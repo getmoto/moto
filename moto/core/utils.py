@@ -98,7 +98,7 @@ class convert_httpretty_response(object):
         result = self.callback(request, url, headers)
         status, headers, response = result
         if 'server' not in headers:
-             headers["server"] = "amazon.com"
+            headers["server"] = "amazon.com"
         return status, headers, response
 
 

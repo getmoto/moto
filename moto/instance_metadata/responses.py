@@ -7,6 +7,7 @@ from moto.core.responses import BaseResponse
 
 
 class InstanceMetadataResponse(BaseResponse):
+
     def metadata_response(self, request, full_url, headers):
         """
         Mock response for localhost metadata
@@ -43,5 +44,6 @@ class InstanceMetadataResponse(BaseResponse):
         elif path == 'iam/security-credentials/default-role':
             result = json.dumps(credentials)
         else:
-            raise NotImplementedError("The {0} metadata path has not been implemented".format(path))
+            raise NotImplementedError(
+                "The {0} metadata path has not been implemented".format(path))
         return 200, headers, result

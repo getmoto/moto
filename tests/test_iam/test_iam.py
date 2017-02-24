@@ -19,11 +19,13 @@ def test_get_all_server_certs():
     conn = boto.connect_iam()
 
     conn.upload_server_cert("certname", "certbody", "privatekey")
-    certs = conn.get_all_server_certs()['list_server_certificates_response']['list_server_certificates_result']['server_certificate_metadata_list']
+    certs = conn.get_all_server_certs()['list_server_certificates_response'][
+        'list_server_certificates_result']['server_certificate_metadata_list']
     certs.should.have.length_of(1)
     cert1 = certs[0]
     cert1.server_certificate_name.should.equal("certname")
-    cert1.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+    cert1.arn.should.equal(
+        "arn:aws:iam::123456789012:server-certificate/certname")
 
 
 @mock_iam_deprecated()
@@ -41,7 +43,8 @@ def test_get_server_cert():
     conn.upload_server_cert("certname", "certbody", "privatekey")
     cert = conn.get_server_certificate("certname")
     cert.server_certificate_name.should.equal("certname")
-    cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+    cert.arn.should.equal(
+        "arn:aws:iam::123456789012:server-certificate/certname")
 
 
 @mock_iam_deprecated()
@@ -51,7 +54,8 @@ def test_upload_server_cert():
     conn.upload_server_cert("certname", "certbody", "privatekey")
     cert = conn.get_server_certificate("certname")
     cert.server_certificate_name.should.equal("certname")
-    cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+    cert.arn.should.equal(
+        "arn:aws:iam::123456789012:server-certificate/certname")
 
 
 @mock_iam_deprecated()
@@ -74,7 +78,8 @@ def test_get_instance_profile__should_throw__when_instance_profile_does_not_exis
 def test_create_role_and_instance_profile():
     conn = boto.connect_iam()
     conn.create_instance_profile("my-profile", path="my-path")
-    conn.create_role("my-role", assume_role_policy_document="some policy", path="my-path")
+    conn.create_role(
+        "my-role", assume_role_policy_document="some policy", path="my-path")
 
     conn.add_role_to_instance_profile("my-profile", "my-role")
 
@@ -95,7 +100,8 @@ def test_create_role_and_instance_profile():
 def test_remove_role_from_instance_profile():
     conn = boto.connect_iam()
     conn.create_instance_profile("my-profile", path="my-path")
-    conn.create_role("my-role", assume_role_policy_document="some policy", path="my-path")
+    conn.create_role(
+        "my-role", assume_role_policy_document="some policy", path="my-path")
     conn.add_role_to_instance_profile("my-profile", "my-role")
 
     profile = conn.get_instance_profile("my-profile")
@@ -127,29 +133,37 @@ def test_list_instance_profiles():
 def test_list_instance_profiles_for_role():
     conn = boto.connect_iam()
 
-    conn.create_role(role_name="my-role", assume_role_policy_document="some policy", path="my-path")
-    conn.create_role(role_name="my-role2", assume_role_policy_document="some policy2", path="my-path2")
+    conn.create_role(role_name="my-role",
+                     assume_role_policy_document="some policy", path="my-path")
+    conn.create_role(role_name="my-role2",
+                     assume_role_policy_document="some policy2", path="my-path2")
 
     profile_name_list = ['my-profile', 'my-profile2']
     profile_path_list = ['my-path', 'my-path2']
     for profile_count in range(0, 2):
-        conn.create_instance_profile(profile_name_list[profile_count], path=profile_path_list[profile_count])
+        conn.create_instance_profile(
+            profile_name_list[profile_count], path=profile_path_list[profile_count])
 
     for profile_count in range(0, 2):
-        conn.add_role_to_instance_profile(profile_name_list[profile_count], "my-role")
+        conn.add_role_to_instance_profile(
+            profile_name_list[profile_count], "my-role")
 
     profile_dump = conn.list_instance_profiles_for_role(role_name="my-role")
-    profile_list = profile_dump['list_instance_profiles_for_role_response']['list_instance_profiles_for_role_result']['instance_profiles']
+    profile_list = profile_dump['list_instance_profiles_for_role_response'][
+        'list_instance_profiles_for_role_result']['instance_profiles']
     for profile_count in range(0, len(profile_list)):
-        profile_name_list.remove(profile_list[profile_count]["instance_profile_name"])
+        profile_name_list.remove(profile_list[profile_count][
+                                 "instance_profile_name"])
         profile_path_list.remove(profile_list[profile_count]["path"])
-        profile_list[profile_count]["roles"]["member"]["role_name"].should.equal("my-role")
+        profile_list[profile_count]["roles"]["member"][
+            "role_name"].should.equal("my-role")
 
     len(profile_name_list).should.equal(0)
     len(profile_path_list).should.equal(0)
 
     profile_dump2 = conn.list_instance_profiles_for_role(role_name="my-role2")
-    profile_list = profile_dump2['list_instance_profiles_for_role_response']['list_instance_profiles_for_role_result']['instance_profiles']
+    profile_list = profile_dump2['list_instance_profiles_for_role_response'][
+        'list_instance_profiles_for_role_result']['instance_profiles']
     len(profile_list).should.equal(0)
 
 
@@ -165,9 +179,11 @@ def test_list_role_policies():
 @mock_iam_deprecated()
 def test_put_role_policy():
     conn = boto.connect_iam()
-    conn.create_role("my-role", assume_role_policy_document="some policy", path="my-path")
+    conn.create_role(
+        "my-role", assume_role_policy_document="some policy", path="my-path")
     conn.put_role_policy("my-role", "test policy", "my policy")
-    policy = conn.get_role_policy("my-role", "test policy")['get_role_policy_response']['get_role_policy_result']['policy_name']
+    policy = conn.get_role_policy(
+        "my-role", "test policy")['get_role_policy_response']['get_role_policy_result']['policy_name']
     policy.should.equal("test policy")
 
 
@@ -246,13 +262,15 @@ def test_get_all_access_keys():
     conn.create_user('my-user')
     response = conn.get_all_access_keys('my-user')
     assert_equals(
-        response['list_access_keys_response']['list_access_keys_result']['access_key_metadata'],
+        response['list_access_keys_response'][
+            'list_access_keys_result']['access_key_metadata'],
         []
     )
     conn.create_access_key('my-user')
     response = conn.get_all_access_keys('my-user')
     assert_not_equals(
-        response['list_access_keys_response']['list_access_keys_result']['access_key_metadata'],
+        response['list_access_keys_response'][
+            'list_access_keys_result']['access_key_metadata'],
         []
     )
 
@@ -261,7 +279,8 @@ def test_get_all_access_keys():
 def test_delete_access_key():
     conn = boto.connect_iam()
     conn.create_user('my-user')
-    access_key_id = conn.create_access_key('my-user')['create_access_key_response']['create_access_key_result']['access_key']['access_key_id']
+    access_key_id = conn.create_access_key('my-user')['create_access_key_response'][
+        'create_access_key_result']['access_key']['access_key_id']
     conn.delete_access_key(access_key_id, 'my-user')
 
 
@@ -278,9 +297,11 @@ def test_delete_user():
 def test_generate_credential_report():
     conn = boto.connect_iam()
     result = conn.generate_credential_report()
-    result['generate_credential_report_response']['generate_credential_report_result']['state'].should.equal('STARTED')
+    result['generate_credential_report_response'][
+        'generate_credential_report_result']['state'].should.equal('STARTED')
     result = conn.generate_credential_report()
-    result['generate_credential_report_response']['generate_credential_report_result']['state'].should.equal('COMPLETE')
+    result['generate_credential_report_response'][
+        'generate_credential_report_result']['state'].should.equal('COMPLETE')
 
 
 @mock_iam_deprecated()
@@ -293,7 +314,8 @@ def test_get_credential_report():
     while result['generate_credential_report_response']['generate_credential_report_result']['state'] != 'COMPLETE':
         result = conn.generate_credential_report()
     result = conn.get_credential_report()
-    report = base64.b64decode(result['get_credential_report_response']['get_credential_report_result']['content'].encode('ascii')).decode('ascii')
+    report = base64.b64decode(result['get_credential_report_response'][
+                              'get_credential_report_result']['content'].encode('ascii')).decode('ascii')
     report.should.match(r'.*my-user.*')
 
 
@@ -307,23 +329,31 @@ def test_managed_policy():
                        path='/mypolicy/',
                        description='my user managed policy')
 
-    aws_policies = conn.list_policies(scope='AWS')['list_policies_response']['list_policies_result']['policies']
-    set(p.name for p in aws_managed_policies).should.equal(set(p['policy_name'] for p in aws_policies))
+    aws_policies = conn.list_policies(scope='AWS')['list_policies_response'][
+        'list_policies_result']['policies']
+    set(p.name for p in aws_managed_policies).should.equal(
+        set(p['policy_name'] for p in aws_policies))
 
-    user_policies = conn.list_policies(scope='Local')['list_policies_response']['list_policies_result']['policies']
-    set(['UserManagedPolicy']).should.equal(set(p['policy_name'] for p in user_policies))
+    user_policies = conn.list_policies(scope='Local')['list_policies_response'][
+        'list_policies_result']['policies']
+    set(['UserManagedPolicy']).should.equal(
+        set(p['policy_name'] for p in user_policies))
 
-    all_policies = conn.list_policies()['list_policies_response']['list_policies_result']['policies']
-    set(p['policy_name'] for p in aws_policies + user_policies).should.equal(set(p['policy_name'] for p in all_policies))
+    all_policies = conn.list_policies()['list_policies_response'][
+        'list_policies_result']['policies']
+    set(p['policy_name'] for p in aws_policies +
+        user_policies).should.equal(set(p['policy_name'] for p in all_policies))
 
     role_name = 'my-role'
-    conn.create_role(role_name, assume_role_policy_document={'policy': 'test'}, path="my-path")
+    conn.create_role(role_name, assume_role_policy_document={
+                     'policy': 'test'}, path="my-path")
     for policy_name in ['AmazonElasticMapReduceRole',
                         'AmazonElasticMapReduceforEC2Role']:
         policy_arn = 'arn:aws:iam::aws:policy/service-role/' + policy_name
         conn.attach_role_policy(policy_arn, role_name)
 
-    rows = conn.list_policies(only_attached=True)['list_policies_response']['list_policies_result']['policies']
+    rows = conn.list_policies(only_attached=True)['list_policies_response'][
+        'list_policies_result']['policies']
     rows.should.have.length_of(2)
     for x in rows:
         int(x['attachment_count']).should.be.greater_than(0)
@@ -332,7 +362,8 @@ def test_managed_policy():
     resp = conn.get_response('ListAttachedRolePolicies',
                              {'RoleName': role_name},
                              list_marker='AttachedPolicies')
-    resp['list_attached_role_policies_response']['list_attached_role_policies_result']['attached_policies'].should.have.length_of(2)
+    resp['list_attached_role_policies_response']['list_attached_role_policies_result'][
+        'attached_policies'].should.have.length_of(2)
 
 
 @mock_iam

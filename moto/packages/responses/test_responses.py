@@ -284,6 +284,7 @@ def test_custom_adapter():
         calls = [0]
 
         class DummyAdapter(requests.adapters.HTTPAdapter):
+
             def send(self, *a, **k):
                 calls[0] += 1
                 return super(DummyAdapter, self).send(*a, **k)

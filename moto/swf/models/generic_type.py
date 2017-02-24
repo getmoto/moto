@@ -4,6 +4,7 @@ from moto.core.utils import camelcase_to_underscores
 
 
 class GenericType(object):
+
     def __init__(self, name, version, **kwargs):
         self.name = name
         self.version = version

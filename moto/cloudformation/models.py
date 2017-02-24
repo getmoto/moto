@@ -11,6 +11,7 @@ from .exceptions import ValidationError
 
 
 class FakeStack(object):
+
     def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
         self.stack_id = stack_id
         self.name = name
@@ -22,7 +23,8 @@ class FakeStack(object):
         self.role_arn = role_arn
         self.tags = tags if tags else {}
         self.events = []
-        self._add_stack_event("CREATE_IN_PROGRESS", resource_status_reason="User Initiated")
+        self._add_stack_event("CREATE_IN_PROGRESS",
+                              resource_status_reason="User Initiated")
 
         self.description = self.template_dict.get('Description')
         self.resource_map = self._create_resource_map()
@@ -31,7 +33,8 @@ class FakeStack(object):
         self.status = 'CREATE_COMPLETE'
 
     def _create_resource_map(self):
-        resource_map = ResourceMap(self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict)
+        resource_map = ResourceMap(
+            self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict)
         resource_map.create()
         return resource_map
 
@@ -79,7 +82,8 @@ class FakeStack(object):
         return self.output_map.values()
 
     def update(self, template, role_arn=None):
-        self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
+        self._add_stack_event("UPDATE_IN_PROGRESS",
+                              resource_status_reason="User Initiated")
         self.template = template
         self.resource_map.update(json.loads(template))
         self.output_map = self._create_output_map()
@@ -88,13 +92,15 @@ class FakeStack(object):
         self.role_arn = role_arn
 
     def delete(self):
-        self._add_stack_event("DELETE_IN_PROGRESS", resource_status_reason="User Initiated")
+        self._add_stack_event("DELETE_IN_PROGRESS",
+                              resource_status_reason="User Initiated")
         self.resource_map.delete()
         self._add_stack_event("DELETE_COMPLETE")
         self.status = "DELETE_COMPLETE"
 
 
 class FakeEvent(object):
+
     def __init__(self, stack_id, stack_name, logical_resource_id, physical_resource_id, resource_type, resource_status, resource_status_reason=None, resource_properties=None):
         self.stack_id = stack_id
         self.stack_name = stack_name

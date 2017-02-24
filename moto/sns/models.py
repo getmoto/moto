@@ -20,6 +20,7 @@ DEFAULT_PAGE_SIZE = 100
 
 
 class Topic(object):
+
     def __init__(self, name, sns_backend):
         self.name = name
         self.sns_backend = sns_backend
@@ -28,7 +29,8 @@ class Topic(object):
         self.policy = DEFAULT_TOPIC_POLICY
         self.delivery_policy = ""
         self.effective_delivery_policy = DEFAULT_EFFECTIVE_DELIVERY_POLICY
-        self.arn = make_arn_for_topic(self.account_id, name, sns_backend.region_name)
+        self.arn = make_arn_for_topic(
+            self.account_id, name, sns_backend.region_name)
 
         self.subscriptions_pending = 0
         self.subscriptions_confimed = 0
@@ -60,11 +62,13 @@ class Topic(object):
             properties.get("TopicName")
         )
         for subscription in properties.get("Subscription", []):
-            sns_backend.subscribe(topic.arn, subscription['Endpoint'], subscription['Protocol'])
+            sns_backend.subscribe(topic.arn, subscription[
+                                  'Endpoint'], subscription['Protocol'])
         return topic
 
 
 class Subscription(object):
+
     def __init__(self, topic, endpoint, protocol):
         self.topic = topic
         self.endpoint = endpoint
@@ -96,6 +100,7 @@ class Subscription(object):
 
 
 class PlatformApplication(object):
+
     def __init__(self, region, name, platform, attributes):
         self.region = region
         self.name = name
@@ -112,6 +117,7 @@ class PlatformApplication(object):
 
 
 class PlatformEndpoint(object):
+
     def __init__(self, region, application, custom_user_data, token, attributes):
         self.region = region
         self.application = application
@@ -125,9 +131,9 @@ class PlatformEndpoint(object):
     def __fixup_attributes(self):
         # When AWS returns the attributes dict, it always contains these two elements, so we need to
         # automatically ensure they exist as well.
-        if not 'Token' in self.attributes:
+        if 'Token' not in self.attributes:
             self.attributes['Token'] = self.token
-        if not 'Enabled' in self.attributes:
+        if 'Enabled' not in self.attributes:
             self.attributes['Enabled'] = True
 
     @property
@@ -147,6 +153,7 @@ class PlatformEndpoint(object):
 
 
 class SNSBackend(BaseBackend):
+
     def __init__(self, region_name):
         super(SNSBackend, self).__init__()
         self.topics = OrderedDict()
@@ -169,7 +176,8 @@ class SNSBackend(BaseBackend):
         if next_token is None:
             next_token = 0
         next_token = int(next_token)
-        values = list(values_map.values())[next_token: next_token + DEFAULT_PAGE_SIZE]
+        values = list(values_map.values())[
+            next_token: next_token + DEFAULT_PAGE_SIZE]
         if len(values) == DEFAULT_PAGE_SIZE:
             next_token = next_token + DEFAULT_PAGE_SIZE
         else:
@@ -204,7 +212,8 @@ class SNSBackend(BaseBackend):
     def list_subscriptions(self, topic_arn=None, next_token=None):
         if topic_arn:
             topic = self.get_topic(topic_arn)
-            filtered = OrderedDict([(k, sub) for k, sub in self.subscriptions.items() if sub.topic == topic])
+            filtered = OrderedDict(
+                [(k, sub) for k, sub in self.subscriptions.items() if sub.topic == topic])
             return self._get_values_nexttoken(filtered, next_token)
         else:
             return self._get_values_nexttoken(self.subscriptions, next_token)
@@ -227,7 +236,8 @@ class SNSBackend(BaseBackend):
         try:
             return self.applications[arn]
         except KeyError:
-            raise SNSNotFoundError("Application with arn {0} not found".format(arn))
+            raise SNSNotFoundError(
+                "Application with arn {0} not found".format(arn))
 
     def set_application_attributes(self, arn, attributes):
         application = self.get_application(arn)
@@ -241,7 +251,8 @@ class SNSBackend(BaseBackend):
         self.applications.pop(platform_arn)
 
     def create_platform_endpoint(self, region, application, custom_user_data, token, attributes):
-        platform_endpoint = PlatformEndpoint(region, application, custom_user_data, token, attributes)
+        platform_endpoint = PlatformEndpoint(
+            region, application, custom_user_data, token, attributes)
         self.platform_endpoints[platform_endpoint.arn] = platform_endpoint
         return platform_endpoint
 
@@ -256,7 +267,8 @@ class SNSBackend(BaseBackend):
         try:
             return self.platform_endpoints[arn]
         except KeyError:
-            raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
+            raise SNSNotFoundError(
+                "Endpoint with arn {0} not found".format(arn))
 
     def set_endpoint_attributes(self, arn, attributes):
         endpoint = self.get_endpoint(arn)
@@ -267,7 +279,8 @@ class SNSBackend(BaseBackend):
         try:
             del self.platform_endpoints[arn]
         except KeyError:
-            raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
+            raise SNSNotFoundError(
+                "Endpoint with arn {0} not found".format(arn))
 
 
 sns_backends = {}

@@ -59,6 +59,7 @@ class DynamicDictLoader(DictLoader):
         Including the fixed (current) method version here to ensure performance benefit
         even for those using older jinja versions.
     """
+
     def get_source(self, environment, template):
         if template in self.mapping:
             source = self.mapping[template]
@@ -77,7 +78,8 @@ class _TemplateEnvironmentMixin(object):
     def __init__(self):
         super(_TemplateEnvironmentMixin, self).__init__()
         self.loader = DynamicDictLoader({})
-        self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape)
+        self.environment = Environment(
+            loader=self.loader, autoescape=self.should_autoescape)
 
     @property
     def should_autoescape(self):
@@ -127,12 +129,14 @@ class BaseResponse(_TemplateEnvironmentMixin):
             self.body = self.body.decode('utf-8')
 
         if not querystring:
-            querystring.update(parse_qs(urlparse(full_url).query, keep_blank_values=True))
+            querystring.update(
+                parse_qs(urlparse(full_url).query, keep_blank_values=True))
         if not querystring:
             if 'json' in request.headers.get('content-type', []) and self.aws_service_spec:
                 decoded = json.loads(self.body)
 
-                target = request.headers.get('x-amz-target') or request.headers.get('X-Amz-Target')
+                target = request.headers.get(
+                    'x-amz-target') or request.headers.get('X-Amz-Target')
                 service, method = target.split('.')
                 input_spec = self.aws_service_spec.input_spec(method)
                 flat = flatten_json_request_body('', decoded, input_spec)
@@ -161,7 +165,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
         if match:
             region = match.group(1)
         elif 'Authorization' in request.headers:
-            region = request.headers['Authorization'].split(",")[0].split("/")[2]
+            region = request.headers['Authorization'].split(",")[
+                0].split("/")[2]
         else:
             region = self.default_region
         return region
@@ -175,7 +180,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
         action = self.querystring.get('Action', [""])[0]
         if not action:  # Some services use a header for the action
             # Headers are case-insensitive. Probably a better way to do this.
-            match = self.headers.get('x-amz-target') or self.headers.get('X-Amz-Target')
+            match = self.headers.get(
+                'x-amz-target') or self.headers.get('X-Amz-Target')
             if match:
                 action = match.split(".")[-1]
 
@@ -198,7 +204,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
                     headers['status'] = str(headers['status'])
                 return status, headers, body
 
-        raise NotImplementedError("The {0} action has not been implemented".format(action))
+        raise NotImplementedError(
+            "The {0} action has not been implemented".format(action))
 
     def _get_param(self, param_name, if_none=None):
         val = self.querystring.get(param_name)
@@ -258,7 +265,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
         params = {}
         for key, value in self.querystring.items():
             if key.startswith(param_prefix):
-                params[camelcase_to_underscores(key.replace(param_prefix, ""))] = value[0]
+                params[camelcase_to_underscores(
+                    key.replace(param_prefix, ""))] = value[0]
         return params
 
     def _get_list_prefix(self, param_prefix):
@@ -291,7 +299,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
             new_items = {}
             for key, value in self.querystring.items():
                 if key.startswith(index_prefix):
-                    new_items[camelcase_to_underscores(key.replace(index_prefix, ""))] = value[0]
+                    new_items[camelcase_to_underscores(
+                        key.replace(index_prefix, ""))] = value[0]
             if not new_items:
                 break
             results.append(new_items)
@@ -327,7 +336,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
     def is_not_dryrun(self, action):
         if 'true' in self.querystring.get('DryRun', ['false']):
             message = 'An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set' % action
-            raise DryRunClientError(error_type="DryRunOperation", message=message)
+            raise DryRunClientError(
+                error_type="DryRunOperation", message=message)
         return True
 
 
@@ -343,6 +353,7 @@ class MotoAPIResponse(BaseResponse):
 
 class _RecursiveDictRef(object):
     """Store a recursive reference to dict."""
+
     def __init__(self):
         self.key = None
         self.dic = {}
@@ -502,12 +513,15 @@ def flatten_json_request_body(prefix, dict_body, spec):
         if node_type == 'list':
             for idx, v in enumerate(value, 1):
                 pref = key + '.member.' + str(idx)
-                flat.update(flatten_json_request_body(pref, v, spec[key]['member']))
+                flat.update(flatten_json_request_body(
+                    pref, v, spec[key]['member']))
         elif node_type == 'map':
             for idx, (k, v) in enumerate(value.items(), 1):
                 pref = key + '.entry.' + str(idx)
-                flat.update(flatten_json_request_body(pref + '.key', k, spec[key]['key']))
-                flat.update(flatten_json_request_body(pref + '.value', v, spec[key]['value']))
+                flat.update(flatten_json_request_body(
+                    pref + '.key', k, spec[key]['key']))
+                flat.update(flatten_json_request_body(
+                    pref + '.value', v, spec[key]['value']))
         else:
             flat.update(flatten_json_request_body(key, value, spec[key]))
 
@@ -542,7 +556,8 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
                 # this can happen when with an older version of
                 # botocore for which the node in XML template is not
                 # defined in service spec.
-                log.warning('Field %s is not defined by the botocore version in use', k)
+                log.warning(
+                    'Field %s is not defined by the botocore version in use', k)
                 continue
 
             if spec[k]['type'] == 'list':
@@ -554,7 +569,8 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
                     else:
                         od[k] = [transform(v['member'], spec[k]['member'])]
                 elif isinstance(v['member'], list):
-                    od[k] = [transform(o, spec[k]['member']) for o in v['member']]
+                    od[k] = [transform(o, spec[k]['member'])
+                             for o in v['member']]
                 elif isinstance(v['member'], OrderedDict):
                     od[k] = [transform(v['member'], spec[k]['member'])]
                 else:

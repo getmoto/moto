@@ -10,12 +10,14 @@ DEFAULT_COOLDOWN = 300
 
 
 class InstanceState(object):
+
     def __init__(self, instance, lifecycle_state="InService"):
         self.instance = instance
         self.lifecycle_state = lifecycle_state
 
 
 class FakeScalingPolicy(object):
+
     def __init__(self, name, policy_type, adjustment_type, as_name, scaling_adjustment,
                  cooldown, autoscaling_backend):
         self.name = name
@@ -31,14 +33,18 @@ class FakeScalingPolicy(object):
 
     def execute(self):
         if self.adjustment_type == 'ExactCapacity':
-            self.autoscaling_backend.set_desired_capacity(self.as_name, self.scaling_adjustment)
+            self.autoscaling_backend.set_desired_capacity(
+                self.as_name, self.scaling_adjustment)
         elif self.adjustment_type == 'ChangeInCapacity':
-            self.autoscaling_backend.change_capacity(self.as_name, self.scaling_adjustment)
+            self.autoscaling_backend.change_capacity(
+                self.as_name, self.scaling_adjustment)
         elif self.adjustment_type == 'PercentChangeInCapacity':
-            self.autoscaling_backend.change_capacity_percent(self.as_name, self.scaling_adjustment)
+            self.autoscaling_backend.change_capacity_percent(
+                self.as_name, self.scaling_adjustment)
 
 
 class FakeLaunchConfiguration(object):
+
     def __init__(self, name, image_id, key_name, ramdisk_id, kernel_id, security_groups, user_data,
                  instance_type, instance_monitoring, instance_profile_name,
                  spot_price, ebs_optimized, associate_public_ip_address, block_device_mapping_dict):
@@ -77,14 +83,16 @@ class FakeLaunchConfiguration(object):
             instance_profile_name=instance_profile_name,
             spot_price=properties.get("SpotPrice"),
             ebs_optimized=properties.get("EbsOptimized"),
-            associate_public_ip_address=properties.get("AssociatePublicIpAddress"),
+            associate_public_ip_address=properties.get(
+                "AssociatePublicIpAddress"),
             block_device_mappings=properties.get("BlockDeviceMapping.member")
         )
         return config
 
     @classmethod
     def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
-        cls.delete_from_cloudformation_json(original_resource.name, cloudformation_json, region_name)
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name)
         return cls.create_from_cloudformation_json(new_resource_name, cloudformation_json, region_name)
 
     @classmethod
@@ -126,7 +134,8 @@ class FakeLaunchConfiguration(object):
             else:
                 block_type.volume_type = mapping.get('ebs._volume_type')
                 block_type.snapshot_id = mapping.get('ebs._snapshot_id')
-                block_type.delete_on_termination = mapping.get('ebs._delete_on_termination')
+                block_type.delete_on_termination = mapping.get(
+                    'ebs._delete_on_termination')
                 block_type.size = mapping.get('ebs._volume_size')
                 block_type.iops = mapping.get('ebs._iops')
             block_device_map[mount_point] = block_type
@@ -134,6 +143,7 @@ class FakeLaunchConfiguration(object):
 
 
 class FakeAutoScalingGroup(object):
+
     def __init__(self, name, availability_zones, desired_capacity, max_size,
                  min_size, launch_config_name, vpc_zone_identifier,
                  default_cooldown, health_check_period, health_check_type,
@@ -145,7 +155,8 @@ class FakeAutoScalingGroup(object):
         self.max_size = max_size
         self.min_size = min_size
 
-        self.launch_config = self.autoscaling_backend.launch_configurations[launch_config_name]
+        self.launch_config = self.autoscaling_backend.launch_configurations[
+            launch_config_name]
         self.launch_config_name = launch_config_name
         self.vpc_zone_identifier = vpc_zone_identifier
 
@@ -175,7 +186,8 @@ class FakeAutoScalingGroup(object):
             max_size=properties.get("MaxSize"),
             min_size=properties.get("MinSize"),
             launch_config_name=launch_config_name,
-            vpc_zone_identifier=(','.join(properties.get("VPCZoneIdentifier", [])) or None),
+            vpc_zone_identifier=(
+                ','.join(properties.get("VPCZoneIdentifier", [])) or None),
             default_cooldown=properties.get("Cooldown"),
             health_check_period=properties.get("HealthCheckGracePeriod"),
             health_check_type=properties.get("HealthCheckType"),
@@ -188,7 +200,8 @@ class FakeAutoScalingGroup(object):
 
     @classmethod
     def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
-        cls.delete_from_cloudformation_json(original_resource.name, cloudformation_json, region_name)
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name)
         return cls.create_from_cloudformation_json(new_resource_name, cloudformation_json, region_name)
 
     @classmethod
@@ -219,7 +232,8 @@ class FakeAutoScalingGroup(object):
             self.min_size = min_size
 
         if launch_config_name:
-            self.launch_config = self.autoscaling_backend.launch_configurations[launch_config_name]
+            self.launch_config = self.autoscaling_backend.launch_configurations[
+                launch_config_name]
             self.launch_config_name = launch_config_name
         if vpc_zone_identifier is not None:
             self.vpc_zone_identifier = vpc_zone_identifier
@@ -244,7 +258,8 @@ class FakeAutoScalingGroup(object):
 
         if self.desired_capacity > curr_instance_count:
             # Need more instances
-            count_needed = int(self.desired_capacity) - int(curr_instance_count)
+            count_needed = int(self.desired_capacity) - \
+                int(curr_instance_count)
             reservation = self.autoscaling_backend.ec2_backend.add_instances(
                 self.launch_config.image_id,
                 count_needed,
@@ -259,8 +274,10 @@ class FakeAutoScalingGroup(object):
             # Need to remove some instances
             count_to_remove = curr_instance_count - self.desired_capacity
             instances_to_remove = self.instance_states[:count_to_remove]
-            instance_ids_to_remove = [instance.instance.id for instance in instances_to_remove]
-            self.autoscaling_backend.ec2_backend.terminate_instances(instance_ids_to_remove)
+            instance_ids_to_remove = [
+                instance.instance.id for instance in instances_to_remove]
+            self.autoscaling_backend.ec2_backend.terminate_instances(
+                instance_ids_to_remove)
             self.instance_states = self.instance_states[count_to_remove:]
 
 
@@ -419,8 +436,8 @@ class AutoScalingBackend(BaseBackend):
     def describe_policies(self, autoscaling_group_name=None, policy_names=None, policy_types=None):
         return [policy for policy in self.policies.values()
                 if (not autoscaling_group_name or policy.as_name == autoscaling_group_name) and
-                    (not policy_names or policy.name in policy_names) and
-                    (not policy_types or policy.policy_type in policy_types)]
+                (not policy_names or policy.name in policy_names) and
+                (not policy_types or policy.policy_type in policy_types)]
 
     def delete_policy(self, group_name):
         self.policies.pop(group_name, None)
@@ -431,18 +448,22 @@ class AutoScalingBackend(BaseBackend):
 
     def update_attached_elbs(self, group_name):
         group = self.autoscaling_groups[group_name]
-        group_instance_ids = set(state.instance.id for state in group.instance_states)
+        group_instance_ids = set(
+            state.instance.id for state in group.instance_states)
 
         try:
-            elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
+            elbs = self.elb_backend.describe_load_balancers(
+                names=group.load_balancers)
         except LoadBalancerNotFoundError:
             # ELBs can be deleted before their autoscaling group
             return
 
         for elb in elbs:
             elb_instace_ids = set(elb.instance_ids)
-            self.elb_backend.register_instances(elb.name, group_instance_ids - elb_instace_ids)
-            self.elb_backend.deregister_instances(elb.name, elb_instace_ids - group_instance_ids)
+            self.elb_backend.register_instances(
+                elb.name, group_instance_ids - elb_instace_ids)
+            self.elb_backend.deregister_instances(
+                elb.name, elb_instace_ids - group_instance_ids)
 
     def create_or_update_tags(self, tags):
 
@@ -452,19 +473,21 @@ class AutoScalingBackend(BaseBackend):
             old_tags = group.tags
 
             new_tags = []
-            #if key was in old_tags, update old tag
+            # if key was in old_tags, update old tag
             for old_tag in old_tags:
                 if old_tag["key"] == tag["key"]:
                     new_tags.append(tag)
                 else:
                     new_tags.append(old_tag)
 
-            #if key was never in old_tag's add it (create tag)
+            # if key was never in old_tag's add it (create tag)
             if not any(new_tag['key'] == tag['key'] for new_tag in new_tags):
                 new_tags.append(tag)
 
             group.tags = new_tags
 
+
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():
-    autoscaling_backends[region] = AutoScalingBackend(ec2_backend, elb_backends[region])
+    autoscaling_backends[region] = AutoScalingBackend(
+        ec2_backend, elb_backends[region])

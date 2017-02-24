@@ -3,34 +3,41 @@ from moto.core.responses import BaseResponse
 
 
 class VPCPeeringConnections(BaseResponse):
+
     def create_vpc_peering_connection(self):
         vpc = self.ec2_backend.get_vpc(self.querystring.get('VpcId')[0])
-        peer_vpc = self.ec2_backend.get_vpc(self.querystring.get('PeerVpcId')[0])
+        peer_vpc = self.ec2_backend.get_vpc(
+            self.querystring.get('PeerVpcId')[0])
         vpc_pcx = self.ec2_backend.create_vpc_peering_connection(vpc, peer_vpc)
-        template = self.response_template(CREATE_VPC_PEERING_CONNECTION_RESPONSE)
+        template = self.response_template(
+            CREATE_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render(vpc_pcx=vpc_pcx)
 
     def delete_vpc_peering_connection(self):
         vpc_pcx_id = self.querystring.get('VpcPeeringConnectionId')[0]
         vpc_pcx = self.ec2_backend.delete_vpc_peering_connection(vpc_pcx_id)
-        template = self.response_template(DELETE_VPC_PEERING_CONNECTION_RESPONSE)
+        template = self.response_template(
+            DELETE_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render(vpc_pcx=vpc_pcx)
 
     def describe_vpc_peering_connections(self):
         vpc_pcxs = self.ec2_backend.get_all_vpc_peering_connections()
-        template = self.response_template(DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE)
+        template = self.response_template(
+            DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE)
         return template.render(vpc_pcxs=vpc_pcxs)
 
     def accept_vpc_peering_connection(self):
         vpc_pcx_id = self.querystring.get('VpcPeeringConnectionId')[0]
         vpc_pcx = self.ec2_backend.accept_vpc_peering_connection(vpc_pcx_id)
-        template = self.response_template(ACCEPT_VPC_PEERING_CONNECTION_RESPONSE)
+        template = self.response_template(
+            ACCEPT_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render(vpc_pcx=vpc_pcx)
 
     def reject_vpc_peering_connection(self):
         vpc_pcx_id = self.querystring.get('VpcPeeringConnectionId')[0]
         self.ec2_backend.reject_vpc_peering_connection(vpc_pcx_id)
-        template = self.response_template(REJECT_VPC_PEERING_CONNECTION_RESPONSE)
+        template = self.response_template(
+            REJECT_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render()
 
 

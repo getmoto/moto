@@ -7,6 +7,7 @@ from collections import defaultdict
 
 
 class Key(object):
+
     def __init__(self, policy, key_usage, description, region):
         self.id = generate_key_id()
         self.policy = policy
@@ -77,7 +78,8 @@ class KmsBackend(BaseBackend):
             return self.keys.pop(key_id)
 
     def describe_key(self, key_id):
-        # allow the different methods (alias, ARN :key/, keyId, ARN alias) to describe key not just KeyId
+        # allow the different methods (alias, ARN :key/, keyId, ARN alias) to
+        # describe key not just KeyId
         key_id = self.get_key_id(key_id)
         if r'alias/' in str(key_id).lower():
             key_id = self.get_key_id_from_alias(key_id.split('alias/')[1])
@@ -127,6 +129,7 @@ class KmsBackend(BaseBackend):
 
     def get_key_policy(self, key_id):
         return self.keys[self.get_key_id(key_id)].policy
+
 
 kms_backends = {}
 for region in boto.kms.regions():

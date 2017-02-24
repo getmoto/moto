@@ -19,7 +19,8 @@ SAMPLE_NAME_SERVERS = [u'10.0.0.6', u'10.0.0.7']
 def test_dhcp_options_associate():
     """ associate dhcp option """
     conn = boto.connect_vpc('the_key', 'the_secret')
-    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
+    dhcp_options = conn.create_dhcp_options(
+        SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
     vpc = conn.create_vpc("10.0.0.0/16")
 
     rval = conn.associate_dhcp_options(dhcp_options.id, vpc.id)
@@ -43,7 +44,8 @@ def test_dhcp_options_associate_invalid_dhcp_id():
 def test_dhcp_options_associate_invalid_vpc_id():
     """ associate dhcp option invalid vpc id """
     conn = boto.connect_vpc('the_key', 'the_secret')
-    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
+    dhcp_options = conn.create_dhcp_options(
+        SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
 
     with assert_raises(EC2ResponseError) as cm:
         conn.associate_dhcp_options(dhcp_options.id, "foo")
@@ -56,7 +58,8 @@ def test_dhcp_options_associate_invalid_vpc_id():
 def test_dhcp_options_delete_with_vpc():
     """Test deletion of dhcp options with vpc"""
     conn = boto.connect_vpc('the_key', 'the_secret')
-    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
+    dhcp_options = conn.create_dhcp_options(
+        SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
     dhcp_options_id = dhcp_options.id
     vpc = conn.create_vpc("10.0.0.0/16")
 
@@ -83,10 +86,13 @@ def test_create_dhcp_options():
     """Create most basic dhcp option"""
     conn = boto.connect_vpc('the_key', 'the_secret')
 
-    dhcp_option = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
+    dhcp_option = conn.create_dhcp_options(
+        SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
     dhcp_option.options[u'domain-name'][0].should.be.equal(SAMPLE_DOMAIN_NAME)
-    dhcp_option.options[u'domain-name-servers'][0].should.be.equal(SAMPLE_NAME_SERVERS[0])
-    dhcp_option.options[u'domain-name-servers'][1].should.be.equal(SAMPLE_NAME_SERVERS[1])
+    dhcp_option.options[
+        u'domain-name-servers'][0].should.be.equal(SAMPLE_NAME_SERVERS[0])
+    dhcp_option.options[
+        u'domain-name-servers'][1].should.be.equal(SAMPLE_NAME_SERVERS[1])
 
 
 @mock_ec2_deprecated
@@ -210,8 +216,10 @@ def test_dhcp_options_get_by_tag():
     dhcp_options_sets = conn.get_all_dhcp_options(filters=filters)
 
     dhcp_options_sets.should.have.length_of(1)
-    dhcp_options_sets[0].options['domain-name'][0].should.be.equal('example.com')
-    dhcp_options_sets[0].options['domain-name-servers'][0].should.be.equal('10.0.10.2')
+    dhcp_options_sets[0].options[
+        'domain-name'][0].should.be.equal('example.com')
+    dhcp_options_sets[0].options[
+        'domain-name-servers'][0].should.be.equal('10.0.10.2')
     dhcp_options_sets[0].tags['Name'].should.equal('TestDhcpOptions1')
     dhcp_options_sets[0].tags['test-tag'].should.equal('test-value')
 
@@ -219,8 +227,10 @@ def test_dhcp_options_get_by_tag():
     dhcp_options_sets = conn.get_all_dhcp_options(filters=filters)
 
     dhcp_options_sets.should.have.length_of(1)
-    dhcp_options_sets[0].options['domain-name'][0].should.be.equal('example.com')
-    dhcp_options_sets[0].options['domain-name-servers'][0].should.be.equal('10.0.20.2')
+    dhcp_options_sets[0].options[
+        'domain-name'][0].should.be.equal('example.com')
+    dhcp_options_sets[0].options[
+        'domain-name-servers'][0].should.be.equal('10.0.20.2')
     dhcp_options_sets[0].tags['Name'].should.equal('TestDhcpOptions2')
     dhcp_options_sets[0].tags['test-tag'].should.equal('test-value')
 
@@ -247,17 +257,21 @@ def test_dhcp_options_get_by_id():
     dhcp_options_sets = conn.get_all_dhcp_options()
     dhcp_options_sets.should.have.length_of(2)
 
-    dhcp_options_sets = conn.get_all_dhcp_options(filters={'dhcp-options-id': dhcp1_id})
+    dhcp_options_sets = conn.get_all_dhcp_options(
+        filters={'dhcp-options-id': dhcp1_id})
 
     dhcp_options_sets.should.have.length_of(1)
     dhcp_options_sets[0].options['domain-name'][0].should.be.equal('test1.com')
-    dhcp_options_sets[0].options['domain-name-servers'][0].should.be.equal('10.0.10.2')
+    dhcp_options_sets[0].options[
+        'domain-name-servers'][0].should.be.equal('10.0.10.2')
 
-    dhcp_options_sets = conn.get_all_dhcp_options(filters={'dhcp-options-id': dhcp2_id})
+    dhcp_options_sets = conn.get_all_dhcp_options(
+        filters={'dhcp-options-id': dhcp2_id})
 
     dhcp_options_sets.should.have.length_of(1)
     dhcp_options_sets[0].options['domain-name'][0].should.be.equal('test2.com')
-    dhcp_options_sets[0].options['domain-name-servers'][0].should.be.equal('10.0.20.2')
+    dhcp_options_sets[0].options[
+        'domain-name-servers'][0].should.be.equal('10.0.20.2')
 
 
 @mock_ec2
@@ -315,4 +329,5 @@ def test_dhcp_options_get_by_invalid_filter():
     conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
     filters = {'invalid-filter': 'invalid-value'}
 
-    conn.get_all_dhcp_options.when.called_with(filters=filters).should.throw(NotImplementedError)
+    conn.get_all_dhcp_options.when.called_with(
+        filters=filters).should.throw(NotImplementedError)

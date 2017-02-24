@@ -8,42 +8,44 @@ import xmltodict
 
 
 class Route53 (BaseResponse):
+
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
         if request.method == "POST":
-          elements = xmltodict.parse(self.body)
-          if "HostedZoneConfig" in elements["CreateHostedZoneRequest"]:
-              comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["Comment"]
-              try:
-                  # in boto3, this field is set directly in the xml
-                  private_zone = elements["CreateHostedZoneRequest"]["HostedZoneConfig"]["PrivateZone"]
-              except KeyError:
-                  # if a VPC subsection is only included in xmls params when private_zone=True,
-                  # see boto: boto/route53/connection.py
-                  private_zone = 'VPC' in elements["CreateHostedZoneRequest"]
-          else:
-              comment = None
-              private_zone = False
+            elements = xmltodict.parse(self.body)
+            if "HostedZoneConfig" in elements["CreateHostedZoneRequest"]:
+                comment = elements["CreateHostedZoneRequest"][
+                    "HostedZoneConfig"]["Comment"]
+                try:
+                    # in boto3, this field is set directly in the xml
+                    private_zone = elements["CreateHostedZoneRequest"][
+                        "HostedZoneConfig"]["PrivateZone"]
+                except KeyError:
+                    # if a VPC subsection is only included in xmls params when private_zone=True,
+                    # see boto: boto/route53/connection.py
+                    private_zone = 'VPC' in elements["CreateHostedZoneRequest"]
+            else:
+                comment = None
+                private_zone = False
 
-          name = elements["CreateHostedZoneRequest"]["Name"]
+            name = elements["CreateHostedZoneRequest"]["Name"]
 
-          if name[-1] != ".":
-              name += "."
+            if name[-1] != ".":
+                name += "."
 
-          new_zone = route53_backend.create_hosted_zone(
-              name,
-              comment=comment,
-              private_zone=private_zone,
-          )
-          template = Template(CREATE_HOSTED_ZONE_RESPONSE)
-          return 201, headers, template.render(zone=new_zone)
+            new_zone = route53_backend.create_hosted_zone(
+                name,
+                comment=comment,
+                private_zone=private_zone,
+            )
+            template = Template(CREATE_HOSTED_ZONE_RESPONSE)
+            return 201, headers, template.render(zone=new_zone)
 
         elif request.method == "GET":
             all_zones = route53_backend.get_all_hosted_zones()
             template = Template(LIST_HOSTED_ZONES_RESPONSE)
             return 200, headers, template.render(zones=all_zones)
-
 
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -61,7 +63,6 @@ class Route53 (BaseResponse):
             route53_backend.delete_hosted_zone(zoneid)
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
 
-
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -76,18 +77,22 @@ class Route53 (BaseResponse):
         if method == "POST":
             elements = xmltodict.parse(self.body)
 
-            change_list = elements['ChangeResourceRecordSetsRequest']['ChangeBatch']['Changes']['Change']
+            change_list = elements['ChangeResourceRecordSetsRequest'][
+                'ChangeBatch']['Changes']['Change']
             if not isinstance(change_list, list):
-                change_list = [elements['ChangeResourceRecordSetsRequest']['ChangeBatch']['Changes']['Change']]
+                change_list = [elements['ChangeResourceRecordSetsRequest'][
+                    'ChangeBatch']['Changes']['Change']]
 
             for value in change_list:
                 action = value['Action']
                 record_set = value['ResourceRecordSet']
                 if action in ('CREATE', 'UPSERT'):
                     if 'ResourceRecords' in record_set:
-                        resource_records = list(record_set['ResourceRecords'].values())[0]
+                        resource_records = list(
+                            record_set['ResourceRecords'].values())[0]
                         if not isinstance(resource_records, list):
-                            # Depending on how many records there are, this may or may not be a list
+                            # Depending on how many records there are, this may
+                            # or may not be a list
                             resource_records = [resource_records]
                         record_values = [x['Value'] for x in resource_records]
                     elif 'AliasTarget' in record_set:
@@ -99,7 +104,8 @@ class Route53 (BaseResponse):
                         the_zone.upsert_rrset(record_set)
                 elif action == "DELETE":
                     if 'SetIdentifier' in record_set:
-                        the_zone.delete_rrset_by_id(record_set["SetIdentifier"])
+                        the_zone.delete_rrset_by_id(
+                            record_set["SetIdentifier"])
                     else:
                         the_zone.delete_rrset_by_name(record_set["Name"])
 
@@ -113,7 +119,6 @@ class Route53 (BaseResponse):
             record_sets = the_zone.get_record_sets(type_filter, name_filter)
             return 200, headers, template.render(record_sets=record_sets)
 
-
     def health_check_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -121,7 +126,8 @@ class Route53 (BaseResponse):
         method = request.method
 
         if method == "POST":
-            properties = xmltodict.parse(self.body)['CreateHealthCheckRequest']['HealthCheckConfig']
+            properties = xmltodict.parse(self.body)['CreateHealthCheckRequest'][
+                'HealthCheckConfig']
             health_check_args = {
                 "ip_address": properties.get('IPAddress'),
                 "port": properties.get('Port'),
@@ -132,7 +138,8 @@ class Route53 (BaseResponse):
                 "request_interval": properties.get('RequestInterval'),
                 "failure_threshold": properties.get('FailureThreshold'),
             }
-            health_check = route53_backend.create_health_check(health_check_args)
+            health_check = route53_backend.create_health_check(
+                health_check_args)
             template = Template(CREATE_HEALTH_CHECK_RESPONSE)
             return 201, headers, template.render(health_check=health_check)
         elif method == "DELETE":
@@ -152,8 +159,8 @@ class Route53 (BaseResponse):
             action = 'tags'
         elif 'trafficpolicyinstances' in full_url:
             action = 'policies'
-        raise NotImplementedError("The action for {0} has not been implemented for route 53".format(action))
-
+        raise NotImplementedError(
+            "The action for {0} has not been implemented for route 53".format(action))
 
     def list_or_change_tags_for_resource_request(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -181,6 +188,7 @@ class Route53 (BaseResponse):
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
 
             return 200, headers, template.render()
+
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
 <ListTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">

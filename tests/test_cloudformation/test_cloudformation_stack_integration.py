@@ -143,15 +143,18 @@ def test_update_stack():
     sqs_conn = boto.sqs.connect_to_region("us-west-1")
     queues = sqs_conn.get_all_queues()
     queues.should.have.length_of(1)
-    queues[0].get_attributes('VisibilityTimeout')['VisibilityTimeout'].should.equal('60')
+    queues[0].get_attributes('VisibilityTimeout')[
+        'VisibilityTimeout'].should.equal('60')
 
-    sqs_template['Resources']['QueueGroup']['Properties']['VisibilityTimeout'] = 100
+    sqs_template['Resources']['QueueGroup'][
+        'Properties']['VisibilityTimeout'] = 100
     sqs_template_json = json.dumps(sqs_template)
     conn.update_stack("test_stack", sqs_template_json)
 
     queues = sqs_conn.get_all_queues()
     queues.should.have.length_of(1)
-    queues[0].get_attributes('VisibilityTimeout')['VisibilityTimeout'].should.equal('100')
+    queues[0].get_attributes('VisibilityTimeout')[
+        'VisibilityTimeout'].should.equal('100')
 
 
 @mock_cloudformation_deprecated()
@@ -395,7 +398,8 @@ def test_stack_elb_integration_with_update():
     load_balancer = elb_conn.get_all_load_balancers()[0]
     load_balancer.availability_zones[0].should.equal('us-west-1a')
 
-    elb_template['Resources']['MyELB']['Properties']['AvailabilityZones'] = ['us-west-1b']
+    elb_template['Resources']['MyELB']['Properties'][
+        'AvailabilityZones'] = ['us-west-1b']
     elb_template_json = json.dumps(elb_template)
     conn.update_stack(
         "elb_stack",
@@ -431,7 +435,8 @@ def test_redshift_stack():
     redshift_conn = boto.redshift.connect_to_region("us-west-2")
 
     cluster_res = redshift_conn.describe_clusters()
-    clusters = cluster_res['DescribeClustersResponse']['DescribeClustersResult']['Clusters']
+    clusters = cluster_res['DescribeClustersResponse'][
+        'DescribeClustersResult']['Clusters']
     clusters.should.have.length_of(1)
     cluster = clusters[0]
     cluster['DBName'].should.equal("mydb")
@@ -499,12 +504,14 @@ def test_stack_security_groups():
     conn.create_stack(
         "security_group_stack",
         template_body=security_group_template_json,
-        tags={"foo":"bar"}
+        tags={"foo": "bar"}
     )
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    instance_group = ec2_conn.get_all_security_groups(filters={'description': ['My security group']})[0]
-    other_group = ec2_conn.get_all_security_groups(filters={'description': ['My other group']})[0]
+    instance_group = ec2_conn.get_all_security_groups(
+        filters={'description': ['My security group']})[0]
+    other_group = ec2_conn.get_all_security_groups(
+        filters={'description': ['My other group']})[0]
 
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
@@ -597,13 +604,17 @@ def test_autoscaling_group_with_elb():
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    as_group_resource = [resource for resource in resources if resource.resource_type == 'AWS::AutoScaling::AutoScalingGroup'][0]
+    as_group_resource = [resource for resource in resources if resource.resource_type ==
+                         'AWS::AutoScaling::AutoScalingGroup'][0]
     as_group_resource.physical_resource_id.should.contain("my-as-group")
 
-    launch_config_resource = [resource for resource in resources if resource.resource_type == 'AWS::AutoScaling::LaunchConfiguration'][0]
-    launch_config_resource.physical_resource_id.should.contain("my-launch-config")
+    launch_config_resource = [
+        resource for resource in resources if resource.resource_type == 'AWS::AutoScaling::LaunchConfiguration'][0]
+    launch_config_resource.physical_resource_id.should.contain(
+        "my-launch-config")
 
-    elb_resource = [resource for resource in resources if resource.resource_type == 'AWS::ElasticLoadBalancing::LoadBalancer'][0]
+    elb_resource = [resource for resource in resources if resource.resource_type ==
+                    'AWS::ElasticLoadBalancing::LoadBalancer'][0]
     elb_resource.physical_resource_id.should.contain("my-elb")
 
 
@@ -687,26 +698,32 @@ def test_vpc_single_instance_in_subnet():
     eip.domain.should.equal('vpc')
     eip.instance_id.should.equal(instance.id)
 
-    security_group = ec2_conn.get_all_security_groups(filters={'vpc_id': [vpc.id]})[0]
+    security_group = ec2_conn.get_all_security_groups(
+        filters={'vpc_id': [vpc.id]})[0]
     security_group.vpc_id.should.equal(vpc.id)
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    vpc_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::VPC'][0]
+    vpc_resource = [
+        resource for resource in resources if resource.resource_type == 'AWS::EC2::VPC'][0]
     vpc_resource.physical_resource_id.should.equal(vpc.id)
 
-    subnet_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Subnet'][0]
+    subnet_resource = [
+        resource for resource in resources if resource.resource_type == 'AWS::EC2::Subnet'][0]
     subnet_resource.physical_resource_id.should.equal(subnet.id)
 
-    eip_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
+    eip_resource = [
+        resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
     eip_resource.physical_resource_id.should.equal(eip.allocation_id)
+
 
 @mock_cloudformation()
 @mock_ec2()
 @mock_rds2()
 def test_rds_db_parameter_groups():
     ec2_conn = boto3.client("ec2", region_name="us-west-1")
-    ec2_conn.create_security_group(GroupName='application', Description='Our Application Group')
+    ec2_conn.create_security_group(
+        GroupName='application', Description='Our Application Group')
 
     template_json = json.dumps(rds_mysql_with_db_parameter_group.template)
     cf_conn = boto3.client('cloudformation', 'us-west-1')
@@ -714,16 +731,16 @@ def test_rds_db_parameter_groups():
         StackName="test_stack",
         TemplateBody=template_json,
         Parameters=[{'ParameterKey': key, 'ParameterValue': value} for
-            key, value in [
-                ("DBInstanceIdentifier", "master_db"),
-                ("DBName", "my_db"),
-                ("DBUser", "my_user"),
-                ("DBPassword", "my_password"),
-                ("DBAllocatedStorage", "20"),
-                ("DBInstanceClass", "db.m1.medium"),
-                ("EC2SecurityGroup", "application"),
-                ("MultiAZ", "true"),
-            ]
+                    key, value in [
+            ("DBInstanceIdentifier", "master_db"),
+            ("DBName", "my_db"),
+            ("DBUser", "my_user"),
+            ("DBPassword", "my_password"),
+            ("DBAllocatedStorage", "20"),
+            ("DBInstanceClass", "db.m1.medium"),
+            ("EC2SecurityGroup", "application"),
+            ("MultiAZ", "true"),
+        ]
         ],
     )
 
@@ -731,7 +748,8 @@ def test_rds_db_parameter_groups():
 
     db_parameter_groups = rds_conn.describe_db_parameter_groups()
     len(db_parameter_groups['DBParameterGroups']).should.equal(1)
-    db_parameter_group_name = db_parameter_groups['DBParameterGroups'][0]['DBParameterGroupName']
+    db_parameter_group_name = db_parameter_groups[
+        'DBParameterGroups'][0]['DBParameterGroupName']
 
     found_cloudformation_set_parameter = False
     for db_parameter in rds_conn.describe_db_parameters(DBParameterGroupName=db_parameter_group_name)['Parameters']:
@@ -739,7 +757,6 @@ def test_rds_db_parameter_groups():
             found_cloudformation_set_parameter = True
 
     found_cloudformation_set_parameter.should.equal(True)
-
 
 
 @mock_cloudformation_deprecated()
@@ -906,15 +923,20 @@ def test_iam_roles():
 
     iam_conn = boto.iam.connect_to_region("us-west-1")
 
-    role_result = iam_conn.list_roles()['list_roles_response']['list_roles_result']['roles'][0]
+    role_result = iam_conn.list_roles()['list_roles_response'][
+        'list_roles_result']['roles'][0]
     role = iam_conn.get_role(role_result.role_name)
     role.role_name.should.contain("my-role")
     role.path.should.equal("my-path")
 
-    instance_profile_response = iam_conn.list_instance_profiles()['list_instance_profiles_response']
-    cfn_instance_profile = instance_profile_response['list_instance_profiles_result']['instance_profiles'][0]
-    instance_profile = iam_conn.get_instance_profile(cfn_instance_profile.instance_profile_name)
-    instance_profile.instance_profile_name.should.contain("my-instance-profile")
+    instance_profile_response = iam_conn.list_instance_profiles()[
+        'list_instance_profiles_response']
+    cfn_instance_profile = instance_profile_response[
+        'list_instance_profiles_result']['instance_profiles'][0]
+    instance_profile = iam_conn.get_instance_profile(
+        cfn_instance_profile.instance_profile_name)
+    instance_profile.instance_profile_name.should.contain(
+        "my-instance-profile")
     instance_profile.path.should.equal("my-path")
     instance_profile.role_id.should.equal(role.role_id)
 
@@ -924,10 +946,13 @@ def test_iam_roles():
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    instance_profile_resource = [resource for resource in resources if resource.resource_type == 'AWS::IAM::InstanceProfile'][0]
-    instance_profile_resource.physical_resource_id.should.equal(instance_profile.instance_profile_name)
+    instance_profile_resource = [
+        resource for resource in resources if resource.resource_type == 'AWS::IAM::InstanceProfile'][0]
+    instance_profile_resource.physical_resource_id.should.equal(
+        instance_profile.instance_profile_name)
 
-    role_resource = [resource for resource in resources if resource.resource_type == 'AWS::IAM::Role'][0]
+    role_resource = [
+        resource for resource in resources if resource.resource_type == 'AWS::IAM::Role'][0]
     role_resource.physical_resource_id.should.equal(role.role_id)
 
 
@@ -949,13 +974,15 @@ def test_single_instance_with_ebs_volume():
 
     volumes = ec2_conn.get_all_volumes()
     # Grab the mounted drive
-    volume = [volume for volume in volumes if volume.attach_data.device == '/dev/sdh'][0]
+    volume = [
+        volume for volume in volumes if volume.attach_data.device == '/dev/sdh'][0]
     volume.volume_state().should.equal('in-use')
     volume.attach_data.instance_id.should.equal(ec2_instance.id)
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    ebs_volumes = [resource for resource in resources if resource.resource_type == 'AWS::EC2::Volume']
+    ebs_volumes = [
+        resource for resource in resources if resource.resource_type == 'AWS::EC2::Volume']
     ebs_volumes[0].physical_resource_id.should.equal(volume.id)
 
 
@@ -981,7 +1008,8 @@ def test_classic_eip():
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    cfn_eip = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
+    cfn_eip = [
+        resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
     cfn_eip.physical_resource_id.should.equal(eip.public_ip)
 
 
@@ -997,7 +1025,8 @@ def test_vpc_eip():
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    cfn_eip = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
+    cfn_eip = [
+        resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
     cfn_eip.physical_resource_id.should.equal(eip.allocation_id)
 
 
@@ -1111,7 +1140,8 @@ def test_conditional_if_handling():
     ec2_instance.terminate()
 
     conn = boto.cloudformation.connect_to_region("us-west-2")
-    conn.create_stack('test_stack1', template_body=dummy_template_json, parameters=[("ENV", "prd")])
+    conn.create_stack(
+        'test_stack1', template_body=dummy_template_json, parameters=[("ENV", "prd")])
     ec2_conn = boto.ec2.connect_to_region("us-west-2")
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
@@ -1175,7 +1205,8 @@ def test_route53_roundrobin():
         template_body=template_json,
     )
 
-    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse'][
+        'HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
     zone_id = zone_id.split('/')
@@ -1203,7 +1234,8 @@ def test_route53_roundrobin():
     stack = conn.describe_stacks()[0]
     output = stack.outputs[0]
     output.key.should.equal('DomainName')
-    output.value.should.equal('arn:aws:route53:::hostedzone/{0}'.format(zone_id))
+    output.value.should.equal(
+        'arn:aws:route53:::hostedzone/{0}'.format(zone_id))
 
 
 @mock_cloudformation_deprecated()
@@ -1222,12 +1254,12 @@ def test_route53_ec2_instance_with_public_ip():
 
     instance_id = ec2_conn.get_all_reservations()[0].instances[0].id
 
-    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse'][
+        'HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
     zone_id = zone_id.split('/')
     zone_id = zone_id[2]
-
 
     rrsets = route53_conn.get_all_rrsets(zone_id)
     rrsets.should.have.length_of(1)
@@ -1253,7 +1285,8 @@ def test_route53_associate_health_check():
         template_body=template_json,
     )
 
-    checks = route53_conn.get_list_health_checks()['ListHealthChecksResponse']['HealthChecks']
+    checks = route53_conn.get_list_health_checks()['ListHealthChecksResponse'][
+        'HealthChecks']
     list(checks).should.have.length_of(1)
     check = checks[0]
     health_check_id = check['Id']
@@ -1265,7 +1298,8 @@ def test_route53_associate_health_check():
     config["ResourcePath"].should.equal("/")
     config["Type"].should.equal("HTTP")
 
-    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse'][
+        'HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
     zone_id = zone_id.split('/')
@@ -1290,7 +1324,8 @@ def test_route53_with_update():
         template_body=template_json,
     )
 
-    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse'][
+        'HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
     zone_id = zone_id.split('/')
@@ -1302,14 +1337,16 @@ def test_route53_with_update():
     record_set = rrsets[0]
     record_set.resource_records.should.equal(["my.example.com"])
 
-    route53_health_check.template['Resources']['myDNSRecord']['Properties']['ResourceRecords'] = ["my_other.example.com"]
+    route53_health_check.template['Resources']['myDNSRecord'][
+        'Properties']['ResourceRecords'] = ["my_other.example.com"]
     template_json = json.dumps(route53_health_check.template)
     cf_conn.update_stack(
         "test_stack",
         template_body=template_json,
     )
 
-    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse']['HostedZones']
+    zones = route53_conn.get_all_hosted_zones()['ListHostedZonesResponse'][
+        'HostedZones']
     list(zones).should.have.length_of(1)
     zone_id = zones[0]['Id']
     zone_id = zone_id.split('/')
@@ -1355,12 +1392,14 @@ def test_sns_topic():
     )
 
     sns_conn = boto.sns.connect_to_region("us-west-1")
-    topics = sns_conn.get_all_topics()["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
+    topics = sns_conn.get_all_topics()["ListTopicsResponse"][
+        "ListTopicsResult"]["Topics"]
     topics.should.have.length_of(1)
     topic_arn = topics[0]['TopicArn']
     topic_arn.should.contain("my_topics")
 
-    subscriptions = sns_conn.get_all_subscriptions()["ListSubscriptionsResponse"]["ListSubscriptionsResult"]["Subscriptions"]
+    subscriptions = sns_conn.get_all_subscriptions()["ListSubscriptionsResponse"][
+        "ListSubscriptionsResult"]["Subscriptions"]
     subscriptions.should.have.length_of(1)
     subscription = subscriptions[0]
     subscription["TopicArn"].should.equal(topic_arn)
@@ -1504,12 +1543,15 @@ def test_multiple_security_group_ingress_separate_from_security_group_by_id():
     )
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
 
-    security_group1 = ec2_conn.get_all_security_groups(filters={"tag:sg-name": "sg1"})[0]
-    security_group2 = ec2_conn.get_all_security_groups(filters={"tag:sg-name": "sg2"})[0]
+    security_group1 = ec2_conn.get_all_security_groups(
+        filters={"tag:sg-name": "sg1"})[0]
+    security_group2 = ec2_conn.get_all_security_groups(
+        filters={"tag:sg-name": "sg2"})[0]
 
     security_group1.rules.should.have.length_of(1)
     security_group1.rules[0].grants.should.have.length_of(1)
-    security_group1.rules[0].grants[0].group_id.should.equal(security_group2.id)
+    security_group1.rules[0].grants[
+        0].group_id.should.equal(security_group2.id)
     security_group1.rules[0].ip_protocol.should.equal('tcp')
     security_group1.rules[0].from_port.should.equal('80')
     security_group1.rules[0].to_port.should.equal('8080')
@@ -1519,7 +1561,8 @@ def test_multiple_security_group_ingress_separate_from_security_group_by_id():
 @mock_ec2_deprecated
 def test_security_group_ingress_separate_from_security_group_by_id():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    ec2_conn.create_security_group("test-security-group1", "test security group")
+    ec2_conn.create_security_group(
+        "test-security-group1", "test security group")
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1555,12 +1598,15 @@ def test_security_group_ingress_separate_from_security_group_by_id():
         "test_stack",
         template_body=template_json,
     )
-    security_group1 = ec2_conn.get_all_security_groups(groupnames=["test-security-group1"])[0]
-    security_group2 = ec2_conn.get_all_security_groups(filters={"tag:sg-name": "sg2"})[0]
+    security_group1 = ec2_conn.get_all_security_groups(
+        groupnames=["test-security-group1"])[0]
+    security_group2 = ec2_conn.get_all_security_groups(
+        filters={"tag:sg-name": "sg2"})[0]
 
     security_group1.rules.should.have.length_of(1)
     security_group1.rules[0].grants.should.have.length_of(1)
-    security_group1.rules[0].grants[0].group_id.should.equal(security_group2.id)
+    security_group1.rules[0].grants[
+        0].group_id.should.equal(security_group2.id)
     security_group1.rules[0].ip_protocol.should.equal('tcp')
     security_group1.rules[0].from_port.should.equal('80')
     security_group1.rules[0].to_port.should.equal('8080')
@@ -1621,12 +1667,15 @@ def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
         "test_stack",
         template_body=template_json,
     )
-    security_group1 = vpc_conn.get_all_security_groups(filters={"tag:sg-name": "sg1"})[0]
-    security_group2 = vpc_conn.get_all_security_groups(filters={"tag:sg-name": "sg2"})[0]
+    security_group1 = vpc_conn.get_all_security_groups(
+        filters={"tag:sg-name": "sg1"})[0]
+    security_group2 = vpc_conn.get_all_security_groups(
+        filters={"tag:sg-name": "sg2"})[0]
 
     security_group1.rules.should.have.length_of(1)
     security_group1.rules[0].grants.should.have.length_of(1)
-    security_group1.rules[0].grants[0].group_id.should.equal(security_group2.id)
+    security_group1.rules[0].grants[
+        0].group_id.should.equal(security_group2.id)
     security_group1.rules[0].ip_protocol.should.equal('tcp')
     security_group1.rules[0].from_port.should.equal('80')
     security_group1.rules[0].to_port.should.equal('8080')
@@ -1663,17 +1712,20 @@ def test_security_group_with_update():
         "test_stack",
         template_body=template_json,
     )
-    security_group = vpc_conn.get_all_security_groups(filters={"tag:sg-name": "sg"})[0]
+    security_group = vpc_conn.get_all_security_groups(
+        filters={"tag:sg-name": "sg"})[0]
     security_group.vpc_id.should.equal(vpc1.id)
 
     vpc2 = vpc_conn.create_vpc("10.1.0.0/16")
-    template['Resources']['test-security-group']['Properties']['VpcId'] = vpc2.id
+    template['Resources'][
+        'test-security-group']['Properties']['VpcId'] = vpc2.id
     template_json = json.dumps(template)
     cf_conn.update_stack(
         "test_stack",
         template_body=template_json,
     )
-    security_group = vpc_conn.get_all_security_groups(filters={"tag:sg-name": "sg"})[0]
+    security_group = vpc_conn.get_all_security_groups(
+        filters={"tag:sg-name": "sg"})[0]
     security_group.vpc_id.should.equal(vpc2.id)
 
 
@@ -1779,11 +1831,14 @@ def test_datapipeline():
     data_pipelines = dp_conn.list_pipelines()
 
     data_pipelines['pipelineIdList'].should.have.length_of(1)
-    data_pipelines['pipelineIdList'][0]['name'].should.equal('testDataPipeline')
+    data_pipelines['pipelineIdList'][0][
+        'name'].should.equal('testDataPipeline')
 
     stack_resources = cf_conn.list_stack_resources(stack_id)
     stack_resources.should.have.length_of(1)
-    stack_resources[0].physical_resource_id.should.equal(data_pipelines['pipelineIdList'][0]['id'])
+    stack_resources[0].physical_resource_id.should.equal(
+        data_pipelines['pipelineIdList'][0]['id'])
+
 
 def _process_lamda(pfunc):
     import io
@@ -1849,33 +1904,35 @@ def test_lambda_function():
 def test_nat_gateway():
     ec2_conn = boto3.client('ec2', 'us-east-1')
     vpc_id = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']['VpcId']
-    subnet_id = ec2_conn.create_subnet(CidrBlock='10.0.1.0/24', VpcId=vpc_id)['Subnet']['SubnetId']
-    route_table_id = ec2_conn.create_route_table(VpcId=vpc_id)['RouteTable']['RouteTableId']
+    subnet_id = ec2_conn.create_subnet(
+        CidrBlock='10.0.1.0/24', VpcId=vpc_id)['Subnet']['SubnetId']
+    route_table_id = ec2_conn.create_route_table(
+        VpcId=vpc_id)['RouteTable']['RouteTableId']
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
-            "NAT" : {
-                "DependsOn" : "vpcgatewayattachment",
-                "Type" : "AWS::EC2::NatGateway",
-                "Properties" : {
-                    "AllocationId" : { "Fn::GetAtt" : ["EIP", "AllocationId"]},
-                    "SubnetId" : subnet_id
-                    }
-            },
-            "EIP" : {
-                "Type" : "AWS::EC2::EIP",
-                "Properties" : {
-                    "Domain" : "vpc"
+            "NAT": {
+                "DependsOn": "vpcgatewayattachment",
+                "Type": "AWS::EC2::NatGateway",
+                "Properties": {
+                    "AllocationId": {"Fn::GetAtt": ["EIP", "AllocationId"]},
+                    "SubnetId": subnet_id
                 }
             },
-            "Route" : {
-                "Type" : "AWS::EC2::Route",
-                "Properties" : {
-                    "RouteTableId" : route_table_id,
-                    "DestinationCidrBlock" : "0.0.0.0/0",
-                    "NatGatewayId" : { "Ref" : "NAT" }
-              }
+            "EIP": {
+                "Type": "AWS::EC2::EIP",
+                "Properties": {
+                    "Domain": "vpc"
+                }
+            },
+            "Route": {
+                "Type": "AWS::EC2::Route",
+                "Properties": {
+                    "RouteTableId": route_table_id,
+                    "DestinationCidrBlock": "0.0.0.0/0",
+                    "NatGatewayId": {"Ref": "NAT"}
+                }
             },
             "internetgateway": {
                 "Type": "AWS::EC2::InternetGateway"
@@ -1904,6 +1961,7 @@ def test_nat_gateway():
     result['NatGateways'][0]['VpcId'].should.equal(vpc_id)
     result['NatGateways'][0]['SubnetId'].should.equal(subnet_id)
     result['NatGateways'][0]['State'].should.equal('available')
+
 
 @mock_cloudformation()
 @mock_kms()
@@ -1944,42 +2002,43 @@ def test_stack_spot_fleet():
     conn = boto3.client('ec2', 'us-east-1')
 
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
-    subnet = conn.create_subnet(VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
+    subnet = conn.create_subnet(
+        VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
     subnet_id = subnet['SubnetId']
 
     spot_fleet_template = {
         'Resources': {
             "SpotFleet": {
-              "Type": "AWS::EC2::SpotFleet",
-              "Properties": {
-                "SpotFleetRequestConfigData": {
-                  "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
-                  "SpotPrice": "0.12",
-                  "TargetCapacity": 6,
-                  "AllocationStrategy": "diversified",
-                  "LaunchSpecifications": [
-                  {
-                    "EbsOptimized": "false",
-                    "InstanceType": 't2.small',
-                    "ImageId": "ami-1234",
-                    "SubnetId": subnet_id,
-                    "WeightedCapacity": "2",
-                    "SpotPrice": "0.13",
-                  },
-                  {
-                    "EbsOptimized": "true",
-                    "InstanceType": 't2.large',
-                    "ImageId": "ami-1234",
-                    "Monitoring": { "Enabled": "true" },
-                    "SecurityGroups": [{"GroupId": "sg-123"}],
-                    "SubnetId": subnet_id,
-                    "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
-                    "WeightedCapacity": "4",
-                    "SpotPrice": "10.00",
-                  }
-                  ]
+                "Type": "AWS::EC2::SpotFleet",
+                "Properties": {
+                    "SpotFleetRequestConfigData": {
+                        "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
+                        "SpotPrice": "0.12",
+                        "TargetCapacity": 6,
+                        "AllocationStrategy": "diversified",
+                        "LaunchSpecifications": [
+                          {
+                              "EbsOptimized": "false",
+                              "InstanceType": 't2.small',
+                              "ImageId": "ami-1234",
+                              "SubnetId": subnet_id,
+                              "WeightedCapacity": "2",
+                              "SpotPrice": "0.13",
+                          },
+                            {
+                              "EbsOptimized": "true",
+                              "InstanceType": 't2.large',
+                              "ImageId": "ami-1234",
+                              "Monitoring": {"Enabled": "true"},
+                              "SecurityGroups": [{"GroupId": "sg-123"}],
+                              "SubnetId": subnet_id,
+                              "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
+                              "WeightedCapacity": "4",
+                              "SpotPrice": "10.00",
+                          }
+                        ]
+                    }
                 }
-              }
             }
         }
     }
@@ -1993,9 +2052,11 @@ def test_stack_spot_fleet():
 
     stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
     stack_resources['StackResourceSummaries'].should.have.length_of(1)
-    spot_fleet_id = stack_resources['StackResourceSummaries'][0]['PhysicalResourceId']
+    spot_fleet_id = stack_resources[
+        'StackResourceSummaries'][0]['PhysicalResourceId']
 
-    spot_fleet_requests = conn.describe_spot_fleet_requests(SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs']
+    spot_fleet_requests = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs']
     len(spot_fleet_requests).should.equal(1)
     spot_fleet_request = spot_fleet_requests[0]
     spot_fleet_request['SpotFleetRequestState'].should.equal("active")
@@ -2003,7 +2064,8 @@ def test_stack_spot_fleet():
 
     spot_fleet_config['SpotPrice'].should.equal('0.12')
     spot_fleet_config['TargetCapacity'].should.equal(6)
-    spot_fleet_config['IamFleetRole'].should.equal('arn:aws:iam::123456789012:role/fleet')
+    spot_fleet_config['IamFleetRole'].should.equal(
+        'arn:aws:iam::123456789012:role/fleet')
     spot_fleet_config['AllocationStrategy'].should.equal('diversified')
     spot_fleet_config['FulfilledCapacity'].should.equal(6.0)
 

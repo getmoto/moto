@@ -8,7 +8,8 @@ class NatGateways(BaseResponse):
     def create_nat_gateway(self):
         subnet_id = self._get_param('SubnetId')
         allocation_id = self._get_param('AllocationId')
-        nat_gateway = self.ec2_backend.create_nat_gateway(subnet_id=subnet_id, allocation_id=allocation_id)
+        nat_gateway = self.ec2_backend.create_nat_gateway(
+            subnet_id=subnet_id, allocation_id=allocation_id)
         template = self.response_template(CREATE_NAT_GATEWAY)
         return template.render(nat_gateway=nat_gateway)
 

@@ -20,6 +20,7 @@ def create_connection(key=None, secret=None):
 
 
 class MyModel(object):
+
     def __init__(self, name, value):
         self.name = name
         self.value = value
@@ -42,7 +43,8 @@ def test_my_model_save():
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal(b'is awesome')
+    conn.get_bucket('mybucket').get_key(
+        'steve').get_contents_as_string().should.equal(b'is awesome')
 
 
 @mock_s3_deprecated
@@ -57,7 +59,8 @@ def test_missing_key_urllib2():
     conn = create_connection('the_key', 'the_secret')
     conn.create_bucket("foobar")
 
-    urlopen.when.called_with("http://s3.amazonaws.com/foobar/the-key").should.throw(HTTPError)
+    urlopen.when.called_with(
+        "http://s3.amazonaws.com/foobar/the-key").should.throw(HTTPError)
 
 
 @mock_s3_deprecated
@@ -93,7 +96,8 @@ def test_large_key_save():
     key.key = "the-key"
     key.set_contents_from_string("foobar" * 100000)
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar' * 100000)
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(b'foobar' * 100000)
 
 
 @mock_s3_deprecated
@@ -106,8 +110,10 @@ def test_copy_key():
 
     bucket.copy_key('new-key', 'foobar', 'the-key')
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b"some value")
-    bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key(
+        "new-key").get_contents_as_string().should.equal(b"some value")
 
 
 @mock_s3_deprecated
@@ -135,7 +141,8 @@ def test_last_modified():
     rs = bucket.get_all_keys()
     rs[0].last_modified.should.equal('2012-01-01T12:00:00.000Z')
 
-    bucket.get_key("the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
+    bucket.get_key(
+        "the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
 
 
 @mock_s3_deprecated
@@ -147,7 +154,8 @@ def test_missing_bucket():
 @mock_s3_deprecated
 def test_bucket_with_dash():
     conn = create_connection('the_key', 'the_secret')
-    conn.get_bucket.when.called_with('mybucket-test').should.throw(S3ResponseError)
+    conn.get_bucket.when.called_with(
+        'mybucket-test').should.throw(S3ResponseError)
 
 
 @mock_s3_deprecated
@@ -268,7 +276,8 @@ def test_bucket_key_listing_order():
 
     delimiter = None
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
-    keys.should.equal(['toplevel/x/key', 'toplevel/x/y/key', 'toplevel/x/y/z/key'])
+    keys.should.equal(
+        ['toplevel/x/key', 'toplevel/x/y/key', 'toplevel/x/y/z/key'])
 
     delimiter = '/'
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]

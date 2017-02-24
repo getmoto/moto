@@ -5,8 +5,6 @@ from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds2_backends
 from .exceptions import DBParameterGroupNotFoundError
-import json
-import re
 
 
 class RDS2Response(BaseResponse):
@@ -45,7 +43,8 @@ class RDS2Response(BaseResponse):
             # VpcSecurityGroupIds.member.N
             "tags": list(),
         }
-        args['tags'] = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+        args['tags'] = self.unpack_complex_list_params(
+            'Tags.Tag', ('Key', 'Value'))
         return args
 
     def _get_db_replica_kwargs(self):
@@ -85,7 +84,8 @@ class RDS2Response(BaseResponse):
         while self._get_param('{0}.{1}.{2}'.format(label, count, names[0])):
             param = dict()
             for i in range(len(names)):
-                param[names[i]] = self._get_param('{0}.{1}.{2}'.format(label, count, names[i]))
+                param[names[i]] = self._get_param(
+                    '{0}.{1}.{2}'.format(label, count, names[i]))
             unpacked_list.append(param)
             count += 1
         return unpacked_list
@@ -94,7 +94,8 @@ class RDS2Response(BaseResponse):
         unpacked_list = list()
         count = 1
         while self._get_param('{0}.{1}'.format(label, count)):
-            unpacked_list.append(self._get_param('{0}.{1}'.format(label, count)))
+            unpacked_list.append(self._get_param(
+                '{0}.{1}'.format(label, count)))
             count += 1
         return unpacked_list
 
@@ -132,7 +133,8 @@ class RDS2Response(BaseResponse):
     def modify_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         db_kwargs = self._get_db_kwargs()
-        database = self.backend.modify_database(db_instance_identifier, db_kwargs)
+        database = self.backend.modify_database(
+            db_instance_identifier, db_kwargs)
         template = self.response_template(MODIFY_DATABASE_TEMPLATE)
         return template.render(database=database)
 
@@ -181,7 +183,8 @@ class RDS2Response(BaseResponse):
         group_name = self._get_param('DBSecurityGroupName')
         description = self._get_param('DBSecurityGroupDescription')
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
-        security_group = self.backend.create_security_group(group_name, description, tags)
+        security_group = self.backend.create_security_group(
+            group_name, description, tags)
         template = self.response_template(CREATE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
@@ -190,7 +193,8 @@ class RDS2Response(BaseResponse):
 
     def describe_db_security_groups(self):
         security_group_name = self._get_param('DBSecurityGroupName')
-        security_groups = self.backend.describe_security_groups(security_group_name)
+        security_groups = self.backend.describe_security_groups(
+            security_group_name)
         template = self.response_template(DESCRIBE_SECURITY_GROUPS_TEMPLATE)
         return template.render(security_groups=security_groups)
 
@@ -199,7 +203,8 @@ class RDS2Response(BaseResponse):
 
     def delete_db_security_group(self):
         security_group_name = self._get_param('DBSecurityGroupName')
-        security_group = self.backend.delete_security_group(security_group_name)
+        security_group = self.backend.delete_security_group(
+            security_group_name)
         template = self.response_template(DELETE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
@@ -209,7 +214,8 @@ class RDS2Response(BaseResponse):
     def authorize_db_security_group_ingress(self):
         security_group_name = self._get_param('DBSecurityGroupName')
         cidr_ip = self._get_param('CIDRIP')
-        security_group = self.backend.authorize_security_group(security_group_name, cidr_ip)
+        security_group = self.backend.authorize_security_group(
+            security_group_name, cidr_ip)
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
@@ -221,8 +227,10 @@ class RDS2Response(BaseResponse):
         description = self._get_param('DBSubnetGroupDescription')
         subnet_ids = self._get_multi_param('SubnetIds.SubnetIdentifier')
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
-        subnets = [ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids]
-        subnet_group = self.backend.create_subnet_group(subnet_name, description, subnets, tags)
+        subnets = [ec2_backends[self.region].get_subnet(
+            subnet_id) for subnet_id in subnet_ids]
+        subnet_group = self.backend.create_subnet_group(
+            subnet_name, description, subnets, tags)
         template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)
 
@@ -267,7 +275,8 @@ class RDS2Response(BaseResponse):
     def describe_option_group_options(self):
         engine_name = self._get_param('EngineName')
         major_engine_version = self._get_param('MajorEngineVersion')
-        option_group_options = self.backend.describe_option_group_options(engine_name, major_engine_version)
+        option_group_options = self.backend.describe_option_group_options(
+            engine_name, major_engine_version)
         return option_group_options
 
     def modify_option_group(self):
@@ -287,7 +296,8 @@ class RDS2Response(BaseResponse):
         count = 1
         options_to_remove = []
         while self._get_param('OptionsToRemove.member.{0}'.format(count)):
-            options_to_remove.append(self._get_param('OptionsToRemove.member.{0}'.format(count)))
+            options_to_remove.append(self._get_param(
+                'OptionsToRemove.member.{0}'.format(count)))
             count += 1
         apply_immediately = self._get_param('ApplyImmediately')
         option_group = self.backend.modify_option_group(option_group_name,
@@ -314,7 +324,8 @@ class RDS2Response(BaseResponse):
         kwargs['max_records'] = self._get_param('MaxRecords')
         kwargs['marker'] = self._get_param('Marker')
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
-        template = self.response_template(DESCRIBE_DB_PARAMETER_GROUPS_TEMPLATE)
+        template = self.response_template(
+            DESCRIBE_DB_PARAMETER_GROUPS_TEMPLATE)
         return template.render(db_parameter_groups=db_parameter_groups)
 
     def modify_dbparameter_group(self):
@@ -347,7 +358,8 @@ class RDS2Response(BaseResponse):
 
     def describe_db_parameters(self):
         db_parameter_group_name = self._get_param('DBParameterGroupName')
-        db_parameter_groups = self.backend.describe_db_parameter_groups({'name': db_parameter_group_name})
+        db_parameter_groups = self.backend.describe_db_parameter_groups(
+            {'name': db_parameter_group_name})
         if not db_parameter_groups:
             raise DBParameterGroupNotFoundError(db_parameter_group_name)
 
@@ -359,7 +371,8 @@ class RDS2Response(BaseResponse):
 
     def delete_db_parameter_group(self):
         kwargs = self._get_db_parameter_group_kwargs()
-        db_parameter_group = self.backend.delete_db_parameter_group(kwargs['name'])
+        db_parameter_group = self.backend.delete_db_parameter_group(kwargs[
+                                                                    'name'])
         template = self.response_template(DELETE_DB_PARAMETER_GROUP_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_group)
 

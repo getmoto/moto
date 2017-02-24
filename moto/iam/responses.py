@@ -18,7 +18,8 @@ class IamResponse(BaseResponse):
         path = self._get_param('Path')
         policy_document = self._get_param('PolicyDocument')
         policy_name = self._get_param('PolicyName')
-        policy = iam_backend.create_policy(description, path, policy_document, policy_name)
+        policy = iam_backend.create_policy(
+            description, path, policy_document, policy_name)
         template = self.response_template(CREATE_POLICY_TEMPLATE)
         return template.render(policy=policy)
 
@@ -27,7 +28,8 @@ class IamResponse(BaseResponse):
         max_items = self._get_int_param('MaxItems', 100)
         path_prefix = self._get_param('PathPrefix', '/')
         role_name = self._get_param('RoleName')
-        policies, marker = iam_backend.list_attached_role_policies(role_name, marker=marker, max_items=max_items, path_prefix=path_prefix)
+        policies, marker = iam_backend.list_attached_role_policies(
+            role_name, marker=marker, max_items=max_items, path_prefix=path_prefix)
         template = self.response_template(LIST_ATTACHED_ROLE_POLICIES_TEMPLATE)
         return template.render(policies=policies, marker=marker)
 
@@ -37,16 +39,19 @@ class IamResponse(BaseResponse):
         only_attached = self._get_bool_param('OnlyAttached', False)
         path_prefix = self._get_param('PathPrefix', '/')
         scope = self._get_param('Scope', 'All')
-        policies, marker = iam_backend.list_policies(marker, max_items, only_attached, path_prefix, scope)
+        policies, marker = iam_backend.list_policies(
+            marker, max_items, only_attached, path_prefix, scope)
         template = self.response_template(LIST_POLICIES_TEMPLATE)
         return template.render(policies=policies, marker=marker)
 
     def create_role(self):
         role_name = self._get_param('RoleName')
         path = self._get_param('Path')
-        assume_role_policy_document = self._get_param('AssumeRolePolicyDocument')
+        assume_role_policy_document = self._get_param(
+            'AssumeRolePolicyDocument')
 
-        role = iam_backend.create_role(role_name, assume_role_policy_document, path)
+        role = iam_backend.create_role(
+            role_name, assume_role_policy_document, path)
         template = self.response_template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
@@ -74,7 +79,8 @@ class IamResponse(BaseResponse):
     def get_role_policy(self):
         role_name = self._get_param('RoleName')
         policy_name = self._get_param('PolicyName')
-        policy_name, policy_document = iam_backend.get_role_policy(role_name, policy_name)
+        policy_name, policy_document = iam_backend.get_role_policy(
+            role_name, policy_name)
         template = self.response_template(GET_ROLE_POLICY_TEMPLATE)
         return template.render(role_name=role_name,
                                policy_name=policy_name,
@@ -91,7 +97,8 @@ class IamResponse(BaseResponse):
         profile_name = self._get_param('InstanceProfileName')
         path = self._get_param('Path')
 
-        profile = iam_backend.create_instance_profile(profile_name, path, role_ids=[])
+        profile = iam_backend.create_instance_profile(
+            profile_name, path, role_ids=[])
         template = self.response_template(CREATE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
 
@@ -107,7 +114,8 @@ class IamResponse(BaseResponse):
         role_name = self._get_param('RoleName')
 
         iam_backend.add_role_to_instance_profile(profile_name, role_name)
-        template = self.response_template(ADD_ROLE_TO_INSTANCE_PROFILE_TEMPLATE)
+        template = self.response_template(
+            ADD_ROLE_TO_INSTANCE_PROFILE_TEMPLATE)
         return template.render()
 
     def remove_role_from_instance_profile(self):
@@ -115,7 +123,8 @@ class IamResponse(BaseResponse):
         role_name = self._get_param('RoleName')
 
         iam_backend.remove_role_from_instance_profile(profile_name, role_name)
-        template = self.response_template(REMOVE_ROLE_FROM_INSTANCE_PROFILE_TEMPLATE)
+        template = self.response_template(
+            REMOVE_ROLE_FROM_INSTANCE_PROFILE_TEMPLATE)
         return template.render()
 
     def list_roles(self):
@@ -132,9 +141,11 @@ class IamResponse(BaseResponse):
 
     def list_instance_profiles_for_role(self):
         role_name = self._get_param('RoleName')
-        profiles = iam_backend.get_instance_profiles_for_role(role_name=role_name)
+        profiles = iam_backend.get_instance_profiles_for_role(
+            role_name=role_name)
 
-        template = self.response_template(LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE)
+        template = self.response_template(
+            LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE)
         return template.render(instance_profiles=profiles)
 
     def upload_server_certificate(self):
@@ -144,7 +155,8 @@ class IamResponse(BaseResponse):
         private_key = self._get_param('PrivateKey')
         cert_chain = self._get_param('CertificateName')
 
-        cert = iam_backend.upload_server_cert(cert_name, cert_body, private_key, cert_chain=cert_chain, path=path)
+        cert = iam_backend.upload_server_cert(
+            cert_name, cert_body, private_key, cert_chain=cert_chain, path=path)
         template = self.response_template(UPLOAD_CERT_TEMPLATE)
         return template.render(certificate=cert)
 

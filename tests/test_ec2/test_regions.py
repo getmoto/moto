@@ -50,9 +50,11 @@ def test_add_servers_to_multiple_regions():
 @mock_elb_deprecated
 def test_create_autoscaling_group():
     elb_conn = boto.ec2.elb.connect_to_region('us-east-1')
-    elb_conn.create_load_balancer('us_test_lb', zones=[], listeners=[(80, 8080, 'http')])
+    elb_conn.create_load_balancer(
+        'us_test_lb', zones=[], listeners=[(80, 8080, 'http')])
     elb_conn = boto.ec2.elb.connect_to_region('ap-northeast-1')
-    elb_conn.create_load_balancer('ap_test_lb', zones=[], listeners=[(80, 8080, 'http')])
+    elb_conn.create_load_balancer(
+        'ap_test_lb', zones=[], listeners=[(80, 8080, 'http')])
 
     us_conn = boto.ec2.autoscale.connect_to_region('us-east-1')
     config = boto.ec2.autoscale.LaunchConfiguration(
@@ -79,7 +81,6 @@ def test_create_autoscaling_group():
     )
     us_conn.create_auto_scaling_group(group)
 
-
     ap_conn = boto.ec2.autoscale.connect_to_region('ap-northeast-1')
     config = boto.ec2.autoscale.LaunchConfiguration(
         name='ap_tester',
@@ -105,7 +106,6 @@ def test_create_autoscaling_group():
     )
     ap_conn.create_auto_scaling_group(group)
 
-
     len(us_conn.get_all_groups()).should.equal(1)
     len(ap_conn.get_all_groups()).should.equal(1)
 
@@ -122,7 +122,8 @@ def test_create_autoscaling_group():
     us_group.health_check_type.should.equal("EC2")
     list(us_group.load_balancers).should.equal(["us_test_lb"])
     us_group.placement_group.should.equal("us_test_placement")
-    list(us_group.termination_policies).should.equal(["OldestInstance", "NewestInstance"])
+    list(us_group.termination_policies).should.equal(
+        ["OldestInstance", "NewestInstance"])
 
     ap_group = ap_conn.get_all_groups()[0]
     ap_group.name.should.equal('ap_tester_group')
@@ -137,4 +138,5 @@ def test_create_autoscaling_group():
     ap_group.health_check_type.should.equal("EC2")
     list(ap_group.load_balancers).should.equal(["ap_test_lb"])
     ap_group.placement_group.should.equal("ap_test_placement")
-    list(ap_group.termination_policies).should.equal(["OldestInstance", "NewestInstance"])
+    list(ap_group.termination_policies).should.equal(
+        ["OldestInstance", "NewestInstance"])
