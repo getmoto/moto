@@ -324,6 +324,7 @@ class AutoScalingBackend(BaseBackend):
 
         max_size = make_int(max_size)
         min_size = make_int(min_size)
+        desired_capacity = make_int(desired_capacity)
         default_cooldown = make_int(default_cooldown)
         if health_check_period is None:
             health_check_period = 300
