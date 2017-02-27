@@ -72,7 +72,7 @@ def test_topic_attributes():
         .format(conn._client_config.region_name)
     )
     attributes["Owner"].should.equal('123456789012')
-    attributes["Policy"].should.equal(DEFAULT_TOPIC_POLICY)
+    json.loads(attributes["Policy"]).should.equal(DEFAULT_TOPIC_POLICY)
     attributes["DisplayName"].should.equal("")
     attributes["SubscriptionsPending"].should.equal('0')
     attributes["SubscriptionsConfirmed"].should.equal('0')

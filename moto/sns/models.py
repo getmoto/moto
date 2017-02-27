@@ -26,7 +26,7 @@ class Topic(object):
         self.sns_backend = sns_backend
         self.account_id = DEFAULT_ACCOUNT_ID
         self.display_name = ""
-        self.policy = DEFAULT_TOPIC_POLICY
+        self.policy = json.dumps(DEFAULT_TOPIC_POLICY)
         self.delivery_policy = ""
         self.effective_delivery_policy = DEFAULT_EFFECTIVE_DELIVERY_POLICY
         self.arn = make_arn_for_topic(
@@ -288,7 +288,7 @@ for region in boto.sns.regions():
     sns_backends[region.name] = SNSBackend(region.name)
 
 
-DEFAULT_TOPIC_POLICY = json.dumps({
+DEFAULT_TOPIC_POLICY = {
     "Version": "2008-10-17",
     "Id": "us-east-1/698519295917/test__default_policy_ID",
     "Statement": [{
@@ -315,7 +315,7 @@ DEFAULT_TOPIC_POLICY = json.dumps({
             }
         }
     }]
-})
+}
 
 DEFAULT_EFFECTIVE_DELIVERY_POLICY = json.dumps({
     'http': {
