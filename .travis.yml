@@ -16,6 +16,8 @@ install:
   - |
     if [ "$TEST_SERVER_MODE" = "true" ]; then
       moto_server -p 8086&
+      export AWS_SECRET_ACCESS_KEY=foobar_secret
+      export AWS_ACCESS_KEY_ID=foobar_key
     fi
 script:
   - make test
