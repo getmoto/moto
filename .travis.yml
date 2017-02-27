@@ -13,6 +13,10 @@ install:
   - travis_retry pip install .
   - travis_retry pip install -r requirements-dev.txt
   - travis_retry pip install coveralls
+  - |
+    if [ "$TEST_SERVER_MODE" = "true" ]; then
+      moto_server -p 8086&
+    fi
 script:
   - make test
 after_success:
