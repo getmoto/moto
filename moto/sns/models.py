@@ -28,7 +28,7 @@ class Topic(object):
         self.display_name = ""
         self.policy = json.dumps(DEFAULT_TOPIC_POLICY)
         self.delivery_policy = ""
-        self.effective_delivery_policy = DEFAULT_EFFECTIVE_DELIVERY_POLICY
+        self.effective_delivery_policy = json.dumps(DEFAULT_EFFECTIVE_DELIVERY_POLICY)
         self.arn = make_arn_for_topic(
             self.account_id, name, sns_backend.region_name)
 
@@ -317,7 +317,7 @@ DEFAULT_TOPIC_POLICY = {
     }]
 }
 
-DEFAULT_EFFECTIVE_DELIVERY_POLICY = json.dumps({
+DEFAULT_EFFECTIVE_DELIVERY_POLICY = {
     'http': {
         'disableSubscriptionOverrides': False,
         'defaultHealthyRetryPolicy': {
@@ -330,4 +330,4 @@ DEFAULT_EFFECTIVE_DELIVERY_POLICY = json.dumps({
             'backoffFunction': 'linear'
         }
     }
-})
+}

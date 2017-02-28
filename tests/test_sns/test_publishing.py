@@ -6,7 +6,7 @@ from freezegun import freeze_time
 import sure  # noqa
 
 from moto.packages.responses import responses
-from moto import mock_sns, mock_sns_deprecated, mock_sqs_deprecated
+from moto import mock_sns_deprecated, mock_sqs_deprecated
 
 
 @mock_sqs_deprecated
@@ -54,7 +54,6 @@ def test_publish_to_sqs_in_different_region():
 
 
 @freeze_time("2013-01-01")
-@mock_sns
 @mock_sns_deprecated
 def test_publish_to_http():
     responses.add(

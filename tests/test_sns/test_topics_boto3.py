@@ -78,7 +78,7 @@ def test_topic_attributes():
     attributes["SubscriptionsConfirmed"].should.equal('0')
     attributes["SubscriptionsDeleted"].should.equal('0')
     attributes["DeliveryPolicy"].should.equal("")
-    attributes["EffectiveDeliveryPolicy"].should.equal(
+    json.loads(attributes["EffectiveDeliveryPolicy"]).should.equal(
         DEFAULT_EFFECTIVE_DELIVERY_POLICY)
 
     # boto can't handle prefix-mandatory strings:
