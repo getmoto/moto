@@ -1141,6 +1141,7 @@ def test_subscription_already_exists():
                                                     SourceType='db-instance',
                                                     EventCategories=['availability']).should.throw(ClientError)
 
+
 @disable_on_py3()
 @mock_rds2
 def test_remove_non_existent_source_id():
@@ -1155,7 +1156,7 @@ def test_remove_non_existent_source_id():
                                                                      SourceIdentifier='source4').should.throw(ClientError)
 
 
-
+@disable_on_py3()
 @mock_rds2
 def test_create_event_subscription_triggers_event():
     data = []
@@ -1176,3 +1177,123 @@ def test_create_event_subscription_triggers_event():
     model.name.should.equal('test-subscription')
     model.categories.should.equal(['availability', 'failure', 'low storage'])
     default_publisher.reset()
+
+
+@disable_on_py3()
+@mock_rds2
+def test_create_db_snapshot():
+    data = []
+
+    def on_snapshot_created(event_id, snapshot):
+        data.extend([event_id, snapshot])
+
+    default_publisher.subscribe(on_snapshot_created, EventTypes.RDS2_SNAPSHOT_CREATED)
+    conn = boto3.client('rds', region_name='us-west-2')
+
+    conn.create_db_instance(DBInstanceIdentifier='test-instance',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+
+    result = conn.create_db_snapshot(DBSnapshotIdentifier='snapshot-1',
+                                     DBInstanceIdentifier='test-instance')
+    snapshot = result['DBSnapshot']
+    snapshot['Status'].should.equal('available')
+    snapshot['MasterUsername'].should.equal('root')
+    snapshot['DBInstanceIdentifier'].should.equal('test-instance')
+    snapshot['DBSnapshotIdentifier'].should.equal('snapshot-1')
+    event_id, model = data
+    event_id.should.equal(EventTypes.RDS2_SNAPSHOT_CREATED)
+    model.db_snapshot_identifier.should.equal('snapshot-1')
+
+    default_publisher.reset()
+
+
+@disable_on_py3()
+@mock_rds2
+def test_describe_and_delete_db_snapshots():
+    conn = boto3.client('rds', region_name='us-west-2')
+
+    conn.create_db_instance(DBInstanceIdentifier='test-instance',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+
+    conn.create_db_snapshot(DBSnapshotIdentifier='snapshot-a',
+                            DBInstanceIdentifier='test-instance')
+    conn.create_db_snapshot(DBSnapshotIdentifier='snapshot-b',
+                            DBInstanceIdentifier='test-instance')
+
+    snapshots = conn.describe_db_snapshots()['DBSnapshots']
+    snapshot_ids = sorted([s['DBSnapshotIdentifier'] for s in snapshots])
+    snapshot_ids.should.equal(['snapshot-a', 'snapshot-b'])
+
+    conn.delete_db_snapshot(DBSnapshotIdentifier='snapshot-b')
+    snapshots = conn.describe_db_snapshots()['DBSnapshots']
+    snapshot_ids = sorted([s['DBSnapshotIdentifier'] for s in snapshots])
+    snapshot_ids.should.equal(['snapshot-a'])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_restore_db_instance_from_db_snapshot():
+    data = []
+
+    def on_db_created(_event_id, db):
+        data.append(db.db_instance_identifier)
+
+    default_publisher.subscribe(on_db_created, EventTypes.RDS2_DATABASE_CREATED)
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_instance(DBInstanceIdentifier='test-instance',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+
+    conn.create_db_snapshot(DBSnapshotIdentifier='snapshot-a',
+                            DBInstanceIdentifier='test-instance')
+
+    conn.restore_db_instance_from_db_snapshot(DBInstanceIdentifier='restored-test-instance',
+                                              DBSnapshotIdentifier='snapshot-a')
+
+    data.should.equal(['test-instance', 'restored-test-instance'])
+    instances = conn.describe_db_instances()
+    list(instances['DBInstances']).should.have.length_of(2)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_restore_db_instance_to_point_in_time():
+    data = []
+
+    def on_db_created(_event_id, db):
+        data.append(db.db_instance_identifier)
+
+    default_publisher.subscribe(on_db_created, EventTypes.RDS2_DATABASE_CREATED)
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_instance(DBInstanceIdentifier='test-instance',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+
+    conn.restore_db_instance_to_point_in_time(SourceDBInstanceIdentifier='test-instance',
+                                              TargetDBInstanceIdentifier='restored-test-instance')
+
+    data.should.equal(['test-instance', 'restored-test-instance'])
+    instances = conn.describe_db_instances()
+    list(instances['DBInstances']).should.have.length_of(2)

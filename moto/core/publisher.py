@@ -3,6 +3,7 @@
 class EventTypes(object):
     RDS2_DATABASE_CREATED = 10
     RDS2_EVENT_SUBSCRIPTION_CREATED = 20
+    RDS2_SNAPSHOT_CREATED = 30
 
 
 class Publisher(object):
