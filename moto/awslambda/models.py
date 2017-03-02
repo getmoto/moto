@@ -135,6 +135,8 @@ class LambdaFunction(object):
             print("Exception %s", ex)
 
         try:
+            original_stdout = sys.stdout
+            original_stderr = sys.stderr
             codeOut = StringIO()
             codeErr = StringIO()
             sys.stdout = codeOut
@@ -150,8 +152,8 @@ class LambdaFunction(object):
         finally:
             codeErr.close()
             codeOut.close()
-            sys.stdout = sys.__stdout__
-            sys.stderr = sys.__stderr__
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
         return self.convert(result)
 
     def invoke(self, request, headers):
