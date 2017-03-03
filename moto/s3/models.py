@@ -90,7 +90,7 @@ class FakeKey(object):
     @property
     def response_dict(self):
         r = {
-            'etag': self.etag,
+            'Etag': self.etag,
             'last-modified': self.last_modified_RFC1123,
         }
         if self._storage_class != 'STANDARD':
