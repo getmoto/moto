@@ -286,7 +286,7 @@ DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
 DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <DescribeStackEventsResult>
     <StackEvents>
-      {% for event in stack.events %}
+      {% for event in stack.events[::-1] %}
       <member>
         <Timestamp>{{ event.timestamp.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}</Timestamp>
         <ResourceStatus>{{ event.resource_status }}</ResourceStatus>
