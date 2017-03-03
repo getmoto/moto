@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from datetime import datetime
 import json
+import uuid
 
 import boto.cloudformation
 from moto.core import BaseBackend
@@ -105,6 +106,7 @@ class FakeEvent(object):
         self.resource_status_reason = resource_status_reason
         self.resource_properties = resource_properties
         self.timestamp = datetime.utcnow()
+        self.event_id = uuid.uuid4()
 
 
 class CloudFormationBackend(BaseBackend):
