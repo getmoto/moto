@@ -180,9 +180,8 @@ class Queue(object):
             result[attribute] = getattr(self, camelcase_to_underscores(attribute))
         return result
 
-    @property
-    def url(self):
-        return "http://sqs.{0}.amazonaws.com/123456789012/{1}".format(self.region, self.name)
+    def url(self, request_url):
+        return "{0}://{1}/123456789012/{2}".format(request_url.scheme, request_url.netloc, self.name)
 
     @property
     def messages(self):
