@@ -105,7 +105,7 @@ def test_get_all_group_policies():
 
 @mock_iam()
 def test_list_group_policies():
-    conn = boto3.client('iam')
+    conn = boto3.client('iam', region_name='us-east-1')
     conn.create_group(GroupName='my-group')
     policies = conn.list_group_policies(GroupName='my-group')['PolicyNames'].should.be.empty
     conn.put_group_policy(GroupName='my-group', PolicyName='my-policy', PolicyDocument='{"some": "json"}')
