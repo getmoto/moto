@@ -171,12 +171,31 @@ class Group(object):
         )
 
         self.users = []
+        self.policies = {}
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
         raise UnformattedGetAttTemplateException()
+
+    def get_policy(self, policy_name):
+        try:
+            policy_json = self.policies[policy_name]
+        except KeyError:
+            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
+
+        return {
+            'policy_name': policy_name,
+            'policy_document': policy_json,
+            'group_name': self.name,
+        }
+
+    def put_policy(self, policy_name, policy_json):
+        self.policies[policy_name] = policy_json
+
+    def list_policies(self):
+        return self.policies.keys()
 
 
 class User(object):
@@ -588,6 +607,18 @@ class IAMBackend(BaseBackend):
                 groups.append(group)
 
         return groups
+
+    def put_group_policy(self, group_name, policy_name, policy_json):
+        group = self.get_group(group_name)
+        group.put_policy(policy_name, policy_json)
+
+    def list_group_policies(self, group_name, marker=None, max_items=None):
+        group = self.get_group(group_name)
+        return group.list_policies()
+
+    def get_group_policy(self, group_name, policy_name):
+        group = self.get_group(group_name)
+        return group.get_policy(policy_name)
 
     def create_user(self, user_name, path='/'):
         if user_name in self.users:

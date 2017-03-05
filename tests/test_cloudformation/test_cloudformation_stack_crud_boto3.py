@@ -354,16 +354,21 @@ def test_stack_events():
     events[0].resource_type.should.equal("AWS::CloudFormation::Stack")
     events[-1].resource_type.should.equal("AWS::CloudFormation::Stack")
 
-    # testing ordering of stack events without assuming resource events will
-    # not exist
+    # testing ordering of stack events without assuming resource events will not exist
+    # the AWS API returns events in reverse chronological order
     stack_events_to_look_for = iter([
-        ("CREATE_IN_PROGRESS", "User Initiated"), ("CREATE_COMPLETE", None),
-        ("UPDATE_IN_PROGRESS", "User Initiated"), ("UPDATE_COMPLETE", None),
-        ("DELETE_IN_PROGRESS", "User Initiated"), ("DELETE_COMPLETE", None)])
+        ("DELETE_COMPLETE", None),
+        ("DELETE_IN_PROGRESS", "User Initiated"),
+        ("UPDATE_COMPLETE", None),
+        ("UPDATE_IN_PROGRESS", "User Initiated"),
+        ("CREATE_COMPLETE", None),
+        ("CREATE_IN_PROGRESS", "User Initiated"),
+    ])
     try:
         for event in events:
             event.stack_id.should.equal(stack.stack_id)
             event.stack_name.should.equal("test_stack")
+            event.event_id.should.match(r"[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}")
 
             if event.resource_type == "AWS::CloudFormation::Stack":
                 event.logical_resource_id.should.equal("test_stack")

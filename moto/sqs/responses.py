@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -58,26 +59,29 @@ class SQSResponse(BaseResponse):
         return status_code, headers, body
 
     def create_queue(self):
+        request_url = urlparse(self.uri)
         queue_name = self.querystring.get("QueueName")[0]
         queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=self.attribute.get('VisibilityTimeout'),
                                               wait_time_seconds=self.attribute.get('WaitTimeSeconds'))
         template = self.response_template(CREATE_QUEUE_RESPONSE)
-        return template.render(queue=queue)
+        return template.render(queue=queue, request_url=request_url)
 
     def get_queue_url(self):
+        request_url = urlparse(self.uri)
         queue_name = self.querystring.get("QueueName")[0]
         queue = self.sqs_backend.get_queue(queue_name)
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
-            return template.render(queue=queue)
+            return template.render(queue=queue, request_url=request_url)
         else:
             return "", dict(status=404)
 
     def list_queues(self):
+        request_url = urlparse(self.uri)
         queue_name_prefix = self.querystring.get("QueueNamePrefix", [None])[0]
         queues = self.sqs_backend.list_queues(queue_name_prefix)
         template = self.response_template(LIST_QUEUES_RESPONSE)
-        return template.render(queues=queues)
+        return template.render(queues=queues, request_url=request_url)
 
     def change_message_visibility(self):
         queue_name = self._get_queue_name()
@@ -276,7 +280,7 @@ class SQSResponse(BaseResponse):
 
 CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
     <CreateQueueResult>
-        <QueueUrl>{{ queue.url }}</QueueUrl>
+        <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
         <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
     </CreateQueueResult>
     <ResponseMetadata>
@@ -286,7 +290,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
 
 GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
     <GetQueueUrlResult>
-        <QueueUrl>{{ queue.url }}</QueueUrl>
+        <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
     </GetQueueUrlResult>
     <ResponseMetadata>
         <RequestId>470a6f13-2ed9-4181-ad8a-2fdea142988e</RequestId>
@@ -296,7 +300,7 @@ GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
 LIST_QUEUES_RESPONSE = """<ListQueuesResponse>
     <ListQueuesResult>
         {% for queue in queues %}
-            <QueueUrl>{{ queue.url }}</QueueUrl>
+            <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
         {% endfor %}
     </ListQueuesResult>
     <ResponseMetadata>

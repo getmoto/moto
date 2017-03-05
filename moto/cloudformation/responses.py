@@ -147,6 +147,11 @@ class CloudFormationResponse(BaseResponse):
                 stack_name).template
         else:
             stack_body = self._get_param('TemplateBody')
+        parameters = dict([
+            (parameter['parameter_key'], parameter['parameter_value'])
+            for parameter
+            in self._get_list_prefix("Parameters.member")
+        ])
 
         stack = self.cloudformation_backend.get_stack(stack_name)
         if stack.status == 'ROLLBACK_COMPLETE':
@@ -157,6 +162,7 @@ class CloudFormationResponse(BaseResponse):
             name=stack_name,
             template=stack_body,
             role_arn=role_arn,
+            parameters=parameters
         )
         if self.request_json:
             stack_body = {
@@ -296,7 +302,7 @@ DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
 DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <DescribeStackEventsResult>
     <StackEvents>
-      {% for event in stack.events %}
+      {% for event in stack.events[::-1] %}
       <member>
         <Timestamp>{{ event.timestamp.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}</Timestamp>
         <ResourceStatus>{{ event.resource_status }}</ResourceStatus>

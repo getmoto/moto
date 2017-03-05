@@ -548,6 +548,7 @@ def test_autoscaling_group_with_elb():
                     "LaunchConfigurationName": {"Ref": "my-launch-config"},
                     "MinSize": "2",
                     "MaxSize": "2",
+                    "DesiredCapacity": "2",
                     "LoadBalancerNames": [{"Ref": "my-elb"}]
                 },
             },
@@ -631,6 +632,7 @@ def test_autoscaling_group_update():
                     "LaunchConfigurationName": {"Ref": "my-launch-config"},
                     "MinSize": "2",
                     "MaxSize": "2",
+                    "DesiredCapacity": "2"
                 },
             },
 
@@ -655,6 +657,7 @@ def test_autoscaling_group_update():
     asg = autoscale_conn.get_all_groups()[0]
     asg.min_size.should.equal(2)
     asg.max_size.should.equal(2)
+    asg.desired_capacity.should.equal(2)
 
     asg_template['Resources']['my-as-group']['Properties']['MaxSize'] = 3
     asg_template_json = json.dumps(asg_template)
@@ -665,6 +668,7 @@ def test_autoscaling_group_update():
     asg = autoscale_conn.get_all_groups()[0]
     asg.min_size.should.equal(2)
     asg.max_size.should.equal(3)
+    asg.desired_capacity.should.equal(2)
 
 
 @mock_ec2_deprecated()
@@ -693,6 +697,7 @@ def test_vpc_single_instance_in_subnet():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     instance = reservation.instances[0]
+    instance.tags["Foo"].should.equal("Bar")
     # Check that the EIP is attached the the EC2 instance
     eip = ec2_conn.get_all_addresses()[0]
     eip.domain.should.equal('vpc')
@@ -714,7 +719,7 @@ def test_vpc_single_instance_in_subnet():
 
     eip_resource = [
         resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
-    eip_resource.physical_resource_id.should.equal(eip.allocation_id)
+    eip_resource.physical_resource_id.should.equal(eip.public_ip)
 
 
 @mock_cloudformation()
@@ -1027,7 +1032,7 @@ def test_vpc_eip():
     resources = stack.describe_resources()
     cfn_eip = [
         resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
-    cfn_eip.physical_resource_id.should.equal(eip.allocation_id)
+    cfn_eip.physical_resource_id.should.equal(eip.public_ip)
 
 
 @mock_ec2_deprecated()

@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 import sure  # noqa
 
 from nose.tools import assert_raises
@@ -72,3 +73,40 @@ def test_get_groups_for_user():
     groups = conn.get_groups_for_user(
         'my-user')['list_groups_for_user_response']['list_groups_for_user_result']['groups']
     groups.should.have.length_of(2)
+
+
+@mock_iam_deprecated()
+def test_put_group_policy():
+    conn = boto.connect_iam()
+    conn.create_group('my-group')
+    conn.put_group_policy('my-group', 'my-policy', '{"some": "json"}')
+
+
+@mock_iam_deprecated()
+def test_get_group_policy():
+    conn = boto.connect_iam()
+    conn.create_group('my-group')
+    with assert_raises(BotoServerError):
+        conn.get_group_policy('my-group', 'my-policy')
+
+    conn.put_group_policy('my-group', 'my-policy', '{"some": "json"}')
+    policy = conn.get_group_policy('my-group', 'my-policy')
+
+@mock_iam_deprecated()
+def test_get_all_group_policies():
+    conn = boto.connect_iam()
+    conn.create_group('my-group')
+    policies = conn.get_all_group_policies('my-group')['list_group_policies_response']['list_group_policies_result']['policy_names']
+    assert policies == []
+    conn.put_group_policy('my-group', 'my-policy', '{"some": "json"}')
+    policies = conn.get_all_group_policies('my-group')['list_group_policies_response']['list_group_policies_result']['policy_names']
+    assert policies == ['my-policy']
+
+
+@mock_iam()
+def test_list_group_policies():
+    conn = boto3.client('iam')
+    conn.create_group(GroupName='my-group')
+    policies = conn.list_group_policies(GroupName='my-group')['PolicyNames'].should.be.empty
+    conn.put_group_policy(GroupName='my-group', PolicyName='my-policy', PolicyDocument='{"some": "json"}')
+    policies = conn.list_group_policies(GroupName='my-group')['PolicyNames'].should.equal(['my-policy'])

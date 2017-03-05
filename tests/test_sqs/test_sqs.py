@@ -77,7 +77,7 @@ def test_create_queues_in_multiple_region():
     list(west2_conn.list_queues()['QueueUrls']).should.have.length_of(1)
 
     west1_conn.list_queues()['QueueUrls'][0].should.equal(
-        'http://sqs.us-west-1.amazonaws.com/123456789012/blah')
+        'https://us-west-1.queue.amazonaws.com/123456789012/blah')
 
 
 @mock_sqs
@@ -92,7 +92,7 @@ def test_get_queue_with_prefix():
     queue = conn.list_queues(QueueNamePrefix="test-")['QueueUrls']
     queue.should.have.length_of(1)
     queue[0].should.equal(
-        "http://sqs.us-west-1.amazonaws.com/123456789012/test-queue")
+        "https://us-west-1.queue.amazonaws.com/123456789012/test-queue")
 
 
 @mock_sqs

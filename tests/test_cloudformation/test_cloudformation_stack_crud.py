@@ -12,7 +12,7 @@ import sure  # noqa
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_cloudformation_deprecated, mock_s3_deprecated
+from moto import mock_cloudformation_deprecated, mock_s3_deprecated, mock_route53_deprecated
 from moto.cloudformation import cloudformation_backends
 
 dummy_template = {
@@ -67,6 +67,57 @@ def test_create_stack():
         }
 
     })
+
+
+@mock_cloudformation_deprecated
+@mock_route53_deprecated
+def test_create_stack_hosted_zone_by_id():
+    conn = boto.connect_cloudformation()
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack 1",
+        "Parameters": {
+        },
+        "Resources": {
+            "Bar": {
+                "Type" : "AWS::Route53::HostedZone",
+                "Properties" : {
+                    "Name" : "foo.bar.baz",
+                }
+            },
+        },
+    }
+    dummy_template2 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack 2",
+        "Parameters": {
+            "ZoneId": { "Type": "String" }
+        },
+        "Resources": {
+            "Foo": {
+                "Properties": {
+                    "HostedZoneId": {"Ref": "ZoneId"},
+                    "RecordSets": []
+                },
+                "Type": "AWS::Route53::RecordSetGroup"
+            }
+        },
+    }
+    conn.create_stack(
+        "test_stack",
+        template_body=json.dumps(dummy_template),
+        parameters={}.items()
+    )
+    r53_conn = boto.connect_route53()
+    zone_id = r53_conn.get_zones()[0].id
+    conn.create_stack(
+        "test_stack",
+        template_body=json.dumps(dummy_template2),
+        parameters={"ZoneId": zone_id}.items()
+    )
+
+    stack = conn.describe_stacks()[0]
+    assert stack.list_resources()
 
 
 @mock_cloudformation_deprecated
@@ -282,6 +333,60 @@ def test_cloudformation_params():
 
 
 @mock_cloudformation_deprecated
+def test_cloudformation_params_conditions_and_resources_are_distinct():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack 1",
+        "Conditions": {
+            "FooEnabled": {
+                "Fn::Equals": [
+                    {
+                        "Ref": "FooEnabled"
+                    },
+                    "true"
+                ]
+            },
+            "FooDisabled": {
+                "Fn::Not": [
+                    {
+                        "Fn::Equals": [
+                            {
+                                "Ref": "FooEnabled"
+                            },
+                            "true"
+                        ]
+                    }
+                ]
+            }
+        },
+        "Parameters": {
+            "FooEnabled": {
+                "Type": "String",
+                "AllowedValues": [
+                    "true",
+                    "false"
+                ]
+            }
+        },
+        "Resources": {
+            "Bar": {
+                "Properties": {
+                    "CidrBlock": "192.168.0.0/16",
+                },
+                "Condition": "FooDisabled",
+                "Type": "AWS::EC2::VPC"
+            }
+        }
+    }
+    dummy_template_json = json.dumps(dummy_template)
+    cfn = boto.connect_cloudformation()
+    cfn.create_stack('test_stack1', template_body=dummy_template_json, parameters=[('FooEnabled', 'true')])
+    stack = cfn.describe_stacks('test_stack1')[0]
+    resources = stack.list_resources()
+    assert not [resource for resource in resources if resource.logical_resource_id == 'Bar']
+
+
+@mock_cloudformation_deprecated
 def test_stack_tags():
     conn = boto.connect_cloudformation()
     conn.create_stack(
@@ -342,6 +447,42 @@ def test_update_stack():
 
 
 @mock_cloudformation_deprecated
+def test_update_stack_with_parameters():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack",
+        "Resources": {
+            "VPC": {
+                "Properties": {
+                    "CidrBlock": {"Ref": "Bar"}
+            },
+            "Type": "AWS::EC2::VPC"
+            }
+        },
+        "Parameters": {
+            "Bar": {
+                "Type": "String"
+            }
+        }
+    }
+    dummy_template_json = json.dumps(dummy_template)
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+        parameters=[("Bar", "192.168.0.0/16")]
+    )
+    conn.update_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+        parameters=[("Bar", "192.168.0.1/16")]
+    )
+
+    stack = conn.describe_stacks()[0]
+    assert stack.parameters[0].value == "192.168.0.1/16"
+
+
+@mock_cloudformation_deprecated
 def test_update_stack_when_rolled_back():
     conn = boto.connect_cloudformation()
     stack_id = conn.create_stack(
@@ -374,16 +515,21 @@ def test_describe_stack_events_shows_create_update_and_delete():
     events[0].resource_type.should.equal("AWS::CloudFormation::Stack")
     events[-1].resource_type.should.equal("AWS::CloudFormation::Stack")
 
-    # testing ordering of stack events without assuming resource events will
-    # not exist
+    # testing ordering of stack events without assuming resource events will not exist
+    # the AWS API returns events in reverse chronological order
     stack_events_to_look_for = iter([
-        ("CREATE_IN_PROGRESS", "User Initiated"), ("CREATE_COMPLETE", None),
-        ("UPDATE_IN_PROGRESS", "User Initiated"), ("UPDATE_COMPLETE", None),
-        ("DELETE_IN_PROGRESS", "User Initiated"), ("DELETE_COMPLETE", None)])
+        ("DELETE_COMPLETE", None),
+        ("DELETE_IN_PROGRESS", "User Initiated"),
+        ("UPDATE_COMPLETE", None),
+        ("UPDATE_IN_PROGRESS", "User Initiated"),
+        ("CREATE_COMPLETE", None),
+        ("CREATE_IN_PROGRESS", "User Initiated"),
+    ])
     try:
         for event in events:
             event.stack_id.should.equal(stack_id)
             event.stack_name.should.equal("test_stack")
+            event.event_id.should.match(r"[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}")
 
             if event.resource_type == "AWS::CloudFormation::Stack":
                 event.logical_resource_id.should.equal("test_stack")

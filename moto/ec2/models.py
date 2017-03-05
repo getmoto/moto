@@ -349,8 +349,8 @@ class NetworkInterfaceBackend(object):
         return generic_filter(filters, enis)
 
 
-class Instance(BotoInstance, TaggedEC2Resource):
 
+class Instance(TaggedEC2Resource, BotoInstance):
     def __init__(self, ec2_backend, image_id, user_data, security_groups, **kwargs):
         super(Instance, self).__init__()
         self.ec2_backend = ec2_backend
@@ -458,7 +458,10 @@ class Instance(BotoInstance, TaggedEC2Resource):
             key_name=properties.get("KeyName"),
             private_ip=properties.get('PrivateIpAddress'),
         )
-        return reservation.instances[0]
+        instance = reservation.instances[0]
+        for tag in properties.get("Tags", []):
+            instance.add_tag(tag["Key"], tag["Value"])
+        return instance
 
     @property
     def physical_resource_id(self):
@@ -2956,7 +2959,7 @@ class ElasticAddress(object):
 
     @property
     def physical_resource_id(self):
-        return self.allocation_id if self.allocation_id else self.public_ip
+        return self.public_ip
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

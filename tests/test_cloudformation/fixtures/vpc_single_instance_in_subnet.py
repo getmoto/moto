@@ -236,6 +236,10 @@ template = {
                             "Ref": "AWS::StackId"
                         },
                         "Key": "Application"
+                    },
+                    {
+                        "Value": "Bar",
+                        "Key": "Foo"
                     }
                 ],
                 "SecurityGroupIds": [

@@ -198,6 +198,32 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_GROUPS_FOR_USER_TEMPLATE)
         return template.render(groups=groups)
 
+    def put_group_policy(self):
+        group_name = self._get_param('GroupName')
+        policy_name = self._get_param('PolicyName')
+        policy_document = self._get_param('PolicyDocument')
+        iam_backend.put_group_policy(group_name, policy_name, policy_document)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="PutGroupPolicyResponse")
+
+    def list_group_policies(self):
+        group_name = self._get_param('GroupName')
+        marker = self._get_param('Marker')
+        max_items = self._get_param('MaxItems')
+        policies = iam_backend.list_group_policies(group_name,
+            marker=marker, max_items=max_items)
+        template = self.response_template(LIST_GROUP_POLICIES_TEMPLATE)
+        return template.render(name="ListGroupPoliciesResponse",
+                               policies=policies,
+                               marker=marker)
+
+    def get_group_policy(self):
+        group_name = self._get_param('GroupName')
+        policy_name = self._get_param('PolicyName')
+        policy_result = iam_backend.get_group_policy(group_name, policy_name)
+        template = self.response_template(GET_GROUP_POLICY_TEMPLATE)
+        return template.render(name="GetGroupPolicyResponse", **policy_result)
+
     def create_user(self):
         user_name = self._get_param('UserName')
         path = self._get_param('Path')
@@ -205,6 +231,7 @@ class IamResponse(BaseResponse):
         user = iam_backend.create_user(user_name, path)
         template = self.response_template(USER_TEMPLATE)
         return template.render(action='Create', user=user)
+
 
     def get_user(self):
         user_name = self._get_param('UserName')
@@ -590,18 +617,16 @@ LIST_SERVER_CERTIFICATES_TEMPLATE = """<ListServerCertificatesResponse>
     <ServerCertificateMetadataList>
       {% for certificate in server_certificates %}
       <member>
-        <ServerCertificateMetadata>
-          <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
-          {% if certificate.path %}
-          <Path>{{ certificate.path }}</Path>
-          <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
-          {% else %}
-          <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
-          {% endif %}
-          <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
-          <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
-          <Expiration>2012-05-08T01:02:03.004Z</Expiration>
-        </ServerCertificateMetadata>
+        <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
+        {% if certificate.path %}
+        <Path>{{ certificate.path }}</Path>
+        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
+        {% else %}
+        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
+        {% endif %}
+        <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
+        <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
+        <Expiration>2012-05-08T01:02:03.004Z</Expiration>
       </member>
       {% endfor %}
     </ServerCertificateMetadataList>
@@ -713,6 +738,35 @@ LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
   </ResponseMetadata>
 </ListGroupsForUserResponse>"""
 
+LIST_GROUP_POLICIES_TEMPLATE = """<ListGroupPoliciesResponse>
+  <ListGroupPoliciesResult>
+    {% if marker is none %}
+    <IsTruncated>false</IsTruncated>
+    {% else %}
+    <IsTruncated>true</IsTruncated>
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <PolicyNames>
+    {% for policy in policies %}
+        <member>{{ policy }}</member>
+    {% endfor %}
+    </PolicyNames>
+  </ListGroupPoliciesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListGroupPoliciesResponse>"""
+
+GET_GROUP_POLICY_TEMPLATE = """<GetGroupPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<GetGroupPolicyResult>
+  <PolicyName>{{ policy_name }}</PolicyName>
+  <GroupName>{{ group_name }}</GroupName>
+  <PolicyDocument>{{ policy_document }}</PolicyDocument>
+</GetGroupPolicyResult>
+<ResponseMetadata>
+  <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</GetGroupPolicyResponse>"""
 
 USER_TEMPLATE = """<{{ action }}UserResponse>
    <{{ action }}UserResult>
