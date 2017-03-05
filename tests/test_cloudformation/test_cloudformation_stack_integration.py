@@ -535,6 +535,7 @@ def test_autoscaling_group_with_elb():
                     "LaunchConfigurationName": {"Ref": "my-launch-config"},
                     "MinSize": "2",
                     "MaxSize": "2",
+                    "DesiredCapacity": "2",
                     "LoadBalancerNames": [{"Ref": "my-elb"}]
                 },
             },
@@ -614,6 +615,7 @@ def test_autoscaling_group_update():
                     "LaunchConfigurationName": {"Ref": "my-launch-config"},
                     "MinSize": "2",
                     "MaxSize": "2",
+                    "DesiredCapacity": "2"
                 },
             },
 
@@ -638,6 +640,7 @@ def test_autoscaling_group_update():
     asg = autoscale_conn.get_all_groups()[0]
     asg.min_size.should.equal(2)
     asg.max_size.should.equal(2)
+    asg.desired_capacity.should.equal(2)
 
     asg_template['Resources']['my-as-group']['Properties']['MaxSize'] = 3
     asg_template_json = json.dumps(asg_template)
@@ -648,6 +651,7 @@ def test_autoscaling_group_update():
     asg = autoscale_conn.get_all_groups()[0]
     asg.min_size.should.equal(2)
     asg.max_size.should.equal(3)
+    asg.desired_capacity.should.equal(2)
 
 
 @mock_ec2()
