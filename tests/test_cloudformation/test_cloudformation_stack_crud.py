@@ -279,6 +279,60 @@ def test_cloudformation_params():
     param.value.should.equal('testing123')
 
 
+@mock_cloudformation()
+def test_cloudformation_params_conditions_and_resources_are_distinct():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack 1",
+        "Conditions": {
+            "FooEnabled": {
+                "Fn::Equals": [
+                    {
+                        "Ref": "FooEnabled"
+                    },
+                    "true"
+                ]
+            },
+            "FooDisabled": {
+                "Fn::Not": [
+                    {
+                        "Fn::Equals": [
+                            {
+                                "Ref": "FooEnabled"
+                            },
+                            "true"
+                        ]
+                    }
+                ]
+            }
+        },
+        "Parameters": {
+            "FooEnabled": {
+                "Type": "String",
+                "AllowedValues": [
+                    "true",
+                    "false"
+                ]
+            }
+        },
+        "Resources": {
+            "Bar": {
+                "Properties": {
+                    "CidrBlock": "192.168.0.0/16",
+                },
+                "Condition": "FooDisabled",
+                "Type": "AWS::EC2::VPC"
+            }
+        }
+    }
+    dummy_template_json = json.dumps(dummy_template)
+    cfn = boto.connect_cloudformation()
+    cfn.create_stack('test_stack1', template_body=dummy_template_json, parameters=[('FooEnabled', 'true')])
+    stack = cfn.describe_stacks('test_stack1')[0]
+    resources = stack.list_resources()
+    assert not [resource for resource in resources if resource.logical_resource_id == 'Bar']
+
+
 @mock_cloudformation
 def test_stack_tags():
     conn = boto.connect_cloudformation()
