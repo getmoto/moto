@@ -4,6 +4,10 @@ import functools
 import inspect
 import re
 
+try:
+    import boto3
+except ImportError:
+    boto3 = None
 from httpretty import HTTPretty
 from .responses import metadata_response
 from .utils import convert_regex_to_flask_path
@@ -11,6 +15,7 @@ from .utils import convert_regex_to_flask_path
 
 class MockAWS(object):
     nested_count = 0
+    original_create_transfer_manager = None
 
     def __init__(self, backends):
         self.backends = backends
@@ -38,6 +43,15 @@ class MockAWS(object):
         if not HTTPretty.is_enabled():
             HTTPretty.enable()
 
+        if boto3 and self.__class__.original_create_transfer_manager is None:
+            boto3.client('s3') # Ensure that boto3.s3 exists.
+            original_create_transfer_manager = boto3.s3.transfer.create_transfer_manager
+            self.__class__.original_create_transfer_manager = original_create_transfer_manager
+            def patched_create_transfer_manager(client, config, *args, **kwargs):
+                config.use_threads = False
+                return original_create_transfer_manager(client, config, *args, **kwargs)
+            boto3.s3.transfer.create_transfer_manager = patched_create_transfer_manager
+
         for method in HTTPretty.METHODS:
             backend = list(self.backends.values())[0]
             for key, value in backend.urls.items():
@@ -63,6 +77,9 @@ class MockAWS(object):
         if self.__class__.nested_count == 0:
             HTTPretty.disable()
             HTTPretty.reset()
+            if boto3:
+                boto3.s3.transfer.create_transfer_manager = self.__class__.original_create_transfer_manager
+                self.__class__.original_create_transfer_manager = None
 
     def decorate_callable(self, func, reset):
         def wrapper(*args, **kwargs):
