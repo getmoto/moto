@@ -31,3 +31,13 @@ class disable_on_py3(object):
         if not six.PY3:
             return test
         return skip_test
+
+
+def start(publisher):
+    """used by test_core/test_server.py:test_extension_script_gets_loaded"""
+    def dummy_observer(event_type, data):
+        data['answer'] = 42
+        data['event_type'] = event_type
+        data['module_name'] = __name__
+    event_type = 123
+    publisher.subscribe(dummy_observer, event_type)

@@ -1,22 +1,26 @@
 from __future__ import unicode_literals
 
 import copy
+import datetime
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import boto.rds2
-import json
 from jinja2 import Template
 from re import compile as re_compile
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.core import BaseBackend
-from moto.core.utils import get_random_hex
+from moto.core.utils import get_random_hex, iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from .exceptions import (RDSClientError,
                          DBInstanceNotFoundError,
+                         DBInstanceAlreadyExistsError,
                          DBSecurityGroupNotFoundError,
+                         DBSnapshotNotFoundError,
                          DBSubnetGroupNotFoundError,
-                         DBParameterGroupNotFoundError)
-
+                         DBParameterGroupNotFoundError,
+                         SourceNotFoundError,
+                         SubscriptionNotFoundError,
+                         SubscriptionAlreadyExistError)
 
 
 class Database(object):
@@ -27,21 +31,26 @@ class Database(object):
         self.region = kwargs.get('region')
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version", None)
-        self.default_engine_versions = {"MySQL": "5.6.21",
-                                        "mysql": "5.6.21",
-                                        "oracle-se1": "11.2.0.4.v3",
-                                        "oracle-se": "11.2.0.4.v3",
-                                        "oracle-ee": "11.2.0.4.v3",
-                                        "sqlserver-ee": "11.00.2100.60.v1",
-                                        "sqlserver-se": "11.00.2100.60.v1",
-                                        "sqlserver-ex": "11.00.2100.60.v1",
-                                        "sqlserver-web": "11.00.2100.60.v1",
-                                        "postgres": "9.3.3"
-                                        }
-        if not self.engine_version and self.engine in self.default_engine_versions:
-            self.engine_version = self.default_engine_versions[self.engine]
+        self.status_flow = []
+
+        EngineSettings = namedtuple('EngineSettings', ['version', 'port'])
+        self.default_engine_settings = {
+            "MySQL": EngineSettings(version="5.6.21", port="3306"),
+            "mysql": EngineSettings(version="5.6.21", port="3306"),
+            "oracle-se1": EngineSettings(version="11.2.0.4.v3", port="1521"),
+            "oracle-se": EngineSettings(version="11.2.0.4.v3", port="1521"),
+            "oracle-ee": EngineSettings(version="11.2.0.4.v3", port="1521"),
+            "sqlserver-ee": EngineSettings(version="11.00.2100.60.v1", port="1433"),
+            "sqlserver-se": EngineSettings(version="11.00.2100.60.v1", port="1433"),
+            "sqlserver-ex": EngineSettings(version="11.00.2100.60.v1", port="1433"),
+            "sqlserver-web": EngineSettings(version="11.00.2100.60.v1", port="1433"),
+            "postgres": EngineSettings(version="9.3.3", port="5432")
+        }
+
+        if not self.engine_version and self.engine in self.default_engine_settings:
+            self.engine_version = self.default_engine_settings[self.engine].version
         self.iops = kwargs.get("iops")
-        self.storage_encrypted = kwargs.get("storage_encrypted", False)
+        self.storage_encrypted = kwargs.get("storage_encrypted") or False
         if self.storage_encrypted:
             self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
         else:
@@ -57,6 +66,8 @@ class Database(object):
         self.source_db_identifier = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get('db_instance_class')
         self.port = kwargs.get('port')
+        if not self.port and self.engine in self.default_engine_settings:
+            self.port = self.default_engine_settings[self.engine].port
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.db_name = kwargs.get("db_name")
         self.publicly_accessible = kwargs.get("publicly_accessible")
@@ -90,10 +101,22 @@ class Database(object):
             self.option_group_name = self.default_option_groups[self.engine]
         self.character_set_name = kwargs.get('character_set_name', None)
         self.tags = kwargs.get('tags', [])
+        self.address_gen = lambda instance_id, region: "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(instance_id, region)
+        self.created = datetime.datetime.now()
 
     @property
     def physical_resource_id(self):
         return self.db_instance_identifier
+
+    @property
+    def latest_restorable_time(self):
+        return iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+
+    @property
+    def dynamic_status(self):
+        if self.status_flow:
+            return self.status_flow.pop()
+        return self.status
 
     def db_parameter_groups(self):
         if not self.db_parameter_group_name:
@@ -118,12 +141,20 @@ class Database(object):
     def to_xml(self):
         template = Template("""<DBInstance>
               <BackupRetentionPeriod>{{ database.backup_retention_period }}</BackupRetentionPeriod>
-              <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
-              <MultiAZ>{{ database.multi_az }}</MultiAZ>
-              <VpcSecurityGroups/>
+              <DBInstanceStatus>{{ database.dynamic_status }}</DBInstanceStatus>
+              <MultiAZ>{{ database.multi_az|lower }}</MultiAZ>
+              <VpcSecurityGroups>
+                  {% for vpc_id in database.vpc_security_group_ids %}
+                    <VpcSecurityGroup>
+                        <VpcSecurityGroupId>{{ vpc_id }}</VpcSecurityGroupId>
+                        <Status>active</Status>
+                    </VpcSecurityGroup>
+                  {% endfor %}
+              </VpcSecurityGroups>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
               <PreferredBackupWindow>03:50-04:20</PreferredBackupWindow>
               <PreferredMaintenanceWindow>wed:06:38-wed:07:08</PreferredMaintenanceWindow>
+              <LatestRestorableTime>{{ database.latest_restorable_time }}</LatestRestorableTime>
               <ReadReplicaDBInstanceIdentifiers>
                 {% for replica_id in database.replicas %}
                     <ReadReplicaDBInstanceIdentifier>{{ replica_id }}</ReadReplicaDBInstanceIdentifier>
@@ -207,7 +238,7 @@ class Database(object):
 
     @property
     def address(self):
-        return "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(self.db_instance_identifier, self.region)
+        return self.address_gen(self.db_instance_identifier, self.region)
 
     def add_replica(self, replica):
         self.replicas.append(replica.db_instance_identifier)
@@ -221,7 +252,7 @@ class Database(object):
 
     def update(self, db_kwargs):
         for key, value in db_kwargs.items():
-            if value is not None:
+            if value not in [None, []]:
                 setattr(self, key, value)
 
     def get_cfn_attribute(self, attribute_name):
@@ -307,7 +338,7 @@ class Database(object):
         {%- if database.db_subnet_group -%}{{ database.db_subnet_group.to_json() }},{%- endif %}
         "Engine": "{{ database.engine }}",
         "EngineVersion": "{{ database.engine_version }}",
-        "LatestRestorableTime": null,
+        "LatestRestorableTime": "{{ database.latest_restorable_time }}",
         "LicenseModel": "{{ database.license_model }}",
         "MasterUsername": "{{ database.master_username }}",
         "MultiAZ": "{{ database.multi_az }}",{% if database.option_group_name %}
@@ -557,6 +588,127 @@ class SubnetGroup(object):
         backend.delete_subnet_group(self.subnet_name)
 
 
+class EventSubscription(object):
+    def __init__(self, name, categories, sns_topic_arn, source_type, source_ids, enabled):
+        self.name = name
+        self.categories = categories
+        self.sns_topic_arn = sns_topic_arn
+        self.source_type = source_type
+        self.source_ids = source_ids
+        self.enabled = enabled
+        self.created = datetime.datetime.now()
+        sns_arn = sns_topic_arn.split(':')
+        self.customer_aws_id = sns_arn[4]
+        self.arn = "arn:aws:rds:{0}:{1}:es:{2}".format(sns_arn[3], self.customer_aws_id, name)
+
+    @property
+    def creation_time(self):
+        return iso_8601_datetime_with_milliseconds(self.created)
+
+    def to_xml(self):
+        template = Template("""<EventSubscription>
+            <CustSubscriptionId>{{ event_subscription.name }}</CustSubscriptionId>
+            <EventSubscriptionArn>{{ event_subscription.arn }}</EventSubscriptionArn>
+            <SourceType>{{ event_subscription.source_type }}</SourceType>
+            <SnsTopicArn>{{ event_subscription.sns_topic_arn }}</SnsTopicArn>
+            <EventCategoriesList>
+            {% for category in event_subscription.categories %}
+              <EventCategory>{{ category }}</EventCategory>
+            {% endfor %}
+            </EventCategoriesList>
+            <SourceIdsList>
+            {% for source_id in event_subscription.source_ids %}
+              <SourceId>{{ source_id }}</SourceId>
+            {% endfor %}
+            </SourceIdsList>
+            <SubscriptionCreationTime>{{ event_subscription.creation_time }}</SubscriptionCreationTime>
+            <Enabled>{{ event_subscription.enabled|lower }}</Enabled>
+            <Status>active</Status>
+            <CustomerAwsId>{{ event_subscription.customer_aws_id }}</CustomerAwsId>
+          </EventSubscription>""")
+        return template.render(event_subscription=self)
+
+    def to_json(self):
+        template = Template(""""EventSubscription": {
+          "CustSubscriptionId": "{{ event_subscription.name }}",
+          "EventSubscriptionArn": "{{ event_subscription.arn }}",
+          "SourceType": "{{ event_subscription.source_type }}",
+          "SnsTopicArn": "{{ event_subscription.sns_topic_arn }}",
+          "EventCategories": [ {{ ", ".join('"%s"' % category for category in event_subscription.categories) }}],
+          "{{ event_subscription. }}",
+          "SourceIds": [[{{ ", ".join('"%s"' % source_id for source_id in event_subscription.source_ids) }}],
+          "SubscriptionCreationTime": "{{ event_subscription.creation_time }}",
+          "Enabled": "{{ event_subscription.enabled }}",
+          "Status": "Active",
+          "CustomerAwsId": "{{ event_subscription.customer_aws_id }}"
+        }""")
+        return template.render(event_subscription=self)
+
+
+class Snapshot(object):
+
+    def __init__(self, db_snapshot_identifier, db_instance, tags):
+        db = db_instance
+        self.db_snapshot_identifier = db_snapshot_identifier
+        self.db_instance_identifier = db.db_instance_identifier
+        self.tags = tags
+        self.created = datetime.datetime.now()
+        self.engine = db.engine
+        self.engine_version = db.engine_version
+        self.allocated_storage = 100
+        self.status = 'available'
+        self.port = db.port
+        self.availability_zone = db.availability_zone
+        self.instance_created = db.created
+        self.master_username = db.master_username
+        self.license_model = db.license_model
+        self.iops = db.iops
+        self.snapshot_type = 'manual'  # automated, manual, shared, public
+        self.percent_progress = 100
+        self.storage_type = db.storage_type
+        self.vpc_id = db.db_subnet_group.vpc_id if db.db_subnet_group else None
+        self.option_group_name = None
+        self.source_region = None
+        self.source_snapshot_identifier = None
+        self.tde_credential_arn = None
+        self.encrypted = False
+        self.kms_key_id = None
+        self.db_snapshot_arn = None
+        # In most cases, the Timezone element is empty. Timezone content appears only for snapshots taken from
+        # Microsoft SQL Server DB instances that were created with a time zone specified.
+        self.timezone = ''
+
+    @property
+    def creation_time(self):
+        return iso_8601_datetime_with_milliseconds(self.created)
+
+    @property
+    def db_instance_creation_time(self):
+        return iso_8601_datetime_with_milliseconds(self.instance_created)
+
+    def get_tags(self):
+        return self.tags
+
+    def to_xml(self):
+        template = Template("""<DBSnapshot>
+              <Port>{{ snapshot.port }}</Port>
+              <OptionGroupName>{{ snapshot.option_group_name }}</OptionGroupName>
+              <Engine>{{ snapshot.engine }}</Engine>
+              <Status>{{ snapshot.status }}</Status>
+              <SnapshotType>{{ snapshot.type }}</SnapshotType>
+              <LicenseModel>{{ snapshot.license_model }}</LicenseModel>
+              <EngineVersion>{{ snapshot.engine_version }}</EngineVersion>
+              <DBInstanceIdentifier>{{ snapshot.db_instance_identifier }}</DBInstanceIdentifier>
+              <DBSnapshotIdentifier>{{ snapshot.db_snapshot_identifier }}</DBSnapshotIdentifier>
+              <AvailabilityZone>{{ snapshot.availability_zone }}</AvailabilityZone>
+              <InstanceCreateTime>{{ snapshot.db_instance_creation_time }}</InstanceCreateTime>
+              <PercentProgress>{{ snapshot.percent_progress }}</PercentProgress>
+              <AllocatedStorage>{{ snapshot.allocated_storage }}</AllocatedStorage>
+              <MasterUsername>{{ snapshot.master_username }}</MasterUsername>
+            </DBSnapshot>""")
+        return template.render(snapshot=self)
+
+
 class RDS2Backend(BaseBackend):
 
     def __init__(self, region):
@@ -567,6 +719,8 @@ class RDS2Backend(BaseBackend):
         self.option_groups = {}
         self.security_groups = {}
         self.subnet_groups = {}
+        self.event_subscriptions = {}
+        self.snapshots = {}
 
     def reset(self):
         # preserve region
@@ -578,7 +732,155 @@ class RDS2Backend(BaseBackend):
         database_id = db_kwargs['db_instance_identifier']
         database = Database(**db_kwargs)
         self.databases[database_id] = database
+        self.publisher.notify(self.publisher.events.RDS2_DATABASE_CREATED, database)
         return database
+
+    def create_event_subscription(self, event_kwargs):
+        name = event_kwargs['name']
+        if name in self.event_subscriptions:
+            raise SubscriptionAlreadyExistError(name)
+        event_subscription = EventSubscription(**event_kwargs)
+        self.publisher.notify(self.publisher.events.RDS2_EVENT_SUBSCRIPTION_CREATED, event_subscription)
+        self.event_subscriptions[event_subscription.name] = event_subscription
+        return event_subscription
+
+    def create_snapshot(self, db_snapshot_identifier, db_instance_identifier, tags):
+        if not db_snapshot_identifier:
+            pass # TODO: MissingParameter
+        if not db_instance_identifier:
+            pass # TODO: MissingParameter
+        if db_snapshot_identifier in self.snapshots:
+            pass # TODO: DBSnapshotAlreadyExists
+
+        db_instance = self.databases.get(db_instance_identifier)
+        if not db_instance:
+            raise DBInstanceNotFoundError(db_instance_identifier)
+        if db_instance.status != 'available':
+            pass # TODO: InvalidDBInstanceState
+        snapshot = Snapshot(db_snapshot_identifier, db_instance, tags)
+        self.snapshots[snapshot.db_snapshot_identifier] = snapshot
+        self.publisher.notify(self.publisher.events.RDS2_SNAPSHOT_CREATED, snapshot)
+        return snapshot
+
+    def describe_snapshots(self, kwargs):
+        snapshots = []
+
+        marker = kwargs['marker']
+        if marker is None:
+            marker = 0
+
+        max_records = kwargs['max_records']
+        if max_records is None:
+            max_records = 100
+        if max_records < 20 or max_records > 100:
+            raise RDSClientError('InvalidParameterValue', 'Invalid value for max records. Must be between 20 and 100')
+
+        db_snapshot_identifier = kwargs['db_snapshot_identifier']
+        db_instance_identifier = kwargs['db_instance_identifier']
+
+        if db_snapshot_identifier and db_instance_identifier:
+            raise RDSClientError('InvalidParameterCombination',
+                                 'DBInstanceIdentifier cannot be used in conjunction with DBSnapshotIdentifier')
+
+        include_shared = kwargs['include_shared']
+        include_public = kwargs['include_public']
+
+        snapshot_type = kwargs['snapshot_type']
+        if not snapshot_type:
+            snapshot_types = ['automated', 'manual']
+            if include_shared:
+                snapshot_types.append('shared')
+            if include_public:
+                snapshot_types.append('public')
+        else:
+            snapshot_types = [snapshot_type]
+
+        for snapshot in self.snapshots.values():
+            if db_instance_identifier and not snapshot.db_instance_identifier == db_instance_identifier:
+                continue
+            if db_snapshot_identifier and not snapshot.db_snapshot_identifier == db_snapshot_identifier:
+                continue
+            if not snapshot.snapshot_type in snapshot_types:
+                continue
+            snapshots.append(snapshot)
+
+        if db_snapshot_identifier and not snapshots:
+            raise DBSnapshotNotFoundError(db_snapshot_identifier)
+
+        return snapshots[marker:max_records+marker]
+
+    def restore_db_instance_from_db_snapshot(self, kwargs):
+
+        database_id = kwargs['db_instance_identifier']
+        snapshot_id = kwargs['db_snapshot_identifier']
+
+        if database_id in self.databases:
+            raise DBInstanceAlreadyExistsError(database_id)
+
+        snapshot = self.snapshots.get(snapshot_id)
+        if not snapshot:
+            raise DBSnapshotNotFoundError(snapshot_id)
+
+        for key in ['port', 'license_model', 'engine', 'engine_version',
+                    'allocated_storage', 'storage_type', 'master_username']:
+            if kwargs.get(key) is None:
+                kwargs[key] = getattr(snapshot, key)
+
+        database = Database(**kwargs)
+        self.databases[database_id] = database
+        self.publisher.notify(self.publisher.events.RDS2_DATABASE_CREATED, database)
+        return database
+
+    def restore_db_instance_to_point_in_time(self, source_db_instance_identifier,
+                                             target_db_instance_identifier, db_kwargs):
+        if source_db_instance_identifier not in self.databases:
+            raise DBInstanceNotFoundError(source_db_instance_identifier)
+
+        if target_db_instance_identifier in self.databases:
+            raise DBInstanceAlreadyExistsError(target_db_instance_identifier)
+
+        database = copy.deepcopy(self.databases[source_db_instance_identifier])
+        database.db_instance_identifier = target_db_instance_identifier
+        database.update(db_kwargs)
+        self.databases[target_db_instance_identifier] = database
+        self.publisher.notify(self.publisher.events.RDS2_DATABASE_CREATED, database)
+        return database
+
+    def delete_db_snapshot(self, db_snapshot_identifier):
+        snapshot = self.snapshots.get(db_snapshot_identifier)
+        if not snapshot:
+            raise DBSnapshotNotFoundError(db_snapshot_identifier)
+        if snapshot.status != 'available':
+            raise RDSClientError('InvalidDBSnapshotState',
+                                 'The state of the DB Snapshot does not allow deletion')
+        snapshot.status = 'deleted'
+        return self.snapshots.pop(db_snapshot_identifier)
+
+    def describe_event_subscriptions(self, name=None):
+        if name and name not in self.event_subscriptions:
+            raise SubscriptionNotFoundError(name)
+        elif name:
+            return [self.event_subscriptions[name]]
+        return self.event_subscriptions.values()
+
+    def add_source_identifier_to_subscription(self, name, source_id):
+        event_subscription = self.event_subscriptions.get(name)
+        if not event_subscription:
+            raise SubscriptionNotFoundError(name)
+        if not source_id:
+            raise RDSClientError('InvalidParameterValue',
+                                 'The parameter SourceIdentifier must be provided and must not be blank.')
+        event_subscription.source_ids.append(source_id)
+        return event_subscription
+
+    def remove_source_identifier_from_subscription(self, name, source_id):
+        event_subscription = self.event_subscriptions.get(name)
+        if not event_subscription:
+            raise SubscriptionNotFoundError(name)
+        if not source_id or source_id not in event_subscription.source_ids:
+            raise SourceNotFoundError(source_id)
+        event_subscription.source_ids.remove(source_id)
+        return event_subscription
 
     def create_database_replica(self, db_kwargs):
         database_id = db_kwargs['db_instance_identifier']
@@ -609,6 +911,7 @@ class RDS2Backend(BaseBackend):
 
     def reboot_db_instance(self, db_instance_identifier):
         database = self.describe_databases(db_instance_identifier)[0]
+        database.status_flow = ['rebooting']
         return database
 
     def find_db_from_id(self, db_id):
@@ -832,12 +1135,6 @@ class RDS2Backend(BaseBackend):
 
         return db_parameter_group
 
-    def delete_db_parameter_group(self, db_parameter_group_name):
-        if db_parameter_group_name in self.db_parameter_groups:
-            return self.db_parameter_groups.pop(db_parameter_group_name)
-        else:
-            raise DBParameterGroupNotFoundError(db_parameter_group_name)
-
     def list_tags_for_resource(self, arn):
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(':')
@@ -862,8 +1159,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].get_tags()
             elif resource_type == 'snapshot':  # DB Snapshot
-                # TODO: Complete call to tags on resource type DB Snapshot
-                return []
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].get_tags()
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].get_tags()
@@ -1062,6 +1359,7 @@ class OptionGroupOptionSetting(object):
     <SettingName>{{ option_group_option_setting.setting_name }}</SettingName>
 </OptionGroupOptionSetting>""")
         return template.render(option_group_option_setting=self)
+
 
 class DBParameterGroup(object):
     def __init__(self, name, description, family, tags):

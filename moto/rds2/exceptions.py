@@ -26,6 +26,13 @@ class DBInstanceNotFoundError(RDSClientError):
             "Database {0} not found.".format(database_identifier))
 
 
+class DBInstanceAlreadyExistsError(RDSClientError):
+    def __init__(self, database_identifier):
+        super(DBInstanceAlreadyExistsError, self).__init__(
+            'DBInstanceAlreadyExists',
+            "DBInstanceIdentifier {0} already exists.".format(database_identifier))
+
+
 class DBSecurityGroupNotFoundError(RDSClientError):
     def __init__(self, security_group_name):
         super(DBSecurityGroupNotFoundError, self).__init__(
@@ -39,8 +46,37 @@ class DBSubnetGroupNotFoundError(RDSClientError):
             'DBSubnetGroupNotFound',
             "Subnet Group {0} not found.".format(subnet_group_name))
 
+
 class DBParameterGroupNotFoundError(RDSClientError):
     def __init__(self, db_parameter_group_name):
         super(DBParameterGroupNotFoundError, self).__init__(
             'DBParameterGroupNotFound',
             'DB Parameter Group {0} not found.'.format(db_parameter_group_name))
+
+
+class SubscriptionNotFoundError(RDSClientError):
+    def __init__(self, subscription_name):
+        super(SubscriptionNotFoundError, self).__init__(
+            'SubscriptionNotFound',
+            'Event Subscription {0} not found.'.format(subscription_name))
+
+
+class SubscriptionAlreadyExistError(RDSClientError):
+    def __init__(self, subscription_name):
+        super(SubscriptionAlreadyExistError, self).__init__(
+            'SubscriptionAlreadyExist',
+            'Event Subscription {0} already exists.'.format(subscription_name))
+
+
+class DBSnapshotNotFoundError(RDSClientError):
+    def __init__(self, db_snapshot_identifier):
+        super(DBSnapshotNotFoundError, self).__init__(
+            'DBSnapshotNotFound',
+            'DBSnapshot {0} not found.'.format(db_snapshot_identifier))
+
+
+class SourceNotFoundError(RDSClientError):
+    def __init__(self, source_id):
+        super(SourceNotFoundError, self).__init__(
+            'SourceNotFound',
+            'Source {0} not found.'.format(source_id))

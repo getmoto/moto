@@ -1,11 +1,10 @@
 from __future__ import unicode_literals
 
-import boto.rds2
-import boto.vpc
 from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
+from moto.core.publisher import default_publisher, EventTypes
 from tests.helpers import disable_on_py3
 
 
@@ -27,6 +26,32 @@ def test_create_database():
     database['DBInstance']['DBInstanceClass'].should.equal("db.m1.small")
     database['DBInstance']['MasterUsername'].should.equal("root")
     database['DBInstance']['DBSecurityGroups'][0]['DBSecurityGroupName'].should.equal('my_sg')
+
+
+@disable_on_py3()
+@mock_rds2
+def test_create_database_triggers_event():
+    def on_database_created(_event_id, database):
+        database.master_username = database.master_username[::-1]  # reverse
+        database.port = 4567
+        database.address_gen = lambda instance_id, region: "{0}.{1}.somewhere-else.com".format(instance_id, region)
+
+    default_publisher.subscribe(on_database_created, EventTypes.RDS2_DATABASE_CREATED)
+
+    conn = boto3.client('rds', region_name='us-west-2')
+    instance = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+                                       AllocatedStorage=10,
+                                       Engine='postgres',
+                                       DBInstanceClass='db.m1.small',
+                                       MasterUsername='root',
+                                       MasterUserPassword='hunter2',
+                                       Port=1234,
+                                       DBSecurityGroups=["my_sg"])['DBInstance']
+
+    instance['MasterUsername'].should.equal("toor")
+    instance['Endpoint']['Port'].should.equal(4567)
+    instance['Endpoint']['Address'].should.equal("db-master-1.us-west-2.somewhere-else.com")
+    default_publisher.reset()
 
 
 @disable_on_py3()
@@ -1018,3 +1043,257 @@ def test_create_parameter_group_with_tags():
                                    }])
     result = conn.list_tags_for_resource(ResourceName='arn:aws:rds:us-west-2:1234567890:pg:test')
     result['TagList'].should.equal([{'Value': 'bar', 'Key': 'foo'}])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_create_event_subscription():
+    conn = boto3.client('rds', region_name='us-east-1')
+
+    sns_topic_arn = "arn:aws:sns:us-east-1:11223344:test-rds-filter-topic"
+    categories =['availability', 'failure', 'low storage']
+    result = conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn=sns_topic_arn,
+                                   SourceType='db-instance',
+                                   EventCategories=categories)
+    event_subscription = result['EventSubscription']
+
+    event_subscription['CustSubscriptionId'].should.equal('test-subscription')
+    event_subscription['Status'].should.equal('active')
+    event_subscription['EventSubscriptionArn'].should.equal('arn:aws:rds:us-east-1:11223344:es:test-subscription')
+    event_subscription['EventCategoriesList'].should.equal(categories)
+    event_subscription['Enabled'].should.equal(True)
+    event_subscription['SourceType'].should.equal('db-instance')
+    event_subscription['CustomerAwsId'].should.equal('11223344')
+    event_subscription['SnsTopicArn'].should.equal(sns_topic_arn)
+    event_subscription['SourceIdsList'].should.equals([])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_describe_event_subscriptions():
+    conn = boto3.client('rds', region_name='us-east-1')
+
+    sns_topic_arn = "arn:aws:sns:us-east-1:11223344:test-rds-filter-topic"
+    categories = ['availability', 'failure', 'low storage']
+    result = conn.create_event_subscription(SubscriptionName='test-subscription',
+                                            SnsTopicArn=sns_topic_arn,
+                                            SourceType='db-instance',
+                                            EventCategories=categories)
+    event_subscription = result['EventSubscription']
+    result = conn.describe_event_subscriptions()
+    result['EventSubscriptionsList'].should.equal([event_subscription])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_add_source_identifier_to_subscription():
+    conn = boto3.client('rds', region_name='us-east-1')
+
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+
+    conn.add_source_identifier_to_subscription(SubscriptionName='test-subscription',
+                                               SourceIdentifier='source3')
+    result = conn.describe_event_subscriptions(SubscriptionName='test-subscription')
+    result['EventSubscriptionsList'][0]['SourceIdsList'].should.equal(['source1', 'source2', 'source3'])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_remove_source_identifier_from_subscription():
+    conn = boto3.client('rds', region_name='us-east-1')
+
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2', 'source3'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+
+    conn.remove_source_identifier_from_subscription(SubscriptionName='test-subscription',
+                                                    SourceIdentifier='source2')
+    result = conn.describe_event_subscriptions(SubscriptionName='test-subscription')
+    result['EventSubscriptionsList'][0]['SourceIdsList'].should.equal(['source1', 'source3'])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_describe_non_existent_subscription():
+    conn = boto3.client('rds', region_name='us-east-1')
+    conn.describe_event_subscriptions.when.called_with(SubscriptionName='four-o-four').should.throw(ClientError)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_subscription_already_exists():
+    conn = boto3.client('rds', region_name='us-east-1')
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2', 'source3'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+
+    conn.create_event_subscription.when.called_with(SubscriptionName='test-subscription',
+                                                    SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                                    SourceType='db-instance',
+                                                    EventCategories=['availability']).should.throw(ClientError)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_remove_non_existent_source_id():
+    conn = boto3.client('rds', region_name='us-east-1')
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-east-1:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2', 'source3'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+
+    conn.remove_source_identifier_from_subscription.when.called_with(SubscriptionName='test-subscription',
+                                                                     SourceIdentifier='source4').should.throw(ClientError)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_create_event_subscription_triggers_event():
+    data = []
+
+    def on_subscription_created(event_id, event_subscription):
+        data.extend([event_id, event_subscription])
+
+    default_publisher.subscribe(on_subscription_created, EventTypes.RDS2_EVENT_SUBSCRIPTION_CREATED)
+
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_event_subscription(SubscriptionName='test-subscription',
+                                   SnsTopicArn="arn:aws:sns:us-west-2:11223344:test-rds-filter-topic",
+                                   SourceType='db-instance',
+                                   SourceIds=['source1', 'source2', 'source3'],
+                                   EventCategories=['availability', 'failure', 'low storage'])
+    event_id, model = data
+    event_id.should.equal(EventTypes.RDS2_EVENT_SUBSCRIPTION_CREATED)
+    model.name.should.equal('test-subscription')
+    model.categories.should.equal(['availability', 'failure', 'low storage'])
+    default_publisher.reset()
+
+
+@disable_on_py3()
+@mock_rds2
+def test_create_db_snapshot():
+    data = []
+
+    def on_snapshot_created(event_id, snapshot):
+        data.extend([event_id, snapshot])
+
+    default_publisher.subscribe(on_snapshot_created, EventTypes.RDS2_SNAPSHOT_CREATED)
+    conn = boto3.client('rds', region_name='us-west-2')
+
+    conn.create_db_instance(DBInstanceIdentifier='test-instance',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+
+    result = conn.create_db_snapshot(DBSnapshotIdentifier='snapshot-1',
+                                     DBInstanceIdentifier='test-instance')
+    snapshot = result['DBSnapshot']
+    snapshot['Status'].should.equal('available')
+    snapshot['MasterUsername'].should.equal('root')
+    snapshot['DBInstanceIdentifier'].should.equal('test-instance')
+    snapshot['DBSnapshotIdentifier'].should.equal('snapshot-1')
+    event_id, model = data
+    event_id.should.equal(EventTypes.RDS2_SNAPSHOT_CREATED)
+    model.db_snapshot_identifier.should.equal('snapshot-1')
+
+    default_publisher.reset()
+
+
+@disable_on_py3()
+@mock_rds2
+def test_describe_and_delete_db_snapshots():
+    conn = boto3.client('rds', region_name='us-west-2')
+
+    conn.create_db_instance(DBInstanceIdentifier='test-instance',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+
+    conn.create_db_snapshot(DBSnapshotIdentifier='snapshot-a',
+                            DBInstanceIdentifier='test-instance')
+    conn.create_db_snapshot(DBSnapshotIdentifier='snapshot-b',
+                            DBInstanceIdentifier='test-instance')
+
+    snapshots = conn.describe_db_snapshots()['DBSnapshots']
+    snapshot_ids = sorted([s['DBSnapshotIdentifier'] for s in snapshots])
+    snapshot_ids.should.equal(['snapshot-a', 'snapshot-b'])
+
+    conn.delete_db_snapshot(DBSnapshotIdentifier='snapshot-b')
+    snapshots = conn.describe_db_snapshots()['DBSnapshots']
+    snapshot_ids = sorted([s['DBSnapshotIdentifier'] for s in snapshots])
+    snapshot_ids.should.equal(['snapshot-a'])
+
+
+@disable_on_py3()
+@mock_rds2
+def test_restore_db_instance_from_db_snapshot():
+    data = []
+
+    def on_db_created(_event_id, db):
+        data.append(db.db_instance_identifier)
+
+    default_publisher.subscribe(on_db_created, EventTypes.RDS2_DATABASE_CREATED)
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_instance(DBInstanceIdentifier='test-instance',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+
+    conn.create_db_snapshot(DBSnapshotIdentifier='snapshot-a',
+                            DBInstanceIdentifier='test-instance')
+
+    conn.restore_db_instance_from_db_snapshot(DBInstanceIdentifier='restored-test-instance',
+                                              DBSnapshotIdentifier='snapshot-a')
+
+    data.should.equal(['test-instance', 'restored-test-instance'])
+    instances = conn.describe_db_instances()
+    list(instances['DBInstances']).should.have.length_of(2)
+
+
+@disable_on_py3()
+@mock_rds2
+def test_restore_db_instance_to_point_in_time():
+    data = []
+
+    def on_db_created(_event_id, db):
+        data.append(db.db_instance_identifier)
+
+    default_publisher.subscribe(on_db_created, EventTypes.RDS2_DATABASE_CREATED)
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_instance(DBInstanceIdentifier='test-instance',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+
+    conn.restore_db_instance_to_point_in_time(SourceDBInstanceIdentifier='test-instance',
+                                              TargetDBInstanceIdentifier='restored-test-instance')
+
+    data.should.equal(['test-instance', 'restored-test-instance'])
+    instances = conn.describe_db_instances()
+    list(instances['DBInstances']).should.have.length_of(2)

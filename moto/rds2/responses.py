@@ -5,8 +5,6 @@ from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds2_backends
 from .exceptions import DBParameterGroupNotFoundError
-import json
-import re
 
 
 class RDS2Response(BaseResponse):
@@ -42,7 +40,7 @@ class RDS2Response(BaseResponse):
             "security_groups": self._get_multi_param('DBSecurityGroups.DBSecurityGroupName'),
             "storage_encrypted": self._get_param("StorageEncrypted"),
             "storage_type": self._get_param("StorageType"),
-            # VpcSecurityGroupIds.member.N
+            "vpc_security_group_ids": self._get_multi_param("VpcSecurityGroupIds.VpcSecurityGroupId"),
             "tags": list(),
         }
         args['tags'] = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
@@ -61,6 +59,7 @@ class RDS2Response(BaseResponse):
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "source_db_identifier": self._get_param('SourceDBInstanceIdentifier'),
             "storage_type": self._get_param("StorageType"),
+            "tags": self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
         }
 
     def _get_option_group_kwargs(self):
@@ -79,13 +78,23 @@ class RDS2Response(BaseResponse):
             'tags': self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value')),
         }
 
+    def _get_event_subscription_kwargs(self):
+        return {
+            'name': self._get_param('SubscriptionName'),
+            'categories': self.unpack_list_params('EventCategories.EventCategory'),
+            'enabled': self._get_bool_param('Enabled', if_none=True),
+            'sns_topic_arn': self._get_param('SnsTopicArn'),
+            'source_type': self._get_param('SourceType'),
+            'source_ids': self.unpack_list_params('SourceIds.SourceId')
+        }
+
     def unpack_complex_list_params(self, label, names):
         unpacked_list = list()
         count = 1
         while self._get_param('{0}.{1}.{2}'.format(label, count, names[0])):
             param = dict()
-            for i in range(len(names)):
-                param[names[i]] = self._get_param('{0}.{1}.{2}'.format(label, count, names[i]))
+            for name in names:
+                param[name] = self._get_param('{0}.{1}.{2}'.format(label, count, name))
             unpacked_list.append(param)
             count += 1
         return unpacked_list
@@ -363,6 +372,94 @@ class RDS2Response(BaseResponse):
         template = self.response_template(DELETE_DB_PARAMETER_GROUP_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_group)
 
+    def create_event_subscription(self):
+        kwargs = self._get_event_subscription_kwargs()
+        event_subscription = self.backend.create_event_subscription(kwargs)
+        template = self.response_template(CREATE_EVENT_SUBSCRIPTION_TEMPLATE)
+        return template.render(event_subscription=event_subscription)
+
+    def describe_event_subscriptions(self):
+        subscription_name = self._get_param('SubscriptionName')
+        event_subscriptions = self.backend.describe_event_subscriptions(name=subscription_name)
+        template = self.response_template(DESCRIBE_EVENT_SUBSCRIPTIONS_TEMPLATE)
+        return template.render(event_subscriptions=event_subscriptions)
+
+    def add_source_identifier_to_subscription(self):
+        subscription_name = self._get_param('SubscriptionName')
+        source_id = self._get_param('SourceIdentifier')
+        event_subscription = self.backend.add_source_identifier_to_subscription(subscription_name, source_id)
+        template = self.response_template(ADD_SOURCE_IDENTIFIER_TO_SUBSCRIPTION_TEMPLATE)
+        return template.render(event_subscription=event_subscription)
+
+    def remove_source_identifier_from_subscription(self):
+        subscription_name = self._get_param('SubscriptionName')
+        source_id = self._get_param('SourceIdentifier')
+        event_subscription = self.backend.remove_source_identifier_from_subscription(subscription_name, source_id)
+        template = self.response_template(REMOVE_SOURCE_IDENTIFIER_FROM_SUBSCRIPTION_TEMPLATE)
+        return template.render(event_subscription=event_subscription)
+
+    def create_dbsnapshot(self):
+        return self.create_db_snapshot()
+
+    def create_db_snapshot(self):
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+        snapshot = self.backend.create_snapshot(db_snapshot_identifier, db_instance_identifier, tags)
+        template = self.response_template(CREATE_DB_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
+
+    def describe_dbsnapshots(self):
+        return self.describe_db_snapshots()
+
+    def describe_db_snapshots(self):
+        kwargs = {
+            'max_records': self._get_int_param('MaxRecords'),
+            'marker': self._get_int_param('Marker'),
+            'db_instance_identifier': self._get_param('DBInstanceIdentifier'),
+            'db_snapshot_identifier': self._get_param('DBSnapshotIdentifier'),
+            'include_public': self._get_bool_param('IncludePublic'),
+            'include_shared': self._get_bool_param('IncludeShared'),
+            'snapshot_type': self._get_param('SnapshotType')
+        }
+
+        snapshots = self.backend.describe_snapshots(kwargs)
+        template = self.response_template(DESCRIBE_DB_SNAPSHOTS_TEMPLATE)
+        return template.render(snapshots=snapshots)
+
+    def restore_dbinstance_from_dbsnapshot(self):
+        return self.restore_db_instance_from_db_snapshot()
+
+    def restore_db_instance_from_db_snapshot(self):
+        kwargs = self._get_db_kwargs()
+        kwargs['db_snapshot_identifier'] = self._get_param('DBSnapshotIdentifier')
+        database = self.backend.restore_db_instance_from_db_snapshot(kwargs)
+        template = self.response_template(RESTORE_DB_INSTANCE_FROM_DB_SNAPSHOT_TEMPLATE)
+        return template.render(database=database)
+
+    def restore_dbinstance_to_point_in_time(self):
+        return self.restore_db_instance_to_point_in_time()
+
+    def restore_db_instance_to_point_in_time(self):
+        kwargs = self._get_db_kwargs()
+        source_db_instance_identifier = self._get_param('SourceDBInstanceIdentifier')
+        target_db_instance_identifier = self._get_param('TargetDBInstanceIdentifier')
+        database = self.backend.restore_db_instance_to_point_in_time(source_db_instance_identifier,
+                                                                     target_db_instance_identifier,
+                                                                     kwargs)
+        template = self.response_template(RESTORE_DB_INSTANCE_TO_POINT_IN_TIME_TEMPLATE)
+        return template.render(database=database)
+
+    def delete_dbsnapshot(self):
+        return self.delete_db_snapshot()
+
+    def delete_db_snapshot(self):
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
+        snapshot = self.backend.delete_db_snapshot(db_snapshot_identifier)
+        template = self.response_template(DELETE_DB_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
+
+
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBInstanceResult>
@@ -620,3 +717,96 @@ REMOVE_TAGS_FROM_RESOURCE_TEMPLATE = """<RemoveTagsFromResourceResponse xmlns="h
     <RequestId>b194d9ca-a664-11e4-b688-194eaf8658fa</RequestId>
   </ResponseMetadata>
 </RemoveTagsFromResourceResponse>"""
+
+CREATE_EVENT_SUBSCRIPTION_TEMPLATE = """<CreateEventSubscriptionResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <CreateEventSubscriptionResult>
+    {{ event_subscription.to_xml() }}
+  </CreateEventSubscriptionResult>
+  <ResponseMetadata>
+    <RequestId>fb57df5a-f4d5-11e6-a77f-2980231572f6</RequestId>
+  </ResponseMetadata>
+</CreateEventSubscriptionResponse>
+"""
+
+DESCRIBE_EVENT_SUBSCRIPTIONS_TEMPLATE = """<DescribeEventSubscriptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <DescribeEventSubscriptionsResult>
+    <EventSubscriptionsList>
+    {%- for event_subscription in event_subscriptions -%}
+      {{ event_subscription.to_xml() }}
+    {%- endfor -%}
+    </EventSubscriptionsList>
+  </DescribeEventSubscriptionsResult>
+  <ResponseMetadata>
+    <RequestId>dff20433-f4d5-11e6-8584-efa523682e01</RequestId>
+  </ResponseMetadata>
+</DescribeEventSubscriptionsResponse>"""
+
+ADD_SOURCE_IDENTIFIER_TO_SUBSCRIPTION_TEMPLATE = """<AddSourceIdentifierToSubscriptionResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <AddSourceIdentifierToSubscriptionResult>
+    {{ event_subscription.to_xml() }}
+  </AddSourceIdentifierToSubscriptionResult>
+  <ResponseMetadata>
+    <RequestId>fb57df5a-f4d5-11e6-a77f-2980231572f6</RequestId>
+  </ResponseMetadata>
+</AddSourceIdentifierToSubscriptionResponse>"""
+
+REMOVE_SOURCE_IDENTIFIER_FROM_SUBSCRIPTION_TEMPLATE = """<RemoveSourceIdentifierFromSubscriptionResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <RemoveSourceIdentifierFromSubscriptionResult>
+    {{ event_subscription.to_xml() }}
+  </RemoveSourceIdentifierFromSubscriptionResult>
+  <ResponseMetadata>
+    <RequestId>7e432055-f70e-11e6-af71-15e678502a7f</RequestId>
+  </ResponseMetadata>
+</RemoveSourceIdentifierFromSubscriptionResponse>"""
+
+CREATE_DB_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <CreateDBSnapshotResult>
+    {{ snapshot.to_xml() }}
+  </CreateDBSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>fb57df5a-f4d5-11e6-a77f-2980231572f6</RequestId>
+  </ResponseMetadata>
+</CreateDBSnapshotResponse>
+"""
+
+DESCRIBE_DB_SNAPSHOTS_TEMPLATE = """<DescribeDBSnapshotsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeDBSnapshotsResult>
+    <DBSnapshots>
+      {%- for snapshot in snapshots -%}
+      {{ snapshot.to_xml() }}
+    {%- endfor -%}
+    </DBSnapshots>
+  </DescribeDBSnapshotsResult>
+  <ResponseMetadata>
+    <RequestId>b7769930-b98c-11d3-f272-7cd6cce12cc5</RequestId>
+  </ResponseMetadata>
+</DescribeDBSnapshotsResponse>"""
+
+RESTORE_DB_INSTANCE_FROM_DB_SNAPSHOT_TEMPLATE = """<RestoreDBInstanceFromDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <RestoreDBInstanceFromDBSnapshotResult>
+  {{ database.to_xml() }}
+  </RestoreDBInstanceFromDBSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>863fd73e-be2b-11d3-855b-576787000e19</RequestId>
+  </ResponseMetadata>
+</RestoreDBInstanceFromDBSnapshotResponse>"""
+
+DELETE_DB_SNAPSHOT_TEMPLATE = """<DeleteDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DeleteDBSnapshotResult>
+  {{ snapshot.to_xml() }}
+  </DeleteDBSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>7b17b2b1-ba25-11d3-a537-cef97546330c</RequestId>
+  </ResponseMetadata>
+</DeleteDBSnapshotResponse>"""
+
+RESTORE_DB_INSTANCE_TO_POINT_IN_TIME_TEMPLATE = """
+<RestoreDBInstanceToPointInTimeResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <RestoreDBInstanceToPointInTimeResult>
+  {{ database.to_xml() }}
+  </RestoreDBInstanceToPointInTimeResult>
+  <ResponseMetadata>
+    <RequestId>13447c70-be2c-11d3-f4c6-37db295f7674</RequestId>
+  </ResponseMetadata>
+</RestoreDBInstanceToPointInTimeResponse>
+"""

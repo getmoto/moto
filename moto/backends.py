@@ -18,6 +18,7 @@ from moto.kinesis import kinesis_backend
 from moto.kms import kms_backend
 from moto.opsworks import opsworks_backend
 from moto.rds import rds_backend
+from moto.rds2 import rds2_backend
 from moto.redshift import redshift_backend
 from moto.route53 import route53_backend
 from moto.s3 import s3_backend
@@ -45,6 +46,7 @@ BACKENDS = {
     'kms': kms_backend,
     'redshift': redshift_backend,
     'rds': rds_backend,
+    'rds2': rds2_backend,
     's3': s3_backend,
     's3bucket_path': s3_backend,
     'ses': ses_backend,
