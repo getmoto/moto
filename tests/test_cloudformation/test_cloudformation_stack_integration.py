@@ -694,7 +694,7 @@ def test_vpc_single_instance_in_subnet():
     subnet_resource.physical_resource_id.should.equal(subnet.id)
 
     eip_resource = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
-    eip_resource.physical_resource_id.should.equal(eip.allocation_id)
+    eip_resource.physical_resource_id.should.equal(eip.public_ip)
 
 @mock_cloudformation()
 @mock_ec2()
@@ -991,7 +991,7 @@ def test_vpc_eip():
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
     cfn_eip = [resource for resource in resources if resource.resource_type == 'AWS::EC2::EIP'][0]
-    cfn_eip.physical_resource_id.should.equal(eip.allocation_id)
+    cfn_eip.physical_resource_id.should.equal(eip.public_ip)
 
 
 @mock_ec2()
