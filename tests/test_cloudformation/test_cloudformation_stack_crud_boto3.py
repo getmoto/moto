@@ -358,6 +358,7 @@ def test_stack_events():
         for event in events:
             event.stack_id.should.equal(stack.stack_id)
             event.stack_name.should.equal("test_stack")
+            event.event_id.should.match(r"[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}")
 
             if event.resource_type == "AWS::CloudFormation::Stack":
                 event.logical_resource_id.should.equal("test_stack")
