@@ -578,18 +578,16 @@ LIST_SERVER_CERTIFICATES_TEMPLATE = """<ListServerCertificatesResponse>
     <ServerCertificateMetadataList>
       {% for certificate in server_certificates %}
       <member>
-        <ServerCertificateMetadata>
-          <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
-          {% if certificate.path %}
-          <Path>{{ certificate.path }}</Path>
-          <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
-          {% else %}
-          <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
-          {% endif %}
-          <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
-          <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
-          <Expiration>2012-05-08T01:02:03.004Z</Expiration>
-        </ServerCertificateMetadata>
+        <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
+        {% if certificate.path %}
+        <Path>{{ certificate.path }}</Path>
+        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
+        {% else %}
+        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
+        {% endif %}
+        <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
+        <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
+        <Expiration>2012-05-08T01:02:03.004Z</Expiration>
       </member>
       {% endfor %}
     </ServerCertificateMetadataList>
