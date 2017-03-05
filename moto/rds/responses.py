@@ -133,7 +133,7 @@ class RDSResponse(BaseResponse):
     def create_dbsubnet_group(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         description = self._get_param('DBSubnetGroupDescription')
-        subnet_ids = self._get_multi_param('SubnetIds.member')
+        subnet_ids = self._get_multi_param('SubnetIds.SubnetIdentifier')
         subnets = [ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids]
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
         subnet_group = self.backend.create_subnet_group(subnet_name, description, subnets, tags)
