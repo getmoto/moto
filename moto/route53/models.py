@@ -213,8 +213,11 @@ class RecordSetGroup(object):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
-        zone_name = properties["HostedZoneName"]
-        hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
+        zone_name = properties.get("HostedZoneName")
+        if zone_name:
+            hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
+        else:
+            hosted_zone = route53_backend.get_hosted_zone(properties["HostedZoneId"])
         record_sets = properties["RecordSets"]
         for record_set in record_sets:
             hosted_zone.add_rrset(record_set)
