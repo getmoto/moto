@@ -78,10 +78,10 @@ class FakeStack(object):
     def stack_outputs(self):
         return self.output_map.values()
 
-    def update(self, template, role_arn=None):
+    def update(self, template, role_arn=None, parameters=None):
         self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.template = template
-        self.resource_map.update(json.loads(template))
+        self.resource_map.update(json.loads(template), parameters)
         self.output_map = self._create_output_map()
         self._add_stack_event("UPDATE_COMPLETE")
         self.status = "UPDATE_COMPLETE"
@@ -157,9 +157,9 @@ class CloudFormationBackend(BaseBackend):
                 if stack.name == name_or_stack_id:
                     return stack
 
-    def update_stack(self, name, template, role_arn=None):
+    def update_stack(self, name, template, role_arn=None, parameters=None):
         stack = self.get_stack(name)
-        stack.update(template, role_arn)
+        stack.update(template, role_arn, parameters=parameters)
         return stack
 
     def list_stack_resources(self, stack_name_or_id):

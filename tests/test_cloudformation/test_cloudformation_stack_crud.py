@@ -445,6 +445,42 @@ def test_update_stack():
 
 
 @mock_cloudformation
+def test_update_stack_with_parameters():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack",
+        "Resources": {
+            "VPC": {
+                "Properties": {
+                    "CidrBlock": {"Ref": "Bar"}
+            },
+            "Type": "AWS::EC2::VPC"
+            }
+        },
+        "Parameters": {
+            "Bar": {
+                "Type": "String"
+            }
+        }
+    }
+    dummy_template_json = json.dumps(dummy_template)
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+        parameters=[("Bar", "192.168.0.0/16")]
+    )
+    conn.update_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+        parameters=[("Bar", "192.168.0.1/16")]
+    )
+
+    stack = conn.describe_stacks()[0]
+    assert stack.parameters[0].value == "192.168.0.1/16"
+
+
+@mock_cloudformation
 def test_update_stack_when_rolled_back():
     conn = boto.connect_cloudformation()
     stack_id = conn.create_stack("test_stack", template_body=dummy_template_json)
