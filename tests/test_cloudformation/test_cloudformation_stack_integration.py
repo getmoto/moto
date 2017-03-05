@@ -676,6 +676,7 @@ def test_vpc_single_instance_in_subnet():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     instance = reservation.instances[0]
+    instance.tags["Foo"].should.equal("Bar")
     # Check that the EIP is attached the the EC2 instance
     eip = ec2_conn.get_all_addresses()[0]
     eip.domain.should.equal('vpc')
