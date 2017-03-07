@@ -15,9 +15,6 @@ install_requires = [
 ]
 
 extras_require = {
-    # No builtin OrderedDict before 2.7
-    ':python_version=="2.6"': ['ordereddict'],
-
     'server': ['flask'],
 }
 
