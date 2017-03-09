@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import uuid
-from random import randint, random
+from random import random
 
 from moto.core import BaseBackend
 from moto.ec2 import ec2_backends
@@ -138,6 +138,41 @@ class TaskDefinition(BaseObject):
         else:
             # no-op when nothing changed between old and new resources
             return original_resource
+
+
+class ContainerDefinition(BaseObject):
+    def __init__(self, name, image, cpu=0, memory=0, memoryReservation=0, links=[], portMappings=[], essential=True, entryPoint=[], command=[], environment=[], mountPoints=[], volumesFrom=[], hostname='', user='', workingDirectory='', disableNetworking=False, privileged=False, readonlyRootFilesystem=False, dnsServers=[], dnsSearchDomains=[], extraHosts=[], dockerSecurityOptions=[], dockerLabels={}, uLimits=[], logConfiguration={}):
+        self.name = name
+        self.image = image
+        self.cpu = cpu
+        self.memory = memory
+        self.memory_reservation = memoryReservation
+        self.links = links
+        self.portMappings = portMappings
+        self.essential = essential
+        self.entryPoint = entryPoint
+        self.command = command
+        self.environment = environment
+        self.mountPoints = mountPoints
+        self.volumesFrom = volumesFrom
+        self.hostname = hostname
+        self.user = user
+        self.working_directory = workingDirectory
+        self.disable_networking = disableNetworking
+        self.priviliged = privileged
+        self.readonly_root_filesystem = readonlyRootFilesystem
+        self.dns_servers = dnsServers
+        self.dns_search_domains = dnsSearchDomains
+        self.extra_hosts = extraHosts
+        self.docker_security_options = dockerSecurityOptions
+        self.docker_labels = dockerLabels
+        self.u_limits = uLimits
+        self.log_configuration = logConfiguration
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        return response_object
 
 
 class Task(BaseObject):
@@ -428,15 +463,58 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("No instances found in cluster {}".format(cluster_name))
         active_container_instances = [x for x in container_instances if
                                       self.container_instances[cluster_name][x].status == 'ACTIVE']
-        for _ in range(count or 1):
-            container_instance_arn = self.container_instances[cluster_name][
-                active_container_instances[randint(0, len(active_container_instances) - 1)]
-            ].containerInstanceArn
-            task = Task(cluster, task_definition, container_instance_arn,
-                        overrides or {}, started_by or '')
-            tasks.append(task)
-            self.tasks[cluster_name][task.task_arn] = task
+        resource_requirements = {"CPU": 0, "MEMORY": 0, "PORTS": [], "PORTS_UDP": []}
+        for container_definition in task_definition.container_definitions:
+            resource_requirements["CPU"] += container_definition.get('cpu')
+            resource_requirements["MEMORY"] += container_definition.get("memory")
+            for port_mapping in container_definition.get("port_mappings", []):
+                resource_requirements["PORTS"].append(port_mapping.get('host_port'))
+        # TODO: return event about unable to place task if not able to place enough tasks to meet count
+        placed_count = 0
+        for container_instance in active_container_instances:
+            container_instance = self.container_instances[cluster_name][container_instance]
+            container_instance_arn = container_instance.containerInstanceArn
+            try_to_place = True
+            while try_to_place:
+                if self._is_placable(container_instance, resource_requirements):
+                    task = Task(cluster, task_definition, container_instance_arn, overrides or {}, started_by or '')
+                    tasks.append(task)
+                    self.tasks[cluster_name][task.task_arn] = task
+                    placed_count += 1
+                    if placed_count == count:
+                        return tasks
+                else:
+                    try_to_place = False
         return tasks
+
+    @staticmethod
+    def _is_placable(container_instance, task_resource_requirements):
+        """
+
+        :param container_instance: The container instance trying to be placed onto
+        :param task_resource_requirements: The calculated resource requirements of the task in the form of a dict
+        :return: A boolean stating whether the given container instance has enough resources to have the task placed on
+        it as well as a description, if it cannot be placed this will describe why.
+        """
+        remaining_cpu = 0
+        remaining_memory = 0
+        reserved_ports = []
+        for resource in container_instance.remainingResources:
+            if resource.get("name") == "CPU":
+                remaining_cpu = resource.get("integerValue")
+            elif resource.get("name") == "MEMORY":
+                remaining_memory = resource.get("integerValue")
+            elif resource.get("name") == "PORTS":
+                reserved_ports = resource.get("stringSetValue")
+        if task_resource_requirements.get("CPU") > remaining_cpu:
+            return False, "Not enough CPU credits"
+        if task_resource_requirements.get("MEMORY") > remaining_memory:
+            return False, "Not enough memory"
+        ports_needed = task_resource_requirements.get("PORTS")
+        for port in ports_needed:
+            if port in reserved_ports:
+                return False, "Port clash"
+        return True, "Can be placed"
 
     def start_task(self, cluster_str, task_definition_str, container_instances, overrides, started_by):
         cluster_name = cluster_str.split('/')[-1]
