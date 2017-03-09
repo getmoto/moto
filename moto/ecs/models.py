@@ -126,11 +126,10 @@ class TaskDefinition(BaseObject):
         container_definitions = properties['ContainerDefinitions']
         volumes = properties['Volumes']
         if (original_resource.family != family or
-                original_resource.container_definitions != container_definitions or
-                original_resource.volumes != volumes):
-                # currently TaskRoleArn isn't stored at TaskDefinition
-                # instances
-
+            original_resource.container_definitions != container_definitions or
+            original_resource.volumes != volumes
+            # currently TaskRoleArn isn't stored at TaskDefinition instances
+            ):
             ecs_backend = ecs_backends[region_name]
             ecs_backend.deregister_task_definition(original_resource.arn)
             return ecs_backend.register_task_definition(
