@@ -34,12 +34,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_arns = self.ecs_backend.list_clusters()
         return json.dumps({
             'clusterArns': cluster_arns
-<<<<<<< HEAD
             #  'nextToken': str(uuid.uuid1())
-=======
-            # ,
-            # 'nextToken': str(uuid.uuid1())
->>>>>>> PEP8 cleanup
         })
 
     def describe_clusters(self):
@@ -71,7 +66,6 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition_arns = self.ecs_backend.list_task_definitions()
         return json.dumps({
             'taskDefinitionArns': task_definition_arns
-<<<<<<< HEAD
             #  'nextToken': str(uuid.uuid1())
         })
 
@@ -81,10 +75,6 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({
             'taskDefinition': data.response_object,
             'failures': []
-=======
-            # ,
-            # 'nextToken': str(uuid.uuid1())
->>>>>>> PEP8 cleanup
         })
 
     def deregister_task_definition(self):
