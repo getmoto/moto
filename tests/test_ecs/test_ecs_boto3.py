@@ -871,7 +871,7 @@ def test_describe_tasks():
         ]
     )
     tasks_arns = [
-        task['taskArn'] for task  in client.run_task(
+        task['taskArn'] for task in client.run_task(
             cluster='test_ecs_cluster',
             overrides={},
             taskDefinition='test_ecs_task',
