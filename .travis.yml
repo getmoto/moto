@@ -2,7 +2,7 @@ language: python
 sudo: false
 python:
   - 2.7
-  - 3.3
+  - 3.6
 env:
     - TEST_SERVER_MODE=false
     - TEST_SERVER_MODE=true
