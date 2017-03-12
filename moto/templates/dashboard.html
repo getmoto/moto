@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Moto</title>
+
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
+    <style>
+        body {
+          padding-top: 70px;
+          padding-bottom: 30px;
+        }
+
+        .theme-dropdown .dropdown-menu {
+          position: static;
+          display: block;
+          margin-bottom: 20px;
+        }
+
+        .theme-showcase > p > .btn {
+          margin: 5px 0;
+        }
+
+        .theme-showcase .navbar .container {
+          width: auto;
+        }
+    </style>
+
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Moto</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Home</a></li>
+            <li><a href="#about">About</a></li>
+<!--             <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Region <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">us-east-1</a></li>
+                <li><a href="#">us-west-1</a></li>
+                <li><a href="#">us-west-2</a></li>
+              </ul>
+            </li>
+ -->          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container theme-showcase" role="main" id="main">
+
+      <div class="jumbotron">
+        <h1>Moto Dashboard</h1>
+      </div>
+
+    </div>
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.6/handlebars.js"></script>
+
+
+    {% raw %}
+    <script id="template" type="text/x-handlebars-template">
+
+        <ul id="myTab" class="nav nav-tabs">
+        {{#each data}}
+          <li {{#equal @index 0}}class="active"{{/equal}}><a href="#{{@key}}" data-toggle="tab">{{@key}}</a></li>
+        {{/each}}
+        </ul>
+
+        <div id="myTabContent" class="tab-content">
+        {{#each data}}
+          <div class="tab-pane fade {{#equal @index 0}}in active{{/equal}}" id="{{@key}}">
+
+            {{#each this}}
+            <div class="page-header">
+                <h1>{{@key}}</h1>
+            </div>
+
+            <div class="row">
+            <div class="col-md-12">
+                <table class="table table-striped table-bordered table-condensed">
+                    {{#each this}}
+                    <tr>
+                        {{#each this}}
+                        <td>{{@key}}: {{this}}</td>
+                        {{/each}}
+                    </tr>
+                    {{/each}}
+                </table>
+                </div>
+            </div>
+            {{/each}}
+          </div>
+
+        {{/each}}
+        </div>
+
+    </script>
+    <script>
+        Handlebars.registerHelper('equal', function(lvalue, rvalue, options) {
+            if (arguments.length < 3)
+                throw new Error("Handlebars Helper equal needs 2 parameters");
+            if( lvalue!=rvalue ) {
+                return options.inverse(this);
+            } else {
+                return options.fn(this);
+            }
+        });
+
+        $(document).ready(function (){
+
+
+            $.getJSON("/moto-api/data.json", function(data) {
+
+                var source = $('#template').html();
+                var template = Handlebars.compile(source);
+                $('#main').append(template({"data": data}));
+
+
+                // $.each(data, function(model_type, instances) {
+                //     $.each(instances, function(index) {
+                //         instance = instances[index];
+
+                //         if (index == 0) {
+                //             var row = "<thead>";
+                //             $.each(instance, function(attr, attr_val) {
+                //                 row += "<th>" + attr + "</th>";
+                //             })
+                //             row += "</thead><tbody>";
+                //             $("#my_table").append(row);
+                //         }
+
+                //         var row = "<tr>";
+                //         $.each(instance, function(attr, attr_val) {
+                //             row += "<td>" + attr_val + "</td>";
+                //         });
+                //         row += "</tr>";
+                //         $("#my_table").append(row);
+                //     });
+                //     $("#my_table").append("</tbody>");
+                // });
+            });
+
+
+        })
+    </script>
+    {% endraw %}
+
+  </body>
+</html>

@@ -47,7 +47,7 @@ class DomainDispatcherApplication(object):
 
     def get_application(self, environ):
         path_info = environ.get('PATH_INFO', '')
-        if path_info.startswith("/moto-api"):
+        if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
             host = "moto_api"
         elif path_info.startswith("/latest/meta-data/"):
             host = "instance_metadata"
