@@ -2633,7 +2633,7 @@ class VPCGatewayAttachment(BaseModel):
 
     @property
     def physical_resource_id(self):
-        return self.id
+        return self.vpc_id
 
 
 class VPCGatewayAttachmentBackend(object):

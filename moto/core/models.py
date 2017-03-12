@@ -234,13 +234,11 @@ class BaseModel(object):
 class BaseBackend(object):
 
     def reset(self):
+        for service, models in model_data.items():
+            for model_name, model in models.items():
+                model.instances = []
         self.__dict__ = {}
         self.__init__()
-
-    def get_models(self):
-        import pdb;pdb.set_trace()
-        models = getattr(backend.__class__, '__models__', {})
-
 
     @property
     def _url_module(self):
