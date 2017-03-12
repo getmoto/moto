@@ -56,11 +56,6 @@
     </nav>
 
     <div class="container theme-showcase" role="main" id="main">
-
-      <div class="jumbotron">
-        <h1>Moto Dashboard</h1>
-      </div>
-
     </div>
 
 
@@ -72,7 +67,7 @@
     {% raw %}
     <script id="template" type="text/x-handlebars-template">
 
-        <ul id="myTab" class="nav nav-tabs">
+        <ul id="myTab" class="nav nav-pills">
         {{#each data}}
           <li {{#if @first}}class="active"{{/if}}><a href="#{{this.name}}" data-toggle="tab">{{this.name}}</a></li>
         {{/each}}
@@ -83,8 +78,9 @@
           <div class="tab-pane fade {{#if @first}}in active{{/if}}" id="{{this.name}}">
 
             {{#each this}}
+            {{#unless @last}} <!-- Skip name key -->
             <div class="page-header">
-                <h1>{{@key}}</h1>
+                <h3>{{@key}}</h3>
             </div>
 
             <div class="row">
@@ -96,10 +92,13 @@
                         <td>{{@key}}: {{this}}</td>
                         {{/each}}
                     </tr>
+                    {{else}}
+                    <tr><td>[]</td></tr>
                     {{/each}}
                 </table>
                 </div>
             </div>
+            {{/unless}}
             {{/each}}
           </div>
 
