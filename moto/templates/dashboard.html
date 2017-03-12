@@ -49,7 +49,7 @@
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
             <li class="active"><a href="#">Home</a></li>
-            <li><a href="#about">About</a></li>
+            <li><a href="#about" data-toggle="modal" data-target="#aboutModal">About</a></li>
           </ul>
         </div>
       </div>
@@ -164,6 +164,23 @@
         })
     </script>
     {% endraw %}
+
+    <!-- Modal -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="myModalLabel">About Moto</h4>
+          </div>
+          <div class="modal-body">
+            <p>Moto was created by <a href="https://twitter.com/spulec">Steve Pulec</a> and <a href="https://github.com/spulec/moto/blob/master/AUTHORS.md">many other contributors</a>.</p>
+
+            <p>Please open any issues <a href="https://github.com/spulec/moto/issues">here</a>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </body>
 </html>
