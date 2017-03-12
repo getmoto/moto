@@ -50,15 +50,7 @@
           <ul class="nav navbar-nav">
             <li class="active"><a href="#">Home</a></li>
             <li><a href="#about">About</a></li>
-<!--             <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Region <span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="#">us-east-1</a></li>
-                <li><a href="#">us-west-1</a></li>
-                <li><a href="#">us-west-2</a></li>
-              </ul>
-            </li>
- -->          </ul>
+          </ul>
         </div>
       </div>
     </nav>
@@ -82,13 +74,13 @@
 
         <ul id="myTab" class="nav nav-tabs">
         {{#each data}}
-          <li {{#equal @index 0}}class="active"{{/equal}}><a href="#{{@key}}" data-toggle="tab">{{@key}}</a></li>
+          <li {{#if @first}}class="active"{{/if}}><a href="#{{this.name}}" data-toggle="tab">{{this.name}}</a></li>
         {{/each}}
         </ul>
 
         <div id="myTabContent" class="tab-content">
         {{#each data}}
-          <div class="tab-pane fade {{#equal @index 0}}in active{{/equal}}" id="{{@key}}">
+          <div class="tab-pane fade {{#if @first}}in active{{/if}}" id="{{this.name}}">
 
             {{#each this}}
             <div class="page-header">
@@ -116,50 +108,59 @@
 
     </script>
     <script>
-        Handlebars.registerHelper('equal', function(lvalue, rvalue, options) {
-            if (arguments.length < 3)
-                throw new Error("Handlebars Helper equal needs 2 parameters");
-            if( lvalue!=rvalue ) {
-                return options.inverse(this);
-            } else {
-                return options.fn(this);
+        sortObject = function(obj) {
+            if ($.isArray(obj)) {
+                var result = [];
+                $.each(obj, function(index, array_item) {
+                    result.push(sortObject(array_item));
+                })
+                return result;
             }
-        });
+
+            if (!$.isPlainObject(obj)) {
+                return obj;
+            }
+
+            var keys = $.map(obj, function(element,index) {return index});
+            keys.sort();
+            var len = keys.length;
+
+            var result = {};
+            $.each(keys, function(index, key) {
+              var val = obj[key];
+              result[key] = sortObject(val);
+            })
+            return result;
+        }
+
+
+        flattenAndSortObject = function(obj) {
+            if (!$.isPlainObject(obj)) {
+                return obj;
+            }
+
+            var keys = $.map(obj, function(element,index) {return index});
+            keys.sort();
+            var len = keys.length;
+
+            var result = [];
+            $.each(keys, function(index, key) {
+              var val = obj[key];
+              val.name = key;
+              result.push(sortObject(val));
+            })
+            return result;
+        }
 
         $(document).ready(function (){
 
-
             $.getJSON("/moto-api/data.json", function(data) {
-
                 var source = $('#template').html();
                 var template = Handlebars.compile(source);
+
+                data = flattenAndSortObject(data);
                 $('#main').append(template({"data": data}));
-
-
-                // $.each(data, function(model_type, instances) {
-                //     $.each(instances, function(index) {
-                //         instance = instances[index];
-
-                //         if (index == 0) {
-                //             var row = "<thead>";
-                //             $.each(instance, function(attr, attr_val) {
-                //                 row += "<th>" + attr + "</th>";
-                //             })
-                //             row += "</thead><tbody>";
-                //             $("#my_table").append(row);
-                //         }
-
-                //         var row = "<tr>";
-                //         $.each(instance, function(attr, attr_val) {
-                //             row += "<td>" + attr_val + "</td>";
-                //         });
-                //         row += "</tr>";
-                //         $("#my_table").append(row);
-                //     });
-                //     $("#my_table").append("</tbody>");
-                // });
             });
-
 
         })
     </script>
