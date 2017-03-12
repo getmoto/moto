@@ -369,6 +369,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.key_name = kwargs.get("key_name")
         self.source_dest_check = "true"
         self.launch_time = utc_date_and_time()
+        self.disable_api_termination = kwargs.get("disable_api_termination", False)
         associate_public_ip = kwargs.get("associate_public_ip", False)
         if in_ec2_classic:
             # If we are in EC2-Classic, autoassign a public IP
