@@ -51,24 +51,3 @@ def test_publish_to_sqs_in_different_region():
     queue = sqs_conn.get_queue("test-queue")
     message = queue.read(1)
     message.get_body().should.equal('my message')
-
-
-@freeze_time("2013-01-01")
-@mock_sns_deprecated
-def test_publish_to_http():
-    responses.add(
-        method="POST",
-        url="http://example.com/foobar",
-    )
-
-    conn = boto.connect_sns()
-    conn.create_topic("some-topic")
-    topics_json = conn.get_all_topics()
-    topic_arn = topics_json["ListTopicsResponse"][
-        "ListTopicsResult"]["Topics"][0]['TopicArn']
-
-    conn.subscribe(topic_arn, "http", "http://example.com/foobar")
-
-    response = conn.publish(
-        topic=topic_arn, message="my message", subject="my subject")
-    message_id = response['PublishResponse']['PublishResult']['MessageId']
