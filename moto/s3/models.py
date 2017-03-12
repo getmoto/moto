@@ -9,7 +9,7 @@ import codecs
 import six
 
 from bisect import insort
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket, MissingKey, InvalidPart, EntityTooSmall
 from .utils import clean_key_name, _VersionedKeyStore
@@ -18,7 +18,7 @@ UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
 
 
-class FakeKey(object):
+class FakeKey(BaseModel):
 
     def __init__(self, name, value, storage="STANDARD", etag=None, is_versioned=False, version_id=0):
         self.name = name
@@ -119,7 +119,7 @@ class FakeKey(object):
             return self._expiry.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 
-class FakeMultipart(object):
+class FakeMultipart(BaseModel):
 
     def __init__(self, key_name, metadata):
         self.key_name = key_name
@@ -167,7 +167,7 @@ class FakeMultipart(object):
             yield self.parts[part_id]
 
 
-class FakeGrantee(object):
+class FakeGrantee(BaseModel):
 
     def __init__(self, id='', uri='', display_name=''):
         self.id = id
@@ -193,14 +193,14 @@ PERMISSION_WRITE_ACP = 'WRITE_ACP'
 PERMISSION_READ_ACP = 'READ_ACP'
 
 
-class FakeGrant(object):
+class FakeGrant(BaseModel):
 
     def __init__(self, grantees, permissions):
         self.grantees = grantees
         self.permissions = permissions
 
 
-class FakeAcl(object):
+class FakeAcl(BaseModel):
 
     def __init__(self, grants=[]):
         self.grants = grants
@@ -234,7 +234,7 @@ def get_canned_acl(acl):
     return FakeAcl(grants=grants)
 
 
-class LifecycleRule(object):
+class LifecycleRule(BaseModel):
 
     def __init__(self, id=None, prefix=None, status=None, expiration_days=None,
                  expiration_date=None, transition_days=None,
@@ -249,7 +249,7 @@ class LifecycleRule(object):
         self.storage_class = storage_class
 
 
-class FakeBucket(object):
+class FakeBucket(BaseModel):
 
     def __init__(self, name, region_name):
         self.name = name

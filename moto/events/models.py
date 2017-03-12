@@ -1,10 +1,10 @@
 import os
 import re
 
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 
 
-class Rule(object):
+class Rule(BaseModel):
 
     def _generate_arn(self, name):
         return 'arn:aws:events:us-west-2:111111111111:rule/' + name

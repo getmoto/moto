@@ -9,7 +9,7 @@ import requests
 import six
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.sqs import sqs_backends
 from .exceptions import SNSNotFoundError
@@ -19,7 +19,7 @@ DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_PAGE_SIZE = 100
 
 
-class Topic(object):
+class Topic(BaseModel):
 
     def __init__(self, name, sns_backend):
         self.name = name
@@ -67,7 +67,7 @@ class Topic(object):
         return topic
 
 
-class Subscription(object):
+class Subscription(BaseModel):
 
     def __init__(self, topic, endpoint, protocol):
         self.topic = topic
@@ -99,7 +99,7 @@ class Subscription(object):
         }
 
 
-class PlatformApplication(object):
+class PlatformApplication(BaseModel):
 
     def __init__(self, region, name, platform, attributes):
         self.region = region
@@ -116,7 +116,7 @@ class PlatformApplication(object):
         )
 
 
-class PlatformEndpoint(object):
+class PlatformEndpoint(BaseModel):
 
     def __init__(self, region, application, custom_user_data, token, attributes):
         self.region = region

@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import uuid
 
+from moto.core import BaseModel
 from moto.core.utils import camelcase_to_underscores, unix_time
 
 from ..constants import (
@@ -20,7 +21,7 @@ from .timeout import Timeout
 
 
 # TODO: extract decision related logic into a Decision class
-class WorkflowExecution(object):
+class WorkflowExecution(BaseModel):
 
     # NB: the list is ordered exactly as in SWF validation exceptions so we can
     # mimic error messages closely ; don't reorder it without checking SWF.

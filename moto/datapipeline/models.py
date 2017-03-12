@@ -2,11 +2,11 @@ from __future__ import unicode_literals
 
 import datetime
 import boto.datapipeline
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 
 
-class PipelineObject(object):
+class PipelineObject(BaseModel):
 
     def __init__(self, object_id, name, fields):
         self.object_id = object_id
@@ -21,7 +21,7 @@ class PipelineObject(object):
         }
 
 
-class Pipeline(object):
+class Pipeline(BaseModel):
 
     def __init__(self, name, unique_id):
         self.name = name

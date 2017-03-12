@@ -1,9 +1,10 @@
 from __future__ import unicode_literals
 
+from moto.core import BaseModel
 from moto.core.utils import camelcase_to_underscores
 
 
-class GenericType(object):
+class GenericType(BaseModel):
 
     def __init__(self, name, version, **kwargs):
         self.name = name

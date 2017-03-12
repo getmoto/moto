@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import boto.redshift
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from .exceptions import (
     ClusterNotFoundError,
@@ -12,7 +12,7 @@ from .exceptions import (
 )
 
 
-class Cluster(object):
+class Cluster(BaseModel):
 
     def __init__(self, redshift_backend, cluster_identifier, node_type, master_username,
                  master_user_password, db_name, cluster_type, cluster_security_groups,
@@ -174,7 +174,7 @@ class Cluster(object):
         }
 
 
-class SubnetGroup(object):
+class SubnetGroup(BaseModel):
 
     def __init__(self, ec2_backend, cluster_subnet_group_name, description, subnet_ids):
         self.ec2_backend = ec2_backend
@@ -220,7 +220,7 @@ class SubnetGroup(object):
         }
 
 
-class SecurityGroup(object):
+class SecurityGroup(BaseModel):
 
     def __init__(self, cluster_security_group_name, description):
         self.cluster_security_group_name = cluster_security_group_name
@@ -235,7 +235,7 @@ class SecurityGroup(object):
         }
 
 
-class ParameterGroup(object):
+class ParameterGroup(BaseModel):
 
     def __init__(self, cluster_parameter_group_name, group_family, description):
         self.cluster_parameter_group_name = cluster_parameter_group_name

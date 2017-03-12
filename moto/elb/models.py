@@ -11,7 +11,7 @@ from boto.ec2.elb.policies import (
     Policies,
     OtherPolicy,
 )
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.ec2.models import ec2_backends
 from .exceptions import (
     LoadBalancerNotFoundError,
@@ -21,7 +21,7 @@ from .exceptions import (
 )
 
 
-class FakeHealthCheck(object):
+class FakeHealthCheck(BaseModel):
 
     def __init__(self, timeout, healthy_threshold, unhealthy_threshold,
                  interval, target):
@@ -34,7 +34,7 @@ class FakeHealthCheck(object):
             raise BadHealthCheckDefinition
 
 
-class FakeListener(object):
+class FakeListener(BaseModel):
 
     def __init__(self, load_balancer_port, instance_port, protocol, ssl_certificate_id):
         self.load_balancer_port = load_balancer_port
@@ -47,7 +47,7 @@ class FakeListener(object):
         return "FakeListener(lbp: %s, inp: %s, pro: %s, cid: %s, policies: %s)" % (self.load_balancer_port, self.instance_port, self.protocol, self.ssl_certificate_id, self.policy_names)
 
 
-class FakeBackend(object):
+class FakeBackend(BaseModel):
 
     def __init__(self, instance_port):
         self.instance_port = instance_port
@@ -57,7 +57,7 @@ class FakeBackend(object):
         return "FakeBackend(inp: %s, policies: %s)" % (self.instance_port, self.policy_names)
 
 
-class FakeLoadBalancer(object):
+class FakeLoadBalancer(BaseModel):
 
     def __init__(self, name, zones, ports, scheme='internet-facing', vpc_id=None, subnets=None):
         self.name = name

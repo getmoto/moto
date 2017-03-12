@@ -6,8 +6,7 @@ from xml.sax.saxutils import escape
 
 import boto.sqs
 
-from moto.core import BaseBackend
-from moto.core.models import BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import camelcase_to_underscores, get_random_message_id, unix_time, unix_time_millis
 from .utils import generate_receipt_handle
 from .exceptions import (

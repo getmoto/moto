@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 import uuid
 import datetime
@@ -8,7 +8,7 @@ from random import choice
 from .exceptions import ResourceNotFoundException, ValidationException
 
 
-class OpsworkInstance(object):
+class OpsworkInstance(BaseModel):
     """
     opsworks maintains its own set of ec2 instance metadata.
     This metadata exists before any instance reservations are made, and is
@@ -166,7 +166,7 @@ class OpsworkInstance(object):
         return d
 
 
-class Layer(object):
+class Layer(BaseModel):
 
     def __init__(self, stack_id, type, name, shortname,
                  attributes=None,
@@ -292,7 +292,7 @@ class Layer(object):
         return d
 
 
-class Stack(object):
+class Stack(BaseModel):
 
     def __init__(self, name, region, service_role_arn, default_instance_profile_arn,
                  vpcid="vpc-1f99bf7a",

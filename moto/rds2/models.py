@@ -7,7 +7,7 @@ import boto.rds2
 from jinja2 import Template
 from re import compile as re_compile
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
 from .exceptions import (RDSClientError,
@@ -17,7 +17,7 @@ from .exceptions import (RDSClientError,
                          DBParameterGroupNotFoundError)
 
 
-class Database(object):
+class Database(BaseModel):
 
     def __init__(self, **kwargs):
         self.status = "available"
@@ -372,7 +372,7 @@ class Database(object):
         backend.delete_database(self.db_instance_identifier)
 
 
-class SecurityGroup(object):
+class SecurityGroup(BaseModel):
 
     def __init__(self, group_name, description, tags):
         self.group_name = group_name
@@ -481,7 +481,7 @@ class SecurityGroup(object):
         backend.delete_security_group(self.group_name)
 
 
-class SubnetGroup(object):
+class SubnetGroup(BaseModel):
 
     def __init__(self, subnet_name, description, subnets, tags):
         self.subnet_name = subnet_name

@@ -3,13 +3,13 @@ import base64
 from datetime import datetime
 
 import pytz
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 
 from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
 
-class Policy(object):
+class Policy(BaseModel):
 
     is_attachable = False
 
@@ -54,7 +54,7 @@ class InlinePolicy(Policy):
     """TODO: is this needed?"""
 
 
-class Role(object):
+class Role(BaseModel):
 
     def __init__(self, role_id, name, assume_role_policy_document, path):
         self.id = role_id
@@ -96,7 +96,7 @@ class Role(object):
         raise UnformattedGetAttTemplateException()
 
 
-class InstanceProfile(object):
+class InstanceProfile(BaseModel):
 
     def __init__(self, instance_profile_id, name, path, roles):
         self.id = instance_profile_id
@@ -126,7 +126,7 @@ class InstanceProfile(object):
         raise UnformattedGetAttTemplateException()
 
 
-class Certificate(object):
+class Certificate(BaseModel):
 
     def __init__(self, cert_name, cert_body, private_key, cert_chain=None, path=None):
         self.cert_name = cert_name
@@ -140,7 +140,7 @@ class Certificate(object):
         return self.name
 
 
-class AccessKey(object):
+class AccessKey(BaseModel):
 
     def __init__(self, user_name):
         self.user_name = user_name
@@ -159,7 +159,7 @@ class AccessKey(object):
         raise UnformattedGetAttTemplateException()
 
 
-class Group(object):
+class Group(BaseModel):
 
     def __init__(self, name, path='/'):
         self.name = name
@@ -198,7 +198,7 @@ class Group(object):
         return self.policies.keys()
 
 
-class User(object):
+class User(BaseModel):
 
     def __init__(self, name, path=None):
         self.name = name
