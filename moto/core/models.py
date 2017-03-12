@@ -226,7 +226,10 @@ class InstanceTrackerMeta(type):
 @six.add_metaclass(InstanceTrackerMeta)
 class BaseModel(object):
     def __new__(cls, *args, **kwargs):
-        instance = super(BaseModel, cls).__new__(cls, *args, **kwargs)
+        if six.PY2:
+            instance = super(BaseModel, cls).__new__(cls, *args, **kwargs)
+        else:
+            instance = super(BaseModel, cls).__new__(cls)
         cls.instances.append(instance)
         return instance
 
