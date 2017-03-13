@@ -19,7 +19,6 @@ install:
       export AWS_ACCESS_KEY_ID=foobar_key
     fi
 script:
-  - make lint
   - make test
 after_success:
   - coveralls
