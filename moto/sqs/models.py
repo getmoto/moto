@@ -6,7 +6,7 @@ from xml.sax.saxutils import escape
 
 import boto.sqs
 
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import camelcase_to_underscores, get_random_message_id, unix_time, unix_time_millis
 from .utils import generate_receipt_handle
 from .exceptions import (
@@ -18,7 +18,7 @@ DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
 
-class Message(object):
+class Message(BaseModel):
 
     def __init__(self, message_id, body):
         self.id = message_id
@@ -93,7 +93,7 @@ class Message(object):
         return False
 
 
-class Queue(object):
+class Queue(BaseModel):
     camelcase_attributes = ['ApproximateNumberOfMessages',
                             'ApproximateNumberOfMessagesDelayed',
                             'ApproximateNumberOfMessagesNotVisible',

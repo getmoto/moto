@@ -4,7 +4,7 @@ import datetime
 import json
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from .comparisons import get_comparison_func
 
@@ -53,7 +53,7 @@ class DynamoType(object):
         return comparison_func(self.value, *range_values)
 
 
-class Item(object):
+class Item(BaseModel):
 
     def __init__(self, hash_key, hash_key_type, range_key, range_key_type, attrs):
         self.hash_key = hash_key
@@ -90,7 +90,7 @@ class Item(object):
         }
 
 
-class Table(object):
+class Table(BaseModel):
 
     def __init__(self, name, hash_key_attr, hash_key_type,
                  range_key_attr=None, range_key_type=None, read_capacity=None,

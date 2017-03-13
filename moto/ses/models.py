@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import email
 
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from .exceptions import MessageRejectedError
 from .utils import get_random_message_id
 
@@ -10,19 +10,19 @@ from .utils import get_random_message_id
 RECIPIENT_LIMIT = 50
 
 
-class Message(object):
+class Message(BaseModel):
 
     def __init__(self, message_id):
         self.id = message_id
 
 
-class RawMessage(object):
+class RawMessage(BaseModel):
 
     def __init__(self, message_id):
         self.id = message_id
 
 
-class SESQuota(object):
+class SESQuota(BaseModel):
 
     def __init__(self, sent):
         self.sent = sent

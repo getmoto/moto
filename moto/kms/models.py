@@ -1,12 +1,12 @@
 from __future__ import unicode_literals
 
 import boto.kms
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from .utils import generate_key_id
 from collections import defaultdict
 
 
-class Key(object):
+class Key(BaseModel):
 
     def __init__(self, policy, key_usage, description, region):
         self.id = generate_key_id()

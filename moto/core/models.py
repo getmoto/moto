@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+from collections import defaultdict
 import functools
 import inspect
 import re
+import six
 
 from moto import settings
 from moto.packages.responses import responses
@@ -208,9 +210,36 @@ class Model(type):
         return dec
 
 
+model_data = defaultdict(dict)
+class InstanceTrackerMeta(type):
+    def __new__(meta, name, bases, dct):
+        cls = super(InstanceTrackerMeta, meta).__new__(meta, name, bases, dct)
+        if name == 'BaseModel':
+            return cls
+
+        service = cls.__module__.split(".")[1]
+        if name not in model_data[service]:
+            model_data[service][name] = cls
+        cls.instances = []
+        return cls
+
+@six.add_metaclass(InstanceTrackerMeta)
+class BaseModel(object):
+    def __new__(cls, *args, **kwargs):
+        if six.PY2:
+            instance = super(BaseModel, cls).__new__(cls, *args, **kwargs)
+        else:
+            instance = super(BaseModel, cls).__new__(cls)
+        cls.instances.append(instance)
+        return instance
+
+
 class BaseBackend(object):
 
     def reset(self):
+        for service, models in model_data.items():
+            for model_name, model in models.items():
+                model.instances = []
         self.__dict__ = {}
         self.__init__()
 

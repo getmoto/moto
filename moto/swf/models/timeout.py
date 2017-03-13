@@ -1,7 +1,8 @@
+from moto.core import BaseModel
 from moto.core.utils import unix_time
 
 
-class Timeout(object):
+class Timeout(BaseModel):
 
     def __init__(self, obj, timestamp, kind):
         self.obj = obj

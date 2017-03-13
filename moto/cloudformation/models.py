@@ -4,14 +4,14 @@ import json
 import uuid
 
 import boto.cloudformation
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 
 from .parsing import ResourceMap, OutputMap
 from .utils import generate_stack_id
 from .exceptions import ValidationError
 
 
-class FakeStack(object):
+class FakeStack(BaseModel):
 
     def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
         self.stack_id = stack_id
@@ -99,7 +99,7 @@ class FakeStack(object):
         self.status = "DELETE_COMPLETE"
 
 
-class FakeEvent(object):
+class FakeEvent(BaseModel):
 
     def __init__(self, stack_id, stack_name, logical_resource_id, physical_resource_id, resource_type, resource_status, resource_status_reason=None, resource_properties=None):
         self.stack_id = stack_id

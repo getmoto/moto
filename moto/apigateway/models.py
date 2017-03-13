@@ -5,7 +5,7 @@ import datetime
 import requests
 
 from moto.packages.responses import responses
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import create_id
 from .exceptions import StageNotFoundException
@@ -13,7 +13,7 @@ from .exceptions import StageNotFoundException
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
 
-class Deployment(dict):
+class Deployment(BaseModel, dict):
 
     def __init__(self, deployment_id, name, description=""):
         super(Deployment, self).__init__()
@@ -24,7 +24,7 @@ class Deployment(dict):
             datetime.datetime.now())
 
 
-class IntegrationResponse(dict):
+class IntegrationResponse(BaseModel, dict):
 
     def __init__(self, status_code, selection_pattern=None):
         self['responseTemplates'] = {"application/json": None}
@@ -33,7 +33,7 @@ class IntegrationResponse(dict):
             self['selectionPattern'] = selection_pattern
 
 
-class Integration(dict):
+class Integration(BaseModel, dict):
 
     def __init__(self, integration_type, uri, http_method, request_templates=None):
         super(Integration, self).__init__()
@@ -58,14 +58,14 @@ class Integration(dict):
         return self["integrationResponses"].pop(status_code)
 
 
-class MethodResponse(dict):
+class MethodResponse(BaseModel, dict):
 
     def __init__(self, status_code):
         super(MethodResponse, self).__init__()
         self['statusCode'] = status_code
 
 
-class Method(dict):
+class Method(BaseModel, dict):
 
     def __init__(self, method_type, authorization_type):
         super(Method, self).__init__()
@@ -92,7 +92,7 @@ class Method(dict):
         return self.method_responses.pop(response_code)
 
 
-class Resource(object):
+class Resource(BaseModel):
 
     def __init__(self, id, region_name, api_id, path_part, parent_id):
         self.id = id
@@ -165,7 +165,7 @@ class Resource(object):
         return self.resource_methods[method_type].pop('methodIntegration')
 
 
-class Stage(dict):
+class Stage(BaseModel, dict):
 
     def __init__(self, name=None, deployment_id=None, variables=None,
                  description='', cacheClusterEnabled=False, cacheClusterSize=None):
@@ -293,7 +293,7 @@ class Stage(dict):
             raise Exception('Patch operation "%s" not implemented' % op['op'])
 
 
-class RestAPI(object):
+class RestAPI(BaseModel):
 
     def __init__(self, id, region_name, name, description):
         self.id = id

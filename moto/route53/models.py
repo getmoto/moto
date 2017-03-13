@@ -5,11 +5,11 @@ from collections import defaultdict
 import uuid
 from jinja2 import Template
 
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
 
 
-class HealthCheck(object):
+class HealthCheck(BaseModel):
 
     def __init__(self, health_check_id, health_check_args):
         self.id = health_check_id
@@ -63,7 +63,7 @@ class HealthCheck(object):
         return template.render(health_check=self)
 
 
-class RecordSet(object):
+class RecordSet(BaseModel):
 
     def __init__(self, kwargs):
         self.name = kwargs.get('Name')
@@ -154,7 +154,7 @@ class RecordSet(object):
         hosted_zone.delete_rrset_by_name(self.name)
 
 
-class FakeZone(object):
+class FakeZone(BaseModel):
 
     def __init__(self, name, id_, private_zone, comment=None):
         self.name = name
@@ -212,7 +212,7 @@ class FakeZone(object):
         return hosted_zone
 
 
-class RecordSetGroup(object):
+class RecordSetGroup(BaseModel):
 
     def __init__(self, hosted_zone_id, record_sets):
         self.hosted_zone_id = hosted_zone_id

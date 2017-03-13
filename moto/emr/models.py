@@ -5,12 +5,12 @@ from datetime import timedelta
 import boto.emr
 import pytz
 from dateutil.parser import parse as dtparse
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 
 from .utils import random_instance_group_id, random_cluster_id, random_step_id
 
 
-class FakeApplication(object):
+class FakeApplication(BaseModel):
 
     def __init__(self, name, version, args=None, additional_info=None):
         self.additional_info = additional_info or {}
@@ -19,7 +19,7 @@ class FakeApplication(object):
         self.version = version
 
 
-class FakeBootstrapAction(object):
+class FakeBootstrapAction(BaseModel):
 
     def __init__(self, args, name, script_path):
         self.args = args or []
@@ -27,7 +27,7 @@ class FakeBootstrapAction(object):
         self.script_path = script_path
 
 
-class FakeInstanceGroup(object):
+class FakeInstanceGroup(BaseModel):
 
     def __init__(self, instance_count, instance_role, instance_type,
                  market='ON_DEMAND', name=None, id=None, bid_price=None):
@@ -57,7 +57,7 @@ class FakeInstanceGroup(object):
         self.num_instances = instance_count
 
 
-class FakeStep(object):
+class FakeStep(BaseModel):
 
     def __init__(self,
                  state,
@@ -81,7 +81,7 @@ class FakeStep(object):
         self.state = state
 
 
-class FakeCluster(object):
+class FakeCluster(BaseModel):
 
     def __init__(self,
                  emr_backend,

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
 from moto.elb.exceptions import LoadBalancerNotFoundError
@@ -16,7 +16,7 @@ class InstanceState(object):
         self.lifecycle_state = lifecycle_state
 
 
-class FakeScalingPolicy(object):
+class FakeScalingPolicy(BaseModel):
 
     def __init__(self, name, policy_type, adjustment_type, as_name, scaling_adjustment,
                  cooldown, autoscaling_backend):
@@ -43,7 +43,7 @@ class FakeScalingPolicy(object):
                 self.as_name, self.scaling_adjustment)
 
 
-class FakeLaunchConfiguration(object):
+class FakeLaunchConfiguration(BaseModel):
 
     def __init__(self, name, image_id, key_name, ramdisk_id, kernel_id, security_groups, user_data,
                  instance_type, instance_monitoring, instance_profile_name,
@@ -142,7 +142,7 @@ class FakeLaunchConfiguration(object):
         return block_device_map
 
 
-class FakeAutoScalingGroup(object):
+class FakeAutoScalingGroup(BaseModel):
 
     def __init__(self, name, availability_zones, desired_capacity, max_size,
                  min_size, launch_config_name, vpc_zone_identifier,

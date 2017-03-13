@@ -14,12 +14,12 @@ except:
     from io import StringIO
 
 import boto.awslambda
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.s3.models import s3_backend
 from moto.s3.exceptions import MissingBucket
 
 
-class LambdaFunction(object):
+class LambdaFunction(BaseModel):
 
     def __init__(self, spec):
         # required

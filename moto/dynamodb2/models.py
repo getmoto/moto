@@ -5,7 +5,7 @@ import decimal
 import json
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from .comparisons import get_comparison_func
 
@@ -76,7 +76,7 @@ class DynamoType(object):
         return comparison_func(self.cast_value, *range_values)
 
 
-class Item(object):
+class Item(BaseModel):
 
     def __init__(self, hash_key, hash_key_type, range_key, range_key_type, attrs):
         self.hash_key = hash_key
@@ -173,7 +173,7 @@ class Item(object):
                         'ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
 
 
-class Table(object):
+class Table(BaseModel):
 
     def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None):
         self.name = table_name

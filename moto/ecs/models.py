@@ -2,12 +2,12 @@ from __future__ import unicode_literals
 import uuid
 from random import randint, random
 
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from copy import copy
 
 
-class BaseObject(object):
+class BaseObject(BaseModel):
 
     def camelCase(self, key):
         words = []

@@ -11,13 +11,13 @@ from operator import attrgetter
 from hashlib import md5
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from .exceptions import StreamNotFoundError, ShardNotFoundError, ResourceInUseError, \
     ResourceNotFoundError, InvalidArgumentError
 from .utils import compose_shard_iterator, compose_new_shard_iterator, decompose_shard_iterator
 
 
-class Record(object):
+class Record(BaseModel):
 
     def __init__(self, partition_key, data, sequence_number, explicit_hash_key):
         self.partition_key = partition_key
@@ -33,7 +33,7 @@ class Record(object):
         }
 
 
-class Shard(object):
+class Shard(BaseModel):
 
     def __init__(self, shard_id, starting_hash, ending_hash):
         self._shard_id = shard_id
@@ -94,7 +94,7 @@ class Shard(object):
         }
 
 
-class Stream(object):
+class Stream(BaseModel):
 
     def __init__(self, stream_name, shard_count, region):
         self.stream_name = stream_name
@@ -173,14 +173,14 @@ class Stream(object):
         }
 
 
-class FirehoseRecord(object):
+class FirehoseRecord(BaseModel):
 
     def __init__(self, record_data):
         self.record_id = 12345678
         self.record_data = record_data
 
 
-class DeliveryStream(object):
+class DeliveryStream(BaseModel):
 
     def __init__(self, stream_name, **stream_kwargs):
         self.name = stream_name

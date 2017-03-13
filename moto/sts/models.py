@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
 import datetime
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 
-class Token(object):
+class Token(BaseModel):
 
     def __init__(self, duration, name=None, policy=None):
         now = datetime.datetime.utcnow()
@@ -17,7 +17,7 @@ class Token(object):
         return iso_8601_datetime_with_milliseconds(self.expiration)
 
 
-class AssumedRole(object):
+class AssumedRole(BaseModel):
 
     def __init__(self, role_session_name, role_arn, policy, duration, external_id):
         self.session_name = role_session_name

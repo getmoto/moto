@@ -1,4 +1,4 @@
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 import boto.ec2.cloudwatch
 import datetime
 
@@ -10,7 +10,7 @@ class Dimension(object):
         self.value = value
 
 
-class FakeAlarm(object):
+class FakeAlarm(BaseModel):
 
     def __init__(self, name, namespace, metric_name, comparison_operator, evaluation_periods,
                  period, threshold, statistic, description, dimensions, alarm_actions,
@@ -34,7 +34,7 @@ class FakeAlarm(object):
         self.configuration_updated_timestamp = datetime.datetime.utcnow()
 
 
-class MetricDatum(object):
+class MetricDatum(BaseModel):
 
     def __init__(self, namespace, name, value, dimensions):
         self.namespace = namespace

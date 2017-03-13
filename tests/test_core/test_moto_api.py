@@ -19,3 +19,15 @@ def test_reset_api():
     res.content.should.equal(b'{"status": "ok"}')
 
     conn.list_queues().shouldnt.contain('QueueUrls')  # No more queues
+
+
+@mock_sqs
+def test_data_api():
+    conn = boto3.client("sqs", region_name='us-west-1')
+    conn.create_queue(QueueName="queue1")
+
+    res = requests.post("{base_url}/moto-api/data.json".format(base_url=base_url))
+    queues = res.json()['sqs']['Queue']
+    len(queues).should.equal(1)
+    queue = queues[0]
+    queue['name'].should.equal("queue1")

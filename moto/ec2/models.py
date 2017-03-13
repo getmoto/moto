@@ -13,7 +13,7 @@ from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
 
 from moto.core import BaseBackend
-from moto.core.models import Model
+from moto.core.models import Model, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, camelcase_to_underscores
 from .exceptions import (
     EC2ClientError,
@@ -129,7 +129,7 @@ class StateReason(object):
         self.code = code
 
 
-class TaggedEC2Resource(object):
+class TaggedEC2Resource(BaseModel):
 
     def get_tags(self, *args, **kwargs):
         tags = self.ec2_backend.describe_tags(
@@ -2612,7 +2612,7 @@ class InternetGatewayBackend(object):
         return self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
 
 
-class VPCGatewayAttachment(object):
+class VPCGatewayAttachment(BaseModel):
 
     def __init__(self, gateway_id, vpc_id):
         self.gateway_id = gateway_id
@@ -2633,7 +2633,7 @@ class VPCGatewayAttachment(object):
 
     @property
     def physical_resource_id(self):
-        return self.id
+        return self.vpc_id
 
 
 class VPCGatewayAttachmentBackend(object):

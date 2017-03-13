@@ -12,6 +12,7 @@ from jinja2 import Environment, DictLoader, TemplateNotFound
 import six
 from six.moves.urllib.parse import parse_qs, urlparse
 
+from flask import render_template
 import xmltodict
 from pkg_resources import resource_filename
 from werkzeug.exceptions import HTTPException
@@ -349,6 +350,32 @@ class MotoAPIResponse(BaseResponse):
             moto_api_backend.reset()
             return 200, {}, json.dumps({"status": "ok"})
         return 400, {}, json.dumps({"Error": "Need to POST to reset Moto"})
+
+    def model_data(self, request, full_url, headers):
+        from moto.core.models import model_data
+
+        results = {}
+        for service in sorted(model_data):
+            models = model_data[service]
+            results[service] = {}
+            for name in sorted(models):
+                model = models[name]
+                results[service][name] = []
+                for instance in model.instances:
+                    inst_result = {}
+                    for attr in dir(instance):
+                        if not attr.startswith("_"):
+                            try:
+                                json.dumps(getattr(instance, attr))
+                            except TypeError:
+                                pass
+                            else:
+                                inst_result[attr] = getattr(instance, attr)
+                    results[service][name].append(inst_result)
+        return 200, {"Content-Type": "application/javascript"}, json.dumps(results)
+
+    def dashboard(self, request, full_url, headers):
+        return render_template('dashboard.html')
 
 
 class _RecursiveDictRef(object):
