@@ -18,6 +18,7 @@ url_paths = {
     '{0}/(?P<api_version>[\d_-]+)/hostedzone$': Route53().list_or_create_hostzone_response,
     '{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)$': Route53().get_or_delete_hostzone_response,
     '{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)/rrset/?$': Route53().rrset_response,
+    '{0}/(?P<api_version>[\d_-]+)/hostedzonesbyname': Route53().list_hosted_zones_by_name_response,
     '{0}/(?P<api_version>[\d_-]+)/healthcheck': Route53().health_check_response,
     '{0}/(?P<api_version>[\d_-]+)/tags/healthcheck/(?P<zone_id>[^/]+)$': tag_response1,
     '{0}/(?P<api_version>[\d_-]+)/tags/hostedzone/(?P<zone_id>[^/]+)$': tag_response2,

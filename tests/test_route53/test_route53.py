@@ -361,8 +361,9 @@ def test_hosted_zone_private_zone_preserved_boto3():
     hosted_zones = conn.list_hosted_zones()
     hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
 
-    # zone = conn.list_hosted_zones_by_name(DNSName="testdns.aws.com.")
-    # zone.config["PrivateZone"].should.equal(True)
+    hosted_zones = conn.list_hosted_zones_by_name(DNSName="testdns.aws.com.")
+    len(hosted_zones["HostedZones"]).should.equal(1)
+    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
 
 
 @mock_route53
@@ -445,3 +446,48 @@ def test_list_or_change_tags_for_resource_request():
     response = conn.list_tags_for_resource(
         ResourceType='healthcheck', ResourceId=healthcheck_id)
     response['ResourceTagSet']['Tags'].should.be.empty
+
+
+@mock_route53
+def test_list_hosted_zones_by_name():
+    conn = boto3.client('route53', region_name='us-east-1')
+    conn.create_hosted_zone(
+        Name="test.b.com.",
+        CallerReference=str(hash('foo')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="test com",
+        )
+    )
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash('bar')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="test org",
+        )
+    )
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash('bar')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="test org 2",
+        )
+    )
+
+    # test lookup
+    zones = conn.list_hosted_zones_by_name(DNSName="test.b.com.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("test.b.com.")
+    zones = conn.list_hosted_zones_by_name(DNSName="test.a.org.")
+    len(zones["HostedZones"]).should.equal(2)
+    zones["HostedZones"][0]["Name"].should.equal("test.a.org.")
+    zones["HostedZones"][1]["Name"].should.equal("test.a.org.")
+
+    # test sort order
+    zones = conn.list_hosted_zones_by_name()
+    len(zones["HostedZones"]).should.equal(3)
+    zones["HostedZones"][0]["Name"].should.equal("test.b.com.")
+    zones["HostedZones"][1]["Name"].should.equal("test.a.org.")
+    zones["HostedZones"][2]["Name"].should.equal("test.a.org.")

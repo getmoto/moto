@@ -7,7 +7,7 @@ from .models import route53_backend
 import xmltodict
 
 
-class Route53 (BaseResponse):
+class Route53(BaseResponse):
 
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -46,6 +46,32 @@ class Route53 (BaseResponse):
             all_zones = route53_backend.get_all_hosted_zones()
             template = Template(LIST_HOSTED_ZONES_RESPONSE)
             return 200, headers, template.render(zones=all_zones)
+
+    def list_hosted_zones_by_name_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        query_params = parse_qs(parsed_url.query)
+        dnsname = query_params.get("dnsname")
+
+        if dnsname:
+            dnsname = dnsname[0]    # parse_qs gives us a list, but this parameter doesn't repeat
+            # return all zones with that name (there can be more than one)
+            zones = [zone for zone in route53_backend.get_all_hosted_zones() if zone.name == dnsname]
+        else:
+            # sort by names, but with domain components reversed
+            # see http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones_by_name
+
+            def sort_key(zone):
+                domains = zone.name.split(".")
+                if domains[-1] == "":
+                    domains = domains[-1:] + domains[:-1]
+                return ".".join(reversed(domains))
+
+            zones = route53_backend.get_all_hosted_zones()
+            zones = sorted(zones, key=sort_key)
+
+        template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
+        return 200, headers, template.render(zones=zones)
 
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -288,6 +314,25 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
    </HostedZones>
    <IsTruncated>false</IsTruncated>
 </ListHostedZonesResponse>"""
+
+LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+  <HostedZones>
+      {% for zone in zones %}
+      <HostedZone>
+         <Id>/hostedzone/{{ zone.id }}</Id>
+         <Name>{{ zone.name }}</Name>
+         <Config>
+            {% if zone.comment %}
+                <Comment>{{ zone.comment }}</Comment>
+            {% endif %}
+           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+         </Config>
+         <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
+      </HostedZone>
+      {% endfor %}
+   </HostedZones>
+   <IsTruncated>false</IsTruncated>
+</ListHostedZonesByNameResponse>"""
 
 CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CreateHealthCheckResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
