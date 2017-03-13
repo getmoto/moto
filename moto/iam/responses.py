@@ -232,7 +232,6 @@ class IamResponse(BaseResponse):
         template = self.response_template(USER_TEMPLATE)
         return template.render(action='Create', user=user)
 
-
     def get_user(self):
         user_name = self._get_param('UserName')
         user = iam_backend.get_user(user_name)

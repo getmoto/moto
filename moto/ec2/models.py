@@ -349,7 +349,6 @@ class NetworkInterfaceBackend(object):
         return generic_filter(filters, enis)
 
 
-
 class Instance(TaggedEC2Resource, BotoInstance):
     def __init__(self, ec2_backend, image_id, user_data, security_groups, **kwargs):
         super(Instance, self).__init__()

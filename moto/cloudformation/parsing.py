@@ -365,7 +365,7 @@ class ResourceMap(collections.Mapping):
                 condition, self._parsed_resources, self.lazy_condition_map)
 
         for condition_name in self.lazy_condition_map:
-            _ = self.lazy_condition_map[condition_name]
+            self.lazy_condition_map[condition_name]
 
     def create(self):
         self.load_mapping()

@@ -4,6 +4,9 @@ init:
 	@python setup.py develop
 	@pip install -r requirements.txt
 
+lint:
+	flake8 moto
+
 test:
 	rm -f .coverage
 	rm -rf cover
