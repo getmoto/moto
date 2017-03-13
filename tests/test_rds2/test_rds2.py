@@ -26,6 +26,8 @@ def test_create_database():
     database['DBInstance']['MasterUsername'].should.equal("root")
     database['DBInstance']['DBSecurityGroups'][0][
         'DBSecurityGroupName'].should.equal('my_sg')
+    database['DBInstance']['DBInstanceArn'].should.equal(
+        'arn:aws:rds:us-west-2:1234567890:db:db-master-1')
 
 
 @disable_on_py3()
@@ -59,6 +61,8 @@ def test_get_databases():
     list(instances['DBInstances']).should.have.length_of(1)
     instances['DBInstances'][0][
         'DBInstanceIdentifier'].should.equal("db-master-1")
+    instances['DBInstances'][0]['DBInstanceArn'].should.equal(
+        'arn:aws:rds:us-west-2:1234567890:db:db-master-1')
 
 
 @disable_on_py3()
@@ -333,26 +337,27 @@ def test_list_tags_db():
     result = conn.list_tags_for_resource(
         ResourceName='arn:aws:rds:us-west-2:1234567890:db:foo')
     result['TagList'].should.equal([])
-    conn.create_db_instance(DBInstanceIdentifier='db-with-tags',
-                            AllocatedStorage=10,
-                            DBInstanceClass='postgres',
-                            Engine='db.m1.small',
-                            MasterUsername='root',
-                            MasterUserPassword='hunter2',
-                            Port=1234,
-                            DBSecurityGroups=['my_sg'],
-                            Tags=[
-                                {
-                                    'Key': 'foo',
-                                    'Value': 'bar',
-                                },
-                                {
-                                    'Key': 'foo1',
-                                    'Value': 'bar1',
-                                },
-                            ])
+    test_instance = conn.create_db_instance(
+        DBInstanceIdentifier='db-with-tags',
+        AllocatedStorage=10,
+        DBInstanceClass='postgres',
+        Engine='db.m1.small',
+        MasterUsername='root',
+        MasterUserPassword='hunter2',
+        Port=1234,
+        DBSecurityGroups=['my_sg'],
+        Tags=[
+            {
+                'Key': 'foo',
+                'Value': 'bar',
+            },
+            {
+                'Key': 'foo1',
+                'Value': 'bar1',
+            },
+        ])
     result = conn.list_tags_for_resource(
-        ResourceName='arn:aws:rds:us-west-2:1234567890:db:db-with-tags')
+        ResourceName=test_instance['DBInstance']['DBInstanceArn'])
     result['TagList'].should.equal([{'Value': 'bar',
                                      'Key': 'foo'},
                                     {'Value': 'bar1',

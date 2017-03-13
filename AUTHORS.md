@@ -44,3 +44,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Jean-Baptiste Barth](https://github.com/jbbarth)
 * [Tom Viner](https://github.com/tomviner)
 * [Justin Wiley](https://github.com/SectorNine50)
+* [Adam Stauffer](https://github.com/adamstauffer)

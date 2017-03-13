@@ -96,6 +96,11 @@ class Database(BaseModel):
         self.tags = kwargs.get('tags', [])
 
     @property
+    def db_instance_arn(self):
+        return "arn:aws:rds:{0}:1234567890:db:{1}".format(
+            self.region, self.db_instance_identifier)
+
+    @property
     def physical_resource_id(self):
         return self.db_instance_identifier
 
@@ -206,6 +211,7 @@ class Database(BaseModel):
                 <Address>{{ database.address }}</Address>
                 <Port>{{ database.port }}</Port>
               </Endpoint>
+              <DBInstanceArn>{{ database.db_instance_arn }}</DBInstanceArn>
             </DBInstance>""")
         return template.render(database=self)
 
@@ -349,7 +355,8 @@ class Database(BaseModel):
                 "Status": "active",
                 "VpcSecurityGroupId": "sg-123456"
             }
-        ]
+        ],
+        "DBInstanceArn": "{{ database.db_instance_arn }}"
       }""")
         return template.render(database=self)
 
