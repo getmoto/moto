@@ -36,7 +36,7 @@ public class S3Sample {
         AmazonSQS sqs = new AmazonSQSClient();
         Region usWest2 = Region.getRegion(Regions.US_WEST_2);
         sqs.setRegion(usWest2);
-        sqs.setEndpoint("http://localhost:8086");
+        sqs.setEndpoint("http://localhost:5000");
 
         String queueName = "my-first-queue";
         sqs.createQueue(queueName);

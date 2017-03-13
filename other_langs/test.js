@@ -1,6 +1,6 @@
 var AWS = require('aws-sdk');
 
-var s3 = new AWS.S3({endpoint: "http://localhost:8086"});
+var s3 = new AWS.S3({endpoint: "http://localhost:5000"});
 var myBucket = 'my.unique.bucket.name';
 
 var myKey = 'myBucketKey';

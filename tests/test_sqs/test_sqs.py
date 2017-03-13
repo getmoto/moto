@@ -77,7 +77,7 @@ def test_create_queues_in_multiple_region():
     list(west2_conn.list_queues()['QueueUrls']).should.have.length_of(1)
 
     if settings.TEST_SERVER_MODE:
-        base_url = 'http://localhost:8086'
+        base_url = 'http://localhost:5000'
     else:
         base_url = 'https://us-west-1.queue.amazonaws.com'
 
@@ -98,7 +98,7 @@ def test_get_queue_with_prefix():
     queue.should.have.length_of(1)
 
     if settings.TEST_SERVER_MODE:
-        base_url = 'http://localhost:8086'
+        base_url = 'http://localhost:5000'
     else:
         base_url = 'https://us-west-1.queue.amazonaws.com'
 
