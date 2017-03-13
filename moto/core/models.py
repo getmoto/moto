@@ -211,6 +211,8 @@ class Model(type):
 
 
 model_data = defaultdict(dict)
+
+
 class InstanceTrackerMeta(type):
     def __new__(meta, name, bases, dct):
         cls = super(InstanceTrackerMeta, meta).__new__(meta, name, bases, dct)
@@ -222,6 +224,7 @@ class InstanceTrackerMeta(type):
             model_data[service][name] = cls
         cls.instances = []
         return cls
+
 
 @six.add_metaclass(InstanceTrackerMeta)
 class BaseModel(object):
