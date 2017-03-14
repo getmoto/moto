@@ -15,6 +15,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @import url("basic.css");
 
 /* -- page layout ----------------------------------------------------------- */
@@ -22,11 +57,12 @@
 body {
     font-family: 'goudy old style', 'minion pro', 'bell mt', Georgia, 'Hiragino Mincho Pro', serif;
     font-size: 17px;
-    background-color: white;
+    background-color: #fff;
     color: #000;
     margin: 0;
     padding: 0;
 }
+
 
 div.document {
     width: 940px;
@@ -44,6 +80,8 @@ div.bodywrapper {
 
 div.sphinxsidebar {
     width: 220px;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 hr {
@@ -51,9 +89,13 @@ hr {
 }
 
 div.body {
-    background-color: #ffffff;
+    background-color: #fff;
     color: #3E4349;
     padding: 0 30px 0 30px;
+}
+
+div.body > .section {
+    text-align: left;
 }
 
 div.footer {
@@ -66,6 +108,11 @@ div.footer {
 
 div.footer a {
     color: #888;
+}
+
+p.caption {
+    font-family: inherit;
+    font-size: inherit;
 }
 
 
@@ -82,11 +129,6 @@ div.sphinxsidebar a {
 
 div.sphinxsidebar a:hover {
     border-bottom: 1px solid #999;
-}
-
-div.sphinxsidebar {
-    font-size: 14px;
-    line-height: 1.5;
 }
 
 div.sphinxsidebarwrapper {
@@ -168,8 +210,8 @@ div.sphinxsidebar input {
 div.sphinxsidebar hr {
     border: none;
     height: 1px;
-    color: #999;
-    background: #999;
+    color: #AAA;
+    background: #AAA;
 
     text-align: left;
     margin-left: 0;
@@ -225,17 +267,13 @@ div.body p, div.body dd, div.body li {
 div.admonition {
     margin: 20px 0px;
     padding: 10px 30px;
-    background-color: #FCC;
-    border: 1px solid #FAA;
+    background-color: #EEE;
+    border: 1px solid #CCC;
 }
 
-div.admonition tt.xref, div.admonition a tt {
+div.admonition tt.xref, div.admonition code.xref, div.admonition a tt {
+    background-color: #FBFBFB;
     border-bottom: 1px solid #fafafa;
-}
-
-dd div.admonition {
-    margin-left: -60px;
-    padding-left: 60px;
 }
 
 div.admonition p.admonition-title {
@@ -252,14 +290,60 @@ div.admonition p.last {
 }
 
 div.highlight {
-    background-color: white;
+    background-color: #fff;
 }
 
 dt:target, .highlight {
     background: #FAF3E8;
 }
 
+div.warning {
+    background-color: #FCC;
+    border: 1px solid #FAA;
+}
+
+div.danger {
+    background-color: #FCC;
+    border: 1px solid #FAA;
+    -moz-box-shadow: 2px 2px 4px #D52C2C;
+    -webkit-box-shadow: 2px 2px 4px #D52C2C;
+    box-shadow: 2px 2px 4px #D52C2C;
+}
+
+div.error {
+    background-color: #FCC;
+    border: 1px solid #FAA;
+    -moz-box-shadow: 2px 2px 4px #D52C2C;
+    -webkit-box-shadow: 2px 2px 4px #D52C2C;
+    box-shadow: 2px 2px 4px #D52C2C;
+}
+
+div.caution {
+    background-color: #FCC;
+    border: 1px solid #FAA;
+}
+
+div.attention {
+    background-color: #FCC;
+    border: 1px solid #FAA;
+}
+
+div.important {
+    background-color: #EEE;
+    border: 1px solid #CCC;
+}
+
 div.note {
+    background-color: #EEE;
+    border: 1px solid #CCC;
+}
+
+div.tip {
+    background-color: #EEE;
+    border: 1px solid #CCC;
+}
+
+div.hint {
     background-color: #EEE;
     border: 1px solid #CCC;
 }
@@ -270,7 +354,7 @@ div.seealso {
 }
 
 div.topic {
-    background-color: #eee;
+    background-color: #EEE;
 }
 
 p.admonition-title {
@@ -305,16 +389,16 @@ tt.descname, code.descname {
 }
 
 img.screenshot {
-    -moz-box-shadow: 2px 2px 4px #eee;
-    -webkit-box-shadow: 2px 2px 4px #eee;
-    box-shadow: 2px 2px 4px #eee;
+    -moz-box-shadow: 2px 2px 4px #EEE;
+    -webkit-box-shadow: 2px 2px 4px #EEE;
+    box-shadow: 2px 2px 4px #EEE;
 }
 
 table.docutils {
     border: 1px solid #888;
-    -moz-box-shadow: 2px 2px 4px #eee;
-    -webkit-box-shadow: 2px 2px 4px #eee;
-    box-shadow: 2px 2px 4px #eee;
+    -moz-box-shadow: 2px 2px 4px #EEE;
+    -webkit-box-shadow: 2px 2px 4px #EEE;
+    box-shadow: 2px 2px 4px #EEE;
 }
 
 table.docutils td, table.docutils th {
@@ -350,8 +434,22 @@ table.field-list td {
     padding: 0;
 }
 
+table.field-list p {
+    margin-bottom: 0.8em;
+}
+
+/* Cloned from
+ * https://github.com/sphinx-doc/sphinx/commit/ef60dbfce09286b20b7385333d63a60321784e68
+ */
+.field-name {
+    -moz-hyphens: manual;
+    -ms-hyphens: manual;
+    -webkit-hyphens: manual;
+    hyphens: manual;
+}
+
 table.footnote td.label {
-    width: 0px;
+    width: .1px;
     padding: 0.3em 0 0.3em 0.5em;
 }
 
@@ -374,6 +472,7 @@ blockquote {
 }
 
 ul, ol {
+    /* Matches the 30px from the narrow-screen "li > ul" selector below */
     margin: 10px 0 10px 30px;
     padding: 0;
 }
@@ -385,14 +484,13 @@ pre {
     line-height: 1.3em;
 }
 
+div.viewcode-block:target {
+    background: #ffd;
+}
+
 dl pre, blockquote pre, li pre {
     margin-left: 0;
     padding-left: 30px;
-}
-
-dl dl pre {
-    margin-left: -90px;
-    padding-left: 90px;
 }
 
 tt, code {
@@ -403,12 +501,17 @@ tt, code {
 
 tt.xref, code.xref, a tt {
     background-color: #FBFBFB;
-    border-bottom: 1px solid white;
+    border-bottom: 1px solid #fff;
 }
 
 a.reference {
     text-decoration: none;
     border-bottom: 1px dotted #004B6B;
+}
+
+/* Don't put an underline on images */
+a.image-reference, a.image-reference:hover {
+    border-bottom: none;
 }
 
 a.reference:hover {
@@ -460,6 +563,11 @@ a:hover tt, a:hover code {
     	margin-left: 0;
     }
 
+	li > ul {
+        /* Matches the 30px from the "ul, ol" selector above */
+		margin-left: 30px;
+	}
+
     .document {
     	width: auto;
     }
@@ -495,7 +603,7 @@ a:hover tt, a:hover code {
 
     div.documentwrapper {
         float: none;
-        background: white;
+        background: #fff;
     }
 
     div.sphinxsidebar {
@@ -510,7 +618,7 @@ a:hover tt, a:hover code {
 
     div.sphinxsidebar h3, div.sphinxsidebar h4, div.sphinxsidebar p,
     div.sphinxsidebar h3 a {
-        color: white;
+        color: #fff;
     }
 
     div.sphinxsidebar a {
