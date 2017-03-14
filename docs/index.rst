@@ -1,7 +1,7 @@
 .. _index:
 
 =============================
-Moto: A Mock library for boto
+Moto: Mock AWS Services
 =============================
 
 A library that allows you to easily mock out tests based on
@@ -14,58 +14,76 @@ Getting Started
 
 If you've never used ``moto`` before, you should read the
 :doc:`Getting Started with Moto <getting_started>` guide to get familiar
-with ``moto`` & its usage.
+with ``moto`` and its usage.
 
-Currently implemented Services
-------------------------------
+Currently implemented Services:
 
-* **Compute**
++-----------------------+---------------------+-----------------------------------+
+| Service Name          | Decorator           | Development Status                |
++=======================+=====================+===================================+
+| API Gateway           | @mock_apigateway    | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| Autoscaling           | @mock_autoscaling   | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| Cloudformation        | @mock_cloudformation| core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| Cloudwatch            | @mock_cloudwatch    | basic endpoints done              |
++-----------------------+---------------------+-----------------------------------+
+| Data Pipeline         | @mock_datapipeline  | basic endpoints done              |
++-----------------------+---------------------+-----------------------------------+
+| - DynamoDB            | - @mock_dynamodb    | - core endpoints done             |
+| - DynamoDB2           | - @mock_dynamodb2   | - core endpoints + partial indexes|
++-----------------------+---------------------+-----------------------------------+
+| EC2                   | @mock_ec2           | core endpoints done               |
+|     - AMI             |                     | core endpoints done               |
+|     - EBS             |                     | core endpoints done               |
+|     - Instances       |                     | all  endpoints done               |
+|     - Security Groups |                     | core endpoints done               |
+|     - Tags            |                     | all  endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| ECS                   | @mock_ecs           | basic endpoints done              |
++-----------------------+---------------------+-----------------------------------+
+| ELB                   | @mock_elb           | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| EMR                   | @mock_emr           | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| Glacier               | @mock_glacier       | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| IAM                   | @mock_iam           | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| Lambda                | @mock_lambda        | basic endpoints done              |
++-----------------------+---------------------+-----------------------------------+
+| Kinesis               | @mock_kinesis       | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| KMS                   | @mock_kms           | basic endpoints done              |
++-----------------------+---------------------+-----------------------------------+
+| RDS                   | @mock_rds           | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| RDS2                  | @mock_rds2          | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| Redshift              | @mock_redshift      | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| Route53               | @mock_route53       | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| S3                    | @mock_s3            | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| SES                   | @mock_ses           | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| SNS                   | @mock_sns           | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| SQS                   | @mock_sqs           | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| STS                   | @mock_sts           | core endpoints done               |
++-----------------------+---------------------+-----------------------------------+
+| SWF                   | @mock_sfw           | basic endpoints done              |
++-----------------------+---------------------+-----------------------------------+
 
-  * :doc:`Elastic Compute Cloud <ec2_tut>`
-  * AMI
-  * EBS
-  * Instances
-  * Security groups
-  * Tags
-  * Auto Scaling
 
-* **Storage and content delivery**
+Moto APIs
+---------
+some stuff
 
-  * S3
-  * Glacier
 
-* **Database**
-  
-  * RDS
-  * DynamoDB
-  * Redshift
-
-* **Networking**
-  
-  * Route53
-
-* **Administration and security**
-
-  * Identity & access management
-  * CloudWatch
-
-* **Deployment and management**
-
-  * CloudFormation
-
-* **Analytics**
-
-  * Kinesis
-  * EMR
-
-* **Application service**
-
-  * SQS
-  * SES
-
-* **Mobile services**
-
-  * SNS
 
 Additional Resources
 --------------------
@@ -76,16 +94,12 @@ Additional Resources
 .. _Moto Issue Tracker: https://github.com/spulec/moto/issues
 .. _Moto Source Repository: https://github.com/spulec/moto
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
 .. toctree::
    :maxdepth: 2
    :hidden:
    :glob:
 
+   index
    getting_started
+   other_langs
+   moto_apis
