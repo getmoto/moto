@@ -1,11 +1,12 @@
 from __future__ import unicode_literals
 import re
 
+import boto3
 import boto.kms
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 import sure  # noqa
-from moto import mock_kms_deprecated
+from moto import mock_kms, mock_kms_deprecated
 from nose.tools import assert_raises
 
 
@@ -600,3 +601,12 @@ def test__assert_default_policy():
         "not-default").should.throw(JSONResponseError)
     _assert_default_policy.when.called_with(
         "default").should_not.throw(JSONResponseError)
+
+
+@mock_kms
+def test_kms_encrypt_boto3():
+    client = boto3.client('kms', region_name='us-east-1')
+    response = client.encrypt(KeyId='foo', Plaintext=b'bar')
+
+    response = client.decrypt(CiphertextBlob=response['CiphertextBlob'])
+    response['Plaintext'].should.equal(b'bar')

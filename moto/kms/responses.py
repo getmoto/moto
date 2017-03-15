@@ -231,7 +231,6 @@ class KmsResponse(BaseResponse):
 
     def decrypt(self):
         value = self.parameters.get("CiphertextBlob")
-        print("value 3", value)
         return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8")})
 
 
