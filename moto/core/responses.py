@@ -12,7 +12,6 @@ from jinja2 import Environment, DictLoader, TemplateNotFound
 import six
 from six.moves.urllib.parse import parse_qs, urlparse
 
-from flask import render_template
 import xmltodict
 from pkg_resources import resource_filename
 from werkzeug.exceptions import HTTPException
@@ -375,6 +374,7 @@ class MotoAPIResponse(BaseResponse):
         return 200, {"Content-Type": "application/javascript"}, json.dumps(results)
 
     def dashboard(self, request, full_url, headers):
+        from flask import render_template
         return render_template('dashboard.html')
 
 
