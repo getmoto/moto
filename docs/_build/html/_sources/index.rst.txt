@@ -5,18 +5,17 @@ Moto: Mock AWS Services
 =============================
 
 A library that allows you to easily mock out tests based on
-_`AWS infrastructure`.
-
-.. _AWS infrastructure: http://aws.amazon.com/
+`AWS infrastructure`_.
 
 Getting Started
 ---------------
 
 If you've never used ``moto`` before, you should read the
-:doc:`Getting Started with Moto <getting_started>` guide to get familiar
+:doc:`Getting Started with Moto <docs/getting_started>` guide to get familiar
 with ``moto`` and its usage.
 
 Currently implemented Services:
+-------------------------------
 
 +-----------------------+---------------------+-----------------------------------+
 | Service Name          | Decorator           | Development Status                |
@@ -79,11 +78,6 @@ Currently implemented Services:
 +-----------------------+---------------------+-----------------------------------+
 
 
-Moto APIs
----------
-some stuff
-
-
 
 Additional Resources
 --------------------
@@ -91,6 +85,7 @@ Additional Resources
 * `Moto Source Repository`_
 * `Moto Issue Tracker`_
 
+.. _AWS infrastructure: http://aws.amazon.com/
 .. _Moto Issue Tracker: https://github.com/spulec/moto/issues
 .. _Moto Source Repository: https://github.com/spulec/moto
 
@@ -99,7 +94,7 @@ Additional Resources
    :hidden:
    :glob:
 
-   index
-   getting_started
-   other_langs
-   moto_apis
+   docs/getting_started
+   docs/server_mode
+   docs/moto_apis
+   docs/ec2_tut

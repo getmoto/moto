@@ -4,7 +4,7 @@
 Other languages
 ===============
 
-You don't need to use Python to use Moto; it can be used with any language. To use it with another language, run moto_server and here are some examples in other languages.
+You don't need to use Python to use Moto; it can be used with any language. To use it with another language, run moto_server. Here are some examples in other languages:
 
 * `Java`_
 * `Ruby`_

@@ -1,0 +1,343 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Getting Started with Moto &mdash; Moto 0.4.10 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Moto 0.4.10 documentation" href="../index.html"/>
+        <link rel="next" title="Moto APIs" href="moto_apis.html"/>
+        <link rel="prev" title="Moto: Mock AWS Services" href="../index.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Moto
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.4.10
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started with Moto</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installing-moto">Installing Moto</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#moto-usage">Moto usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#decorator">Decorator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#context-manager">Context manager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#raw">Raw</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stand-alone-server-mode">Stand-alone server mode</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moto_apis.html">Moto APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ec2_tut.html">Use Moto as EC2 backend</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Moto</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Getting Started with Moto</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/docs/getting_started.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="getting-started-with-moto">
+<span id="getting-started"></span><h1>Getting Started with Moto<a class="headerlink" href="#getting-started-with-moto" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="installing-moto">
+<h2>Installing Moto<a class="headerlink" href="#installing-moto" title="Permalink to this headline">¶</a></h2>
+<p>You can use <code class="docutils literal"><span class="pre">pip</span></code> to install the latest released version of <code class="docutils literal"><span class="pre">moto</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">moto</span>
+</pre></div>
+</div>
+<p>If you want to install <code class="docutils literal"><span class="pre">moto</span></code> from source:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">spulec</span><span class="o">/</span><span class="n">moto</span><span class="o">.</span><span class="n">git</span>
+<span class="n">cd</span> <span class="n">moto</span>
+<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="moto-usage">
+<h2>Moto usage<a class="headerlink" href="#moto-usage" title="Permalink to this headline">¶</a></h2>
+<p>For example we have the following code we want to test:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">boto</span>
+<span class="kn">from</span> <span class="nn">boto.s3.key</span> <span class="kn">import</span> <span class="n">Key</span>
+
+<span class="k">class</span> <span class="nc">MyModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">connect_s3</span><span class="p">()</span>
+        <span class="n">bucket</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s1">&#39;mybucket&#39;</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">Key</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+        <span class="n">k</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">k</span><span class="o">.</span><span class="n">set_contents_from_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>There are several method to do this, just keep in mind Moto creates a full blank environment.</p>
+<div class="section" id="decorator">
+<h3>Decorator<a class="headerlink" href="#decorator" title="Permalink to this headline">¶</a></h3>
+<p>With a decorator wrapping all the calls to S3 are automatically mocked out.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">boto</span>
+<span class="kn">from</span> <span class="nn">moto</span> <span class="kn">import</span> <span class="n">mock_s3</span>
+<span class="kn">from</span> <span class="nn">mymodule</span> <span class="kn">import</span> <span class="n">MyModel</span>
+
+<span class="nd">@mock_s3</span>
+<span class="k">def</span> <span class="nf">test_my_model_save</span><span class="p">():</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">connect_s3</span><span class="p">()</span>
+    <span class="c1"># We need to create the bucket since this is all in Moto&#39;s &#39;virtual&#39; AWS account</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="s1">&#39;mybucket&#39;</span><span class="p">)</span>
+
+    <span class="n">model_instance</span> <span class="o">=</span> <span class="n">MyModel</span><span class="p">(</span><span class="s1">&#39;steve&#39;</span><span class="p">,</span> <span class="s1">&#39;is awesome&#39;</span><span class="p">)</span>
+    <span class="n">model_instance</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="k">assert</span> <span class="n">conn</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s1">&#39;mybucket&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_key</span><span class="p">(</span><span class="s1">&#39;steve&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_contents_as_string</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;is awesome&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="context-manager">
+<h3>Context manager<a class="headerlink" href="#context-manager" title="Permalink to this headline">¶</a></h3>
+<p>Same as decorator, every call inside <code class="docutils literal"><span class="pre">with</span></code> statement are mocked out.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_my_model_save</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">mock_s3</span><span class="p">():</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">connect_s3</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="s1">&#39;mybucket&#39;</span><span class="p">)</span>
+
+        <span class="n">model_instance</span> <span class="o">=</span> <span class="n">MyModel</span><span class="p">(</span><span class="s1">&#39;steve&#39;</span><span class="p">,</span> <span class="s1">&#39;is awesome&#39;</span><span class="p">)</span>
+        <span class="n">model_instance</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="k">assert</span> <span class="n">conn</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s1">&#39;mybucket&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_key</span><span class="p">(</span><span class="s1">&#39;steve&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_contents_as_string</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;is awesome&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="raw">
+<h3>Raw<a class="headerlink" href="#raw" title="Permalink to this headline">¶</a></h3>
+<p>You can also start and stop manually the mocking.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_my_model_save</span><span class="p">():</span>
+    <span class="n">mock</span> <span class="o">=</span> <span class="n">mock_s3</span><span class="p">()</span>
+    <span class="n">mock</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">connect_s3</span><span class="p">()</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="s1">&#39;mybucket&#39;</span><span class="p">)</span>
+
+    <span class="n">model_instance</span> <span class="o">=</span> <span class="n">MyModel</span><span class="p">(</span><span class="s1">&#39;steve&#39;</span><span class="p">,</span> <span class="s1">&#39;is awesome&#39;</span><span class="p">)</span>
+    <span class="n">model_instance</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="k">assert</span> <span class="n">conn</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">(</span><span class="s1">&#39;mybucket&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_key</span><span class="p">(</span><span class="s1">&#39;steve&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_contents_as_string</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;is awesome&#39;</span>
+
+    <span class="n">mock</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="stand-alone-server-mode">
+<h3>Stand-alone server mode<a class="headerlink" href="#stand-alone-server-mode" title="Permalink to this headline">¶</a></h3>
+<p>Moto comes with a stand-alone server allowing you to mock out an AWS HTTP endpoint. It is very useful to test even if you don&#8217;t use Python.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ moto_server ec2 -p3000
+ * Running on http://127.0.0.1:3000/
+</pre></div>
+</div>
+<p>This method isn&#8217;t encouraged if you&#8217;re using <code class="docutils literal"><span class="pre">boto</span></code>, best is to use decorator method.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="moto_apis.html" class="btn btn-neutral float-right" title="Moto APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../index.html" class="btn btn-neutral" title="Moto: Mock AWS Services" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Steve Pulec.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.4.10',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
