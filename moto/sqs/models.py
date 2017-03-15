@@ -113,7 +113,7 @@ class Queue(BaseModel):
         self.region = region
 
         # wait_time_seconds will be set to immediate return messages
-        self.wait_time_seconds = wait_time_seconds or 0
+        self.wait_time_seconds = int(wait_time_seconds) if wait_time_seconds else 0
         self._messages = []
 
         now = unix_time()
