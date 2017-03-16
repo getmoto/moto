@@ -233,7 +233,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get('prefix', [None])[0]
-        if prefix:
+        if prefix and isinstance(prefix, six.binary_type):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get('delimiter', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(
@@ -252,7 +252,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         bucket = self.backend.get_bucket(bucket_name)
 
         prefix = querystring.get('prefix', [None])[0]
-        if prefix:
+        if prefix and isinstance(prefix, six.binary_type):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get('delimiter', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(
@@ -282,7 +282,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         return template.render(
             bucket=bucket,
-            prefix=prefix or b'',
+            prefix=prefix or '',
             delimiter=delimiter,
             result_keys=result_keys,
             result_folders=result_folders,
