@@ -268,7 +268,6 @@ class RDS2Response(BaseResponse):
         template = self.response_template(MODIFY_OPTION_GROUP_TEMPLATE)
         return template.render(option_group=option_group)
 
-
     def create_db_parameter_group(self):
         kwargs = self._get_db_parameter_group_kwargs()
         db_parameter_group = self.backend.create_db_parameter_group(kwargs)
