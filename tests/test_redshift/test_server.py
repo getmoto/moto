@@ -18,7 +18,5 @@ def test_describe_clusters():
 
     res = test_client.get('/?Action=DescribeClusters')
 
-    json_data = json.loads(res.data.decode("utf-8"))
-    clusters = json_data['DescribeClustersResponse'][
-        'DescribeClustersResult']['Clusters']
-    list(clusters).should.equal([])
+    result = res.data.decode("utf-8")
+    result.should.contain("<DescribeClustersResponse><DescribeClustersResult><Clusters></Clusters></DescribeClustersResult")
