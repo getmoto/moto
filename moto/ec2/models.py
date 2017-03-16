@@ -35,6 +35,7 @@ from .exceptions import (
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     InvalidPermissionNotFoundError,
+    InvalidPermissionDuplicateError,
     InvalidRouteTableIdError,
     InvalidRouteError,
     InvalidInstanceIdError,
@@ -1311,7 +1312,7 @@ class SecurityGroup(TaggedEC2Resource):
 
     def add_ingress_rule(self, rule):
         if rule in self.ingress_rules:
-            raise InvalidParameterValueError('security_group')
+            raise InvalidPermissionDuplicateError()
         else:
             self.ingress_rules.append(rule)
 

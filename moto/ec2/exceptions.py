@@ -156,6 +156,14 @@ class InvalidPermissionNotFoundError(EC2ClientError):
             "The specified rule does not exist in this security group")
 
 
+class InvalidPermissionDuplicateError(EC2ClientError):
+
+    def __init__(self):
+        super(InvalidPermissionDuplicateError, self).__init__(
+            "InvalidPermission.Duplicate",
+            "The specified rule already exists")
+
+
 class InvalidRouteTableIdError(EC2ClientError):
 
     def __init__(self, route_table_id):
