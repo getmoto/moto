@@ -94,7 +94,7 @@ class ELBResponse(BaseResponse):
             load_balancer_name, instance_ids)
         return template.render(load_balancer=load_balancer)
 
-    def set_load_balancer_listener_sslcertificate(self):
+    def set_load_balancer_listener_ssl_certificate(self):
         load_balancer_name = self._get_param('LoadBalancerName')
         ssl_certificate_id = self.querystring['SSLCertificateId'][0]
         lb_port = self.querystring['LoadBalancerPort'][0]
@@ -188,7 +188,7 @@ class ELBResponse(BaseResponse):
         template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
         return template.render()
 
-    def create_lbcookie_stickiness_policy(self):
+    def create_lb_cookie_stickiness_policy(self):
         load_balancer_name = self._get_param('LoadBalancerName')
 
         policy = AppCookieStickinessPolicy()

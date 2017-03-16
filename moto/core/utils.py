@@ -12,10 +12,18 @@ def camelcase_to_underscores(argument):
     python underscore variable like the_new_attribute'''
     result = ''
     prev_char_title = True
-    for char in argument:
-        if char.istitle() and not prev_char_title:
-            # Only add underscore if char is capital, not first letter, and prev
-            # char wasn't capital
+    for index, char in enumerate(argument):
+        try:
+            next_char_title = argument[index + 1].istitle()
+        except IndexError:
+            next_char_title = True
+
+        upper_to_lower = char.istitle() and not next_char_title
+        lower_to_upper = char.istitle() and not prev_char_title
+
+        if index and (upper_to_lower or lower_to_upper):
+            # Only add underscore if char is capital, not first letter, and next
+            # char is not capital
             result += "_"
         prev_char_title = char.istitle()
         if not char.isspace():  # Only add non-whitespace

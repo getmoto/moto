@@ -85,7 +85,7 @@ class FakeLoadBalancer(BaseModel):
                 instance_port=(
                     port.get('instance_port') or port['InstancePort']),
                 ssl_certificate_id=port.get(
-                    'sslcertificate_id', port.get('SSLCertificateId')),
+                    'ssl_certificate_id', port.get('SSLCertificateId')),
             )
             self.listeners.append(listener)
 

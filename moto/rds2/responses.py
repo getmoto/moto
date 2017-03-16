@@ -99,17 +99,11 @@ class RDS2Response(BaseResponse):
             count += 1
         return unpacked_list
 
-    def create_dbinstance(self):
-        return self.create_db_instance()
-
     def create_db_instance(self):
         db_kwargs = self._get_db_kwargs()
         database = self.backend.create_database(db_kwargs)
         template = self.response_template(CREATE_DATABASE_TEMPLATE)
         return template.render(database=database)
-
-    def create_dbinstance_read_replica(self):
-        return self.create_db_instance_read_replica()
 
     def create_db_instance_read_replica(self):
         db_kwargs = self._get_db_replica_kwargs()
@@ -118,17 +112,11 @@ class RDS2Response(BaseResponse):
         template = self.response_template(CREATE_DATABASE_REPLICA_TEMPLATE)
         return template.render(database=database)
 
-    def describe_dbinstances(self):
-        return self.describe_db_instances()
-
     def describe_db_instances(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         databases = self.backend.describe_databases(db_instance_identifier)
         template = self.response_template(DESCRIBE_DATABASES_TEMPLATE)
         return template.render(databases=databases)
-
-    def modify_dbinstance(self):
-        return self.modify_db_instance()
 
     def modify_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
@@ -138,17 +126,11 @@ class RDS2Response(BaseResponse):
         template = self.response_template(MODIFY_DATABASE_TEMPLATE)
         return template.render(database=database)
 
-    def delete_dbinstance(self):
-        return self.delete_db_instance()
-
     def delete_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         database = self.backend.delete_database(db_instance_identifier)
         template = self.response_template(DELETE_DATABASE_TEMPLATE)
         return template.render(database=database)
-
-    def reboot_dbinstance(self):
-        return self.reboot_db_instance()
 
     def reboot_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
@@ -176,9 +158,6 @@ class RDS2Response(BaseResponse):
         template = self.response_template(REMOVE_TAGS_FROM_RESOURCE_TEMPLATE)
         return template.render()
 
-    def create_dbsecurity_group(self):
-        return self.create_db_security_group()
-
     def create_db_security_group(self):
         group_name = self._get_param('DBSecurityGroupName')
         description = self._get_param('DBSecurityGroupDescription')
@@ -188,18 +167,12 @@ class RDS2Response(BaseResponse):
         template = self.response_template(CREATE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
-    def describe_dbsecurity_groups(self):
-        return self.describe_db_security_groups()
-
     def describe_db_security_groups(self):
         security_group_name = self._get_param('DBSecurityGroupName')
         security_groups = self.backend.describe_security_groups(
             security_group_name)
         template = self.response_template(DESCRIBE_SECURITY_GROUPS_TEMPLATE)
         return template.render(security_groups=security_groups)
-
-    def delete_dbsecurity_group(self):
-        return self.delete_db_security_group()
 
     def delete_db_security_group(self):
         security_group_name = self._get_param('DBSecurityGroupName')
@@ -208,9 +181,6 @@ class RDS2Response(BaseResponse):
         template = self.response_template(DELETE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
-    def authorize_dbsecurity_group_ingress(self):
-        return self.authorize_db_security_group_ingress()
-
     def authorize_db_security_group_ingress(self):
         security_group_name = self._get_param('DBSecurityGroupName')
         cidr_ip = self._get_param('CIDRIP')
@@ -218,9 +188,6 @@ class RDS2Response(BaseResponse):
             security_group_name, cidr_ip)
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
-
-    def create_dbsubnet_group(self):
-        return self.create_db_subnet_group()
 
     def create_db_subnet_group(self):
         subnet_name = self._get_param('DBSubnetGroupName')
@@ -234,17 +201,11 @@ class RDS2Response(BaseResponse):
         template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)
 
-    def describe_dbsubnet_groups(self):
-        return self.describe_db_subnet_groups()
-
     def describe_db_subnet_groups(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         subnet_groups = self.backend.describe_subnet_groups(subnet_name)
         template = self.response_template(DESCRIBE_SUBNET_GROUPS_TEMPLATE)
         return template.render(subnet_groups=subnet_groups)
-
-    def delete_dbsubnet_group(self):
-        return self.delete_db_subnet_group()
 
     def delete_db_subnet_group(self):
         subnet_name = self._get_param('DBSubnetGroupName')
@@ -307,17 +268,12 @@ class RDS2Response(BaseResponse):
         template = self.response_template(MODIFY_OPTION_GROUP_TEMPLATE)
         return template.render(option_group=option_group)
 
-    def create_dbparameter_group(self):
-        return self.create_db_parameter_group()
 
     def create_db_parameter_group(self):
         kwargs = self._get_db_parameter_group_kwargs()
         db_parameter_group = self.backend.create_db_parameter_group(kwargs)
         template = self.response_template(CREATE_DB_PARAMETER_GROUP_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_group)
-
-    def describe_dbparameter_groups(self):
-        return self.describe_db_parameter_groups()
 
     def describe_db_parameter_groups(self):
         kwargs = self._get_db_parameter_group_kwargs()
@@ -327,9 +283,6 @@ class RDS2Response(BaseResponse):
         template = self.response_template(
             DESCRIBE_DB_PARAMETER_GROUPS_TEMPLATE)
         return template.render(db_parameter_groups=db_parameter_groups)
-
-    def modify_dbparameter_group(self):
-        return self.modify_db_parameter_group()
 
     def modify_db_parameter_group(self):
         db_parameter_group_name = self._get_param('DBParameterGroupName')
@@ -353,9 +306,6 @@ class RDS2Response(BaseResponse):
 
         return parameter_group_parameters.values()
 
-    def describe_dbparameters(self):
-        return self.describe_db_parameters()
-
     def describe_db_parameters(self):
         db_parameter_group_name = self._get_param('DBParameterGroupName')
         db_parameter_groups = self.backend.describe_db_parameter_groups(
@@ -365,9 +315,6 @@ class RDS2Response(BaseResponse):
 
         template = self.response_template(DESCRIBE_DB_PARAMETERS_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_groups[0])
-
-    def delete_dbparameter_group(self):
-        return self.delete_db_parameter_group()
 
     def delete_db_parameter_group(self):
         kwargs = self._get_db_parameter_group_kwargs()
