@@ -78,7 +78,7 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = """
           <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
         </requesterVpcInfo>
         <accepterVpcInfo>
-          <ownerId>111122223333</ownerId>
+          <ownerId>123456789012</ownerId>
           <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
         </accepterVpcInfo>
         <status>

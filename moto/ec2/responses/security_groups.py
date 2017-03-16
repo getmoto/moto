@@ -142,7 +142,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
    <securityGroupInfo>
       {% for group in groups %}
           <item>
-             <ownerId>111122223333</ownerId>
+             <ownerId>123456789012</ownerId>
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
@@ -162,7 +162,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>111122223333</userId>
+                                 <userId>123456789012</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
@@ -187,7 +187,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>111122223333</userId>
+                                 <userId>123456789012</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
