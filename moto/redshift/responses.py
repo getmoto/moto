@@ -18,7 +18,7 @@ class RedshiftResponse(BaseResponse):
             return json.dumps(response)
         else:
             xml = dicttoxml.dicttoxml(response, attr_type=False, root=False)
-            return xml
+            return xml.decode("utf-8")
 
     def create_cluster(self):
         cluster_kwargs = {
