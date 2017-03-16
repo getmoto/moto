@@ -8,6 +8,7 @@ install_requires = [
     "cookies",
     "requests>=2.0",
     "xmltodict",
+    "dicttoxml",
     "six",
     "werkzeug",
     "pytz",

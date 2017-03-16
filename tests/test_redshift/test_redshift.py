@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto
+import boto3
 from boto.redshift.exceptions import (
     ClusterNotFound,
     ClusterParameterGroupNotFound,
@@ -10,7 +11,21 @@ from boto.redshift.exceptions import (
 )
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_redshift_deprecated
+from moto import mock_ec2_deprecated, mock_redshift_deprecated, mock_redshift
+
+
+@mock_redshift
+def test_create_cluster_boto3():
+    client = boto3.client('redshift', region_name='us-east-1')
+    response = client.create_cluster(
+        DBName='test',
+        ClusterIdentifier='test',
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='user',
+        MasterUserPassword='password',
+    )
+    response['Cluster']['NodeType'].should.equal('ds2.xlarge')
 
 
 @mock_redshift_deprecated
