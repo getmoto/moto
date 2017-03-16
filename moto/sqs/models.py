@@ -289,6 +289,11 @@ class SQSBackend(BaseBackend):
 
         # queue.messages only contains visible messages
         while True:
+            if len(queue.messages) == 0:
+                import time
+                time.sleep(0.001)
+                continue
+
             for message in queue.messages:
                 if not message.visible:
                     continue
