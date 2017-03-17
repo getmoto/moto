@@ -158,7 +158,11 @@ def clean_json(resource_json, resources_map):
 
         cleaned_json = {}
         for key, value in resource_json.items():
-            cleaned_json[key] = clean_json(value, resources_map)
+            cleaned_val = clean_json(value, resources_map)
+            if cleaned_val is None:
+                # If we didn't find anything, don't add this attribute
+                continue
+            cleaned_json[key] = cleaned_val
         return cleaned_json
     elif isinstance(resource_json, list):
         return [clean_json(val, resources_map) for val in resource_json]

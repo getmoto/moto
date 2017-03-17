@@ -382,6 +382,7 @@ def test_stack_elb_integration_with_update():
                             "Protocol": "HTTP",
                         }
                     ],
+                    "Policies": {"Ref" : "AWS::NoValue"},
                 }
             },
         },
