@@ -152,6 +152,14 @@ class CloudFormationResponse(BaseResponse):
             for parameter
             in self._get_list_prefix("Parameters.member")
         ])
+        # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
+        # end up containing anything we can use to differentiate between passing an empty value versus not
+        # passing anything. so until that changes, moto won't be able to clear tags, only update them.
+        tags = dict((item['key'], item['value'])
+                    for item in self._get_list_prefix("Tags.member"))
+        # so that if we don't pass the parameter, we don't clear all the tags accidentally
+        if not tags:
+            tags = None
 
         stack = self.cloudformation_backend.get_stack(stack_name)
         if stack.status == 'ROLLBACK_COMPLETE':
@@ -162,7 +170,8 @@ class CloudFormationResponse(BaseResponse):
             name=stack_name,
             template=stack_body,
             role_arn=role_arn,
-            parameters=parameters
+            parameters=parameters,
+            tags=tags,
         )
         if self.request_json:
             stack_body = {

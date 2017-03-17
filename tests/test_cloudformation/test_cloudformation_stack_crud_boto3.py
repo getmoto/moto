@@ -258,12 +258,15 @@ def test_describe_updated_stack():
     cf_conn.create_stack(
         StackName="test_stack",
         TemplateBody=dummy_template_json,
+        Tags=[{'Key': 'foo', 'Value': 'bar'}],
     )
 
     cf_conn.update_stack(
         StackName="test_stack",
         RoleARN='arn:aws:iam::123456789012:role/moto',
-        TemplateBody=dummy_update_template_json)
+        TemplateBody=dummy_update_template_json,
+        Tags=[{'Key': 'foo', 'Value': 'baz'}],
+    )
 
     stack = cf_conn.describe_stacks(StackName="test_stack")['Stacks'][0]
     stack_id = stack['StackId']
@@ -272,6 +275,7 @@ def test_describe_updated_stack():
     stack_by_id['StackName'].should.equal("test_stack")
     stack_by_id['StackStatus'].should.equal("UPDATE_COMPLETE")
     stack_by_id['RoleARN'].should.equal('arn:aws:iam::123456789012:role/moto')
+    stack_by_id['Tags'].should.equal([{'Key': 'foo', 'Value': 'baz'}])
 
 
 @mock_cloudformation

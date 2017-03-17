@@ -424,7 +424,7 @@ def test_update_stack():
 
 
 @mock_cloudformation_deprecated
-def test_update_stack():
+def test_update_stack_with_previous_template():
     conn = boto.connect_cloudformation()
     conn.create_stack(
         "test_stack",
@@ -480,6 +480,26 @@ def test_update_stack_with_parameters():
 
     stack = conn.describe_stacks()[0]
     assert stack.parameters[0].value == "192.168.0.1/16"
+
+
+@mock_cloudformation_deprecated
+def test_update_stack_replace_tags():
+    conn = boto.connect_cloudformation()
+    conn.create_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+        tags={"foo": "bar"},
+    )
+    conn.update_stack(
+        "test_stack",
+        template_body=dummy_template_json,
+        tags={"foo": "baz"},
+    )
+
+    stack = conn.describe_stacks()[0]
+    stack.stack_status.should.equal("UPDATE_COMPLETE")
+    # since there is one tag it doesn't come out as a list
+    dict(stack.tags).should.equal({"foo": "baz"})
 
 
 @mock_cloudformation_deprecated
