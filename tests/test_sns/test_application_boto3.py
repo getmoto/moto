@@ -143,6 +143,35 @@ def test_create_platform_endpoint():
 
 
 @mock_sns
+def test_create_duplicate_platform_endpoint():
+    conn = boto3.client('sns', region_name='us-east-1')
+    platform_application = conn.create_platform_application(
+        Name="my-application",
+        Platform="APNS",
+        Attributes={},
+    )
+    application_arn = platform_application['PlatformApplicationArn']
+
+    endpoint = conn.create_platform_endpoint(
+        PlatformApplicationArn=application_arn,
+        Token="some_unique_id",
+        CustomUserData="some user data",
+        Attributes={
+            "Enabled": 'false',
+        },
+    )
+
+    endpoint = conn.create_platform_endpoint.when.called_with(
+        PlatformApplicationArn=application_arn,
+        Token="some_unique_id",
+        CustomUserData="some user data",
+        Attributes={
+            "Enabled": 'false',
+        },
+    ).should.throw(ClientError)
+
+
+@mock_sns
 def test_get_list_endpoints_by_platform_application():
     conn = boto3.client('sns', region_name='us-east-1')
     platform_application = conn.create_platform_application(
@@ -256,7 +285,7 @@ def test_publish_to_platform_endpoint():
         Token="some_unique_id",
         CustomUserData="some user data",
         Attributes={
-            "Enabled": 'false',
+            "Enabled": 'true',
         },
     )
 
@@ -264,3 +293,31 @@ def test_publish_to_platform_endpoint():
 
     conn.publish(Message="some message",
                  MessageStructure="json", TargetArn=endpoint_arn)
+
+
+@mock_sns
+def test_publish_to_disabled_platform_endpoint():
+    conn = boto3.client('sns', region_name='us-east-1')
+    platform_application = conn.create_platform_application(
+        Name="my-application",
+        Platform="APNS",
+        Attributes={},
+    )
+    application_arn = platform_application['PlatformApplicationArn']
+
+    endpoint = conn.create_platform_endpoint(
+        PlatformApplicationArn=application_arn,
+        Token="some_unique_id",
+        CustomUserData="some user data",
+        Attributes={
+            "Enabled": 'false',
+        },
+    )
+
+    endpoint_arn = endpoint['EndpointArn']
+
+    conn.publish.when.called_with(
+        Message="some message",
+        MessageStructure="json",
+        TargetArn=endpoint_arn,
+    ).should.throw(ClientError)

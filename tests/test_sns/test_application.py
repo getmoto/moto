@@ -297,7 +297,7 @@ def test_publish_to_platform_endpoint():
         token="some_unique_id",
         custom_user_data="some user data",
         attributes={
-            "Enabled": False,
+            "Enabled": True,
         },
     )
 

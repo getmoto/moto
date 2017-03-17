@@ -12,7 +12,9 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.sqs import sqs_backends
-from .exceptions import SNSNotFoundError
+from .exceptions import (
+    SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled
+)
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
 DEFAULT_ACCOUNT_ID = 123456789012
@@ -137,6 +139,10 @@ class PlatformEndpoint(BaseModel):
             self.attributes['Enabled'] = True
 
     @property
+    def enabled(self):
+        return json.loads(self.attributes.get('Enabled', 'true').lower())
+
+    @property
     def arn(self):
         return "arn:aws:sns:{region}:123456789012:endpoint/{platform}/{name}/{id}".format(
             region=self.region,
@@ -146,6 +152,9 @@ class PlatformEndpoint(BaseModel):
         )
 
     def publish(self, message):
+        if not self.enabled:
+            raise SnsEndpointDisabled("Endpoint %s disabled" % self.id)
+
         # This is where we would actually send a message
         message_id = six.text_type(uuid.uuid4())
         self.messages[message_id] = message
@@ -251,6 +260,8 @@ class SNSBackend(BaseBackend):
         self.applications.pop(platform_arn)
 
     def create_platform_endpoint(self, region, application, custom_user_data, token, attributes):
+        if any(token == endpoint.token for endpoint in self.platform_endpoints.values()):
+            raise DuplicateSnsEndpointError("Duplicate endpoint token: %s" % token)
         platform_endpoint = PlatformEndpoint(
             region, application, custom_user_data, token, attributes)
         self.platform_endpoints[platform_endpoint.arn] = platform_endpoint
