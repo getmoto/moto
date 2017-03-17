@@ -432,3 +432,40 @@ def test_list_create_list_get_delete_list():
     conn.delete_function(FunctionName='testFunction')
 
     conn.list_functions()['Functions'].should.have.length_of(0)
+
+
+@mock_lambda
+def test_invoke_lambda_error():
+    lambda_fx = """
+    def lambda_handler(event, context):
+        raise Exception('failsauce')
+    """
+    zip_output = io.BytesIO()
+    zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
+    zip_file.writestr('lambda_function.zip', lambda_fx)
+    zip_file.close()
+    zip_output.seek(0)
+
+    client = boto3.client('lambda', region_name='us-east-1')
+    client.create_function(
+        FunctionName='test-lambda-fx',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Code={
+            'ZipFile': zip_output.read()
+        },
+    )
+
+    result = client.invoke(
+        FunctionName='test-lambda-fx',
+        InvocationType='RequestResponse',
+        LogType='Tail'
+    )
+
+    assert 'FunctionError' in result
+    assert result['FunctionError'] == 'Handled'

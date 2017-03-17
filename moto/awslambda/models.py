@@ -138,6 +138,7 @@ class LambdaFunction(BaseModel):
         except Exception as ex:
             print("Exception %s", ex)
 
+        errored = False
         try:
             original_stdout = sys.stdout
             original_stderr = sys.stderr
@@ -152,26 +153,29 @@ class LambdaFunction(BaseModel):
             if exec_err:
                 result = "\n".join([exec_out.strip(), self.convert(exec_err)])
         except Exception as ex:
+            errored = True
             result = '%s\n\n\nException %s' % (mycode, ex)
         finally:
             codeErr.close()
             codeOut.close()
             sys.stdout = original_stdout
             sys.stderr = original_stderr
-        return self.convert(result)
+        return self.convert(result), errored
 
     def invoke(self, body, request_headers, response_headers):
         payload = dict()
 
         # Get the invocation type:
-        r = self._invoke_lambda(code=self.code, event=body)
+        res, errored = self._invoke_lambda(code=self.code, event=body)
         if request_headers.get("x-amz-invocation-type") == "RequestResponse":
-            encoded = base64.b64encode(r.encode('utf-8'))
+            encoded = base64.b64encode(res.encode('utf-8'))
             response_headers["x-amz-log-result"] = encoded.decode('utf-8')
             payload['result'] = response_headers["x-amz-log-result"]
-            result = r.encode('utf-8')
+            result = res.encode('utf-8')
         else:
             result = json.dumps(payload)
+        if errored:
+            response_headers['x-amz-function-error'] = "Handled"
 
         return result
 
