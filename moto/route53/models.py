@@ -277,7 +277,7 @@ class Route53Backend(BaseBackend):
         return self.zones.values()
 
     def get_hosted_zone(self, id_):
-        return self.zones.get(id_)
+        return self.zones.get(id_.replace("/hostedzone/", ""))
 
     def get_hosted_zone_by_name(self, name):
         for zone in self.get_all_hosted_zones():
@@ -285,10 +285,7 @@ class Route53Backend(BaseBackend):
                 return zone
 
     def delete_hosted_zone(self, id_):
-        zone = self.zones.get(id_)
-        if zone:
-            del self.zones[id_]
-            return zone
+        return self.zones.pop(id_.replace("/hostedzone/", ""), None)
 
     def create_health_check(self, health_check_args):
         health_check_id = str(uuid.uuid4())
