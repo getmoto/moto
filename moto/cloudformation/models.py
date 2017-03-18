@@ -82,7 +82,7 @@ class FakeStack(BaseModel):
     def stack_outputs(self):
         return self.output_map.values()
 
-    def update(self, template, role_arn=None, parameters=None):
+    def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.template = template
         self.resource_map.update(json.loads(template), parameters)
@@ -90,6 +90,10 @@ class FakeStack(BaseModel):
         self._add_stack_event("UPDATE_COMPLETE")
         self.status = "UPDATE_COMPLETE"
         self.role_arn = role_arn
+        # only overwrite tags if passed
+        if tags is not None:
+            self.tags = tags
+            # TODO: update tags in the resource map
 
     def delete(self):
         self._add_stack_event("DELETE_IN_PROGRESS",
@@ -164,9 +168,9 @@ class CloudFormationBackend(BaseBackend):
                 if stack.name == name_or_stack_id:
                     return stack
 
-    def update_stack(self, name, template, role_arn=None, parameters=None):
+    def update_stack(self, name, template, role_arn=None, parameters=None, tags=None):
         stack = self.get_stack(name)
-        stack.update(template, role_arn, parameters=parameters)
+        stack.update(template, role_arn, parameters=parameters, tags=tags)
         return stack
 
     def list_stack_resources(self, stack_name_or_id):
