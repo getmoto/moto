@@ -213,6 +213,14 @@ def test_get_user():
     conn.get_user('my-user')
 
 
+@mock_iam_deprecated()
+def test_get_current_user():
+    """If no user is specific, IAM returns the current user"""
+    conn = boto.connect_iam()
+    user = conn.get_user()['get_user_response']['get_user_result']['user']
+    user['user_name'].should.equal('default_user')
+
+
 @mock_iam()
 def test_list_users():
     path_prefix = '/'

@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
-from .models import iam_backend
+from .models import iam_backend, User
 
 
 class IamResponse(BaseResponse):
@@ -234,7 +234,12 @@ class IamResponse(BaseResponse):
 
     def get_user(self):
         user_name = self._get_param('UserName')
-        user = iam_backend.get_user(user_name)
+        if user_name:
+            user = iam_backend.get_user(user_name)
+        else:
+            user = User(name='default_user')
+            # If no user is specific, IAM returns the current user
+
         template = self.response_template(USER_TEMPLATE)
         return template.render(action='Get', user=user)
 
