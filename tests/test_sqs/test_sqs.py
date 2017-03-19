@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
 import boto
@@ -52,6 +53,20 @@ def test_message_send():
 
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_send_message_with_unicode_characters():
+    body_one = 'Héllo!😀'
+
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="blah")
+    msg = queue.send_message(MessageBody=body_one)
+
+    messages = queue.receive_messages()
+    message_body = messages[0].body
+
+    message_body.should.equal(body_one)
 
 
 @mock_sqs

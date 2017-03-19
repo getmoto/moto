@@ -125,6 +125,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
             for key, value in request.form.items():
                 querystring[key] = [value, ]
 
+        raw_body = self.body
         if isinstance(self.body, six.binary_type):
             self.body = self.body.decode('utf-8')
 
@@ -143,7 +144,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 for key, value in flat.items():
                     querystring[key] = [value]
             elif self.body:
-                querystring.update(parse_qs(self.body, keep_blank_values=True))
+                querystring.update(parse_qs(raw_body, keep_blank_values=True))
         if not querystring:
             querystring.update(headers)
 
