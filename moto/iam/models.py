@@ -8,6 +8,8 @@ from moto.core import BaseBackend, BaseModel
 from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
+ACCOUNT_ID = 123456789012
+
 
 class Policy(BaseModel):
 
@@ -82,6 +84,10 @@ class Role(BaseModel):
 
         return role
 
+    @property
+    def arn(self):
+        return "arn:aws:iam::{0}:role{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+
     def put_policy(self, policy_name, policy_json):
         self.policies[policy_name] = policy_json
 
@@ -116,6 +122,10 @@ class InstanceProfile(BaseModel):
         )
 
     @property
+    def arn(self):
+        return "arn:aws:iam::{0}:instance-profile{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+
+    @property
     def physical_resource_id(self):
         return self.name
 
@@ -132,12 +142,16 @@ class Certificate(BaseModel):
         self.cert_name = cert_name
         self.cert_body = cert_body
         self.private_key = private_key
-        self.path = path
+        self.path = path if path else "/"
         self.cert_chain = cert_chain
 
     @property
     def physical_resource_id(self):
         return self.name
+
+    @property
+    def arn(self):
+        return "arn:aws:iam::{0}:server-certificate{1}{2}".format(ACCOUNT_ID, self.path, self.cert_name)
 
 
 class AccessKey(BaseModel):
@@ -179,6 +193,10 @@ class Group(BaseModel):
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
         raise UnformattedGetAttTemplateException()
 
+    @property
+    def arn(self):
+        return "arn:aws:iam::{0}:group/{1}".format(ACCOUNT_ID, self.path)
+
     def get_policy(self, policy_name):
         try:
             policy_json = self.policies[policy_name]
@@ -208,11 +226,13 @@ class User(BaseModel):
             datetime.utcnow(),
             "%Y-%m-%d-%H-%M-%S"
         )
-        self.arn = 'arn:aws:iam::123456789012:user{0}{1}'.format(
-            self.path, name)
         self.policies = {}
         self.access_keys = []
         self.password = None
+
+    @property
+    def arn(self):
+        return "arn:aws:iam::{0}:user{1}{2}".format(ACCOUNT_ID, self.path, self.name)
 
     def get_policy(self, policy_name):
         policy_json = None

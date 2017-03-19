@@ -439,7 +439,7 @@ CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="http
       <Roles/>
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver</Arn>
+      <Arn>{{ profile.arn }}</Arn>
       <CreateDate>2012-05-09T16:11:10.222Z</CreateDate>
     </InstanceProfile>
   </CreateInstanceProfileResult>
@@ -456,7 +456,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
         {% for role in profile.roles %}
         <member>
           <Path>{{ role.path }}</Path>
-          <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+          <Arn>{{ role.arn }}</Arn>
           <RoleName>{{ role.name }}</RoleName>
           <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
           <CreateDate>2012-05-09T15:45:35Z</CreateDate>
@@ -466,7 +466,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
       </Roles>
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver</Arn>
+      <Arn>{{ profile.arn }}</Arn>
       <CreateDate>2012-05-09T16:11:10Z</CreateDate>
     </InstanceProfile>
   </GetInstanceProfileResult>
@@ -479,7 +479,7 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
   <CreateRoleResult>
     <Role>
       <Path>{{ role.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+      <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       <CreateDate>2012-05-08T23:34:01.495Z</CreateDate>
@@ -506,7 +506,7 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
   <GetRoleResult>
     <Role>
       <Path>{{ role.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+      <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       <CreateDate>2012-05-08T23:34:01Z</CreateDate>
@@ -537,7 +537,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
       {% for role in roles %}
       <member>
         <Path>{{ role.path }}</Path>
-        <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+        <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
         <CreateDate>2012-05-09T15:45:35Z</CreateDate>
@@ -576,7 +576,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
           {% for role in instance.roles %}
           <member>
             <Path>{{ role.path }}</Path>
-            <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+            <Arn>{{ role.arn }}</Arn>
             <RoleName>{{ role.name }}</RoleName>
             <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
             <CreateDate>2012-05-09T15:45:35Z</CreateDate>
@@ -586,7 +586,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
         </Roles>
         <InstanceProfileName>{{ instance.name }}</InstanceProfileName>
         <Path>{{ instance.path }}</Path>
-        <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Database</Arn>
+        <Arn>{{ instance.arn }}</Arn>
         <CreateDate>2012-05-09T16:27:03Z</CreateDate>
       </member>
       {% endfor %}
@@ -604,7 +604,7 @@ UPLOAD_CERT_TEMPLATE = """<UploadServerCertificateResponse>
       {% if certificate.path %}
       <Path>{{ certificate.path }}</Path>
       {% endif %}
-      <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
+      <Arn>{{ certificate.arn }}</Arn>
       <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
       <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
       <Expiration>2012-05-08T01:02:03.004Z</Expiration>
@@ -623,11 +623,9 @@ LIST_SERVER_CERTIFICATES_TEMPLATE = """<ListServerCertificatesResponse>
       <member>
         <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
         {% if certificate.path %}
-        <Path>{{ certificate.path }}</Path>
-        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
-        {% else %}
-        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
+            <Path>{{ certificate.path }}</Path>
         {% endif %}
+        <Arn>{{ certificate.arn }}</Arn>
         <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
         <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
         <Expiration>2012-05-08T01:02:03.004Z</Expiration>
@@ -646,11 +644,9 @@ GET_SERVER_CERTIFICATE_TEMPLATE = """<GetServerCertificateResponse>
       <ServerCertificateMetadata>
         <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
         {% if certificate.path %}
-        <Path>{{ certificate.path }}</Path>
-        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
-        {% else %}
-        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
+            <Path>{{ certificate.path }}</Path>
         {% endif %}
+        <Arn>{{ certificate.arn }}</Arn>
         <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
         <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
         <Expiration>2012-05-08T01:02:03.004Z</Expiration>
@@ -669,7 +665,7 @@ CREATE_GROUP_TEMPLATE = """<CreateGroupResponse>
          <Path>{{ group.path }}</Path>
          <GroupName>{{ group.name }}</GroupName>
          <GroupId>{{ group.id }}</GroupId>
-         <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+         <Arn>{{ group.arn }}</Arn>
       </Group>
    </CreateGroupResult>
    <ResponseMetadata>
@@ -683,7 +679,7 @@ GET_GROUP_TEMPLATE = """<GetGroupResponse>
          <Path>{{ group.path }}</Path>
          <GroupName>{{ group.name }}</GroupName>
          <GroupId>{{ group.id }}</GroupId>
-         <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+         <Arn>{{ group.arn }}</Arn>
       </Group>
       <Users>
         {% for user in group.users %}
@@ -691,9 +687,7 @@ GET_GROUP_TEMPLATE = """<GetGroupResponse>
             <Path>{{ user.path }}</Path>
             <UserName>{{ user.name }}</UserName>
             <UserId>{{ user.id }}</UserId>
-            <Arn>
-            arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name}}
-            </Arn>
+            <Arn>{{ user.arn }}</Arn>
           </member>
         {% endfor %}
       </Users>
@@ -712,7 +706,7 @@ LIST_GROUPS_TEMPLATE = """<ListGroupsResponse>
             <Path>{{ group.path }}</Path>
             <GroupName>{{ group.name }}</GroupName>
             <GroupId>{{ group.id }}</GroupId>
-            <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+            <Arn>{{ group.arn }}</Arn>
         </member>
         {% endfor %}
     </Groups>
@@ -731,7 +725,7 @@ LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
             <Path>{{ group.path }}</Path>
             <GroupName>{{ group.name }}</GroupName>
             <GroupId>{{ group.id }}</GroupId>
-            <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+            <Arn>{{ group.arn }}</Arn>
         </member>
         {% endfor %}
     </Groups>
@@ -778,7 +772,7 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
          <Path>{{ user.path }}</Path>
          <UserName>{{ user.name }}</UserName>
          <UserId>{{ user.id }}</UserId>
-         <Arn>arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name }}</Arn>
+         <Arn>{{ user.arn }}</Arn>
      </User>
    </{{ action }}UserResult>
    <ResponseMetadata>
@@ -908,7 +902,7 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
         {% for role in profile.roles %}
         <member>
           <Path>{{ role.path }}</Path>
-          <Arn>arn:aws:iam::123456789012:role{{ role.path }}S3Access</Arn>
+          <Arn>{{ role.arn }}</Arn>
           <RoleName>{{ role.name }}</RoleName>
           <AssumeRolePolicyDocument>{{ role.assume_policy_document }}</AssumeRolePolicyDocument>
           <CreateDate>2012-05-09T15:45:35Z</CreateDate>
@@ -918,7 +912,7 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
       </Roles>
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:instance-profile{{ profile.path }}Webserver</Arn>
+      <Arn>{{ profile.arn }}</Arn>
       <CreateDate>2012-05-09T16:27:11Z</CreateDate>
     </member>
     {% endfor %}
