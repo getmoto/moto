@@ -229,6 +229,37 @@ def test_elastic_network_interfaces_get_by_tag_name():
 
 
 @mock_ec2
+def test_elastic_network_interfaces_get_by_availability_zone():
+    ec2 = boto3.resource('ec2', region_name='us-west-2')
+    ec2_client = boto3.client('ec2', region_name='us-west-2')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-2a')
+
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.1.0/24', AvailabilityZone='us-west-2b')
+
+    eni1 = ec2.create_network_interface(
+        SubnetId=subnet1.id, PrivateIpAddress='10.0.0.15')
+
+    eni2 = ec2.create_network_interface(
+        SubnetId=subnet2.id, PrivateIpAddress='10.0.1.15')
+
+    # The status of the new interface should be 'available'
+    waiter = ec2_client.get_waiter('network_interface_available')
+    waiter.wait(NetworkInterfaceIds=[eni1.id, eni2.id])
+
+    filters = [{'Name': 'availability-zone', 'Values': ['us-west-2a']}]
+    enis = list(ec2.network_interfaces.filter(Filters=filters))
+    enis.should.have.length_of(1)
+
+    filters = [{'Name': 'availability-zone', 'Values': ['us-west-2c']}]
+    enis = list(ec2.network_interfaces.filter(Filters=filters))
+    enis.should.have.length_of(0)
+
+
+@mock_ec2
 def test_elastic_network_interfaces_get_by_private_ip():
     ec2 = boto3.resource('ec2', region_name='us-west-2')
     ec2_client = boto3.client('ec2', region_name='us-west-2')

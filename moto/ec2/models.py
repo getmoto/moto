@@ -256,6 +256,8 @@ class NetworkInterface(TaggedEC2Resource):
             return self.subnet.vpc_id
         elif filter_name == 'group-id':
             return [group.id for group in self._group_set]
+        elif filter_name == 'availability-zone':
+            return self.subnet.availability_zone
 
         filter_value = super(
             NetworkInterface, self).get_filter_value(filter_name)
