@@ -326,6 +326,35 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name='DeleteAccessKey')
 
+    def deactivate_mfa_device(self):
+        user_name = self._get_param('UserName')
+        serial_number = self._get_param('SerialNumber')
+
+        iam_backend.deactivate_mfa_device(user_name, serial_number)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeactivateMFADevice')
+
+    def enable_mfa_device(self):
+        user_name = self._get_param('UserName')
+        serial_number = self._get_param('SerialNumber')
+        authentication_code_1 = self._get_param('AuthenticationCode1')
+        authentication_code_2 = self._get_param('AuthenticationCode2')
+
+        iam_backend.enable_mfa_device(
+            user_name,
+            serial_number,
+            authentication_code_1,
+            authentication_code_2
+        )
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='EnableMFADevice')
+
+    def list_mfa_devices(self):
+        user_name = self._get_param('UserName')
+        devices = iam_backend.list_mfa_devices(user_name)
+        template = self.response_template(LIST_MFA_DEVICES_TEMPLATE)
+        return template.render(user_name=user_name, devices=devices)
+
     def delete_user(self):
         user_name = self._get_param('UserName')
         iam_backend.delete_user(user_name)
@@ -922,3 +951,20 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
   <RequestId>6a8c3992-99f4-11e1-a4c3-27EXAMPLE804</RequestId>
 </ResponseMetadata>
 </ListInstanceProfilesForRoleResponse>"""
+
+LIST_MFA_DEVICES_TEMPLATE = """<ListMFADevicesResponse>
+   <ListMFADevicesResult>
+      <MFADevices>
+        {% for device in devices %}
+         <member>
+            <UserName>{{ user_name }}</UserName>
+            <SerialNumber>{{ device.serial_number }}</SerialNumber>
+         </member>
+        {% endfor %}
+      </MFADevices>
+      <IsTruncated>false</IsTruncated>
+   </ListMFADevicesResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListMFADevicesResponse>"""
