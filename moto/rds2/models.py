@@ -906,6 +906,8 @@ class RDS2Backend(BaseBackend):
 
     def modify_database(self, db_instance_identifier, db_kwargs):
         database = self.describe_databases(db_instance_identifier)[0]
+        self.publisher.notify(self.publisher.events.RDS2_DATABASE_MODIFIED,
+                              {'database': database, 'new_args': db_kwargs})
         database.update(db_kwargs)
         return database
 
