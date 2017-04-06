@@ -289,6 +289,10 @@ class SQSBackend(BaseBackend):
 
         # queue.messages only contains visible messages
         while True:
+
+            if result or (wait_seconds_timeout and unix_time() > polling_end):
+                break
+
             if len(queue.messages) == 0:
                 import time
                 time.sleep(0.001)
@@ -303,9 +307,6 @@ class SQSBackend(BaseBackend):
                 result.append(message)
                 if len(result) >= count:
                     break
-
-            if result or unix_time() > polling_end:
-                break
 
         return result
 
