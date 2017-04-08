@@ -136,15 +136,15 @@ else:
 
 
 setup(
-    name="moto",
-    version=get_version(),
-    description="A library that allows your python tests to easily"
-    " mock out the boto library",
-    long_description=read("README.md"),
-    long_description_content_type="text/markdown",
-    author="Steve Pulec",
-    author_email="spulec@gmail.com",
-    url="https://github.com/spulec/moto",
+    name='moto-ext',
+    version='1.3.7.2',
+    description='A library that allows your python tests to easily'
+                ' mock out the boto library',
+    long_description=read('README.md'),
+    long_description_content_type='text/markdown',
+    author='Steve Pulec',
+    author_email='spulec@gmail.com',
+    url='https://github.com/spulec/moto',
     entry_points={
         "console_scripts": [
             "moto_server = moto.server:main",
