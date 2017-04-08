@@ -53,8 +53,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if not host:
             host = urlparse(request.url).netloc
 
-        if not host or host.startswith("localhost"):
-            # For localhost, default to path-based buckets
+        if not host or host.startswith("localhost") or re.match(r"^[^.]+$", host):
+            # For localhost or local domain names, default to path-based buckets
             return False
 
         match = re.match(r'^([^\[\]:]+)(:\d+)?$', host)
