@@ -193,11 +193,7 @@ class Task(BaseObject):
         self.containers = []
         self.started_by = started_by
         self.stopped_reason = ''
-        self.resource_requirements = {
-            'CPU': 0,
-            'MEMORY': 0,
-            'PORTS': []
-        }
+        self.resource_requirements = resource_requirements
         
 
     @property
@@ -554,12 +550,14 @@ class EC2ContainerServiceBackend(BaseBackend):
                                   for x in container_instances]
         resource_requirements = self._calculate_task_resource_requirements(task_definition)
         for container_instance_id in container_instance_ids:
-            container_instance_arn = self.container_instances[cluster_name][
+            container_instance = self.container_instances[cluster_name][
                 container_instance_id
-            ].containerInstanceArn
-            task = Task(cluster, task_definition, container_instance_arn, resource_requirements,
-                        overrides or {}, started_by or '')
+            ]
+            task = Task(cluster, task_definition, container_instance.containerInstanceArn, 
+                        resource_requirements, overrides or {}, started_by or '')
             tasks.append(task)
+            
+            self.update_container_instance_resources(container_instance, resource_requirements)
             self.tasks[cluster_name][task.task_arn] = task
         return tasks
 
