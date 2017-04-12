@@ -139,46 +139,6 @@ class TaskDefinition(BaseObject):
             return original_resource
 
 
-class ContainerDefinition(BaseObject):
-    def __init__(self, name, image, cpu=0, memory=0, memoryReservation=0, links=[],
-                 portMappings=[], essential=True, entryPoint=[], command=[], environment=[],
-                 mountPoints=[], volumesFrom=[], hostname='', user='', workingDirectory='',
-                 disableNetworking=False, privileged=False, readonlyRootFilesystem=False,
-                 dnsServers=[], dnsSearchDomains=[], extraHosts=[], dockerSecurityOptions=[],
-                 dockerLabels={}, uLimits=[], logConfiguration={}):
-        self.name = name
-        self.image = image
-        self.cpu = cpu
-        self.memory = memory
-        self.memory_reservation = memoryReservation
-        self.links = links
-        self.portMappings = portMappings
-        self.essential = essential
-        self.entryPoint = entryPoint
-        self.command = command
-        self.environment = environment
-        self.mountPoints = mountPoints
-        self.volumesFrom = volumesFrom
-        self.hostname = hostname
-        self.user = user
-        self.working_directory = workingDirectory
-        self.disable_networking = disableNetworking
-        self.priviliged = privileged
-        self.readonly_root_filesystem = readonlyRootFilesystem
-        self.dns_servers = dnsServers
-        self.dns_search_domains = dnsSearchDomains
-        self.extra_hosts = extraHosts
-        self.docker_security_options = dockerSecurityOptions
-        self.docker_labels = dockerLabels
-        self.u_limits = uLimits
-        self.log_configuration = logConfiguration
-
-    @property
-    def response_object(self):
-        response_object = self.gen_response_object()
-        return response_object
-
-
 class Task(BaseObject):
 
     def __init__(self, cluster, task_definition, container_instance_arn,
