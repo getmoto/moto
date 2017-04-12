@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import uuid
-from random import randint, random
+from random import random
 
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
@@ -130,7 +130,6 @@ class TaskDefinition(BaseObject):
                 original_resource.volumes != volumes):
                 # currently TaskRoleArn isn't stored at TaskDefinition
                 # instances
-
             ecs_backend = ecs_backends[region_name]
             ecs_backend.deregister_task_definition(original_resource.arn)
             return ecs_backend.register_task_definition(
@@ -142,7 +141,8 @@ class TaskDefinition(BaseObject):
 
 class Task(BaseObject):
 
-    def __init__(self, cluster, task_definition, container_instance_arn, overrides={}, started_by=''):
+    def __init__(self, cluster, task_definition, container_instance_arn,
+                 resource_requirements, overrides={}, started_by=''):
         self.cluster_arn = cluster.arn
         self.task_arn = 'arn:aws:ecs:us-east-1:012345678910:task/{0}'.format(
             str(uuid.uuid1()))
@@ -154,6 +154,7 @@ class Task(BaseObject):
         self.containers = []
         self.started_by = started_by
         self.stopped_reason = ''
+        self.resource_requirements = resource_requirements
 
     @property
     def response_object(self):
@@ -240,12 +241,57 @@ class ContainerInstance(BaseObject):
     def __init__(self, ec2_instance_id):
         self.ec2_instance_id = ec2_instance_id
         self.status = 'ACTIVE'
-        self.registeredResources = []
+        self.registeredResources = [
+            {'doubleValue': 0.0,
+             'integerValue': 4096,
+             'longValue': 0,
+             'name': 'CPU',
+             'type': 'INTEGER'},
+            {'doubleValue': 0.0,
+             'integerValue': 7482,
+             'longValue': 0,
+             'name': 'MEMORY',
+             'type': 'INTEGER'},
+            {'doubleValue': 0.0,
+             'integerValue': 0,
+             'longValue': 0,
+             'name': 'PORTS',
+             'stringSetValue': ['22', '2376', '2375', '51678', '51679'],
+             'type': 'STRINGSET'},
+            {'doubleValue': 0.0,
+             'integerValue': 0,
+             'longValue': 0,
+             'name': 'PORTS_UDP',
+             'stringSetValue': [],
+             'type': 'STRINGSET'}]
         self.agentConnected = True
         self.containerInstanceArn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(
             str(uuid.uuid1()))
         self.pendingTaskCount = 0
-        self.remainingResources = []
+        self.remainingResources = [
+            {'doubleValue': 0.0,
+             'integerValue': 4096,
+             'longValue': 0,
+             'name': 'CPU',
+             'type': 'INTEGER'},
+            {'doubleValue': 0.0,
+             'integerValue': 7482,
+             'longValue': 0,
+             'name': 'MEMORY',
+             'type': 'INTEGER'},
+            {'doubleValue': 0.0,
+             'integerValue': 0,
+             'longValue': 0,
+             'name': 'PORTS',
+             'stringSetValue': ['22', '2376', '2375', '51678', '51679'],
+             'type': 'STRINGSET'},
+            {'doubleValue': 0.0,
+             'integerValue': 0,
+             'longValue': 0,
+             'name': 'PORTS_UDP',
+             'stringSetValue': [],
+             'type': 'STRINGSET'}
+        ]
         self.runningTaskCount = 0
         self.versionInfo = {
             'agentVersion': "1.0.0",
@@ -380,19 +426,71 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instances = list(
             self.container_instances.get(cluster_name, {}).keys())
         if not container_instances:
-            raise Exception(
-                "No instances found in cluster {}".format(cluster_name))
+            raise Exception("No instances found in cluster {}".format(cluster_name))
         active_container_instances = [x for x in container_instances if
                                       self.container_instances[cluster_name][x].status == 'ACTIVE']
-        for _ in range(count or 1):
-            container_instance_arn = self.container_instances[cluster_name][
-                active_container_instances[randint(0, len(active_container_instances) - 1)]
-            ].containerInstanceArn
-            task = Task(cluster, task_definition, container_instance_arn,
-                        overrides or {}, started_by or '')
-            tasks.append(task)
-            self.tasks[cluster_name][task.task_arn] = task
+        resource_requirements = self._calculate_task_resource_requirements(task_definition)
+        # TODO: return event about unable to place task if not able to place enough tasks to meet count
+        placed_count = 0
+        for container_instance in active_container_instances:
+            container_instance = self.container_instances[cluster_name][container_instance]
+            container_instance_arn = container_instance.containerInstanceArn
+            try_to_place = True
+            while try_to_place:
+                can_be_placed, message = self._can_be_placed(container_instance, resource_requirements)
+                if can_be_placed:
+                    task = Task(cluster, task_definition, container_instance_arn,
+                                resource_requirements, overrides or {}, started_by or '')
+                    self.update_container_instance_resources(container_instance, resource_requirements)
+                    tasks.append(task)
+                    self.tasks[cluster_name][task.task_arn] = task
+                    placed_count += 1
+                    if placed_count == count:
+                        return tasks
+                else:
+                    try_to_place = False
         return tasks
+
+    @staticmethod
+    def _calculate_task_resource_requirements(task_definition):
+        resource_requirements = {"CPU": 0, "MEMORY": 0, "PORTS": [], "PORTS_UDP": []}
+        for container_definition in task_definition.container_definitions:
+            resource_requirements["CPU"] += container_definition.get('cpu')
+            resource_requirements["MEMORY"] += container_definition.get("memory")
+            for port_mapping in container_definition.get("portMappings", []):
+                resource_requirements["PORTS"].append(port_mapping.get('hostPort'))
+        return resource_requirements
+
+    @staticmethod
+    def _can_be_placed(container_instance, task_resource_requirements):
+        """
+
+        :param container_instance: The container instance trying to be placed onto
+        :param task_resource_requirements: The calculated resource requirements of the task in the form of a dict
+        :return: A boolean stating whether the given container instance has enough resources to have the task placed on
+        it as well as a description, if it cannot be placed this will describe why.
+        """
+        # TODO: Implement default and other placement strategies as well as constraints:
+        # docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement.html
+        remaining_cpu = 0
+        remaining_memory = 0
+        reserved_ports = []
+        for resource in container_instance.remainingResources:
+            if resource.get("name") == "CPU":
+                remaining_cpu = resource.get("integerValue")
+            elif resource.get("name") == "MEMORY":
+                remaining_memory = resource.get("integerValue")
+            elif resource.get("name") == "PORTS":
+                reserved_ports = resource.get("stringSetValue")
+        if task_resource_requirements.get("CPU") > remaining_cpu:
+            return False, "Not enough CPU credits"
+        if task_resource_requirements.get("MEMORY") > remaining_memory:
+            return False, "Not enough memory"
+        ports_needed = task_resource_requirements.get("PORTS")
+        for port in ports_needed:
+            if str(port) in reserved_ports:
+                return False, "Port clash"
+        return True, "Can be placed"
 
     def start_task(self, cluster_str, task_definition_str, container_instances, overrides, started_by):
         cluster_name = cluster_str.split('/')[-1]
@@ -409,14 +507,15 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         container_instance_ids = [x.split('/')[-1]
                                   for x in container_instances]
-
+        resource_requirements = self._calculate_task_resource_requirements(task_definition)
         for container_instance_id in container_instance_ids:
-            container_instance_arn = self.container_instances[cluster_name][
+            container_instance = self.container_instances[cluster_name][
                 container_instance_id
-            ].containerInstanceArn
-            task = Task(cluster, task_definition, container_instance_arn,
-                        overrides or {}, started_by or '')
+            ]
+            task = Task(cluster, task_definition, container_instance.containerInstanceArn,
+                        resource_requirements, overrides or {}, started_by or '')
             tasks.append(task)
+            self.update_container_instance_resources(container_instance, resource_requirements)
             self.tasks[cluster_name][task.task_arn] = task
         return tasks
 
@@ -470,6 +569,10 @@ class EC2ContainerServiceBackend(BaseBackend):
                 "Cluster {} has no registered tasks".format(cluster_name))
         for task in tasks.keys():
             if task.endswith(task_id):
+                container_instance_arn = tasks[task].container_instance_arn
+                container_instance = self.container_instances[cluster_name][container_instance_arn.split('/')[-1]]
+                self.update_container_instance_resources(container_instance, tasks[task].resource_requirements,
+                                                         removing=True)
                 tasks[task].last_status = 'STOPPED'
                 tasks[task].desired_status = 'STOPPED'
                 tasks[task].stopped_reason = reason
@@ -566,6 +669,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         failures = []
         container_instance_objects = []
         for container_instance_id in list_container_instance_ids:
+            container_instance_id = container_instance_id.split('/')[-1]
             container_instance = self.container_instances[
                 cluster_name].get(container_instance_id, None)
             if container_instance is not None:
@@ -582,7 +686,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("{0} is not a cluster".format(cluster_name))
         status = status.upper()
         if status not in ['ACTIVE', 'DRAINING']:
-            raise Exception("An error occurred (InvalidParameterException) when calling the UpdateContainerInstancesState operation: Container instances status should be one of [ACTIVE,DRAINING]")
+            raise Exception("An error occurred (InvalidParameterException) when calling the UpdateContainerInstancesState operation: \
+                            Container instances status should be one of [ACTIVE,DRAINING]")
         failures = []
         container_instance_objects = []
         for container_instance_id in list_container_instance_ids:
@@ -594,6 +699,22 @@ class EC2ContainerServiceBackend(BaseBackend):
                 failures.append(ContainerInstanceFailure('MISSING', container_instance_id))
 
         return container_instance_objects, failures
+
+    def update_container_instance_resources(self, container_instance, task_resources, removing=False):
+        resource_multiplier = 1
+        if removing:
+            resource_multiplier = -1
+        for resource in container_instance.remainingResources:
+            if resource.get("name") == "CPU":
+                resource["integerValue"] -= task_resources.get('CPU') * resource_multiplier
+            elif resource.get("name") == "MEMORY":
+                resource["integerValue"] -= task_resources.get('MEMORY') * resource_multiplier
+            elif resource.get("name") == "PORTS":
+                for port in task_resources.get("PORTS"):
+                    if removing:
+                        resource["stringSetValue"].remove(str(port))
+                    else:
+                        resource["stringSetValue"].append(str(port))
 
     def deregister_container_instance(self, cluster_str, container_instance_str):
         pass

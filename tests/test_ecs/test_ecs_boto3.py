@@ -531,8 +531,8 @@ def test_register_container_instance():
         'arn:aws:ecs:us-east-1:012345678910:container-instance')
     arn_part[1].should.equal(str(UUID(arn_part[1])))
     response['containerInstance']['status'].should.equal('ACTIVE')
-    len(response['containerInstance']['registeredResources']).should.equal(0)
-    len(response['containerInstance']['remainingResources']).should.equal(0)
+    len(response['containerInstance']['registeredResources']).should.equal(4)
+    len(response['containerInstance']['remainingResources']).should.equal(4)
     response['containerInstance']['agentConnected'].should.equal(True)
     response['containerInstance']['versionInfo'][
         'agentVersion'].should.equal('1.0.0')
@@ -622,6 +622,7 @@ def test_describe_container_instances():
     for arn in test_instance_arns:
         response_arns.should.contain(arn)
 
+
 @mock_ec2
 @mock_ecs
 def test_update_container_instances_state():
@@ -653,26 +654,33 @@ def test_update_container_instances_state():
         test_instance_arns.append(response['containerInstance']['containerInstanceArn'])
 
     test_instance_ids = list(map((lambda x: x.split('/')[1]), test_instance_arns))
-    response = ecs_client.update_container_instances_state(cluster=test_cluster_name, containerInstances=test_instance_ids, status='DRAINING')
+    response = ecs_client.update_container_instances_state(cluster=test_cluster_name,
+                                                           containerInstances=test_instance_ids,
+                                                           status='DRAINING')
     len(response['failures']).should.equal(0)
     len(response['containerInstances']).should.equal(instance_to_create)
     response_statuses = [ci['status'] for ci in response['containerInstances']]
     for status in response_statuses:
         status.should.equal('DRAINING')
-    response = ecs_client.update_container_instances_state(cluster=test_cluster_name, containerInstances=test_instance_ids, status='DRAINING')
+    response = ecs_client.update_container_instances_state(cluster=test_cluster_name,
+                                                           containerInstances=test_instance_ids,
+                                                           status='DRAINING')
     len(response['failures']).should.equal(0)
     len(response['containerInstances']).should.equal(instance_to_create)
     response_statuses = [ci['status'] for ci in response['containerInstances']]
     for status in response_statuses:
         status.should.equal('DRAINING')
-    response = ecs_client.update_container_instances_state(cluster=test_cluster_name, containerInstances=test_instance_ids, status='ACTIVE')
+    response = ecs_client.update_container_instances_state(cluster=test_cluster_name,
+                                                           containerInstances=test_instance_ids,
+                                                           status='ACTIVE')
     len(response['failures']).should.equal(0)
     len(response['containerInstances']).should.equal(instance_to_create)
     response_statuses = [ci['status'] for ci in response['containerInstances']]
     for status in response_statuses:
         status.should.equal('ACTIVE')
-    ecs_client.update_container_instances_state.when.called_with(cluster=test_cluster_name, containerInstances=test_instance_ids, status='test_status').should.throw(Exception)
-
+    ecs_client.update_container_instances_state.when.called_with(cluster=test_cluster_name,
+                                                                 containerInstances=test_instance_ids,
+                                                                 status='test_status').should.throw(Exception)
 
 
 @mock_ec2
@@ -838,7 +846,7 @@ def test_list_tasks():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    _ = client.register_container_instance(
         cluster=test_cluster_name,
         instanceIdentityDocument=instance_id_document
     )
@@ -1042,6 +1050,88 @@ def test_stop_task():
     stop_response['task']['stoppedReason'].should.equal('moto testing')
 
 
+@mock_ec2
+@mock_ecs
+def test_resource_reservation_and_release():
+    client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+
+    _ = client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    _ = client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'},
+                'portMappings': [
+                    {
+                        'hostPort': 80,
+                        'containerPort': 8080
+                    }
+                ]
+            }
+        ]
+    )
+    run_response = client.run_task(
+        cluster='test_ecs_cluster',
+        overrides={},
+        taskDefinition='test_ecs_task',
+        count=1,
+        startedBy='moto'
+    )
+    container_instance_arn = run_response['tasks'][0].get('containerInstanceArn')
+    container_instance_description = client.describe_container_instances(
+        cluster='test_ecs_cluster',
+        containerInstances=[container_instance_arn]
+    )['containerInstances'][0]
+    remaining_resources, registered_resources = _fetch_container_instance_resources(container_instance_description)
+    remaining_resources['CPU'].should.equal(registered_resources['CPU'] - 1024)
+    remaining_resources['MEMORY'].should.equal(registered_resources['MEMORY'] - 400)
+    registered_resources['PORTS'].append('80')
+    remaining_resources['PORTS'].should.equal(registered_resources['PORTS'])
+    client.stop_task(
+        cluster='test_ecs_cluster',
+        task=run_response['tasks'][0].get('taskArn'),
+        reason='moto testing'
+    )
+    container_instance_description = client.describe_container_instances(
+        cluster='test_ecs_cluster',
+        containerInstances=[container_instance_arn]
+    )['containerInstances'][0]
+    remaining_resources, registered_resources = _fetch_container_instance_resources(container_instance_description)
+    remaining_resources['CPU'].should.equal(registered_resources['CPU'])
+    remaining_resources['MEMORY'].should.equal(registered_resources['MEMORY'])
+    remaining_resources['PORTS'].should.equal(registered_resources['PORTS'])
+
+
 @mock_ecs
 @mock_cloudformation
 def test_create_cluster_through_cloudformation():
@@ -1139,6 +1229,133 @@ def test_create_task_definition_through_cloudformation():
     ecs_conn = boto3.client('ecs', region_name='us-west-1')
     resp = ecs_conn.list_task_definitions()
     len(resp['taskDefinitionArns']).should.equal(1)
+
+
+@mock_ec2
+@mock_ecs
+def test_task_definitions_unable_to_be_placed():
+    client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+
+    _ = client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 5000,
+                'memory': 40000,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    response = client.run_task(
+        cluster='test_ecs_cluster',
+        overrides={},
+        taskDefinition='test_ecs_task',
+        count=2,
+        startedBy='moto'
+    )
+    len(response['tasks']).should.equal(0)
+
+
+@mock_ec2
+@mock_ecs
+def test_task_definitions_with_port_clash():
+    client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+
+    _ = client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 256,
+                'memory': 512,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'},
+                'portMappings': [
+                    {
+                        'hostPort': 80,
+                        'containerPort': 8080
+                    }
+                ]
+            }
+        ]
+    )
+    response = client.run_task(
+        cluster='test_ecs_cluster',
+        overrides={},
+        taskDefinition='test_ecs_task',
+        count=2,
+        startedBy='moto'
+    )
+    len(response['tasks']).should.equal(1)
+    response['tasks'][0]['taskArn'].should.contain(
+        'arn:aws:ecs:us-east-1:012345678910:task/')
+    response['tasks'][0]['clusterArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:cluster/test_ecs_cluster')
+    response['tasks'][0]['taskDefinitionArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
+    response['tasks'][0]['containerInstanceArn'].should.contain(
+        'arn:aws:ecs:us-east-1:012345678910:container-instance/')
+    response['tasks'][0]['overrides'].should.equal({})
+    response['tasks'][0]['lastStatus'].should.equal("RUNNING")
+    response['tasks'][0]['desiredStatus'].should.equal("RUNNING")
+    response['tasks'][0]['startedBy'].should.equal("moto")
+    response['tasks'][0]['stoppedReason'].should.equal("")
 
 
 @mock_ecs
@@ -1294,3 +1511,17 @@ def test_update_service_through_cloudformation_should_trigger_replacement():
     ecs_conn = boto3.client('ecs', region_name='us-west-1')
     resp = ecs_conn.list_services(cluster='testcluster')
     len(resp['serviceArns']).should.equal(1)
+
+
+def _fetch_container_instance_resources(container_instance_description):
+    remaining_resources = {}
+    registered_resources = {}
+    remaining_resources_list = container_instance_description['remainingResources']
+    registered_resources_list = container_instance_description['registeredResources']
+    remaining_resources['CPU'] = [x['integerValue'] for x in remaining_resources_list if x['name'] == 'CPU'][0]
+    remaining_resources['MEMORY'] = [x['integerValue'] for x in remaining_resources_list if x['name'] == 'MEMORY'][0]
+    remaining_resources['PORTS'] = [x['stringSetValue'] for x in remaining_resources_list if x['name'] == 'PORTS'][0]
+    registered_resources['CPU'] = [x['integerValue'] for x in registered_resources_list if x['name'] == 'CPU'][0]
+    registered_resources['MEMORY'] = [x['integerValue'] for x in registered_resources_list if x['name'] == 'MEMORY'][0]
+    registered_resources['PORTS'] = [x['stringSetValue'] for x in registered_resources_list if x['name'] == 'PORTS'][0]
+    return remaining_resources, registered_resources
