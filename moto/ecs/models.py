@@ -181,7 +181,8 @@ class ContainerDefinition(BaseObject):
 
 class Task(BaseObject):
 
-    def __init__(self, cluster, task_definition, container_instance_arn, resource_requirements, overrides={}, started_by=''):
+    def __init__(self, cluster, task_definition, container_instance_arn,
+                 resource_requirements, overrides={}, started_by=''):
         self.cluster_arn = cluster.arn
         self.task_arn = 'arn:aws:ecs:us-east-1:012345678910:task/{0}'.format(
             str(uuid.uuid1()))
@@ -194,7 +195,6 @@ class Task(BaseObject):
         self.started_by = started_by
         self.stopped_reason = ''
         self.resource_requirements = resource_requirements
-        
 
     @property
     def response_object(self):
@@ -338,7 +338,6 @@ class ContainerInstance(BaseObject):
             'agentHash': '4023248',
             'dockerVersion': 'DockerVersion: 1.5.0'
         }
-            
 
         @property
         def response_object(self):
@@ -480,7 +479,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             while try_to_place:
                 can_be_placed, message = self._can_be_placed(container_instance, resource_requirements)
                 if can_be_placed:
-                    task = Task(cluster, task_definition, container_instance_arn, resource_requirements, overrides or {}, started_by or '')
+                    task = Task(cluster, task_definition, container_instance_arn,
+                                resource_requirements, overrides or {}, started_by or '')
                     self.update_container_instance_resources(container_instance, resource_requirements)
                     tasks.append(task)
                     self.tasks[cluster_name][task.task_arn] = task
@@ -501,7 +501,6 @@ class EC2ContainerServiceBackend(BaseBackend):
                 resource_requirements["PORTS"].append(port_mapping.get('hostPort'))
         return resource_requirements
 
-
     @staticmethod
     def _can_be_placed(container_instance, task_resource_requirements):
         """
@@ -511,7 +510,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         :return: A boolean stating whether the given container instance has enough resources to have the task placed on
         it as well as a description, if it cannot be placed this will describe why.
         """
-        # TODO: Implement default and other placement strategies as well as constraints: 
+        # TODO: Implement default and other placement strategies as well as constraints:
         # docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement.html
         remaining_cpu = 0
         remaining_memory = 0
@@ -553,10 +552,9 @@ class EC2ContainerServiceBackend(BaseBackend):
             container_instance = self.container_instances[cluster_name][
                 container_instance_id
             ]
-            task = Task(cluster, task_definition, container_instance.containerInstanceArn, 
+            task = Task(cluster, task_definition, container_instance.containerInstanceArn,
                         resource_requirements, overrides or {}, started_by or '')
             tasks.append(task)
-            
             self.update_container_instance_resources(container_instance, resource_requirements)
             self.tasks[cluster_name][task.task_arn] = task
         return tasks
@@ -613,7 +611,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             if task.endswith(task_id):
                 container_instance_arn = tasks[task].container_instance_arn
                 container_instance = self.container_instances[cluster_name][container_instance_arn.split('/')[-1]]
-                self.update_container_instance_resources(container_instance, tasks[task].resource_requirements, removing=True)
+                self.update_container_instance_resources(container_instance, tasks[task].resource_requirements,
+                                                         removing=True)
                 tasks[task].last_status = 'STOPPED'
                 tasks[task].desired_status = 'STOPPED'
                 tasks[task].stopped_reason = reason
@@ -741,7 +740,6 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return container_instance_objects, failures
 
-        
     def update_container_instance_resources(self, container_instance, task_resources, removing=False):
         resource_multiplier = 1
         if removing:

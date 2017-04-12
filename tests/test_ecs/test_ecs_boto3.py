@@ -1037,13 +1037,6 @@ def test_stop_task():
         count=1,
         startedBy='moto'
     )
-    container_instance_arn = run_response['tasks'][0].get('containerInstanceArn')
-    container_instance_description = client.describe_container_instances(
-        cluster='test_ecs_cluster',
-        containerInstances=[container_instance_arn]
-    )['containerInstances'][0]
-    remaining_resources = container_instance_description['remainingResources']
-    registered_resources = container_instance_description['registeredResources']
     stop_response = client.stop_task(
         cluster='test_ecs_cluster',
         task=run_response['tasks'][0].get('taskArn'),
@@ -1055,6 +1048,7 @@ def test_stop_task():
     stop_response['task']['lastStatus'].should.equal('STOPPED')
     stop_response['task']['desiredStatus'].should.equal('STOPPED')
     stop_response['task']['stoppedReason'].should.equal('moto testing')
+
 
 @mock_ec2
 @mock_ecs
@@ -1123,7 +1117,7 @@ def test_resource_reservation_and_release():
     remaining_resources['MEMORY'].should.equal(registered_resources['MEMORY'] - 400)
     registered_resources['PORTS'].append('80')
     remaining_resources['PORTS'].should.equal(registered_resources['PORTS'])
-    stop_response = client.stop_task(
+    client.stop_task(
         cluster='test_ecs_cluster',
         task=run_response['tasks'][0].get('taskArn'),
         reason='moto testing'
@@ -1290,6 +1284,7 @@ def test_task_definitions_unable_to_be_placed():
     )
     len(response['tasks']).should.equal(0)
 
+
 @mock_ec2
 @mock_ecs
 def test_task_definitions_with_port_clash():
@@ -1361,7 +1356,7 @@ def test_task_definitions_with_port_clash():
     response['tasks'][0]['desiredStatus'].should.equal("RUNNING")
     response['tasks'][0]['startedBy'].should.equal("moto")
     response['tasks'][0]['stoppedReason'].should.equal("")
-    
+
 
 @mock_ecs
 @mock_cloudformation
