@@ -1149,6 +1149,132 @@ def test_create_task_definition_through_cloudformation():
     len(resp['taskDefinitionArns']).should.equal(1)
 
 
+@mock_ec2
+@mock_ecs
+def test_task_definitions_unable_to_be_placed():
+    client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+
+    _ = client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 5000,
+                'memory': 40000,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    response = client.run_task(
+        cluster='test_ecs_cluster',
+        overrides={},
+        taskDefinition='test_ecs_task',
+        count=2,
+        startedBy='moto'
+    )
+    len(response['tasks']).should.equal(0)
+
+@mock_ec2
+@mock_ecs
+def test_task_definitions_with_port_clash():
+    client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+
+    _ = client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 256,
+                'memory': 512,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'},
+                'portMappings': [
+                    {
+                        'hostPort': 80,
+                        'containerPort': 8080
+                    }
+                ]
+            }
+        ]
+    )
+    response = client.run_task(
+        cluster='test_ecs_cluster',
+        overrides={},
+        taskDefinition='test_ecs_task',
+        count=2,
+        startedBy='moto'
+    )
+    len(response['tasks']).should.equal(1)
+    response['tasks'][0]['taskArn'].should.contain(
+        'arn:aws:ecs:us-east-1:012345678910:task/')
+    response['tasks'][0]['clusterArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:cluster/test_ecs_cluster')
+    response['tasks'][0]['taskDefinitionArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
+    response['tasks'][0]['containerInstanceArn'].should.contain(
+        'arn:aws:ecs:us-east-1:012345678910:container-instance/')
+    response['tasks'][0]['overrides'].should.equal({})
+    response['tasks'][0]['lastStatus'].should.equal("RUNNING")
+    response['tasks'][0]['desiredStatus'].should.equal("RUNNING")
+    response['tasks'][0]['startedBy'].should.equal("moto")
+    response['tasks'][0]['stoppedReason'].should.equal("")
+    
+
 @mock_ecs
 @mock_cloudformation
 def test_update_task_definition_family_through_cloudformation_should_trigger_a_replacement():
