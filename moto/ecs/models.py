@@ -181,7 +181,7 @@ class ContainerDefinition(BaseObject):
 
 class Task(BaseObject):
 
-    def __init__(self, cluster, task_definition, container_instance_arn, overrides={}, started_by=''):
+    def __init__(self, cluster, task_definition, container_instance_arn, resource_requirements, overrides={}, started_by=''):
         self.cluster_arn = cluster.arn
         self.task_arn = 'arn:aws:ecs:us-east-1:012345678910:task/{0}'.format(
             str(uuid.uuid1()))
@@ -193,6 +193,12 @@ class Task(BaseObject):
         self.containers = []
         self.started_by = started_by
         self.stopped_reason = ''
+        self.resource_requirements = {
+            'CPU': 0,
+            'MEMORY': 0,
+            'PORTS': []
+        }
+        
 
     @property
     def response_object(self):
@@ -336,6 +342,7 @@ class ContainerInstance(BaseObject):
             'agentHash': '4023248',
             'dockerVersion': 'DockerVersion: 1.5.0'
         }
+            
 
         @property
         def response_object(self):
@@ -467,12 +474,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("No instances found in cluster {}".format(cluster_name))
         active_container_instances = [x for x in container_instances if
                                       self.container_instances[cluster_name][x].status == 'ACTIVE']
-        resource_requirements = {"CPU": 0, "MEMORY": 0, "PORTS": [], "PORTS_UDP": []}
-        for container_definition in task_definition.container_definitions:
-            resource_requirements["CPU"] += container_definition.get('cpu')
-            resource_requirements["MEMORY"] += container_definition.get("memory")
-            for port_mapping in container_definition.get("port_mappings", []):
-                resource_requirements["PORTS"].append(port_mapping.get('host_port'))
+        resource_requirements = self._calculate_task_resource_requirements(task_definition)
         # TODO: return event about unable to place task if not able to place enough tasks to meet count
         placed_count = 0
         for container_instance in active_container_instances:
@@ -480,8 +482,10 @@ class EC2ContainerServiceBackend(BaseBackend):
             container_instance_arn = container_instance.containerInstanceArn
             try_to_place = True
             while try_to_place:
-                if self._is_placable(container_instance, resource_requirements):
-                    task = Task(cluster, task_definition, container_instance_arn, overrides or {}, started_by or '')
+                can_be_placed, message = self._can_be_placed(container_instance, resource_requirements)
+                if can_be_placed:
+                    task = Task(cluster, task_definition, container_instance_arn, resource_requirements, overrides or {}, started_by or '')
+                    self.update_container_instance_resources(container_instance, resource_requirements)
                     tasks.append(task)
                     self.tasks[cluster_name][task.task_arn] = task
                     placed_count += 1
@@ -492,7 +496,18 @@ class EC2ContainerServiceBackend(BaseBackend):
         return tasks
 
     @staticmethod
-    def _is_placable(container_instance, task_resource_requirements):
+    def _calculate_task_resource_requirements(task_definition):
+        resource_requirements = {"CPU": 0, "MEMORY": 0, "PORTS": [], "PORTS_UDP": []}
+        for container_definition in task_definition.container_definitions:
+            resource_requirements["CPU"] += container_definition.get('cpu')
+            resource_requirements["MEMORY"] += container_definition.get("memory")
+            for port_mapping in container_definition.get("portMappings", []):
+                resource_requirements["PORTS"].append(port_mapping.get('hostPort'))
+        return resource_requirements
+
+
+    @staticmethod
+    def _can_be_placed(container_instance, task_resource_requirements):
         """
 
         :param container_instance: The container instance trying to be placed onto
@@ -500,6 +515,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         :return: A boolean stating whether the given container instance has enough resources to have the task placed on
         it as well as a description, if it cannot be placed this will describe why.
         """
+        # TODO: Implement default and other placement strategies as well as constraints: 
+        # docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement.html
         remaining_cpu = 0
         remaining_memory = 0
         reserved_ports = []
@@ -535,12 +552,12 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         container_instance_ids = [x.split('/')[-1]
                                   for x in container_instances]
-
+        resource_requirements = self._calculate_task_resource_requirements(task_definition)
         for container_instance_id in container_instance_ids:
             container_instance_arn = self.container_instances[cluster_name][
                 container_instance_id
             ].containerInstanceArn
-            task = Task(cluster, task_definition, container_instance_arn,
+            task = Task(cluster, task_definition, container_instance_arn, resource_requirements,
                         overrides or {}, started_by or '')
             tasks.append(task)
             self.tasks[cluster_name][task.task_arn] = task
@@ -596,6 +613,9 @@ class EC2ContainerServiceBackend(BaseBackend):
                 "Cluster {} has no registered tasks".format(cluster_name))
         for task in tasks.keys():
             if task.endswith(task_id):
+                container_instance_arn = tasks[task].container_instance_arn
+                container_instance = self.container_instances[cluster_name][container_instance_arn.split('/')[-1]]
+                self.update_container_instance_resources(container_instance, tasks[task].resource_requirements, removing=True)
                 tasks[task].last_status = 'STOPPED'
                 tasks[task].desired_status = 'STOPPED'
                 tasks[task].stopped_reason = reason
@@ -721,6 +741,23 @@ class EC2ContainerServiceBackend(BaseBackend):
                 failures.append(ContainerInstanceFailure('MISSING', container_instance_id))
 
         return container_instance_objects, failures
+
+        
+    def update_container_instance_resources(self, container_instance, task_resources, removing=False):
+        resource_multiplier = 1
+        if removing:
+            resource_multiplier = -1
+        for resource in container_instance.remainingResources:
+            if resource.get("name") == "CPU":
+                resource["integerValue"] -= task_resources.get('CPU') * resource_multiplier
+            elif resource.get("name") == "MEMORY":
+                resource["integerValue"] -= task_resources.get('MEMORY') * resource_multiplier
+            elif resource.get("name") == "PORTS":
+                for port in task_resources.get("PORTS"):
+                    if removing:
+                        resource["stringSetValue"].remove(port)
+                    else:
+                        resource["stringSetValue"].append(port)
 
     def deregister_container_instance(self, cluster_str, container_instance_str):
         pass
