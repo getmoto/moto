@@ -533,7 +533,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             return False, "Not enough memory"
         ports_needed = task_resource_requirements.get("PORTS")
         for port in ports_needed:
-            if port in reserved_ports:
+            if str(port) in reserved_ports:
                 return False, "Port clash"
         return True, "Can be placed"
 
@@ -755,9 +755,9 @@ class EC2ContainerServiceBackend(BaseBackend):
             elif resource.get("name") == "PORTS":
                 for port in task_resources.get("PORTS"):
                     if removing:
-                        resource["stringSetValue"].remove(port)
+                        resource["stringSetValue"].remove(str(port))
                     else:
-                        resource["stringSetValue"].append(port)
+                        resource["stringSetValue"].append(str(port))
 
     def deregister_container_instance(self, cluster_str, container_instance_str):
         pass
