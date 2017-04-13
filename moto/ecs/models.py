@@ -716,7 +716,31 @@ class EC2ContainerServiceBackend(BaseBackend):
                     else:
                         resource["stringSetValue"].append(str(port))
 
-    def deregister_container_instance(self, cluster_str, container_instance_str):
+    def deregister_container_instance(self, cluster_str, container_instance_str, force):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name not in self.clusters:
+            raise Exception("{0} is not a cluster".format(cluster_name))
+        container_instance_id = container_instance_str.split('/')[-1]
+        container_instance = self.container_instances[cluster_name].get(container_instance_id)
+        if container_instance is None:
+            raise Exception("{0} is not a container id in the cluster")
+        if not force and container_instance.running_tasks_count > 0:
+            raise Exception("Found running tasks on the instance.")
+        # Currently assume that people might want to do something based around deregistered instances
+        # with tasks left running on them - but nothing if deregistration is forced or no tasks were
+        # running already
+        elif force and container_instance.running_tasks_count > 0:
+            if not self.container_instances.get('orphaned'):
+                self.container_instances['orphaned'] = {}
+            self.container_instances['orphaned'][container_instance_id] = container_instance
+        del(self.container_instances[cluster_name][container_instance_id])
+        self._respond_to_cluster_state_update(cluster_str)
+        pass
+
+    def _respond_to_cluster_state_update(self, cluster_str):
+        cluster_name = cluster_str.split('/')[-1]
+        if cluster_name not in self.clusters:
+            raise Exception("{0} is not a cluster".format(cluster_name))
         pass
 
 
