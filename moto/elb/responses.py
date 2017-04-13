@@ -391,7 +391,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           <SecurityGroups>
           </SecurityGroups>
           <LoadBalancerName>{{ load_balancer.name }}</LoadBalancerName>
-          <CreatedTime>2013-01-01T00:00:00.19000Z</CreatedTime>
+          <CreatedTime>{{ load_balancer.created_time }}</CreatedTime>
           <HealthCheck>
             {% if load_balancer.health_check %}
               <Interval>{{ load_balancer.health_check.interval }}</Interval>
