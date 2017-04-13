@@ -652,6 +652,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             '/')[-1]
         self.container_instances[cluster_name][
             container_instance_id] = container_instance
+        self.clusters[cluster_name].registered_container_instances_count += 1
         return container_instance
 
     def list_container_instances(self, cluster_str):
@@ -715,8 +716,10 @@ class EC2ContainerServiceBackend(BaseBackend):
                         resource["stringSetValue"].remove(str(port))
                     else:
                         resource["stringSetValue"].append(str(port))
+        container_instance.runningTaskCount += resource_multiplier * 1
 
     def deregister_container_instance(self, cluster_str, container_instance_str, force):
+        failures = []
         cluster_name = cluster_str.split('/')[-1]
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
@@ -724,18 +727,18 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instance = self.container_instances[cluster_name].get(container_instance_id)
         if container_instance is None:
             raise Exception("{0} is not a container id in the cluster")
-        if not force and container_instance.running_tasks_count > 0:
+        if not force and container_instance.runningTaskCount > 0:
             raise Exception("Found running tasks on the instance.")
         # Currently assume that people might want to do something based around deregistered instances
         # with tasks left running on them - but nothing if deregistration is forced or no tasks were
         # running already
-        elif force and container_instance.running_tasks_count > 0:
+        elif force and container_instance.runningTaskCount > 0:
             if not self.container_instances.get('orphaned'):
                 self.container_instances['orphaned'] = {}
             self.container_instances['orphaned'][container_instance_id] = container_instance
         del(self.container_instances[cluster_name][container_instance_id])
         self._respond_to_cluster_state_update(cluster_str)
-        pass
+        return container_instance, failures
 
     def _respond_to_cluster_state_update(self, cluster_str):
         cluster_name = cluster_str.split('/')[-1]
