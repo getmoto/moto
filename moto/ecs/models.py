@@ -241,7 +241,7 @@ class ContainerInstance(BaseObject):
     def __init__(self, ec2_instance_id):
         self.ec2_instance_id = ec2_instance_id
         self.status = 'ACTIVE'
-        self.registeredResources = [
+        self.registered_resources = [
             {'doubleValue': 0.0,
              'integerValue': 4096,
              'longValue': 0,
@@ -264,11 +264,11 @@ class ContainerInstance(BaseObject):
              'name': 'PORTS_UDP',
              'stringSetValue': [],
              'type': 'STRINGSET'}]
-        self.agentConnected = True
-        self.containerInstanceArn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(
+        self.agent_connected = True
+        self.container_instance_arn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(
             str(uuid.uuid1()))
-        self.pendingTaskCount = 0
-        self.remainingResources = [
+        self.pending_task_count = 0
+        self.remaining_resources = [
             {'doubleValue': 0.0,
              'integerValue': 4096,
              'longValue': 0,
@@ -292,8 +292,8 @@ class ContainerInstance(BaseObject):
              'stringSetValue': [],
              'type': 'STRINGSET'}
         ]
-        self.runningTaskCount = 0
-        self.versionInfo = {
+        self.running_task_count = 0
+        self.version_info = {
             'agentVersion': "1.0.0",
             'agentHash': '4023248',
             'dockerVersion': 'DockerVersion: 1.5.0'
@@ -434,7 +434,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         placed_count = 0
         for container_instance in active_container_instances:
             container_instance = self.container_instances[cluster_name][container_instance]
-            container_instance_arn = container_instance.containerInstanceArn
+            container_instance_arn = container_instance.container_instance_arn
             try_to_place = True
             while try_to_place:
                 can_be_placed, message = self._can_be_placed(container_instance, resource_requirements)
@@ -475,7 +475,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         remaining_cpu = 0
         remaining_memory = 0
         reserved_ports = []
-        for resource in container_instance.remainingResources:
+        for resource in container_instance.remaining_resources:
             if resource.get("name") == "CPU":
                 remaining_cpu = resource.get("integerValue")
             elif resource.get("name") == "MEMORY":
@@ -512,7 +512,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             container_instance = self.container_instances[cluster_name][
                 container_instance_id
             ]
-            task = Task(cluster, task_definition, container_instance.containerInstanceArn,
+            task = Task(cluster, task_definition, container_instance.container_instance_arn,
                         resource_requirements, overrides or {}, started_by or '')
             tasks.append(task)
             self.update_container_instance_resources(container_instance, resource_requirements)
@@ -648,7 +648,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instance = ContainerInstance(ec2_instance_id)
         if not self.container_instances.get(cluster_name):
             self.container_instances[cluster_name] = {}
-        container_instance_id = container_instance.containerInstanceArn.split(
+        container_instance_id = container_instance.container_instance_arn.split(
             '/')[-1]
         self.container_instances[cluster_name][
             container_instance_id] = container_instance
@@ -660,7 +660,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instances_values = self.container_instances.get(
             cluster_name, {}).values()
         container_instances = [
-            ci.containerInstanceArn for ci in container_instances_values]
+            ci.container_instance_arn for ci in container_instances_values]
         return sorted(container_instances)
 
     def describe_container_instances(self, cluster_str, list_container_instance_ids):
@@ -705,7 +705,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         resource_multiplier = 1
         if removing:
             resource_multiplier = -1
-        for resource in container_instance.remainingResources:
+        for resource in container_instance.remaining_resources:
             if resource.get("name") == "CPU":
                 resource["integerValue"] -= task_resources.get('CPU') * resource_multiplier
             elif resource.get("name") == "MEMORY":
@@ -716,7 +716,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         resource["stringSetValue"].remove(str(port))
                     else:
                         resource["stringSetValue"].append(str(port))
-        container_instance.runningTaskCount += resource_multiplier * 1
+        container_instance.running_task_count += resource_multiplier * 1
 
     def deregister_container_instance(self, cluster_str, container_instance_str, force):
         failures = []
@@ -727,12 +727,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instance = self.container_instances[cluster_name].get(container_instance_id)
         if container_instance is None:
             raise Exception("{0} is not a container id in the cluster")
-        if not force and container_instance.runningTaskCount > 0:
+        if not force and container_instance.running_task_count > 0:
             raise Exception("Found running tasks on the instance.")
         # Currently assume that people might want to do something based around deregistered instances
-        # with tasks left running on them - but nothing if deregistration is forced or no tasks were
-        # running already
-        elif force and container_instance.runningTaskCount > 0:
+        # with tasks left running on them - but nothing if no tasks were running already
+        elif force and container_instance.running_task_count > 0:
             if not self.container_instances.get('orphaned'):
                 self.container_instances['orphaned'] = {}
             self.container_instances['orphaned'][container_instance_id] = container_instance
