@@ -299,11 +299,10 @@ class ContainerInstance(BaseObject):
             'dockerVersion': 'DockerVersion: 1.5.0'
         }
 
-        @property
-        def response_object(self):
-            response_object = self.gen_response_object()
-            del response_object['name'], response_object['arn']
-            return response_object
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        return response_object
 
 
 class ContainerInstanceFailure(BaseObject):
