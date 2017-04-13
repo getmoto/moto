@@ -292,6 +292,29 @@ def test_delete_access_key():
     conn.delete_access_key(access_key_id, 'my-user')
 
 
+@mock_iam()
+def test_mfa_devices():
+    # Test enable device
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_user(UserName='my-user')
+    conn.enable_mfa_device(
+        UserName='my-user',
+        SerialNumber='123456789',
+        AuthenticationCode1='234567',
+        AuthenticationCode2='987654'
+    )
+
+    # Test list mfa devices
+    response = conn.list_mfa_devices(UserName='my-user')
+    device = response['MFADevices'][0]
+    device['SerialNumber'].should.equal('123456789')
+
+    # Test deactivate mfa device
+    conn.deactivate_mfa_device(UserName='my-user', SerialNumber='123456789')
+    response = conn.list_mfa_devices(UserName='my-user')
+    len(response['MFADevices']).should.equal(0)
+
+
 @mock_iam_deprecated()
 def test_delete_user():
     conn = boto.connect_iam()
