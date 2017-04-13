@@ -287,6 +287,12 @@ class IamResponse(BaseResponse):
             policy_document=policy_document
         )
 
+    def list_user_policies(self):
+        user_name = self._get_param('UserName')
+        policies = iam_backend.list_user_policies(user_name)
+        template = self.response_template(LIST_USER_POLICIES_TEMPLATE)
+        return template.render(policies=policies)
+
     def put_user_policy(self):
         user_name = self._get_param('UserName')
         policy_name = self._get_param('PolicyName')
@@ -853,6 +859,20 @@ GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </GetUserPolicyResponse>"""
+
+LIST_USER_POLICIES_TEMPLATE = """<ListUserPoliciesResponse>
+   <ListUserPoliciesResult>
+      <PolicyNames>
+        {% for policy in policies %}
+         <member>{{ policy }}</member>
+        {% endfor %}
+      </PolicyNames>
+   </ListUserPoliciesResult>
+   <IsTruncated>false</IsTruncated>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListUserPoliciesResponse>"""
 
 CREATE_ACCESS_KEY_TEMPLATE = """<CreateAccessKeyResponse>
    <CreateAccessKeyResult>

@@ -729,6 +729,10 @@ class IAMBackend(BaseBackend):
         policy = user.get_policy(policy_name)
         return policy
 
+    def list_user_policies(self, user_name):
+        user = self.get_user(user_name)
+        return user.policies.keys()
+
     def put_user_policy(self, user_name, policy_name, policy_json):
         user = self.get_user(user_name)
         user.put_policy(policy_name, policy_json)
