@@ -59,7 +59,7 @@ class DomainDispatcherApplication(object):
             try:
                 _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[
                     1].split("/")
-            except ValueError:
+            except (KeyError, ValueError):
                 region = 'us-east-1'
                 service = 's3'
             if service == 'dynamodb':
