@@ -29,10 +29,11 @@ class EventsHandler(BaseResponse):
 
     def delete_rule(self):
         body = self.load_body()
-        name = body.get('NamePrefix')
+        name = body.get('Name')
 
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
+        events_backend.delete_rule(name)
 
         return '', self.response_headers
 

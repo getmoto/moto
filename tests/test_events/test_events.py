@@ -133,6 +133,15 @@ def test_list_rules():
 
 
 @mock_events
+def test_delete_rule():
+    client = generate_environment()
+
+    client.delete_rule(Name=RULES[0]['Name'])
+    rules = client.list_rules()
+    assert(len(rules['Rules']) == len(RULES) - 1)
+
+
+@mock_events
 def test_list_targets_by_rule():
     rule_name = get_random_rule()['Name']
     client = generate_environment()
