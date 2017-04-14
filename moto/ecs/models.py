@@ -89,6 +89,7 @@ class TaskDefinition(BaseObject):
 
     def __init__(self, family, revision, container_definitions, volumes=None):
         self.family = family
+        self.revision = revision
         self.arn = 'arn:aws:ecs:us-east-1:012345678910:task-definition/{0}:{1}'.format(
             family, revision)
         self.container_definitions = container_definitions

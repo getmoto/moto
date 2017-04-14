@@ -86,6 +86,7 @@ def test_register_task_definition():
         ]
     )
     type(response['taskDefinition']).should.be(dict)
+    response['taskDefinition']['revision'].should.equal(1)
     response['taskDefinition']['taskDefinitionArn'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
     response['taskDefinition']['containerDefinitions'][
