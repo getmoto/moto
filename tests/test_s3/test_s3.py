@@ -1046,6 +1046,19 @@ def test_boto3_key_etag():
     resp = s3.get_object(Bucket='mybucket', Key='steve')
     resp['ETag'].should.equal('"d32bda93738f7e03adb22e66c90fbc04"')
 
+@mock_s3
+def test_website_redirect_location():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+
+    s3.put_object(Bucket='mybucket', Key='steve', Body=b'is awesome')
+    resp = s3.get_object(Bucket='mybucket', Key='steve')
+    resp.get('WebsiteRedirectLocation').should.be.none
+
+    url = 'https://github.com/spulec/moto'
+    s3.put_object(Bucket='mybucket', Key='steve', Body=b'is awesome', WebsiteRedirectLocation=url)
+    resp = s3.get_object(Bucket='mybucket', Key='steve')
+    resp['WebsiteRedirectLocation'].should.equal(url)
 
 @mock_s3
 def test_boto3_list_keys_xml_escaped():
