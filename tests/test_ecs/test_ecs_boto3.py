@@ -402,6 +402,11 @@ def test_describe_services():
         'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2')
     response['services'][1]['serviceName'].should.equal('test_ecs_service2')
 
+    response['services'][0]['deployments'][0]['desiredCount'].should.equal(2)
+    response['services'][0]['deployments'][0]['pendingCount'].should.equal(2)
+    response['services'][0]['deployments'][0]['runningCount'].should.equal(0)
+    response['services'][0]['deployments'][0]['status'].should.equal('PRIMARY')
+
 
 @mock_ecs
 def test_update_service():
