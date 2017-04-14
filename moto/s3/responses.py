@@ -506,7 +506,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             upload_id = query['uploadId'][0]
             part_number = int(query['partNumber'][0])
             if 'x-amz-copy-source' in request.headers:
-                src = request.headers.get("x-amz-copy-source")
+                src = request.headers.get("x-amz-copy-source").lstrip("/")
                 src_bucket, src_key = src.split("/", 1)
                 src_range = request.headers.get(
                     'x-amz-copy-source-range', '').split("bytes=")[-1]
@@ -541,7 +541,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if 'x-amz-copy-source' in request.headers:
             # Copy key
             src_key_parsed = urlparse(request.headers.get("x-amz-copy-source"))
-            src_bucket, src_key = src_key_parsed.path.split("/", 1)
+            src_bucket, src_key = src_key_parsed.path.lstrip("/").split("/", 1)
             src_version_id = parse_qs(src_key_parsed.query).get(
                 'versionId', [None])[0]
             self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
