@@ -823,7 +823,7 @@ LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
              <UserId>{{ user.id }}</UserId>
              <Path>{{ user.path }}</Path>
              <UserName>{{ user.name }}</UserName>
-             <CreateDate>{{ user.created }}</CreateDate>
+             <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
              <Arn>{{ user.arn }}</Arn>
          </member>
          {% endfor %}

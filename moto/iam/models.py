@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pytz
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 
 from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
@@ -235,10 +236,7 @@ class User(BaseModel):
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
-        self.created = datetime.strftime(
-            datetime.utcnow(),
-            "%Y-%m-%d-%H-%M-%S"
-        )
+        self.created = datetime.utcnow()
         self.mfa_devices = {}
         self.policies = {}
         self.access_keys = []
@@ -247,6 +245,10 @@ class User(BaseModel):
     @property
     def arn(self):
         return "arn:aws:iam::{0}:user{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.created)
 
     def get_policy(self, policy_name):
         policy_json = None
@@ -310,7 +312,7 @@ class User(BaseModel):
 
     def to_csv(self):
         date_format = '%Y-%m-%dT%H:%M:%S+00:00'
-        date_created = datetime.strptime(self.created, '%Y-%m-%d-%H-%M-%S')
+        date_created = self.created
         # aagrawal,arn:aws:iam::509284790694:user/aagrawal,2014-09-01T22:28:48+00:00,true,2014-11-12T23:36:49+00:00,2014-09-03T18:59:00+00:00,N/A,false,true,2014-09-01T22:28:48+00:00,false,N/A,false,N/A,false,N/A
         if not self.password:
             password_enabled = 'false'

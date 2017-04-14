@@ -170,6 +170,10 @@ def iso_8601_datetime_with_milliseconds(datetime):
     return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + 'Z'
 
 
+def iso_8601_datetime_without_milliseconds(datetime):
+    return datetime.strftime("%Y-%m-%dT%H:%M:%S") + 'Z'
+
+
 def rfc_1123_datetime(datetime):
     RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
     return datetime.strftime(RFC1123)
