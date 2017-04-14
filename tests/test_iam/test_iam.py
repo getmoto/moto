@@ -234,6 +234,39 @@ def test_list_users():
     user['Arn'].should.equal('arn:aws:iam::123456789012:user/my-user')
 
 
+@mock_iam()
+def test_user_policies():
+    policy_name = 'UserManagedPolicy'
+    policy_document = "{'mypolicy': 'test'}"
+    user_name = 'my-user'
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_user(UserName=user_name)
+    conn.put_user_policy(
+        UserName=user_name,
+        PolicyName=policy_name,
+        PolicyDocument=policy_document
+    )
+
+    policy_doc = conn.get_user_policy(
+        UserName=user_name,
+        PolicyName=policy_name
+    )
+    test = policy_document in policy_doc['PolicyDocument']
+    test.should.equal(True)
+
+    policies = conn.list_user_policies(UserName=user_name)
+    len(policies['PolicyNames']).should.equal(1)
+    policies['PolicyNames'][0].should.equal(policy_name)
+
+    conn.delete_user_policy(
+        UserName=user_name,
+        PolicyName=policy_name
+    )
+
+    policies = conn.list_user_policies(UserName=user_name)
+    len(policies['PolicyNames']).should.equal(0)
+
+
 @mock_iam_deprecated()
 def test_create_login_profile():
     conn = boto.connect_iam()
