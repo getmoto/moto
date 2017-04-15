@@ -240,6 +240,7 @@ class ContainerInstance(BaseObject):
 
     def __init__(self, ec2_instance_id):
         self.ec2_instance_id = ec2_instance_id
+        self.agent_connected = True
         self.status = 'ACTIVE'
         self.registered_resources = [
             {'doubleValue': 0.0,
@@ -264,7 +265,6 @@ class ContainerInstance(BaseObject):
              'name': 'PORTS_UDP',
              'stringSetValue': [],
              'type': 'STRINGSET'}]
-        self.agent_connected = True
         self.container_instance_arn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(
             str(uuid.uuid1()))
         self.pending_task_count = 0
