@@ -570,6 +570,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             metadata = metadata_from_headers(request.headers)
             new_key.set_metadata(metadata)
             new_key.set_acl(acl)
+            new_key.website_redirect_location = request.headers.get('x-amz-website-redirect-location')
 
         template = self.response_template(S3_OBJECT_RESPONSE)
         response_headers.update(new_key.response_dict)

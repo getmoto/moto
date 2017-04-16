@@ -25,6 +25,7 @@ class FakeKey(BaseModel):
         self.value = value
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl('private')
+        self.website_redirect_location = None
         self._storage_class = storage if storage else "STANDARD"
         self._metadata = {}
         self._expiry = None
@@ -102,6 +103,9 @@ class FakeKey(BaseModel):
 
         if self._is_versioned:
             res['x-amz-version-id'] = str(self._version_id)
+
+        if self.website_redirect_location:
+            res['x-amz-website-redirect-location'] = self.website_redirect_location
 
         return res
 
