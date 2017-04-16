@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
 import uuid
-from random import random
+from datetime import datetime
+from random import random, randint
 
+import pytz
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from copy import copy
@@ -175,6 +177,18 @@ class Service(BaseObject):
         self.task_definition = task_definition.arn
         self.desired_count = desired_count
         self.events = []
+        self.deployments = [
+            {
+                'createdAt': datetime.now(pytz.utc),
+                'desiredCount': self.desired_count,
+                'id': 'ecs-svc/{}'.format(randint(0, 32**12)),
+                'pendingCount': self.desired_count,
+                'runningCount': 0,
+                'status': 'PRIMARY',
+                'taskDefinition': task_definition.arn,
+                'updatedAt': datetime.now(pytz.utc),
+            }
+        ]
         self.load_balancers = []
         self.pending_count = 0
 
@@ -188,6 +202,13 @@ class Service(BaseObject):
         del response_object['name'], response_object['arn']
         response_object['serviceName'] = self.name
         response_object['serviceArn'] = self.arn
+
+        for deployment in response_object['deployments']:
+            if isinstance(deployment['createdAt'], datetime):
+                deployment['createdAt'] = deployment['createdAt'].isoformat()
+            if isinstance(deployment['updatedAt'], datetime):
+                deployment['updatedAt'] = deployment['updatedAt'].isoformat()
+
         return response_object
 
     @classmethod
