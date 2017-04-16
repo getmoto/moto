@@ -11,6 +11,7 @@ from uuid import UUID
 from moto import mock_cloudformation
 from moto import mock_ecs
 from moto import mock_ec2
+from nose.tools import assert_raises
 
 
 @mock_ecs
@@ -546,6 +547,92 @@ def test_register_container_instance():
         'agentHash'].should.equal('4023248')
     response['containerInstance']['versionInfo'][
         'dockerVersion'].should.equal('DockerVersion: 1.5.0')
+
+
+@mock_ec2
+@mock_ecs
+def test_deregister_container_instance():
+    ecs_client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+
+    _ = ecs_client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = ecs_client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+    container_instance_id = response['containerInstance']['containerInstanceArn']
+    response = ecs_client.deregister_container_instance(
+        cluster=test_cluster_name,
+        containerInstance=container_instance_id
+    )
+    container_instances_response = ecs_client.list_container_instances(
+        cluster=test_cluster_name
+    )
+    len(container_instances_response['containerInstanceArns']).should.equal(0)
+
+    response = ecs_client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+    container_instance_id = response['containerInstance']['containerInstanceArn']
+    _ = ecs_client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+
+    response = ecs_client.start_task(
+        cluster='test_ecs_cluster',
+        taskDefinition='test_ecs_task',
+        overrides={},
+        containerInstances=[container_instance_id],
+        startedBy='moto'
+    )
+    with assert_raises(Exception) as e:
+        ecs_client.deregister_container_instance(
+            cluster=test_cluster_name,
+            containerInstance=container_instance_id
+        ).should.have.raised(Exception)
+    container_instances_response = ecs_client.list_container_instances(
+        cluster=test_cluster_name
+    )
+    len(container_instances_response['containerInstanceArns']).should.equal(1)
+    ecs_client.deregister_container_instance(
+        cluster=test_cluster_name,
+        containerInstance=container_instance_id,
+        force=True
+    )
+    container_instances_response = ecs_client.list_container_instances(
+        cluster=test_cluster_name
+    )
+    len(container_instances_response['containerInstanceArns']).should.equal(0)
 
 
 @mock_ec2

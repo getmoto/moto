@@ -203,6 +203,19 @@ class EC2ContainerServiceResponse(BaseResponse):
             'containerInstance': container_instance.response_object
         })
 
+    def deregister_container_instance(self):
+        cluster_str = self._get_param('cluster')
+        if not cluster_str:
+            cluster_str = 'default'
+        container_instance_str = self._get_param('containerInstance')
+        force = self._get_param('force')
+        container_instance, failures = self.ecs_backend.deregister_container_instance(
+            cluster_str, container_instance_str, force
+        )
+        return json.dumps({
+            'containerInstance': container_instance.response_object
+        })
+
     def list_container_instances(self):
         cluster_str = self._get_param('cluster')
         container_instance_arns = self.ecs_backend.list_container_instances(
