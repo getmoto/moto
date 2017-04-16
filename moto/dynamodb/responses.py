@@ -250,6 +250,11 @@ class DynamoHandler(BaseResponse):
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
 
+        items.sort(lambda item: item.range_key)
+        limit = self.body.get("Limit", None)
+        if limit:
+            items = items[0:limit]
+            
         result = {
             "Count": len(items),
             "Items": [item.attrs for item in items],
@@ -281,6 +286,10 @@ class DynamoHandler(BaseResponse):
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
+
+        limit = self.body.get("Limit", None)
+        if limit:
+            items = items[:limit]
 
         result = {
             "Count": len(items),
