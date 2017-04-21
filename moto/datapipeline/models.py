@@ -113,8 +113,8 @@ class DataPipelineBackend(BaseBackend):
     def __init__(self):
         self.pipelines = {}
 
-    def create_pipeline(self, name, unique_id, tags=[]):
-        pipeline = Pipeline(name, unique_id, tags=tags)
+    def create_pipeline(self, name, unique_id, **kwargs):
+        pipeline = Pipeline(name, unique_id, **kwargs)
         self.pipelines[pipeline.pipeline_id] = pipeline
         return pipeline
 
