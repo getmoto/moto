@@ -23,7 +23,7 @@ class PipelineObject(BaseModel):
 
 class Pipeline(BaseModel):
 
-    def __init__(self, name, unique_id):
+    def __init__(self, name, unique_id, **kwargs):
         self.name = name
         self.unique_id = unique_id
         self.description = ""
@@ -31,6 +31,7 @@ class Pipeline(BaseModel):
         self.creation_time = datetime.datetime.utcnow()
         self.objects = []
         self.status = "PENDING"
+        self.tags = kwargs.get('tags', [])
 
     @property
     def physical_resource_id(self):
@@ -78,8 +79,7 @@ class Pipeline(BaseModel):
             }],
             "name": self.name,
             "pipelineId": self.pipeline_id,
-            "tags": [
-            ]
+            "tags": self.tags
         }
 
     def set_pipeline_objects(self, pipeline_objects):
@@ -113,8 +113,8 @@ class DataPipelineBackend(BaseBackend):
     def __init__(self):
         self.pipelines = {}
 
-    def create_pipeline(self, name, unique_id):
-        pipeline = Pipeline(name, unique_id)
+    def create_pipeline(self, name, unique_id, tags=[]):
+        pipeline = Pipeline(name, unique_id, tags=tags)
         self.pipelines[pipeline.pipeline_id] = pipeline
         return pipeline
 
@@ -128,6 +128,9 @@ class DataPipelineBackend(BaseBackend):
 
     def get_pipeline(self, pipeline_id):
         return self.pipelines[pipeline_id]
+
+    def delete_pipeline(self, pipeline_id):
+        self.pipelines.pop(pipeline_id, None)
 
     def put_pipeline_definition(self, pipeline_id, pipeline_objects):
         pipeline = self.get_pipeline(pipeline_id)
