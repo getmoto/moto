@@ -200,6 +200,10 @@ class Table(BaseModel):
         self.global_indexes = global_indexes if global_indexes else []
         self.created_at = datetime.datetime.utcnow()
         self.items = defaultdict(dict)
+        self.table_arn = self._generate_arn(table_name)
+
+    def _generate_arn(self, name):
+        return 'arn:aws:dynamodb:us-east-1:123456789011:table/' + name
 
     def describe(self, base_key='TableDescription'):
         results = {
@@ -209,11 +213,12 @@ class Table(BaseModel):
                 'TableSizeBytes': 0,
                 'TableName': self.name,
                 'TableStatus': 'ACTIVE',
+                'TableArn': self.table_arn,
                 'KeySchema': self.schema,
                 'ItemCount': len(self),
                 'CreationDateTime': unix_time(self.created_at),
                 'GlobalSecondaryIndexes': [index for index in self.global_indexes],
-                'LocalSecondaryIndexes': [index for index in self.indexes]
+                'LocalSecondaryIndexes': [index for index in self.indexes],
             }
         }
         return results
@@ -504,6 +509,19 @@ class DynamoDBBackend(BaseBackend):
 
     def delete_table(self, name):
         return self.tables.pop(name, None)
+
+    def tag_resource(self, table_arn, tags):
+        for table in self.tables:
+            if self.tables[table].table_arn == table_arn:
+                self.tables[table].tags = tags
+
+    def list_tags_of_resource(self, table_arn):
+        try:
+            for table in self.tables:
+                if self.tables[table].table_arn == table_arn:
+                    return self.tables[table].tags
+        except AttributeError as e:
+            raise e
 
     def update_table_throughput(self, name, throughput):
         table = self.tables[name]

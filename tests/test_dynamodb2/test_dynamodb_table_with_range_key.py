@@ -77,13 +77,14 @@ def test_create_table():
             'TableSizeBytes': 0,
             'TableName': 'messages',
             'TableStatus': 'ACTIVE',
+            'TableARN': 'arn:aws:dynamodb:us-east-1:123456789011:table/messages',
             'KeySchema': [
                 {'KeyType': 'HASH', 'AttributeName': 'forum_name'},
                 {'KeyType': 'RANGE', 'AttributeName': 'subject'}
             ],
             'LocalSecondaryIndexes': [],
             'ItemCount': 0, 'CreationDateTime': 1326499200.0,
-            'GlobalSecondaryIndexes': [],
+            'GlobalSecondaryIndexes': []
         }
     }
     table.describe().should.equal(expected)
@@ -109,6 +110,7 @@ def test_create_table_with_local_index():
             'TableSizeBytes': 0,
             'TableName': 'messages',
             'TableStatus': 'ACTIVE',
+            'TableARN': 'arn:aws:dynamodb:us-east-1:123456789011:table/messages',
             'KeySchema': [
                 {'KeyType': 'HASH', 'AttributeName': 'forum_name'},
                 {'KeyType': 'RANGE', 'AttributeName': 'subject'}
@@ -125,7 +127,7 @@ def test_create_table_with_local_index():
             ],
             'ItemCount': 0,
             'CreationDateTime': 1326499200.0,
-            'GlobalSecondaryIndexes': [],
+            'GlobalSecondaryIndexes': []
         }
     }
     table.describe().should.equal(expected)

@@ -73,7 +73,7 @@ class DynamoHandler(BaseResponse):
 
     def list_tables(self):
         body = self.body
-        limit = body.get('Limit')
+        limit = body.get('Limit', 100)
         if body.get("ExclusiveStartTableName"):
             last = body.get("ExclusiveStartTableName")
             start = list(dynamodb_backend2.tables.keys()).index(last) + 1
@@ -121,6 +121,20 @@ class DynamoHandler(BaseResponse):
         if table is not None:
             return dynamo_json_dump(table.describe())
         else:
+            er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
+            return self.error(er)
+
+    def tag_resource(self):
+        tags = self.body['Tags']
+        table_arn = self.body['ResourceArn']
+        dynamodb_backend2.tag_resource(table_arn, tags)
+        return json.dumps({})
+
+    def list_tags_of_resource(self):
+        try:
+            table_arn = self.body['ResourceArn']
+            return json.dumps({'Tags': dynamodb_backend2.list_tags_of_resource(table_arn)})
+        except AttributeError:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
 
