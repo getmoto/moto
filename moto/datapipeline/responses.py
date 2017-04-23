@@ -21,10 +21,11 @@ class DataPipelineResponse(BaseResponse):
         return datapipeline_backends[self.region]
 
     def create_pipeline(self):
-        name = self.parameters['name']
-        unique_id = self.parameters['uniqueId']
+        name = self.parameters.get('name')
+        unique_id = self.parameters.get('uniqueId')
+        description = self.parameters.get('description', '')
         tags = self.parameters.get('tags', [])
-        pipeline = self.datapipeline_backend.create_pipeline(name, unique_id, tags=tags)
+        pipeline = self.datapipeline_backend.create_pipeline(name, unique_id, description=description, tags=tags)
         return json.dumps({
             "pipelineId": pipeline.pipeline_id,
         })
