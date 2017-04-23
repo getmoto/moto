@@ -516,10 +516,12 @@ class DynamoDBBackend(BaseBackend):
                 self.tables[table].tags = tags
 
     def list_tags_of_resource(self, table_arn):
+        required_table = None
+        for table in self.tables:
+            if self.tables[table].table_arn == table_arn:
+                required_table = self.tables[table]
         try:
-            for table in self.tables:
-                if self.tables[table].table_arn == table_arn:
-                    return self.tables[table].tags
+            return required_table.tags
         except AttributeError as e:
             raise e
 
