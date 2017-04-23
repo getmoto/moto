@@ -26,7 +26,7 @@ class Pipeline(BaseModel):
     def __init__(self, name, unique_id, **kwargs):
         self.name = name
         self.unique_id = unique_id
-        self.description = ""
+        self.description = kwargs.get('description', '')
         self.pipeline_id = get_random_pipeline_id()
         self.creation_time = datetime.datetime.utcnow()
         self.objects = []
