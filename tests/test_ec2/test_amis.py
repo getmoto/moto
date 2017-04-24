@@ -432,7 +432,7 @@ def test_ami_describe_executable_users():
     response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
     instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
     image_id = conn.create_image(InstanceId=instance_id,
-                                       Name='ImageToDelete',)['ImageId']
+                                 Name='TestImage',)['ImageId']
 
 
     USER1 = '123456789011'
@@ -448,13 +448,44 @@ def test_ami_describe_executable_users():
     attributes = conn.describe_image_attribute(ImageId=image_id,
                                                Attribute='LaunchPermissions',
                                                DryRun=False)
-    print attributes
     attributes['LaunchPermissions'].should.have.length_of(1)
     attributes['LaunchPermissions'][0]['UserId'].should.equal(USER1)
     images = conn.describe_images(ExecutableUsers=[USER1])['Images']
-    print images
     images.should.have.length_of(1)
     images[0]['ImageId'].should.equal(image_id)
+
+
+@mock_ec2_deprecated
+def test_ami_describe_executable_users_negative():
+    conn = boto3.client('ec2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', 'us-east-1')
+    ec2.create_instances(ImageId='',
+                         MinCount=1,
+                         MaxCount=1)
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
+    image_id = conn.create_image(InstanceId=instance_id,
+                                 Name='TestImage')['ImageId']
+
+
+    USER1 = '123456789011'
+    USER2 = '113355789012'
+
+    ADD_USER_ARGS = {'ImageId': image_id,
+                     'Attribute': 'launchPermission',
+                     'OperationType': 'add',
+                     'UserIds': [USER1]}
+
+    # Add users and get no images
+    conn.modify_image_attribute(**ADD_USER_ARGS)
+
+    attributes = conn.describe_image_attribute(ImageId=image_id,
+                                               Attribute='LaunchPermissions',
+                                               DryRun=False)
+    attributes['LaunchPermissions'].should.have.length_of(1)
+    attributes['LaunchPermissions'][0]['UserId'].should.equal(USER1)
+    images = conn.describe_images(ExecutableUsers=[USER2])['Images']
+    images.should.have.length_of(0)
 
 
 @mock_ec2_deprecated
@@ -483,14 +514,12 @@ def test_ami_describe_executable_users_and_filter():
     attributes = conn.describe_image_attribute(ImageId=image_id,
                                                Attribute='LaunchPermissions',
                                                DryRun=False)
-    print attributes
     attributes['LaunchPermissions'].should.have.length_of(1)
     attributes['LaunchPermissions'][0]['UserId'].should.equal(USER1)
     images = conn.describe_images(ExecutableUsers=[USER1],
-                                  Filters=[{'Name': 'state', 'Values': ['failed']}])['Images']
-    print images
-    images.should.have.length_of(0)
-    # images[0]['ImageId'].should.equal(image_id)
+                                  Filters=[{'Name': 'state', 'Values': ['available']}])['Images']
+    images.should.have.length_of(1)
+    images[0]['ImageId'].should.equal(image_id)
 
 
 @mock_ec2_deprecated

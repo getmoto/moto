@@ -188,6 +188,14 @@ def image_ids_from_querystring(querystring_dict):
     return image_ids
 
 
+def executable_users_from_querystring(querystring_dict):
+    user_ids = []
+    for key, value in querystring_dict.items():
+        if 'ExecutableBy' in key:
+            user_ids.append(value[0])
+    return user_ids
+
+
 def route_table_ids_from_querystring(querystring_dict):
     route_table_ids = []
     for key, value in querystring_dict.items():
