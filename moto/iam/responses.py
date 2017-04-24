@@ -807,6 +807,7 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
          <Path>{{ user.path }}</Path>
          <UserName>{{ user.name }}</UserName>
          <UserId>{{ user.id }}</UserId>
+         <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
          <Arn>{{ user.arn }}</Arn>
      </User>
    </{{ action }}UserResult>
