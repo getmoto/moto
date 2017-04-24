@@ -43,8 +43,9 @@ class AmisResponse(BaseResponse):
     def describe_images(self):
         ami_ids = image_ids_from_querystring(self.querystring)
         filters = filters_from_querystring(self.querystring)
+        exec_users = self.querystring.get('ExecutableUsers')
         images = self.ec2_backend.describe_images(
-            ami_ids=ami_ids, filters=filters)
+            ami_ids=ami_ids, filters=filters, exec_users=exec_users)
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 

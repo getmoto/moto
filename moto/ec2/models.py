@@ -1049,12 +1049,17 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(self, ami_ids=(), filters=None):
+    def describe_images(self, ami_ids=(), filters=None, exec_users=None):
+        images=[]
+        if exec_users:
+            for ami in self.amis.values():
+                for user_id in exec_users:
+                    if user_id in ami.launch_permission_users:
+                        images.append(ami)
         if filters:
             images = self.amis.values()
             return generic_filter(filters, images)
         else:
-            images = []
             for ami_id in ami_ids:
                 if ami_id in self.amis:
                     images.append(self.amis[ami_id])
