@@ -389,7 +389,8 @@ filter_dict_attribute_mapping = {
     'private-ip-address': 'private_ip',
     'ip-address': 'public_ip',
     'availability-zone': 'placement',
-    'architecture': 'architecture'
+    'architecture': 'architecture',
+    'image-id': 'image_id'
 }
 
 

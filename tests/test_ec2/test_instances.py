@@ -7,6 +7,7 @@ import base64
 import datetime
 
 import boto
+import boto3
 from boto.ec2.instance import Reservation, InstanceAttribute
 from boto.exception import EC2ResponseError, EC2ResponseError
 from freezegun import freeze_time
@@ -335,6 +336,22 @@ def test_get_instances_filtering_by_architecture():
     reservations = conn.get_all_instances(filters={'architecture': 'x86_64'})
     # get_all_instances should return the instance
     reservations[0].instances.should.have.length_of(1)
+
+
+@mock_ec2_deprecated
+def test_get_instances_filtering_by_image_id():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-east-1')
+    conn = boto3.resource('ec2', 'us-east-1')
+    conn.create_instances(ImageId=image_id,
+                          MinCount=1,
+                          MaxCount=1)
+
+    reservations = client.describe_instances(Filters=[{'Name': 'image-id',
+                                                       'Values': [image_id]}])['Reservations']
+    # get_all_instances should return the instance
+    print reservations
+    reservations[0]['Instances'].should.have.length_of(1)
 
 
 @mock_ec2_deprecated
