@@ -520,10 +520,7 @@ class DynamoDBBackend(BaseBackend):
         for table in self.tables:
             if self.tables[table].table_arn == table_arn:
                 required_table = self.tables[table]
-        try:
-            return required_table.tags
-        except AttributeError as e:
-            raise e
+        return required_table.tags
 
     def update_table_throughput(self, name, throughput):
         table = self.tables[name]
