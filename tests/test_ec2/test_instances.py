@@ -350,7 +350,6 @@ def test_get_instances_filtering_by_image_id():
     reservations = client.describe_instances(Filters=[{'Name': 'image-id',
                                                        'Values': [image_id]}])['Reservations']
     # get_all_instances should return the instance
-    print reservations
     reservations[0]['Instances'].should.have.length_of(1)
 
 
