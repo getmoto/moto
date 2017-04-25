@@ -13,7 +13,7 @@ from boto.exception import EC2ResponseError, EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
+from moto import mock_ec2_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
 
@@ -338,7 +338,7 @@ def test_get_instances_filtering_by_architecture():
     reservations[0].instances.should.have.length_of(1)
 
 
-@mock_ec2_deprecated
+@mock_ec2
 def test_get_instances_filtering_by_image_id():
     image_id = 'ami-1234abcd'
     client = boto3.client('ec2', region_name='us-east-1')
