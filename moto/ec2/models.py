@@ -1776,6 +1776,9 @@ class Snapshot(TaggedEC2Resource):
         if filter_name == 'encrypted':
             return str(self.encrypted).lower()
 
+        if filter_name == 'status':
+            return self.status
+
         filter_value = super(Snapshot, self).get_filter_value(filter_name)
 
         if filter_value is None:

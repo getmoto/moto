@@ -336,6 +336,11 @@ def test_snapshot_filters():
     set([snap.id for snap in snapshots_by_volume_id]
         ).should.equal(set([snapshot1.id, snapshot2.id]))
 
+    snapshots_by_status = conn.get_all_snapshots(
+        filters={'status': 'completed'})
+    set([snap.id for snap in snapshots_by_status]
+        ).should.equal(set([snapshot1.id, snapshot2.id, snapshot3.id]))
+
     snapshots_by_volume_size = conn.get_all_snapshots(
         filters={'volume-size': volume1.size})
     set([snap.id for snap in snapshots_by_volume_size]
