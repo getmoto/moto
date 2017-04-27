@@ -337,11 +337,9 @@ SET_QUEUE_ATTRIBUTE_RESPONSE = """<SetQueueAttributesResponse>
 SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
     <SendMessageResult>
         <MD5OfMessageBody>
-            {{- message.md5 -}}
+            {{- message.body_md5 -}}
         </MD5OfMessageBody>
-        {% if message.message_attributes.items()|count > 0 %}
-          <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
-        {% endif %}
+        <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
         <MessageId>
             {{- message.id -}}
         </MessageId>
@@ -357,7 +355,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
         <Message>
           <MessageId>{{ message.id }}</MessageId>
           <ReceiptHandle>{{ message.receipt_handle }}</ReceiptHandle>
-          <MD5OfBody>{{ message.md5 }}</MD5OfBody>
+          <MD5OfBody>{{ message.body_md5 }}</MD5OfBody>
           <Body>{{ message.body }}</Body>
           <Attribute>
             <Name>SenderId</Name>
@@ -375,9 +373,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
             <Name>ApproximateFirstReceiveTimestamp</Name>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
-          {% if message.message_attributes.items()|count > 0 %}
-            <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
-          {% endif %}
+          <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
           {% for name, value in message.message_attributes.items() %}
             <MessageAttribute>
               <Name>{{ name }}</Name>
@@ -405,10 +401,8 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
         <SendMessageBatchResultEntry>
             <Id>{{ message.user_id }}</Id>
             <MessageId>{{ message.id }}</MessageId>
-            <MD5OfMessageBody>{{ message.md5 }}</MD5OfMessageBody>
-            {% if message.message_attributes.items()|count > 0 %}
-              <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
-            {% endif %}
+            <MD5OfMessageBody>{{ message.body_md5 }}</MD5OfMessageBody>
+            <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
         </SendMessageBatchResultEntry>
     {% endfor %}
 </SendMessageBatchResult>
