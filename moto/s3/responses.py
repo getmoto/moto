@@ -224,7 +224,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 key_list=versions,
                 bucket=bucket,
                 prefix='',
-                max_keys='',
+                max_keys=1000,
                 delimiter='',
                 is_truncated='false',
             )
