@@ -1293,6 +1293,30 @@ def test_boto3_multipart_etag():
     resp['ETag'].should.equal(EXPECTED_ETAG)
 
 
+@mock_s3
+def test_boto3_list_object_versions():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-versions'
+    s3.create_bucket(Bucket=bucket_name)
+    for body in ('v1', 'v2'):
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+    response = s3.list_object_versions(
+        Bucket=bucket_name
+    )
+    # Two object versions should be returned
+    len(response['Versions']).should.equal(2)
+    keys = set([item['Key'] for item in response['Versions']])
+    keys.should.equal({key})
+    # Test latest object version is returned
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+    response['Body'].read().should.equal('v2')
+
+
 TEST_XML = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <ns0:WebsiteConfiguration xmlns:ns0="http://s3.amazonaws.com/doc/2006-03-01/">
