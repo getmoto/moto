@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import json
+import yaml
 
 from mock import patch
 import sure  # noqa
@@ -117,6 +118,20 @@ def test_parse_stack_with_name_type_resource():
         stack_id="test_id",
         name="test_stack",
         template=name_type_template_json,
+        parameters={},
+        region_name='us-west-1')
+
+    stack.resource_map.should.have.length_of(1)
+    list(stack.resource_map.keys())[0].should.equal('Queue')
+    queue = list(stack.resource_map.values())[0]
+    queue.should.be.a(Queue)
+
+
+def test_parse_stack_with_yaml_template():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=yaml.dump(name_type_template),
         parameters={},
         region_name='us-west-1')
 

@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from datetime import datetime
 import json
+import yaml
 import uuid
 
 import boto.cloudformation
@@ -17,7 +18,7 @@ class FakeStack(BaseModel):
         self.stack_id = stack_id
         self.name = name
         self.template = template
-        self.template_dict = json.loads(self.template)
+        self._parse_template()
         self.parameters = parameters
         self.region_name = region_name
         self.notification_arns = notification_arns if notification_arns else []
@@ -69,6 +70,12 @@ class FakeStack(BaseModel):
             resource_status_reason=resource_status_reason,
             resource_properties=resource_properties,
         ))
+
+    def _parse_template(self):
+        try:
+            self.template_dict = json.loads(self.template)
+        except json.JSONDecodeError:
+            self.template_dict = yaml.load(self.template)
 
     @property
     def stack_parameters(self):
