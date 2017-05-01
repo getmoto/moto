@@ -419,16 +419,12 @@ class DynamoHandler(BaseResponse):
         keys = self.body['Key']
         return_values = self.body.get('ReturnValues', '')
         item = dynamodb_backend2.delete_item(name, keys)
-        if item:
-            if return_values == 'ALL_OLD':
-                item_dict = item.to_json()
-            else:
-                item_dict = {'Attributes': {}}
-            item_dict['ConsumedCapacityUnits'] = 0.5
-            return dynamo_json_dump(item_dict)
+        if item and return_values == 'ALL_OLD':
+            item_dict = item.to_json()
         else:
-            er = 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException'
-            return self.error(er)
+            item_dict = {'Attributes': {}}
+        item_dict['ConsumedCapacityUnits'] = 0.5
+        return dynamo_json_dump(item_dict)
 
     def update_item(self):
         name = self.body['TableName']
