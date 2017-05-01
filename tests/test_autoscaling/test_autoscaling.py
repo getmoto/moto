@@ -115,6 +115,29 @@ def test_create_autoscaling_groups_defaults():
     list(group.tags).should.equal([])
 
 
+@mock_autoscaling
+def test_list_many_autoscaling_groups():
+    conn = boto3.client('autoscaling', region_name='us-east-1')
+    conn.create_launch_configuration(LaunchConfigurationName='TestLC')
+
+    for i in range(101):
+        conn.create_auto_scaling_group(AutoScalingGroupName='TestGroup%d' % i,
+                                       MinSize=1,
+                                       MaxSize=2,
+                                       LaunchConfigurationName='TestLC')
+
+    response = conn.describe_auto_scaling_groups()
+    groups = response["AutoScalingGroups"]
+    marker = response["NextToken"]
+    groups.should.have.length_of(50)
+    marker.should.equal(groups[-1]['AutoScalingGroupName'])
+
+    response2 = conn.describe_auto_scaling_groups(NextToken=marker)
+
+    groups.extend(response2["AutoScalingGroups"])
+    groups.should.have.length_of(100)
+
+
 @mock_autoscaling_deprecated
 def test_autoscaling_group_describe_filter():
     conn = boto.connect_autoscale()

@@ -78,9 +78,21 @@ class AutoScalingResponse(BaseResponse):
 
     def describe_auto_scaling_groups(self):
         names = self._get_multi_param("AutoScalingGroupNames.member")
-        groups = self.autoscaling_backend.describe_autoscaling_groups(names)
+        token = self._get_param("NextToken")
+        all_groups = self.autoscaling_backend.describe_autoscaling_groups(names)
+        all_names = [group.name for group in all_groups]
+        if token:
+            start = all_names.index(token) + 1
+        else:
+            start = 0
+        max_records = self._get_param("MaxRecords", 50)
+        if max_records > 100:
+            raise ValueError
+        groups = all_groups[start:start + max_records]
+        if max_records and len(all_groups) > start + max_records:
+            token = groups[-1].name
         template = self.response_template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
-        return template.render(groups=groups)
+        return template.render(groups=groups, next_token=token)
 
     def update_auto_scaling_group(self):
         self.autoscaling_backend.update_autoscaling_group(
@@ -331,6 +343,9 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
       </member>
       {% endfor %}
     </AutoScalingGroups>
+    {% if next_token %}
+    <NextToken>{{ next_token }}</NextToken>
+    {% endif %}
   </DescribeAutoScalingGroupsResult>
   <ResponseMetadata>
     <RequestId>0f02a07d-b677-11e2-9eb0-dd50EXAMPLE</RequestId>
