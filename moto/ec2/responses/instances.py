@@ -24,7 +24,7 @@ class InstanceResponse(BaseResponse):
             start = reservation_ids.index(token) + 1
         else:
             start = 0
-        max_results = int(self._get_param('MaxResults', 1000))
+        max_results = int(self._get_param('MaxResults', 100))
         reservations_resp = reservations[start:start + max_results]
         next_token = None
         if max_results and len(reservations) > (start + max_results):
