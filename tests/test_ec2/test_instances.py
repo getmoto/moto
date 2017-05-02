@@ -158,6 +158,26 @@ def test_get_instances_by_id():
     cm.exception.request_id.should_not.be.none
 
 
+@mock_ec2
+def test_get_paginated_instances():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-east-1')
+    conn = boto3.resource('ec2', 'us-east-1')
+    for i in range(100):
+        conn.create_instances(ImageId=image_id,
+                              MinCount=1,
+                              MaxCount=1)
+    resp = client.describe_instances(MaxResults=50)
+    reservations = resp['Reservations']
+    reservations.should.have.length_of(50)
+    next_token = resp['NextToken']
+    next_token.should_not.be.none
+    resp2 = client.describe_instances(NextToken=next_token)
+    reservations.extend(resp2['Reservations'])
+    reservations.should.have.length_of(100)
+    assert 'NextToken' not in resp2.keys()
+
+
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_state():
     conn = boto.connect_ec2()
@@ -349,7 +369,6 @@ def test_get_instances_filtering_by_image_id():
 
     reservations = client.describe_instances(Filters=[{'Name': 'image-id',
                                                        'Values': [image_id]}])['Reservations']
-    # get_all_instances should return the instance
     reservations[0]['Instances'].should.have.length_of(1)
 
 

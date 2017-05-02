@@ -12,6 +12,7 @@ from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
 
+from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, camelcase_to_underscores
@@ -618,7 +619,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
 class InstanceBackend(object):
 
     def __init__(self):
-        self.reservations = {}
+        self.reservations = OrderedDict()
         super(InstanceBackend, self).__init__()
 
     def get_instance(self, instance_id):

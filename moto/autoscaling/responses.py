@@ -89,10 +89,11 @@ class AutoScalingResponse(BaseResponse):
         if max_records > 100:
             raise ValueError
         groups = all_groups[start:start + max_records]
+        next_token = None
         if max_records and len(all_groups) > start + max_records:
-            token = groups[-1].name
+            next_token = groups[-1].name
         template = self.response_template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
-        return template.render(groups=groups, next_token=token)
+        return template.render(groups=groups, next_token=next_token)
 
     def update_auto_scaling_group(self):
         self.autoscaling_backend.update_autoscaling_group(
