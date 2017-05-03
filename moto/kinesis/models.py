@@ -269,7 +269,7 @@ class DeliveryStream(BaseModel):
 class KinesisBackend(BaseBackend):
 
     def __init__(self):
-        self.streams = {}
+        self.streams = OrderedDict()
         self.delivery_streams = {}
 
     def create_stream(self, stream_name, shard_count, region):
