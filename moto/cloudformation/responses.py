@@ -79,7 +79,7 @@ class CloudFormationResponse(BaseResponse):
             start = stack_ids.index(token) + 1
         else:
             start = 0
-        max_results = 50 # using this to mske testing of paginated stacks more convenient than default 1 MB
+        max_results = 50  # using this to mske testing of paginated stacks more convenient than default 1 MB
         stacks_resp = stacks[start:start + max_results]
         next_token = None
         if len(stacks) > (start + max_results):
