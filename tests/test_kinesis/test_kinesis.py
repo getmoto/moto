@@ -5,7 +5,7 @@ from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentEx
 import boto3
 import sure  # noqa
 
-from moto import mock_kinesis_deprecated
+from moto import mock_kinesis, mock_kinesis_deprecated
 
 
 @mock_kinesis_deprecated
@@ -52,7 +52,7 @@ def test_list_and_delete_stream():
         "not-a-stream").should.throw(ResourceNotFoundException)
 
 
-@mock_kinesis_deprecated
+@mock_kinesis
 def test_list_many_streams():
     conn = boto3.client('kinesis', region_name="us-west-2")
 
