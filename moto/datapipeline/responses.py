@@ -31,12 +31,25 @@ class DataPipelineResponse(BaseResponse):
         })
 
     def list_pipelines(self):
-        pipelines = self.datapipeline_backend.list_pipelines()
+        pipelines = list(self.datapipeline_backend.list_pipelines())
+        pipeline_ids = [pipeline.pipeline_id for pipeline in pipelines]
+        max_pipelines = 50
+        marker = self.parameters.get('marker')
+        if marker:
+            start = pipeline_ids.index(marker) + 1
+        else:
+            start = 0
+        pipelines_resp = pipelines[start:start + max_pipelines]
+        has_more_results = False
+        marker = None
+        if start + max_pipelines < len(pipeline_ids) - 1:
+            has_more_results = True
+            marker = pipelines_resp[-1].pipeline_id
         return json.dumps({
-            "hasMoreResults": False,
-            "marker": None,
+            "hasMoreResults": has_more_results,
+            "marker": marker,
             "pipelineIdList": [
-                pipeline.to_meta_json() for pipeline in pipelines
+                pipeline.to_meta_json() for pipeline in pipelines_resp
             ]
         })
 

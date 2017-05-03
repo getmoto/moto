@@ -170,6 +170,19 @@ def test_listing_pipelines():
     })
 
 
+@mock_datapipeline_deprecated
+def test_listing_paginated_pipelines():
+    conn = boto.datapipeline.connect_to_region("us-west-2")
+    for i in range(100):
+        conn.create_pipeline("mypipeline%d" % i, "some-unique-id%d" % i)
+
+    response = conn.list_pipelines()
+
+    response["hasMoreResults"].should.be(True)
+    response["marker"].should.equal(response["pipelineIdList"][-1]['id'])
+    response["pipelineIdList"].should.have.length_of(50)
+
+
 # testing a helper function
 def test_remove_capitalization_of_dict_keys():
     result = remove_capitalization_of_dict_keys(
