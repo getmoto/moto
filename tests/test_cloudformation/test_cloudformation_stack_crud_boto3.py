@@ -147,7 +147,7 @@ def test_create_stack_from_s3_url():
 @mock_cloudformation
 def test_describe_stack_pagination():
     conn = boto3.client('cloudformation', region_name='us-east-1')
-    for i in xrange(100):
+    for i in range(100):
         conn.create_stack(
             StackName="test_stack",
             TemplateBody=dummy_template_json,
