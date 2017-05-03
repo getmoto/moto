@@ -72,10 +72,20 @@ class CloudFormationResponse(BaseResponse):
         stack_name_or_id = None
         if self._get_param('StackName'):
             stack_name_or_id = self.querystring.get('StackName')[0]
+        token = self._get_param('NextToken')
         stacks = self.cloudformation_backend.describe_stacks(stack_name_or_id)
-
+        stack_ids = [stack.stack_id for stack in stacks]
+        if token:
+            start = stack_ids.index(token) + 1
+        else:
+            start = 0
+        max_results = 50 # using this to mske testing of paginated stacks more convenient than default 1 MB
+        stacks_resp = stacks[start:start + max_results]
+        next_token = None
+        if len(stacks) > (start + max_results):
+            next_token = stacks_resp[-1].stack_id
         template = self.response_template(DESCRIBE_STACKS_TEMPLATE)
-        return template.render(stacks=stacks)
+        return template.render(stacks=stacks_resp, next_token=next_token)
 
     def describe_stack_resource(self):
         stack_name = self._get_param('StackName')
@@ -270,6 +280,9 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
       </member>
       {% endfor %}
     </Stacks>
+    {% if next_token %}
+    <NextToken>{{ next_token }}</NextToken>
+    {% endif %}
   </DescribeStacksResult>
 </DescribeStacksResponse>"""
 

@@ -145,6 +145,26 @@ def test_create_stack_from_s3_url():
 
 
 @mock_cloudformation
+def test_describe_stack_pagination():
+    conn = boto3.client('cloudformation', region_name='us-east-1')
+    for i in xrange(100):
+        conn.create_stack(
+            StackName="test_stack",
+            TemplateBody=dummy_template_json,
+        )
+
+    resp = conn.describe_stacks()
+    stacks = resp['Stacks']
+    stacks.should.have.length_of(50)
+    next_token = resp['NextToken']
+    next_token.should_not.be.none
+    resp2 = conn.describe_stacks(NextToken=next_token)
+    stacks.extend(resp2['Stacks'])
+    stacks.should.have.length_of(100)
+    assert 'NextToken' not in resp2.keys()
+
+
+@mock_cloudformation
 def test_describe_stack_resources():
     cf_conn = boto3.client('cloudformation', region_name='us-east-1')
     cf_conn.create_stack(
