@@ -153,7 +153,7 @@ class CloudFormationBackend(BaseBackend):
                         return [stack]
             raise ValidationError(name_or_stack_id)
         else:
-            return stacks
+            return list(stacks)
 
     def list_stacks(self):
         return self.stacks.values()
