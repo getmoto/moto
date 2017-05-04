@@ -47,7 +47,7 @@ class KinesisResponse(BaseResponse):
             start = 0
         streams_resp = stream_names[start:start + max_streams]
         has_more_streams = False
-        if start + max_streams < len(stream_names) - 1:
+        if start + max_streams < len(stream_names):
             has_more_streams = True
 
         return json.dumps({
