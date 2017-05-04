@@ -7,6 +7,7 @@ import boto.rds2
 from jinja2 import Template
 from re import compile as re_compile
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
@@ -586,7 +587,7 @@ class RDS2Backend(BaseBackend):
         self.region = region
         self.arn_regex = re_compile(
             r'^arn:aws:rds:.*:[0-9]*:(db|es|og|pg|ri|secgrp|snapshot|subgrp):.*$')
-        self.databases = {}
+        self.databases = OrderedDict()
         self.db_parameter_groups = {}
         self.option_groups = {}
         self.security_groups = {}

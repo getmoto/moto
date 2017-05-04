@@ -1,11 +1,12 @@
 from __future__ import unicode_literals
 
+import boto3
 import boto.rds
 import boto.vpc
 from boto.exception import BotoServerError
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_rds_deprecated
+from moto import mock_ec2_deprecated, mock_rds_deprecated, mock_rds
 from tests.helpers import disable_on_py3
 
 
@@ -43,6 +44,25 @@ def test_get_databases():
     list(databases).should.have.length_of(1)
 
     databases[0].id.should.equal("db-master-1")
+
+
+@mock_rds
+def test_get_databases_paginated():
+    conn = boto3.client('rds', region_name="us-west-2")
+
+    for i in range(51):
+        conn.create_db_instance(AllocatedStorage=5,
+                                Port=5432,
+                                DBInstanceIdentifier='rds%d' % i,
+                                DBInstanceClass='db.t1.micro',
+                                Engine='postgres')
+
+    resp = conn.describe_db_instances()
+    resp["DBInstances"].should.have.length_of(50)
+    resp["Marker"].should.equal(resp["DBInstances"][-1]['DBInstanceIdentifier'])
+
+    resp2 = conn.describe_db_instances(Marker=resp["Marker"])
+    resp2["DBInstances"].should.have.length_of(1)
 
 
 @mock_rds_deprecated
