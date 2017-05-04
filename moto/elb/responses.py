@@ -59,7 +59,7 @@ class ELBResponse(BaseResponse):
             start = all_names.index(marker) + 1
         else:
             start = 0
-        page_size = self._get_param('PageSize', 50) # the default is 400, but using 50 to make testing easier
+        page_size = self._get_param('PageSize', 50)  # the default is 400, but using 50 to make testing easier
         load_balancers_resp = all_load_balancers[start:start + page_size]
         next_marker = None
         if len(all_load_balancers) > start + page_size:
