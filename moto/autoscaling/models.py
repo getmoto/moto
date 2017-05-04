@@ -286,7 +286,7 @@ class AutoScalingBackend(BaseBackend):
 
     def __init__(self, ec2_backend, elb_backend):
         self.autoscaling_groups = OrderedDict()
-        self.launch_configurations = {}
+        self.launch_configurations = OrderedDict()
         self.policies = {}
         self.ec2_backend = ec2_backend
         self.elb_backend = elb_backend

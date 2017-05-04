@@ -120,7 +120,7 @@ def test_list_many_autoscaling_groups():
     conn = boto3.client('autoscaling', region_name='us-east-1')
     conn.create_launch_configuration(LaunchConfigurationName='TestLC')
 
-    for i in range(100):
+    for i in range(51):
         conn.create_auto_scaling_group(AutoScalingGroupName='TestGroup%d' % i,
                                        MinSize=1,
                                        MaxSize=2,
@@ -135,7 +135,7 @@ def test_list_many_autoscaling_groups():
     response2 = conn.describe_auto_scaling_groups(NextToken=marker)
 
     groups.extend(response2["AutoScalingGroups"])
-    groups.should.have.length_of(100)
+    groups.should.have.length_of(51)
     assert 'NextToken' not in response2.keys()
 
 
