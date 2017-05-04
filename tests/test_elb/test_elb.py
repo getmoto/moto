@@ -109,6 +109,27 @@ def test_create_and_delete_boto3_support():
          'LoadBalancerDescriptions']).should.have.length_of(0)
 
 
+@mock_elb
+def test_describe_paginated_balancers():
+    client = boto3.client('elb', region_name='us-east-1')
+
+    for i in range(51):
+        client.create_load_balancer(
+            LoadBalancerName='my-lb%d' % i,
+            Listeners=[
+                {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+            AvailabilityZones=['us-east-1a', 'us-east-1b']
+        )
+
+    resp = client.describe_load_balancers()
+    resp['LoadBalancerDescriptions'].should.have.length_of(50)
+    resp['NextMarker'].should.equal(resp['LoadBalancerDescriptions'][-1]['LoadBalancerName'])
+    resp2 = client.describe_load_balancers(Marker=resp['NextMarker'])
+    resp2['LoadBalancerDescriptions'].should.have.length_of(1)
+    assert 'NextToken' not in resp2.keys()
+
+
+
 @mock_elb_deprecated
 def test_add_listener():
     conn = boto.connect_elb()
