@@ -46,6 +46,7 @@ def test_get_databases():
     databases[0].id.should.equal("db-master-1")
 
 
+@disable_on_py3()
 @mock_rds
 def test_get_databases_paginated():
     conn = boto3.client('rds', region_name="us-west-2")
