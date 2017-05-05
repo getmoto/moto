@@ -85,7 +85,56 @@ def test_list_table_tags():
     tags = [{'Key':'TestTag', 'Value': 'TestValue'}]
     conn.tag_resource(ResourceArn=arn,
                       Tags=tags)
-    assert conn.list_tags_of_resource(ResourceArn=arn)["Tags"] == tags
+    resp = conn.list_tags_of_resource(ResourceArn=arn)
+    assert resp["Tags"] == tags
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_list_table_tags_empty():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'id','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'id','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+    table_description = conn.describe_table(TableName=name)
+    arn = table_description['Table']['TableArn']
+    tags = [{'Key':'TestTag', 'Value': 'TestValue'}]
+    # conn.tag_resource(ResourceArn=arn,
+    #                   Tags=tags)
+    resp = conn.list_tags_of_resource(ResourceArn=arn)
+    assert resp["Tags"] == []
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_list_table_tags_paginated():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'id','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'id','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+    table_description = conn.describe_table(TableName=name)
+    arn = table_description['Table']['TableArn']
+    for i in range(11):
+        tags = [{'Key':'TestTag%d' % i, 'Value': 'TestValue'}]
+        conn.tag_resource(ResourceArn=arn,
+                          Tags=tags)
+    resp = conn.list_tags_of_resource(ResourceArn=arn)
+    assert len(resp["Tags"]) == 10
+    assert 'NextToken' in resp.keys()
+    resp2 = conn.list_tags_of_resource(ResourceArn=arn,
+                                       NextToken=resp['NextToken'])
+    assert len(resp2["Tags"]) == 1
+    assert 'NextToken' not in resp2.keys()
 
 
 @requires_boto_gte("2.9")

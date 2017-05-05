@@ -201,6 +201,7 @@ class Table(BaseModel):
         self.created_at = datetime.datetime.utcnow()
         self.items = defaultdict(dict)
         self.table_arn = self._generate_arn(table_name)
+        self.tags = []
 
     def _generate_arn(self, name):
         return 'arn:aws:dynamodb:us-east-1:123456789011:table/' + name
@@ -513,7 +514,7 @@ class DynamoDBBackend(BaseBackend):
     def tag_resource(self, table_arn, tags):
         for table in self.tables:
             if self.tables[table].table_arn == table_arn:
-                self.tables[table].tags = tags
+                self.tables[table].tags.extend(tags)
 
     def list_tags_of_resource(self, table_arn):
         required_table = None
