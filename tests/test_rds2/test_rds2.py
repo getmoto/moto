@@ -975,6 +975,20 @@ def test_create_db_instance_with_parameter_group():
 
 @disable_on_py3()
 @mock_rds2
+def test_create_database_with_default_port():
+    conn = boto3.client('rds', region_name='us-west-2')
+    database = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+                                       AllocatedStorage=10,
+                                       Engine='postgres',
+                                       DBInstanceClass='db.m1.small',
+                                       MasterUsername='root',
+                                       MasterUserPassword='hunter2',
+                                       DBSecurityGroups=["my_sg"])
+    database['DBInstance']['Endpoint']['Port'].should.equal(5432)
+
+
+@disable_on_py3()
+@mock_rds2
 def test_modify_db_instance_with_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
     database = conn.create_db_instance(DBInstanceIdentifier='db-master-1',

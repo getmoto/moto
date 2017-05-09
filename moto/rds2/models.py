@@ -57,6 +57,8 @@ class Database(BaseModel):
         self.source_db_identifier = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get('db_instance_class')
         self.port = kwargs.get('port')
+        if self.port is None:
+            self.port = Database.default_port(self.engine)
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.db_name = kwargs.get("db_name")
         self.publicly_accessible = kwargs.get("publicly_accessible")
@@ -240,6 +242,22 @@ class Database(BaseModel):
         elif attribute_name == 'Endpoint.Port':
             return self.port
         raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def default_port(engine):
+        return {
+            'mysql': 3306,
+            'mariadb': 3306,
+            'postgres': 5432,
+            'oracle-ee': 1521,
+            'oracle-se2': 1521,
+            'oracle-se1': 1521,
+            'oracle-se': 1521,
+            'sqlserver-ee': 1433,
+            'sqlserver-ex': 1433,
+            'sqlserver-se': 1433,
+            'sqlserver-web': 1433,
+        }[engine]
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
