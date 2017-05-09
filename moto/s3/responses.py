@@ -204,14 +204,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 encoding_type=encoding_type,
                 key_marker=key_marker,
                 max_keys=max_keys,
-                version_id_marker=version_id_marker
+                version_id_marker=version_id_marker,
+                prefix=prefix
             )
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
             return 200, headers, template.render(
                 key_list=versions,
                 bucket=bucket,
                 prefix='',
-                max_keys='',
+                max_keys=1000,
                 delimiter='',
                 is_truncated='false',
             )
