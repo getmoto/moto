@@ -199,7 +199,8 @@ def test_delete_item():
 
     table.count().should.equal(0)
 
-    item.delete().should.equal(False)
+    # Deletes are idempotent and 'False' here would imply an error condition
+    item.delete().should.equal(True)
 
 
 @requires_boto_gte("2.9")
