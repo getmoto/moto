@@ -329,6 +329,7 @@ class DynamoHandler(BaseResponse):
         else:
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
             key_conditions = self.body.get('KeyConditions')
+            query_filters = self.body.get("QueryFilter")
             if key_conditions:
                 hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(
                     name, key_conditions.keys())
@@ -357,6 +358,8 @@ class DynamoHandler(BaseResponse):
                         else:
                             range_comparison = None
                             range_values = []
+            if query_filters:
+                filter_kwargs.update(query_filters)
         index_name = self.body.get('IndexName')
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
