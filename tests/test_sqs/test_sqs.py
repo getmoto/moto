@@ -232,9 +232,10 @@ def test_send_message_with_attributes():
 
     body = 'this is a test message'
     message = queue.new_message(body)
+    BASE64_BINARY = base64.b64encode(b'binary value').decode('utf-8')
     message_attributes = {
         'test.attribute_name': {'data_type': 'String', 'string_value': 'attribute value'},
-        'test.binary_attribute': {'data_type': 'Binary', 'binary_value': base64.b64encode('binary value')},
+        'test.binary_attribute': {'data_type': 'Binary', 'binary_value': BASE64_BINARY},
         'test.number_attribute': {'data_type': 'Number', 'string_value': 'string value'}
     }
     message.message_attributes = message_attributes

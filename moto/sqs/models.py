@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import base64
 import hashlib
 import re
+import six
 import struct
 from xml.sax.saxutils import escape
 
@@ -53,24 +54,29 @@ class Message(BaseModel):
         Not yet implemented:
             List types (https://github.com/aws/aws-sdk-java/blob/7844c64cf248aed889811bf2e871ad6b276a89ca/aws-java-sdk-sqs/src/main/java/com/amazonaws/services/sqs/MessageMD5ChecksumHandler.java#L58k)
         """
+        def utf8(str):
+            if isinstance(str, six.string_types):
+                return str.encode('utf-8')
+            return str
         md5 = hashlib.md5()
         for name in sorted(self.message_attributes.keys()):
             attr = self.message_attributes[name]
             data_type = attr['data_type']
 
-            encoded = ''.encode('utf-8')
+            encoded = utf8('')
             # Each part of each attribute is encoded right after it's
             # own length is packed into a 4-byte integer
             # 'timestamp' -> b'\x00\x00\x00\t'
-            encoded += struct.pack("!I", len(name.encode('utf-8'))) + name.encode('utf-8')
+            encoded += struct.pack("!I", len(utf8(name))) + utf8(name)
             # The datatype is additionally given a final byte
             # representing which type it is
-            encoded += struct.pack("!I", len(data_type)).encode('utf-8') + data_type.encode('utf-8')
+            encoded += struct.pack("!I", len(data_type)) + utf8(data_type)
             encoded += TRANSPORT_TYPE_ENCODINGS[data_type]
 
             if data_type == 'String' or data_type == 'Number':
                 value = attr['string_value']
             elif data_type == 'Binary':
+                print(data_type, attr['binary_value'], type(attr['binary_value']))
                 value = base64.b64decode(attr['binary_value'])
             else:
                 print("Moto hasn't implemented MD5 hashing for {} attributes".format(data_type))
@@ -80,7 +86,7 @@ class Message(BaseModel):
                 # MD5 so as not to break client softwre
                 return('deadbeefdeadbeefdeadbeefdeadbeef')
 
-            encoded += struct.pack("!I", len(value.encode('utf-8'))) + value.encode('utf-8')
+            encoded += struct.pack("!I", len(utf8(value))) + utf8(value)
 
             md5.update(encoded)
         return md5.hexdigest()
