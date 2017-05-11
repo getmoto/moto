@@ -21,9 +21,11 @@ class DataPipelineResponse(BaseResponse):
         return datapipeline_backends[self.region]
 
     def create_pipeline(self):
-        name = self.parameters['name']
-        unique_id = self.parameters['uniqueId']
-        pipeline = self.datapipeline_backend.create_pipeline(name, unique_id)
+        name = self.parameters.get('name')
+        unique_id = self.parameters.get('uniqueId')
+        description = self.parameters.get('description', '')
+        tags = self.parameters.get('tags', [])
+        pipeline = self.datapipeline_backend.create_pipeline(name, unique_id, description=description, tags=tags)
         return json.dumps({
             "pipelineId": pipeline.pipeline_id,
         })
@@ -47,6 +49,11 @@ class DataPipelineResponse(BaseResponse):
                 pipeline.to_json() for pipeline in pipelines
             ]
         })
+
+    def delete_pipeline(self):
+        pipeline_id = self.parameters["pipelineId"]
+        self.datapipeline_backend.delete_pipeline(pipeline_id)
+        return json.dumps({})
 
     def put_pipeline_definition(self):
         pipeline_id = self.parameters["pipelineId"]

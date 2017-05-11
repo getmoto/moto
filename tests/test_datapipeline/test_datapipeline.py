@@ -137,6 +137,19 @@ def test_activate_pipeline():
 
 
 @mock_datapipeline_deprecated
+def test_delete_pipeline():
+    conn = boto.datapipeline.connect_to_region("us-west-2")
+    res = conn.create_pipeline("mypipeline", "some-unique-id")
+    pipeline_id = res["pipelineId"]
+
+    conn.delete_pipeline(pipeline_id)
+
+    response = conn.list_pipelines()
+
+    response["pipelineIdList"].should.have.length_of(0)
+
+
+@mock_datapipeline_deprecated
 def test_listing_pipelines():
     conn = boto.datapipeline.connect_to_region("us-west-2")
     res1 = conn.create_pipeline("mypipeline1", "some-unique-id1")
