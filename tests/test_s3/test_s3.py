@@ -14,6 +14,7 @@ from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
+import six
 import requests
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
@@ -1291,6 +1292,31 @@ def test_boto3_multipart_etag():
     # we should get both parts as the key contents
     resp = s3.get_object(Bucket='mybucket', Key='the-key')
     resp['ETag'].should.equal(EXPECTED_ETAG)
+
+
+@mock_s3
+def test_boto3_list_object_versions():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-versions'
+    s3.create_bucket(Bucket=bucket_name)
+    items = (six.b('v1'), six.b('v2'))
+    for body in items:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+    response = s3.list_object_versions(
+        Bucket=bucket_name
+    )
+    # Two object versions should be returned
+    len(response['Versions']).should.equal(2)
+    keys = set([item['Key'] for item in response['Versions']])
+    keys.should.equal({key})
+    # Test latest object version is returned
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+    response['Body'].read().should.equal(items[-1])
 
 
 TEST_XML = """\
