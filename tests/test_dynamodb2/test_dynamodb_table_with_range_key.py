@@ -840,6 +840,47 @@ def test_query_filter_gte():
     list(results).should.have.length_of(2)
 
 
+@requires_boto_gte("2.9")
+@mock_dynamodb2_deprecated
+def test_query_non_hash_range_key():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Read this now!',
+            'version': '3',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Please read this... please',
+            'version': '2',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', version__gt="2"
+    )
+    results = list(results)
+    results.should.have.length_of(1)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', version__lt="3"
+    )
+    results = list(results)
+    results.should.have.length_of(2)
+
+
 @mock_dynamodb2_deprecated
 def test_reverse_query():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()

@@ -9,6 +9,9 @@ import sure  # noqa
 
 import uuid
 
+import botocore
+from nose.tools import assert_raises
+
 from moto import mock_route53, mock_route53_deprecated
 
 
@@ -491,3 +494,156 @@ def test_list_hosted_zones_by_name():
     zones["HostedZones"][0]["Name"].should.equal("test.b.com.")
     zones["HostedZones"][1]["Name"].should.equal("test.a.org.")
     zones["HostedZones"][2]["Name"].should.equal("test.a.org.")
+
+
+@mock_route53
+def test_change_resource_record_sets_crud_valid():
+    conn = boto3.client('route53', region_name='us-east-1')
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash('foo')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="db",
+        )
+    )
+
+    zones = conn.list_hosted_zones_by_name(DNSName="db.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("db.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    # Create A Record.
+    a_record_endpoint_payload = {
+        'Comment': 'create A record prod.redis.db',
+        'Changes': [
+            {
+                'Action': 'CREATE',
+                'ResourceRecordSet': {
+                    'Name': 'prod.redis.db',
+                    'Type': 'A',
+                    'TTL': 10,
+                    'ResourceRecords': [{
+                        'Value': '127.0.0.1'
+                    }]
+                }
+            }
+        ]
+    }
+    conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=a_record_endpoint_payload)
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response['ResourceRecordSets']).should.equal(1)
+    a_record_detail = response['ResourceRecordSets'][0]
+    a_record_detail['Name'].should.equal('prod.redis.db')
+    a_record_detail['Type'].should.equal('A')
+    a_record_detail['TTL'].should.equal(10)
+    a_record_detail['ResourceRecords'].should.equal([{'Value': '127.0.0.1'}])
+
+    # Update type to CNAME
+    cname_record_endpoint_payload = {
+        'Comment': 'Update to CNAME prod.redis.db',
+        'Changes': [
+            {
+                'Action': 'UPSERT',
+                'ResourceRecordSet': {
+                    'Name': 'prod.redis.db',
+                    'Type': 'CNAME',
+                    'TTL': 60,
+                    'ResourceRecords': [{
+                        'Value': '192.168.1.1'
+                    }]
+                }
+            }
+        ]
+    }
+    conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=cname_record_endpoint_payload)
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response['ResourceRecordSets']).should.equal(1)
+    cname_record_detail = response['ResourceRecordSets'][0]
+    cname_record_detail['Name'].should.equal('prod.redis.db')
+    cname_record_detail['Type'].should.equal('CNAME')
+    cname_record_detail['TTL'].should.equal(60)
+    cname_record_detail['ResourceRecords'].should.equal([{'Value': '192.168.1.1'}])
+
+    # Delete record.
+    delete_payload = {
+        'Comment': 'delete prod.redis.db',
+        'Changes': [
+            {
+                'Action': 'DELETE',
+                'ResourceRecordSet': {
+                    'Name': 'prod.redis.db',
+                    'Type': 'CNAME',
+                }
+            }
+        ]
+    }
+    conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload)
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response['ResourceRecordSets']).should.equal(0)
+
+
+@mock_route53
+def test_change_resource_record_invalid():
+    conn = boto3.client('route53', region_name='us-east-1')
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash('foo')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="db",
+        )
+    )
+
+    zones = conn.list_hosted_zones_by_name(DNSName="db.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("db.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    invalid_a_record_payload = {
+        'Comment': 'this should fail',
+        'Changes': [
+            {
+                'Action': 'CREATE',
+                'ResourceRecordSet': {
+                    'Name': 'prod.scooby.doo',
+                    'Type': 'A',
+                    'TTL': 10,
+                    'ResourceRecords': [{
+                        'Value': '127.0.0.1'
+                    }]
+                }
+            }
+        ]
+    }
+
+    with assert_raises(botocore.exceptions.ClientError):
+        conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=invalid_a_record_payload)
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response['ResourceRecordSets']).should.equal(0)
+
+    invalid_cname_record_payload = {
+        'Comment': 'this should also fail',
+        'Changes': [
+            {
+                'Action': 'UPSERT',
+                'ResourceRecordSet': {
+                    'Name': 'prod.scooby.doo',
+                    'Type': 'CNAME',
+                    'TTL': 10,
+                    'ResourceRecords': [{
+                        'Value': '127.0.0.1'
+                    }]
+                }
+            }
+        ]
+    }
+
+    with assert_raises(botocore.exceptions.ClientError):
+        conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=invalid_cname_record_payload)
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response['ResourceRecordSets']).should.equal(0)

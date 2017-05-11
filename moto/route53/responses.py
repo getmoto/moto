@@ -112,6 +112,17 @@ class Route53(BaseResponse):
             for value in change_list:
                 action = value['Action']
                 record_set = value['ResourceRecordSet']
+
+                cleaned_record_name = record_set['Name'].strip('.')
+                cleaned_hosted_zone_name = the_zone.name.strip('.')
+
+                if not cleaned_record_name.endswith(cleaned_hosted_zone_name):
+                    error_msg = """
+                    An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
+                    RRSet with DNS name %s is not permitted in zone %s
+                    """ % (record_set['Name'], the_zone.name)
+                    return 400, headers, error_msg
+
                 if action in ('CREATE', 'UPSERT'):
                     if 'ResourceRecords' in record_set:
                         resource_records = list(

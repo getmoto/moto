@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+import fnmatch
 import random
 import re
 import six
@@ -472,7 +474,11 @@ def is_filter_matching(obj, filter, filter_value):
         return False
 
     if isinstance(value, six.string_types):
-        return value in filter_value
+        if not isinstance(filter_value, list):
+            filter_value = [filter_value]
+        if any(fnmatch.fnmatch(value, pattern) for pattern in filter_value):
+            return True
+        return False
 
     try:
         value = set(value)
@@ -491,7 +497,6 @@ def generic_filter(filters, objects):
 
 
 def simple_aws_filter_to_re(filter_string):
-    import fnmatch
     tmp_filter = filter_string.replace('\?', '[?]')
     tmp_filter = tmp_filter.replace('\*', '[*]')
     tmp_filter = fnmatch.translate(tmp_filter)
