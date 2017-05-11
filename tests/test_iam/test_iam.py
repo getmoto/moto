@@ -299,6 +299,8 @@ def test_create_access_key():
 
 @mock_iam_deprecated()
 def test_get_all_access_keys():
+    """If no access keys exist there should be none in the response,
+    if an access key is present it should have the correct fields present"""
     conn = boto.connect_iam()
     conn.create_user('my-user')
     response = conn.get_all_access_keys('my-user')
@@ -309,10 +311,10 @@ def test_get_all_access_keys():
     )
     conn.create_access_key('my-user')
     response = conn.get_all_access_keys('my-user')
-    assert_not_equals(
-        response['list_access_keys_response'][
-            'list_access_keys_result']['access_key_metadata'],
-        []
+    assert_equals(
+        sorted(response['list_access_keys_response'][
+            'list_access_keys_result']['access_key_metadata'][0].keys()),
+        sorted(['status', 'create_date', 'user_name', 'access_key_id'])
     )
 
 

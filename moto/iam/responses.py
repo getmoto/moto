@@ -901,6 +901,7 @@ LIST_ACCESS_KEYS_TEMPLATE = """<ListAccessKeysResponse>
             <UserName>{{ user_name }}</UserName>
             <AccessKeyId>{{ key.access_key_id }}</AccessKeyId>
             <Status>{{ key.status }}</Status>
+            <CreateDate>{{ key.create_date }}</CreateDate>
          </member>
         {% endfor %}
       </AccessKeyMetadata>

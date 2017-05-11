@@ -177,7 +177,7 @@ class AccessKey(BaseModel):
         self.status = 'Active'
         self.create_date = datetime.strftime(
             datetime.utcnow(),
-            "%Y-%m-%d-%H-%M-%S"
+            "%Y-%m-%dT%H:%M:%SZ"
         )
 
     def get_cfn_attribute(self, attribute_name):
