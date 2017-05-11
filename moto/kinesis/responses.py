@@ -35,10 +35,24 @@ class KinesisResponse(BaseResponse):
 
     def list_streams(self):
         streams = self.kinesis_backend.list_streams()
+        stream_names = [stream.stream_name for stream in streams]
+        max_streams = self._get_param('Limit', 10)
+        try:
+            token = self.parameters.get('ExclusiveStartStreamName')
+        except ValueError:
+            token = self._get_param('ExclusiveStartStreamName')
+        if token:
+            start = stream_names.index(token) + 1
+        else:
+            start = 0
+        streams_resp = stream_names[start:start + max_streams]
+        has_more_streams = False
+        if start + max_streams < len(stream_names):
+            has_more_streams = True
 
         return json.dumps({
-            "HasMoreStreams": False,
-            "StreamNames": [stream.stream_name for stream in streams],
+            "HasMoreStreams": has_more_streams,
+            "StreamNames": streams_resp
         })
 
     def delete_stream(self):

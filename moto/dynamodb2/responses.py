@@ -73,7 +73,7 @@ class DynamoHandler(BaseResponse):
 
     def list_tables(self):
         body = self.body
-        limit = body.get('Limit')
+        limit = body.get('Limit', 100)
         if body.get("ExclusiveStartTableName"):
             last = body.get("ExclusiveStartTableName")
             start = list(dynamodb_backend2.tables.keys()).index(last) + 1
@@ -121,6 +121,35 @@ class DynamoHandler(BaseResponse):
         if table is not None:
             return dynamo_json_dump(table.describe())
         else:
+            er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
+            return self.error(er)
+
+    def tag_resource(self):
+        tags = self.body['Tags']
+        table_arn = self.body['ResourceArn']
+        dynamodb_backend2.tag_resource(table_arn, tags)
+        return json.dumps({})
+
+    def list_tags_of_resource(self):
+        try:
+            table_arn = self.body['ResourceArn']
+            all_tags = dynamodb_backend2.list_tags_of_resource(table_arn)
+            all_tag_keys = [tag['Key'] for tag in all_tags]
+            marker = self.body.get('NextToken')
+            if marker:
+                start = all_tag_keys.index(marker) + 1
+            else:
+                start = 0
+            max_items = 10  # there is no default, but using 10 to make testing easier
+            tags_resp = all_tags[start:start + max_items]
+            next_marker = None
+            if len(all_tags) > start + max_items:
+                next_marker = tags_resp[-1]['Key']
+            if next_marker:
+                return json.dumps({'Tags': tags_resp,
+                                   'NextToken': next_marker})
+            return json.dumps({'Tags': tags_resp})
+        except AttributeError:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
 

@@ -11,6 +11,7 @@ class InstanceResponse(BaseResponse):
     def describe_instances(self):
         filter_dict = filters_from_querystring(self.querystring)
         instance_ids = instance_ids_from_querystring(self.querystring)
+        token = self._get_param("NextToken")
         if instance_ids:
             reservations = self.ec2_backend.get_reservations_by_instance_ids(
                 instance_ids, filters=filter_dict)
@@ -18,8 +19,18 @@ class InstanceResponse(BaseResponse):
             reservations = self.ec2_backend.all_reservations(
                 make_copy=True, filters=filter_dict)
 
+        reservation_ids = [reservation.id for reservation in reservations]
+        if token:
+            start = reservation_ids.index(token) + 1
+        else:
+            start = 0
+        max_results = int(self._get_param('MaxResults', 100))
+        reservations_resp = reservations[start:start + max_results]
+        next_token = None
+        if max_results and len(reservations) > (start + max_results):
+            next_token = reservations_resp[-1].id
         template = self.response_template(EC2_DESCRIBE_INSTANCES)
-        return template.render(reservations=reservations)
+        return template.render(reservations=reservations_resp, next_token=next_token)
 
     def run_instances(self):
         min_count = int(self.querystring.get('MinCount', ['1'])[0])
@@ -492,6 +503,9 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
           </item>
         {% endfor %}
       </reservationSet>
+      {% if next_token %}
+      <nextToken>{{ next_token }}</nextToken>
+      {% endif %}
 </DescribeInstancesResponse>"""
 
 EC2_TERMINATE_INSTANCES = """

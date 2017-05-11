@@ -12,6 +12,7 @@ from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
 
+from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, camelcase_to_underscores
@@ -618,7 +619,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
 class InstanceBackend(object):
 
     def __init__(self):
-        self.reservations = {}
+        self.reservations = OrderedDict()
         super(InstanceBackend, self).__init__()
 
     def get_instance(self, instance_id):
@@ -1049,12 +1050,22 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(self, ami_ids=(), filters=None):
+    def describe_images(self, ami_ids=(), filters=None, exec_users=None):
+        images = []
+        if exec_users:
+            for ami_id in self.amis:
+                found = False
+                for user_id in exec_users:
+                    if user_id in self.amis[ami_id].launch_permission_users:
+                        found = True
+                if found:
+                    images.append(self.amis[ami_id])
+            if images == []:
+                return images
         if filters:
-            images = self.amis.values()
+            images = images or self.amis.values()
             return generic_filter(filters, images)
         else:
-            images = []
             for ami_id in ami_ids:
                 if ami_id in self.amis:
                     images.append(self.amis[ami_id])
@@ -1765,6 +1776,9 @@ class Snapshot(TaggedEC2Resource):
 
         if filter_name == 'encrypted':
             return str(self.encrypted).lower()
+
+        if filter_name == 'status':
+            return self.status
 
         filter_value = super(Snapshot, self).get_filter_value(filter_name)
 

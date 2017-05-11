@@ -12,6 +12,7 @@ from boto.ec2.elb.policies import (
     Policies,
     OtherPolicy,
 )
+from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2.models import ec2_backends
 from .exceptions import (
@@ -223,7 +224,7 @@ class ELBBackend(BaseBackend):
 
     def __init__(self, region_name=None):
         self.region_name = region_name
-        self.load_balancers = {}
+        self.load_balancers = OrderedDict()
 
     def reset(self):
         region_name = self.region_name

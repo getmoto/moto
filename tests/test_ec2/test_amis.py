@@ -4,17 +4,18 @@ import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 import boto
+import boto3
 import boto.ec2
 import boto3
 from boto.exception import EC2ResponseError, EC2ResponseError
 
 import sure  # noqa
 
-from moto import mock_emr_deprecated, mock_ec2
+from moto import mock_ec2_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_create_and_delete():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -75,7 +76,7 @@ def test_ami_create_and_delete():
 
 
 @requires_boto_gte("2.14.0")
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_copy():
     conn = boto.ec2.connect_to_region("us-west-1")
     reservation = conn.run_instances('ami-1234abcd')
@@ -134,7 +135,7 @@ def test_ami_copy():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_tagging():
     conn = boto.connect_vpc('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -161,7 +162,7 @@ def test_ami_tagging():
     image.tags["a key"].should.equal("some value")
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_create_from_missing_instance():
     conn = boto.connect_ec2('the_key', 'the_secret')
     args = ["i-abcdefg", "test-ami", "this is a test ami"]
@@ -173,7 +174,7 @@ def test_ami_create_from_missing_instance():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_pulls_attributes_from_instance():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -185,7 +186,7 @@ def test_ami_pulls_attributes_from_instance():
     image.kernel_id.should.equal('test-kernel')
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_filters():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -242,7 +243,7 @@ def test_ami_filters():
     set([ami.id for ami in amis_by_nonpublic]).should.equal(set([imageA.id]))
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_filtering_via_tag():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -268,7 +269,7 @@ def test_ami_filtering_via_tag():
     set([ami.id for ami in amis_by_tagB]).should.equal(set([imageB.id]))
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_getting_missing_ami():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -279,7 +280,7 @@ def test_getting_missing_ami():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_getting_malformed_ami():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -290,7 +291,7 @@ def test_getting_malformed_ami():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_attribute_group_permissions():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -350,7 +351,7 @@ def test_ami_attribute_group_permissions():
         **REMOVE_GROUP_ARGS).should_not.throw(EC2ResponseError)
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_attribute_user_permissions():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')
@@ -422,7 +423,107 @@ def test_ami_attribute_user_permissions():
         **REMOVE_USERS_ARGS).should_not.throw(EC2ResponseError)
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
+def test_ami_describe_executable_users():
+    conn = boto3.client('ec2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', 'us-east-1')
+    ec2.create_instances(ImageId='',
+                         MinCount=1,
+                         MaxCount=1)
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
+    image_id = conn.create_image(InstanceId=instance_id,
+                                 Name='TestImage',)['ImageId']
+
+
+    USER1 = '123456789011'
+
+    ADD_USER_ARGS = {'ImageId': image_id,
+                     'Attribute': 'launchPermission',
+                     'OperationType': 'add',
+                     'UserIds': [USER1]}
+
+    # Add users and get no images
+    conn.modify_image_attribute(**ADD_USER_ARGS)
+
+    attributes = conn.describe_image_attribute(ImageId=image_id,
+                                               Attribute='LaunchPermissions',
+                                               DryRun=False)
+    attributes['LaunchPermissions'].should.have.length_of(1)
+    attributes['LaunchPermissions'][0]['UserId'].should.equal(USER1)
+    images = conn.describe_images(ExecutableUsers=[USER1])['Images']
+    images.should.have.length_of(1)
+    images[0]['ImageId'].should.equal(image_id)
+
+
+@mock_ec2_deprecated
+def test_ami_describe_executable_users_negative():
+    conn = boto3.client('ec2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', 'us-east-1')
+    ec2.create_instances(ImageId='',
+                         MinCount=1,
+                         MaxCount=1)
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
+    image_id = conn.create_image(InstanceId=instance_id,
+                                 Name='TestImage')['ImageId']
+
+
+    USER1 = '123456789011'
+    USER2 = '113355789012'
+
+    ADD_USER_ARGS = {'ImageId': image_id,
+                     'Attribute': 'launchPermission',
+                     'OperationType': 'add',
+                     'UserIds': [USER1]}
+
+    # Add users and get no images
+    conn.modify_image_attribute(**ADD_USER_ARGS)
+
+    attributes = conn.describe_image_attribute(ImageId=image_id,
+                                               Attribute='LaunchPermissions',
+                                               DryRun=False)
+    attributes['LaunchPermissions'].should.have.length_of(1)
+    attributes['LaunchPermissions'][0]['UserId'].should.equal(USER1)
+    images = conn.describe_images(ExecutableUsers=[USER2])['Images']
+    images.should.have.length_of(0)
+
+
+@mock_ec2_deprecated
+def test_ami_describe_executable_users_and_filter():
+    conn = boto3.client('ec2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', 'us-east-1')
+    ec2.create_instances(ImageId='',
+                         MinCount=1,
+                         MaxCount=1)
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
+    image_id = conn.create_image(InstanceId=instance_id,
+                                 Name='ImageToDelete',)['ImageId']
+
+
+    USER1 = '123456789011'
+
+    ADD_USER_ARGS = {'ImageId': image_id,
+                     'Attribute': 'launchPermission',
+                     'OperationType': 'add',
+                     'UserIds': [USER1]}
+
+    # Add users and get no images
+    conn.modify_image_attribute(**ADD_USER_ARGS)
+
+    attributes = conn.describe_image_attribute(ImageId=image_id,
+                                               Attribute='LaunchPermissions',
+                                               DryRun=False)
+    attributes['LaunchPermissions'].should.have.length_of(1)
+    attributes['LaunchPermissions'][0]['UserId'].should.equal(USER1)
+    images = conn.describe_images(ExecutableUsers=[USER1],
+                                  Filters=[{'Name': 'state', 'Values': ['available']}])['Images']
+    images.should.have.length_of(1)
+    images[0]['ImageId'].should.equal(image_id)
+
+
+@mock_ec2_deprecated
 def test_ami_attribute_user_and_group_permissions():
     """
       Boto supports adding/removing both users and groups at the same time.
@@ -477,7 +578,7 @@ def test_ami_attribute_user_and_group_permissions():
     image.is_public.should.equal(False)
 
 
-@mock_emr_deprecated
+@mock_ec2_deprecated
 def test_ami_attribute_error_cases():
     conn = boto.connect_ec2('the_key', 'the_secret')
     reservation = conn.run_instances('ami-1234abcd')

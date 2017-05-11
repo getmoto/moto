@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
+from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
@@ -284,8 +285,8 @@ class FakeAutoScalingGroup(BaseModel):
 class AutoScalingBackend(BaseBackend):
 
     def __init__(self, ec2_backend, elb_backend):
-        self.autoscaling_groups = {}
-        self.launch_configurations = {}
+        self.autoscaling_groups = OrderedDict()
+        self.launch_configurations = OrderedDict()
         self.policies = {}
         self.ec2_backend = ec2_backend
         self.elb_backend = elb_backend

@@ -114,9 +114,21 @@ class RDS2Response(BaseResponse):
 
     def describe_db_instances(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
-        databases = self.backend.describe_databases(db_instance_identifier)
+        all_instances = list(self.backend.describe_databases(db_instance_identifier))
+        marker = self._get_param('Marker')
+        all_ids = [instance.db_instance_identifier for instance in all_instances]
+        if marker:
+            start = all_ids.index(marker) + 1
+        else:
+            start = 0
+        page_size = self._get_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
+        instances_resp = all_instances[start:start + page_size]
+        next_marker = None
+        if len(all_instances) > start + page_size:
+            next_marker = instances_resp[-1].db_instance_identifier
+
         template = self.response_template(DESCRIBE_DATABASES_TEMPLATE)
-        return template.render(databases=databases)
+        return template.render(databases=instances_resp, marker=next_marker)
 
     def modify_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
@@ -348,6 +360,9 @@ DESCRIBE_DATABASES_TEMPLATE = """<DescribeDBInstancesResponse xmlns="http://rds.
       {{ database.to_xml() }}
     {%- endfor -%}
     </DBInstances>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
   </DescribeDBInstancesResult>
   <ResponseMetadata>
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>

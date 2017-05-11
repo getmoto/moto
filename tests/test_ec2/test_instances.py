@@ -7,12 +7,13 @@ import base64
 import datetime
 
 import boto
+import boto3
 from boto.ec2.instance import Reservation, InstanceAttribute
 from boto.exception import EC2ResponseError, EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
+from moto import mock_ec2_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
 
@@ -155,6 +156,26 @@ def test_get_instances_by_id():
     cm.exception.code.should.equal('InvalidInstanceID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_get_paginated_instances():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-east-1')
+    conn = boto3.resource('ec2', 'us-east-1')
+    for i in range(100):
+        conn.create_instances(ImageId=image_id,
+                              MinCount=1,
+                              MaxCount=1)
+    resp = client.describe_instances(MaxResults=50)
+    reservations = resp['Reservations']
+    reservations.should.have.length_of(50)
+    next_token = resp['NextToken']
+    next_token.should_not.be.none
+    resp2 = client.describe_instances(NextToken=next_token)
+    reservations.extend(resp2['Reservations'])
+    reservations.should.have.length_of(100)
+    assert 'NextToken' not in resp2.keys()
 
 
 @mock_ec2_deprecated
@@ -335,6 +356,20 @@ def test_get_instances_filtering_by_architecture():
     reservations = conn.get_all_instances(filters={'architecture': 'x86_64'})
     # get_all_instances should return the instance
     reservations[0].instances.should.have.length_of(1)
+
+
+@mock_ec2
+def test_get_instances_filtering_by_image_id():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-east-1')
+    conn = boto3.resource('ec2', 'us-east-1')
+    conn.create_instances(ImageId=image_id,
+                          MinCount=1,
+                          MaxCount=1)
+
+    reservations = client.describe_instances(Filters=[{'Name': 'image-id',
+                                                       'Values': [image_id]}])['Reservations']
+    reservations[0]['Instances'].should.have.length_of(1)
 
 
 @mock_ec2_deprecated

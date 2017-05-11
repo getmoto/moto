@@ -2,9 +2,10 @@ from __future__ import unicode_literals
 
 import boto.kinesis
 from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentException
+import boto3
 import sure  # noqa
 
-from moto import mock_kinesis_deprecated
+from moto import mock_kinesis, mock_kinesis_deprecated
 
 
 @mock_kinesis_deprecated
@@ -49,6 +50,25 @@ def test_list_and_delete_stream():
     # Delete invalid id
     conn.delete_stream.when.called_with(
         "not-a-stream").should.throw(ResourceNotFoundException)
+
+
+@mock_kinesis
+def test_list_many_streams():
+    conn = boto3.client('kinesis', region_name="us-west-2")
+
+    for i in range(11):
+        conn.create_stream(StreamName="stream%d" % i, ShardCount=1)
+
+    resp = conn.list_streams()
+    stream_names = resp["StreamNames"]
+    has_more_streams = resp["HasMoreStreams"]
+    stream_names.should.have.length_of(10)
+    has_more_streams.should.be(True)
+    resp2 = conn.list_streams(ExclusiveStartStreamName=stream_names[-1])
+    stream_names = resp2["StreamNames"]
+    has_more_streams = resp2["HasMoreStreams"]
+    stream_names.should.have.length_of(1)
+    has_more_streams.should.equal(False)
 
 
 @mock_kinesis_deprecated

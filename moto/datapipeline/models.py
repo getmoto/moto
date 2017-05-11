@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 import boto.datapipeline
+from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 
@@ -111,7 +112,7 @@ class Pipeline(BaseModel):
 class DataPipelineBackend(BaseBackend):
 
     def __init__(self):
-        self.pipelines = {}
+        self.pipelines = OrderedDict()
 
     def create_pipeline(self, name, unique_id, **kwargs):
         pipeline = Pipeline(name, unique_id, **kwargs)

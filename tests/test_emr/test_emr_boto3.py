@@ -128,6 +128,18 @@ def test_describe_cluster():
 
 
 @mock_emr
+def test_describe_cluster_not_found():
+    conn = boto3.client('emr', region_name='us-east-1')
+    raised = False
+    try:
+        cluster = conn.describe_cluster(ClusterId='DummyId')
+    except ClientError as e:
+        if e.response['Error']['Code'] == "ResourceNotFoundException":
+            raised = True
+    raised.should.equal(True)
+
+
+@mock_emr
 def test_describe_job_flows():
     client = boto3.client('emr', region_name='us-east-1')
     args = deepcopy(run_job_flow_args)

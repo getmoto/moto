@@ -52,9 +52,21 @@ class ELBResponse(BaseResponse):
 
     def describe_load_balancers(self):
         names = self._get_multi_param("LoadBalancerNames.member")
-        load_balancers = self.elb_backend.describe_load_balancers(names)
+        all_load_balancers = list(self.elb_backend.describe_load_balancers(names))
+        marker = self._get_param('Marker')
+        all_names = [balancer.name for balancer in all_load_balancers]
+        if marker:
+            start = all_names.index(marker) + 1
+        else:
+            start = 0
+        page_size = self._get_param('PageSize', 50)  # the default is 400, but using 50 to make testing easier
+        load_balancers_resp = all_load_balancers[start:start + page_size]
+        next_marker = None
+        if len(all_load_balancers) > start + page_size:
+            next_marker = load_balancers_resp[-1].name
+
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
-        return template.render(load_balancers=load_balancers)
+        return template.render(load_balancers=load_balancers_resp, marker=next_marker)
 
     def delete_load_balancer_listeners(self):
         load_balancer_name = self._get_param('LoadBalancerName')
@@ -493,6 +505,9 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
         </member>
       {% endfor %}
     </LoadBalancerDescriptions>
+    {% if marker %}
+    <NextMarker>{{ marker }}</NextMarker>
+    {% endif %}
   </DescribeLoadBalancersResult>
   <ResponseMetadata>
     <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>

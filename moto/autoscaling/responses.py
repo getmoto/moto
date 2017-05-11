@@ -40,11 +40,22 @@ class AutoScalingResponse(BaseResponse):
 
     def describe_launch_configurations(self):
         names = self._get_multi_param('LaunchConfigurationNames.member')
-        launch_configurations = self.autoscaling_backend.describe_launch_configurations(
-            names)
+        all_launch_configurations = self.autoscaling_backend.describe_launch_configurations(names)
+        marker = self._get_param('NextToken')
+        all_names = [lc.name for lc in all_launch_configurations]
+        if marker:
+            start = all_names.index(marker) + 1
+        else:
+            start = 0
+        max_records = self._get_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
+        launch_configurations_resp = all_launch_configurations[start:start + max_records]
+        next_token = None
+        if len(all_launch_configurations) > start + max_records:
+            next_token = launch_configurations_resp[-1].name
+
         template = self.response_template(
             DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE)
-        return template.render(launch_configurations=launch_configurations)
+        return template.render(launch_configurations=launch_configurations_resp, next_token=next_token)
 
     def delete_launch_configuration(self):
         launch_configurations_name = self.querystring.get(
@@ -78,9 +89,22 @@ class AutoScalingResponse(BaseResponse):
 
     def describe_auto_scaling_groups(self):
         names = self._get_multi_param("AutoScalingGroupNames.member")
-        groups = self.autoscaling_backend.describe_autoscaling_groups(names)
+        token = self._get_param("NextToken")
+        all_groups = self.autoscaling_backend.describe_autoscaling_groups(names)
+        all_names = [group.name for group in all_groups]
+        if token:
+            start = all_names.index(token) + 1
+        else:
+            start = 0
+        max_records = self._get_param("MaxRecords", 50)
+        if max_records > 100:
+            raise ValueError
+        groups = all_groups[start:start + max_records]
+        next_token = None
+        if max_records and len(all_groups) > start + max_records:
+            next_token = groups[-1].name
         template = self.response_template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
-        return template.render(groups=groups)
+        return template.render(groups=groups, next_token=next_token)
 
     def update_auto_scaling_group(self):
         self.autoscaling_backend.update_autoscaling_group(
@@ -239,6 +263,9 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
         </member>
       {% endfor %}
     </LaunchConfigurations>
+    {% if next_token %}
+    <NextToken>{{ next_token }}</NextToken>
+    {% endif %}
   </DescribeLaunchConfigurationsResult>
   <ResponseMetadata>
     <RequestId>d05a22f8-b690-11e2-bf8e-2113fEXAMPLE</RequestId>
@@ -331,6 +358,9 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
       </member>
       {% endfor %}
     </AutoScalingGroups>
+    {% if next_token %}
+    <NextToken>{{ next_token }}</NextToken>
+    {% endif %}
   </DescribeAutoScalingGroupsResult>
   <ResponseMetadata>
     <RequestId>0f02a07d-b677-11e2-9eb0-dd50EXAMPLE</RequestId>

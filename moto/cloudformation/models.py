@@ -4,6 +4,7 @@ import json
 import uuid
 
 import boto.cloudformation
+from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 
 from .parsing import ResourceMap, OutputMap
@@ -121,7 +122,7 @@ class FakeEvent(BaseModel):
 class CloudFormationBackend(BaseBackend):
 
     def __init__(self):
-        self.stacks = {}
+        self.stacks = OrderedDict()
         self.deleted_stacks = {}
 
     def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
@@ -152,7 +153,7 @@ class CloudFormationBackend(BaseBackend):
                         return [stack]
             raise ValidationError(name_or_stack_id)
         else:
-            return stacks
+            return list(stacks)
 
     def list_stacks(self):
         return self.stacks.values()

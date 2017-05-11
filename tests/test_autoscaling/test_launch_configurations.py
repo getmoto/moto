@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 
 import sure  # noqa
 
 from moto import mock_autoscaling_deprecated
+from moto import mock_autoscaling
 from tests.helpers import requires_boto_gte
 
 
@@ -206,6 +208,25 @@ def test_launch_configuration_describe_filter():
     conn.get_all_launch_configurations(
         names=['tester', 'tester2']).should.have.length_of(2)
     conn.get_all_launch_configurations().should.have.length_of(3)
+
+
+@mock_autoscaling
+def test_launch_configuration_describe_paginated():
+    conn = boto3.client('autoscaling', region_name='us-east-1')
+    for i in range(51):
+        conn.create_launch_configuration(LaunchConfigurationName='TestLC%d' % i)
+
+    response = conn.describe_launch_configurations()
+    lcs = response["LaunchConfigurations"]
+    marker = response["NextToken"]
+    lcs.should.have.length_of(50)
+    marker.should.equal(lcs[-1]['LaunchConfigurationName'])
+
+    response2 = conn.describe_launch_configurations(NextToken=marker)
+
+    lcs.extend(response2["LaunchConfigurations"])
+    lcs.should.have.length_of(51)
+    assert 'NextToken' not in response2.keys()
 
 
 @mock_autoscaling_deprecated
