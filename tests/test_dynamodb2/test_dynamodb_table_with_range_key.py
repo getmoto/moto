@@ -316,7 +316,8 @@ def test_delete_item():
     response.should.equal(True)
 
     table.count().should.equal(0)
-    item.delete().should.equal(False)
+    # Deletes are idempotent
+    item.delete().should.equal(True)
 
 
 @requires_boto_gte("2.9")

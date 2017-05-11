@@ -677,7 +677,7 @@ class DynamoDBBackend(BaseBackend):
         return item
 
     def delete_item(self, table_name, keys):
-        table = self.tables.get(table_name)
+        table = self.get_table(table_name)
         if not table:
             return None
         hash_key, range_key = self.get_keys_value(table, keys)
