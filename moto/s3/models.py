@@ -281,7 +281,7 @@ class FakeBucket(BaseModel):
             transition = rule.get('Transition')
             self.rules.append(LifecycleRule(
                 id=rule.get('ID'),
-                prefix=rule['Prefix'],
+                prefix=rule.get('Prefix'),
                 status=rule['Status'],
                 expiration_days=expiration.get('Days') if expiration else None,
                 expiration_date=expiration.get('Date') if expiration else None,
