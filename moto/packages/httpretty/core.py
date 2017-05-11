@@ -597,6 +597,7 @@ class Entry(BaseClass):
         if self.body_is_callable:
             status, headers, self.body = self.callable_body(
                 self.request, self.info.full_url(), headers)
+            headers = self.normalize_headers(headers)
             if self.request.method != "HEAD":
                 headers.update({
                     'content-length': len(self.body)
