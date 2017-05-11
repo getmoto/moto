@@ -5,11 +5,12 @@ from nose.tools import assert_raises
 
 import boto
 import boto.ec2
+import boto3
 from boto.exception import EC2ResponseError, EC2ResponseError
 
 import sure  # noqa
 
-from moto import mock_emr_deprecated
+from moto import mock_emr_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
 
@@ -558,3 +559,17 @@ def test_ami_attribute_error_cases():
     cm.exception.code.should.equal('InvalidAMIID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+"""
+Boto3
+"""
+
+@mock_ec2
+def test_ami_filter_wildcard():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    instance = ec2.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
+    image = instance.create_image(Name='test-image')
+    filter_result = list(ec2.images.filter(Owners=['111122223333'], Filters=[{'Name':'name', 'Values':['test*']}]))
+    assert filter_result == [image]
+
