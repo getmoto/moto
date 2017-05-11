@@ -34,6 +34,7 @@ def test_s3_server_bucket_create():
     res = test_client.put(
         '/bar', 'http://foobaz.localhost:5000/', data='test value')
     res.status_code.should.equal(200)
+    assert 'ETag' in dict(res.headers)
 
     res = test_client.get('/bar', 'http://foobaz.localhost:5000/')
     res.status_code.should.equal(200)

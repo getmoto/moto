@@ -91,7 +91,7 @@ class FakeKey(BaseModel):
     @property
     def response_dict(self):
         res = {
-            'Etag': self.etag,
+            'ETag': self.etag,
             'last-modified': self.last_modified_RFC1123,
             'content-length': str(len(self.value)),
         }
