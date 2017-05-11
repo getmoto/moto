@@ -73,9 +73,9 @@ class FakeStack(BaseModel):
 
     def _parse_template(self):
         try:
-            self.template_dict = json.loads(self.template)
-        except json.JSONDecodeError:
             self.template_dict = yaml.load(self.template)
+        except yaml.parser.ParserError:
+            self.template_dict = json.loads(self.template)
 
     @property
     def stack_parameters(self):
