@@ -294,6 +294,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         )
 
     def _bucket_response_put(self, request, body, region_name, bucket_name, querystring, headers):
+        if not request.headers.get('Content-Length'):
+            return 411, {}, "Content-Length required"
         if 'versioning' in querystring:
             ver = re.search('<Status>([A-Za-z]+)</Status>', body)
             if ver:
@@ -355,6 +357,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 409, {}, template.render(bucket=removed_bucket)
 
     def _bucket_response_post(self, request, body, bucket_name, headers):
+        if not request.headers.get('Content-Length'):
+            return 411, {}, "Content-Length required"
         path = request.path if hasattr(request, 'path') else request.path_url
         if self.is_delete_keys(request, path, bucket_name):
             return self._bucket_response_delete_keys(request, body, bucket_name, headers)

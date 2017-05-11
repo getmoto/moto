@@ -67,3 +67,14 @@ def test_s3_server_post_to_bucket():
     res = test_client.get('/the-key', 'http://tester.localhost:5000/')
     res.status_code.should.equal(200)
     res.data.should.equal(b"nothing")
+
+
+def test_s3_server_post_without_content_length():
+    backend = server.create_backend_app("s3")
+    test_client = backend.test_client()
+
+    res = test_client.put('/', 'http://tester.localhost:5000/', environ_overrides={'CONTENT_LENGTH': ''})
+    res.status_code.should.equal(411)
+
+    res = test_client.post('/', "https://tester.localhost:5000/", environ_overrides={'CONTENT_LENGTH': ''})
+    res.status_code.should.equal(411)
