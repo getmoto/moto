@@ -143,6 +143,11 @@ def test_add_servers():
     assert instance1.image_id == 'ami-1234abcd'
 ```
 
+*Note: You must pass the two arguments to the `connect_ec2` method,
+otherwise the call will fail with a `NoAuthHandlerFound` error. However, the
+argument values don't matter, as long as they are present.*
+
+
 ## Usage
 
 All of the services can be used as a decorator, context manager, or in a raw form.
