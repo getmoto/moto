@@ -12,6 +12,7 @@ install_requires = [
     "dicttoxml",
     "six",
     "werkzeug",
+    "pyaml",
     "pytz",
     "python-dateutil",
 ]
