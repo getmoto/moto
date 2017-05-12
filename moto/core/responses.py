@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+from collections import defaultdict
 import datetime
 import json
 import logging
@@ -327,6 +329,26 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
             results[k] = v
             param_index += 1
+
+        return results
+
+    def _parse_tag_specification(self, param_prefix):
+        tags = self._get_list_prefix(param_prefix)
+
+        results = defaultdict(dict)
+        for tag in tags:
+            resource_type = tag.pop("resource_type")
+
+            param_index = 1
+            while True:
+                key_name = 'tag.{0}._key'.format(param_index)
+                value_name = 'tag.{0}._value'.format(param_index)
+
+                try:
+                    results[resource_type][tag[key_name]] = tag[value_name]
+                except KeyError:
+                    break
+                param_index += 1
 
         return results
 

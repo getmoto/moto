@@ -178,6 +178,44 @@ def test_get_paginated_instances():
     assert 'NextToken' not in resp2.keys()
 
 
+@mock_ec2
+def test_create_with_tags():
+    ec2 = boto3.client('ec2', region_name='us-west-2')
+    instances = ec2.run_instances(
+        ImageId='ami-123',
+        MinCount=1,
+        MaxCount=1,
+        InstanceType='t2.micro',
+        TagSpecifications=[
+            {
+                'ResourceType': 'instance',
+                'Tags': [
+                    {
+                        'Key': 'MY_TAG1',
+                        'Value': 'MY_VALUE1',
+                    },
+                    {
+                        'Key': 'MY_TAG2',
+                        'Value': 'MY_VALUE2',
+                    },
+                ],
+            },
+            {
+                'ResourceType': 'instance',
+                'Tags': [
+                    {
+                        'Key': 'MY_TAG3',
+                        'Value': 'MY_VALUE3',
+                    },
+                ]
+            },
+        ],
+    )
+    assert 'Tags' in instances['Instances'][0]
+    len(instances['Instances'][0]['Tags']).should.equal(3)
+
+
+
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_state():
     conn = boto.connect_ec2()

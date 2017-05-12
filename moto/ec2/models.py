@@ -141,6 +141,10 @@ class TaggedEC2Resource(BaseModel):
     def add_tag(self, key, value):
         self.ec2_backend.create_tags([self.id], {key: value})
 
+    def add_tags(self, tag_map):
+        for key, value in tag_map.items():
+            self.ec2_backend.create_tags([self.id], {key: value})
+
     def get_filter_value(self, filter_name):
         tags = self.get_tags()
 
@@ -638,6 +642,10 @@ class InstanceBackend(object):
         security_groups.extend(self.get_security_group_from_id(sg_id)
                                for sg_id in kwargs.pop("security_group_ids", []))
         self.reservations[new_reservation.id] = new_reservation
+
+        tags = kwargs.pop("tags", {})
+        instance_tags = tags.get('instance', {})
+
         for index in range(count):
             new_instance = Instance(
                 self,
@@ -647,6 +655,7 @@ class InstanceBackend(object):
                 **kwargs
             )
             new_reservation.instances.append(new_instance)
+            new_instance.add_tags(instance_tags)
             new_instance.setup_defaults()
         return new_reservation
 

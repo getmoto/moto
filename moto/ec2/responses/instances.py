@@ -47,13 +47,15 @@ class InstanceResponse(BaseResponse):
         associate_public_ip = self.querystring.get(
             "AssociatePublicIpAddress", [None])[0]
         key_name = self.querystring.get("KeyName", [None])[0]
+        tags = self._parse_tag_specification("TagSpecification")
 
         if self.is_not_dryrun('RunInstance'):
             new_reservation = self.ec2_backend.add_instances(
                 image_id, min_count, user_data, security_group_names,
                 instance_type=instance_type, placement=placement, subnet_id=subnet_id,
                 key_name=key_name, security_group_ids=security_group_ids,
-                nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip)
+                nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip,
+                tags=tags)
 
             template = self.response_template(EC2_RUN_INSTANCES)
             return template.render(reservation=new_reservation)
@@ -282,6 +284,14 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <clientToken/>
           <hypervisor>xen</hypervisor>
           <ebsOptimized>false</ebsOptimized>
+          <tagSet>
+            {% for tag in instance.get_tags() %}
+              <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+              </item>
+            {% endfor %}
+          </tagSet>
           <networkInterfaceSet>
             {% for nic in instance.nics.values() %}
               <item>
