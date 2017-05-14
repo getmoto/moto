@@ -1992,8 +1992,7 @@ class VPCBackend(object):
         route_tables = self.get_all_route_tables(filters={'vpc-id': vpc_id})
         if len(route_tables) > 1:
             raise DependencyViolationError(
-                "The vpc {0} has dependencies and cannot be deleted."
-                    .format(vpc_id)
+                "The vpc {0} has dependencies and cannot be deleted.".format(vpc_id)
             )
         for route_table in route_tables:
             self.delete_route_table(route_table.id)
@@ -2376,8 +2375,7 @@ class RouteTableBackend(object):
         route_table = self.get_route_table(route_table_id)
         if route_table.associations:
             raise DependencyViolationError(
-                "The routeTable '{0}' has dependencies and cannot be deleted."
-                    .format(route_table_id)
+                "The routeTable '{0}' has dependencies and cannot be deleted.".format(route_table_id)
             )
         self.route_tables.pop(route_table_id)
         return True
@@ -2578,8 +2576,7 @@ class InternetGatewayBackend(object):
         igw = self.get_internet_gateway(internet_gateway_id)
         if igw.vpc:
             raise DependencyViolationError(
-                "{0} is being utilized by {1}"
-                    .format(internet_gateway_id, igw.vpc.id)
+                "{0} is being utilized by {1}".format(internet_gateway_id, igw.vpc.id)
             )
         self.internet_gateways.pop(internet_gateway_id)
         return True

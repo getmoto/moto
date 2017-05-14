@@ -86,8 +86,6 @@ class NetworkACLs(BaseResponse):
         return template.render(association=association)
 
 
-
-
 CREATE_NETWORK_ACL_RESPONSE = """
 <CreateNetworkAclResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
