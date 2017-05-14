@@ -42,7 +42,7 @@ class NetworkACLs(BaseResponse):
         network_acl_id = self.querystring.get('NetworkAclId')[0]
         rule_number = self.querystring.get('RuleNumber')[0]
         egress = self.querystring.get('Egress')[0]
-        self.ec2_backend.delete_network_acl(network_acl_id, rule_number, egress)
+        self.ec2_backend.delete_network_acl_entry(network_acl_id, rule_number, egress)
         template = self.response_template(DELETE_NETWORK_ACL_ENTRY_RESPONSE)
         return template.render()
 
