@@ -118,21 +118,18 @@ def validate_resource_ids(resource_ids):
 
 
 class InstanceState(object):
-
     def __init__(self, name='pending', code=0):
         self.name = name
         self.code = code
 
 
 class StateReason(object):
-
     def __init__(self, message="", code=""):
         self.message = message
         self.code = code
 
 
 class TaggedEC2Resource(BaseModel):
-
     def get_tags(self, *args, **kwargs):
         tags = self.ec2_backend.describe_tags(
             filters={'resource-id': [self.id]})
@@ -164,7 +161,6 @@ class TaggedEC2Resource(BaseModel):
 
 
 class NetworkInterface(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, subnet, private_ip_address, device_index=0,
                  public_ip_auto_assign=True, group_ids=None):
         self.ec2_backend = ec2_backend
@@ -277,7 +273,6 @@ class NetworkInterface(TaggedEC2Resource):
 
 
 class NetworkInterfaceBackend(object):
-
     def __init__(self):
         self.enis = {}
         super(NetworkInterfaceBackend, self).__init__()
@@ -621,7 +616,6 @@ class Instance(TaggedEC2Resource, BotoInstance):
 
 
 class InstanceBackend(object):
-
     def __init__(self):
         self.reservations = OrderedDict()
         super(InstanceBackend, self).__init__()
@@ -791,7 +785,6 @@ class InstanceBackend(object):
 
 
 class KeyPairBackend(object):
-
     def __init__(self):
         self.keypairs = defaultdict(dict)
         super(KeyPairBackend, self).__init__()
@@ -830,7 +823,6 @@ class KeyPairBackend(object):
 
 
 class TagBackend(object):
-
     VALID_TAG_FILTERS = ['key',
                          'resource-id',
                          'resource-type',
@@ -957,7 +949,6 @@ class TagBackend(object):
 
 
 class Ami(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
                  name=None, description=None):
         self.ec2_backend = ec2_backend
@@ -1036,7 +1027,6 @@ class Ami(TaggedEC2Resource):
 
 
 class AmiBackend(object):
-
     def __init__(self):
         self.amis = {}
         super(AmiBackend, self).__init__()
@@ -1141,14 +1131,12 @@ class AmiBackend(object):
 
 
 class Region(object):
-
     def __init__(self, name, endpoint):
         self.name = name
         self.endpoint = endpoint
 
 
 class Zone(object):
-
     def __init__(self, name, region_name):
         self.name = name
         self.region_name = region_name
@@ -1191,7 +1179,6 @@ class RegionsAndZonesBackend(object):
 
 
 class SecurityRule(object):
-
     def __init__(self, ip_protocol, from_port, to_port, ip_ranges, source_groups):
         self.ip_protocol = ip_protocol
         self.from_port = from_port
@@ -1214,7 +1201,6 @@ class SecurityRule(object):
 
 
 class SecurityGroup(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, group_id, name, description, vpc_id=None):
         self.ec2_backend = ec2_backend
         self.id = group_id
@@ -1353,7 +1339,6 @@ class SecurityGroup(TaggedEC2Resource):
 
 
 class SecurityGroupBackend(object):
-
     def __init__(self):
         # the key in the dict group is the vpc_id or None (non-vpc)
         self.groups = defaultdict(dict)
@@ -1597,7 +1582,6 @@ class SecurityGroupBackend(object):
 
 
 class SecurityGroupIngress(object):
-
     def __init__(self, security_group, properties):
         self.security_group = security_group
         self.properties = properties
@@ -1656,7 +1640,6 @@ class SecurityGroupIngress(object):
 
 
 class VolumeAttachment(object):
-
     def __init__(self, volume, instance, device, status):
         self.volume = volume
         self.attach_time = utc_date_and_time()
@@ -1681,7 +1664,6 @@ class VolumeAttachment(object):
 
 
 class Volume(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, volume_id, size, zone, snapshot_id=None, encrypted=False):
         self.id = volume_id
         self.size = size
@@ -1755,7 +1737,6 @@ class Volume(TaggedEC2Resource):
 
 
 class Snapshot(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, snapshot_id, volume, description, encrypted=False):
         self.id = snapshot_id
         self.volume = volume
@@ -1799,7 +1780,6 @@ class Snapshot(TaggedEC2Resource):
 
 
 class EBSBackend(object):
-
     def __init__(self):
         self.volumes = {}
         self.attachments = {}
@@ -1916,7 +1896,6 @@ class EBSBackend(object):
 
 
 class VPC(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, vpc_id, cidr_block, is_default, instance_tenancy='default'):
         self.ec2_backend = ec2_backend
         self.id = vpc_id
@@ -1972,7 +1951,6 @@ class VPC(TaggedEC2Resource):
 
 
 class VPCBackend(object):
-
     def __init__(self):
         self.vpcs = {}
         super(VPCBackend, self).__init__()
@@ -2014,8 +1992,7 @@ class VPCBackend(object):
         route_tables = self.get_all_route_tables(filters={'vpc-id': vpc_id})
         if len(route_tables) > 1:
             raise DependencyViolationError(
-                "The vpc {0} has dependencies and cannot be deleted."
-                .format(vpc_id)
+                "The vpc {0} has dependencies and cannot be deleted.".format(vpc_id)
             )
         for route_table in route_tables:
             self.delete_route_table(route_table.id)
@@ -2052,7 +2029,6 @@ class VPCBackend(object):
 
 
 class VPCPeeringConnectionStatus(object):
-
     def __init__(self, code='initiating-request', message=''):
         self.code = code
         self.message = message
@@ -2075,7 +2051,6 @@ class VPCPeeringConnectionStatus(object):
 
 
 class VPCPeeringConnection(TaggedEC2Resource):
-
     def __init__(self, vpc_pcx_id, vpc, peer_vpc):
         self.id = vpc_pcx_id
         self.vpc = vpc
@@ -2100,7 +2075,6 @@ class VPCPeeringConnection(TaggedEC2Resource):
 
 
 class VPCPeeringConnectionBackend(object):
-
     def __init__(self):
         self.vpc_pcxs = {}
         super(VPCPeeringConnectionBackend, self).__init__()
@@ -2142,7 +2116,6 @@ class VPCPeeringConnectionBackend(object):
 
 
 class Subnet(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone, default_for_az,
                  map_public_ip_on_launch):
         self.ec2_backend = ec2_backend
@@ -2226,7 +2199,6 @@ class Subnet(TaggedEC2Resource):
 
 
 class SubnetBackend(object):
-
     def __init__(self):
         # maps availability zone to dict of (subnet_id, subnet)
         self.subnets = defaultdict(dict)
@@ -2280,7 +2252,6 @@ class SubnetBackend(object):
 
 
 class SubnetRouteTableAssociation(object):
-
     def __init__(self, route_table_id, subnet_id):
         self.route_table_id = route_table_id
         self.subnet_id = subnet_id
@@ -2301,7 +2272,6 @@ class SubnetRouteTableAssociation(object):
 
 
 class SubnetRouteTableAssociationBackend(object):
-
     def __init__(self):
         self.subnet_associations = {}
         super(SubnetRouteTableAssociationBackend, self).__init__()
@@ -2315,7 +2285,6 @@ class SubnetRouteTableAssociationBackend(object):
 
 
 class RouteTable(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, route_table_id, vpc_id, main=False):
         self.ec2_backend = ec2_backend
         self.id = route_table_id
@@ -2368,7 +2337,6 @@ class RouteTable(TaggedEC2Resource):
 
 
 class RouteTableBackend(object):
-
     def __init__(self):
         self.route_tables = {}
         super(RouteTableBackend, self).__init__()
@@ -2407,8 +2375,7 @@ class RouteTableBackend(object):
         route_table = self.get_route_table(route_table_id)
         if route_table.associations:
             raise DependencyViolationError(
-                "The routeTable '{0}' has dependencies and cannot be deleted."
-                .format(route_table_id)
+                "The routeTable '{0}' has dependencies and cannot be deleted.".format(route_table_id)
             )
         self.route_tables.pop(route_table_id)
         return True
@@ -2454,7 +2421,6 @@ class RouteTableBackend(object):
 
 
 class Route(object):
-
     def __init__(self, route_table, destination_cidr_block, local=False,
                  gateway=None, instance=None, interface=None, vpc_pcx=None):
         self.id = generate_route_id(route_table.id, destination_cidr_block)
@@ -2489,7 +2455,6 @@ class Route(object):
 
 
 class RouteBackend(object):
-
     def __init__(self):
         super(RouteBackend, self).__init__()
 
@@ -2514,7 +2479,8 @@ class RouteBackend(object):
                       instance=self.get_instance(
                           instance_id) if instance_id else None,
                       interface=None,
-                      vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id) if vpc_peering_connection_id else None)
+                      vpc_pcx=self.get_vpc_peering_connection(
+                          vpc_peering_connection_id) if vpc_peering_connection_id else None)
         route_table.routes[route.id] = route
         return route
 
@@ -2560,7 +2526,6 @@ class RouteBackend(object):
 
 
 class InternetGateway(TaggedEC2Resource):
-
     def __init__(self, ec2_backend):
         self.ec2_backend = ec2_backend
         self.id = random_internet_gateway_id()
@@ -2584,7 +2549,6 @@ class InternetGateway(TaggedEC2Resource):
 
 
 class InternetGatewayBackend(object):
-
     def __init__(self):
         self.internet_gateways = {}
         super(InternetGatewayBackend, self).__init__()
@@ -2612,8 +2576,7 @@ class InternetGatewayBackend(object):
         igw = self.get_internet_gateway(internet_gateway_id)
         if igw.vpc:
             raise DependencyViolationError(
-                "{0} is being utilized by {1}"
-                .format(internet_gateway_id, igw.vpc.id)
+                "{0} is being utilized by {1}".format(internet_gateway_id, igw.vpc.id)
             )
         self.internet_gateways.pop(internet_gateway_id)
         return True
@@ -2639,7 +2602,6 @@ class InternetGatewayBackend(object):
 
 
 class VPCGatewayAttachment(BaseModel):
-
     def __init__(self, gateway_id, vpc_id):
         self.gateway_id = gateway_id
         self.vpc_id = vpc_id
@@ -2663,7 +2625,6 @@ class VPCGatewayAttachment(BaseModel):
 
 
 class VPCGatewayAttachmentBackend(object):
-
     def __init__(self):
         self.gateway_attachments = {}
         super(VPCGatewayAttachmentBackend, self).__init__()
@@ -2675,7 +2636,6 @@ class VPCGatewayAttachmentBackend(object):
 
 
 class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
-
     def __init__(self, ec2_backend, spot_request_id, price, image_id, type,
                  valid_from, valid_until, launch_group, availability_zone_group,
                  key_name, security_groups, user_data, instance_type, placement,
@@ -2746,7 +2706,6 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
 
 @six.add_metaclass(Model)
 class SpotRequestBackend(object):
-
     def __init__(self):
         self.spot_instance_requests = {}
         super(SpotRequestBackend, self).__init__()
@@ -2782,7 +2741,6 @@ class SpotRequestBackend(object):
 
 
 class SpotFleetLaunchSpec(object):
-
     def __init__(self, ebs_optimized, group_set, iam_instance_profile, image_id,
                  instance_type, key_name, monitoring, spot_price, subnet_id, user_data,
                  weighted_capacity):
@@ -2800,7 +2758,6 @@ class SpotFleetLaunchSpec(object):
 
 
 class SpotFleetRequest(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, spot_fleet_request_id, spot_price,
                  target_capacity, iam_fleet_role, allocation_strategy, launch_specs):
 
@@ -2857,7 +2814,8 @@ class SpotFleetRequest(TaggedEC2Resource):
         ]
 
         spot_fleet_request = ec2_backend.request_spot_fleet(spot_price,
-                                                            target_capacity, iam_fleet_role, allocation_strategy, launch_specs)
+                                                            target_capacity, iam_fleet_role, allocation_strategy,
+                                                            launch_specs)
 
         return spot_fleet_request
 
@@ -2913,7 +2871,6 @@ class SpotFleetRequest(TaggedEC2Resource):
 
 
 class SpotFleetBackend(object):
-
     def __init__(self):
         self.spot_fleet_requests = {}
         super(SpotFleetBackend, self).__init__()
@@ -2954,7 +2911,6 @@ class SpotFleetBackend(object):
 
 
 class ElasticAddress(object):
-
     def __init__(self, domain):
         self.public_ip = random_ip()
         self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
@@ -2995,7 +2951,6 @@ class ElasticAddress(object):
 
 
 class ElasticAddressBackend(object):
-
     def __init__(self):
         self.addresses = []
         super(ElasticAddressBackend, self).__init__()
@@ -3102,7 +3057,6 @@ class ElasticAddressBackend(object):
 
 
 class DHCPOptionsSet(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, domain_name_servers=None, domain_name=None,
                  ntp_servers=None, netbios_name_servers=None,
                  netbios_node_type=None):
@@ -3153,7 +3107,6 @@ class DHCPOptionsSet(TaggedEC2Resource):
 
 
 class DHCPOptionsSetBackend(object):
-
     def __init__(self):
         self.dhcp_options_sets = {}
         super(DHCPOptionsSetBackend, self).__init__()
@@ -3220,7 +3173,6 @@ class DHCPOptionsSetBackend(object):
 
 
 class VPNConnection(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, id, type,
                  customer_gateway_id, vpn_gateway_id):
         self.ec2_backend = ec2_backend
@@ -3236,7 +3188,6 @@ class VPNConnection(TaggedEC2Resource):
 
 
 class VPNConnectionBackend(object):
-
     def __init__(self):
         self.vpn_connections = {}
         super(VPNConnectionBackend, self).__init__()
@@ -3287,7 +3238,6 @@ class VPNConnectionBackend(object):
 
 
 class NetworkAclBackend(object):
-
     def __init__(self):
         self.network_acls = {}
         super(NetworkAclBackend, self).__init__()
@@ -3338,6 +3288,24 @@ class NetworkAclBackend(object):
         network_acl.network_acl_entries.append(network_acl_entry)
         return network_acl_entry
 
+    def delete_network_acl_entry(self, network_acl_id, rule_number, egress):
+        network_acl = self.get_network_acl(network_acl_id)
+        entry = next(entry for entry in network_acl.network_acl_entries
+                     if entry.egress == egress and entry.rule_number == rule_number)
+        if entry is not None:
+            network_acl.network_acl_entries.remove(entry)
+        return entry
+
+    def replace_network_acl_entry(self, network_acl_id, rule_number, protocol, rule_action, egress,
+                                  cidr_block, icmp_code, icmp_type, port_range_from, port_range_to):
+
+        self.delete_network_acl_entry(network_acl_id, rule_number, egress)
+        network_acl_entry = self.create_network_acl_entry(network_acl_id, rule_number,
+                                      protocol, rule_action, egress,
+                                      cidr_block, icmp_code, icmp_type,
+                                      port_range_from, port_range_to)
+        return network_acl_entry
+
     def replace_network_acl_association(self, association_id,
                                         network_acl_id):
 
@@ -3369,7 +3337,6 @@ class NetworkAclBackend(object):
 
 
 class NetworkAclAssociation(object):
-
     def __init__(self, ec2_backend, new_association_id,
                  subnet_id, network_acl_id):
         self.ec2_backend = ec2_backend
@@ -3381,7 +3348,6 @@ class NetworkAclAssociation(object):
 
 
 class NetworkAcl(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, network_acl_id, vpc_id, default=False):
         self.ec2_backend = ec2_backend
         self.id = network_acl_id
@@ -3410,7 +3376,6 @@ class NetworkAcl(TaggedEC2Resource):
 
 
 class NetworkAclEntry(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, network_acl_id, rule_number,
                  protocol, rule_action, egress, cidr_block,
                  icmp_code, icmp_type, port_range_from,
@@ -3429,7 +3394,6 @@ class NetworkAclEntry(TaggedEC2Resource):
 
 
 class VpnGateway(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, id, type):
         self.ec2_backend = ec2_backend
         self.id = id
@@ -3439,7 +3403,6 @@ class VpnGateway(TaggedEC2Resource):
 
 
 class VpnGatewayAttachment(object):
-
     def __init__(self, vpc_id, state):
         self.vpc_id = vpc_id
         self.state = state
@@ -3447,7 +3410,6 @@ class VpnGatewayAttachment(object):
 
 
 class VpnGatewayBackend(object):
-
     def __init__(self):
         self.vpn_gateways = {}
         super(VpnGatewayBackend, self).__init__()
@@ -3491,7 +3453,6 @@ class VpnGatewayBackend(object):
 
 
 class CustomerGateway(TaggedEC2Resource):
-
     def __init__(self, ec2_backend, id, type, ip_address, bgp_asn):
         self.ec2_backend = ec2_backend
         self.id = id
@@ -3503,7 +3464,6 @@ class CustomerGateway(TaggedEC2Resource):
 
 
 class CustomerGatewayBackend(object):
-
     def __init__(self):
         self.customer_gateways = {}
         super(CustomerGatewayBackend, self).__init__()
@@ -3534,7 +3494,6 @@ class CustomerGatewayBackend(object):
 
 
 class NatGateway(object):
-
     def __init__(self, backend, subnet_id, allocation_id):
         # public properties
         self.id = random_nat_gateway_id()
@@ -3583,7 +3542,6 @@ class NatGateway(object):
 
 
 class NatGatewayBackend(object):
-
     def __init__(self):
         self.nat_gateways = {}
 
@@ -3609,7 +3567,6 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  SpotRequestBackend, ElasticAddressBackend, KeyPairBackend,
                  DHCPOptionsSetBackend, NetworkAclBackend, VpnGatewayBackend,
                  CustomerGatewayBackend, NatGatewayBackend):
-
     def __init__(self, region_name):
         super(EC2Backend, self).__init__()
         self.region_name = region_name
