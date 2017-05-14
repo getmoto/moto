@@ -3290,10 +3290,10 @@ class NetworkAclBackend(object):
 
     def delete_network_acl_entry(self, network_acl_id, rule_number, egress):
         network_acl = self.get_network_acl(network_acl_id)
-        entry = next(entry for entry in network_acl.netword_acl_entries
+        entry = next(entry for entry in network_acl.network_acl_entries
                      if entry.egress == egress and entry.rule_number == rule_number)
         if entry is not None:
-            network_acl.netword_acl_entries.remove(entry)
+            network_acl.network_acl_entries.remove(entry)
         return entry
 
     def replace_network_acl_entry(self, network_acl_id, rule_number, protocol, rule_action, egress,
