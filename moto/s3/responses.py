@@ -13,7 +13,7 @@ from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_n
 
 
 from .exceptions import BucketAlreadyExists, S3ClientError, InvalidPartOrder
-from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl
+from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
 
@@ -219,9 +219,21 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 max_keys=max_keys,
                 version_id_marker=version_id_marker
             )
+            latest_versions = self.backend.get_bucket_latest_versions(
+                bucket_name=bucket_name
+            )
+            key_list = []
+            delete_marker_list = []
+            for version in versions:
+                if isinstance(version, FakeKey):
+                    key_list.append(version)
+                else:
+                    delete_marker_list.append(version)
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
             return 200, {}, template.render(
-                key_list=versions,
+                key_list=key_list,
+                delete_marker_list=delete_marker_list,
+                latest_versions=latest_versions,
                 bucket=bucket,
                 prefix='',
                 max_keys=1000,
@@ -478,7 +490,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return self._key_response_post(request, body, bucket_name, query, key_name, headers)
         else:
             raise NotImplementedError(
-                "Method {0} has not been impelemented in the S3 backend yet".format(method))
+                "Method {0} has not been implemented in the S3 backend yet".format(method))
 
     def _key_response_get(self, bucket_name, query, key_name, headers):
         response_headers = {}
@@ -630,7 +642,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             upload_id = query['uploadId'][0]
             self.backend.cancel_multipart(bucket_name, upload_id)
             return 204, {}, ""
-        self.backend.delete_key(bucket_name, key_name)
+        version_id = query.get('versionId', [None])[0]
+        self.backend.delete_key(bucket_name, key_name, version_id=version_id)
         template = self.response_template(S3_DELETE_OBJECT_SUCCESS)
         return 204, {}, template.render()
 
@@ -851,8 +864,8 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% for key in key_list %}
     <Version>
         <Key>{{ key.name }}</Key>
-        <VersionId>{{ key._version_id }}</VersionId>
-        <IsLatest>false</IsLatest>
+        <VersionId>{{ key.version_id }}</VersionId>
+        <IsLatest>{% if latest_versions[key.name] == key.version_id %}true{% else %}false{% endif %}</IsLatest>
         <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
         <ETag>{{ key.etag }}</ETag>
         <Size>{{ key.size }}</Size>
@@ -862,6 +875,18 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
             <DisplayName>webfile</DisplayName>
         </Owner>
     </Version>
+    {% endfor %}
+    {% for marker in delete_marker_list %}
+    <DeleteMarker>
+        <Key>{{ marker.key.name }}</Key>
+        <VersionId>{{ marker.version_id }}</VersionId>
+        <IsLatest>{% if latest_versions[marker.key.name] == marker.version_id %}true{% else %}false{% endif %}</IsLatest>
+        <LastModified>{{ marker.key.last_modified_ISO8601 }}</LastModified>
+        <Owner>
+            <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+            <DisplayName>webfile</DisplayName>
+        </Owner>
+    </DeleteMarker>
     {% endfor %}
 </ListVersionsResult>
 """
