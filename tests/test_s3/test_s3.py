@@ -1300,6 +1300,12 @@ def test_boto3_list_object_versions():
     bucket_name = 'mybucket'
     key = 'key-with-versions'
     s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            'Status': 'Enabled'
+        }
+    )
     items = (six.b('v1'), six.b('v2'))
     for body in items:
         s3.put_object(
@@ -1317,6 +1323,58 @@ def test_boto3_list_object_versions():
     # Test latest object version is returned
     response = s3.get_object(Bucket=bucket_name, Key=key)
     response['Body'].read().should.equal(items[-1])
+
+
+@mock_s3
+def test_boto3_delete_markers():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-versions'
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            'Status': 'Enabled'
+        }
+    )
+    items = (six.b('v1'), six.b('v2'))
+    for body in items:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+    s3.delete_object(
+        Bucket=bucket_name,
+        Key=key
+    )
+    with assert_raises(ClientError) as e:
+        s3.get_object(
+            Bucket=bucket_name,
+            Key=key
+        )
+        e.response['Error']['Code'].should.equal('NoSuchKey')
+
+    s3.delete_object(
+        Bucket=bucket_name,
+        Key=key,
+        VersionId='2'
+    )
+    response = s3.get_object(
+        Bucket=bucket_name,
+        Key=key
+    )
+    response['Body'].read().should.equal(items[-1])
+    response = s3.list_object_versions(
+        Bucket=bucket_name
+    )
+    response['Versions'].should.have.length_of(2)
+    response['Versions'][-1]['IsLatest'].should.be.true
+    response['Versions'][0]['IsLatest'].should.be.false
+    [(key_metadata['Key'], key_metadata['VersionId'])
+     for key_metadata in response['Versions']].should.equal(
+        [('key-with-versions', '0'), ('key-with-versions', '1')]
+    )
 
 
 TEST_XML = """\
@@ -1337,3 +1395,4 @@ TEST_XML = """\
     </ns0:RoutingRules>
 </ns0:WebsiteConfiguration>
 """
+

@@ -18,6 +18,17 @@ UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
 
 
+class FakeDeleteMarker(BaseModel):
+
+    def __init__(self, key):
+        self.key = key
+        self._version_id = key.version_id + 1
+
+    @property
+    def version_id(self):
+        return self._version_id
+
+
 class FakeKey(BaseModel):
 
     def __init__(self, name, value, storage="STANDARD", etag=None, is_versioned=False, version_id=0):
@@ -32,6 +43,10 @@ class FakeKey(BaseModel):
         self._etag = etag
         self._version_id = version_id
         self._is_versioned = is_versioned
+
+    @property
+    def version_id(self):
+        return self._version_id
 
     def copy(self, new_name=None):
         r = copy.deepcopy(self)
@@ -102,7 +117,7 @@ class FakeKey(BaseModel):
             res['x-amz-restore'] = rhdr.format(self.expiry_date)
 
         if self._is_versioned:
-            res['x-amz-version-id'] = str(self._version_id)
+            res['x-amz-version-id'] = str(self.version_id)
 
         if self.website_redirect_location:
             res['x-amz-website-redirect-location'] = self.website_redirect_location
@@ -356,6 +371,26 @@ class S3Backend(BaseBackend):
     def get_bucket_versioning(self, bucket_name):
         return self.get_bucket(bucket_name).versioning_status
 
+    def get_bucket_latest_versions(self, bucket_name):
+        versions = self.get_bucket_versions(bucket_name)
+        maximum_version_per_key = {}
+        latest_versions = {}
+
+        for version in versions:
+            if isinstance(version, FakeDeleteMarker):
+                name = version.key.name
+            else:
+                name = version.name
+            version_id = version.version_id
+            maximum_version_per_key[name] = max(
+                version_id,
+                maximum_version_per_key.get(name, -1)
+            )
+            if version_id == maximum_version_per_key[name]:
+                latest_versions[name] = version_id
+
+        return latest_versions
+
     def get_bucket_versions(self, bucket_name, delimiter=None,
                             encoding_type=None,
                             key_marker=None,
@@ -423,15 +458,22 @@ class S3Backend(BaseBackend):
     def get_key(self, bucket_name, key_name, version_id=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
+        key = None
+
         if bucket:
             if version_id is None:
                 if key_name in bucket.keys:
-                    return bucket.keys[key_name]
+                    key = bucket.keys[key_name]
             else:
-                for key in bucket.keys.getlist(key_name):
-                    if str(key._version_id) == str(version_id):
-                        return key
-        raise MissingKey(key_name=key_name)
+                for key_version in bucket.keys.getlist(key_name):
+                    if str(key_version.version_id) == str(version_id):
+                        key = key_version
+                        break
+
+        if isinstance(key, FakeKey):
+            return key
+        else:
+            raise MissingKey(key_name=key_name)
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)
@@ -510,12 +552,33 @@ class S3Backend(BaseBackend):
 
         return key_results, folder_results
 
-    def delete_key(self, bucket_name, key_name):
+    def _set_delete_marker(self, bucket_name, key_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.keys[key_name] = FakeDeleteMarker(
+            key=bucket.keys[key_name]
+        )
+
+    def delete_key(self, bucket_name, key_name, version_id=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
 
         try:
-            bucket.keys.pop(key_name)
+            if not bucket.is_versioned:
+                bucket.keys.pop(key_name)
+            else:
+                if version_id is None:
+                    self._set_delete_marker(bucket_name, key_name)
+                else:
+                    if key_name not in bucket.keys:
+                        raise KeyError
+                    bucket.keys.setlist(
+                        key_name,
+                        [
+                            key
+                            for key in bucket.keys.getlist(key_name)
+                            if str(key.version_id) != str(version_id)
+                        ]
+                    )
             return True
         except KeyError:
             return False
