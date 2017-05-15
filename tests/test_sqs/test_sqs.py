@@ -392,7 +392,7 @@ def test_delete_message():
 @mock_sqs_deprecated
 def test_send_batch_operation():
     conn = boto.connect_sqs('the_key', 'the_secret')
-    queue = conn.create_queue("test-queue", visibility_timeout=60)
+    queue = conn.create_queue("test-queue", visibility_timeout=3)
 
     # See https://github.com/boto/boto/issues/831
     queue.set_message_class(RawMessage)
