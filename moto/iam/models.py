@@ -53,15 +53,15 @@ class Policy(BaseModel):
         return 'arn:aws:iam::aws:policy{0}{1}'.format(self.path, self.name)
 
 
-class Version(object):
+class PolicyVersion(object):
 
     def __init__(self,
                  policy_arn,
                  document,
-                 is_default_version=False):
+                 is_default=False):
         self.policy_arn = policy_arn
         self.document = document or {}
-        self.is_default_version = is_default_version
+        self.is_default = is_default
         self.version_id = 'v1'
 
         self.create_datetime = datetime.now(pytz.utc)
@@ -506,6 +506,9 @@ class IAMBackend(BaseBackend):
         self.managed_policies[policy.name] = policy
         return policy
 
+    def get_policy(self, policy_name):
+        return self.managed_policies.get(policy_name)
+
     def list_attached_role_policies(self, role_name, marker=None, max_items=100, path_prefix='/'):
         policies = self.get_role(role_name).managed_policies.values()
 
@@ -551,15 +554,6 @@ class IAMBackend(BaseBackend):
 
         return policies, marker
 
-    def get_policy(self, policy_name):
-        policy = self.managed_policies[policy_name]
-        if not policy:
-            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
-        return policy
-
-    def get_policies(self):
-        return self.managed_policies.values()
-
     def create_role(self, role_name, assume_role_policy_document, path):
         role_id = random_resource_id()
         role = Role(role_id, role_name, assume_role_policy_document, path)
@@ -596,19 +590,44 @@ class IAMBackend(BaseBackend):
         policy_name = policy_arn.split(':')[-1]
         policy_name = policy_name.split('/')[1]
         policy = self.get_policy(policy_name)
-        version = Version(policy_arn, policy_document, set_as_default)
+        if not policy:
+            raise IAMNotFoundException("Policy not found")
+        version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
         if set_as_default:
             policy.default_version_id = version.version_id
+        return version
+
+    def get_policy_version(self, policy_arn, version_id):
+        policy_name = policy_arn.split(':')[-1]
+        policy_name = policy_name.split('/')[1]
+        policy = self.get_policy(policy_name)
+        if not policy:
+            raise IAMNotFoundException("Policy not found")
+        for version in policy.versions:
+            if version.version_id == version_id:
+                return version
+        raise IAMNotFoundException("Policy version not found")
+
+    def list_policy_versions(self, policy_arn):
+        policy_name = policy_arn.split(':')[-1]
+        policy_name = policy_name.split('/')[1]
+        policy = self.get_policy(policy_name)
+        if not policy:
+            raise IAMNotFoundException("Policy not found")
+        return policy.versions
 
     def delete_policy_version(self, policy_arn, version_id):
         policy_name = policy_arn.split(':')[-1]
         policy_name = policy_name.split('/')[1]
         policy = self.get_policy(policy_name)
+        if not policy:
+            raise IAMNotFoundException("Policy not found")
         for i, v in enumerate(policy.versions):
             if v.version_id == version_id:
                 del policy.versions[i]
                 return
+        raise IAMNotFoundException("Policy not found")
 
     def create_instance_profile(self, name, path, role_ids):
         instance_profile_id = random_resource_id()
