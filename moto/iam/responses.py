@@ -93,6 +93,30 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAssumeRolePolicyResponse")
 
+    def create_policy_version(self):
+        policy_arn = self._get_param('PolicyArn')
+        policy_document = self._get_param('PolicyDocument')
+        set_as_default = self._get_param('SetAsDefault')
+        policy_version = iam_backend.create_policy_version(policy_arn, policy_document, set_as_default)
+
+        template = self.response_template(LIST_POLICY_VERSIONS_TEMPLATE)
+        return template.render(policy_versions=[policy_version])
+
+    def list_policy_versions(self):
+        policy_arn = self._get_param('PolicyArn')
+        policy_versions = iam_backend.list_policy_versions(policy_arn)
+
+        template = self.response_template(LIST_POLICY_VERSIONS_TEMPLATE)
+        return template.render(policy_versions=policy_versions)
+
+    def delete_policy_version(self):
+        policy_arn = self._get_param('PolicyArn')
+        version_id = self._get_param('VersionId')
+
+        iam_backend.delete_policy_version(policy_arn, version_id)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeletePolicyVersion')
+
     def create_instance_profile(self):
         profile_name = self._get_param('InstanceProfileName')
         path = self._get_param('Path')
@@ -599,6 +623,25 @@ LIST_ROLE_POLICIES = """<ListRolePoliciesResponse xmlns="https://iam.amazonaws.c
   <RequestId>8c7e1816-99f0-11e1-a4c3-27EXAMPLE804</RequestId>
 </ResponseMetadata>
 </ListRolePoliciesResponse>"""
+
+LIST_POLICY_VERSIONS_TEMPLATE = """<ListPolicyVersionsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListPolicyVersionsResult>
+    <IsTruncated>false</IsTruncated>
+    <Versions>
+      {% for version in policy_versions %}
+      <member>
+        <Document>{{ version.document }}</Document>
+        <VersionId>{{ version.version_id }}</VersionId>
+        <IsDefaultVersion>{{ version.is_default_version }}</IsDefaultVersion>
+        <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+      </member>
+      {% endfor %}
+    </Versions>
+  </ListPolicyVersionsResult>
+  <ResponseMetadata>
+    <RequestId>20f7279f-99ee-11e1-a4c3-27EXAMPLE804</RequestId>
+  </ResponseMetadata>
+</ListPolicyVersionsResponse>"""
 
 LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ListInstanceProfilesResult>
