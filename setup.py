@@ -15,6 +15,7 @@ install_requires = [
     "pyaml",
     "pytz",
     "python-dateutil",
+    "mock",
 ]
 
 extras_require = {
