@@ -198,9 +198,25 @@ class LambdaFunction(BaseModel):
             if prop in properties:
                 spec[prop] = properties[prop]
 
+        # when ZipFile is present in CloudFormation, per the official docs,
+        # the code it's a plaintext code snippet up to 4096 bytes.
+        # this snippet converts this plaintext code to a proper base64-encoded ZIP file.
+        if 'ZipFile' in properties['Code']:
+            spec['Code']['ZipFile'] = base64.b64encode(
+                cls._create_zipfile_from_plaintext_code(spec['Code']['ZipFile']))
+
         backend = lambda_backends[region_name]
         fn = backend.create_function(spec)
         return fn
+
+    @staticmethod
+    def _create_zipfile_from_plaintext_code(code):
+        zip_output = io.BytesIO()
+        zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
+        zip_file.writestr('lambda_function.zip', code)
+        zip_file.close()
+        zip_output.seek(0)
+        return zip_output.read()
 
 
 class LambdaBackend(BaseBackend):
