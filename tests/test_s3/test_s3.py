@@ -1223,9 +1223,10 @@ def test_boto3_head_object():
     s3.Object('blah', 'hello.txt').meta.client.head_object(
         Bucket='blah', Key='hello.txt')
 
-    with assert_raises(ClientError):
+    with assert_raises(ClientError) as e:
         s3.Object('blah', 'hello2.txt').meta.client.head_object(
             Bucket='blah', Key='hello_bad.txt')
+    e.exception.response['Error']['Code'].should.equal('404')
 
 
 @mock_s3
@@ -1353,7 +1354,7 @@ def test_boto3_delete_markers():
             Bucket=bucket_name,
             Key=key
         )
-        e.response['Error']['Code'].should.equal('NoSuchKey')
+        e.response['Error']['Code'].should.equal('404')
 
     s3.delete_object(
         Bucket=bucket_name,

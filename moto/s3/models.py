@@ -11,7 +11,7 @@ import six
 from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket, MissingKey, InvalidPart, EntityTooSmall
+from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -473,7 +473,7 @@ class S3Backend(BaseBackend):
         if isinstance(key, FakeKey):
             return key
         else:
-            raise MissingKey(key_name=key_name)
+            return None
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)

@@ -12,7 +12,7 @@ from moto.core.responses import _TemplateEnvironmentMixin
 from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_name_from_url, parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
 
 
-from .exceptions import BucketAlreadyExists, S3ClientError, InvalidPartOrder
+from .exceptions import BucketAlreadyExists, S3ClientError, MissingKey, InvalidPartOrder
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
@@ -508,6 +508,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         version_id = query.get('versionId', [None])[0]
         key = self.backend.get_key(
             bucket_name, key_name, version_id=version_id)
+        if key is None:
+            raise MissingKey(key_name)
         if 'acl' in query:
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return 200, response_headers, template.render(obj=key)
