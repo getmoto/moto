@@ -62,6 +62,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(GET_ROLE_TEMPLATE)
         return template.render(role=role)
 
+    def delete_role(self):
+        role_name = self._get_param('RoleName')
+        iam_backend.delete_role(role_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteRoleResponse")
+
     def list_role_policies(self):
         role_name = self._get_param('RoleName')
         role_policies_names = iam_backend.list_role_policies(role_name)
