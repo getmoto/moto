@@ -1846,29 +1846,14 @@ def test_datapipeline():
         data_pipelines['pipelineIdList'][0]['id'])
 
 
-def _process_lamda(pfunc):
-    import io
-    import zipfile
-    zip_output = io.BytesIO()
-    zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
-    zip_file.writestr('lambda_function.zip', pfunc)
-    zip_file.close()
-    zip_output.seek(0)
-    return zip_output.read()
-
-
-def get_test_zip_file1():
-    pfunc = """
-def lambda_handler(event, context):
-    return (event, context)
-"""
-    return _process_lamda(pfunc)
-
-
 @mock_cloudformation
 @mock_lambda
 def test_lambda_function():
     # switch this to python as backend lambda only supports python execution.
+    lambda_code = """
+def lambda_handler(event, context):
+    return (event, context)
+"""
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
@@ -1876,7 +1861,8 @@ def test_lambda_function():
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
                     "Code": {
-                        "ZipFile": base64.b64encode(get_test_zip_file1()).decode('utf-8')
+                        # CloudFormation expects a string as ZipFile, not a ZIP file base64-encoded
+                        "ZipFile": {"Fn::Join": ["\n", lambda_code.splitlines()]}
                     },
                     "Handler": "lambda_function.handler",
                     "Description": "Test function",
