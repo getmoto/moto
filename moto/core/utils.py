@@ -174,9 +174,15 @@ def iso_8601_datetime_without_milliseconds(datetime):
     return datetime.strftime("%Y-%m-%dT%H:%M:%S") + 'Z'
 
 
+RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
+
+
 def rfc_1123_datetime(datetime):
-    RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
     return datetime.strftime(RFC1123)
+
+
+def str_to_rfc_1123_datetime(str):
+    return datetime.datetime.strptime(str, RFC1123)
 
 
 def unix_time(dt=None):

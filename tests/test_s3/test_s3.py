@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+
+import datetime
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
 from functools import wraps
@@ -10,6 +12,7 @@ import json
 import boto
 import boto3
 from botocore.client import ClientError
+import botocore.exceptions
 from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
@@ -1264,6 +1267,31 @@ def test_boto3_head_object_with_versioning():
         Bucket='blah', Key='hello.txt', VersionId='0')
     old_head_object['VersionId'].should.equal('0')
     old_head_object['ContentLength'].should.equal(len(old_content))
+
+
+@mock_s3
+def test_boto3_head_object_if_modified_since():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = 'hello.txt'
+
+    with freeze_time(datetime.datetime.now() - datetime.timedelta(hours=3)):
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body='test'
+        )
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        s3.head_object(
+            Bucket=bucket_name,
+            Key=key,
+            IfModifiedSince=datetime.datetime.now() - datetime.timedelta(hours=2)
+        )
+    e = err.exception
+    e.response['Error'].should.equal({'Code': '304', 'Message': 'Not Modified'})
 
 
 @mock_s3
