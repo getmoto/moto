@@ -7,7 +7,7 @@ class IAMNotFoundException(RESTError):
 
     def __init__(self, message):
         super(IAMNotFoundException, self).__init__(
-            "Not Found", message)
+            "NoSuchEntity", message)
 
 
 class IAMConflictException(RESTError):
