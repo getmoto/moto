@@ -10,6 +10,7 @@ from moto.datapipeline import datapipeline_backends
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.ec2 import ec2_backends
+from moto.ecr import ecr_backends
 from moto.ecs import ecs_backends
 from moto.elb import elb_backends
 from moto.emr import emr_backends
@@ -39,6 +40,7 @@ BACKENDS = {
     'dynamodb': dynamodb_backends,
     'dynamodb2': dynamodb_backends2,
     'ec2': ec2_backends,
+    'ecr': ecr_backends,
     'ecs': ecs_backends,
     'elb': elb_backends,
     'events': events_backends,

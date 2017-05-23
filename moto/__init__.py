@@ -14,6 +14,7 @@ from .datapipeline import mock_datapipeline, mock_datapipeline_deprecated  # fla
 from .dynamodb import mock_dynamodb, mock_dynamodb_deprecated  # flake8: noqa
 from .dynamodb2 import mock_dynamodb2, mock_dynamodb2_deprecated  # flake8: noqa
 from .ec2 import mock_ec2, mock_ec2_deprecated  # flake8: noqa
+from .ecr import mock_ecr, mock_ecr_deprecated  # flake8: noqa
 from .ecs import mock_ecs, mock_ecs_deprecated  # flake8: noqa
 from .elb import mock_elb, mock_elb_deprecated  # flake8: noqa
 from .emr import mock_emr, mock_emr_deprecated  # flake8: noqa
