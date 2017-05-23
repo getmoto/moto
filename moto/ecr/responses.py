@@ -32,7 +32,10 @@ class ECRResponse(BaseResponse):
 
     def describe_repositories(self):
         describe_repositories_name = self._get_param('repositoryNames')
-        repositories = self.ecr_backend.describe_repositories(describe_repositories_name)
+        registry_id = self._get_param('registryId')
+
+        repositories = self.ecr_backend.describe_repositories(
+            repository_names=describe_repositories_name, registry_id=registry_id)
         return json.dumps({
             'repositories': repositories,
             'failures': []

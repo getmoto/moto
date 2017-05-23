@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-# from nose.tools import assert_raises
 import hashlib
 import json
 from random import random
@@ -10,7 +9,6 @@ import sure  # noqa
 import boto3
 
 from moto import mock_ecr
-import datetime
 
 
 def _create_image_digest(contents=None):
@@ -88,6 +86,73 @@ def test_describe_repositories():
 
 
 @mock_ecr
+def test_describe_repositories_1():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository1'
+    )
+    _ = client.create_repository(
+        repositoryName='test_repository0'
+    )
+    response = client.describe_repositories(registryId='012345678910')
+    len(response['repositories']).should.equal(2)
+
+    respository_arns = ['arn:aws:ecr:us-east-1:012345678910:repository/test_repository1',
+                        'arn:aws:ecr:us-east-1:012345678910:repository/test_repository0']
+    set([response['repositories'][0]['repositoryArn'],
+         response['repositories'][1]['repositoryArn']]).should.equal(set(respository_arns))
+
+    respository_uris = ['012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1',
+                        '012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository0']
+    set([response['repositories'][0]['repositoryUri'],
+         response['repositories'][1]['repositoryUri']]).should.equal(set(respository_uris))
+
+
+@mock_ecr
+def test_describe_repositories_2():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository1'
+    )
+    _ = client.create_repository(
+        repositoryName='test_repository0'
+    )
+    response = client.describe_repositories(registryId='109876543210')
+    len(response['repositories']).should.equal(0)
+
+
+@mock_ecr
+def test_describe_repositories_3():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository1'
+    )
+    _ = client.create_repository(
+        repositoryName='test_repository0'
+    )
+    response = client.describe_repositories(repositoryNames=['test_repository1'])
+    len(response['repositories']).should.equal(1)
+    respository_arn = 'arn:aws:ecr:us-east-1:012345678910:repository/test_repository1'
+    response['repositories'][0]['repositoryArn'].should.equal(respository_arn)
+
+    respository_uri = '012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1'
+    response['repositories'][0]['repositoryUri'].should.equal(respository_uri)
+
+
+@mock_ecr
+def test_describe_repositories_4():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository1'
+    )
+    _ = client.create_repository(
+        repositoryName='test_repository0'
+    )
+    response = client.describe_repositories(repositoryNames=['not_a_valid_name'])
+    len(response['repositories']).should.equal(0)
+
+
+@mock_ecr
 def test_delete_repository():
     client = boto3.client('ecr', region_name='us-east-1')
     _ = client.create_repository(
@@ -104,6 +169,20 @@ def test_delete_repository():
 
     response = client.describe_repositories()
     len(response['repositories']).should.equal(0)
+
+
+@mock_ecr
+def test_delete_repository_1():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    invalid_repository_name = 'not_a_repository'
+    try:
+        client.delete_repository(repositoryName=invalid_repository_name)
+    except Exception as e:
+        str(e).should.equal('{0} is not a repository'.format(invalid_repository_name))
 
 
 @mock_ecr
@@ -126,28 +205,38 @@ def test_put_image():
 def test_list_images():
     client = boto3.client('ecr', region_name='us-east-1')
     _ = client.create_repository(
-        repositoryName='test_repository'
+        repositoryName='test_repository_1'
+    )
+
+    _ = client.create_repository(
+        repositoryName='test_repository_2'
     )
 
     _ = client.put_image(
-        repositoryName='test_repository',
+        repositoryName='test_repository_1',
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag='latest'
     )
 
     _ = client.put_image(
-        repositoryName='test_repository',
+        repositoryName='test_repository_1',
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag='v1'
     )
 
     _ = client.put_image(
-        repositoryName='test_repository',
+        repositoryName='test_repository_1',
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag='v2'
     )
 
-    response = client.list_images(repositoryName='test_repository')
+    _ = client.put_image(
+        repositoryName='test_repository_2',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='oldest'
+    )
+
+    response = client.list_images(repositoryName='test_repository_1')
     type(response['imageIds']).should.be(list)
     len(response['imageIds']).should.be(3)
 
@@ -155,6 +244,15 @@ def test_list_images():
     set([response['imageIds'][0]['imageTag'],
          response['imageIds'][1]['imageTag'],
          response['imageIds'][2]['imageTag']]).should.equal(set(image_tags))
+
+    response = client.list_images(repositoryName='test_repository_2')
+    type(response['imageIds']).should.be(list)
+    len(response['imageIds']).should.be(1)
+    response['imageIds'][0]['imageTag'].should.equal('oldest')
+
+    response = client.list_images(repositoryName='test_repository_2', registryId='109876543210')
+    type(response['imageIds']).should.be(list)
+    len(response['imageIds']).should.be(0)
 
 
 @mock_ecr
@@ -211,31 +309,57 @@ def test_describe_images():
     response['imageDetails'][1]['imageSizeInBytes'].should.equal(52428800)
     response['imageDetails'][2]['imageSizeInBytes'].should.equal(52428800)
 
-    # response['imageDetails'][0]['imagePushedAt'].should.equal('2017-05-09')
-    # response['imageDetails'][1]['imagePushedAt'].should.equal('2017-05-09')
-    # response['imageDetails'][2]['imagePushedAt'].should.equal('2017-05-09')
+    invalid_repository_name = 'not_a_valid_repository'
+    try:
+        client.describe_images(repositoryName=invalid_repository_name)
+    except Exception as e:
+        str(e).should.equal('{0} is not a repository'.format(invalid_repository_name))
 
-    '''
-    image_digests = [
-        "hi", "mike", "name"
-    ]
-    set([response['imageDetails'][0]['imageDigest'],
-         response['imageDetails'][1]['imageDigest'],
-         response['imageDetails'][2]['imageDigest']]).should.equal(set(image_digests))
-    '''
+
+@mock_ecr
+def test_put_image():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    response = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='latest'
+    )
+
+    response['image']['imageId']['imageTag'].should.equal('latest')
+    response['image']['imageId']['imageDigest'].should.contain("sha")
+    response['image']['repositoryName'].should.equal('test_repository')
+    response['image']['registryId'].should.equal('012345678910')
+
+    invalid_repository_name = 'not_a_valid_repository'
+
+    try:
+        client.put_image(
+            repositoryName=invalid_repository_name,
+            imageManifest=json.dumps(_create_image_manifest()),
+            imageTag='latest')
+    except Exception as e:
+        str(e).should.equal('{0} is not a repository'.format(invalid_repository_name))
 
 
 '''
-'imageDetails': [
-    {
-        'registryId': 'string',
-        'repositoryName': 'string',
-        'imageDigest': 'string',
-        'imageTags': [
-            'string',
-        ],
-        'imageSizeInBytes': 123,
-        'imagePushedAt': datetime(2015, 1, 1)
-    },
-],
+obj = {
+    "image": {
+        "repository": "test_repository",
+        "imageManifest": "{\"layers\": [{\"mediaType\": \"application/vnd.docker.image.rootfs.diff.tar.gzip\", \"digest\": \"sha256:77ea7eee3d80b1a38f83906dd3048e2689457eb90e18a7d12f839c5ae37106a2\", \"size\": 32654}, {\"mediaType\": \"application/vnd.docker.image.rootfs.diff.tar.gzip\", \"digest\": \"sha256:95cf1a2e1698fe3ca1fcc3f653119146b271d0b62e487ec264441e886a11bd06\", \"size\": 16724}, {\"mediaType\": \"application/vnd.docker.image.rootfs.diff.tar.gzip\", \"digest\": \"sha256:a0e70458d19e37e14d6388030a017c587283e2fb6ef10c0744cad0294c47e8f8\", \"size\": 73109}], \"schemaVersion\": 2, \"config\": {\"mediaType\": \"application/vnd.docker.container.image.v1+json\", \"digest\": \"sha256:b79606fb3afea5bd1609ed40b622142f1c98125abcfe89a76a661b0e8e343910\", \"size\": 7023}, \"mediaType\": \"application/vnd.docker.distribution.manifest.v2+json\"}",
+        "imageId": {
+            "imageTag": "latest",
+            "imageDigest": "sha256:c639b9999fadc04554ed2ef5cec140d35136d23f0ee15ad71f0708e334fc21ba"
+        },
+        "imageSizeInBytes": 52428800,
+        "imageDigest": null,
+        "imageTag": "latest",
+        "registryId": "012345678910",
+        "repositoryName": "test_repository",
+        "imagePushedAt": null
+    }
+}
 '''
