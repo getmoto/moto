@@ -1277,18 +1277,17 @@ def test_boto3_head_object_if_modified_since():
 
     key = 'hello.txt'
 
-    with freeze_time(datetime.datetime.now() - datetime.timedelta(hours=3)):
-        s3.put_object(
-            Bucket=bucket_name,
-            Key=key,
-            Body='test'
-        )
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test'
+    )
 
     with assert_raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
             Bucket=bucket_name,
             Key=key,
-            IfModifiedSince=datetime.datetime.now() - datetime.timedelta(hours=2)
+            IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1)
         )
     e = err.exception
     e.response['Error'].should.equal({'Code': '304', 'Message': 'Not Modified'})

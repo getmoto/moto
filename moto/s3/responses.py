@@ -484,7 +484,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif method == 'PUT':
             return self._key_response_put(request, body, bucket_name, query, key_name, headers)
         elif method == 'HEAD':
-            return self._key_response_head(bucket_name, query, key_name, headers)
+            return self._key_response_head(bucket_name, query, key_name, headers=request.headers)
         elif method == 'DELETE':
             return self._key_response_delete(bucket_name, query, key_name, headers)
         elif method == 'POST':
@@ -597,7 +597,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         response_headers = {}
         version_id = query.get('versionId', [None])[0]
 
-        if_modified_since = headers.get('if-modified-since', None)
+        if_modified_since = headers.get('If-Modified-Since', None)
         if if_modified_since:
             if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
 
