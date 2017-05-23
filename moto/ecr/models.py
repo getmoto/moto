@@ -104,7 +104,7 @@ class Image(BaseObject):
 
     def _create_digest(self):
         image_contents = 'docker_image{0}'.format(int(random() * 10 ** 6))
-        self.image_digest = "sha256:%s" % hashlib.sha256(image_contents).hexdigest()
+        self.image_digest = "sha256:%s" % hashlib.sha256(image_contents.encode('utf-8')).hexdigest()
 
     def get_image_digest(self):
         if not self.image_digest:
