@@ -14,7 +14,7 @@ from moto import mock_ecr
 def _create_image_digest(contents=None):
     if not contents:
         contents = 'docker_image{0}'.format(int(random() * 10 ** 6))
-    return "sha256:%s" % hashlib.sha256(contents).hexdigest()
+    return "sha256:%s" % hashlib.sha256(contents.encode('utf-8')).hexdigest()
 
 
 def _create_image_manifest():
@@ -169,7 +169,7 @@ def test_delete_repository():
 
     response = client.describe_repositories()
     len(response['repositories']).should.equal(0)
-    
+
 
 @mock_ecr
 def test_put_image():
