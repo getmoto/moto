@@ -8,7 +8,7 @@ from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from moto import mock_iam, mock_iam_deprecated
 from moto.iam.models import aws_managed_policies
-from nose.tools import assert_raises, assert_equals, assert_not_equals
+from nose.tools import assert_raises, assert_equals
 from nose.tools import raises
 
 from tests.helpers import requires_boto_gte
@@ -112,6 +112,23 @@ def test_remove_role_from_instance_profile():
 
     profile = conn.get_instance_profile("my-profile")
     dict(profile.roles).should.be.empty
+
+
+@mock_iam()
+def test_delete_role():
+    conn = boto3.client('iam', region_name='us-east-1')
+
+    with assert_raises(ClientError):
+        conn.delete_role(RoleName="my-role")
+
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    role = conn.get_role(RoleName="my-role")
+    role.get('Role').get('Arn').should.equal('arn:aws:iam::123456789012:role/my-path/my-role')
+
+    conn.delete_role(RoleName="my-role")
+
+    with assert_raises(ClientError):
+        conn.get_role(RoleName="my-role")
 
 
 @mock_iam_deprecated()
