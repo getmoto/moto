@@ -169,21 +169,7 @@ def test_delete_repository():
 
     response = client.describe_repositories()
     len(response['repositories']).should.equal(0)
-
-
-@mock_ecr
-def test_delete_repository_1():
-    client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
-        repositoryName='test_repository'
-    )
-
-    invalid_repository_name = 'not_a_repository'
-    try:
-        client.delete_repository(repositoryName=invalid_repository_name)
-    except Exception as e:
-        str(e).should.equal('{0} is not a repository'.format(invalid_repository_name))
-
+    
 
 @mock_ecr
 def test_put_image():
@@ -309,12 +295,6 @@ def test_describe_images():
     response['imageDetails'][1]['imageSizeInBytes'].should.equal(52428800)
     response['imageDetails'][2]['imageSizeInBytes'].should.equal(52428800)
 
-    invalid_repository_name = 'not_a_valid_repository'
-    try:
-        client.describe_images(repositoryName=invalid_repository_name)
-    except Exception as e:
-        str(e).should.equal('{0} is not a repository'.format(invalid_repository_name))
-
 
 @mock_ecr
 def test_put_image():
@@ -333,33 +313,3 @@ def test_put_image():
     response['image']['imageId']['imageDigest'].should.contain("sha")
     response['image']['repositoryName'].should.equal('test_repository')
     response['image']['registryId'].should.equal('012345678910')
-
-    invalid_repository_name = 'not_a_valid_repository'
-
-    try:
-        client.put_image(
-            repositoryName=invalid_repository_name,
-            imageManifest=json.dumps(_create_image_manifest()),
-            imageTag='latest')
-    except Exception as e:
-        str(e).should.equal('{0} is not a repository'.format(invalid_repository_name))
-
-
-'''
-obj = {
-    "image": {
-        "repository": "test_repository",
-        "imageManifest": "{\"layers\": [{\"mediaType\": \"application/vnd.docker.image.rootfs.diff.tar.gzip\", \"digest\": \"sha256:77ea7eee3d80b1a38f83906dd3048e2689457eb90e18a7d12f839c5ae37106a2\", \"size\": 32654}, {\"mediaType\": \"application/vnd.docker.image.rootfs.diff.tar.gzip\", \"digest\": \"sha256:95cf1a2e1698fe3ca1fcc3f653119146b271d0b62e487ec264441e886a11bd06\", \"size\": 16724}, {\"mediaType\": \"application/vnd.docker.image.rootfs.diff.tar.gzip\", \"digest\": \"sha256:a0e70458d19e37e14d6388030a017c587283e2fb6ef10c0744cad0294c47e8f8\", \"size\": 73109}], \"schemaVersion\": 2, \"config\": {\"mediaType\": \"application/vnd.docker.container.image.v1+json\", \"digest\": \"sha256:b79606fb3afea5bd1609ed40b622142f1c98125abcfe89a76a661b0e8e343910\", \"size\": 7023}, \"mediaType\": \"application/vnd.docker.distribution.manifest.v2+json\"}",
-        "imageId": {
-            "imageTag": "latest",
-            "imageDigest": "sha256:c639b9999fadc04554ed2ef5cec140d35136d23f0ee15ad71f0708e334fc21ba"
-        },
-        "imageSizeInBytes": 52428800,
-        "imageDigest": null,
-        "imageTag": "latest",
-        "registryId": "012345678910",
-        "repositoryName": "test_repository",
-        "imagePushedAt": null
-    }
-}
-'''
