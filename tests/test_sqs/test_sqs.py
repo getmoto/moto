@@ -7,6 +7,7 @@ import botocore.exceptions
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage, Message
 
+import base64
 import requests
 import sure  # noqa
 import time
@@ -43,10 +44,44 @@ def test_get_inexistent_queue():
 def test_message_send():
     sqs = boto3.resource('sqs', region_name='us-east-1')
     queue = sqs.create_queue(QueueName="blah")
-    msg = queue.send_message(MessageBody="derp")
-
+    msg = queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            'timestamp': {
+                'StringValue': '1493147359900',
+                'DataType': 'Number',
+            }
+        }
+    )
     msg.get('MD5OfMessageBody').should.equal(
         '58fd9edd83341c29f1aebba81c31e257')
+    msg.get('MD5OfMessageAttributes').should.equal(
+        '235c5c510d26fb653d073faed50ae77c')
+    msg.get('ResponseMetadata', {}).get('RequestId').should.equal(
+        '27daac76-34dd-47df-bd01-1f6e873584a0')
+    msg.get('MessageId').should_not.contain(' \n')
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_message_with_complex_attributes():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="blah")
+    msg = queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            'ccc': {'StringValue': 'testjunk', 'DataType': 'String'},
+            'aaa': {'BinaryValue': b'\x02\x03\x04', 'DataType': 'Binary'},
+            'zzz': {'DataType': 'Number', 'StringValue': '0230.01'},
+            'öther_encodings': {'DataType': 'String', 'StringValue': 'T\xFCst'}
+        }
+    )
+    msg.get('MD5OfMessageBody').should.equal(
+        '58fd9edd83341c29f1aebba81c31e257')
+    msg.get('MD5OfMessageAttributes').should.equal(
+        '8ae21a7957029ef04146b42aeaa18a22')
     msg.get('ResponseMetadata', {}).get('RequestId').should.equal(
         '27daac76-34dd-47df-bd01-1f6e873584a0')
     msg.get('MessageId').should_not.contain(' \n')
@@ -197,9 +232,10 @@ def test_send_message_with_attributes():
 
     body = 'this is a test message'
     message = queue.new_message(body)
+    BASE64_BINARY = base64.b64encode(b'binary value').decode('utf-8')
     message_attributes = {
         'test.attribute_name': {'data_type': 'String', 'string_value': 'attribute value'},
-        'test.binary_attribute': {'data_type': 'Binary', 'binary_value': 'binary value'},
+        'test.binary_attribute': {'data_type': 'Binary', 'binary_value': BASE64_BINARY},
         'test.number_attribute': {'data_type': 'Number', 'string_value': 'string value'}
     }
     message.message_attributes = message_attributes

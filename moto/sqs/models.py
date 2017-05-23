@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
 
+import base64
 import hashlib
 import re
+import six
+import struct
 from xml.sax.saxutils import escape
 
 import boto.sqs
@@ -16,6 +19,8 @@ from .exceptions import (
 
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
+
+TRANSPORT_TYPE_ENCODINGS = {'String': b'\x01', 'Binary': b'\x02', 'Number': b'\x01'}
 
 
 class Message(BaseModel):
@@ -33,10 +38,58 @@ class Message(BaseModel):
         self.delayed_until = 0
 
     @property
-    def md5(self):
-        body_md5 = hashlib.md5()
-        body_md5.update(self._body.encode('utf-8'))
-        return body_md5.hexdigest()
+    def body_md5(self):
+        md5 = hashlib.md5()
+        md5.update(self._body.encode('utf-8'))
+        return md5.hexdigest()
+
+    @property
+    def attribute_md5(self):
+        """
+        The MD5 of all attributes is calculated by first generating a
+        utf-8 string from each attribute and MD5-ing the concatenation
+        of them all. Each attribute is encoded with some bytes that
+        describe the length of each part and the type of attribute.
+
+        Not yet implemented:
+            List types (https://github.com/aws/aws-sdk-java/blob/7844c64cf248aed889811bf2e871ad6b276a89ca/aws-java-sdk-sqs/src/main/java/com/amazonaws/services/sqs/MessageMD5ChecksumHandler.java#L58k)
+        """
+        def utf8(str):
+            if isinstance(str, six.string_types):
+                return str.encode('utf-8')
+            return str
+        md5 = hashlib.md5()
+        for name in sorted(self.message_attributes.keys()):
+            attr = self.message_attributes[name]
+            data_type = attr['data_type']
+
+            encoded = utf8('')
+            # Each part of each attribute is encoded right after it's
+            # own length is packed into a 4-byte integer
+            # 'timestamp' -> b'\x00\x00\x00\t'
+            encoded += struct.pack("!I", len(utf8(name))) + utf8(name)
+            # The datatype is additionally given a final byte
+            # representing which type it is
+            encoded += struct.pack("!I", len(data_type)) + utf8(data_type)
+            encoded += TRANSPORT_TYPE_ENCODINGS[data_type]
+
+            if data_type == 'String' or data_type == 'Number':
+                value = attr['string_value']
+            elif data_type == 'Binary':
+                print(data_type, attr['binary_value'], type(attr['binary_value']))
+                value = base64.b64decode(attr['binary_value'])
+            else:
+                print("Moto hasn't implemented MD5 hashing for {} attributes".format(data_type))
+                # The following should be enough of a clue to users that
+                # they are not, in fact, looking at a correct MD5 while
+                # also following the character and length constraints of
+                # MD5 so as not to break client softwre
+                return('deadbeefdeadbeefdeadbeefdeadbeef')
+
+            encoded += struct.pack("!I", len(utf8(value))) + utf8(value)
+
+            md5.update(encoded)
+        return md5.hexdigest()
 
     @property
     def body(self):
