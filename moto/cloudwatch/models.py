@@ -111,6 +111,27 @@ class CloudWatchBackend(BaseBackend):
         return self.metric_data
 
 
+class LogGroup(BaseModel):
+
+    def __init__(self, spec):
+        # required
+        self.name = spec['LogGroupName']
+        # optional
+        self.tags = spec.get('Tags', [])
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'LogGroupName': properties['LogGroupName']
+        }
+        optional_properties = 'Tags'.split()
+        for prop in optional_properties:
+            if prop in properties:
+                spec[prop] = properties[prop]
+        return LogGroup(spec)
+
+
 cloudwatch_backends = {}
 for region in boto.ec2.cloudwatch.regions():
     cloudwatch_backends[region.name] = CloudWatchBackend()

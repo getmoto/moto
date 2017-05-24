@@ -137,6 +137,20 @@ class Table(BaseModel):
             }
         return results
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        key_attr = [i['AttributeName'] for i in properties['KeySchema'] if i['KeyType'] == 'HASH'][0]
+        key_type = [i['AttributeType'] for i in properties['AttributeDefinitions'] if i['AttributeName'] == key_attr][0]
+        spec = {
+            'name': properties['TableName'],
+            'hash_key_attr': key_attr,
+            'hash_key_type': key_type
+        }
+        # TODO: optional properties still missing:
+        # range_key_attr, range_key_type, read_capacity, write_capacity
+        return Table(**spec)
+
     def __len__(self):
         count = 0
         for key, value in self.items.items():
@@ -244,6 +258,14 @@ class Table(BaseModel):
                 return self.items.pop(hash_key)
         except KeyError:
             return None
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'StreamArn':
+            region = 'us-east-1'
+            time = '2000-01-01T00:00:00.000'
+            return 'arn:aws:dynamodb:{0}:123456789012:table/{1}/stream/{2}'.format(region, self.name, time)
+        raise UnformattedGetAttTemplateException()
 
 
 class DynamoDBBackend(BaseBackend):

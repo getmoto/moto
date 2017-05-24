@@ -7,7 +7,9 @@ import warnings
 
 from moto.autoscaling import models as autoscaling_models
 from moto.awslambda import models as lambda_models
+from moto.cloudwatch import models as cloudwatch_models
 from moto.datapipeline import models as datapipeline_models
+from moto.dynamodb import models as dynamodb_models
 from moto.ec2 import models as ec2_models
 from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
@@ -27,7 +29,10 @@ from boto.cloudformation.stack import Output
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
     "AWS::AutoScaling::LaunchConfiguration": autoscaling_models.FakeLaunchConfiguration,
+    "AWS::DynamoDB::Table": dynamodb_models.Table,
+    "AWS::Lambda::EventSourceMapping": lambda_models.EventSourceMapping,
     "AWS::Lambda::Function": lambda_models.LambdaFunction,
+    "AWS::Lambda::Version": lambda_models.LambdaVersion,
     "AWS::EC2::EIP": ec2_models.ElasticAddress,
     "AWS::EC2::Instance": ec2_models.Instance,
     "AWS::EC2::InternetGateway": ec2_models.InternetGateway,
@@ -53,6 +58,7 @@ MODEL_MAP = {
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,
     "AWS::KMS::Key": kms_models.Key,
+    "AWS::Logs::LogGroup": cloudwatch_models.LogGroup,
     "AWS::RDS::DBInstance": rds_models.Database,
     "AWS::RDS::DBSecurityGroup": rds_models.SecurityGroup,
     "AWS::RDS::DBSubnetGroup": rds_models.SubnetGroup,
@@ -133,7 +139,7 @@ def clean_json(resource_json, resources_map):
             try:
                 return resource.get_cfn_attribute(resource_json['Fn::GetAtt'][1])
             except NotImplementedError as n:
-                logger.warning(n.message.format(
+                logger.warning(str(n).format(
                     resource_json['Fn::GetAtt'][0]))
             except UnformattedGetAttTemplateException:
                 raise ValidationError(
