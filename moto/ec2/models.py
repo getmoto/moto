@@ -5,6 +5,8 @@ import itertools
 import re
 import six
 
+import boto.ec2
+
 from collections import defaultdict
 from datetime import datetime
 from boto.ec2.instance import Instance as BotoInstance, Reservation
@@ -1143,24 +1145,7 @@ class Zone(object):
 
 
 class RegionsAndZonesBackend(object):
-    regions = [
-        Region("ap-northeast-1", "ec2.ap-northeast-1.amazonaws.com"),
-        Region("ap-northeast-2", "ec2.ap-northeast-2.amazonaws.com"),
-        Region("ap-south-1", "ec2.ap-south-1.amazonaws.com"),
-        Region("ap-southeast-1", "ec2.ap-southeast-1.amazonaws.com"),
-        Region("ap-southeast-2", "ec2.ap-southeast-2.amazonaws.com"),
-        Region("ca-central-1", "ec2.ca-central-1.amazonaws.com.cn"),
-        Region("cn-north-1", "ec2.cn-north-1.amazonaws.com.cn"),
-        Region("eu-central-1", "ec2.eu-central-1.amazonaws.com"),
-        Region("eu-west-1", "ec2.eu-west-1.amazonaws.com"),
-        Region("eu-west-2", "ec2.eu-west-2.amazonaws.com"),
-        Region("sa-east-1", "ec2.sa-east-1.amazonaws.com"),
-        Region("us-east-1", "ec2.us-east-1.amazonaws.com"),
-        Region("us-east-2", "ec2.us-east-2.amazonaws.com"),
-        Region("us-gov-west-1", "ec2.us-gov-west-1.amazonaws.com"),
-        Region("us-west-1", "ec2.us-west-1.amazonaws.com"),
-        Region("us-west-2", "ec2.us-west-2.amazonaws.com"),
-    ]
+    regions = [Region(ri.name, ri.endpoint) for ri in boto.ec2.regions()]
 
     zones = dict(
         (region, [Zone(region + c, region) for c in 'abc'])
