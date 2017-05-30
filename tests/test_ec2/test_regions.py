@@ -5,12 +5,18 @@ import boto.ec2.elb
 import sure
 from moto import mock_ec2_deprecated, mock_autoscaling_deprecated, mock_elb_deprecated
 
+from moto.ec2 import ec2_backends
+
+def test_use_boto_regions():
+    boto_regions = {r.name for r in boto.ec2.regions()}
+    moto_regions = set(ec2_backends)
+
+    moto_regions.should.equal(boto_regions)
 
 def add_servers_to_region(ami_id, count, region):
     conn = boto.ec2.connect_to_region(region)
     for index in range(count):
         conn.run_instances(ami_id)
-
 
 @mock_ec2_deprecated
 def test_add_servers_to_a_single_region():
