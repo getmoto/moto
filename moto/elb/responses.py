@@ -159,7 +159,7 @@ class ELBResponse(BaseResponse):
         if connection_draining:
             attribute = ConnectionDrainingAttribute()
             attribute.enabled = connection_draining["enabled"] == "true"
-            attribute.timeout = connection_draining["timeout"]
+            attribute.timeout = connection_draining.get("timeout")
             self.elb_backend.set_connection_draining_attribute(
                 load_balancer_name, attribute)
 
