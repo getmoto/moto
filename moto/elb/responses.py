@@ -159,9 +159,8 @@ class ELBResponse(BaseResponse):
         if connection_draining:
             attribute = ConnectionDrainingAttribute()
             attribute.enabled = connection_draining["enabled"] == "true"
-            attribute.timeout = connection_draining["timeout"]
-            self.elb_backend.set_connection_draining_attribute(
-                load_balancer_name, attribute)
+            attribute.timeout = connection_draining.get("timeout", 300)
+            self.elb_backend.set_connection_draining_attribute(load_balancer_name, attribute)
 
         connection_settings = self._get_dict_param(
             "LoadBalancerAttributes.ConnectionSettings.")
@@ -172,7 +171,7 @@ class ELBResponse(BaseResponse):
                 load_balancer_name, attribute)
 
         template = self.response_template(MODIFY_ATTRIBUTES_TEMPLATE)
-        return template.render(attributes=load_balancer.attributes)
+        return template.render(load_balancer=load_balancer, attributes=load_balancer.attributes)
 
     def create_load_balancer_policy(self):
         load_balancer_name = self._get_param('LoadBalancerName')
@@ -592,9 +591,11 @@ DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns
         <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
       </CrossZoneLoadBalancing>
       <ConnectionDraining>
-        <Enabled>{{ attributes.connection_draining.enabled }}</Enabled>
         {% if attributes.connection_draining.enabled %}
+        <Enabled>true</Enabled>
         <Timeout>{{ attributes.connection_draining.timeout }}</Timeout>
+        {% else %}
+        <Enabled>false</Enabled>
         {% endif %}
       </ConnectionDraining>
     </LoadBalancerAttributes>
@@ -607,7 +608,7 @@ DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns
 
 MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <ModifyLoadBalancerAttributesResult>
-  <LoadBalancerName>my-loadbalancer</LoadBalancerName>
+  <LoadBalancerName>{{ load_balancer.name }}</LoadBalancerName>
     <LoadBalancerAttributes>
       <AccessLog>
         <Enabled>{{ attributes.access_log.enabled }}</Enabled>
@@ -624,9 +625,11 @@ MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="htt
         <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
       </CrossZoneLoadBalancing>
       <ConnectionDraining>
-        <Enabled>{{ attributes.connection_draining.enabled }}</Enabled>
         {% if attributes.connection_draining.enabled %}
+        <Enabled>true</Enabled>
         <Timeout>{{ attributes.connection_draining.timeout }}</Timeout>
+        {% else %}
+        <Enabled>false</Enabled>
         {% endif %}
       </ConnectionDraining>
     </LoadBalancerAttributes>
