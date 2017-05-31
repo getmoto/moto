@@ -816,6 +816,42 @@ def test_create_with_tags():
     tags.should.have.key('k').which.should.equal('v')
 
 
+@mock_elb
+def test_modify_attributes():
+    client = boto3.client('elb', region_name='us-east-1')
+
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[{'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    # Default ConnectionDraining timeout of 300 seconds
+    client.modify_load_balancer_attributes(
+        LoadBalancerName='my-lb',
+        LoadBalancerAttributes={
+            'ConnectionDraining': {'Enabled': True},
+        }
+    )
+    lb_attrs = client.describe_load_balancer_attributes(LoadBalancerName='my-lb')
+    lb_attrs['LoadBalancerAttributes']['ConnectionDraining']['Enabled'].should.equal(True)
+    lb_attrs['LoadBalancerAttributes']['ConnectionDraining']['Timeout'].should.equal(300)
+
+    # specify a custom ConnectionDraining timeout
+    client.modify_load_balancer_attributes(
+        LoadBalancerName='my-lb',
+        LoadBalancerAttributes={
+            'ConnectionDraining': {
+                'Enabled': True,
+                'Timeout': 45,
+            },
+        }
+    )
+    lb_attrs = client.describe_load_balancer_attributes(LoadBalancerName='my-lb')
+    lb_attrs['LoadBalancerAttributes']['ConnectionDraining']['Enabled'].should.equal(True)
+    lb_attrs['LoadBalancerAttributes']['ConnectionDraining']['Timeout'].should.equal(45)
+
+
 @mock_ec2
 @mock_elb
 def test_subnets():
