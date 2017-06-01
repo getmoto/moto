@@ -334,6 +334,8 @@ class SQSBackend(BaseBackend):
         :param string queue_name: The name of the queue to read from.
         :param int count: The maximum amount of messages to retrieve.
         :param int visibility_timeout: The number of seconds the message should remain invisible to other queue readers.
+        :param int wait_seconds_timeout:  The duration (in seconds) for which the call waits for a message to arrive in
+         the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds
         """
         queue = self.get_queue(queue_name)
         result = []
@@ -347,6 +349,10 @@ class SQSBackend(BaseBackend):
                 break
 
             if len(queue.messages) == 0:
+                # we want to break here, otherwise it will be an infinite loop
+                if wait_seconds_timeout == 0:
+                    break
+
                 import time
                 time.sleep(0.001)
                 continue
