@@ -4,6 +4,7 @@ import base64
 import datetime
 import hashlib
 import io
+import os
 import json
 import sys
 import zipfile
@@ -16,12 +17,12 @@ except:
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
 from moto.s3.models import s3_backend
-from moto.s3.exceptions import MissingBucket
+from moto.s3.exceptions import MissingBucket, MissingKey
 
 
 class LambdaFunction(BaseModel):
 
-    def __init__(self, spec):
+    def __init__(self, spec, validate_s3=True):
         # required
         self.code = spec['Code']
         self.function_name = spec['FunctionName']
@@ -58,24 +59,25 @@ class LambdaFunction(BaseModel):
             self.code_size = len(to_unzip_code)
             self.code_sha_256 = hashlib.sha256(to_unzip_code).hexdigest()
         else:
-            # validate s3 bucket
+            # validate s3 bucket and key
+            key = None
             try:
                 # FIXME: does not validate bucket region
                 key = s3_backend.get_key(
                     self.code['S3Bucket'], self.code['S3Key'])
             except MissingBucket:
-                raise ValueError(
-                    "InvalidParameterValueException",
-                    "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist")
-            else:
-                # validate s3 key
-                if key is None:
+                if do_validate_s3():
+                    raise ValueError(
+                        "InvalidParameterValueException",
+                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist")
+            except MissingKey:
+                if do_validate_s3():
                     raise ValueError(
                         "InvalidParameterValueException",
                         "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.")
-                else:
-                    self.code_size = key.size
-                    self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+            if key:
+                self.code_size = key.size
+                self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
         self.function_arn = 'arn:aws:lambda:123456789012:function:{0}'.format(
             self.function_name)
 
@@ -209,6 +211,13 @@ class LambdaFunction(BaseModel):
         fn = backend.create_function(spec)
         return fn
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            region = 'us-east-1'
+            return 'arn:aws:lambda:{0}:123456789012:function:{1}'.format(region, self.function_name)
+        raise UnformattedGetAttTemplateException()
+
     @staticmethod
     def _create_zipfile_from_plaintext_code(code):
         zip_output = io.BytesIO()
@@ -217,6 +226,48 @@ class LambdaFunction(BaseModel):
         zip_file.close()
         zip_output.seek(0)
         return zip_output.read()
+
+
+class EventSourceMapping(BaseModel):
+
+    def __init__(self, spec):
+        # required
+        self.function_name = spec['FunctionName']
+        self.event_source_arn = spec['EventSourceArn']
+        self.starting_position = spec['StartingPosition']
+
+        # optional
+        self.batch_size = spec.get('BatchSize', 100)
+        self.enabled = spec.get('Enabled', True)
+        self.starting_position_timestamp = spec.get('StartingPositionTimestamp', None)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'FunctionName': properties['FunctionName'],
+            'EventSourceArn': properties['EventSourceArn'],
+            'StartingPosition': properties['StartingPosition']
+        }
+        optional_properties = 'BatchSize Enabled StartingPositionTimestamp'.split()
+        for prop in optional_properties:
+            if prop in properties:
+                spec[prop] = properties[prop]
+        return EventSourceMapping(spec)
+
+
+class LambdaVersion(BaseModel):
+
+    def __init__(self, spec):
+        self.version = spec['Version']
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'Version': properties.get('Version')
+        }
+        return LambdaVersion(spec)
 
 
 class LambdaBackend(BaseBackend):
@@ -240,6 +291,10 @@ class LambdaBackend(BaseBackend):
 
     def list_functions(self):
         return self._functions.values()
+
+
+def do_validate_s3():
+    return os.environ.get('VALIDATE_LAMBDA_S3', '') in ['', '1', 'true']
 
 
 lambda_backends = {}

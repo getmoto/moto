@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import json
 
 import boto
@@ -565,3 +566,80 @@ def test_describe_stack_events_shows_create_update_and_delete():
         assert False, "Too many stack events"
 
     list(stack_events_to_look_for).should.be.empty
+
+
+@mock_cloudformation_deprecated
+@mock_route53_deprecated
+def test_create_stack_lambda_and_dynamodb():
+    conn = boto.connect_cloudformation()
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack Lambda Test 1",
+        "Parameters": {
+        },
+        "Resources": {
+            "func1": {
+                "Type" : "AWS::Lambda::Function",
+                "Properties" : {
+                    "Code": {
+                        "S3Bucket": "bucket_123",
+                        "S3Key": "key_123"
+                    },
+                    "FunctionName": "func1",
+                    "Handler": "handler.handler",
+                    "Role": "role1",
+                    "Runtime": "python2.7",
+                    "Description": "descr",
+                    "MemorySize": 12345,
+                }
+            },
+            "func1version": {
+                "Type": "AWS::Lambda::LambdaVersion",
+                "Properties" : {
+                    "Version": "v1.2.3"
+                }
+            },
+            "tab1": {
+                "Type" : "AWS::DynamoDB::Table",
+                "Properties" : {
+                    "TableName": "tab1",
+                    "KeySchema": [{
+                        "AttributeName": "attr1",
+                        "KeyType": "HASH"
+                    }],
+                    "AttributeDefinitions": [{
+                        "AttributeName": "attr1",
+                        "AttributeType": "string"
+                    }],
+                    "ProvisionedThroughput": {
+                        "ReadCapacityUnits": 10,
+                        "WriteCapacityUnits": 10
+                    }
+                }
+            },
+            "func1mapping": {
+                "Type": "AWS::Lambda::EventSourceMapping",
+                "Properties" : {
+                    "FunctionName": "v1.2.3",
+                    "EventSourceArn": "arn:aws:dynamodb:region:XXXXXX:table/tab1/stream/2000T00:00:00.000",
+                    "StartingPosition": "0",
+                    "BatchSize": 100,
+                    "Enabled": True
+                }
+            }
+        },
+    }
+    validate_s3_before = os.environ.get('VALIDATE_LAMBDA_S3', '')
+    try:
+        os.environ['VALIDATE_LAMBDA_S3'] = 'false'
+        conn.create_stack(
+            "test_stack_lambda_1",
+            template_body=json.dumps(dummy_template),
+            parameters={}.items()
+        )
+    finally:
+        os.environ['VALIDATE_LAMBDA_S3'] = validate_s3_before
+
+    stack = conn.describe_stacks()[0]
+    resources = stack.list_resources()
+    assert len(resources) == 4
