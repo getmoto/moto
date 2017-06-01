@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import re
 
 import six
+from moto.core.utils import str_to_rfc_1123_datetime
 from six.moves.urllib.parse import parse_qs, urlparse
 
 import xmltodict
@@ -483,7 +484,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif method == 'PUT':
             return self._key_response_put(request, body, bucket_name, query, key_name, headers)
         elif method == 'HEAD':
-            return self._key_response_head(bucket_name, query, key_name, headers)
+            return self._key_response_head(bucket_name, query, key_name, headers=request.headers)
         elif method == 'DELETE':
             return self._key_response_delete(bucket_name, query, key_name, headers)
         elif method == 'POST':
@@ -597,12 +598,21 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _key_response_head(self, bucket_name, query, key_name, headers):
         response_headers = {}
         version_id = query.get('versionId', [None])[0]
+
+        if_modified_since = headers.get('If-Modified-Since', None)
+        if if_modified_since:
+            if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
+
         key = self.backend.get_key(
             bucket_name, key_name, version_id=version_id)
         if key:
             response_headers.update(key.metadata)
             response_headers.update(key.response_dict)
-            return 200, response_headers, ""
+
+            if if_modified_since and key.last_modified < if_modified_since:
+                return 304, response_headers, 'Not Modified'
+            else:
+                return 200, response_headers, ""
         else:
             return 404, response_headers, ""
 
