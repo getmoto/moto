@@ -208,6 +208,35 @@ def test_send_message():
     messages[1]['Body'].should.equal(body_two)
 
 
+@mock_sqs
+def test_receive_messages_with_wait_seconds_timeout_of_zero():
+    """
+    test that zero messages is returned with a wait_seconds_timeout of zero,
+    previously this created an infinite loop and nothing was returned
+    :return:
+    """
+
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="blah")
+
+    messages = queue.receive_messages(WaitTimeSeconds=0)
+    messages.should.equal([])
+
+
+@mock_sqs
+def test_receive_messages_with_wait_seconds_timeout_of_negative_one():
+    """
+    test that zero messages is returned with a wait_seconds_timeout of negative 1
+    :return:
+    """
+
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="blah")
+
+    messages = queue.receive_messages(WaitTimeSeconds=-1)
+    messages.should.equal([])
+
+
 @mock_sqs_deprecated
 def test_send_message_with_xml_characters():
     conn = boto.connect_sqs('the_key', 'the_secret')
