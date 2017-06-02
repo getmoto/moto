@@ -210,6 +210,12 @@ class CloudFormationResponse(BaseResponse):
             template = self.response_template(DELETE_STACK_RESPONSE_TEMPLATE)
             return template.render()
 
+    def list_exports(self):
+        token = self._get_param('NextToken')
+        exports, next_token = self.cloudformation_backend.list_exports(token=token)
+        template = self.response_template(LIST_EXPORTS_RESPONSE)
+        return template.render(exports=exports, next_token=next_token)
+
 
 CREATE_STACK_RESPONSE_TEMPLATE = """<CreateStackResponse>
   <CreateStackResult>
@@ -410,3 +416,23 @@ DELETE_STACK_RESPONSE_TEMPLATE = """<DeleteStackResponse>
   </ResponseMetadata>
 </DeleteStackResponse>
 """
+
+LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <ListExportsResult>
+    <Exports>
+      {% for export in exports %}
+      <member>
+        <ExportingStackId>{{ export.exporting_stack_id }}</ExportingStackId>
+        <Name>{{ export.name }}</Name>
+        <Value>{{ export.value }}</Value>
+      </member>
+      {% endfor %}
+    </Exports>
+    {% if next_token %}
+    <NextToken>{{ next_token }}</NextToken>
+    {% endif %}
+  </ListExportsResult>
+  <ResponseMetadata>
+    <RequestId>5ccc7dcd-744c-11e5-be70-example</RequestId>
+  </ResponseMetadata>
+</ListExportsResponse>"""

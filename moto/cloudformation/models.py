@@ -206,6 +206,17 @@ class CloudFormationBackend(BaseBackend):
                 if stack.name == name_or_stack_id:
                     self.delete_stack(stack.stack_id)
 
+    def list_exports(self, token):
+        all_exports = [x for x in self.exports.values()]
+        if token is None:
+            exports = all_exports[0:100]
+            next_token = '100' if len(all_exports) > 100 else None
+        else:
+            token = int(token)
+            exports = all_exports[token:token + 100]
+            next_token = str(token + 100) if len(all_exports) > token + 100 else None
+        return exports, next_token
+
 
 cloudformation_backends = {}
 for region in boto.cloudformation.regions():

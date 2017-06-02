@@ -57,8 +57,31 @@ dummy_update_template = {
     }
 }
 
+dummy_output_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Stack 1",
+    "Resources": {
+        "Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-08111162"
+            }
+        }
+    },
+    "Outputs" : {
+        "StackVPC" : {
+            "Description" : "The ID of the VPC",
+            "Value" : "VPCID",
+            "Export" : {
+                "Name" : "My VPC ID"
+            }
+        }
+    }
+}
+
 dummy_template_json = json.dumps(dummy_template)
 dummy_update_template_json = json.dumps(dummy_template)
+dummy_output_template_json = json.dumps(dummy_output_template)
 
 
 @mock_cloudformation
@@ -408,3 +431,56 @@ def test_stack_events():
         assert False, "Too many stack events"
 
     list(stack_events_to_look_for).should.be.empty
+
+
+@mock_cloudformation
+def test_list_exports():
+    cf_client = boto3.client('cloudformation', region_name='us-east-1')
+    cf_resource = boto3.resource('cloudformation', region_name='us-east-1')
+    stack = cf_resource.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_output_template_json,
+    )
+    output_value = 'VPCID'
+    exports = cf_client.list_exports()['Exports']
+
+    stack.outputs.should.have.length_of(1)
+    stack.outputs[0]['OutputValue'].should.equal(output_value)
+
+    exports.should.have.length_of(1)
+    exports[0]['ExportingStackId'].should.equal(stack.stack_id)
+    exports[0]['Name'].should.equal('My VPC ID')
+    exports[0]['Value'].should.equal(output_value)
+
+
+@mock_cloudformation
+def test_list_exports_with_token():
+    cf = boto3.client('cloudformation', region_name='us-east-1')
+    for i in range(101):
+        cf.create_stack(
+            StackName="test_stack",
+            TemplateBody=dummy_output_template_json,
+        )
+    exports = cf.list_exports()
+    exports['Exports'].should.have.length_of(100)
+    exports.get('NextToken').should_not.be.none
+
+    more_exports = cf.list_exports(NextToken=exports['NextToken'])
+    more_exports['Exports'].should.have.length_of(1)
+    more_exports.get('NextToken').should.be.none
+
+
+@mock_cloudformation
+def test_delete_stack_with_export():
+    cf = boto3.client('cloudformation', region_name='us-east-1')
+    stack = cf.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_output_template_json,
+    )
+
+    stack_id = stack['StackId']
+    exports = cf.list_exports()['Exports']
+    exports.should.have.length_of(1)
+
+    cf.delete_stack(StackName=stack_id)
+    cf.list_exports()['Exports'].should.have.length_of(0)
