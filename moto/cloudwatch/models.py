@@ -1,15 +1,17 @@
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 import boto.ec2.cloudwatch
 import datetime
 
 
 class Dimension(object):
+
     def __init__(self, name, value):
         self.name = name
         self.value = value
 
 
-class FakeAlarm(object):
+class FakeAlarm(BaseModel):
+
     def __init__(self, name, namespace, metric_name, comparison_operator, evaluation_periods,
                  period, threshold, statistic, description, dimensions, alarm_actions,
                  ok_actions, insufficient_data_actions, unit):
@@ -22,7 +24,8 @@ class FakeAlarm(object):
         self.threshold = threshold
         self.statistic = statistic
         self.description = description
-        self.dimensions = [Dimension(dimension['name'], dimension['value']) for dimension in dimensions]
+        self.dimensions = [Dimension(dimension['name'], dimension[
+                                     'value']) for dimension in dimensions]
         self.alarm_actions = alarm_actions
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
@@ -31,12 +34,14 @@ class FakeAlarm(object):
         self.configuration_updated_timestamp = datetime.datetime.utcnow()
 
 
-class MetricDatum(object):
+class MetricDatum(BaseModel):
+
     def __init__(self, namespace, name, value, dimensions):
         self.namespace = namespace
         self.name = name
         self.value = value
-        self.dimensions = [Dimension(dimension['name'], dimension['value']) for dimension in dimensions]
+        self.dimensions = [Dimension(dimension['name'], dimension[
+                                     'value']) for dimension in dimensions]
 
 
 class CloudWatchBackend(BaseBackend):
@@ -99,10 +104,32 @@ class CloudWatchBackend(BaseBackend):
 
     def put_metric_data(self, namespace, metric_data):
         for name, value, dimensions in metric_data:
-            self.metric_data.append(MetricDatum(namespace, name, value, dimensions))
+            self.metric_data.append(MetricDatum(
+                namespace, name, value, dimensions))
 
     def get_all_metrics(self):
         return self.metric_data
+
+
+class LogGroup(BaseModel):
+
+    def __init__(self, spec):
+        # required
+        self.name = spec['LogGroupName']
+        # optional
+        self.tags = spec.get('Tags', [])
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'LogGroupName': properties['LogGroupName']
+        }
+        optional_properties = 'Tags'.split()
+        for prop in optional_properties:
+            if prop in properties:
+                spec[prop] = properties[prop]
+        return LogGroup(spec)
 
 
 cloudwatch_backends = {}

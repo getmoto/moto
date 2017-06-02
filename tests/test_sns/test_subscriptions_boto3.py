@@ -52,7 +52,8 @@ def test_getting_subscriptions_by_topic():
                    Protocol="http",
                    Endpoint="http://example2.com/")
 
-    topic1_subscriptions = conn.list_subscriptions_by_topic(TopicArn=topic1_arn)["Subscriptions"]
+    topic1_subscriptions = conn.list_subscriptions_by_topic(TopicArn=topic1_arn)[
+        "Subscriptions"]
     topic1_subscriptions.should.have.length_of(1)
     topic1_subscriptions[0]['Endpoint'].should.equal("http://example1.com/")
 
@@ -77,14 +78,19 @@ def test_subscription_paging():
     next_token.should.equal(str(DEFAULT_PAGE_SIZE))
 
     all_subscriptions = conn.list_subscriptions(NextToken=next_token)
-    all_subscriptions["Subscriptions"].should.have.length_of(int(DEFAULT_PAGE_SIZE / 3))
+    all_subscriptions["Subscriptions"].should.have.length_of(
+        int(DEFAULT_PAGE_SIZE / 3))
     all_subscriptions.shouldnt.have("NextToken")
 
-    topic1_subscriptions = conn.list_subscriptions_by_topic(TopicArn=topic1_arn)
-    topic1_subscriptions["Subscriptions"].should.have.length_of(DEFAULT_PAGE_SIZE)
+    topic1_subscriptions = conn.list_subscriptions_by_topic(
+        TopicArn=topic1_arn)
+    topic1_subscriptions["Subscriptions"].should.have.length_of(
+        DEFAULT_PAGE_SIZE)
     next_token = topic1_subscriptions["NextToken"]
     next_token.should.equal(str(DEFAULT_PAGE_SIZE))
 
-    topic1_subscriptions = conn.list_subscriptions_by_topic(TopicArn=topic1_arn, NextToken=next_token)
-    topic1_subscriptions["Subscriptions"].should.have.length_of(int(DEFAULT_PAGE_SIZE / 3))
+    topic1_subscriptions = conn.list_subscriptions_by_topic(
+        TopicArn=topic1_arn, NextToken=next_token)
+    topic1_subscriptions["Subscriptions"].should.have.length_of(
+        int(DEFAULT_PAGE_SIZE / 3))
     topic1_subscriptions.shouldnt.have("NextToken")

@@ -1,12 +1,7 @@
 from __future__ import unicode_literals
 from .models import kms_backends
-from ..core.models import MockAWS
+from ..core.models import base_decorator, deprecated_base_decorator
 
 kms_backend = kms_backends['us-east-1']
-
-
-def mock_kms(func=None):
-    if func:
-        return MockAWS(kms_backends)(func)
-    else:
-        return MockAWS(kms_backends)
+mock_kms = base_decorator(kms_backends)
+mock_kms_deprecated = deprecated_base_decorator(kms_backends)

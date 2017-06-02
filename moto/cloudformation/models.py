@@ -1,27 +1,33 @@
 from __future__ import unicode_literals
 from datetime import datetime
 import json
+import yaml
+import uuid
 
 import boto.cloudformation
-from moto.core import BaseBackend
+from moto.compat import OrderedDict
+from moto.core import BaseBackend, BaseModel
 
 from .parsing import ResourceMap, OutputMap
 from .utils import generate_stack_id
 from .exceptions import ValidationError
 
 
-class FakeStack(object):
-    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None):
+class FakeStack(BaseModel):
+
+    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
         self.stack_id = stack_id
         self.name = name
         self.template = template
-        self.template_dict = json.loads(self.template)
+        self._parse_template()
         self.parameters = parameters
         self.region_name = region_name
         self.notification_arns = notification_arns if notification_arns else []
+        self.role_arn = role_arn
         self.tags = tags if tags else {}
         self.events = []
-        self._add_stack_event("CREATE_IN_PROGRESS", resource_status_reason="User Initiated")
+        self._add_stack_event("CREATE_IN_PROGRESS",
+                              resource_status_reason="User Initiated")
 
         self.description = self.template_dict.get('Description')
         self.resource_map = self._create_resource_map()
@@ -30,7 +36,8 @@ class FakeStack(object):
         self.status = 'CREATE_COMPLETE'
 
     def _create_resource_map(self):
-        resource_map = ResourceMap(self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict)
+        resource_map = ResourceMap(
+            self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict)
         resource_map.create()
         return resource_map
 
@@ -65,6 +72,12 @@ class FakeStack(object):
             resource_properties=resource_properties,
         ))
 
+    def _parse_template(self):
+        try:
+            self.template_dict = yaml.load(self.template)
+        except yaml.parser.ParserError:
+            self.template_dict = json.loads(self.template)
+
     @property
     def stack_parameters(self):
         return self.resource_map.resolved_parameters
@@ -77,22 +90,29 @@ class FakeStack(object):
     def stack_outputs(self):
         return self.output_map.values()
 
-    def update(self, template):
+    def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.template = template
-        self.resource_map.update(json.loads(template))
+        self.resource_map.update(json.loads(template), parameters)
         self.output_map = self._create_output_map()
         self._add_stack_event("UPDATE_COMPLETE")
         self.status = "UPDATE_COMPLETE"
+        self.role_arn = role_arn
+        # only overwrite tags if passed
+        if tags is not None:
+            self.tags = tags
+            # TODO: update tags in the resource map
 
     def delete(self):
-        self._add_stack_event("DELETE_IN_PROGRESS", resource_status_reason="User Initiated")
+        self._add_stack_event("DELETE_IN_PROGRESS",
+                              resource_status_reason="User Initiated")
         self.resource_map.delete()
         self._add_stack_event("DELETE_COMPLETE")
         self.status = "DELETE_COMPLETE"
 
 
-class FakeEvent(object):
+class FakeEvent(BaseModel):
+
     def __init__(self, stack_id, stack_name, logical_resource_id, physical_resource_id, resource_type, resource_status, resource_status_reason=None, resource_properties=None):
         self.stack_id = stack_id
         self.stack_name = stack_name
@@ -103,15 +123,16 @@ class FakeEvent(object):
         self.resource_status_reason = resource_status_reason
         self.resource_properties = resource_properties
         self.timestamp = datetime.utcnow()
+        self.event_id = uuid.uuid4()
 
 
 class CloudFormationBackend(BaseBackend):
 
     def __init__(self):
-        self.stacks = {}
+        self.stacks = OrderedDict()
         self.deleted_stacks = {}
 
-    def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None):
+    def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
         stack_id = generate_stack_id(name)
         new_stack = FakeStack(
             stack_id=stack_id,
@@ -121,6 +142,7 @@ class CloudFormationBackend(BaseBackend):
             region_name=region_name,
             notification_arns=notification_arns,
             tags=tags,
+            role_arn=role_arn,
         )
         self.stacks[stack_id] = new_stack
         return new_stack
@@ -138,7 +160,7 @@ class CloudFormationBackend(BaseBackend):
                         return [stack]
             raise ValidationError(name_or_stack_id)
         else:
-            return stacks
+            return list(stacks)
 
     def list_stacks(self):
         return self.stacks.values()
@@ -154,9 +176,9 @@ class CloudFormationBackend(BaseBackend):
                 if stack.name == name_or_stack_id:
                     return stack
 
-    def update_stack(self, name, template):
+    def update_stack(self, name, template, role_arn=None, parameters=None, tags=None):
         stack = self.get_stack(name)
-        stack.update(template)
+        stack.update(template, role_arn, parameters=parameters, tags=tags)
         return stack
 
     def list_stack_resources(self, stack_name_or_id):

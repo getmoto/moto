@@ -4,6 +4,7 @@ from moto.ec2.utils import instance_ids_from_querystring
 
 
 class General(BaseResponse):
+
     def get_console_output(self):
         self.instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = self.instance_ids[0]

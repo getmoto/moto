@@ -3,6 +3,7 @@ from moto.core.responses import BaseResponse
 
 
 class AvailabilityZonesAndRegions(BaseResponse):
+
     def describe_availability_zones(self):
         zones = self.ec2_backend.describe_availability_zones()
         template = self.response_template(DESCRIBE_ZONES_RESPONSE)
@@ -12,6 +13,7 @@ class AvailabilityZonesAndRegions(BaseResponse):
         regions = self.ec2_backend.describe_regions()
         template = self.response_template(DESCRIBE_REGIONS_RESPONSE)
         return template.render(regions=regions)
+
 
 DESCRIBE_REGIONS_RESPONSE = """<DescribeRegionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

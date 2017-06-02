@@ -44,5 +44,3 @@ def test_describe_stacks():
     client.describe_stacks.when.called_with(StackIds=["foo"]).should.throw(
         Exception, re.compile(r'foo')
     )
-
-

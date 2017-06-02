@@ -4,6 +4,7 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class VirtualPrivateGateways(BaseResponse):
+
     def attach_vpn_gateway(self):
         vpn_gateway_id = self.querystring.get('VpnGatewayId')[0]
         vpc_id = self.querystring.get('VpcId')[0]
@@ -41,6 +42,7 @@ class VirtualPrivateGateways(BaseResponse):
         )
         template = self.response_template(DETACH_VPN_GATEWAY_RESPONSE)
         return template.render(attachment=attachment)
+
 
 CREATE_VPN_GATEWAY_RESPONSE = """
 <CreateVpnGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

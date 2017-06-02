@@ -1,11 +1,11 @@
 import boto
 from boto.swf.exceptions import SWFResponseError
 
-from moto import mock_swf
+from moto import mock_swf_deprecated
 
 
 # RegisterDomain endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_register_domain():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")
@@ -18,7 +18,7 @@ def test_register_domain():
     domain["description"].should.equal("A test domain")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_register_already_existing_domain():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")
@@ -28,7 +28,7 @@ def test_register_already_existing_domain():
     ).should.throw(SWFResponseError)
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_register_with_wrong_parameter_type():
     conn = boto.connect_swf("the_key", "the_secret")
 
@@ -38,7 +38,7 @@ def test_register_with_wrong_parameter_type():
 
 
 # ListDomains endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_list_domains_order():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("b-test-domain", "60")
@@ -50,7 +50,7 @@ def test_list_domains_order():
     names.should.equal(["a-test-domain", "b-test-domain", "c-test-domain"])
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_list_domains_reverse_order():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("b-test-domain", "60")
@@ -63,7 +63,7 @@ def test_list_domains_reverse_order():
 
 
 # DeprecateDomain endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_deprecate_domain():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")
@@ -75,7 +75,7 @@ def test_deprecate_domain():
     domain["name"].should.equal("test-domain")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_deprecate_already_deprecated_domain():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")
@@ -86,7 +86,7 @@ def test_deprecate_already_deprecated_domain():
     ).should.throw(SWFResponseError)
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_deprecate_non_existent_domain():
     conn = boto.connect_swf("the_key", "the_secret")
 
@@ -96,19 +96,20 @@ def test_deprecate_non_existent_domain():
 
 
 # DescribeDomain endpoint
-@mock_swf
+@mock_swf_deprecated
 def test_describe_domain():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60", description="A test domain")
 
     domain = conn.describe_domain("test-domain")
-    domain["configuration"]["workflowExecutionRetentionPeriodInDays"].should.equal("60")
+    domain["configuration"][
+        "workflowExecutionRetentionPeriodInDays"].should.equal("60")
     domain["domainInfo"]["description"].should.equal("A test domain")
     domain["domainInfo"]["name"].should.equal("test-domain")
     domain["domainInfo"]["status"].should.equal("REGISTERED")
 
 
-@mock_swf
+@mock_swf_deprecated
 def test_describe_non_existent_domain():
     conn = boto.connect_swf("the_key", "the_secret")
 

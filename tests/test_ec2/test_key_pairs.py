@@ -7,17 +7,17 @@ import boto
 import six
 import sure  # noqa
 
-from boto.exception import EC2ResponseError, JSONResponseError
-from moto import mock_ec2
+from boto.exception import EC2ResponseError
+from moto import mock_ec2_deprecated
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_empty():
     conn = boto.connect_ec2('the_key', 'the_secret')
     assert len(conn.get_all_key_pairs()) == 0
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_invalid_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
@@ -28,15 +28,16 @@ def test_key_pairs_invalid_id():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_create():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         kp = conn.create_key_pair('foo', dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set')
 
     kp = conn.create_key_pair('foo')
     assert kp.material.startswith('---- BEGIN RSA PRIVATE KEY ----')
@@ -45,25 +46,22 @@ def test_key_pairs_create():
     assert kps[0].name == 'foo'
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_create_two():
     conn = boto.connect_ec2('the_key', 'the_secret')
     kp = conn.create_key_pair('foo')
     kp = conn.create_key_pair('bar')
     assert kp.material.startswith('---- BEGIN RSA PRIVATE KEY ----')
     kps = conn.get_all_key_pairs()
-    assert len(kps) == 2
-    # on Python 3, these are reversed for some reason
-    if six.PY3:
-        return
-    assert kps[0].name == 'foo'
-    assert kps[1].name == 'bar'
+    kps.should.have.length_of(2)
+    [i.name for i in kps].should.contain('foo')
+    [i.name for i in kps].should.contain('bar')
     kps = conn.get_all_key_pairs('foo')
-    assert len(kps) == 1
-    assert kps[0].name == 'foo'
+    kps.should.have.length_of(1)
+    kps[0].name.should.equal('foo')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_create_exist():
     conn = boto.connect_ec2('the_key', 'the_secret')
     kp = conn.create_key_pair('foo')
@@ -77,7 +75,7 @@ def test_key_pairs_create_exist():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_delete_no_exist():
     conn = boto.connect_ec2('the_key', 'the_secret')
     assert len(conn.get_all_key_pairs()) == 0
@@ -85,31 +83,33 @@ def test_key_pairs_delete_no_exist():
     r.should.be.ok
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_delete_exist():
     conn = boto.connect_ec2('the_key', 'the_secret')
     conn.create_key_pair('foo')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         r = conn.delete_key_pair('foo', dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set')
 
     r = conn.delete_key_pair('foo')
     r.should.be.ok
     assert len(conn.get_all_key_pairs()) == 0
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_import():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         kp = conn.import_key_pair('foo', b'content', dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set')
 
     kp = conn.import_key_pair('foo', b'content')
     assert kp.name == 'foo'
@@ -118,7 +118,7 @@ def test_key_pairs_import():
     assert kps[0].name == 'foo'
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_key_pairs_import_exist():
     conn = boto.connect_ec2('the_key', 'the_secret')
     kp = conn.import_key_pair('foo', b'content')

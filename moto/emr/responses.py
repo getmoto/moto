@@ -5,15 +5,14 @@ from datetime import datetime
 from functools import wraps
 
 import pytz
-from botocore.exceptions import ClientError
 
-from moto.compat import urlparse
+from six.moves.urllib.parse import urlparse
 from moto.core.responses import AWSServiceSpec
 from moto.core.responses import BaseResponse
 from moto.core.responses import xml_to_json_response
+from .exceptions import EmrError
 from .models import emr_backends
-from .utils import steps_from_query_string
-from .utils import tags_from_query_string
+from .utils import steps_from_query_string, tags_from_query_string
 
 
 def generate_boto3_response(operation):
@@ -30,7 +29,8 @@ def generate_boto3_response(operation):
                     {'x-amzn-requestid': '2690d7eb-ed86-11dd-9877-6fad448a8419',
                      'date': datetime.now(pytz.utc).strftime('%a, %d %b %Y %H:%M:%S %Z'),
                      'content-type': 'application/x-amz-json-1.1'})
-                resp = xml_to_json_response(self.aws_service_spec, operation, rendered)
+                resp = xml_to_json_response(
+                    self.aws_service_spec, operation, rendered)
                 return '' if resp is None else json.dumps(resp)
             return rendered
         return f
@@ -46,7 +46,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     aws_service_spec = AWSServiceSpec('data/emr/2009-03-31/service-2.json')
 
-    def get_region_from_url(self, full_url):
+    def get_region_from_url(self, request, full_url):
         parsed = urlparse(full_url)
         for regex in self.region_regex:
             match = regex.search(parsed.netloc)
@@ -64,14 +64,16 @@ class ElasticMapReduceResponse(BaseResponse):
         instance_groups = self._get_list_prefix('InstanceGroups.member')
         for item in instance_groups:
             item['instance_count'] = int(item['instance_count'])
-        instance_groups = self.backend.add_instance_groups(jobflow_id, instance_groups)
+        instance_groups = self.backend.add_instance_groups(
+            jobflow_id, instance_groups)
         template = self.response_template(ADD_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups)
 
     @generate_boto3_response('AddJobFlowSteps')
     def add_job_flow_steps(self):
         job_flow_id = self._get_param('JobFlowId')
-        steps = self.backend.add_job_flow_steps(job_flow_id, steps_from_query_string(self._get_list_prefix('Steps.member')))
+        steps = self.backend.add_job_flow_steps(
+            job_flow_id, steps_from_query_string(self._get_list_prefix('Steps.member')))
         template = self.response_template(ADD_JOB_FLOW_STEPS_TEMPLATE)
         return template.render(steps=steps)
 
@@ -105,7 +107,8 @@ class ElasticMapReduceResponse(BaseResponse):
         created_before = self._get_param('CreatedBefore')
         job_flow_ids = self._get_multi_param("JobFlowIds.member")
         job_flow_states = self._get_multi_param('JobFlowStates.member')
-        clusters = self.backend.describe_job_flows(job_flow_ids, job_flow_states, created_after, created_before)
+        clusters = self.backend.describe_job_flows(
+            job_flow_ids, job_flow_states, created_after, created_before)
         template = self.response_template(DESCRIBE_JOB_FLOWS_TEMPLATE)
         return template.render(clusters=clusters)
 
@@ -124,7 +127,8 @@ class ElasticMapReduceResponse(BaseResponse):
     def list_bootstrap_actions(self):
         cluster_id = self._get_param('ClusterId')
         marker = self._get_param('Marker')
-        bootstrap_actions, marker = self.backend.list_bootstrap_actions(cluster_id, marker)
+        bootstrap_actions, marker = self.backend.list_bootstrap_actions(
+            cluster_id, marker)
         template = self.response_template(LIST_BOOTSTRAP_ACTIONS_TEMPLATE)
         return template.render(bootstrap_actions=bootstrap_actions, marker=marker)
 
@@ -134,7 +138,8 @@ class ElasticMapReduceResponse(BaseResponse):
         created_after = self._get_param('CreatedAfter')
         created_before = self._get_param('CreatedBefore')
         marker = self._get_param('Marker')
-        clusters, marker = self.backend.list_clusters(cluster_states, created_after, created_before, marker)
+        clusters, marker = self.backend.list_clusters(
+            cluster_states, created_after, created_before, marker)
         template = self.response_template(LIST_CLUSTERS_TEMPLATE)
         return template.render(clusters=clusters, marker=marker)
 
@@ -142,7 +147,8 @@ class ElasticMapReduceResponse(BaseResponse):
     def list_instance_groups(self):
         cluster_id = self._get_param('ClusterId')
         marker = self._get_param('Marker')
-        instance_groups, marker = self.backend.list_instance_groups(cluster_id, marker=marker)
+        instance_groups, marker = self.backend.list_instance_groups(
+            cluster_id, marker=marker)
         template = self.response_template(LIST_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups, marker=marker)
 
@@ -155,7 +161,8 @@ class ElasticMapReduceResponse(BaseResponse):
         marker = self._get_param('Marker')
         step_ids = self._get_multi_param('StepIds.member')
         step_states = self._get_multi_param('StepStates.member')
-        steps, marker = self.backend.list_steps(cluster_id, marker=marker, step_ids=step_ids, step_states=step_states)
+        steps, marker = self.backend.list_steps(
+            cluster_id, marker=marker, step_ids=step_ids, step_states=step_states)
         template = self.response_template(LIST_STEPS_TEMPLATE)
         return template.render(steps=steps, marker=marker)
 
@@ -179,19 +186,27 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response('RunJobFlow')
     def run_job_flow(self):
         instance_attrs = dict(
-            master_instance_type=self._get_param('Instances.MasterInstanceType'),
+            master_instance_type=self._get_param(
+                'Instances.MasterInstanceType'),
             slave_instance_type=self._get_param('Instances.SlaveInstanceType'),
             instance_count=self._get_int_param('Instances.InstanceCount', 1),
             ec2_key_name=self._get_param('Instances.Ec2KeyName'),
             ec2_subnet_id=self._get_param('Instances.Ec2SubnetId'),
             hadoop_version=self._get_param('Instances.HadoopVersion'),
-            availability_zone=self._get_param('Instances.Placement.AvailabilityZone', self.backend.region_name + 'a'),
-            keep_job_flow_alive_when_no_steps=self._get_bool_param('Instances.KeepJobFlowAliveWhenNoSteps', False),
-            termination_protected=self._get_bool_param('Instances.TerminationProtected', False),
-            emr_managed_master_security_group=self._get_param('Instances.EmrManagedMasterSecurityGroup'),
-            emr_managed_slave_security_group=self._get_param('Instances.EmrManagedSlaveSecurityGroup'),
-            service_access_security_group=self._get_param('Instances.ServiceAccessSecurityGroup'),
-            additional_master_security_groups=self._get_multi_param('Instances.AdditionalMasterSecurityGroups.member.'),
+            availability_zone=self._get_param(
+                'Instances.Placement.AvailabilityZone', self.backend.region_name + 'a'),
+            keep_job_flow_alive_when_no_steps=self._get_bool_param(
+                'Instances.KeepJobFlowAliveWhenNoSteps', False),
+            termination_protected=self._get_bool_param(
+                'Instances.TerminationProtected', False),
+            emr_managed_master_security_group=self._get_param(
+                'Instances.EmrManagedMasterSecurityGroup'),
+            emr_managed_slave_security_group=self._get_param(
+                'Instances.EmrManagedSlaveSecurityGroup'),
+            service_access_security_group=self._get_param(
+                'Instances.ServiceAccessSecurityGroup'),
+            additional_master_security_groups=self._get_multi_param(
+                'Instances.AdditionalMasterSecurityGroups.member.'),
             additional_slave_security_groups=self._get_multi_param('Instances.AdditionalSlaveSecurityGroups.member.'))
 
         kwargs = dict(
@@ -199,8 +214,10 @@ class ElasticMapReduceResponse(BaseResponse):
             log_uri=self._get_param('LogUri'),
             job_flow_role=self._get_param('JobFlowRole'),
             service_role=self._get_param('ServiceRole'),
-            steps=steps_from_query_string(self._get_list_prefix('Steps.member')),
-            visible_to_all_users=self._get_bool_param('VisibleToAllUsers', False),
+            steps=steps_from_query_string(
+                self._get_list_prefix('Steps.member')),
+            visible_to_all_users=self._get_bool_param(
+                'VisibleToAllUsers', False),
             instance_attrs=instance_attrs,
         )
 
@@ -226,7 +243,8 @@ class ElasticMapReduceResponse(BaseResponse):
                     if key.startswith('properties.'):
                         config.pop(key)
                 config['properties'] = {}
-                map_items = self._get_map_prefix('Configurations.member.{0}.Properties.entry'.format(idx))
+                map_items = self._get_map_prefix(
+                    'Configurations.member.{0}.Properties.entry'.format(idx))
                 config['properties'] = map_items
 
             kwargs['configurations'] = configurations
@@ -240,9 +258,8 @@ class ElasticMapReduceResponse(BaseResponse):
                     'Only one AMI version and release label may be specified. '
                     'Provided AMI: {0}, release label: {1}.').format(
                         ami_version, release_label)
-                raise ClientError(
-                    {'Error': {'Code': 'ValidationException',
-                               'Message': message}}, 'RunJobFlow')
+                raise EmrError(error_type="ValidationException",
+                               message=message, template='error_json')
         else:
             if ami_version:
                 kwargs['requested_ami_version'] = ami_version
@@ -259,7 +276,8 @@ class ElasticMapReduceResponse(BaseResponse):
             self.backend.add_applications(
                 cluster.id, [{'Name': 'Hadoop', 'Version': '0.18'}])
 
-        instance_groups = self._get_list_prefix('Instances.InstanceGroups.member')
+        instance_groups = self._get_list_prefix(
+            'Instances.InstanceGroups.member')
         if instance_groups:
             for ig in instance_groups:
                 ig['instance_count'] = int(ig['instance_count'])
@@ -277,7 +295,8 @@ class ElasticMapReduceResponse(BaseResponse):
     def set_termination_protection(self):
         termination_protection = self._get_param('TerminationProtected')
         job_ids = self._get_multi_param('JobFlowIds.member')
-        self.backend.set_termination_protection(job_ids, termination_protection)
+        self.backend.set_termination_protection(
+            job_ids, termination_protection)
         template = self.response_template(SET_TERMINATION_PROTECTION_TEMPLATE)
         return template.render()
 

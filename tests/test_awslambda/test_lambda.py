@@ -10,7 +10,7 @@ import zipfile
 import sure  # noqa
 
 from freezegun import freeze_time
-from moto import mock_lambda, mock_s3, mock_ec2
+from moto import mock_lambda, mock_s3, mock_ec2, settings
 
 
 def _process_lamda(pfunc):
@@ -25,7 +25,7 @@ def _process_lamda(pfunc):
 def get_test_zip_file1():
     pfunc = """
 def lambda_handler(event, context):
-    return (event, context)
+    return event
 """
     return _process_lamda(pfunc)
 
@@ -36,50 +36,22 @@ def lambda_handler(event, context):
     volume_id = event.get('volume_id')
     print('get volume details for %s' % volume_id)
     import boto3
-    ec2 = boto3.resource('ec2', region_name='us-west-2')
+    ec2 = boto3.resource('ec2', region_name='us-west-2', endpoint_url="http://{base_url}")
     vol = ec2.Volume(volume_id)
     print('Volume - %s  state=%s, size=%s' % (volume_id, vol.state, vol.size))
-"""
+    return event
+""".format(base_url="localhost:5000" if settings.TEST_SERVER_MODE else "ec2.us-west-2.amazonaws.com")
     return _process_lamda(pfunc)
 
 
 @mock_lambda
-@mock_s3
 def test_list_functions():
     conn = boto3.client('lambda', 'us-west-2')
     result = conn.list_functions()
     result['Functions'].should.have.length_of(0)
 
-@mock_lambda
-@freeze_time('2015-01-01 00:00:00')
-def test_invoke_event_function():
-    conn = boto3.client('lambda', 'us-west-2')
-    conn.create_function(
-        FunctionName='testFunction',
-        Runtime='python2.7',
-        Role='test-iam-role',
-        Handler='lambda_function.handler',
-        Code={
-            'ZipFile': get_test_zip_file1(),
-        },
-        Description='test lambda function',
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
-
-    success_result = conn.invoke(FunctionName='testFunction', InvocationType='Event', Payload=json.dumps({'msg': 'Mostly Harmless'}))
-    success_result["StatusCode"].should.equal(202)
-
-    conn.invoke.when.called_with(
-        FunctionName='notAFunction',
-        InvocationType='Event',
-        Payload='{}'
-    ).should.throw(botocore.client.ClientError)
-
 
 @mock_lambda
-@freeze_time('2015-01-01 00:00:00')
 def test_invoke_requestresponse_function():
     conn = boto3.client('lambda', 'us-west-2')
     conn.create_function(
@@ -96,16 +68,50 @@ def test_invoke_requestresponse_function():
         Publish=True,
     )
 
+    in_data = {'msg': 'So long and thanks for all the fish'}
     success_result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse',
-                                 Payload=json.dumps({'msg': 'So long and thanks for all the fish'}))
-    success_result["StatusCode"].should.equal(202)
+                                 Payload=json.dumps(in_data))
 
-    #nasty hack - hope someone has better solution dealing with unicode tests working for Py2 and Py3.
-    base64.b64decode(success_result["LogResult"]).decode('utf-8').replace("u'", "'").should.equal("({'msg': 'So long and thanks for all the fish'}, {})\n\n")
+    success_result["StatusCode"].should.equal(202)
+    base64.b64decode(success_result["LogResult"]).decode(
+        'utf-8').should.equal(json.dumps(in_data))
+    json.loads(success_result["Payload"].read().decode(
+        'utf-8')).should.equal(in_data)
+
+
+@mock_lambda
+def test_invoke_event_function():
+    conn = boto3.client('lambda', 'us-west-2')
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': get_test_zip_file1(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    conn.invoke.when.called_with(
+        FunctionName='notAFunction',
+        InvocationType='Event',
+        Payload='{}'
+    ).should.throw(botocore.client.ClientError)
+
+    in_data = {'msg': 'So long and thanks for all the fish'}
+    success_result = conn.invoke(
+        FunctionName='testFunction', InvocationType='Event', Payload=json.dumps(in_data))
+    success_result["StatusCode"].should.equal(202)
+    json.loads(success_result['Payload'].read().decode(
+        'utf-8')).should.equal({})
+
 
 @mock_ec2
 @mock_lambda
-@freeze_time('2015-01-01 00:00:00')
 def test_invoke_function_get_ec2_volume():
     conn = boto3.resource("ec2", "us-west-2")
     vol = conn.create_volume(Size=99, AvailabilityZone='us-west-2')
@@ -126,18 +132,17 @@ def test_invoke_function_get_ec2_volume():
         Publish=True,
     )
 
-    import json
-    success_result = conn.invoke(FunctionName='testFunction', InvocationType='RequestResponse', Payload=json.dumps({'volume_id': vol.id}))
-    success_result["StatusCode"].should.equal(202)
-
-    import base64
-    msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\nNone\n\n' % (vol.id, vol.id, vol.state, vol.size)
-    # yet again hacky solution to allow code to run tests for python2 and python3 - pls someone fix :(
-    base64.b64decode(success_result["LogResult"]).decode('utf-8').replace("u'", "'").should.equal(msg)
+    in_data = {'volume_id': vol.id}
+    result = conn.invoke(FunctionName='testFunction',
+                         InvocationType='RequestResponse', Payload=json.dumps(in_data))
+    result["StatusCode"].should.equal(202)
+    msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s' % (
+        vol.id, vol.id, vol.state, vol.size, json.dumps(in_data))
+    base64.b64decode(result["LogResult"]).decode('utf-8').should.equal(msg)
+    result['Payload'].read().decode('utf-8').should.equal(msg)
 
 
 @mock_lambda
-@freeze_time('2015-01-01 00:00:00')
 def test_create_based_on_s3_with_missing_bucket():
     conn = boto3.client('lambda', 'us-west-2')
 
@@ -190,8 +195,11 @@ def test_create_function_from_aws_bucket():
             "SubnetIds": ["subnet-123abc"],
         },
     )
-    result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    result['ResponseMetadata'].pop('RetryAttempts', None)
+    result.pop('LastModified')
     result.should.equal({
         'FunctionName': 'testFunction',
         'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
@@ -203,7 +211,6 @@ def test_create_function_from_aws_bucket():
         'Description': 'test lambda function',
         'Timeout': 3,
         'MemorySize': 128,
-        'LastModified': '2015-01-01 00:00:00',
         'Version': '$LATEST',
         'VpcConfig': {
             "SecurityGroupIds": ["sg-123abc"],
@@ -232,8 +239,11 @@ def test_create_function_from_zipfile():
         MemorySize=128,
         Publish=True,
     )
-    result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    result['ResponseMetadata'].pop('RetryAttempts', None)
+    result.pop('LastModified')
 
     result.should.equal({
         'FunctionName': 'testFunction',
@@ -245,7 +255,6 @@ def test_create_function_from_zipfile():
         'Description': 'test lambda function',
         'Timeout': 3,
         'MemorySize': 128,
-        'LastModified': '2015-01-01 00:00:00',
         'CodeSha256': hashlib.sha256(zip_content).hexdigest(),
         'Version': '$LATEST',
         'VpcConfig': {
@@ -284,8 +293,11 @@ def test_get_function():
     )
 
     result = conn.get_function(FunctionName='testFunction')
-    result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    result['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    result['ResponseMetadata'].pop('RetryAttempts', None)
+    result['Configuration'].pop('LastModified')
 
     result.should.equal({
         "Code": {
@@ -299,7 +311,6 @@ def test_get_function():
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
-            "LastModified": "2015-01-01 00:00:00",
             "MemorySize": 128,
             "Role": "test-iam-role",
             "Runtime": "python2.7",
@@ -340,12 +351,15 @@ def test_delete_function():
     )
 
     success_result = conn.delete_function(FunctionName='testFunction')
-    success_result['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    success_result['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    success_result['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    success_result['ResponseMetadata'].pop('RetryAttempts', None)
 
     success_result.should.equal({'ResponseMetadata': {'HTTPStatusCode': 204}})
 
-    conn.delete_function.when.called_with(FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
+    conn.delete_function.when.called_with(
+        FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
 
 
 @mock_lambda
@@ -391,7 +405,6 @@ def test_list_create_list_get_delete_list():
             "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
-            "LastModified": "2015-01-01 00:00:00",
             "MemorySize": 128,
             "Role": "test-iam-role",
             "Runtime": "python2.7",
@@ -404,13 +417,55 @@ def test_list_create_list_get_delete_list():
         },
         'ResponseMetadata': {'HTTPStatusCode': 200},
     }
-    conn.list_functions()['Functions'].should.equal([expected_function_result['Configuration']])
+    func = conn.list_functions()['Functions'][0]
+    func.pop('LastModified')
+    func.should.equal(expected_function_result['Configuration'])
 
     func = conn.get_function(FunctionName='testFunction')
-    func['ResponseMetadata'].pop('HTTPHeaders', None)  # this is hard to match against, so remove it
-    func['ResponseMetadata'].pop('RetryAttempts', None)  # Botocore inserts retry attempts not seen in Python27
+    # this is hard to match against, so remove it
+    func['ResponseMetadata'].pop('HTTPHeaders', None)
+    # Botocore inserts retry attempts not seen in Python27
+    func['ResponseMetadata'].pop('RetryAttempts', None)
+    func['Configuration'].pop('LastModified')
 
     func.should.equal(expected_function_result)
     conn.delete_function(FunctionName='testFunction')
 
     conn.list_functions()['Functions'].should.have.length_of(0)
+
+
+@mock_lambda
+def test_invoke_lambda_error():
+    lambda_fx = """
+    def lambda_handler(event, context):
+        raise Exception('failsauce')
+    """
+    zip_output = io.BytesIO()
+    zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
+    zip_file.writestr('lambda_function.zip', lambda_fx)
+    zip_file.close()
+    zip_output.seek(0)
+
+    client = boto3.client('lambda', region_name='us-east-1')
+    client.create_function(
+        FunctionName='test-lambda-fx',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Code={
+            'ZipFile': zip_output.read()
+        },
+    )
+
+    result = client.invoke(
+        FunctionName='test-lambda-fx',
+        InvocationType='RequestResponse',
+        LogType='Tail'
+    )
+
+    assert 'FunctionError' in result
+    assert result['FunctionError'] == 'Handled'

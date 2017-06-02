@@ -102,7 +102,8 @@ def test_describe_instances():
     S1L1_i1.should.be.within([i["InstanceId"] for i in response])
     S1L1_i2.should.be.within([i["InstanceId"] for i in response])
 
-    response2 = client.describe_instances(InstanceIds=[S1L1_i1, S1L1_i2])['Instances']
+    response2 = client.describe_instances(
+        InstanceIds=[S1L1_i1, S1L1_i2])['Instances']
     sorted(response2, key=lambda d: d['InstanceId']).should.equal(
         sorted(response, key=lambda d: d['InstanceId']))
 
@@ -168,9 +169,8 @@ def test_ec2_integration():
     reservations = ec2.describe_instances()['Reservations']
     reservations[0]['Instances'].should.have.length_of(1)
     instance = reservations[0]['Instances'][0]
-    opsworks_instance = opsworks.describe_instances(StackId=stack_id)['Instances'][0]
+    opsworks_instance = opsworks.describe_instances(StackId=stack_id)[
+        'Instances'][0]
 
     instance['InstanceId'].should.equal(opsworks_instance['Ec2InstanceId'])
     instance['PrivateIpAddress'].should.equal(opsworks_instance['PrivateIp'])
-
-

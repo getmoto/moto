@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import boto.redshift
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from .exceptions import (
     ClusterNotFoundError,
@@ -12,14 +12,15 @@ from .exceptions import (
 )
 
 
-class Cluster(object):
+class Cluster(BaseModel):
+
     def __init__(self, redshift_backend, cluster_identifier, node_type, master_username,
-            master_user_password, db_name, cluster_type, cluster_security_groups,
-            vpc_security_group_ids, cluster_subnet_group_name, availability_zone,
-            preferred_maintenance_window, cluster_parameter_group_name,
-            automated_snapshot_retention_period, port, cluster_version,
-            allow_version_upgrade, number_of_nodes, publicly_accessible,
-            encrypted, region):
+                 master_user_password, db_name, cluster_type, cluster_security_groups,
+                 vpc_security_group_ids, cluster_subnet_group_name, availability_zone,
+                 preferred_maintenance_window, cluster_parameter_group_name,
+                 automated_snapshot_retention_period, port, cluster_version,
+                 allow_version_upgrade, number_of_nodes, publicly_accessible,
+                 encrypted, region):
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
         self.node_type = node_type
@@ -34,7 +35,8 @@ class Cluster(object):
         self.allow_version_upgrade = allow_version_upgrade if allow_version_upgrade is not None else True
         self.cluster_version = cluster_version if cluster_version else "1.0"
         self.port = int(port) if port else 5439
-        self.automated_snapshot_retention_period = int(automated_snapshot_retention_period) if automated_snapshot_retention_period else 1
+        self.automated_snapshot_retention_period = int(
+            automated_snapshot_retention_period) if automated_snapshot_retention_period else 1
         self.preferred_maintenance_window = preferred_maintenance_window if preferred_maintenance_window else "Mon:03:00-Mon:03:30"
 
         if cluster_parameter_group_name:
@@ -68,7 +70,8 @@ class Cluster(object):
         properties = cloudformation_json['Properties']
 
         if 'ClusterSubnetGroupName' in properties:
-            subnet_group_name = properties['ClusterSubnetGroupName'].cluster_subnet_group_name
+            subnet_group_name = properties[
+                'ClusterSubnetGroupName'].cluster_subnet_group_name
         else:
             subnet_group_name = None
         cluster = redshift_backend.create_cluster(
@@ -78,13 +81,17 @@ class Cluster(object):
             master_user_password=properties.get('MasterUserPassword'),
             db_name=properties.get('DBName'),
             cluster_type=properties.get('ClusterType'),
-            cluster_security_groups=properties.get('ClusterSecurityGroups', []),
+            cluster_security_groups=properties.get(
+                'ClusterSecurityGroups', []),
             vpc_security_group_ids=properties.get('VpcSecurityGroupIds', []),
             cluster_subnet_group_name=subnet_group_name,
             availability_zone=properties.get('AvailabilityZone'),
-            preferred_maintenance_window=properties.get('PreferredMaintenanceWindow'),
-            cluster_parameter_group_name=properties.get('ClusterParameterGroupName'),
-            automated_snapshot_retention_period=properties.get('AutomatedSnapshotRetentionPeriod'),
+            preferred_maintenance_window=properties.get(
+                'PreferredMaintenanceWindow'),
+            cluster_parameter_group_name=properties.get(
+                'ClusterParameterGroupName'),
+            automated_snapshot_retention_period=properties.get(
+                'AutomatedSnapshotRetentionPeriod'),
             port=properties.get('Port'),
             cluster_version=properties.get('ClusterVersion'),
             allow_version_upgrade=properties.get('AllowVersionUpgrade'),
@@ -167,7 +174,7 @@ class Cluster(object):
         }
 
 
-class SubnetGroup(object):
+class SubnetGroup(BaseModel):
 
     def __init__(self, ec2_backend, cluster_subnet_group_name, description, subnet_ids):
         self.ec2_backend = ec2_backend
@@ -213,7 +220,8 @@ class SubnetGroup(object):
         }
 
 
-class SecurityGroup(object):
+class SecurityGroup(BaseModel):
+
     def __init__(self, cluster_security_group_name, description):
         self.cluster_security_group_name = cluster_security_group_name
         self.description = description
@@ -227,7 +235,7 @@ class SecurityGroup(object):
         }
 
 
-class ParameterGroup(object):
+class ParameterGroup(BaseModel):
 
     def __init__(self, cluster_parameter_group_name, group_family, description):
         self.cluster_parameter_group_name = cluster_parameter_group_name
@@ -293,7 +301,8 @@ class RedshiftBackend(BaseBackend):
 
     def modify_cluster(self, **cluster_kwargs):
         cluster_identifier = cluster_kwargs.pop('cluster_identifier')
-        new_cluster_identifier = cluster_kwargs.pop('new_cluster_identifier', None)
+        new_cluster_identifier = cluster_kwargs.pop(
+            'new_cluster_identifier', None)
 
         cluster = self.describe_clusters(cluster_identifier)[0]
 
@@ -313,7 +322,8 @@ class RedshiftBackend(BaseBackend):
         raise ClusterNotFoundError(cluster_identifier)
 
     def create_cluster_subnet_group(self, cluster_subnet_group_name, description, subnet_ids):
-        subnet_group = SubnetGroup(self.ec2_backend, cluster_subnet_group_name, description, subnet_ids)
+        subnet_group = SubnetGroup(
+            self.ec2_backend, cluster_subnet_group_name, description, subnet_ids)
         self.subnet_groups[cluster_subnet_group_name] = subnet_group
         return subnet_group
 
@@ -332,7 +342,8 @@ class RedshiftBackend(BaseBackend):
         raise ClusterSubnetGroupNotFoundError(subnet_identifier)
 
     def create_cluster_security_group(self, cluster_security_group_name, description):
-        security_group = SecurityGroup(cluster_security_group_name, description)
+        security_group = SecurityGroup(
+            cluster_security_group_name, description)
         self.security_groups[cluster_security_group_name] = security_group
         return security_group
 
@@ -351,8 +362,9 @@ class RedshiftBackend(BaseBackend):
         raise ClusterSecurityGroupNotFoundError(security_group_identifier)
 
     def create_cluster_parameter_group(self, cluster_parameter_group_name,
-            group_family, description):
-        parameter_group = ParameterGroup(cluster_parameter_group_name, group_family, description)
+                                       group_family, description):
+        parameter_group = ParameterGroup(
+            cluster_parameter_group_name, group_family, description)
         self.parameter_groups[cluster_parameter_group_name] = parameter_group
 
         return parameter_group

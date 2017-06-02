@@ -7,6 +7,7 @@ from moto.ec2.utils import (
 
 
 class DHCPOptions(BaseResponse):
+
     def associate_dhcp_options(self):
         dhcp_opt_id = self.querystring.get("DhcpOptionsId", [None])[0]
         vpc_id = self.querystring.get("VpcId", [None])[0]
@@ -48,9 +49,11 @@ class DHCPOptions(BaseResponse):
         return template.render(delete_status=delete_status)
 
     def describe_dhcp_options(self):
-        dhcp_opt_ids = sequence_from_querystring("DhcpOptionsId", self.querystring)
+        dhcp_opt_ids = sequence_from_querystring(
+            "DhcpOptionsId", self.querystring)
         filters = filters_from_querystring(self.querystring)
-        dhcp_opts = self.ec2_backend.get_all_dhcp_options(dhcp_opt_ids, filters)
+        dhcp_opts = self.ec2_backend.get_all_dhcp_options(
+            dhcp_opt_ids, filters)
         template = self.response_template(DESCRIBE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options=dhcp_opts)
 

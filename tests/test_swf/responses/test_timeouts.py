@@ -1,29 +1,33 @@
 from freezegun import freeze_time
 
-from moto import mock_swf
+from moto import mock_swf_deprecated
 
 from ..utils import setup_workflow, SCHEDULE_ACTIVITY_TASK_DECISION
 
 
 # Activity Task Heartbeat timeout
 # Default value in workflow helpers: 5 mins
-@mock_swf
+@mock_swf_deprecated
 def test_activity_task_heartbeat_timeout():
     with freeze_time("2015-01-01 12:00:00"):
         conn = setup_workflow()
-        decision_token = conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
+        decision_token = conn.poll_for_decision_task(
+            "test-domain", "queue")["taskToken"]
         conn.respond_decision_task_completed(decision_token, decisions=[
             SCHEDULE_ACTIVITY_TASK_DECISION
         ])
-        conn.poll_for_activity_task("test-domain", "activity-task-list", identity="surprise")
+        conn.poll_for_activity_task(
+            "test-domain", "activity-task-list", identity="surprise")
 
     with freeze_time("2015-01-01 12:04:30"):
-        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+        resp = conn.get_workflow_execution_history(
+            "test-domain", conn.run_id, "uid-abcd1234")
         resp["events"][-1]["eventType"].should.equal("ActivityTaskStarted")
 
     with freeze_time("2015-01-01 12:05:30"):
         # => Activity Task Heartbeat timeout reached!!
-        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+        resp = conn.get_workflow_execution_history(
+            "test-domain", conn.run_id, "uid-abcd1234")
 
         resp["events"][-2]["eventType"].should.equal("ActivityTaskTimedOut")
         attrs = resp["events"][-2]["activityTaskTimedOutEventAttributes"]
@@ -36,7 +40,7 @@ def test_activity_task_heartbeat_timeout():
 
 # Decision Task Start to Close timeout
 # Default value in workflow helpers: 5 mins
-@mock_swf
+@mock_swf_deprecated
 def test_decision_task_start_to_close_timeout():
     pass
     with freeze_time("2015-01-01 12:00:00"):
@@ -44,7 +48,8 @@ def test_decision_task_start_to_close_timeout():
         conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
 
     with freeze_time("2015-01-01 12:04:30"):
-        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+        resp = conn.get_workflow_execution_history(
+            "test-domain", conn.run_id, "uid-abcd1234")
 
         event_types = [evt["eventType"] for evt in resp["events"]]
         event_types.should.equal(
@@ -53,7 +58,8 @@ def test_decision_task_start_to_close_timeout():
 
     with freeze_time("2015-01-01 12:05:30"):
         # => Decision Task Start to Close timeout reached!!
-        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+        resp = conn.get_workflow_execution_history(
+            "test-domain", conn.run_id, "uid-abcd1234")
 
         event_types = [evt["eventType"] for evt in resp["events"]]
         event_types.should.equal(
@@ -70,14 +76,15 @@ def test_decision_task_start_to_close_timeout():
 
 # Workflow Execution Start to Close timeout
 # Default value in workflow helpers: 2 hours
-@mock_swf
+@mock_swf_deprecated
 def test_workflow_execution_start_to_close_timeout():
     pass
     with freeze_time("2015-01-01 12:00:00"):
         conn = setup_workflow()
 
     with freeze_time("2015-01-01 13:59:30"):
-        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+        resp = conn.get_workflow_execution_history(
+            "test-domain", conn.run_id, "uid-abcd1234")
 
         event_types = [evt["eventType"] for evt in resp["events"]]
         event_types.should.equal(
@@ -86,11 +93,13 @@ def test_workflow_execution_start_to_close_timeout():
 
     with freeze_time("2015-01-01 14:00:30"):
         # => Workflow Execution Start to Close timeout reached!!
-        resp = conn.get_workflow_execution_history("test-domain", conn.run_id, "uid-abcd1234")
+        resp = conn.get_workflow_execution_history(
+            "test-domain", conn.run_id, "uid-abcd1234")
 
         event_types = [evt["eventType"] for evt in resp["events"]]
         event_types.should.equal(
-            ["WorkflowExecutionStarted", "DecisionTaskScheduled", "WorkflowExecutionTimedOut"]
+            ["WorkflowExecutionStarted", "DecisionTaskScheduled",
+                "WorkflowExecutionTimedOut"]
         )
         attrs = resp["events"][-1]["workflowExecutionTimedOutEventAttributes"]
         attrs.should.equal({

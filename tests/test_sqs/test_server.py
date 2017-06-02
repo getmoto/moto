@@ -31,7 +31,8 @@ def test_sqs_list_identities():
     res = test_client.get(
         '/123/testqueue?Action=ReceiveMessage&MaxNumberOfMessages=1')
 
-    message = re.search("<Body>(.*?)</Body>", res.data.decode('utf-8')).groups()[0]
+    message = re.search("<Body>(.*?)</Body>",
+                        res.data.decode('utf-8')).groups()[0]
     message.should.equal('test-message')
 
 
@@ -58,7 +59,8 @@ def test_messages_polling():
             msg_res = test_client.get(
                 '/123/testqueue?Action=ReceiveMessage&MaxNumberOfMessages=1&WaitTimeSeconds=5'
             )
-            new_msgs = re.findall("<Body>(.*?)</Body>", msg_res.data.decode('utf-8'))
+            new_msgs = re.findall("<Body>(.*?)</Body>",
+                                  msg_res.data.decode('utf-8'))
             count += len(new_msgs)
             messages.append(new_msgs)
 
@@ -71,5 +73,6 @@ def test_messages_polling():
     get_messages_thread.join()
     insert_messages_thread.join()
 
-    # got each message in a separate call to ReceiveMessage, despite the long WaitTimeSeconds
+    # got each message in a separate call to ReceiveMessage, despite the long
+    # WaitTimeSeconds
     assert len(messages) == 5

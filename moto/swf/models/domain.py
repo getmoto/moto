@@ -1,13 +1,15 @@
 from __future__ import unicode_literals
 from collections import defaultdict
 
+from moto.core import BaseModel
 from ..exceptions import (
     SWFUnknownResourceFault,
     SWFWorkflowExecutionAlreadyStartedFault,
 )
 
 
-class Domain(object):
+class Domain(BaseModel):
+
     def __init__(self, name, retention, description=None):
         self.name = name
         self.retention = retention

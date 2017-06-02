@@ -17,8 +17,12 @@ class CloudFormationResponse(BaseResponse):
 
     def _get_stack_from_s3_url(self, template_url):
         template_url_parts = urlparse(template_url)
-        bucket_name = template_url_parts.netloc.split(".")[0]
-        key_name = template_url_parts.path.lstrip("/")
+        if "localhost" in template_url:
+            bucket_name, key_name = template_url_parts.path.lstrip(
+                "/").split("/")
+        else:
+            bucket_name = template_url_parts.netloc.split(".")[0]
+            key_name = template_url_parts.path.lstrip("/")
 
         key = s3_backend.get_key(bucket_name, key_name)
         return key.value.decode("utf-8")
@@ -27,8 +31,10 @@ class CloudFormationResponse(BaseResponse):
         stack_name = self._get_param('StackName')
         stack_body = self._get_param('TemplateBody')
         template_url = self._get_param('TemplateURL')
+        role_arn = self._get_param('RoleARN')
         parameters_list = self._get_list_prefix("Parameters.member")
-        tags = dict((item['key'], item['value']) for item in self._get_list_prefix("Tags.member"))
+        tags = dict((item['key'], item['value'])
+                    for item in self._get_list_prefix("Tags.member"))
 
         # Hack dict-comprehension
         parameters = dict([
@@ -38,7 +44,8 @@ class CloudFormationResponse(BaseResponse):
         ])
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
-        stack_notification_arns = self._get_multi_param('NotificationARNs.member')
+        stack_notification_arns = self._get_multi_param(
+            'NotificationARNs.member')
 
         stack = self.cloudformation_backend.create_stack(
             name=stack_name,
@@ -47,6 +54,7 @@ class CloudFormationResponse(BaseResponse):
             region_name=self.region,
             notification_arns=stack_notification_arns,
             tags=tags,
+            role_arn=role_arn,
         )
         if self.request_json:
             return json.dumps({
@@ -64,10 +72,20 @@ class CloudFormationResponse(BaseResponse):
         stack_name_or_id = None
         if self._get_param('StackName'):
             stack_name_or_id = self.querystring.get('StackName')[0]
+        token = self._get_param('NextToken')
         stacks = self.cloudformation_backend.describe_stacks(stack_name_or_id)
-
+        stack_ids = [stack.stack_id for stack in stacks]
+        if token:
+            start = stack_ids.index(token) + 1
+        else:
+            start = 0
+        max_results = 50  # using this to mske testing of paginated stacks more convenient than default 1 MB
+        stacks_resp = stacks[start:start + max_results]
+        next_token = None
+        if len(stacks) > (start + max_results):
+            next_token = stacks_resp[-1].stack_id
         template = self.response_template(DESCRIBE_STACKS_TEMPLATE)
-        return template.render(stacks=stacks)
+        return template.render(stacks=stacks_resp, next_token=next_token)
 
     def describe_stack_resource(self):
         stack_name = self._get_param('StackName')
@@ -81,7 +99,8 @@ class CloudFormationResponse(BaseResponse):
         else:
             raise ValidationError(logical_resource_id)
 
-        template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
+        template = self.response_template(
+            DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
         return template.render(stack=stack, resource=resource)
 
     def describe_stack_resources(self):
@@ -105,7 +124,8 @@ class CloudFormationResponse(BaseResponse):
 
     def list_stack_resources(self):
         stack_name_or_id = self._get_param('StackName')
-        resources = self.cloudformation_backend.list_stack_resources(stack_name_or_id)
+        resources = self.cloudformation_backend.list_stack_resources(
+            stack_name_or_id)
 
         template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
         return template.render(resources=resources)
@@ -131,18 +151,37 @@ class CloudFormationResponse(BaseResponse):
 
     def update_stack(self):
         stack_name = self._get_param('StackName')
+        role_arn = self._get_param('RoleARN')
         if self._get_param('UsePreviousTemplate') == "true":
-            stack_body = self.cloudformation_backend.get_stack(stack_name).template
+            stack_body = self.cloudformation_backend.get_stack(
+                stack_name).template
         else:
             stack_body = self._get_param('TemplateBody')
+        parameters = dict([
+            (parameter['parameter_key'], parameter['parameter_value'])
+            for parameter
+            in self._get_list_prefix("Parameters.member")
+        ])
+        # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
+        # end up containing anything we can use to differentiate between passing an empty value versus not
+        # passing anything. so until that changes, moto won't be able to clear tags, only update them.
+        tags = dict((item['key'], item['value'])
+                    for item in self._get_list_prefix("Tags.member"))
+        # so that if we don't pass the parameter, we don't clear all the tags accidentally
+        if not tags:
+            tags = None
 
         stack = self.cloudformation_backend.get_stack(stack_name)
         if stack.status == 'ROLLBACK_COMPLETE':
-            raise ValidationError(stack.stack_id, message="Stack:{0} is in ROLLBACK_COMPLETE state and can not be updated.".format(stack.stack_id))
+            raise ValidationError(
+                stack.stack_id, message="Stack:{0} is in ROLLBACK_COMPLETE state and can not be updated.".format(stack.stack_id))
 
         stack = self.cloudformation_backend.update_stack(
             name=stack_name,
             template=stack_body,
+            role_arn=role_arn,
+            parameters=parameters,
+            tags=tags,
         )
         if self.request_json:
             stack_body = {
@@ -227,6 +266,9 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
           </member>
         {% endfor %}
         </Parameters>
+        {% if stack.role_arn %}
+        <RoleARN>{{ stack.role_arn }}</RoleARN>
+        {% endif %}
         <Tags>
           {% for tag_key, tag_value in stack.tags.items() %}
             <member>
@@ -238,6 +280,9 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
       </member>
       {% endfor %}
     </Stacks>
+    {% if next_token %}
+    <NextToken>{{ next_token }}</NextToken>
+    {% endif %}
   </DescribeStacksResult>
 </DescribeStacksResponse>"""
 
@@ -279,7 +324,7 @@ DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
 DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <DescribeStackEventsResult>
     <StackEvents>
-      {% for event in stack.events %}
+      {% for event in stack.events[::-1] %}
       <member>
         <Timestamp>{{ event.timestamp.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}</Timestamp>
         <ResourceStatus>{{ event.resource_status }}</ResourceStatus>

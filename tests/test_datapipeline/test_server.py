@@ -17,9 +17,10 @@ def test_list_streams():
     test_client = backend.test_client()
 
     res = test_client.post('/',
-        data={"pipelineIds": ["ASdf"]},
-        headers={"X-Amz-Target": "DataPipeline.DescribePipelines"},
-    )
+                           data={"pipelineIds": ["ASdf"]},
+                           headers={
+                               "X-Amz-Target": "DataPipeline.DescribePipelines"},
+                           )
 
     json_data = json.loads(res.data.decode("utf-8"))
     json_data.should.equal({

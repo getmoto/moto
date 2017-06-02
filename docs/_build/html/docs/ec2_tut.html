@@ -1,0 +1,306 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Use Moto as EC2 backend &mdash; Moto 0.4.10 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Moto 0.4.10 documentation" href="../index.html"/>
+        <link rel="prev" title="Moto APIs" href="moto_apis.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Moto
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.4.10
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started with Moto</a></li>
+<li class="toctree-l1"><a class="reference internal" href="other_langs.html">Other languages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="moto_apis.html">Moto APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Use Moto as EC2 backend</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#launching-instances">Launching instances</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Moto</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Use Moto as EC2 backend</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/docs/ec2_tut.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="use-moto-as-ec2-backend">
+<span id="ec2-tut"></span><h1>Use Moto as EC2 backend<a class="headerlink" href="#use-moto-as-ec2-backend" title="Permalink to this headline">¶</a></h1>
+<p>This tutorial explains <code class="docutils literal"><span class="pre">moto.ec2</span></code>&#8216;s features and how to use it. This
+tutorial assumes that you have already downloaded and installed boto and moto.
+Before all code examples the following snippet is launched:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">boto.ec2</span><span class="o">,</span> <span class="nn">moto</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mock_ec2</span> <span class="o">=</span> <span class="n">moto</span><span class="o">.</span><span class="n">mock_ec2</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mock_ec2</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">conn</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">ec2</span><span class="o">.</span><span class="n">connect_to_region</span><span class="p">(</span><span class="s2">&quot;eu-west-1&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="launching-instances">
+<h2>Launching instances<a class="headerlink" href="#launching-instances" title="Permalink to this headline">¶</a></h2>
+<p>After mock is started, the behavior is the same than previously:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reservation</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">run_instances</span><span class="p">(</span><span class="s1">&#39;ami-f00ba4&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reservation</span><span class="o">.</span><span class="n">instances</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">Instance:i-91dd2f32</span>
+</pre></div>
+</div>
+<p>Moto set static or generate random object&#8217;s attributes:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">vars</span><span class="p">(</span><span class="n">reservation</span><span class="o">.</span><span class="n">instances</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="go">{&#39;_in_monitoring_element&#39;: False,</span>
+<span class="go"> &#39;_placement&#39;: None,</span>
+<span class="go"> &#39;_previous_state&#39;: None,</span>
+<span class="go"> &#39;_state&#39;: pending(0),</span>
+<span class="go"> &#39;ami_launch_index&#39;: u&#39;0&#39;,</span>
+<span class="go"> &#39;architecture&#39;: u&#39;x86_64&#39;,</span>
+<span class="go"> &#39;block_device_mapping&#39;: None,</span>
+<span class="go"> &#39;client_token&#39;: &#39;&#39;,</span>
+<span class="go"> &#39;connection&#39;: EC2Connection:ec2.eu-west-1.amazonaws.com,</span>
+<span class="go"> &#39;dns_name&#39;: u&#39;ec2-54.214.135.84.compute-1.amazonaws.com&#39;,</span>
+<span class="go"> &#39;ebs_optimized&#39;: False,</span>
+<span class="go"> &#39;eventsSet&#39;: None,</span>
+<span class="go"> &#39;group_name&#39;: None,</span>
+<span class="go"> &#39;groups&#39;: [],</span>
+<span class="go"> &#39;hypervisor&#39;: u&#39;xen&#39;,</span>
+<span class="go"> &#39;id&#39;: u&#39;i-91dd2f32&#39;,</span>
+<span class="go"> &#39;image_id&#39;: u&#39;f00ba4&#39;,</span>
+<span class="go"> &#39;instance_profile&#39;: None,</span>
+<span class="go"> &#39;instance_type&#39;: u&#39;m1.small&#39;,</span>
+<span class="go"> &#39;interfaces&#39;: [NetworkInterface:eni-ed65f870],</span>
+<span class="go"> &#39;ip_address&#39;: u&#39;54.214.135.84&#39;,</span>
+<span class="go"> &#39;item&#39;: u&#39;\n        &#39;,</span>
+<span class="go"> &#39;kernel&#39;: u&#39;None&#39;,</span>
+<span class="go"> &#39;key_name&#39;: u&#39;None&#39;,</span>
+<span class="go"> &#39;launch_time&#39;: u&#39;2015-07-27T05:59:57Z&#39;,</span>
+<span class="go"> &#39;monitored&#39;: True,</span>
+<span class="go"> &#39;monitoring&#39;: u&#39;\n          &#39;,</span>
+<span class="go"> &#39;monitoring_state&#39;: u&#39;enabled&#39;,</span>
+<span class="go"> &#39;persistent&#39;: False,</span>
+<span class="go"> &#39;platform&#39;: None,</span>
+<span class="go"> &#39;private_dns_name&#39;: u&#39;ip-10.136.187.180.ec2.internal&#39;,</span>
+<span class="go"> &#39;private_ip_address&#39;: u&#39;10.136.187.180&#39;,</span>
+<span class="go"> &#39;product_codes&#39;: [],</span>
+<span class="go"> &#39;public_dns_name&#39;: u&#39;ec2-54.214.135.84.compute-1.amazonaws.com&#39;,</span>
+<span class="go"> &#39;ramdisk&#39;: None,</span>
+<span class="go"> &#39;reason&#39;: &#39;&#39;,</span>
+<span class="go"> &#39;region&#39;: RegionInfo:eu-west-1,</span>
+<span class="go"> &#39;requester_id&#39;: None,</span>
+<span class="go"> &#39;root_device_name&#39;: None,</span>
+<span class="go"> &#39;root_device_type&#39;: None,</span>
+<span class="go"> &#39;sourceDestCheck&#39;: u&#39;true&#39;,</span>
+<span class="go"> &#39;spot_instance_request_id&#39;: None,</span>
+<span class="go"> &#39;state_reason&#39;: None,</span>
+<span class="go"> &#39;subnet_id&#39;: None,</span>
+<span class="go"> &#39;tags&#39;: {},</span>
+<span class="go"> &#39;virtualization_type&#39;: u&#39;paravirtual&#39;,</span>
+<span class="go"> &#39;vpc_id&#39;: None}</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="moto_apis.html" class="btn btn-neutral" title="Moto APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Steve Pulec.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.4.10',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

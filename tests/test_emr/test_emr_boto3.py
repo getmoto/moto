@@ -88,15 +88,20 @@ def test_describe_cluster():
     config['Properties'].should.equal(args['Configurations'][0]['Properties'])
 
     attrs = cl['Ec2InstanceAttributes']
-    attrs['AdditionalMasterSecurityGroups'].should.equal(args['Instances']['AdditionalMasterSecurityGroups'])
-    attrs['AdditionalSlaveSecurityGroups'].should.equal(args['Instances']['AdditionalSlaveSecurityGroups'])
+    attrs['AdditionalMasterSecurityGroups'].should.equal(
+        args['Instances']['AdditionalMasterSecurityGroups'])
+    attrs['AdditionalSlaveSecurityGroups'].should.equal(
+        args['Instances']['AdditionalSlaveSecurityGroups'])
     attrs['Ec2AvailabilityZone'].should.equal('us-east-1a')
     attrs['Ec2KeyName'].should.equal(args['Instances']['Ec2KeyName'])
     attrs['Ec2SubnetId'].should.equal(args['Instances']['Ec2SubnetId'])
-    attrs['EmrManagedMasterSecurityGroup'].should.equal(args['Instances']['EmrManagedMasterSecurityGroup'])
-    attrs['EmrManagedSlaveSecurityGroup'].should.equal(args['Instances']['EmrManagedSlaveSecurityGroup'])
+    attrs['EmrManagedMasterSecurityGroup'].should.equal(
+        args['Instances']['EmrManagedMasterSecurityGroup'])
+    attrs['EmrManagedSlaveSecurityGroup'].should.equal(
+        args['Instances']['EmrManagedSlaveSecurityGroup'])
     attrs['IamInstanceProfile'].should.equal(args['JobFlowRole'])
-    attrs['ServiceAccessSecurityGroup'].should.equal(args['Instances']['ServiceAccessSecurityGroup'])
+    attrs['ServiceAccessSecurityGroup'].should.equal(
+        args['Instances']['ServiceAccessSecurityGroup'])
     cl['Id'].should.equal(cluster_id)
     cl['LogUri'].should.equal(args['LogUri'])
     cl['MasterPublicDnsName'].should.be.a(six.string_types)
@@ -123,12 +128,24 @@ def test_describe_cluster():
 
 
 @mock_emr
+def test_describe_cluster_not_found():
+    conn = boto3.client('emr', region_name='us-east-1')
+    raised = False
+    try:
+        cluster = conn.describe_cluster(ClusterId='DummyId')
+    except ClientError as e:
+        if e.response['Error']['Code'] == "ResourceNotFoundException":
+            raised = True
+    raised.should.equal(True)
+
+
+@mock_emr
 def test_describe_job_flows():
     client = boto3.client('emr', region_name='us-east-1')
     args = deepcopy(run_job_flow_args)
     expected = {}
 
-    for idx in range(400):
+    for idx in range(4):
         cluster_name = 'cluster' + str(idx)
         args['Name'] = cluster_name
         cluster_id = client.run_job_flow(**args)['JobFlowId']
@@ -144,7 +161,7 @@ def test_describe_job_flows():
     timestamp = datetime.now(pytz.utc)
     time.sleep(1)
 
-    for idx in range(400, 600):
+    for idx in range(4, 6):
         cluster_name = 'cluster' + str(idx)
         args['Name'] = cluster_name
         cluster_id = client.run_job_flow(**args)['JobFlowId']
@@ -156,7 +173,7 @@ def test_describe_job_flows():
         }
 
     resp = client.describe_job_flows()
-    resp['JobFlows'].should.have.length_of(512)
+    resp['JobFlows'].should.have.length_of(6)
 
     for cluster_id, y in expected.items():
         resp = client.describe_job_flows(JobFlowIds=[cluster_id])
@@ -164,15 +181,15 @@ def test_describe_job_flows():
         resp['JobFlows'][0]['JobFlowId'].should.equal(cluster_id)
 
     resp = client.describe_job_flows(JobFlowStates=['WAITING'])
-    resp['JobFlows'].should.have.length_of(400)
+    resp['JobFlows'].should.have.length_of(4)
     for x in resp['JobFlows']:
         x['ExecutionStatusDetail']['State'].should.equal('WAITING')
 
     resp = client.describe_job_flows(CreatedBefore=timestamp)
-    resp['JobFlows'].should.have.length_of(400)
+    resp['JobFlows'].should.have.length_of(4)
 
     resp = client.describe_job_flows(CreatedAfter=timestamp)
-    resp['JobFlows'].should.have.length_of(200)
+    resp['JobFlows'].should.have.length_of(2)
 
 
 @mock_emr
@@ -222,11 +239,14 @@ def test_describe_job_flow():
         ig['State'].should.equal('RUNNING')
     attrs['KeepJobFlowAliveWhenNoSteps'].should.equal(True)
     # attrs['MasterInstanceId'].should.be.a(six.string_types)
-    attrs['MasterInstanceType'].should.equal(args['Instances']['MasterInstanceType'])
+    attrs['MasterInstanceType'].should.equal(
+        args['Instances']['MasterInstanceType'])
     attrs['MasterPublicDnsName'].should.be.a(six.string_types)
     attrs['NormalizedInstanceHours'].should.equal(0)
-    attrs['Placement']['AvailabilityZone'].should.equal(args['Instances']['Placement']['AvailabilityZone'])
-    attrs['SlaveInstanceType'].should.equal(args['Instances']['SlaveInstanceType'])
+    attrs['Placement']['AvailabilityZone'].should.equal(
+        args['Instances']['Placement']['AvailabilityZone'])
+    attrs['SlaveInstanceType'].should.equal(
+        args['Instances']['SlaveInstanceType'])
     attrs['TerminationProtected'].should.equal(False)
     jf['JobFlowId'].should.equal(cluster_id)
     jf['JobFlowRole'].should.equal(args['JobFlowRole'])
@@ -282,14 +302,18 @@ def test_list_clusters():
             y = expected[x['Id']]
             x['Id'].should.equal(y['Id'])
             x['Name'].should.equal(y['Name'])
-            x['NormalizedInstanceHours'].should.equal(y['NormalizedInstanceHours'])
+            x['NormalizedInstanceHours'].should.equal(
+                y['NormalizedInstanceHours'])
             x['Status']['State'].should.equal(y['State'])
-            x['Status']['Timeline']['CreationDateTime'].should.be.a('datetime.datetime')
+            x['Status']['Timeline'][
+                'CreationDateTime'].should.be.a('datetime.datetime')
             if y['State'] == 'TERMINATED':
-                x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
+                x['Status']['Timeline'][
+                    'EndDateTime'].should.be.a('datetime.datetime')
             else:
                 x['Status']['Timeline'].shouldnt.have.key('EndDateTime')
-            x['Status']['Timeline']['ReadyDateTime'].should.be.a('datetime.datetime')
+            x['Status']['Timeline'][
+                'ReadyDateTime'].should.be.a('datetime.datetime')
         marker = resp.get('Marker')
         if marker is None:
             break
@@ -316,8 +340,10 @@ def test_run_job_flow():
     resp['ExecutionStatusDetail']['State'].should.equal('WAITING')
     resp['JobFlowId'].should.equal(cluster_id)
     resp['Name'].should.equal(args['Name'])
-    resp['Instances']['MasterInstanceType'].should.equal(args['Instances']['MasterInstanceType'])
-    resp['Instances']['SlaveInstanceType'].should.equal(args['Instances']['SlaveInstanceType'])
+    resp['Instances']['MasterInstanceType'].should.equal(
+        args['Instances']['MasterInstanceType'])
+    resp['Instances']['SlaveInstanceType'].should.equal(
+        args['Instances']['SlaveInstanceType'])
     resp['LogUri'].should.equal(args['LogUri'])
     resp['VisibleToAllUsers'].should.equal(args['VisibleToAllUsers'])
     resp['Instances']['NormalizedInstanceHours'].should.equal(0)
@@ -327,13 +353,13 @@ def test_run_job_flow():
 @mock_emr
 def test_run_job_flow_with_invalid_params():
     client = boto3.client('emr', region_name='us-east-1')
-    with assert_raises(ClientError) as e:
+    with assert_raises(ClientError) as ex:
         # cannot set both AmiVersion and ReleaseLabel
         args = deepcopy(run_job_flow_args)
         args['AmiVersion'] = '2.4'
         args['ReleaseLabel'] = 'emr-5.0.0'
         client.run_job_flow(**args)
-    e.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
 
 
 @mock_emr
@@ -378,7 +404,8 @@ def test_run_job_flow_with_instance_groups():
     args = deepcopy(run_job_flow_args)
     args['Instances'] = {'InstanceGroups': input_instance_groups}
     cluster_id = client.run_job_flow(**args)['JobFlowId']
-    groups = client.list_instance_groups(ClusterId=cluster_id)['InstanceGroups']
+    groups = client.list_instance_groups(ClusterId=cluster_id)[
+        'InstanceGroups']
     for x in groups:
         y = input_groups[x['Name']]
         x.should.have.key('Id')
@@ -484,10 +511,12 @@ def test_instance_groups():
     jf = client.describe_job_flows(JobFlowIds=[cluster_id])['JobFlows'][0]
     base_instance_count = jf['Instances']['InstanceCount']
 
-    client.add_instance_groups(JobFlowId=cluster_id, InstanceGroups=input_instance_groups[2:])
+    client.add_instance_groups(
+        JobFlowId=cluster_id, InstanceGroups=input_instance_groups[2:])
 
     jf = client.describe_job_flows(JobFlowIds=[cluster_id])['JobFlows'][0]
-    jf['Instances']['InstanceCount'].should.equal(sum(g['InstanceCount'] for g in input_instance_groups))
+    jf['Instances']['InstanceCount'].should.equal(
+        sum(g['InstanceCount'] for g in input_instance_groups))
     for x in jf['Instances']['InstanceGroups']:
         y = input_groups[x['Name']]
         if hasattr(y, 'BidPrice'):
@@ -506,7 +535,8 @@ def test_instance_groups():
         x['StartDateTime'].should.be.a('datetime.datetime')
         x['State'].should.equal('RUNNING')
 
-    groups = client.list_instance_groups(ClusterId=cluster_id)['InstanceGroups']
+    groups = client.list_instance_groups(ClusterId=cluster_id)[
+        'InstanceGroups']
     for x in groups:
         y = input_groups[x['Name']]
         if hasattr(y, 'BidPrice'):
@@ -525,9 +555,11 @@ def test_instance_groups():
         x['Status']['State'].should.equal('RUNNING')
         x['Status']['StateChangeReason']['Code'].should.be.a(six.string_types)
         # x['Status']['StateChangeReason']['Message'].should.be.a(six.string_types)
-        x['Status']['Timeline']['CreationDateTime'].should.be.a('datetime.datetime')
+        x['Status']['Timeline'][
+            'CreationDateTime'].should.be.a('datetime.datetime')
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
-        x['Status']['Timeline']['ReadyDateTime'].should.be.a('datetime.datetime')
+        x['Status']['Timeline'][
+            'ReadyDateTime'].should.be.a('datetime.datetime')
 
     igs = dict((g['Name'], g) for g in groups)
     client.modify_instance_groups(
@@ -592,14 +624,19 @@ def test_steps():
         # x['ExecutionStatusDetail'].should.have.key('EndDateTime')
         # x['ExecutionStatusDetail'].should.have.key('LastStateChangeReason')
         # x['ExecutionStatusDetail'].should.have.key('StartDateTime')
-        x['ExecutionStatusDetail']['State'].should.equal('STARTING' if idx == 0 else 'PENDING')
+        x['ExecutionStatusDetail']['State'].should.equal(
+            'STARTING' if idx == 0 else 'PENDING')
         x['StepConfig']['ActionOnFailure'].should.equal('TERMINATE_CLUSTER')
-        x['StepConfig']['HadoopJarStep']['Args'].should.equal(y['HadoopJarStep']['Args'])
-        x['StepConfig']['HadoopJarStep']['Jar'].should.equal(y['HadoopJarStep']['Jar'])
+        x['StepConfig']['HadoopJarStep'][
+            'Args'].should.equal(y['HadoopJarStep']['Args'])
+        x['StepConfig']['HadoopJarStep'][
+            'Jar'].should.equal(y['HadoopJarStep']['Jar'])
         if 'MainClass' in y['HadoopJarStep']:
-            x['StepConfig']['HadoopJarStep']['MainClass'].should.equal(y['HadoopJarStep']['MainClass'])
+            x['StepConfig']['HadoopJarStep']['MainClass'].should.equal(
+                y['HadoopJarStep']['MainClass'])
         if 'Properties' in y['HadoopJarStep']:
-            x['StepConfig']['HadoopJarStep']['Properties'].should.equal(y['HadoopJarStep']['Properties'])
+            x['StepConfig']['HadoopJarStep']['Properties'].should.equal(
+                y['HadoopJarStep']['Properties'])
         x['StepConfig']['Name'].should.equal(y['Name'])
 
     expected = dict((s['Name'], s) for s in input_steps)
@@ -617,7 +654,8 @@ def test_steps():
         x['Name'].should.equal(y['Name'])
         x['Status']['State'].should.be.within(['STARTING', 'PENDING'])
         # StateChangeReason
-        x['Status']['Timeline']['CreationDateTime'].should.be.a('datetime.datetime')
+        x['Status']['Timeline'][
+            'CreationDateTime'].should.be.a('datetime.datetime')
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
         # x['Status']['Timeline']['StartDateTime'].should.be.a('datetime.datetime')
 
@@ -631,7 +669,8 @@ def test_steps():
         x['Name'].should.equal(y['Name'])
         x['Status']['State'].should.be.within(['STARTING', 'PENDING'])
         # StateChangeReason
-        x['Status']['Timeline']['CreationDateTime'].should.be.a('datetime.datetime')
+        x['Status']['Timeline'][
+            'CreationDateTime'].should.be.a('datetime.datetime')
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
         # x['Status']['Timeline']['StartDateTime'].should.be.a('datetime.datetime')
 
@@ -640,7 +679,8 @@ def test_steps():
     steps.should.have.length_of(1)
     steps[0]['Id'].should.equal(step_id)
 
-    steps = client.list_steps(ClusterId=cluster_id, StepStates=['STARTING'])['Steps']
+    steps = client.list_steps(ClusterId=cluster_id,
+                              StepStates=['STARTING'])['Steps']
     steps.should.have.length_of(1)
     steps[0]['Id'].should.equal(step_id)
 
@@ -656,8 +696,10 @@ def test_tags():
     client.add_tags(ResourceId=cluster_id, Tags=input_tags)
     resp = client.describe_cluster(ClusterId=cluster_id)['Cluster']
     resp['Tags'].should.have.length_of(2)
-    dict((t['Key'], t['Value']) for t in resp['Tags']).should.equal(dict((t['Key'], t['Value']) for t in input_tags))
+    dict((t['Key'], t['Value']) for t in resp['Tags']).should.equal(
+        dict((t['Key'], t['Value']) for t in input_tags))
 
-    client.remove_tags(ResourceId=cluster_id, TagKeys=[t['Key'] for t in input_tags])
+    client.remove_tags(ResourceId=cluster_id, TagKeys=[
+                       t['Key'] for t in input_tags])
     resp = client.describe_cluster(ClusterId=cluster_id)['Cluster']
     resp['Tags'].should.equal([])

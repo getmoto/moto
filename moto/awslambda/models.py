@@ -4,6 +4,7 @@ import base64
 import datetime
 import hashlib
 import io
+import os
 import json
 import sys
 import zipfile
@@ -14,14 +15,14 @@ except:
     from io import StringIO
 
 import boto.awslambda
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.s3.models import s3_backend
-from moto.s3.exceptions import MissingBucket
+from moto.s3.exceptions import MissingBucket, MissingKey
 
 
-class LambdaFunction(object):
+class LambdaFunction(BaseModel):
 
-    def __init__(self, spec):
+    def __init__(self, spec, validate_s3=True):
         # required
         self.code = spec['Code']
         self.function_name = spec['FunctionName']
@@ -32,19 +33,22 @@ class LambdaFunction(object):
         # optional
         self.description = spec.get('Description', '')
         self.memory_size = spec.get('MemorySize', 128)
-        self.publish = spec.get('Publish', False) # this is ignored currently
+        self.publish = spec.get('Publish', False)  # this is ignored currently
         self.timeout = spec.get('Timeout', 3)
 
         # this isn't finished yet. it needs to find out the VpcId value
-        self._vpc_config = spec.get('VpcConfig', {'SubnetIds': [], 'SecurityGroupIds': []})
+        self._vpc_config = spec.get(
+            'VpcConfig', {'SubnetIds': [], 'SecurityGroupIds': []})
 
         # auto-generated
         self.version = '$LATEST'
         self.last_modified = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         if 'ZipFile' in self.code:
-            # more hackery to handle unicode/bytes/str in python3 and python2 - argh!
+            # more hackery to handle unicode/bytes/str in python3 and python2 -
+            # argh!
             try:
-                to_unzip_code = base64.b64decode(bytes(self.code['ZipFile'], 'utf-8'))
+                to_unzip_code = base64.b64decode(
+                    bytes(self.code['ZipFile'], 'utf-8'))
             except Exception:
                 to_unzip_code = base64.b64decode(self.code['ZipFile'])
 
@@ -55,24 +59,27 @@ class LambdaFunction(object):
             self.code_size = len(to_unzip_code)
             self.code_sha_256 = hashlib.sha256(to_unzip_code).hexdigest()
         else:
-            # validate s3 bucket
+            # validate s3 bucket and key
+            key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_key(self.code['S3Bucket'], self.code['S3Key'])
+                key = s3_backend.get_key(
+                    self.code['S3Bucket'], self.code['S3Key'])
             except MissingBucket:
-                raise ValueError(
-                    "InvalidParameterValueException",
-                    "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist")
-            else:
-                # validate s3 key
-                if key is None:
+                if do_validate_s3():
+                    raise ValueError(
+                        "InvalidParameterValueException",
+                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist")
+            except MissingKey:
+                if do_validate_s3():
                     raise ValueError(
                         "InvalidParameterValueException",
                         "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.")
-                else:
-                    self.code_size = key.size
-                    self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
-        self.function_arn = 'arn:aws:lambda:123456789012:function:{0}'.format(self.function_name)
+            if key:
+                self.code_size = key.size
+                self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+        self.function_arn = 'arn:aws:lambda:123456789012:function:{0}'.format(
+            self.function_name)
 
     @property
     def vpc_config(self):
@@ -112,7 +119,7 @@ class LambdaFunction(object):
 
     def convert(self, s):
         try:
-            return str(s, encoding='utf8')
+            return str(s, encoding='utf-8')
         except:
             return s
 
@@ -128,12 +135,15 @@ class LambdaFunction(object):
         try:
             mycode = "\n".join(['import json',
                                 self.convert(self.code),
-                                self.convert('print(lambda_handler(%s, %s))' % (self.is_json(self.convert(event)), context))])
-            #print("moto_lambda_debug: ", mycode)
+                                self.convert('print(json.dumps(lambda_handler(%s, %s)))' % (self.is_json(self.convert(event)), context))])
+
         except Exception as ex:
             print("Exception %s", ex)
 
+        errored = False
         try:
+            original_stdout = sys.stdout
+            original_stderr = sys.stderr
             codeOut = StringIO()
             codeErr = StringIO()
             sys.stdout = codeOut
@@ -141,27 +151,35 @@ class LambdaFunction(object):
             exec(mycode)
             exec_err = codeErr.getvalue()
             exec_out = codeOut.getvalue()
-            result = "\n".join([exec_out, self.convert(exec_err)])
+            result = self.convert(exec_out.strip())
+            if exec_err:
+                result = "\n".join([exec_out.strip(), self.convert(exec_err)])
         except Exception as ex:
+            errored = True
             result = '%s\n\n\nException %s' % (mycode, ex)
         finally:
             codeErr.close()
             codeOut.close()
-            sys.stdout = sys.__stdout__
-            sys.stderr = sys.__stderr__
-        return self.convert(result)
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
+        return self.convert(result), errored
 
-    def invoke(self, request, headers):
+    def invoke(self, body, request_headers, response_headers):
         payload = dict()
 
         # Get the invocation type:
-        r = self._invoke_lambda(code=self.code, event=request.body)
-        if request.headers.get("x-amz-invocation-type") == "RequestResponse":
-            encoded = base64.b64encode(r.encode('utf-8'))
-            headers["x-amz-log-result"] = encoded.decode('utf-8')
-            payload['result'] = headers["x-amz-log-result"]
+        res, errored = self._invoke_lambda(code=self.code, event=body)
+        if request_headers.get("x-amz-invocation-type") == "RequestResponse":
+            encoded = base64.b64encode(res.encode('utf-8'))
+            response_headers["x-amz-log-result"] = encoded.decode('utf-8')
+            payload['result'] = response_headers["x-amz-log-result"]
+            result = res.encode('utf-8')
+        else:
+            result = json.dumps(payload)
+        if errored:
+            response_headers['x-amz-function-error'] = "Handled"
 
-        return json.dumps(payload, indent=4)
+        return result
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -176,21 +194,87 @@ class LambdaFunction(object):
             'Runtime': properties['Runtime'],
         }
         optional_properties = 'Description MemorySize Publish Timeout VpcConfig'.split()
-        # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the default logic
+        # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the
+        # default logic
         for prop in optional_properties:
             if prop in properties:
                 spec[prop] = properties[prop]
 
+        # when ZipFile is present in CloudFormation, per the official docs,
+        # the code it's a plaintext code snippet up to 4096 bytes.
+        # this snippet converts this plaintext code to a proper base64-encoded ZIP file.
+        if 'ZipFile' in properties['Code']:
+            spec['Code']['ZipFile'] = base64.b64encode(
+                cls._create_zipfile_from_plaintext_code(spec['Code']['ZipFile']))
+
         backend = lambda_backends[region_name]
         fn = backend.create_function(spec)
         return fn
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            region = 'us-east-1'
+            return 'arn:aws:lambda:{0}:123456789012:function:{1}'.format(region, self.function_name)
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def _create_zipfile_from_plaintext_code(code):
+        zip_output = io.BytesIO()
+        zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
+        zip_file.writestr('lambda_function.zip', code)
+        zip_file.close()
+        zip_output.seek(0)
+        return zip_output.read()
+
+
+class EventSourceMapping(BaseModel):
+
+    def __init__(self, spec):
+        # required
+        self.function_name = spec['FunctionName']
+        self.event_source_arn = spec['EventSourceArn']
+        self.starting_position = spec['StartingPosition']
+
+        # optional
+        self.batch_size = spec.get('BatchSize', 100)
+        self.enabled = spec.get('Enabled', True)
+        self.starting_position_timestamp = spec.get('StartingPositionTimestamp', None)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'FunctionName': properties['FunctionName'],
+            'EventSourceArn': properties['EventSourceArn'],
+            'StartingPosition': properties['StartingPosition']
+        }
+        optional_properties = 'BatchSize Enabled StartingPositionTimestamp'.split()
+        for prop in optional_properties:
+            if prop in properties:
+                spec[prop] = properties[prop]
+        return EventSourceMapping(spec)
+
+
+class LambdaVersion(BaseModel):
+
+    def __init__(self, spec):
+        self.version = spec['Version']
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'Version': properties.get('Version')
+        }
+        return LambdaVersion(spec)
 
 
 class LambdaBackend(BaseBackend):
 
     def __init__(self):
         self._functions = {}
-    
+
     def has_function(self, function_name):
         return function_name in self._functions
 
@@ -209,10 +293,14 @@ class LambdaBackend(BaseBackend):
         return self._functions.values()
 
 
+def do_validate_s3():
+    return os.environ.get('VALIDATE_LAMBDA_S3', '') in ['', '1', 'true']
+
+
 lambda_backends = {}
 for region in boto.awslambda.regions():
     lambda_backends[region.name] = LambdaBackend()
 
-# Handle us forgotten regions, unless Lambda truly only runs out of US and EU?????
+# Handle us forgotten regions, unless Lambda truly only runs out of US and
 for region in ['ap-southeast-2']:
     lambda_backends[region] = LambdaBackend()

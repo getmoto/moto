@@ -4,12 +4,13 @@ import datetime
 import json
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from .comparisons import get_comparison_func
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
+
     def default(self, obj):
         if hasattr(obj, 'to_json'):
             return obj.to_json()
@@ -52,7 +53,8 @@ class DynamoType(object):
         return comparison_func(self.value, *range_values)
 
 
-class Item(object):
+class Item(BaseModel):
+
     def __init__(self, hash_key, hash_key_type, range_key, range_key_type, attrs):
         self.hash_key = hash_key
         self.hash_key_type = hash_key_type
@@ -88,7 +90,7 @@ class Item(object):
         }
 
 
-class Table(object):
+class Table(BaseModel):
 
     def __init__(self, name, hash_key_attr, hash_key_type,
                  range_key_attr=None, range_key_type=None, read_capacity=None,
@@ -135,6 +137,20 @@ class Table(object):
             }
         return results
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        key_attr = [i['AttributeName'] for i in properties['KeySchema'] if i['KeyType'] == 'HASH'][0]
+        key_type = [i['AttributeType'] for i in properties['AttributeDefinitions'] if i['AttributeName'] == key_attr][0]
+        spec = {
+            'name': properties['TableName'],
+            'hash_key_attr': key_attr,
+            'hash_key_type': key_type
+        }
+        # TODO: optional properties still missing:
+        # range_key_attr, range_key_type, read_capacity, write_capacity
+        return Table(**spec)
+
     def __len__(self):
         count = 0
         for key, value in self.items.items():
@@ -157,7 +173,8 @@ class Table(object):
         else:
             range_value = None
 
-        item = Item(hash_value, self.hash_key_type, range_value, self.range_key_type, item_attrs)
+        item = Item(hash_value, self.hash_key_type, range_value,
+                    self.range_key_type, item_attrs)
 
         if range_value:
             self.items[hash_value][range_value] = item
@@ -167,7 +184,8 @@ class Table(object):
 
     def get_item(self, hash_key, range_key):
         if self.has_range_key and not range_key:
-            raise ValueError("Table has a range key, but no range key was passed into get_item")
+            raise ValueError(
+                "Table has a range key, but no range key was passed into get_item")
         try:
             if range_key:
                 return self.items[hash_key][range_key]
@@ -222,7 +240,8 @@ class Table(object):
                     # Comparison is NULL and we don't have the attribute
                     continue
                 else:
-                    # No attribute found and comparison is no NULL. This item fails
+                    # No attribute found and comparison is no NULL. This item
+                    # fails
                     passes_all_conditions = False
                     break
 
@@ -239,6 +258,14 @@ class Table(object):
                 return self.items.pop(hash_key)
         except KeyError:
             return None
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'StreamArn':
+            region = 'us-east-1'
+            time = '2000-01-01T00:00:00.000'
+            return 'arn:aws:dynamodb:{0}:123456789012:table/{1}/stream/{2}'.format(region, self.name, time)
+        raise UnformattedGetAttTemplateException()
 
 
 class DynamoDBBackend(BaseBackend):
@@ -283,7 +310,8 @@ class DynamoDBBackend(BaseBackend):
             return None, None
 
         hash_key = DynamoType(hash_key_dict)
-        range_values = [DynamoType(range_value) for range_value in range_value_dicts]
+        range_values = [DynamoType(range_value)
+                        for range_value in range_value_dicts]
 
         return table.query(hash_key, range_comparison, range_values)
 

@@ -52,7 +52,7 @@ class DynamoHandler(BaseResponse):
         return status, self.response_headers, dynamo_json_dump({'__type': type_})
 
     def call_action(self):
-        body = self.body.decode('utf-8')
+        body = self.body
         if 'GetSessionToken' in body:
             return 200, self.response_headers, sts_handler()
 
@@ -73,7 +73,7 @@ class DynamoHandler(BaseResponse):
 
     def list_tables(self):
         body = self.body
-        limit = body.get('Limit')
+        limit = body.get('Limit', 100)
         if body.get("ExclusiveStartTableName"):
             last = body.get("ExclusiveStartTableName")
             start = list(dynamodb_backend2.tables.keys()).index(last) + 1
@@ -104,11 +104,11 @@ class DynamoHandler(BaseResponse):
         local_secondary_indexes = body.get("LocalSecondaryIndexes", [])
 
         table = dynamodb_backend2.create_table(table_name,
-                   schema=key_schema,
-                   throughput=throughput,
-                   attr=attr,
-                   global_indexes=global_indexes,
-                   indexes=local_secondary_indexes)
+                                               schema=key_schema,
+                                               throughput=throughput,
+                                               attr=attr,
+                                               global_indexes=global_indexes,
+                                               indexes=local_secondary_indexes)
         if table is not None:
             return dynamo_json_dump(table.describe())
         else:
@@ -124,10 +124,40 @@ class DynamoHandler(BaseResponse):
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er)
 
+    def tag_resource(self):
+        tags = self.body['Tags']
+        table_arn = self.body['ResourceArn']
+        dynamodb_backend2.tag_resource(table_arn, tags)
+        return json.dumps({})
+
+    def list_tags_of_resource(self):
+        try:
+            table_arn = self.body['ResourceArn']
+            all_tags = dynamodb_backend2.list_tags_of_resource(table_arn)
+            all_tag_keys = [tag['Key'] for tag in all_tags]
+            marker = self.body.get('NextToken')
+            if marker:
+                start = all_tag_keys.index(marker) + 1
+            else:
+                start = 0
+            max_items = 10  # there is no default, but using 10 to make testing easier
+            tags_resp = all_tags[start:start + max_items]
+            next_marker = None
+            if len(all_tags) > start + max_items:
+                next_marker = tags_resp[-1]['Key']
+            if next_marker:
+                return json.dumps({'Tags': tags_resp,
+                                   'NextToken': next_marker})
+            return json.dumps({'Tags': tags_resp})
+        except AttributeError:
+            er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
+            return self.error(er)
+
     def update_table(self):
         name = self.body['TableName']
         if 'GlobalSecondaryIndexUpdates' in self.body:
-            table = dynamodb_backend2.update_table_global_indexes(name, self.body['GlobalSecondaryIndexUpdates'])
+            table = dynamodb_backend2.update_table_global_indexes(
+                name, self.body['GlobalSecondaryIndexUpdates'])
         if 'ProvisionedThroughput' in self.body:
             throughput = self.body["ProvisionedThroughput"]
             table = dynamodb_backend2.update_table_throughput(name, throughput)
@@ -151,17 +181,20 @@ class DynamoHandler(BaseResponse):
         else:
             expected = None
 
-        # Attempt to parse simple ConditionExpressions into an Expected expression
+        # Attempt to parse simple ConditionExpressions into an Expected
+        # expression
         if not expected:
             condition_expression = self.body.get('ConditionExpression')
             if condition_expression and 'OR' not in condition_expression:
-                cond_items = [c.strip() for c in condition_expression.split('AND')]
+                cond_items = [c.strip()
+                              for c in condition_expression.split('AND')]
 
                 if cond_items:
                     expected = {}
                     overwrite = False
                     exists_re = re.compile('^attribute_exists\((.*)\)$')
-                    not_exists_re = re.compile('^attribute_not_exists\((.*)\)$')
+                    not_exists_re = re.compile(
+                        '^attribute_not_exists\((.*)\)$')
 
                 for cond in cond_items:
                     exists_m = exists_re.match(cond)
@@ -172,7 +205,8 @@ class DynamoHandler(BaseResponse):
                         expected[not_exists_m.group(1)] = {'Exists': False}
 
         try:
-            result = dynamodb_backend2.put_item(name, item, expected, overwrite)
+            result = dynamodb_backend2.put_item(
+                name, item, expected, overwrite)
         except Exception:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er)
@@ -249,7 +283,8 @@ class DynamoHandler(BaseResponse):
                 item = dynamodb_backend2.get_item(table_name, key)
                 if item:
                     item_describe = item.describe_attrs(attributes_to_get)
-                    results["Responses"][table_name].append(item_describe["Item"])
+                    results["Responses"][table_name].append(
+                        item_describe["Item"])
 
             results["ConsumedCapacity"].append({
                 "CapacityUnits": len(keys),
@@ -268,8 +303,10 @@ class DynamoHandler(BaseResponse):
             table = dynamodb_backend2.get_table(name)
             index_name = self.body.get('IndexName')
             if index_name:
-                all_indexes = (table.global_indexes or []) + (table.indexes or [])
-                indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
+                all_indexes = (table.global_indexes or []) + \
+                    (table.indexes or [])
+                indexes_by_name = dict((i['IndexName'], i)
+                                       for i in all_indexes)
                 if index_name not in indexes_by_name:
                     raise ValueError('Invalid index: %s for table: %s. Available indexes are: %s' % (
                         index_name, name, ', '.join(indexes_by_name.keys())
@@ -279,7 +316,8 @@ class DynamoHandler(BaseResponse):
             else:
                 index = table.schema
 
-            reverse_attribute_lookup = dict((v, k) for k, v in six.iteritems(self.body['ExpressionAttributeNames']))
+            reverse_attribute_lookup = dict((v, k) for k, v in 
+											six.iteritems(self.body['ExpressionAttributeNames']))
 
             if " AND " in key_condition_expression:
                 expressions = key_condition_expression.split(" AND ", 1)
@@ -308,7 +346,8 @@ class DynamoHandler(BaseResponse):
                         value_alias_map[range_key_expression_components[1]],
                     ]
                 else:
-                    range_values = [value_alias_map[range_key_expression_components[2]]]
+                    range_values = [value_alias_map[
+                        range_key_expression_components[2]]]
             else:
                 hash_key_expression = key_condition_expression
                 range_comparison = None
@@ -319,15 +358,18 @@ class DynamoHandler(BaseResponse):
         else:
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
             key_conditions = self.body.get('KeyConditions')
+            query_filters = self.body.get("QueryFilter")
             if key_conditions:
-                hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(name, key_conditions.keys())
+                hash_key_name, range_key_name = dynamodb_backend2.get_table_keys_name(
+                    name, key_conditions.keys())
                 for key, value in key_conditions.items():
                     if key not in (hash_key_name, range_key_name):
                         filter_kwargs[key] = value
                 if hash_key_name is None:
                     er = "'com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
                     return self.error(er)
-                hash_key = key_conditions[hash_key_name]['AttributeValueList'][0]
+                hash_key = key_conditions[hash_key_name][
+                    'AttributeValueList'][0]
                 if len(key_conditions) == 1:
                     range_comparison = None
                     range_values = []
@@ -338,11 +380,15 @@ class DynamoHandler(BaseResponse):
                     else:
                         range_condition = key_conditions.get(range_key_name)
                         if range_condition:
-                            range_comparison = range_condition['ComparisonOperator']
-                            range_values = range_condition['AttributeValueList']
+                            range_comparison = range_condition[
+                                'ComparisonOperator']
+                            range_values = range_condition[
+                                'AttributeValueList']
                         else:
                             range_comparison = None
                             range_values = []
+            if query_filters:
+                filter_kwargs.update(query_filters)
         index_name = self.body.get('IndexName')
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
@@ -373,7 +419,8 @@ class DynamoHandler(BaseResponse):
         filters = {}
         scan_filters = self.body.get('ScanFilter', {})
         for attribute_name, scan_filter in scan_filters.items():
-            # Keys are attribute names. Values are tuples of (comparison, comparison_value)
+            # Keys are attribute names. Values are tuples of (comparison,
+            # comparison_value)
             comparison_operator = scan_filter["ComparisonOperator"]
             comparison_values = scan_filter.get("AttributeValueList", [])
             filters[attribute_name] = (comparison_operator, comparison_values)
@@ -403,33 +450,38 @@ class DynamoHandler(BaseResponse):
         name = self.body['TableName']
         keys = self.body['Key']
         return_values = self.body.get('ReturnValues', '')
-        item = dynamodb_backend2.delete_item(name, keys)
-        if item:
-            if return_values == 'ALL_OLD':
-                item_dict = item.to_json()
-            else:
-                item_dict = {'Attributes': {}}
-            item_dict['ConsumedCapacityUnits'] = 0.5
-            return dynamo_json_dump(item_dict)
-        else:
+        table = dynamodb_backend2.get_table(name)
+        if not table:
             er = 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException'
             return self.error(er)
+
+        item = dynamodb_backend2.delete_item(name, keys)
+        if item and return_values == 'ALL_OLD':
+            item_dict = item.to_json()
+        else:
+            item_dict = {'Attributes': {}}
+        item_dict['ConsumedCapacityUnits'] = 0.5
+        return dynamo_json_dump(item_dict)
 
     def update_item(self):
         name = self.body['TableName']
         key = self.body['Key']
         update_expression = self.body.get('UpdateExpression')
         attribute_updates = self.body.get('AttributeUpdates')
-        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
-        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
+        expression_attribute_names = self.body.get(
+            'ExpressionAttributeNames', {})
+        expression_attribute_values = self.body.get(
+            'ExpressionAttributeValues', {})
         existing_item = dynamodb_backend2.get_item(name, key)
 
         # Support spaces between operators in an update expression
         # E.g. `a = b + c` -> `a=b+c`
         if update_expression:
-            update_expression = re.sub('\s*([=\+-])\s*', '\\1', update_expression)
+            update_expression = re.sub(
+                '\s*([=\+-])\s*', '\\1', update_expression)
 
-        item = dynamodb_backend2.update_item(name, key, update_expression, attribute_updates, expression_attribute_names, expression_attribute_values)
+        item = dynamodb_backend2.update_item(
+            name, key, update_expression, attribute_updates, expression_attribute_names, expression_attribute_values)
 
         item_dict = item.to_json()
         item_dict['ConsumedCapacityUnits'] = 0.5

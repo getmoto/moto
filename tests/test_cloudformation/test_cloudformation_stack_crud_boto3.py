@@ -105,14 +105,34 @@ def test_create_stack_with_notification_arn():
 
 
 @mock_cloudformation
+def test_create_stack_with_role_arn():
+    cf = boto3.resource('cloudformation', region_name='us-east-1')
+    cf.create_stack(
+        StackName="test_stack_with_notifications",
+        TemplateBody=dummy_template_json,
+        RoleARN='arn:aws:iam::123456789012:role/moto',
+    )
+
+    stack = list(cf.stacks.all())[0]
+    stack.role_arn.should.equal('arn:aws:iam::123456789012:role/moto')
+
+
+@mock_cloudformation
 @mock_s3
 def test_create_stack_from_s3_url():
-    s3_conn = boto.s3.connect_to_region('us-west-1')
-    bucket = s3_conn.create_bucket("foobar")
-    key = boto.s3.key.Key(bucket)
-    key.key = "template-key"
-    key.set_contents_from_string(dummy_template_json)
-    key_url = key.generate_url(expires_in=0, query_auth=False)
+    s3 = boto3.client('s3')
+    s3_conn = boto3.resource('s3')
+    bucket = s3_conn.create_bucket(Bucket="foobar")
+
+    key = s3_conn.Object(
+        'foobar', 'template-key').put(Body=dummy_template_json)
+    key_url = s3.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': 'foobar',
+            'Key': 'template-key'
+        }
+    )
 
     cf_conn = boto3.client('cloudformation', region_name='us-west-1')
     cf_conn.create_stack(
@@ -122,6 +142,26 @@ def test_create_stack_from_s3_url():
 
     cf_conn.get_template(StackName="stack_from_url")[
         'TemplateBody'].should.equal(dummy_template)
+
+
+@mock_cloudformation
+def test_describe_stack_pagination():
+    conn = boto3.client('cloudformation', region_name='us-east-1')
+    for i in range(100):
+        conn.create_stack(
+            StackName="test_stack",
+            TemplateBody=dummy_template_json,
+        )
+
+    resp = conn.describe_stacks()
+    stacks = resp['Stacks']
+    stacks.should.have.length_of(50)
+    next_token = resp['NextToken']
+    next_token.should_not.be.none
+    resp2 = conn.describe_stacks(NextToken=next_token)
+    stacks.extend(resp2['Stacks'])
+    stacks.should.have.length_of(100)
+    assert 'NextToken' not in resp2.keys()
 
 
 @mock_cloudformation
@@ -140,6 +180,7 @@ def test_describe_stack_resources():
     resource['ResourceStatus'].should.equal('CREATE_COMPLETE')
     resource['ResourceType'].should.equal('AWS::EC2::Instance')
     resource['StackId'].should.equal(stack['StackId'])
+
 
 @mock_cloudformation
 def test_describe_stack_by_name():
@@ -230,17 +271,22 @@ def test_describe_deleted_stack():
     stack_by_id['StackName'].should.equal("test_stack")
     stack_by_id['StackStatus'].should.equal("DELETE_COMPLETE")
 
+
 @mock_cloudformation
 def test_describe_updated_stack():
     cf_conn = boto3.client('cloudformation', region_name='us-east-1')
     cf_conn.create_stack(
         StackName="test_stack",
         TemplateBody=dummy_template_json,
+        Tags=[{'Key': 'foo', 'Value': 'bar'}],
     )
 
     cf_conn.update_stack(
         StackName="test_stack",
-        TemplateBody=dummy_update_template_json)
+        RoleARN='arn:aws:iam::123456789012:role/moto',
+        TemplateBody=dummy_update_template_json,
+        Tags=[{'Key': 'foo', 'Value': 'baz'}],
+    )
 
     stack = cf_conn.describe_stacks(StackName="test_stack")['Stacks'][0]
     stack_id = stack['StackId']
@@ -248,6 +294,8 @@ def test_describe_updated_stack():
     stack_by_id['StackId'].should.equal(stack['StackId'])
     stack_by_id['StackName'].should.equal("test_stack")
     stack_by_id['StackStatus'].should.equal("UPDATE_COMPLETE")
+    stack_by_id['RoleARN'].should.equal('arn:aws:iam::123456789012:role/moto')
+    stack_by_id['Tags'].should.equal([{'Key': 'foo', 'Value': 'baz'}])
 
 
 @mock_cloudformation
@@ -278,9 +326,9 @@ def test_cloudformation_params():
         StackName='test_stack',
         TemplateBody=dummy_template_with_params_json,
         Parameters=[{
-                        "ParameterKey": "APPNAME",
-                        "ParameterValue": "testing123",
-                    }],
+            "ParameterKey": "APPNAME",
+            "ParameterValue": "testing123",
+        }],
     )
 
     stack.parameters.should.have.length_of(1)
@@ -313,6 +361,7 @@ def test_stack_tags():
         item for items in [tag.items() for tag in tags] for item in items)
     observed_tag_items.should.equal(expected_tag_items)
 
+
 @mock_cloudformation
 def test_stack_events():
     cf = boto3.resource('cloudformation', region_name='us-east-1')
@@ -330,23 +379,31 @@ def test_stack_events():
     events[-1].resource_type.should.equal("AWS::CloudFormation::Stack")
 
     # testing ordering of stack events without assuming resource events will not exist
+    # the AWS API returns events in reverse chronological order
     stack_events_to_look_for = iter([
-        ("CREATE_IN_PROGRESS", "User Initiated"), ("CREATE_COMPLETE", None),
-        ("UPDATE_IN_PROGRESS", "User Initiated"), ("UPDATE_COMPLETE", None),
-        ("DELETE_IN_PROGRESS", "User Initiated"), ("DELETE_COMPLETE", None)])
+        ("DELETE_COMPLETE", None),
+        ("DELETE_IN_PROGRESS", "User Initiated"),
+        ("UPDATE_COMPLETE", None),
+        ("UPDATE_IN_PROGRESS", "User Initiated"),
+        ("CREATE_COMPLETE", None),
+        ("CREATE_IN_PROGRESS", "User Initiated"),
+    ])
     try:
         for event in events:
             event.stack_id.should.equal(stack.stack_id)
             event.stack_name.should.equal("test_stack")
+            event.event_id.should.match(r"[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}")
 
             if event.resource_type == "AWS::CloudFormation::Stack":
                 event.logical_resource_id.should.equal("test_stack")
                 event.physical_resource_id.should.equal(stack.stack_id)
 
-                status_to_look_for, reason_to_look_for = next(stack_events_to_look_for)
+                status_to_look_for, reason_to_look_for = next(
+                    stack_events_to_look_for)
                 event.resource_status.should.equal(status_to_look_for)
                 if reason_to_look_for is not None:
-                    event.resource_status_reason.should.equal(reason_to_look_for)
+                    event.resource_status_reason.should.equal(
+                        reason_to_look_for)
     except StopIteration:
         assert False, "Too many stack events"
 

@@ -8,15 +8,16 @@ from boto.ec2.autoscale import Tag
 import boto.ec2.elb
 import sure  # noqa
 
-from moto import mock_autoscaling, mock_ec2, mock_elb
+from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_autoscaling_deprecated
 from tests.helpers import requires_boto_gte
 
 
-@mock_autoscaling
-@mock_elb
+@mock_autoscaling_deprecated
+@mock_elb_deprecated
 def test_create_autoscaling_group():
     elb_conn = boto.ec2.elb.connect_to_region('us-east-1')
-    elb_conn.create_load_balancer('test_lb', zones=[], listeners=[(80, 8080, 'http')])
+    elb_conn.create_load_balancer(
+        'test_lb', zones=[], listeners=[(80, 8080, 'http')])
 
     conn = boto.ec2.autoscale.connect_to_region('us-east-1')
     config = LaunchConfiguration(
@@ -45,14 +46,15 @@ def test_create_autoscaling_group():
             key='test_key',
             value='test_value',
             propagate_at_launch=True
-            )
+        )
         ],
     )
     conn.create_auto_scaling_group(group)
 
     group = conn.get_all_groups()[0]
     group.name.should.equal('tester_group')
-    set(group.availability_zones).should.equal(set(['us-east-1c', 'us-east-1b']))
+    set(group.availability_zones).should.equal(
+        set(['us-east-1c', 'us-east-1b']))
     group.desired_capacity.should.equal(2)
     group.max_size.should.equal(2)
     group.min_size.should.equal(2)
@@ -64,7 +66,8 @@ def test_create_autoscaling_group():
     group.health_check_type.should.equal("EC2")
     list(group.load_balancers).should.equal(["test_lb"])
     group.placement_group.should.equal("test_placement")
-    list(group.termination_policies).should.equal(["OldestInstance", "NewestInstance"])
+    list(group.termination_policies).should.equal(
+        ["OldestInstance", "NewestInstance"])
     len(list(group.tags)).should.equal(1)
     tag = list(group.tags)[0]
     tag.resource_id.should.equal('tester_group')
@@ -73,7 +76,7 @@ def test_create_autoscaling_group():
     tag.propagate_at_launch.should.equal(True)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_autoscaling_groups_defaults():
     """ Test with the minimum inputs and check that all of the proper defaults
     are assigned for the other attributes """
@@ -113,6 +116,30 @@ def test_create_autoscaling_groups_defaults():
 
 
 @mock_autoscaling
+def test_list_many_autoscaling_groups():
+    conn = boto3.client('autoscaling', region_name='us-east-1')
+    conn.create_launch_configuration(LaunchConfigurationName='TestLC')
+
+    for i in range(51):
+        conn.create_auto_scaling_group(AutoScalingGroupName='TestGroup%d' % i,
+                                       MinSize=1,
+                                       MaxSize=2,
+                                       LaunchConfigurationName='TestLC')
+
+    response = conn.describe_auto_scaling_groups()
+    groups = response["AutoScalingGroups"]
+    marker = response["NextToken"]
+    groups.should.have.length_of(50)
+    marker.should.equal(groups[-1]['AutoScalingGroupName'])
+
+    response2 = conn.describe_auto_scaling_groups(NextToken=marker)
+
+    groups.extend(response2["AutoScalingGroups"])
+    groups.should.have.length_of(51)
+    assert 'NextToken' not in response2.keys()
+
+
+@mock_autoscaling_deprecated
 def test_autoscaling_group_describe_filter():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -134,11 +161,12 @@ def test_autoscaling_group_describe_filter():
     group.name = 'tester_group3'
     conn.create_auto_scaling_group(group)
 
-    conn.get_all_groups(names=['tester_group', 'tester_group2']).should.have.length_of(2)
+    conn.get_all_groups(
+        names=['tester_group', 'tester_group2']).should.have.length_of(2)
     conn.get_all_groups().should.have.length_of(3)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_autoscaling_update():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -169,7 +197,7 @@ def test_autoscaling_update():
     group.vpc_zone_identifier.should.equal('subnet-5678efgh')
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_autoscaling_tags_update():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -197,21 +225,21 @@ def test_autoscaling_tags_update():
     conn.create_auto_scaling_group(group)
 
     conn.create_or_update_tags(tags=[Tag(
-            resource_id='tester_group',
-            key='test_key',
-            value='new_test_value',
-            propagate_at_launch=True
-        ), Tag(
-            resource_id='tester_group',
-            key='test_key2',
-            value='test_value2',
-            propagate_at_launch=True
-        )])
+        resource_id='tester_group',
+        key='test_key',
+        value='new_test_value',
+        propagate_at_launch=True
+    ), Tag(
+        resource_id='tester_group',
+        key='test_key2',
+        value='test_value2',
+        propagate_at_launch=True
+    )])
     group = conn.get_all_groups()[0]
     group.tags.should.have.length_of(2)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_autoscaling_group_delete():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -235,8 +263,8 @@ def test_autoscaling_group_delete():
     conn.get_all_groups().should.have.length_of(0)
 
 
-@mock_ec2
-@mock_autoscaling
+@mock_ec2_deprecated
+@mock_autoscaling_deprecated
 def test_autoscaling_group_describe_instances():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -269,7 +297,7 @@ def test_autoscaling_group_describe_instances():
 
 
 @requires_boto_gte("2.8")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_set_desired_capacity_up():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -304,7 +332,7 @@ def test_set_desired_capacity_up():
 
 
 @requires_boto_gte("2.8")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_set_desired_capacity_down():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -339,7 +367,7 @@ def test_set_desired_capacity_down():
 
 
 @requires_boto_gte("2.8")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_set_desired_capacity_the_same():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -372,8 +400,9 @@ def test_set_desired_capacity_the_same():
     instances = list(conn.get_all_autoscaling_instances())
     instances.should.have.length_of(2)
 
-@mock_autoscaling
-@mock_elb
+
+@mock_autoscaling_deprecated
+@mock_elb_deprecated
 def test_autoscaling_group_with_elb():
     elb_conn = boto.connect_elb()
     zones = ['us-east-1a', 'us-east-1b']
@@ -402,7 +431,8 @@ def test_autoscaling_group_with_elb():
     group.desired_capacity.should.equal(2)
     elb.instances.should.have.length_of(2)
 
-    autoscale_instance_ids = set(instance.instance_id for instance in group.instances)
+    autoscale_instance_ids = set(
+        instance.instance_id for instance in group.instances)
     elb_instace_ids = set(instance.id for instance in elb.instances)
     autoscale_instance_ids.should.equal(elb_instace_ids)
 
@@ -412,7 +442,8 @@ def test_autoscaling_group_with_elb():
     group.desired_capacity.should.equal(3)
     elb.instances.should.have.length_of(3)
 
-    autoscale_instance_ids = set(instance.instance_id for instance in group.instances)
+    autoscale_instance_ids = set(
+        instance.instance_id for instance in group.instances)
     elb_instace_ids = set(instance.id for instance in elb.instances)
     autoscale_instance_ids.should.equal(elb_instace_ids)
 
@@ -429,38 +460,39 @@ Boto3
 
 @mock_autoscaling
 def test_create_autoscaling_group_boto3():
-        client = boto3.client('autoscaling', region_name='us-east-1')
-        _ = client.create_launch_configuration(
-            LaunchConfigurationName='test_launch_configuration'
-        )
-        response = client.create_auto_scaling_group(
-            AutoScalingGroupName='test_asg',
-            LaunchConfigurationName='test_launch_configuration',
-            MinSize=0,
-            MaxSize=20,
-            DesiredCapacity=5
-        )
-        response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    response = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
 
 
 @mock_autoscaling
 def test_describe_autoscaling_groups_boto3():
-        client = boto3.client('autoscaling', region_name='us-east-1')
-        _ = client.create_launch_configuration(
-            LaunchConfigurationName='test_launch_configuration'
-        )
-        _ = client.create_auto_scaling_group(
-            AutoScalingGroupName='test_asg',
-            LaunchConfigurationName='test_launch_configuration',
-            MinSize=0,
-            MaxSize=20,
-            DesiredCapacity=5
-        )
-        response = client.describe_auto_scaling_groups(
-            AutoScalingGroupNames=["test_asg"]
-        )
-        response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-        response['AutoScalingGroups'][0]['AutoScalingGroupName'].should.equal('test_asg')
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=["test_asg"]
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    response['AutoScalingGroups'][0][
+        'AutoScalingGroupName'].should.equal('test_asg')
 
 
 @mock_autoscaling
@@ -509,18 +541,74 @@ def test_autoscaling_taqs_update_boto3():
     )
 
     client.create_or_update_tags(Tags=[{
-            "ResourceId": 'test_asg',
-            "Key": 'test_key',
-            "Value": 'updated_test_value',
-            "PropagateAtLaunch": True
-        }, {
-            "ResourceId": 'test_asg',
-            "Key": 'test_key2',
-            "Value": 'test_value2',
-            "PropagateAtLaunch": True
-        }])
+        "ResourceId": 'test_asg',
+        "Key": 'test_key',
+        "Value": 'updated_test_value',
+        "PropagateAtLaunch": True
+    }, {
+        "ResourceId": 'test_asg',
+        "Key": 'test_key2',
+        "Value": 'test_value2',
+        "PropagateAtLaunch": True
+    }])
 
     response = client.describe_auto_scaling_groups(
         AutoScalingGroupNames=["test_asg"]
     )
     response['AutoScalingGroups'][0]['Tags'].should.have.length_of(2)
+
+
+@mock_autoscaling
+def test_autoscaling_describe_policies_boto3():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'test_value',
+            "PropagateAtLaunch": True
+        }]
+    )
+
+    client.put_scaling_policy(
+        AutoScalingGroupName='test_asg',
+        PolicyName='test_policy_down',
+        PolicyType='SimpleScaling',
+        AdjustmentType='PercentChangeInCapacity',
+        ScalingAdjustment=-10,
+        Cooldown=60,
+        MinAdjustmentMagnitude=1)
+    client.put_scaling_policy(
+        AutoScalingGroupName='test_asg',
+        PolicyName='test_policy_up',
+        PolicyType='SimpleScaling',
+        AdjustmentType='PercentChangeInCapacity',
+        ScalingAdjustment=10,
+        Cooldown=60,
+        MinAdjustmentMagnitude=1)
+
+    response = client.describe_policies()
+    response['ScalingPolicies'].should.have.length_of(2)
+
+    response = client.describe_policies(AutoScalingGroupName='test_asg')
+    response['ScalingPolicies'].should.have.length_of(2)
+
+    response = client.describe_policies(PolicyTypes=['StepScaling'])
+    response['ScalingPolicies'].should.have.length_of(0)
+
+    response = client.describe_policies(
+        AutoScalingGroupName='test_asg',
+        PolicyNames=['test_policy_down'],
+        PolicyTypes=['SimpleScaling']
+    )
+    response['ScalingPolicies'].should.have.length_of(1)
+    response['ScalingPolicies'][0][
+        'PolicyName'].should.equal('test_policy_down')

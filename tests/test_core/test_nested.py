@@ -5,12 +5,12 @@ from boto.sqs.connection import SQSConnection
 from boto.sqs.message import Message
 from boto.ec2 import EC2Connection
 
-from moto import mock_sqs, mock_ec2
+from moto import mock_sqs_deprecated, mock_ec2_deprecated
 
 
 class TestNestedDecorators(unittest.TestCase):
 
-    @mock_sqs
+    @mock_sqs_deprecated
     def setup_sqs_queue(self):
         conn = SQSConnection()
         q = conn.create_queue('some-queue')
@@ -21,7 +21,7 @@ class TestNestedDecorators(unittest.TestCase):
 
         self.assertEqual(q.count(), 1)
 
-    @mock_ec2
+    @mock_ec2_deprecated
     def test_nested(self):
         self.setup_sqs_queue()
 

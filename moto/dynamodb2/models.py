@@ -6,12 +6,13 @@ import json
 import re
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from .comparisons import get_comparison_func
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
+
     def default(self, obj):
         if hasattr(obj, 'to_json'):
             return obj.to_json()
@@ -57,7 +58,10 @@ class DynamoType(object):
     @property
     def cast_value(self):
         if self.type == 'N':
-            return int(self.value)
+            try:
+                return int(self.value)
+            except ValueError:
+                return float(self.value)
         else:
             return self.value
 
@@ -73,7 +77,8 @@ class DynamoType(object):
         return comparison_func(self.cast_value, *range_values)
 
 
-class Item(object):
+class Item(BaseModel):
+
     def __init__(self, hash_key, hash_key_type, range_key, range_key_type, attrs):
         self.hash_key = hash_key
         self.hash_key_type = hash_key_type
@@ -137,7 +142,7 @@ class Item(object):
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
             action = update_action['Action']
-            if action == 'DELETE' and not 'Value' in update_action:
+            if action == 'DELETE' and 'Value' not in update_action:
                 if attribute_name in self.attrs:
                     del self.attrs[attribute_name]
                 continue
@@ -157,17 +162,19 @@ class Item(object):
                     self.attrs[attribute_name] = DynamoType({"S": new_value})
             elif action == 'ADD':
                 if set(update_action['Value'].keys()) == set(['N']):
-                    existing = self.attrs.get(attribute_name, DynamoType({"N": '0'}))
+                    existing = self.attrs.get(
+                        attribute_name, DynamoType({"N": '0'}))
                     self.attrs[attribute_name] = DynamoType({"N": str(
-                            decimal.Decimal(existing.value) +
-                            decimal.Decimal(new_value)
+                        decimal.Decimal(existing.value) +
+                        decimal.Decimal(new_value)
                     )})
                 else:
                     # TODO: implement other data types
-                    raise NotImplementedError('ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
+                    raise NotImplementedError(
+                        'ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
 
 
-class Table(object):
+class Table(BaseModel):
 
     def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None):
         self.name = table_name
@@ -185,7 +192,8 @@ class Table(object):
                 self.range_key_attr = elem["AttributeName"]
                 self.range_key_type = elem["KeyType"]
         if throughput is None:
-            self.throughput = {'WriteCapacityUnits': 10, 'ReadCapacityUnits': 10}
+            self.throughput = {
+                'WriteCapacityUnits': 10, 'ReadCapacityUnits': 10}
         else:
             self.throughput = throughput
         self.throughput["NumberOfDecreasesToday"] = 0
@@ -193,6 +201,11 @@ class Table(object):
         self.global_indexes = global_indexes if global_indexes else []
         self.created_at = datetime.datetime.utcnow()
         self.items = defaultdict(dict)
+        self.table_arn = self._generate_arn(table_name)
+        self.tags = []
+
+    def _generate_arn(self, name):
+        return 'arn:aws:dynamodb:us-east-1:123456789011:table/' + name
 
     def describe(self, base_key='TableDescription'):
         results = {
@@ -202,11 +215,12 @@ class Table(object):
                 'TableSizeBytes': 0,
                 'TableName': self.name,
                 'TableStatus': 'ACTIVE',
+                'TableArn': self.table_arn,
                 'KeySchema': self.schema,
                 'ItemCount': len(self),
                 'CreationDateTime': unix_time(self.created_at),
                 'GlobalSecondaryIndexes': [index for index in self.global_indexes],
-                'LocalSecondaryIndexes': [index for index in self.indexes]
+                'LocalSecondaryIndexes': [index for index in self.indexes],
             }
         }
         return results
@@ -249,14 +263,16 @@ class Table(object):
         else:
             range_value = None
 
-        item = Item(hash_value, self.hash_key_type, range_value, self.range_key_type, item_attrs)
+        item = Item(hash_value, self.hash_key_type, range_value,
+                    self.range_key_type, item_attrs)
 
         if not overwrite:
             if expected is None:
                 expected = {}
                 lookup_range_value = range_value
             else:
-                expected_range_value = expected.get(self.range_key_attr, {}).get("Value")
+                expected_range_value = expected.get(
+                    self.range_key_attr, {}).get("Value")
                 if(expected_range_value is None):
                     lookup_range_value = range_value
                 else:
@@ -280,8 +296,10 @@ class Table(object):
                 elif 'Value' in val and DynamoType(val['Value']).value != current_attr[key].value:
                     raise ValueError("The conditional request failed")
                 elif 'ComparisonOperator' in val:
-                    comparison_func = get_comparison_func(val['ComparisonOperator'])
-                    dynamo_types = [DynamoType(ele) for ele in val["AttributeValueList"]]
+                    comparison_func = get_comparison_func(
+                        val['ComparisonOperator'])
+                    dynamo_types = [DynamoType(ele) for ele in val[
+                        "AttributeValueList"]]
                     for t in dynamo_types:
                         if not comparison_func(current_attr[key].value, t.value):
                             raise ValueError('The conditional request failed')
@@ -303,7 +321,8 @@ class Table(object):
 
     def get_item(self, hash_key, range_key=None):
         if self.has_range_key and not range_key:
-            raise ValueError("Table has a range key, but no range key was passed into get_item")
+            raise ValueError(
+                "Table has a range key, but no range key was passed into get_item")
         try:
             if range_key:
                 return self.items[hash_key][range_key]
@@ -337,9 +356,11 @@ class Table(object):
 
             index = indexes_by_name[index_name]
             try:
-                index_hash_key = [key for key in index['KeySchema'] if key['KeyType'] == 'HASH'][0]
+                index_hash_key = [key for key in index[
+                    'KeySchema'] if key['KeyType'] == 'HASH'][0]
             except IndexError:
-                raise ValueError('Missing Hash Key. KeySchema: %s' % index['KeySchema'])
+                raise ValueError('Missing Hash Key. KeySchema: %s' %
+                                 index['KeySchema'])
 
             possible_results = []
             for item in self.all_items():
@@ -349,17 +370,20 @@ class Table(object):
                 if item_hash_key and item_hash_key == hash_key:
                     possible_results.append(item)
         else:
-            possible_results = [item for item in list(self.all_items()) if isinstance(item, Item) and item.hash_key == hash_key]
+            possible_results = [item for item in list(self.all_items()) if isinstance(
+                item, Item) and item.hash_key == hash_key]
 
         if index_name:
             try:
-                index_range_key = [key for key in index['KeySchema'] if key['KeyType'] == 'RANGE'][0]
+                index_range_key = [key for key in index[
+                    'KeySchema'] if key['KeyType'] == 'RANGE'][0]
             except IndexError:
                 index_range_key = None
 
         if range_comparison:
             if index_name and not index_range_key:
-                raise ValueError('Range Key comparison but no range key found for index: %s' % index_name)
+                raise ValueError(
+                    'Range Key comparison but no range key found for index: %s' % index_name)
 
             elif index_name:
                 for result in possible_results:
@@ -373,19 +397,21 @@ class Table(object):
         if filter_kwargs:
             for result in possible_results:
                 for field, value in filter_kwargs.items():
-                    dynamo_types = [DynamoType(ele) for ele in value["AttributeValueList"]]
+                    dynamo_types = [DynamoType(ele) for ele in value[
+                        "AttributeValueList"]]
                     if result.attrs.get(field).compare(value['ComparisonOperator'], dynamo_types):
                         results.append(result)
 
         if not range_comparison and not filter_kwargs:
-            # If we're not filtering on range key or on an index return all values
+            # If we're not filtering on range key or on an index return all
+            # values
             results = possible_results
 
         if index_name:
 
             if index_range_key:
                 results.sort(key=lambda item: item.attrs[index_range_key['AttributeName']].value
-                                                if item.attrs.get(index_range_key['AttributeName']) else None)
+                             if item.attrs.get(index_range_key['AttributeName']) else None)
         else:
             results.sort(key=lambda item: item.range_key)
 
@@ -425,7 +451,8 @@ class Table(object):
                     # Comparison is NULL and we don't have the attribute
                     continue
                 else:
-                    # No attribute found and comparison is no NULL. This item fails
+                    # No attribute found and comparison is no NULL. This item
+                    # fails
                     passes_all_conditions = False
                     break
 
@@ -458,7 +485,6 @@ class Table(object):
 
         return results, last_evaluated_key
 
-
     def lookup(self, *args, **kwargs):
         if not self.schema:
             self.describe()
@@ -484,6 +510,18 @@ class DynamoDBBackend(BaseBackend):
 
     def delete_table(self, name):
         return self.tables.pop(name, None)
+
+    def tag_resource(self, table_arn, tags):
+        for table in self.tables:
+            if self.tables[table].table_arn == table_arn:
+                self.tables[table].tags.extend(tags)
+
+    def list_tags_of_resource(self, table_arn):
+        required_table = None
+        for table in self.tables:
+            if self.tables[table].table_arn == table_arn:
+                required_table = self.tables[table]
+        return required_table.tags
 
     def update_table_throughput(self, name, throughput):
         table = self.tables[name]
@@ -515,7 +553,8 @@ class DynamoDBBackend(BaseBackend):
 
             if gsi_to_create:
                 if gsi_to_create['IndexName'] in gsis_by_name:
-                    raise ValueError('Global Secondary Index already exists: %s' % gsi_to_create['IndexName'])
+                    raise ValueError(
+                        'Global Secondary Index already exists: %s' % gsi_to_create['IndexName'])
 
                 gsis_by_name[gsi_to_create['IndexName']] = gsi_to_create
 
@@ -553,9 +592,11 @@ class DynamoDBBackend(BaseBackend):
 
     def get_keys_value(self, table, keys):
         if table.hash_key_attr not in keys or (table.has_range_key and table.range_key_attr not in keys):
-            raise ValueError("Table has a range key, but no range key was passed into get_item")
+            raise ValueError(
+                "Table has a range key, but no range key was passed into get_item")
         hash_key = DynamoType(keys[table.hash_key_attr])
-        range_key = DynamoType(keys[table.range_key_attr]) if table.has_range_key else None
+        range_key = DynamoType(
+            keys[table.range_key_attr]) if table.has_range_key else None
         return hash_key, range_key
 
     def get_table(self, table_name):
@@ -575,7 +616,8 @@ class DynamoDBBackend(BaseBackend):
             return None, None
 
         hash_key = DynamoType(hash_key_dict)
-        range_values = [DynamoType(range_value) for range_value in range_value_dicts]
+        range_values = [DynamoType(range_value)
+                        for range_value in range_value_dicts]
 
         return table.query(hash_key, range_comparison, range_values, limit,
                            exclusive_start_key, scan_index_forward, index_name, **filter_kwargs)
@@ -596,7 +638,8 @@ class DynamoDBBackend(BaseBackend):
         table = self.get_table(table_name)
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
-            # Covers cases where table has hash and range keys, ``key`` param will be a dict
+            # Covers cases where table has hash and range keys, ``key`` param
+            # will be a dict
             hash_value = DynamoType(key[table.hash_key_attr])
             range_value = DynamoType(key[table.range_key_attr])
         elif table.hash_key_attr in key:
@@ -627,13 +670,14 @@ class DynamoDBBackend(BaseBackend):
             item = table.get_item(hash_value, range_value)
 
         if update_expression:
-            item.update(update_expression, expression_attribute_names, expression_attribute_values)
+            item.update(update_expression, expression_attribute_names,
+                        expression_attribute_values)
         else:
             item.update_with_attribute_updates(attribute_updates)
         return item
 
     def delete_item(self, table_name, keys):
-        table = self.tables.get(table_name)
+        table = self.get_table(table_name)
         if not table:
             return None
         hash_key, range_key = self.get_keys_value(table, keys)

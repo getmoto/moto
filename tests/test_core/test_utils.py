@@ -11,6 +11,7 @@ def test_camelcase_to_underscores():
         "theNewAttribute": "the_new_attribute",
         "attri bute With Space": "attribute_with_space",
         "FirstLetterCapital": "first_letter_capital",
+        "ListMFADevices": "list_mfa_devices",
     }
     for arg, expected in cases.items():
         camelcase_to_underscores(arg).should.equal(expected)

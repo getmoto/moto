@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import datetime
-import httpretty
 import requests
 
-from moto.core import BaseBackend
+from moto.packages.responses import responses
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import create_id
 from .exceptions import StageNotFoundException
@@ -12,16 +13,19 @@ from .exceptions import StageNotFoundException
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
 
-class Deployment(dict):
+class Deployment(BaseModel, dict):
+
     def __init__(self, deployment_id, name, description=""):
         super(Deployment, self).__init__()
         self['id'] = deployment_id
         self['stageName'] = name
         self['description'] = description
-        self['createdDate'] = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self['createdDate'] = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.now())
 
 
-class IntegrationResponse(dict):
+class IntegrationResponse(BaseModel, dict):
+
     def __init__(self, status_code, selection_pattern=None):
         self['responseTemplates'] = {"application/json": None}
         self['statusCode'] = status_code
@@ -29,7 +33,8 @@ class IntegrationResponse(dict):
             self['selectionPattern'] = selection_pattern
 
 
-class Integration(dict):
+class Integration(BaseModel, dict):
+
     def __init__(self, integration_type, uri, http_method, request_templates=None):
         super(Integration, self).__init__()
         self['type'] = integration_type
@@ -41,7 +46,8 @@ class Integration(dict):
         }
 
     def create_integration_response(self, status_code, selection_pattern):
-        integration_response = IntegrationResponse(status_code, selection_pattern)
+        integration_response = IntegrationResponse(
+            status_code, selection_pattern)
         self["integrationResponses"][status_code] = integration_response
         return integration_response
 
@@ -52,13 +58,15 @@ class Integration(dict):
         return self["integrationResponses"].pop(status_code)
 
 
-class MethodResponse(dict):
+class MethodResponse(BaseModel, dict):
+
     def __init__(self, status_code):
         super(MethodResponse, self).__init__()
         self['statusCode'] = status_code
 
 
-class Method(dict):
+class Method(BaseModel, dict):
+
     def __init__(self, method_type, authorization_type):
         super(Method, self).__init__()
         self.update(dict(
@@ -84,7 +92,8 @@ class Method(dict):
         return self.method_responses.pop(response_code)
 
 
-class Resource(object):
+class Resource(BaseModel):
+
     def __init__(self, id, region_name, api_id, path_part, parent_id):
         self.id = id
         self.region_name = region_name
@@ -126,14 +135,17 @@ class Resource(object):
 
         if integration_type == 'HTTP':
             uri = integration['uri']
-            requests_func = getattr(requests, integration['httpMethod'].lower())
+            requests_func = getattr(requests, integration[
+                                    'httpMethod'].lower())
             response = requests_func(uri)
         else:
-            raise NotImplementedError("The {0} type has not been implemented".format(integration_type))
+            raise NotImplementedError(
+                "The {0} type has not been implemented".format(integration_type))
         return response.status_code, response.text
 
     def add_method(self, method_type, authorization_type):
-        method = Method(method_type=method_type, authorization_type=authorization_type)
+        method = Method(method_type=method_type,
+                        authorization_type=authorization_type)
         self.resource_methods[method_type] = method
         return method
 
@@ -141,7 +153,8 @@ class Resource(object):
         return self.resource_methods[method_type]
 
     def add_integration(self, method_type, integration_type, uri, request_templates=None):
-        integration = Integration(integration_type, uri, method_type, request_templates=request_templates)
+        integration = Integration(
+            integration_type, uri, method_type, request_templates=request_templates)
         self.resource_methods[method_type]['methodIntegration'] = integration
         return integration
 
@@ -152,11 +165,10 @@ class Resource(object):
         return self.resource_methods[method_type].pop('methodIntegration')
 
 
-class Stage(dict):
-
+class Stage(BaseModel, dict):
 
     def __init__(self, name=None, deployment_id=None, variables=None,
-                 description='',cacheClusterEnabled=False,cacheClusterSize=None):
+                 description='', cacheClusterEnabled=False, cacheClusterSize=None):
         super(Stage, self).__init__()
         if variables is None:
             variables = {}
@@ -189,21 +201,24 @@ class Stage(dict):
             elif op['op'] == 'replace':
                 # Method Settings drop into here
                 # (e.g., path could be '/*/*/logging/loglevel')
-                split_path = op['path'].split('/',3)
-                if len(split_path)!=4:
+                split_path = op['path'].split('/', 3)
+                if len(split_path) != 4:
                     continue
-                self._patch_method_setting('/'.join(split_path[1:3]),split_path[3],op['value'])
+                self._patch_method_setting(
+                    '/'.join(split_path[1:3]), split_path[3], op['value'])
             else:
-                raise Exception('Patch operation "%s" not implemented' % op['op'])
+                raise Exception(
+                    'Patch operation "%s" not implemented' % op['op'])
         return self
 
-    def _patch_method_setting(self,resource_path_and_method,key,value):
+    def _patch_method_setting(self, resource_path_and_method, key, value):
         updated_key = self._method_settings_translations(key)
         if updated_key is not None:
             if resource_path_and_method not in self['methodSettings']:
-                self['methodSettings'][resource_path_and_method] = self._get_default_method_settings()
-            self['methodSettings'][resource_path_and_method][updated_key] = self._convert_to_type(updated_key,value)
-
+                self['methodSettings'][
+                    resource_path_and_method] = self._get_default_method_settings()
+            self['methodSettings'][resource_path_and_method][
+                updated_key] = self._convert_to_type(updated_key, value)
 
     def _get_default_method_settings(self):
         return {
@@ -218,18 +233,18 @@ class Stage(dict):
             "requireAuthorizationForCacheControl": True
         }
 
-    def _method_settings_translations(self,key):
+    def _method_settings_translations(self, key):
         mappings = {
-            'metrics/enabled' :'metricsEnabled',
-            'logging/loglevel' : 'loggingLevel',
-            'logging/dataTrace' : 'dataTraceEnabled' ,
-            'throttling/burstLimit' : 'throttlingBurstLimit',
-            'throttling/rateLimit' : 'throttlingRateLimit',
-            'caching/enabled' : 'cachingEnabled',
-            'caching/ttlInSeconds' : 'cacheTtlInSeconds',
-            'caching/dataEncrypted' : 'cacheDataEncrypted',
-            'caching/requireAuthorizationForCacheControl' : 'requireAuthorizationForCacheControl',
-            'caching/unauthorizedCacheControlHeaderStrategy' : 'unauthorizedCacheControlHeaderStrategy'
+            'metrics/enabled': 'metricsEnabled',
+            'logging/loglevel': 'loggingLevel',
+            'logging/dataTrace': 'dataTraceEnabled',
+            'throttling/burstLimit': 'throttlingBurstLimit',
+            'throttling/rateLimit': 'throttlingRateLimit',
+            'caching/enabled': 'cachingEnabled',
+            'caching/ttlInSeconds': 'cacheTtlInSeconds',
+            'caching/dataEncrypted': 'cacheDataEncrypted',
+            'caching/requireAuthorizationForCacheControl': 'requireAuthorizationForCacheControl',
+            'caching/unauthorizedCacheControlHeaderStrategy': 'unauthorizedCacheControlHeaderStrategy'
         }
 
         if key in mappings:
@@ -237,21 +252,21 @@ class Stage(dict):
         else:
             None
 
-    def _str2bool(self,v):
+    def _str2bool(self, v):
         return v.lower() == "true"
 
-    def _convert_to_type(self,key,val):
+    def _convert_to_type(self, key, val):
         type_mappings = {
-            'metricsEnabled' : 'bool',
-            'loggingLevel' : 'str',
-            'dataTraceEnabled' : 'bool',
-            'throttlingBurstLimit' :  'int',
-            'throttlingRateLimit' : 'float',
-            'cachingEnabled' : 'bool',
-            'cacheTtlInSeconds' :  'int',
-            'cacheDataEncrypted' :  'bool',
-            'requireAuthorizationForCacheControl' :'bool',
-            'unauthorizedCacheControlHeaderStrategy' : 'str'
+            'metricsEnabled': 'bool',
+            'loggingLevel': 'str',
+            'dataTraceEnabled': 'bool',
+            'throttlingBurstLimit': 'int',
+            'throttlingRateLimit': 'float',
+            'cachingEnabled': 'bool',
+            'cacheTtlInSeconds': 'int',
+            'cacheDataEncrypted': 'bool',
+            'requireAuthorizationForCacheControl': 'bool',
+            'unauthorizedCacheControlHeaderStrategy': 'str'
         }
 
         if key in type_mappings:
@@ -260,7 +275,7 @@ class Stage(dict):
             if type_value == 'bool':
                 return self._str2bool(val)
             elif type_value == 'int':
-                return  int(val)
+                return int(val)
             elif type_value == 'float':
                 return float(val)
             else:
@@ -268,10 +283,8 @@ class Stage(dict):
         else:
             return str(val)
 
-
-
-    def _apply_operation_to_variables(self,op):
-        key = op['path'][op['path'].rindex("variables/")+10:]
+    def _apply_operation_to_variables(self, op):
+        key = op['path'][op['path'].rindex("variables/") + 10:]
         if op['op'] == 'remove':
             self['variables'].pop(key, None)
         elif op['op'] == 'replace':
@@ -280,8 +293,8 @@ class Stage(dict):
             raise Exception('Patch operation "%s" not implemented' % op['op'])
 
 
+class RestAPI(BaseModel):
 
-class RestAPI(object):
     def __init__(self, id, region_name, name, description):
         self.id = id
         self.region_name = region_name
@@ -305,7 +318,8 @@ class RestAPI(object):
 
     def add_child(self, path, parent_id=None):
         child_id = create_id()
-        child = Resource(id=child_id, region_name=self.region_name, api_id=self.id, path_part=path, parent_id=parent_id)
+        child = Resource(id=child_id, region_name=self.region_name,
+                         api_id=self.id, path_part=path, parent_id=parent_id)
         self.resources[child_id] = child
         return child
 
@@ -315,38 +329,43 @@ class RestAPI(object):
                 return resource
         # TODO deal with no matching resource
 
-    def resource_callback(self, request, full_url, headers):
-        path_after_stage_name = '/'.join(request.path.split("/")[2:])
+    def resource_callback(self, request):
+        path_after_stage_name = '/'.join(request.path_url.split("/")[2:])
         if not path_after_stage_name:
             path_after_stage_name = '/'
 
         resource = self.get_resource_for_path(path_after_stage_name)
         status_code, response = resource.get_response(request)
-        return status_code, headers, response
+        return status_code, {}, response
 
     def update_integration_mocks(self, stage_name):
-        httpretty.enable()
+        stage_url_lower = STAGE_URL.format(api_id=self.id.lower(),
+            region_name=self.region_name, stage_name=stage_name)
+        stage_url_upper = STAGE_URL.format(api_id=self.id.upper(),
+            region_name=self.region_name, stage_name=stage_name)
 
-        stage_url = STAGE_URL.format(api_id=self.id, region_name=self.region_name, stage_name=stage_name)
-        for method in httpretty.httpretty.METHODS:
-            httpretty.register_uri(method, stage_url, body=self.resource_callback)
+        responses.add_callback(responses.GET, stage_url_lower,
+                               callback=self.resource_callback)
+        responses.add_callback(responses.GET, stage_url_upper,
+                               callback=self.resource_callback)
 
-    def create_stage(self, name, deployment_id,variables=None,description='',cacheClusterEnabled=None,cacheClusterSize=None):
+    def create_stage(self, name, deployment_id, variables=None, description='', cacheClusterEnabled=None, cacheClusterSize=None):
         if variables is None:
             variables = {}
-        stage = Stage(name=name, deployment_id=deployment_id,variables=variables,
-                      description=description,cacheClusterSize=cacheClusterSize,cacheClusterEnabled=cacheClusterEnabled)
+        stage = Stage(name=name, deployment_id=deployment_id, variables=variables,
+                      description=description, cacheClusterSize=cacheClusterSize, cacheClusterEnabled=cacheClusterEnabled)
         self.stages[name] = stage
         self.update_integration_mocks(name)
         return stage
 
-    def create_deployment(self, name, description="",stage_variables=None):
+    def create_deployment(self, name, description="", stage_variables=None):
         if stage_variables is None:
             stage_variables = {}
         deployment_id = create_id()
         deployment = Deployment(deployment_id, name, description)
         self.deployments[deployment_id] = deployment
-        self.stages[name] = Stage(name=name, deployment_id=deployment_id,variables=stage_variables)
+        self.stages[name] = Stage(
+            name=name, deployment_id=deployment_id, variables=stage_variables)
         self.update_integration_mocks(name)
 
         return deployment
@@ -355,7 +374,7 @@ class RestAPI(object):
         return self.deployments[deployment_id]
 
     def get_stages(self):
-            return list(self.stages.values())
+        return list(self.stages.values())
 
     def get_deployments(self):
         return list(self.deployments.values())
@@ -365,6 +384,7 @@ class RestAPI(object):
 
 
 class APIGatewayBackend(BaseBackend):
+
     def __init__(self, region_name):
         super(APIGatewayBackend, self).__init__()
         self.apis = {}
@@ -431,19 +451,17 @@ class APIGatewayBackend(BaseBackend):
         else:
             return stage
 
-
     def get_stages(self, function_id):
         api = self.get_rest_api(function_id)
         return api.get_stages()
 
-
     def create_stage(self, function_id, stage_name, deploymentId,
-                     variables=None,description='',cacheClusterEnabled=None,cacheClusterSize=None):
+                     variables=None, description='', cacheClusterEnabled=None, cacheClusterSize=None):
         if variables is None:
             variables = {}
         api = self.get_rest_api(function_id)
-        api.create_stage(stage_name,deploymentId,variables=variables,
-                        description=description,cacheClusterEnabled=cacheClusterEnabled,cacheClusterSize=cacheClusterSize)
+        api.create_stage(stage_name, deploymentId, variables=variables,
+                         description=description, cacheClusterEnabled=cacheClusterEnabled, cacheClusterSize=cacheClusterSize)
         return api.stages.get(stage_name)
 
     def update_stage(self, function_id, stage_name, patch_operations):
@@ -469,10 +487,10 @@ class APIGatewayBackend(BaseBackend):
         return method_response
 
     def create_integration(self, function_id, resource_id, method_type, integration_type, uri,
-            request_templates=None):
+                           request_templates=None):
         resource = self.get_resource(function_id, resource_id)
         integration = resource.add_integration(method_type, integration_type, uri,
-            request_templates=request_templates)
+                                               request_templates=request_templates)
         return integration
 
     def get_integration(self, function_id, resource_id, method_type):
@@ -484,25 +502,31 @@ class APIGatewayBackend(BaseBackend):
         return resource.delete_integration(method_type)
 
     def create_integration_response(self, function_id, resource_id, method_type, status_code, selection_pattern):
-        integration = self.get_integration(function_id, resource_id, method_type)
-        integration_response = integration.create_integration_response(status_code, selection_pattern)
+        integration = self.get_integration(
+            function_id, resource_id, method_type)
+        integration_response = integration.create_integration_response(
+            status_code, selection_pattern)
         return integration_response
 
     def get_integration_response(self, function_id, resource_id, method_type, status_code):
-        integration = self.get_integration(function_id, resource_id, method_type)
-        integration_response = integration.get_integration_response(status_code)
+        integration = self.get_integration(
+            function_id, resource_id, method_type)
+        integration_response = integration.get_integration_response(
+            status_code)
         return integration_response
 
     def delete_integration_response(self, function_id, resource_id, method_type, status_code):
-        integration = self.get_integration(function_id, resource_id, method_type)
-        integration_response = integration.delete_integration_response(status_code)
+        integration = self.get_integration(
+            function_id, resource_id, method_type)
+        integration_response = integration.delete_integration_response(
+            status_code)
         return integration_response
 
-    def create_deployment(self, function_id, name, description ="", stage_variables=None):
+    def create_deployment(self, function_id, name, description="", stage_variables=None):
         if stage_variables is None:
             stage_variables = {}
         api = self.get_rest_api(function_id)
-        deployment = api.create_deployment(name, description,stage_variables)
+        deployment = api.create_deployment(name, description, stage_variables)
         return deployment
 
     def get_deployment(self, function_id, deployment_id):
@@ -517,6 +541,8 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(function_id)
         return api.delete_deployment(deployment_id)
 
+
 apigateway_backends = {}
-for region_name in ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1']:  # Not available in boto yet
+# Not available in boto yet
+for region_name in ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1']:
     apigateway_backends[region_name] = APIGatewayBackend(region_name)
