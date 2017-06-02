@@ -42,7 +42,7 @@ class FakeStack(BaseModel):
         return resource_map
 
     def _create_output_map(self):
-        output_map = OutputMap(self.resource_map, self.template_dict)
+        output_map = OutputMap(self.resource_map, self.template_dict, self.stack_id)
         output_map.create()
         return output_map
 
@@ -90,6 +90,10 @@ class FakeStack(BaseModel):
     def stack_outputs(self):
         return self.output_map.values()
 
+    @property
+    def exports(self):
+        return self.output_map.exports
+
     def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.template = template
@@ -131,6 +135,7 @@ class CloudFormationBackend(BaseBackend):
     def __init__(self):
         self.stacks = OrderedDict()
         self.deleted_stacks = {}
+        self.exports = OrderedDict()
 
     def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
         stack_id = generate_stack_id(name)
@@ -145,6 +150,8 @@ class CloudFormationBackend(BaseBackend):
             role_arn=role_arn,
         )
         self.stacks[stack_id] = new_stack
+        for export in new_stack.exports:
+            self.exports[export.name] = export
         return new_stack
 
     def describe_stacks(self, name_or_stack_id):
@@ -191,6 +198,7 @@ class CloudFormationBackend(BaseBackend):
             stack = self.stacks.pop(name_or_stack_id, None)
             stack.delete()
             self.deleted_stacks[stack.stack_id] = stack
+            [self.exports.pop(export.name) for export in stack.exports]
             return self.stacks.pop(name_or_stack_id, None)
         else:
             # Delete by stack name

@@ -454,8 +454,9 @@ class ResourceMap(collections.Mapping):
 
 class OutputMap(collections.Mapping):
 
-    def __init__(self, resources, template):
+    def __init__(self, resources, template, stack_id):
         self._template = template
+        self._stack_id = stack_id
         self._output_json_map = template.get('Outputs')
 
         # Create the default resources
@@ -484,6 +485,35 @@ class OutputMap(collections.Mapping):
     def outputs(self):
         return self._output_json_map.keys() if self._output_json_map else []
 
+    @property
+    def exports(self):
+        exports = []
+        if self.outputs:
+            for key, value in self._output_json_map.iteritems():
+                if value.get('Export'):
+                    exports.append(Export(self._stack_id, value['Export'].get('Name'), value.get('Value')))
+        return exports
+
     def create(self):
         for output in self.outputs:
             self[output]
+
+
+class Export(object):
+
+    def __init__(self, exporting_stack_id, name, value):
+        self._exporting_stack_id = exporting_stack_id
+        self._name = name
+        self._value = value
+
+    @property
+    def exporting_stack_id(self):
+        return self._exporting_stack_id
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def value(self):
+        return self._value
