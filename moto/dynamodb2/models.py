@@ -112,6 +112,7 @@ class Item(object):
 
     def update(self, update_expression, expression_attribute_names, expression_attribute_values):
         parts = [p for p in re.split(r'\b(SET|REMOVE|ADD|DELETE)\b', update_expression) if p]
+        assert len(parts) % 2 == 0, "Mismatched operators and values in update expression: '{}'".format(update_expression)
         for action, valstr in zip(parts[:-1:2], parts[1::2]):
             values = valstr.split(',')
             for value in values:
