@@ -208,7 +208,7 @@ class CloudFormationBackend(BaseBackend):
                     self.delete_stack(stack.stack_id)
 
     def list_exports(self, token):
-        all_exports = self.exports.values()
+        all_exports = list(self.exports.values())
         if token is None:
             exports = all_exports[0:100]
             next_token = '100' if len(all_exports) > 100 else None
