@@ -150,6 +150,7 @@ class CloudFormationBackend(BaseBackend):
             role_arn=role_arn,
         )
         self.stacks[stack_id] = new_stack
+        self._validate_export_uniqueness(new_stack)
         for export in new_stack.exports:
             self.exports[export.name] = export
         return new_stack
@@ -216,6 +217,12 @@ class CloudFormationBackend(BaseBackend):
             exports = all_exports[token:token + 100]
             next_token = str(token + 100) if len(all_exports) > token + 100 else None
         return exports, next_token
+
+    def _validate_export_uniqueness(self, stack):
+        new_stack_export_names = [x.name for x in stack.exports]
+        export_names = self.exports.keys()
+        if not set(export_names).isdisjoint(new_stack_export_names):
+            raise ValidationError(stack.stack_id, message='Export names must be unique across a given region')
 
 
 cloudformation_backends = {}

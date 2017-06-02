@@ -12,6 +12,7 @@ import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
+import random
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -457,9 +458,11 @@ def test_list_exports():
 def test_list_exports_with_token():
     cf = boto3.client('cloudformation', region_name='us-east-1')
     for i in range(101):
+        # Add index to ensure name is unique
+        dummy_output_template['Outputs']['StackVPC']['Export']['Name'] += str(i)
         cf.create_stack(
             StackName="test_stack",
-            TemplateBody=dummy_output_template_json,
+            TemplateBody=json.dumps(dummy_output_template),
         )
     exports = cf.list_exports()
     exports['Exports'].should.have.length_of(100)
@@ -484,3 +487,17 @@ def test_delete_stack_with_export():
 
     cf.delete_stack(StackName=stack_id)
     cf.list_exports()['Exports'].should.have.length_of(0)
+
+
+@mock_cloudformation
+def test_export_names_must_be_unique():
+    cf = boto3.resource('cloudformation', region_name='us-east-1')
+    first_stack = cf.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_output_template_json,
+    )
+    with assert_raises(ClientError):
+        cf.create_stack(
+            StackName="test_stack",
+            TemplateBody=dummy_output_template_json,
+        )
