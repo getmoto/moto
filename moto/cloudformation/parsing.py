@@ -489,7 +489,7 @@ class OutputMap(collections.Mapping):
     def exports(self):
         exports = []
         if self.outputs:
-            for key, value in self._output_json_map.iteritems():
+            for key, value in self._output_json_map.items():
                 if value.get('Export'):
                     exports.append(Export(self._stack_id, value['Export'].get('Name'), value.get('Value')))
         return exports
