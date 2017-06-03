@@ -6,7 +6,9 @@ import datetime
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
 from functools import wraps
+from gzip import GzipFile
 from io import BytesIO
+import zlib
 
 import json
 import boto
@@ -1403,6 +1405,33 @@ def test_boto3_delete_markers():
      for key_metadata in response['Versions']].should.equal(
         [('key-with-versions', '0'), ('key-with-versions', '1')]
     )
+
+
+@mock_s3
+def test_get_stream_gzipped():
+    payload = "this is some stuff here"
+
+    s3_client = boto3.client("s3", region_name='us-east-1')
+    s3_client.create_bucket(Bucket='moto-tests')
+    buffer_ = BytesIO()
+    with GzipFile(fileobj=buffer_, mode='w') as f:
+        f.write(payload)
+    payload_gz = buffer_.getvalue()
+
+    s3_client.put_object(
+        Bucket='moto-tests',
+        Key='keyname',
+        Body=payload_gz,
+        ContentEncoding='gzip',
+    )
+
+    obj = s3_client.get_object(
+        Bucket='moto-tests',
+        Key='keyname',
+    )
+    res = zlib.decompress(obj['Body'].read(), 16+zlib.MAX_WBITS)
+    assert res == payload
+
 
 
 TEST_XML = """\

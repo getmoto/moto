@@ -270,6 +270,8 @@ class RequestsMock(object):
             body=body,
             headers=headers,
             preload_content=False,
+            # Need to not decode_content to mimic requests
+            decode_content=False,
         )
 
         response = adapter.build_response(request, response)
