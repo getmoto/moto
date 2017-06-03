@@ -1425,7 +1425,7 @@ def test_boto3_delete_markers():
 
 @mock_s3
 def test_get_stream_gzipped():
-    payload = "this is some stuff here"
+    payload = b"this is some stuff here"
 
     s3_client = boto3.client("s3", region_name='us-east-1')
     s3_client.create_bucket(Bucket='moto-tests')
