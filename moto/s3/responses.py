@@ -336,6 +336,12 @@ class ResponseObject(_TemplateEnvironmentMixin):
             self.backend.set_bucket_website_configuration(bucket_name, body)
             return ""
         else:
+            if body:
+                try:
+                    region_name = xmltodict.parse(body)['CreateBucketConfiguration']['LocationConstraint']
+                except KeyError:
+                    pass
+
             try:
                 new_bucket = self.backend.create_bucket(
                     bucket_name, region_name)

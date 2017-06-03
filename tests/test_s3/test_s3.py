@@ -1208,6 +1208,22 @@ def test_boto3_bucket_create():
 
 
 @mock_s3
+def test_bucket_create_duplicate():
+    s3 = boto3.resource('s3', region_name='us-west-2')
+    s3.create_bucket(Bucket="blah", CreateBucketConfiguration={
+        'LocationConstraint': 'us-west-2',
+    })
+    with assert_raises(ClientError) as exc:
+        s3.create_bucket(
+            Bucket="blah",
+            CreateBucketConfiguration={
+                'LocationConstraint': 'us-west-2',
+            }
+        )
+    exc.exception.response['Error']['Code'].should.equal('BucketAlreadyExists')
+
+
+@mock_s3
 def test_boto3_bucket_create_eu_central():
     s3 = boto3.resource('s3', region_name='eu-central-1')
     s3.create_bucket(Bucket="blah")
