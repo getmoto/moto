@@ -4,6 +4,13 @@ Moto Changelog
 Latest
 ------
 
+1.0.1
+-----
+
+    * Add Cloudformation exports
+    * Add ECR
+    * IAM policy versions
+
 1.0.0
 -----
 
