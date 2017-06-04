@@ -57,6 +57,16 @@ class Deployment(BaseModel, dict):
         }
         return Deployment(**spec)
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'deployment_id': create_id(),
+            'name': properties['StageName'],
+            'description': properties.get('Description')
+        }
+        return Deployment(**spec)
+
 
 class IntegrationResponse(BaseModel, dict):
     def __init__(self, status_code, selection_pattern=None):
@@ -208,6 +218,18 @@ class Resource(BaseModel):
 
     def delete_integration(self, method_type):
         return self.resource_methods[method_type].pop("methodIntegration")
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'id': create_id(),
+            'region_name': 'us-east-1',
+            'api_id': properties['RestApiId'],
+            'path_part': properties['PathPart'],
+            'parent_id': properties['ParentId']
+        }
+        return Resource(**spec)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
