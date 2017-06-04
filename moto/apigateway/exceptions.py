@@ -191,3 +191,11 @@ class ApiKeyValueMinLength(RESTError):
         super(ApiKeyValueMinLength, self).__init__(
             "BadRequestException", "API Key value should be at least 20 characters"
         )
+
+
+class MethodNotFoundException(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(MethodNotFoundException, self).__init__(
+            "NotFoundException", "Invalid method properties specified")

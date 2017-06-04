@@ -195,6 +195,15 @@ class Method(CloudFormationModel, dict):
     def delete_response(self, response_code):
         return self.method_responses.pop(response_code)
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'method_type': properties['HttpMethod'],
+            'authorization_type': properties['AuthorizationType']
+        }
+        return Method(**spec)
+
 
 class Resource(CloudFormationModel):
     def __init__(self, id, region_name, api_id, path_part, parent_id):
@@ -289,7 +298,10 @@ class Resource(CloudFormationModel):
         return method
 
     def get_method(self, method_type):
-        return self.resource_methods[method_type]
+        method = self.resource_methods.get(method_type)
+        if not method:
+            raise MethodNotFoundException()
+        return method
 
     def add_integration(
         self, method_type, integration_type, uri, request_templates=None
@@ -305,6 +317,18 @@ class Resource(CloudFormationModel):
 
     def delete_integration(self, method_type):
         return self.resource_methods[method_type].pop("methodIntegration")
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'id': create_id(),
+            'region_name': 'us-east-1',
+            'api_id': properties['RestApiId'],
+            'path_part': properties['PathPart'],
+            'parent_id': properties['ParentId']
+        }
+        return Resource(**spec)
 
 
 class Authorizer(BaseModel, dict):
@@ -830,6 +854,26 @@ class RestAPI(CloudFormationModel):
     def delete_deployment(self, deployment_id):
         return self.deployments.pop(deployment_id)
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'RootResourceId':
+            for res_id, res_obj in self.resources.items():
+                if res_obj.path_part == '/' and not res_obj.parent_id:
+                    return res_id
+            raise Exception('Unable to find root resource for API %s' % self)
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        spec = {
+            'id': create_id(),
+            'region_name': 'us-east-1',
+            'name': properties['Name'],
+            'description': properties.get('Description')
+        }
+        return RestAPI(**spec)
+
 
 class DomainName(BaseModel, dict):
     def __init__(self, domain_name, **kwargs):
@@ -1026,8 +1070,7 @@ class APIGatewayBackend(BaseBackend):
         stage = api.stages.get(stage_name)
         if stage is None:
             raise StageNotFoundException()
-        else:
-            return stage
+        return stage
 
     def get_stages(self, function_id):
         api = self.get_rest_api(function_id)
