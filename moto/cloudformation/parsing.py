@@ -155,12 +155,8 @@ def clean_json(resource_json, resources_map):
                 return clean_json(false_value, resources_map)
 
         if 'Fn::Join' in resource_json:
-            join_list = []
-            for val in resource_json['Fn::Join'][1]:
-                cleaned_val = clean_json(val, resources_map)
-                join_list.append('{0}'.format(cleaned_val)
-                                 if cleaned_val else '{0}'.format(val))
-            return resource_json['Fn::Join'][0].join(join_list)
+            join_list = clean_json(resource_json['Fn::Join'][1], resources_map)
+            return resource_json['Fn::Join'][0].join([str(x) for x in join_list])
 
         if 'Fn::Split' in resource_json:
             to_split = clean_json(resource_json['Fn::Split'][1], resources_map)
