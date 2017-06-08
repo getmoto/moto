@@ -522,7 +522,9 @@ class OutputMap(collections.Mapping):
         if self.outputs:
             for key, value in self._output_json_map.items():
                 if value.get('Export'):
-                    exports.append(Export(self._stack_id, value['Export'].get('Name'), value.get('Value')))
+                    cleaned_name = clean_json(value['Export'].get('Name'), self._resource_map)
+                    cleaned_value = clean_json(value.get('Value'), self._resource_map)
+                    exports.append(Export(self._stack_id, cleaned_name, cleaned_value))
         return exports
 
     def create(self):
