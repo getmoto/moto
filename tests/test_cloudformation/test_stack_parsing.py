@@ -7,7 +7,7 @@ import sure  # noqa
 
 from moto.cloudformation.exceptions import ValidationError
 from moto.cloudformation.models import FakeStack
-from moto.cloudformation.parsing import resource_class_from_type, parse_condition
+from moto.cloudformation.parsing import resource_class_from_type, parse_condition, Export
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from boto.cloudformation.stack import Output
@@ -105,6 +105,38 @@ sub_template = {
     }
 }
 
+export_value_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::Sub": '${AWS::StackName}-queue'},
+                "VisibilityTimeout": 60,
+            }
+        }
+    },
+    "Outputs": {
+        "Output1": {
+            "Value": "value",
+            "Export": {"Name": 'queue-us-west-1'}
+        }
+    }
+}
+
+import_value_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::ImportValue": 'queue-us-west-1'},
+                "VisibilityTimeout": 60,
+            }
+        }
+    }
+}
+
 outputs_template = dict(list(dummy_template.items()) +
                         list(output_dict.items()))
 bad_outputs_template = dict(
@@ -120,6 +152,8 @@ get_attribute_outputs_template_json = json.dumps(
     get_attribute_outputs_template)
 split_select_template_json = json.dumps(split_select_template)
 sub_template_json = json.dumps(sub_template)
+export_value_template_json = json.dumps(export_value_template)
+import_value_template_json = json.dumps(import_value_template)
 
 
 def test_parse_stack_resources():
@@ -327,3 +361,22 @@ def test_sub():
     queue1 = stack.resource_map['Queue1']
     queue2 = stack.resource_map['Queue2']
     queue2.name.should.equal(queue1.name)
+
+
+def test_import():
+    export_stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=export_value_template_json,
+        parameters={},
+        region_name='us-west-1')
+    import_stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=import_value_template_json,
+        parameters={},
+        region_name='us-west-1',
+        cross_stack_resources={export_stack.exports[0].value: export_stack.exports[0]})
+
+    queue = import_stack.resource_map['Queue']
+    queue.name.should.equal("value")

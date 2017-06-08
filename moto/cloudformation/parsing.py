@@ -187,6 +187,12 @@ def clean_json(resource_json, resources_map):
                 return fn_sub_value
             pass
 
+        if 'Fn::ImportValue' in resource_json:
+            cleaned_val = clean_json(resource_json['Fn::ImportValue'], resources_map)
+            values = [x.value for x in resources_map.cross_stack_resources.values() if x.name == cleaned_val]
+            if any(values):
+                return values[0]
+
         cleaned_json = {}
         for key, value in resource_json.items():
             cleaned_val = clean_json(value, resources_map)
@@ -326,13 +332,14 @@ class ResourceMap(collections.Mapping):
     each resources is passed this lazy map that it can grab dependencies from.
     """
 
-    def __init__(self, stack_id, stack_name, parameters, tags, region_name, template):
+    def __init__(self, stack_id, stack_name, parameters, tags, region_name, template, cross_stack_resources):
         self._template = template
         self._resource_json_map = template['Resources']
         self._region_name = region_name
         self.input_parameters = parameters
         self.tags = copy.deepcopy(tags)
         self.resolved_parameters = {}
+        self.cross_stack_resources = cross_stack_resources
 
         # Create the default resources
         self._parsed_resources = {

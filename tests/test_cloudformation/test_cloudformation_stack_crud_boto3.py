@@ -5,7 +5,7 @@ import boto
 import boto.s3
 import boto.s3.key
 from botocore.exceptions import ClientError
-from moto import mock_cloudformation, mock_s3
+from moto import mock_cloudformation, mock_s3, mock_sqs
 
 import json
 import sure  # noqa
@@ -80,9 +80,23 @@ dummy_output_template = {
     }
 }
 
+dummy_import_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::ImportValue": 'My VPC ID'},
+                "VisibilityTimeout": 60,
+            }
+        }
+    }
+}
+
 dummy_template_json = json.dumps(dummy_template)
 dummy_update_template_json = json.dumps(dummy_template)
 dummy_output_template_json = json.dumps(dummy_output_template)
+dummy_import_template_json = json.dumps(dummy_import_template)
 
 
 @mock_cloudformation
@@ -501,3 +515,23 @@ def test_export_names_must_be_unique():
             StackName="test_stack",
             TemplateBody=dummy_output_template_json,
         )
+
+@mock_sqs
+@mock_cloudformation
+def test_stack_with_imports():
+    cf = boto3.resource('cloudformation', region_name='us-east-1')
+    ec2_resource = boto3.resource('sqs', region_name='us-east-1')
+
+    output_stack = cf.create_stack(
+        StackName="test_stack1",
+        TemplateBody=dummy_output_template_json,
+    )
+    import_stack = cf.create_stack(
+        StackName="test_stack2",
+        TemplateBody=dummy_import_template_json
+    )
+
+    output_stack.outputs.should.have.length_of(1)
+    output = output_stack.outputs[0]['OutputValue']
+    queue = ec2_resource.get_queue_by_name(QueueName=output)
+    queue.should_not.be.none
