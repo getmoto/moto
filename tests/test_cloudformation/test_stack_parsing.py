@@ -72,6 +72,19 @@ get_attribute_output = {
     }
 }
 
+split_select_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::Select": [ "1", {"Fn::Split": [ "-", "123-myqueue" ] } ] },
+                "VisibilityTimeout": 60,
+            }
+        }
+    }
+}
+
 outputs_template = dict(list(dummy_template.items()) +
                         list(output_dict.items()))
 bad_outputs_template = dict(
@@ -85,6 +98,7 @@ output_type_template_json = json.dumps(outputs_template)
 bad_output_template_json = json.dumps(bad_outputs_template)
 get_attribute_outputs_template_json = json.dumps(
     get_attribute_outputs_template)
+split_select_template_json = json.dumps(split_select_template)
 
 
 def test_parse_stack_resources():
@@ -266,3 +280,17 @@ def test_reference_other_conditions():
         resources_map={},
         condition_map={"OtherCondition": True},
     ).should.equal(False)
+
+
+def test_parse_split_and_select():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=split_select_template_json,
+        parameters={},
+        region_name='us-west-1')
+
+    stack.resource_map.should.have.length_of(1)
+    queue = stack.resource_map['Queue']
+    queue.name.should.equal("myqueue")
+

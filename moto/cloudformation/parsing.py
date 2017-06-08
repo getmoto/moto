@@ -162,6 +162,15 @@ def clean_json(resource_json, resources_map):
                                  if cleaned_val else '{0}'.format(val))
             return resource_json['Fn::Join'][0].join(join_list)
 
+        if 'Fn::Split' in resource_json:
+            to_split = clean_json(resource_json['Fn::Split'][1], resources_map)
+            return to_split.split(resource_json['Fn::Split'][0])
+
+        if 'Fn::Select' in resource_json:
+            select_index = int(resource_json['Fn::Select'][0])
+            select_list = clean_json(resource_json['Fn::Select'][1], resources_map)
+            return select_list[select_index]
+
         cleaned_json = {}
         for key, value in resource_json.items():
             cleaned_val = clean_json(value, resources_map)
