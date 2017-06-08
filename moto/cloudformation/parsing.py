@@ -4,6 +4,7 @@ import functools
 import logging
 import copy
 import warnings
+import re
 
 from moto.autoscaling import models as autoscaling_models
 from moto.awslambda import models as lambda_models
@@ -166,6 +167,25 @@ def clean_json(resource_json, resources_map):
             select_index = int(resource_json['Fn::Select'][0])
             select_list = clean_json(resource_json['Fn::Select'][1], resources_map)
             return select_list[select_index]
+
+        if 'Fn::Sub' in resource_json:
+            if isinstance(resource_json['Fn::Sub'], list):
+                warnings.warn(
+                    "Tried to parse Fn::Sub with variable mapping but it's not supported by moto's CloudFormation implementation")
+            else:
+                fn_sub_value = clean_json(resource_json['Fn::Sub'], resources_map)
+                to_sub = re.findall('(?=\${)[^!^"]*?}', fn_sub_value)
+                literals = re.findall('(?=\${!)[^"]*?}', fn_sub_value)
+                for sub in to_sub:
+                    if '.' in sub:
+                        cleaned_ref = clean_json({'Fn::GetAtt': re.findall('(?<=\${)[^"]*?(?=})', sub)[0].split('.')}, resources_map)
+                    else:
+                        cleaned_ref = clean_json({'Ref': re.findall('(?<=\${)[^"]*?(?=})', sub)[0]}, resources_map)
+                    fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
+                for literal in literals:
+                    fn_sub_value = fn_sub_value.replace(literal, literal.replace('!', ''))
+                return fn_sub_value
+            pass
 
         cleaned_json = {}
         for key, value in resource_json.items():

@@ -85,6 +85,26 @@ split_select_template = {
     }
 }
 
+sub_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue1": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::Sub": '${AWS::StackName}-queue-${!Literal}'},
+                "VisibilityTimeout": 60,
+            }
+        },
+        "Queue2": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::Sub": '${Queue1.QueueName}'},
+                "VisibilityTimeout": 60,
+            }
+        },
+    }
+}
+
 outputs_template = dict(list(dummy_template.items()) +
                         list(output_dict.items()))
 bad_outputs_template = dict(
@@ -99,6 +119,7 @@ bad_output_template_json = json.dumps(bad_outputs_template)
 get_attribute_outputs_template_json = json.dumps(
     get_attribute_outputs_template)
 split_select_template_json = json.dumps(split_select_template)
+sub_template_json = json.dumps(sub_template)
 
 
 def test_parse_stack_resources():
@@ -294,3 +315,15 @@ def test_parse_split_and_select():
     queue = stack.resource_map['Queue']
     queue.name.should.equal("myqueue")
 
+
+def test_sub():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=sub_template_json,
+        parameters={},
+        region_name='us-west-1')
+
+    queue1 = stack.resource_map['Queue1']
+    queue2 = stack.resource_map['Queue2']
+    queue2.name.should.equal(queue1.name)
