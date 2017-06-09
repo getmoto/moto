@@ -11,6 +11,7 @@ DEFAULT_COOLDOWN = 300
 
 ASG_NAME_TAG = "aws:autoscaling:groupName"
 
+
 class InstanceState(object):
 
     def __init__(self, instance, lifecycle_state="InService"):
