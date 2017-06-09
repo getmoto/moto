@@ -9,6 +9,7 @@ from moto.elb.exceptions import LoadBalancerNotFoundError
 # http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AS_Concepts.html#Cooldown
 DEFAULT_COOLDOWN = 300
 
+ASG_NAME_TAG = "aws:autoscaling:groupName"
 
 class InstanceState(object):
 
@@ -169,8 +170,8 @@ class FakeAutoScalingGroup(BaseModel):
         self.termination_policies = termination_policies
 
         self.instance_states = []
-        self.set_desired_capacity(desired_capacity)
         self.tags = tags if tags else []
+        self.set_desired_capacity(desired_capacity)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -261,12 +262,17 @@ class FakeAutoScalingGroup(BaseModel):
             # Need more instances
             count_needed = int(self.desired_capacity) - \
                 int(curr_instance_count)
+
+            propagated_tags = {t['key']: t['value'] for t in self.tags
+                               if t['propagate_at_launch'] == 'true'}
+            propagated_tags[ASG_NAME_TAG] = self.name
             reservation = self.autoscaling_backend.ec2_backend.add_instances(
                 self.launch_config.image_id,
                 count_needed,
                 self.launch_config.user_data,
                 self.launch_config.security_groups,
                 instance_type=self.launch_config.instance_type,
+                tags={'instance': propagated_tags}
             )
             for instance in reservation.instances:
                 instance.autoscaling_group = self
