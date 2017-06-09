@@ -8,7 +8,7 @@ from boto.ec2.autoscale import Tag
 import boto.ec2.elb
 import sure  # noqa
 
-from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_autoscaling_deprecated
+from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_autoscaling_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
 
@@ -138,6 +138,30 @@ def test_list_many_autoscaling_groups():
     groups.should.have.length_of(51)
     assert 'NextToken' not in response2.keys()
 
+@mock_autoscaling
+@mock_ec2
+def test_list_many_autoscaling_groups():
+    conn = boto3.client('autoscaling', region_name='us-east-1')
+    conn.create_launch_configuration(LaunchConfigurationName='TestLC')
+
+    conn.create_auto_scaling_group(AutoScalingGroupName='TestGroup1',
+                                   MinSize=1,
+                                   MaxSize=2,
+                                   LaunchConfigurationName='TestLC',
+                                   Tags=[{
+                                       "ResourceId": 'TestGroup1',
+                                       "ResourceType": "auto-scaling-group",
+                                       "PropagateAtLaunch": True,
+                                       "Key": 'TestTagKey1',
+                                       "Value": 'TestTagValue1'
+                                   }])
+
+    ec2 = boto3.client('ec2', region_name='us-east-1')
+    instances = ec2.describe_instances()
+
+    tags = instances['Reservations'][0]['Instances'][0]['Tags']
+    tags.should.contain({u'Value': 'TestTagValue1', u'Key': 'TestTagKey1'})
+    tags.should.contain({u'Value': 'TestGroup1', u'Key': 'aws:autoscaling:groupName'})
 
 @mock_autoscaling_deprecated
 def test_autoscaling_group_describe_filter():
