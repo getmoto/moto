@@ -4,6 +4,7 @@ import functools
 import logging
 import copy
 import warnings
+import re
 
 from moto.autoscaling import models as autoscaling_models
 from moto.awslambda import models as lambda_models
@@ -155,12 +156,42 @@ def clean_json(resource_json, resources_map):
                 return clean_json(false_value, resources_map)
 
         if 'Fn::Join' in resource_json:
-            join_list = []
-            for val in resource_json['Fn::Join'][1]:
-                cleaned_val = clean_json(val, resources_map)
-                join_list.append('{0}'.format(cleaned_val)
-                                 if cleaned_val else '{0}'.format(val))
-            return resource_json['Fn::Join'][0].join(join_list)
+            join_list = clean_json(resource_json['Fn::Join'][1], resources_map)
+            return resource_json['Fn::Join'][0].join([str(x) for x in join_list])
+
+        if 'Fn::Split' in resource_json:
+            to_split = clean_json(resource_json['Fn::Split'][1], resources_map)
+            return to_split.split(resource_json['Fn::Split'][0])
+
+        if 'Fn::Select' in resource_json:
+            select_index = int(resource_json['Fn::Select'][0])
+            select_list = clean_json(resource_json['Fn::Select'][1], resources_map)
+            return select_list[select_index]
+
+        if 'Fn::Sub' in resource_json:
+            if isinstance(resource_json['Fn::Sub'], list):
+                warnings.warn(
+                    "Tried to parse Fn::Sub with variable mapping but it's not supported by moto's CloudFormation implementation")
+            else:
+                fn_sub_value = clean_json(resource_json['Fn::Sub'], resources_map)
+                to_sub = re.findall('(?=\${)[^!^"]*?}', fn_sub_value)
+                literals = re.findall('(?=\${!)[^"]*?}', fn_sub_value)
+                for sub in to_sub:
+                    if '.' in sub:
+                        cleaned_ref = clean_json({'Fn::GetAtt': re.findall('(?<=\${)[^"]*?(?=})', sub)[0].split('.')}, resources_map)
+                    else:
+                        cleaned_ref = clean_json({'Ref': re.findall('(?<=\${)[^"]*?(?=})', sub)[0]}, resources_map)
+                    fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
+                for literal in literals:
+                    fn_sub_value = fn_sub_value.replace(literal, literal.replace('!', ''))
+                return fn_sub_value
+            pass
+
+        if 'Fn::ImportValue' in resource_json:
+            cleaned_val = clean_json(resource_json['Fn::ImportValue'], resources_map)
+            values = [x.value for x in resources_map.cross_stack_resources.values() if x.name == cleaned_val]
+            if any(values):
+                return values[0]
 
         cleaned_json = {}
         for key, value in resource_json.items():
@@ -301,13 +332,14 @@ class ResourceMap(collections.Mapping):
     each resources is passed this lazy map that it can grab dependencies from.
     """
 
-    def __init__(self, stack_id, stack_name, parameters, tags, region_name, template):
+    def __init__(self, stack_id, stack_name, parameters, tags, region_name, template, cross_stack_resources):
         self._template = template
         self._resource_json_map = template['Resources']
         self._region_name = region_name
         self.input_parameters = parameters
         self.tags = copy.deepcopy(tags)
         self.resolved_parameters = {}
+        self.cross_stack_resources = cross_stack_resources
 
         # Create the default resources
         self._parsed_resources = {
@@ -497,7 +529,9 @@ class OutputMap(collections.Mapping):
         if self.outputs:
             for key, value in self._output_json_map.items():
                 if value.get('Export'):
-                    exports.append(Export(self._stack_id, value['Export'].get('Name'), value.get('Value')))
+                    cleaned_name = clean_json(value['Export'].get('Name'), self._resource_map)
+                    cleaned_value = clean_json(value.get('Value'), self._resource_map)
+                    exports.append(Export(self._stack_id, cleaned_name, cleaned_value))
         return exports
 
     def create(self):

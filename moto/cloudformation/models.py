@@ -15,7 +15,7 @@ from .exceptions import ValidationError
 
 class FakeStack(BaseModel):
 
-    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
+    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, cross_stack_resources=None):
         self.stack_id = stack_id
         self.name = name
         self.template = template
@@ -30,6 +30,7 @@ class FakeStack(BaseModel):
                               resource_status_reason="User Initiated")
 
         self.description = self.template_dict.get('Description')
+        self.cross_stack_resources = cross_stack_resources or []
         self.resource_map = self._create_resource_map()
         self.output_map = self._create_output_map()
         self._add_stack_event("CREATE_COMPLETE")
@@ -37,7 +38,7 @@ class FakeStack(BaseModel):
 
     def _create_resource_map(self):
         resource_map = ResourceMap(
-            self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict)
+            self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict, self.cross_stack_resources)
         resource_map.create()
         return resource_map
 
@@ -148,6 +149,7 @@ class CloudFormationBackend(BaseBackend):
             notification_arns=notification_arns,
             tags=tags,
             role_arn=role_arn,
+            cross_stack_resources=self.exports,
         )
         self.stacks[stack_id] = new_stack
         self._validate_export_uniqueness(new_stack)
