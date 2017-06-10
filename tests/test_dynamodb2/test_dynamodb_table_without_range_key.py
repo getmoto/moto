@@ -608,6 +608,61 @@ def test_boto3_put_item_conditions_fails():
             }
         }).should.throw(botocore.client.ClientError)
 
+@mock_dynamodb2
+def test_boto3_update_item_conditions_fails():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'baz'})
+    table.update_item.when.called_with(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=bar',
+        Expected={
+            'foo': {
+                'Value': 'bar',
+            }
+        }).should.throw(botocore.client.ClientError)
+
+@mock_dynamodb2
+def test_boto3_update_item_conditions_fails_because_expect_not_exists():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'baz'})
+    table.update_item.when.called_with(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=bar',
+        Expected={
+            'foo': {
+                'Exists': False
+            }
+        }).should.throw(botocore.client.ClientError)
+
+@mock_dynamodb2
+def test_boto3_update_item_conditions_pass():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
+    table.update_item(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=baz',
+        Expected={
+            'foo': {
+                'Value': 'bar',
+            }
+        })
+    returned_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(returned_item)['Item']['foo'].should.equal("baz")
+
+@mock_dynamodb2
+def test_boto3_update_item_conditions_pass_because_expext_not_exists():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
+    table.update_item(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=baz',
+        Expected={
+            'whatever': {
+                'Exists': False,
+            }
+        })
+    returned_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(returned_item)['Item']['foo'].should.equal("baz")
 
 @mock_dynamodb2
 def test_boto3_put_item_conditions_pass():
