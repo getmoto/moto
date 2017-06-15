@@ -14,12 +14,14 @@ def test_create_database():
     database = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
                                        AllocatedStorage=10,
                                        Engine='postgres',
+                                       DBName='staging-postgres',
                                        DBInstanceClass='db.m1.small',
                                        MasterUsername='root',
                                        MasterUserPassword='hunter2',
                                        Port=1234,
                                        DBSecurityGroups=["my_sg"])
     database['DBInstance']['DBInstanceStatus'].should.equal('available')
+    database['DBInstance']['DBName'].should.equal('staging-postgres')
     database['DBInstance']['DBInstanceIdentifier'].should.equal("db-master-1")
     database['DBInstance']['AllocatedStorage'].should.equal(10)
     database['DBInstance']['DBInstanceClass'].should.equal("db.m1.small")

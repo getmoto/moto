@@ -131,6 +131,7 @@ class Database(BaseModel):
         template = Template("""<DBInstance>
               <BackupRetentionPeriod>{{ database.backup_retention_period }}</BackupRetentionPeriod>
               <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
+              {% if database.db_name %}<DBName>{{ database.db_name }}</DBName>{% endif %}
               <MultiAZ>{{ database.multi_az }}</MultiAZ>
               <VpcSecurityGroups/>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
