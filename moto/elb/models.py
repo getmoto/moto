@@ -16,10 +16,11 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2.models import ec2_backends
 from .exceptions import (
-    LoadBalancerNotFoundError,
-    TooManyTagsError,
     BadHealthCheckDefinition,
     DuplicateLoadBalancerName,
+    EmptyListenersError,
+    LoadBalancerNotFoundError,
+    TooManyTagsError,
 )
 
 
@@ -239,6 +240,8 @@ class ELBBackend(BaseBackend):
             vpc_id = subnet.vpc_id
         if name in self.load_balancers:
             raise DuplicateLoadBalancerName(name)
+        if not ports:
+            raise EmptyListenersError()
         new_load_balancer = FakeLoadBalancer(
             name=name, zones=zones, ports=ports, scheme=scheme, subnets=subnets, vpc_id=vpc_id)
         self.load_balancers[name] = new_load_balancer

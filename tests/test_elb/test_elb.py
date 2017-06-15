@@ -15,7 +15,9 @@ from boto.ec2.elb.policies import (
     LBCookieStickinessPolicy,
     OtherPolicy,
 )
+from botocore.exceptions import ClientError
 from boto.exception import BotoServerError
+from nose.tools import assert_raises
 import sure  # noqa
 
 from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
@@ -107,6 +109,18 @@ def test_create_and_delete_boto3_support():
     )
     list(client.describe_load_balancers()[
          'LoadBalancerDescriptions']).should.have.length_of(0)
+
+
+@mock_elb
+def test_create_load_balancer_with_no_listeners_defined():
+    client = boto3.client('elb', region_name='us-east-1')
+
+    with assert_raises(ClientError):
+        client.create_load_balancer(
+            LoadBalancerName='my-lb',
+            Listeners=[],
+            AvailabilityZones=['us-east-1a', 'us-east-1b']
+        )
 
 
 @mock_elb

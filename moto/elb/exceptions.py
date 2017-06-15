@@ -47,3 +47,11 @@ class DuplicateLoadBalancerName(ELBClientError):
             "DuplicateLoadBalancerName",
             "The specified load balancer name already exists for this account: {0}"
             .format(name))
+
+
+class EmptyListenersError(ELBClientError):
+
+    def __init__(self):
+        super(EmptyListenersError, self).__init__(
+            "ValidationError",
+            "Listeners cannot be empty")
