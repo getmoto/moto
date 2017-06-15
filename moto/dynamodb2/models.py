@@ -634,7 +634,8 @@ class DynamoDBBackend(BaseBackend):
 
         return table.scan(scan_filters, limit, exclusive_start_key)
 
-    def update_item(self, table_name, key, update_expression, attribute_updates, expression_attribute_names, expression_attribute_values):
+    def update_item(self, table_name, key, update_expression, attribute_updates, expression_attribute_names,
+                    expression_attribute_values, expected=None):
         table = self.get_table(table_name)
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
@@ -652,6 +653,34 @@ class DynamoDBBackend(BaseBackend):
             range_value = None
 
         item = table.get_item(hash_value, range_value)
+
+        if item is None:
+            item_attr = {}
+        elif hasattr(item, 'attrs'):
+            item_attr = item.attrs
+        else:
+            item_attr = item
+
+        if not expected:
+            expected = {}
+
+        for key, val in expected.items():
+            if 'Exists' in val and val['Exists'] is False:
+                if key in item_attr:
+                    raise ValueError("The conditional request failed")
+            elif key not in item_attr:
+                raise ValueError("The conditional request failed")
+            elif 'Value' in val and DynamoType(val['Value']).value != item_attr[key].value:
+                raise ValueError("The conditional request failed")
+            elif 'ComparisonOperator' in val:
+                comparison_func = get_comparison_func(
+                    val['ComparisonOperator'])
+                dynamo_types = [DynamoType(ele) for ele in val[
+                    "AttributeValueList"]]
+                for t in dynamo_types:
+                    if not comparison_func(item_attr[key].value, t.value):
+                        raise ValueError('The conditional request failed')
+
         # Update does not fail on new items, so create one
         if item is None:
             data = {

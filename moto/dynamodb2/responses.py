@@ -207,7 +207,7 @@ class DynamoHandler(BaseResponse):
         try:
             result = dynamodb_backend2.put_item(
                 name, item, expected, overwrite)
-        except Exception:
+        except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er)
 
@@ -474,14 +474,46 @@ class DynamoHandler(BaseResponse):
             'ExpressionAttributeValues', {})
         existing_item = dynamodb_backend2.get_item(name, key)
 
+        if 'Expected' in self.body:
+            expected = self.body['Expected']
+        else:
+            expected = None
+
+        # Attempt to parse simple ConditionExpressions into an Expected
+        # expression
+        if not expected:
+            condition_expression = self.body.get('ConditionExpression')
+            if condition_expression and 'OR' not in condition_expression:
+                cond_items = [c.strip()
+                              for c in condition_expression.split('AND')]
+
+                if cond_items:
+                    expected = {}
+                    exists_re = re.compile('^attribute_exists\((.*)\)$')
+                    not_exists_re = re.compile(
+                        '^attribute_not_exists\((.*)\)$')
+
+                for cond in cond_items:
+                    exists_m = exists_re.match(cond)
+                    not_exists_m = not_exists_re.match(cond)
+                    if exists_m:
+                        expected[exists_m.group(1)] = {'Exists': True}
+                    elif not_exists_m:
+                        expected[not_exists_m.group(1)] = {'Exists': False}
+
         # Support spaces between operators in an update expression
         # E.g. `a = b + c` -> `a=b+c`
         if update_expression:
             update_expression = re.sub(
                 '\s*([=\+-])\s*', '\\1', update_expression)
 
-        item = dynamodb_backend2.update_item(
-            name, key, update_expression, attribute_updates, expression_attribute_names, expression_attribute_values)
+        try:
+            item = dynamodb_backend2.update_item(
+                name, key, update_expression, attribute_updates, expression_attribute_names, expression_attribute_values,
+                expected)
+        except ValueError:
+            er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
+            return self.error(er)
 
         item_dict = item.to_json()
         item_dict['ConsumedCapacityUnits'] = 0.5
