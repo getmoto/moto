@@ -46,6 +46,12 @@ class SimpleSystemManagerBackend(BaseBackend):
         except KeyError:
             pass
 
+    def get_all_parameters(self):
+        result = []
+        for k, _ in self._parameters.iteritems():
+            result.append(self._parameters[k])
+        return result
+
     def get_parameters(self, names, with_decryption):
         result = []
         for name in names:

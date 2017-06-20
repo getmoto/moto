@@ -43,6 +43,20 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         return json.dumps(response)
 
+    def describe_parameters(self):
+        # filters = self._get_param('Filters')
+        result = self.ssm_backend.get_all_parameters()
+
+        response = {
+            'Parameters': [],
+        }
+
+        for parameter in result:
+            param_data = parameter.response_object(False)
+            response['Parameters'].append(param_data)
+
+        return json.dumps(response)
+
     def put_parameter(self):
         name = self._get_param('Name')
         description = self._get_param('Description')
