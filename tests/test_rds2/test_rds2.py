@@ -145,10 +145,10 @@ def test_delete_database():
     conn = boto3.client('rds', region_name='us-west-2')
     instances = conn.describe_db_instances()
     list(instances['DBInstances']).should.have.length_of(0)
-    conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+    conn.create_db_instance(DBInstanceIdentifier='db-primary-1',
                             AllocatedStorage=10,
-                            DBInstanceClass='postgres',
-                            Engine='db.m1.small',
+                            Engine='postgres',
+                            DBInstanceClass='db.m1.small',
                             MasterUsername='root',
                             MasterUserPassword='hunter2',
                             Port=1234,
@@ -156,9 +156,15 @@ def test_delete_database():
     instances = conn.describe_db_instances()
     list(instances['DBInstances']).should.have.length_of(1)
 
-    conn.delete_db_instance(DBInstanceIdentifier="db-master-1")
+    conn.delete_db_instance(DBInstanceIdentifier="db-primary-1",
+                            FinalDBSnapshotIdentifier='primary-1-snapshot')
+
     instances = conn.describe_db_instances()
     list(instances['DBInstances']).should.have.length_of(0)
+
+    # Saved the snapshot
+    snapshots = conn.describe_db_snapshots(DBInstanceIdentifier="db-primary-1").get('DBSnapshots')
+    snapshots[0].get('Engine').should.equal('postgres')
 
 
 @mock_rds2
