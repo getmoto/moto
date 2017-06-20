@@ -44,16 +44,61 @@ class SimpleSystemManagerResponse(BaseResponse):
         return json.dumps(response)
 
     def describe_parameters(self):
-        # filters = self._get_param('Filters')
+        page_size = 10
+        filters = self._get_param('Filters')
+        token = self._get_param('NextToken')
+        if hasattr(token, 'strip'):
+            token = token.strip()
+        if not token:
+            token = '0'
+
+        token = int(token)
+
+
         result = self.ssm_backend.get_all_parameters()
 
         response = {
             'Parameters': [],
         }
 
-        for parameter in result:
+        end = token + page_size
+        for parameter in result[token:]:
             param_data = parameter.response_object(False)
-            response['Parameters'].append(param_data)
+            add = False
+
+            if filters:
+                for filter in filters:
+                    if filter['Key'] == 'Name':
+                        k = param_data['Name']
+                        for v in filter['Values']:
+                            if k.startswith(v):
+                                add = True
+                                break
+                    elif filter['Key'] == 'Type':
+                        k = param_data['Type']
+                        for v in filter['Values']:
+                            if k == v:
+                                add = True
+                                break
+                    elif filter['Key'] == 'KeyId':
+                        k = param_data.get('KeyId')
+                        if k:
+                            for v in filter['Values']:
+                                if k == v:
+                                    add = True
+                                    break
+            else:
+                add = True
+
+            if add:
+                response['Parameters'].append(param_data)
+
+            token = token + 1
+            if len(response['Parameters']) == page_size:
+                response['NextToken'] = str(end)
+                break
+
+
 
         return json.dumps(response)
 
