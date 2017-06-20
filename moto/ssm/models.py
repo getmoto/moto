@@ -51,7 +51,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def get_all_parameters(self):
         result = []
-        for k, _ in self._parameters.iteritems():
+        for k, _ in self._parameters.items():
             result.append(self._parameters[k])
         return result
 
