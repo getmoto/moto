@@ -746,7 +746,7 @@ class RDS2Backend(BaseBackend):
 
         return backend.describe_databases(db_name)[0]
 
-    def delete_database(self, db_instance_identifier, db_snapshot_name):
+    def delete_database(self, db_instance_identifier, db_snapshot_name=None):
         if db_instance_identifier in self.databases:
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
