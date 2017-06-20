@@ -58,7 +58,7 @@ class Repository(BaseObject):
         response_object['repositoryName'] = self.name
         response_object['repositoryUri'] = self.uri
         # response_object['createdAt'] = self.created
-        del response_object['arn'], response_object['name']
+        del response_object['arn'], response_object['name'], response_object['images']
         return response_object
 
     @classmethod

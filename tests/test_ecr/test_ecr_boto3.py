@@ -153,6 +153,23 @@ def test_describe_repositories_4():
 
 
 @mock_ecr
+def test_describe_repositories_with_image():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='latest'
+    )
+
+    response = client.describe_repositories(repositoryNames=['test_repository'])
+    len(response['repositories']).should.equal(1)
+
+
+@mock_ecr
 def test_delete_repository():
     client = boto3.client('ecr', region_name='us-east-1')
     _ = client.create_repository(
@@ -177,14 +194,17 @@ def test_put_image():
     _ = client.create_repository(
         repositoryName='test_repository'
     )
+
     response = client.put_image(
         repositoryName='test_repository',
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag='latest'
     )
 
-    response['image']['repositoryName'].should.equal('test_repository')
     response['image']['imageId']['imageTag'].should.equal('latest')
+    response['image']['imageId']['imageDigest'].should.contain("sha")
+    response['image']['repositoryName'].should.equal('test_repository')
+    response['image']['registryId'].should.equal('012345678910')
 
 
 @mock_ecr
@@ -294,22 +314,3 @@ def test_describe_images():
     response['imageDetails'][0]['imageSizeInBytes'].should.equal(52428800)
     response['imageDetails'][1]['imageSizeInBytes'].should.equal(52428800)
     response['imageDetails'][2]['imageSizeInBytes'].should.equal(52428800)
-
-
-@mock_ecr
-def test_put_image():
-    client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
-        repositoryName='test_repository'
-    )
-
-    response = client.put_image(
-        repositoryName='test_repository',
-        imageManifest=json.dumps(_create_image_manifest()),
-        imageTag='latest'
-    )
-
-    response['image']['imageId']['imageTag'].should.equal('latest')
-    response['image']['imageId']['imageDigest'].should.contain("sha")
-    response['image']['repositoryName'].should.equal('test_repository')
-    response['image']['registryId'].should.equal('012345678910')
