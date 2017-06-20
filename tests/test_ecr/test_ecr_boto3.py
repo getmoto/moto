@@ -153,6 +153,23 @@ def test_describe_repositories_4():
 
 
 @mock_ecr
+def test_describe_repositories_with_image():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='latest'
+    )
+
+    response = client.describe_repositories(repositoryNames=['test_repository'])
+    len(response['repositories']).should.equal(1)
+
+
+@mock_ecr
 def test_delete_repository():
     client = boto3.client('ecr', region_name='us-east-1')
     _ = client.create_repository(
@@ -177,14 +194,17 @@ def test_put_image():
     _ = client.create_repository(
         repositoryName='test_repository'
     )
+
     response = client.put_image(
         repositoryName='test_repository',
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag='latest'
     )
 
-    response['image']['repositoryName'].should.equal('test_repository')
     response['image']['imageId']['imageTag'].should.equal('latest')
+    response['image']['imageId']['imageDigest'].should.contain("sha")
+    response['image']['repositoryName'].should.equal('test_repository')
+    response['image']['registryId'].should.equal('012345678910')
 
 
 @mock_ecr
@@ -297,19 +317,54 @@ def test_describe_images():
 
 
 @mock_ecr
-def test_put_image():
+def test_describe_images_by_tag():
     client = boto3.client('ecr', region_name='us-east-1')
     _ = client.create_repository(
         repositoryName='test_repository'
     )
 
-    response = client.put_image(
-        repositoryName='test_repository',
-        imageManifest=json.dumps(_create_image_manifest()),
-        imageTag='latest'
+    tag_map = {}
+    for tag in ['latest', 'v1', 'v2']:
+        put_response = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(_create_image_manifest()),
+            imageTag=tag
+        )
+        tag_map[tag] = put_response['image']
+
+    for tag, put_response in tag_map.items():
+        response = client.describe_images(repositoryName='test_repository', imageIds=[{'imageTag': tag}])
+        len(response['imageDetails']).should.be(1)
+        image_detail = response['imageDetails'][0]
+        image_detail['registryId'].should.equal("012345678910")
+        image_detail['repositoryName'].should.equal("test_repository")
+        image_detail['imageTags'].should.equal([put_response['imageId']['imageTag']])
+        image_detail['imageDigest'].should.equal(put_response['imageId']['imageDigest'])
+
+
+@mock_ecr
+def test_describe_images_by_digest():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
     )
 
-    response['image']['imageId']['imageTag'].should.equal('latest')
-    response['image']['imageId']['imageDigest'].should.contain("sha")
-    response['image']['repositoryName'].should.equal('test_repository')
-    response['image']['registryId'].should.equal('012345678910')
+    tags = ['latest', 'v1', 'v2']
+    digest_map = {}
+    for tag in tags:
+        put_response = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(_create_image_manifest()),
+            imageTag=tag
+        )
+        digest_map[put_response['image']['imageId']['imageDigest']] = put_response['image']
+
+    for digest, put_response in digest_map.items():
+        response = client.describe_images(repositoryName='test_repository',
+                                          imageIds=[{'imageDigest': digest}])
+        len(response['imageDetails']).should.be(1)
+        image_detail = response['imageDetails'][0]
+        image_detail['registryId'].should.equal("012345678910")
+        image_detail['repositoryName'].should.equal("test_repository")
+        image_detail['imageTags'].should.equal([put_response['imageId']['imageTag']])
+        image_detail['imageDigest'].should.equal(digest)

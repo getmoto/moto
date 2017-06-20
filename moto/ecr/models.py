@@ -58,7 +58,7 @@ class Repository(BaseObject):
         response_object['repositoryName'] = self.name
         response_object['repositoryUri'] = self.uri
         # response_object['createdAt'] = self.created
-        del response_object['arn'], response_object['name']
+        del response_object['arn'], response_object['name'], response_object['images']
         return response_object
 
     @classmethod
@@ -193,16 +193,27 @@ class ECRBackend(BaseBackend):
                 images.append(image)
         return images
 
-    def describe_images(self, repository_name, registry_id=None, image_id=None):
+    def describe_images(self, repository_name, registry_id=None, image_ids=None):
 
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
         else:
             raise Exception("{0} is not a repository".format(repository_name))
 
-        response = []
-        for image in repository.images:
-            response.append(image)
+        if image_ids:
+            response = set()
+            for image_id in image_ids:
+                if 'imageDigest' in image_id:
+                    desired_digest = image_id['imageDigest']
+                    response.update([i for i in repository.images if i.get_image_digest() == desired_digest])
+                if 'imageTag' in image_id:
+                    desired_tag = image_id['imageTag']
+                    response.update([i for i in repository.images if i.image_tag == desired_tag])
+        else:
+            response = []
+            for image in repository.images:
+                response.append(image)
+
         return response
 
     def put_image(self, repository_name, image_manifest, image_tag):
