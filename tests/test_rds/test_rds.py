@@ -10,7 +10,6 @@ from moto import mock_ec2_deprecated, mock_rds_deprecated, mock_rds
 from tests.helpers import disable_on_py3
 
 
-@disable_on_py3()
 @mock_rds_deprecated
 def test_create_database():
     conn = boto.rds.connect_to_region("us-west-2")
@@ -28,7 +27,6 @@ def test_create_database():
     database.security_groups[0].name.should.equal('my_sg')
 
 
-@disable_on_py3()
 @mock_rds_deprecated
 def test_get_databases():
     conn = boto.rds.connect_to_region("us-west-2")
@@ -46,7 +44,6 @@ def test_get_databases():
     databases[0].id.should.equal("db-master-1")
 
 
-@disable_on_py3()
 @mock_rds
 def test_get_databases_paginated():
     conn = boto3.client('rds', region_name="us-west-2")
@@ -73,7 +70,6 @@ def test_describe_non_existant_database():
         "not-a-db").should.throw(BotoServerError)
 
 
-@disable_on_py3()
 @mock_rds_deprecated
 def test_delete_database():
     conn = boto.rds.connect_to_region("us-west-2")
@@ -158,7 +154,6 @@ def test_security_group_authorize():
     security_group.ip_ranges[0].cidr_ip.should.equal('10.3.2.45/32')
 
 
-@disable_on_py3()
 @mock_rds_deprecated
 def test_add_security_group_to_database():
     conn = boto.rds.connect_to_region("us-west-2")
@@ -227,7 +222,6 @@ def test_delete_database_subnet_group():
         "db_subnet1").should.throw(BotoServerError)
 
 
-@disable_on_py3()
 @mock_ec2_deprecated
 @mock_rds_deprecated
 def test_create_database_in_subnet_group():
@@ -245,7 +239,6 @@ def test_create_database_in_subnet_group():
     database.subnet_group.name.should.equal("db_subnet1")
 
 
-@disable_on_py3()
 @mock_rds_deprecated
 def test_create_database_replica():
     conn = boto.rds.connect_to_region("us-west-2")
@@ -271,7 +264,6 @@ def test_create_database_replica():
     list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
 
 
-@disable_on_py3()
 @mock_rds_deprecated
 def test_create_cross_region_database_replica():
     west_1_conn = boto.rds.connect_to_region("us-west-1")
@@ -299,7 +291,6 @@ def test_create_cross_region_database_replica():
     list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
 
 
-@disable_on_py3()
 @mock_rds_deprecated
 def test_connecting_to_us_east_1():
     # boto does not use us-east-1 in the URL for RDS,
@@ -320,7 +311,6 @@ def test_connecting_to_us_east_1():
     database.security_groups[0].name.should.equal('my_sg')
 
 
-@disable_on_py3()
 @mock_rds_deprecated
 def test_create_database_with_iops():
     conn = boto.rds.connect_to_region("us-west-2")

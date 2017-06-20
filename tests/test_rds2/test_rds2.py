@@ -4,10 +4,8 @@ from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
-from tests.helpers import disable_on_py3
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_database():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -32,7 +30,6 @@ def test_create_database():
         'arn:aws:rds:us-west-2:1234567890:db:db-master-1')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_get_databases():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -67,7 +64,6 @@ def test_get_databases():
         'arn:aws:rds:us-west-2:1234567890:db:db-master-1')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_get_databases_paginated():
     conn = boto3.client('rds', region_name="us-west-2")
@@ -86,7 +82,7 @@ def test_get_databases_paginated():
     resp2 = conn.describe_db_instances(Marker=resp["Marker"])
     resp2["DBInstances"].should.have.length_of(1)
 
-@disable_on_py3()
+
 @mock_rds2
 def test_describe_non_existant_database():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -94,7 +90,6 @@ def test_describe_non_existant_database():
         DBInstanceIdentifier="not-a-db").should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_modify_db_instance():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -115,7 +110,6 @@ def test_modify_db_instance():
     instances['DBInstances'][0]['AllocatedStorage'].should.equal(20)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_modify_non_existant_database():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -124,7 +118,6 @@ def test_modify_non_existant_database():
                                              ApplyImmediately=True).should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_reboot_db_instance():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -140,7 +133,6 @@ def test_reboot_db_instance():
     database['DBInstance']['DBInstanceIdentifier'].should.equal("db-master-1")
 
 
-@disable_on_py3()
 @mock_rds2
 def test_reboot_non_existant_database():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -148,7 +140,6 @@ def test_reboot_non_existant_database():
         DBInstanceIdentifier="not-a-db").should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_delete_database():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -170,7 +161,6 @@ def test_delete_database():
     list(instances['DBInstances']).should.have.length_of(0)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_delete_non_existant_database():
     conn = boto3.client('rds2', region_name="us-west-2")
@@ -178,7 +168,6 @@ def test_delete_non_existant_database():
         DBInstanceIdentifier="not-a-db").should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -193,7 +182,6 @@ def test_create_option_group():
     option_group['OptionGroup']['MajorEngineVersion'].should.equal('5.6')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_option_group_bad_engine_name():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -203,7 +191,6 @@ def test_create_option_group_bad_engine_name():
                                               OptionGroupDescription='test invalid engine').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_option_group_bad_engine_major_version():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -213,7 +200,6 @@ def test_create_option_group_bad_engine_major_version():
                                               OptionGroupDescription='test invalid engine version').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_option_group_empty_description():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -223,7 +209,6 @@ def test_create_option_group_empty_description():
                                               OptionGroupDescription='').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_option_group_duplicate():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -237,7 +222,6 @@ def test_create_option_group_duplicate():
                                               OptionGroupDescription='test option group').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_describe_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -250,7 +234,6 @@ def test_describe_option_group():
         'OptionGroupName'].should.equal('test')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_describe_non_existant_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -258,7 +241,6 @@ def test_describe_non_existant_option_group():
         OptionGroupName="not-a-option-group").should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_delete_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -274,7 +256,6 @@ def test_delete_option_group():
         OptionGroupName='test').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_delete_non_existant_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -282,7 +263,6 @@ def test_delete_non_existant_option_group():
         OptionGroupName='non-existant').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_describe_option_group_options():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -301,7 +281,6 @@ def test_describe_option_group_options():
         EngineName='mysql', MajorEngineVersion='non-existent').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_modify_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -317,7 +296,6 @@ def test_modify_option_group():
     result['OptionGroup']['OptionGroupName'].should.equal('test')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_modify_option_group_no_options():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -327,7 +305,6 @@ def test_modify_option_group_no_options():
         OptionGroupName='test').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_modify_non_existant_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -335,7 +312,6 @@ def test_modify_non_existant_option_group():
         'OptionName', 'Port', 'DBSecurityGroupMemberships', 'VpcSecurityGroupMemberships', 'OptionSettings')]).should.throw(ParamValidationError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_delete_non_existant_database():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -343,7 +319,6 @@ def test_delete_non_existant_database():
         DBInstanceIdentifier="not-a-db").should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_list_tags_invalid_arn():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -351,7 +326,6 @@ def test_list_tags_invalid_arn():
         ResourceName='arn:aws:rds:bad-arn').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_list_tags_db():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -385,7 +359,6 @@ def test_list_tags_db():
                                      'Key': 'foo1'}])
 
 
-@disable_on_py3()
 @mock_rds2
 def test_add_tags_db():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -426,7 +399,6 @@ def test_add_tags_db():
     list(result['TagList']).should.have.length_of(3)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_remove_tags_db():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -458,7 +430,6 @@ def test_remove_tags_db():
     len(result['TagList']).should.equal(1)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_add_tags_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -484,7 +455,6 @@ def test_add_tags_option_group():
     list(result['TagList']).should.have.length_of(2)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_remove_tags_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -514,7 +484,6 @@ def test_remove_tags_option_group():
     list(result['TagList']).should.have.length_of(1)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_database_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -527,7 +496,6 @@ def test_create_database_security_group():
     result['DBSecurityGroup']['IPRanges'].should.equal([])
 
 
-@disable_on_py3()
 @mock_rds2
 def test_get_security_groups():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -548,7 +516,6 @@ def test_get_security_groups():
     result['DBSecurityGroups'][0]['DBSecurityGroupName'].should.equal("db_sg1")
 
 
-@disable_on_py3()
 @mock_rds2
 def test_get_non_existant_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -556,7 +523,6 @@ def test_get_non_existant_security_group():
         DBSecurityGroupName="not-a-sg").should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_delete_database_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -571,7 +537,6 @@ def test_delete_database_security_group():
     result['DBSecurityGroups'].should.have.length_of(0)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_delete_non_existant_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -579,7 +544,6 @@ def test_delete_non_existant_security_group():
         DBSecurityGroupName="not-a-db").should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_security_group_authorize():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -605,7 +569,6 @@ def test_security_group_authorize():
     ])
 
 
-@disable_on_py3()
 @mock_rds2
 def test_add_security_group_to_database():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -629,7 +592,6 @@ def test_add_security_group_to_database():
         'DBSecurityGroupName'].should.equal('db_sg')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_list_tags_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -651,7 +613,6 @@ def test_list_tags_security_group():
                                      'Key': 'foo1'}])
 
 
-@disable_on_py3()
 @mock_rds2
 def test_add_tags_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -676,7 +637,6 @@ def test_add_tags_security_group():
                                      'Key': 'foo1'}])
 
 
-@disable_on_py3()
 @mock_rds2
 def test_remove_tags_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -698,7 +658,6 @@ def test_remove_tags_security_group():
     result['TagList'].should.equal([{'Value': 'bar1', 'Key': 'foo1'}])
 
 
-@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_create_database_subnet_group():
@@ -723,7 +682,6 @@ def test_create_database_subnet_group():
     list(subnet_group_ids).should.equal(subnet_ids)
 
 
-@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_create_database_in_subnet_group():
@@ -749,7 +707,6 @@ def test_create_database_in_subnet_group():
         'DBSubnetGroupName'].should.equal('db_subnet1')
 
 
-@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_describe_database_subnet_group():
@@ -779,7 +736,6 @@ def test_describe_database_subnet_group():
         DBSubnetGroupName="not-a-subnet").should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_delete_database_subnet_group():
@@ -806,7 +762,6 @@ def test_delete_database_subnet_group():
         DBSubnetGroupName="db_subnet1").should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_list_tags_database_subnet_group():
@@ -834,7 +789,6 @@ def test_list_tags_database_subnet_group():
                                      'Key': 'foo1'}])
 
 
-@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_add_tags_database_subnet_group():
@@ -866,7 +820,6 @@ def test_add_tags_database_subnet_group():
                                      'Key': 'foo1'}])
 
 
-@disable_on_py3()
 @mock_ec2
 @mock_rds2
 def test_remove_tags_database_subnet_group():
@@ -894,7 +847,6 @@ def test_remove_tags_database_subnet_group():
     result['TagList'].should.equal([{'Value': 'bar1', 'Key': 'foo1'}])
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_database_replica():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -928,7 +880,6 @@ def test_create_database_replica():
         'ReadReplicaDBInstanceIdentifiers'].should.equal([])
 
 
-@disable_on_py3()
 @mock_rds2
 @mock_kms
 def test_create_database_with_encrypted_storage():
@@ -954,7 +905,6 @@ def test_create_database_with_encrypted_storage():
         key['KeyMetadata']['KeyId'])
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -970,7 +920,6 @@ def test_create_db_parameter_group():
         'Description'].should.equal('test parameter group')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_db_instance_with_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -994,7 +943,6 @@ def test_create_db_instance_with_parameter_group():
         'ParameterApplyStatus'].should.equal('in-sync')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_database_with_default_port():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1008,7 +956,6 @@ def test_create_database_with_default_port():
     database['DBInstance']['Endpoint']['Port'].should.equal(5432)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_modify_db_instance_with_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1042,7 +989,6 @@ def test_modify_db_instance_with_parameter_group():
         'ParameterApplyStatus'].should.equal('in-sync')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_db_parameter_group_empty_description():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1051,7 +997,6 @@ def test_create_db_parameter_group_empty_description():
                                                     Description='').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_db_parameter_group_duplicate():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1063,7 +1008,6 @@ def test_create_db_parameter_group_duplicate():
                                                     Description='test parameter group').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_describe_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1076,7 +1020,6 @@ def test_describe_db_parameter_group():
         'DBParameterGroupName'].should.equal('test')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_describe_non_existant_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1085,7 +1028,6 @@ def test_describe_non_existant_db_parameter_group():
     len(db_parameter_groups['DBParameterGroups']).should.equal(0)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_delete_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1102,7 +1044,6 @@ def test_delete_db_parameter_group():
     len(db_parameter_groups['DBParameterGroups']).should.equal(0)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_modify_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1128,7 +1069,6 @@ def test_modify_db_parameter_group():
     db_parameters['Parameters'][0]['ApplyMethod'].should.equal('immediate')
 
 
-@disable_on_py3()
 @mock_rds2
 def test_delete_non_existant_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1136,7 +1076,6 @@ def test_delete_non_existant_db_parameter_group():
         DBParameterGroupName='non-existant').should.throw(ClientError)
 
 
-@disable_on_py3()
 @mock_rds2
 def test_create_parameter_group_with_tags():
     conn = boto3.client('rds', region_name='us-west-2')
