@@ -51,12 +51,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             token = token.strip()
         if not token:
             token = '0'
-
         token = int(token)
 
-
         result = self.ssm_backend.get_all_parameters()
-
         response = {
             'Parameters': [],
         }
@@ -97,8 +94,6 @@ class SimpleSystemManagerResponse(BaseResponse):
             if len(response['Parameters']) == page_size:
                 response['NextToken'] = str(end)
                 break
-
-
 
         return json.dumps(response)
 
