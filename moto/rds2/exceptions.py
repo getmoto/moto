@@ -28,6 +28,14 @@ class DBInstanceNotFoundError(RDSClientError):
             "Database {0} not found.".format(database_identifier))
 
 
+class DBSnapshotNotFoundError(RDSClientError):
+
+    def __init__(self):
+        super(DBSnapshotNotFoundError, self).__init__(
+            'DBSnapshotNotFound',
+            "DBSnapshotIdentifier does not refer to an existing DB snapshot.")
+
+
 class DBSecurityGroupNotFoundError(RDSClientError):
 
     def __init__(self, security_group_name):

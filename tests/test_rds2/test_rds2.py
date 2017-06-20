@@ -169,6 +169,81 @@ def test_delete_non_existant_database():
 
 
 @mock_rds2
+def test_create_db_snapshots():
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_snapshot.when.called_with(
+        DBInstanceIdentifier='db-primary-1',
+        DBSnapshotIdentifier='snapshot-1').should.throw(ClientError)
+
+    conn.create_db_instance(DBInstanceIdentifier='db-primary-1',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBName='staging-postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+
+    snapshot = conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                                       DBSnapshotIdentifier='g-1').get('DBSnapshot')
+
+    snapshot.get('Engine').should.equal('postgres')
+    snapshot.get('DBInstanceIdentifier').should.equal('db-primary-1')
+    snapshot.get('DBSnapshotIdentifier').should.equal('g-1')
+
+
+@mock_rds2
+def test_describe_db_snapshots():
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_instance(DBInstanceIdentifier='db-primary-1',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBName='staging-postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+    conn.describe_db_snapshots.when.called_with(
+        DBInstanceIdentifier="db-primary-1").should.throw(ClientError)
+
+    created = conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                                      DBSnapshotIdentifier='snapshot-1').get('DBSnapshot')
+
+    created.get('Engine').should.equal('postgres')
+
+    by_database_id = conn.describe_db_snapshots(DBInstanceIdentifier='db-primary-1').get('DBSnapshots')
+    by_snapshot_id = conn.describe_db_snapshots(DBSnapshotIdentifier='snapshot-1').get('DBSnapshots')
+    by_snapshot_id.should.equal(by_database_id)
+
+    snapshot = by_snapshot_id[0]
+    snapshot.should.equal(created)
+    snapshot.get('Engine').should.equal('postgres')
+
+
+@mock_rds2
+def test_delete_db_snapshot():
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_instance(DBInstanceIdentifier='db-primary-1',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBName='staging-postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+    conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                            DBSnapshotIdentifier='snapshot-1')
+
+    conn.describe_db_snapshots(DBSnapshotIdentifier='snapshot-1').get('DBSnapshots')[0]
+    conn.delete_db_snapshot(DBSnapshotIdentifier='snapshot-1')
+    conn.describe_db_snapshots.when.called_with(
+        DBSnapshotIdentifier='snapshot-1').should.throw(ClientError)
+
+
+@mock_rds2
 def test_create_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     option_group = conn.create_option_group(OptionGroupName='test',
