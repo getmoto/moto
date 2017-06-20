@@ -208,7 +208,7 @@ class Database(BaseModel):
               {% endif %}
               {% if database.iops %}
               <Iops>{{ database.iops }}</Iops>
-              <StorageType>standard</StorageType>
+              <StorageType>io1</StorageType>
               {% else %}
               <StorageType>{{ database.storage_type }}</StorageType>
               {% endif %}
