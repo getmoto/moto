@@ -403,10 +403,10 @@ class Database(BaseModel):
 
 
 class Snapshot(BaseModel):
-    def __init__(self, database, snapshot_id, tags):
+    def __init__(self, database, snapshot_id, tags=None):
         self.database = database
         self.snapshot_id = snapshot_id
-        self.tags = tags
+        self.tags = tags or []
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
     @property
@@ -746,13 +746,15 @@ class RDS2Backend(BaseBackend):
 
         return backend.describe_databases(db_name)[0]
 
-    def delete_database(self, db_instance_identifier):
+    def delete_database(self, db_instance_identifier, db_snapshot_name):
         if db_instance_identifier in self.databases:
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)
                 primary.remove_replica(database)
             database.status = 'deleting'
+            if db_snapshot_name:
+                self.snapshots[db_snapshot_name] = Snapshot(database, db_snapshot_name)
             return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)

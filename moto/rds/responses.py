@@ -114,7 +114,8 @@ class RDSResponse(BaseResponse):
 
     def delete_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
-        database = self.backend.delete_database(db_instance_identifier)
+        db_snapshot_name = self._get_param('FinalDBSnapshotIdentifier')
+        database = self.backend.delete_database(db_instance_identifier, db_snapshot_name)
         template = self.response_template(DELETE_DATABASE_TEMPLATE)
         return template.render(database=database)
 
