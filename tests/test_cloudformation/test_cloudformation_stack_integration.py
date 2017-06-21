@@ -382,7 +382,7 @@ def test_stack_elb_integration_with_update():
                             "Protocol": "HTTP",
                         }
                     ],
-                    "Policies": {"Ref" : "AWS::NoValue"},
+                    "Policies": {"Ref": "AWS::NoValue"},
                 }
             },
         },
@@ -536,8 +536,8 @@ def test_stack_security_groups():
 @mock_autoscaling_deprecated()
 @mock_elb_deprecated()
 @mock_cloudformation_deprecated()
+@mock_ec2_deprecated()
 def test_autoscaling_group_with_elb():
-
     web_setup_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
 
@@ -550,7 +550,17 @@ def test_autoscaling_group_with_elb():
                     "MinSize": "2",
                     "MaxSize": "2",
                     "DesiredCapacity": "2",
-                    "LoadBalancerNames": [{"Ref": "my-elb"}]
+                    "LoadBalancerNames": [{"Ref": "my-elb"}],
+                    "Tags": [
+                        {
+                            "Key": "propagated-test-tag", "Value": "propagated-test-tag-value",
+                            "PropagateAtLaunch": True},
+                        {
+                            "Key": "not-propagated-test-tag",
+                            "Value": "not-propagated-test-tag-value",
+                            "PropagateAtLaunch": False
+                        }
+                    ]
                 },
             },
 
@@ -611,7 +621,8 @@ def test_autoscaling_group_with_elb():
     as_group_resource.physical_resource_id.should.contain("my-as-group")
 
     launch_config_resource = [
-        resource for resource in resources if resource.resource_type == 'AWS::AutoScaling::LaunchConfiguration'][0]
+        resource for resource in resources if
+        resource.resource_type == 'AWS::AutoScaling::LaunchConfiguration'][0]
     launch_config_resource.physical_resource_id.should.contain(
         "my-launch-config")
 
@@ -619,9 +630,20 @@ def test_autoscaling_group_with_elb():
                     'AWS::ElasticLoadBalancing::LoadBalancer'][0]
     elb_resource.physical_resource_id.should.contain("my-elb")
 
+    # confirm the instances were created with the right tags
+    ec2_conn = boto.ec2.connect_to_region('us-west-1')
+    reservations = ec2_conn.get_all_reservations()
+    len(reservations).should.equal(1)
+    reservation = reservations[0]
+    len(reservation.instances).should.equal(2)
+    for instance in reservation.instances:
+        instance.tags['propagated-test-tag'].should.equal('propagated-test-tag-value')
+        instance.tags.keys().should_not.contain('not-propagated-test-tag')
+
 
 @mock_autoscaling_deprecated()
 @mock_cloudformation_deprecated()
+@mock_ec2_deprecated()
 def test_autoscaling_group_update():
     asg_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -661,6 +683,16 @@ def test_autoscaling_group_update():
     asg.desired_capacity.should.equal(2)
 
     asg_template['Resources']['my-as-group']['Properties']['MaxSize'] = 3
+    asg_template['Resources']['my-as-group']['Properties']['Tags'] = [
+        {
+            "Key": "propagated-test-tag", "Value": "propagated-test-tag-value",
+            "PropagateAtLaunch": True},
+        {
+            "Key": "not-propagated-test-tag",
+            "Value": "not-propagated-test-tag-value",
+            "PropagateAtLaunch": False
+        }
+    ]
     asg_template_json = json.dumps(asg_template)
     conn.update_stack(
         "asg_stack",
@@ -671,11 +703,22 @@ def test_autoscaling_group_update():
     asg.max_size.should.equal(3)
     asg.desired_capacity.should.equal(2)
 
+    # confirm the instances were created with the right tags
+    ec2_conn = boto.ec2.connect_to_region('us-west-1')
+    reservations = ec2_conn.get_all_reservations()
+    running_instance_count = 0
+    for res in reservations:
+        for instance in res.instances:
+            if instance.state == 'running':
+                running_instance_count += 1
+                instance.tags['propagated-test-tag'].should.equal('propagated-test-tag-value')
+                instance.tags.keys().should_not.contain('not-propagated-test-tag')
+    running_instance_count.should.equal(2)
+
 
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_vpc_single_instance_in_subnet():
-
     template_json = json.dumps(vpc_single_instance_in_subnet.template)
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
@@ -738,16 +781,16 @@ def test_rds_db_parameter_groups():
         TemplateBody=template_json,
         Parameters=[{'ParameterKey': key, 'ParameterValue': value} for
                     key, value in [
-            ("DBInstanceIdentifier", "master_db"),
-            ("DBName", "my_db"),
-            ("DBUser", "my_user"),
-            ("DBPassword", "my_password"),
-            ("DBAllocatedStorage", "20"),
-            ("DBInstanceClass", "db.m1.medium"),
-            ("EC2SecurityGroup", "application"),
-            ("MultiAZ", "true"),
-        ]
-        ],
+                        ("DBInstanceIdentifier", "master_db"),
+                        ("DBName", "my_db"),
+                        ("DBUser", "my_user"),
+                        ("DBPassword", "my_password"),
+                        ("DBAllocatedStorage", "20"),
+                        ("DBInstanceClass", "db.m1.medium"),
+                        ("EC2SecurityGroup", "application"),
+                        ("MultiAZ", "true"),
+                    ]
+                    ],
     )
 
     rds_conn = boto3.client('rds', region_name="us-west-1")
@@ -758,8 +801,10 @@ def test_rds_db_parameter_groups():
         'DBParameterGroups'][0]['DBParameterGroupName']
 
     found_cloudformation_set_parameter = False
-    for db_parameter in rds_conn.describe_db_parameters(DBParameterGroupName=db_parameter_group_name)['Parameters']:
-        if db_parameter['ParameterName'] == 'BACKLOG_QUEUE_LIMIT' and db_parameter['ParameterValue'] == '2048':
+    for db_parameter in rds_conn.describe_db_parameters(DBParameterGroupName=db_parameter_group_name)[
+        'Parameters']:
+        if db_parameter['ParameterName'] == 'BACKLOG_QUEUE_LIMIT' and db_parameter[
+            'ParameterValue'] == '2048':
             found_cloudformation_set_parameter = True
 
     found_cloudformation_set_parameter.should.equal(True)
@@ -965,7 +1010,6 @@ def test_iam_roles():
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_single_instance_with_ebs_volume():
-
     template_json = json.dumps(single_instance_with_ebs_volume.template)
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack(
@@ -1005,7 +1049,6 @@ def test_create_template_without_required_param():
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_classic_eip():
-
     template_json = json.dumps(ec2_classic_eip.template)
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack", template_body=template_json)
@@ -1022,7 +1065,6 @@ def test_classic_eip():
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_vpc_eip():
-
     template_json = json.dumps(vpc_eip.template)
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack", template_body=template_json)
@@ -1039,7 +1081,6 @@ def test_vpc_eip():
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_fn_join():
-
     template_json = json.dumps(fn_join.template)
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack", template_body=template_json)
@@ -2009,25 +2050,25 @@ def test_stack_spot_fleet():
                         "TargetCapacity": 6,
                         "AllocationStrategy": "diversified",
                         "LaunchSpecifications": [
-                          {
-                              "EbsOptimized": "false",
-                              "InstanceType": 't2.small',
-                              "ImageId": "ami-1234",
-                              "SubnetId": subnet_id,
-                              "WeightedCapacity": "2",
-                              "SpotPrice": "0.13",
-                          },
                             {
-                              "EbsOptimized": "true",
-                              "InstanceType": 't2.large',
-                              "ImageId": "ami-1234",
-                              "Monitoring": {"Enabled": "true"},
-                              "SecurityGroups": [{"GroupId": "sg-123"}],
-                              "SubnetId": subnet_id,
-                              "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
-                              "WeightedCapacity": "4",
-                              "SpotPrice": "10.00",
-                          }
+                                "EbsOptimized": "false",
+                                "InstanceType": 't2.small',
+                                "ImageId": "ami-1234",
+                                "SubnetId": subnet_id,
+                                "WeightedCapacity": "2",
+                                "SpotPrice": "0.13",
+                            },
+                            {
+                                "EbsOptimized": "true",
+                                "InstanceType": 't2.large',
+                                "ImageId": "ami-1234",
+                                "Monitoring": {"Enabled": "true"},
+                                "SecurityGroups": [{"GroupId": "sg-123"}],
+                                "SubnetId": subnet_id,
+                                "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
+                                "WeightedCapacity": "4",
+                                "SpotPrice": "10.00",
+                            }
                         ]
                     }
                 }

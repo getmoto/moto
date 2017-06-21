@@ -13,14 +13,12 @@ ASG_NAME_TAG = "aws:autoscaling:groupName"
 
 
 class InstanceState(object):
-
     def __init__(self, instance, lifecycle_state="InService"):
         self.instance = instance
         self.lifecycle_state = lifecycle_state
 
 
 class FakeScalingPolicy(BaseModel):
-
     def __init__(self, name, policy_type, adjustment_type, as_name, scaling_adjustment,
                  cooldown, autoscaling_backend):
         self.name = name
@@ -47,7 +45,6 @@ class FakeScalingPolicy(BaseModel):
 
 
 class FakeLaunchConfiguration(BaseModel):
-
     def __init__(self, name, image_id, key_name, ramdisk_id, kernel_id, security_groups, user_data,
                  instance_type, instance_monitoring, instance_profile_name,
                  spot_price, ebs_optimized, associate_public_ip_address, block_device_mapping_dict):
@@ -146,7 +143,6 @@ class FakeLaunchConfiguration(BaseModel):
 
 
 class FakeAutoScalingGroup(BaseModel):
-
     def __init__(self, name, availability_zones, desired_capacity, max_size,
                  min_size, launch_config_name, vpc_zone_identifier,
                  default_cooldown, health_check_period, health_check_type,
@@ -261,11 +257,17 @@ class FakeAutoScalingGroup(BaseModel):
 
         if self.desired_capacity > curr_instance_count:
             # Need more instances
-            count_needed = int(self.desired_capacity) - \
-                int(curr_instance_count)
+            count_needed = int(self.desired_capacity) - int(curr_instance_count)
 
-            propagated_tags = {t['key']: t['value'] for t in self.tags
-                               if t['propagate_at_launch'] == 'true'}
+            propagated_tags = {}
+            for tag in self.tags:
+                # boto uses 'propagate_at_launch
+                # boto3 and cloudformation use PropagateAtLaunch
+                if 'propagate_at_launch' in tag and tag['propagate_at_launch'] == 'true':
+                    propagated_tags[tag['key']] = tag['value']
+                if 'PropagateAtLaunch' in tag and tag['PropagateAtLaunch']:
+                    propagated_tags[tag['Key']] = tag['Value']
+
             propagated_tags[ASG_NAME_TAG] = self.name
             reservation = self.autoscaling_backend.ec2_backend.add_instances(
                 self.launch_config.image_id,
@@ -290,7 +292,6 @@ class FakeAutoScalingGroup(BaseModel):
 
 
 class AutoScalingBackend(BaseBackend):
-
     def __init__(self, ec2_backend, elb_backend):
         self.autoscaling_groups = OrderedDict()
         self.launch_configurations = OrderedDict()
