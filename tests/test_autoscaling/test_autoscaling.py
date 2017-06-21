@@ -138,6 +138,7 @@ def test_list_many_autoscaling_groups():
     groups.should.have.length_of(51)
     assert 'NextToken' not in response2.keys()
 
+
 @mock_autoscaling
 @mock_ec2
 def test_list_many_autoscaling_groups():
@@ -162,6 +163,7 @@ def test_list_many_autoscaling_groups():
     tags = instances['Reservations'][0]['Instances'][0]['Tags']
     tags.should.contain({u'Value': 'TestTagValue1', u'Key': 'TestTagKey1'})
     tags.should.contain({u'Value': 'TestGroup1', u'Key': 'aws:autoscaling:groupName'})
+
 
 @mock_autoscaling_deprecated
 def test_autoscaling_group_describe_filter():
@@ -493,7 +495,20 @@ def test_create_autoscaling_group_boto3():
         LaunchConfigurationName='test_launch_configuration',
         MinSize=0,
         MaxSize=20,
-        DesiredCapacity=5
+        DesiredCapacity=5,
+        Tags=[
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'propogated-tag-key',
+             'Value': 'propogate-tag-value',
+             'PropagateAtLaunch': True
+             },
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'not-propogated-tag-key',
+             'Value': 'not-propogate-tag-value',
+             'PropagateAtLaunch': False
+             }]
     )
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
 
@@ -556,12 +571,14 @@ def test_autoscaling_taqs_update_boto3():
         MinSize=0,
         MaxSize=20,
         DesiredCapacity=5,
-        Tags=[{
-            "ResourceId": 'test_asg',
-            "Key": 'test_key',
-            "Value": 'test_value',
-            "PropagateAtLaunch": True
-        }]
+        Tags=[
+            {
+                "ResourceId": 'test_asg',
+                "Key": 'test_key',
+                "Value": 'test_value',
+                "PropagateAtLaunch": True
+            },
+        ]
     )
 
     client.create_or_update_tags(Tags=[{
@@ -573,7 +590,7 @@ def test_autoscaling_taqs_update_boto3():
         "ResourceId": 'test_asg',
         "Key": 'test_key2',
         "Value": 'test_value2',
-        "PropagateAtLaunch": True
+        "PropagateAtLaunch": False
     }])
 
     response = client.describe_auto_scaling_groups(
