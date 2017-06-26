@@ -150,7 +150,6 @@ def test_describe_parameters_filter_type():
         },
     ])
     len(response['Parameters']).should.equal(10)
-    response['Parameters'][0]['Name'].should.equal('param-35')
     response['Parameters'][0]['Type'].should.equal('SecureString')
     '10'.should.equal(response.get('NextToken', ''))
 
