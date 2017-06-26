@@ -118,14 +118,12 @@ def test_describe_parameters_filter_names():
     response = client.describe_parameters(Filters=[
         {
             'Key': 'Name',
-            'Values': ['param-45', 'param-22']
+            'Values': ['param-22']
         },
     ])
-    len(response['Parameters']).should.equal(2)
+    len(response['Parameters']).should.equal(1)
     response['Parameters'][0]['Name'].should.equal('param-22')
     response['Parameters'][0]['Type'].should.equal('String')
-    response['Parameters'][1]['Name'].should.equal('param-45')
-    response['Parameters'][1]['Type'].should.equal('SecureString')
     ''.should.equal(response.get('NextToken', ''))
 
 @mock_ssm
@@ -174,14 +172,12 @@ def test_describe_parameters_filter_keyid():
     response = client.describe_parameters(Filters=[
         {
             'Key': 'KeyId',
-            'Values': ['key:5','key:10']
+            'Values': ['key:10']
         },
     ])
-    len(response['Parameters']).should.equal(2)
+    len(response['Parameters']).should.equal(1)
     response['Parameters'][0]['Name'].should.equal('param-10')
     response['Parameters'][0]['Type'].should.equal('SecureString')
-    response['Parameters'][1]['Name'].should.equal('param-5')
-    response['Parameters'][1]['Type'].should.equal('SecureString')
     ''.should.equal(response.get('NextToken', ''))
 
 @mock_ssm
