@@ -99,6 +99,7 @@ def test_describe_parameters_paging():
     len(response['Parameters']).should.equal(0)
     ''.should.equal(response.get('NextToken', ''))
 
+
 @mock_ssm
 def test_describe_parameters_filter_names():
     client = boto3.client('ssm', region_name='us-east-1')
@@ -114,7 +115,6 @@ def test_describe_parameters_filter_names():
             p['KeyId'] = 'a key'
         client.put_parameter(**p)
 
-
     response = client.describe_parameters(Filters=[
         {
             'Key': 'Name',
@@ -125,6 +125,7 @@ def test_describe_parameters_filter_names():
     response['Parameters'][0]['Name'].should.equal('param-22')
     response['Parameters'][0]['Type'].should.equal('String')
     ''.should.equal(response.get('NextToken', ''))
+
 
 @mock_ssm
 def test_describe_parameters_filter_type():
@@ -153,6 +154,7 @@ def test_describe_parameters_filter_type():
     response['Parameters'][0]['Type'].should.equal('SecureString')
     '10'.should.equal(response.get('NextToken', ''))
 
+
 @mock_ssm
 def test_describe_parameters_filter_keyid():
     client = boto3.client('ssm', region_name='us-east-1')
@@ -179,6 +181,7 @@ def test_describe_parameters_filter_keyid():
     response['Parameters'][0]['Name'].should.equal('param-10')
     response['Parameters'][0]['Type'].should.equal('SecureString')
     ''.should.equal(response.get('NextToken', ''))
+
 
 @mock_ssm
 def test_put_parameter_secure_default_kms():
