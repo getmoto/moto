@@ -171,6 +171,12 @@ def main(argv=sys.argv[1:]):
         help='Reload server on a file change',
         default=False
     )
+    parser.add_argument(
+        '-s', '--ssl',
+        action='store_true',
+        help='Enable SSL encrypted connection (use https://... URL)',
+        default=False
+    )
 
     args = parser.parse_args(argv)
 
@@ -180,7 +186,8 @@ def main(argv=sys.argv[1:]):
     main_app.debug = True
 
     run_simple(args.host, args.port, main_app,
-               threaded=True, use_reloader=args.reload)
+               threaded=True, use_reloader=args.reload,
+               ssl_context='adhoc' if args.ssl else None)
 
 
 if __name__ == '__main__':
