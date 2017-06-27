@@ -414,6 +414,9 @@ class _RecursiveDictRef(object):
     def __getattr__(self, key):
         return self.dic.__getattr__(key)
 
+    def __getitem__(self, key):
+        return self.dic.__getitem__(key)
+
     def set_reference(self, key, dic):
         """Set the RecursiveDictRef object to keep reference to dict object
         (dic) at the key.

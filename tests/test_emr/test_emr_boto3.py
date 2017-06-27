@@ -64,7 +64,18 @@ def test_describe_cluster():
     args['Configurations'] = [
         {'Classification': 'yarn-site',
          'Properties': {'someproperty': 'somevalue',
-                        'someotherproperty': 'someothervalue'}}]
+                        'someotherproperty': 'someothervalue'}},
+        {'Classification': 'nested-configs',
+         'Properties': {},
+         'Configurations': [
+             {
+                 'Classification': 'nested-config',
+                 'Properties': {
+                     'nested-property': 'nested-value'
+                 }
+             }
+         ]}
+    ]
     args['Instances']['AdditionalMasterSecurityGroups'] = ['additional-master']
     args['Instances']['AdditionalSlaveSecurityGroups'] = ['additional-slave']
     args['Instances']['Ec2KeyName'] = 'mykey'
@@ -86,6 +97,10 @@ def test_describe_cluster():
     config = cl['Configurations'][0]
     config['Classification'].should.equal('yarn-site')
     config['Properties'].should.equal(args['Configurations'][0]['Properties'])
+
+    nested_config = cl['Configurations'][1]
+    nested_config['Classification'].should.equal('nested-configs')
+    nested_config['Properties'].should.equal(args['Configurations'][1]['Properties'])
 
     attrs = cl['Ec2InstanceAttributes']
     attrs['AdditionalMasterSecurityGroups'].should.equal(
