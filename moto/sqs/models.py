@@ -96,7 +96,7 @@ class Message(BaseModel):
         return escape(self._body)
 
     def mark_sent(self, delay_seconds=None):
-        self.sent_timestamp = unix_time_millis()
+        self.sent_timestamp = int(unix_time_millis())
         if delay_seconds:
             self.delay(delay_seconds=delay_seconds)
 
@@ -111,7 +111,7 @@ class Message(BaseModel):
             visibility_timeout = 0
 
         if not self.approximate_first_receive_timestamp:
-            self.approximate_first_receive_timestamp = unix_time_millis()
+            self.approximate_first_receive_timestamp = int(unix_time_millis())
 
         self.approximate_receive_count += 1
 
