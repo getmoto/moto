@@ -273,6 +273,25 @@ def test_send_receive_message_with_attributes():
 
 
 @mock_sqs
+def test_send_receive_message_timestamps():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    conn = boto3.client("sqs", region_name='us-east-1')
+    conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+
+    queue.send_message(MessageBody="derp")
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=1)['Messages']
+
+    message = messages[0]
+    sent_timestamp = message.get('Attributes').get('SentTimestamp')
+    approximate_first_receive_timestamp = message.get('Attributes').get('ApproximateFirstReceiveTimestamp')
+
+    int.when.called_with(sent_timestamp).shouldnt.throw(ValueError)
+    int.when.called_with(approximate_first_receive_timestamp).shouldnt.throw(ValueError)
+
+
+@mock_sqs
 def test_receive_messages_with_wait_seconds_timeout_of_zero():
     """
     test that zero messages is returned with a wait_seconds_timeout of zero,
