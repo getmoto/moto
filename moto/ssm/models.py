@@ -28,11 +28,14 @@ class Parameter(BaseModel):
             return value[len(prefix):]
 
     def response_object(self, decrypt=False):
-        return {
+        r = {
             'Name': self.name,
             'Type': self.type,
             'Value': self.decrypt(self.value) if decrypt else self.value
         }
+        if self.keyid:
+            r['KeyId'] = self.keyid
+        return r
 
 
 class SimpleSystemManagerBackend(BaseBackend):
@@ -45,6 +48,12 @@ class SimpleSystemManagerBackend(BaseBackend):
             del self._parameters[name]
         except KeyError:
             pass
+
+    def get_all_parameters(self):
+        result = []
+        for k, _ in self._parameters.items():
+            result.append(self._parameters[k])
+        return result
 
     def get_parameters(self, names, with_decryption):
         result = []
