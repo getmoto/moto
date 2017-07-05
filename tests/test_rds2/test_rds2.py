@@ -14,6 +14,7 @@ def test_create_database():
                                        Engine='postgres',
                                        DBName='staging-postgres',
                                        DBInstanceClass='db.m1.small',
+                                       LicenseModel='license-included',
                                        MasterUsername='root',
                                        MasterUserPassword='hunter2',
                                        Port=1234,
@@ -23,6 +24,7 @@ def test_create_database():
     database['DBInstance']['DBInstanceIdentifier'].should.equal("db-master-1")
     database['DBInstance']['AllocatedStorage'].should.equal(10)
     database['DBInstance']['DBInstanceClass'].should.equal("db.m1.small")
+    database['DBInstance']['LicenseModel'].should.equal("license-included")
     database['DBInstance']['MasterUsername'].should.equal("root")
     database['DBInstance']['DBSecurityGroups'][0][
         'DBSecurityGroupName'].should.equal('my_sg')

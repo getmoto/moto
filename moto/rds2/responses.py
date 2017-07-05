@@ -26,6 +26,7 @@ class RDS2Response(BaseResponse):
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
+            "license_model": self._get_param("LicenseModel"),
             "iops": self._get_int_param("Iops"),
             "kms_key_id": self._get_param("KmsKeyId"),
             "master_user_password": self._get_param('MasterUserPassword'),
