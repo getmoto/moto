@@ -89,8 +89,7 @@ class Database(BaseModel):
 
         self.preferred_backup_window = kwargs.get(
             'preferred_backup_window', '13:14-13:44')
-        self.license_model = kwargs.get(
-            'license_model', 'general-public-license')
+        self.license_model = kwargs.get('license_model', 'general-public-license')
         self.option_group_name = kwargs.get('option_group_name', None)
         self.default_option_groups = {"MySQL": "default.mysql5.6",
                                       "mysql": "default.mysql5.6",
@@ -159,7 +158,7 @@ class Database(BaseModel):
               <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
               {% endif %}
               <Engine>{{ database.engine }}</Engine>
-              <LicenseModel>general-public-license</LicenseModel>
+              <LicenseModel>{{ database.license_model }}</LicenseModel>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
               <OptionGroupMemberships>
               </OptionGroupMemberships>
@@ -427,7 +426,7 @@ class Snapshot(BaseModel):
               <InstanceCreateTime>{{ snapshot.created_at }}</InstanceCreateTime>
               <MasterUsername>{{ database.master_username }}</MasterUsername>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
-              <LicenseModel>general-public-license</LicenseModel>
+              <LicenseModel>{{ database.license_model }}</LicenseModel>
               <SnapshotType>manual</SnapshotType>
               {% if database.iops %}
               <Iops>{{ database.iops }}</Iops>
