@@ -316,24 +316,26 @@ class DynamoHandler(BaseResponse):
             else:
                 index = table.schema
 
-            key_map = [column for _, column in sorted(
-                (k, v) for k, v in self.body['ExpressionAttributeNames'].items())]
+            reverse_attribute_lookup = dict((v, k) for k, v in
+                                            six.iteritems(self.body['ExpressionAttributeNames']))
 
             if " AND " in key_condition_expression:
                 expressions = key_condition_expression.split(" AND ", 1)
 
-                index_hash_key = [
-                    key for key in index if key['KeyType'] == 'HASH'][0]
-                hash_key_index_in_key_map = key_map.index(
-                    index_hash_key['AttributeName'])
+                index_hash_key = [key for key in index if key['KeyType'] == 'HASH'][0]
+                hash_key_var = reverse_attribute_lookup.get(index_hash_key['AttributeName'],
+                                                            index_hash_key['AttributeName'])
+                hash_key_regex = r'(^|[\s(]){0}\b'.format(hash_key_var)
+                i, hash_key_expression = next((i, e) for i, e in enumerate(expressions)
+                                              if re.search(hash_key_regex, e))
+                hash_key_expression = hash_key_expression.strip('()')
+                expressions.pop(i)
 
-                hash_key_expression = expressions.pop(
-                    hash_key_index_in_key_map).strip('()')
-                # TODO implement more than one range expression and OR
-                # operators
+                # TODO implement more than one range expression and OR operators
                 range_key_expression = expressions[0].strip('()')
                 range_key_expression_components = range_key_expression.split()
                 range_comparison = range_key_expression_components[1]
+
                 if 'AND' in range_key_expression:
                     range_comparison = 'BETWEEN'
                     range_values = [
