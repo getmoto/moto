@@ -40,6 +40,15 @@ class BadHealthCheckDefinition(ELBClientError):
             "HealthCheck Target must begin with one of HTTP, TCP, HTTPS, SSL")
 
 
+class DuplicateListenerError(ELBClientError):
+
+    def __init__(self, name, port):
+        super(DuplicateListenerError, self).__init__(
+            "DuplicateListener",
+            "A listener already exists for {0} with LoadBalancerPort {1}, but with a different InstancePort, Protocol, or SSLCertificateId"
+            .format(name, port))
+
+
 class DuplicateLoadBalancerName(ELBClientError):
 
     def __init__(self, name):
