@@ -15,6 +15,12 @@ class EmailResponse(BaseResponse):
         template = self.response_template(VERIFY_EMAIL_IDENTITY)
         return template.render()
 
+    def verify_email_address(self):
+        address = self.querystring.get('EmailAddress')[0]
+        ses_backend.verify_email_address(address)
+        template = self.response_template(VERIFY_EMAIL_ADDRESS)
+        return template.render()
+
     def list_identities(self):
         identities = ses_backend.list_identities()
         template = self.response_template(LIST_IDENTITIES_RESPONSE)
@@ -94,6 +100,13 @@ VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazon
     <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
   </ResponseMetadata>
 </VerifyEmailIdentityResponse>"""
+
+VERIFY_EMAIL_ADDRESS = """<VerifyEmailAddressResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <VerifyEmailAddressResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</VerifyEmailAddressResponse>"""
 
 LIST_IDENTITIES_RESPONSE = """<ListIdentitiesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <ListIdentitiesResult>

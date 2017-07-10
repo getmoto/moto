@@ -49,6 +49,9 @@ class SESBackend(BaseBackend):
     def verify_email_identity(self, address):
         self.addresses.append(address)
 
+    def verify_email_address(self, address):
+        self.addresses.append(address)
+
     def verify_domain(self, domain):
         self.domains.append(domain)
 
