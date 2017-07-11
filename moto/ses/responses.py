@@ -15,10 +15,21 @@ class EmailResponse(BaseResponse):
         template = self.response_template(VERIFY_EMAIL_IDENTITY)
         return template.render()
 
+    def verify_email_address(self):
+        address = self.querystring.get('EmailAddress')[0]
+        ses_backend.verify_email_address(address)
+        template = self.response_template(VERIFY_EMAIL_ADDRESS)
+        return template.render()
+
     def list_identities(self):
         identities = ses_backend.list_identities()
         template = self.response_template(LIST_IDENTITIES_RESPONSE)
         return template.render(identities=identities)
+
+    def list_verified_email_addresses(self):
+        email_addresses = ses_backend.list_verified_email_addresses()
+        template = self.response_template(LIST_VERIFIED_EMAIL_RESPONSE)
+        return template.render(email_addresses=email_addresses)
 
     def verify_domain_dkim(self):
         domain = self.querystring.get('Domain')[0]
@@ -95,6 +106,13 @@ VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazon
   </ResponseMetadata>
 </VerifyEmailIdentityResponse>"""
 
+VERIFY_EMAIL_ADDRESS = """<VerifyEmailAddressResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <VerifyEmailAddressResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</VerifyEmailAddressResponse>"""
+
 LIST_IDENTITIES_RESPONSE = """<ListIdentitiesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <ListIdentitiesResult>
     <Identities>
@@ -107,6 +125,19 @@ LIST_IDENTITIES_RESPONSE = """<ListIdentitiesResponse xmlns="http://ses.amazonaw
     <RequestId>cacecf23-9bf1-11e1-9279-0100e8cf109a</RequestId>
   </ResponseMetadata>
 </ListIdentitiesResponse>"""
+
+LIST_VERIFIED_EMAIL_RESPONSE = """<ListVerifiedEmailAddressesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <ListVerifiedEmailAddressesResult>
+    <VerifiedEmailAddresses>
+        {% for email in email_addresses %}
+          <member>{{ email }}</member>
+        {% endfor %}
+    </VerifiedEmailAddresses>
+  </ListVerifiedEmailAddressesResult>
+  <ResponseMetadata>
+    <RequestId>cacecf23-9bf1-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</ListVerifiedEmailAddressesResponse>"""
 
 VERIFY_DOMAIN_DKIM_RESPONSE = """<VerifyDomainDkimResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyDomainDkimResult>

@@ -19,6 +19,13 @@ def test_verify_email_identity():
     address = identities['Identities'][0]
     address.should.equal('test@example.com')
 
+@mock_ses
+def test_verify_email_address():
+    conn = boto3.client('ses', region_name='us-east-1')
+    conn.verify_email_address(EmailAddress="test@example.com")
+    email_addresses = conn.list_verified_email_addresses()
+    email = email_addresses['VerifiedEmailAddresses'][0]
+    email.should.equal('test@example.com')
 
 @mock_ses
 def test_domain_verify():
