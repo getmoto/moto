@@ -36,6 +36,7 @@ class SESBackend(BaseBackend):
 
     def __init__(self):
         self.addresses = []
+        self.email_addresses = []
         self.domains = []
         self.sent_messages = []
         self.sent_message_count = 0
@@ -49,11 +50,17 @@ class SESBackend(BaseBackend):
     def verify_email_identity(self, address):
         self.addresses.append(address)
 
+    def verify_email_address(self, address):
+        self.email_addresses.append(address)
+
     def verify_domain(self, domain):
         self.domains.append(domain)
 
     def list_identities(self):
         return self.domains + self.addresses
+
+    def list_verified_email_addresses(self):
+        return self.email_addresses
 
     def delete_identity(self, identity):
         if '@' in identity:
