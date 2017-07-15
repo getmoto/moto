@@ -18,6 +18,7 @@ from moto.ec2.models import ec2_backends
 from .exceptions import (
     BadHealthCheckDefinition,
     DuplicateLoadBalancerName,
+    DuplicateListenerError,
     EmptyListenersError,
     LoadBalancerNotFoundError,
     TooManyTagsError,
@@ -257,6 +258,12 @@ class ELBBackend(BaseBackend):
                 ssl_certificate_id = port.get('sslcertificate_id')
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
+                        if protocol != listener.protocol:
+                            raise DuplicateListenerError(name, lb_port)
+                        if instance_port != listener.instance_port:
+                            raise DuplicateListenerError(name, lb_port)
+                        if ssl_certificate_id != listener.ssl_certificate_id:
+                            raise DuplicateListenerError(name, lb_port)
                         break
                 else:
                     balancer.listeners.append(FakeListener(

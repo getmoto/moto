@@ -339,7 +339,9 @@ SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
         <MD5OfMessageBody>
             {{- message.body_md5 -}}
         </MD5OfMessageBody>
+        {% if message.message_attributes.items()|count > 0 %}
         <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
+        {% endif %}
         <MessageId>
             {{- message.id -}}
         </MessageId>
@@ -373,7 +375,9 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
             <Name>ApproximateFirstReceiveTimestamp</Name>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
+          {% if message.message_attributes.items()|count > 0 %}
           <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
+          {% endif %}
           {% for name, value in message.message_attributes.items() %}
             <MessageAttribute>
               <Name>{{ name }}</Name>
@@ -402,7 +406,9 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
             <Id>{{ message.user_id }}</Id>
             <MessageId>{{ message.id }}</MessageId>
             <MD5OfMessageBody>{{ message.body_md5 }}</MD5OfMessageBody>
+            {% if message.message_attributes.items()|count > 0 %}
             <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
+            {% endif %}
         </SendMessageBatchResultEntry>
     {% endfor %}
 </SendMessageBatchResult>

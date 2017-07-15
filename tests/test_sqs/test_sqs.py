@@ -39,9 +39,25 @@ def test_get_inexistent_queue():
     sqs.get_queue_by_name.when.called_with(
         QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
 
+@mock_sqs
+def test_message_send_without_attributes():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="blah")
+    msg = queue.send_message(
+        MessageBody="derp"
+    )
+    msg.get('MD5OfMessageBody').should.equal(
+        '58fd9edd83341c29f1aebba81c31e257')
+    msg.shouldnt.have.key('MD5OfMessageAttributes')
+    msg.get('ResponseMetadata', {}).get('RequestId').should.equal(
+        '27daac76-34dd-47df-bd01-1f6e873584a0')
+    msg.get('MessageId').should_not.contain(' \n')
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
 
 @mock_sqs
-def test_message_send():
+def test_message_send_with_attributes():
     sqs = boto3.resource('sqs', region_name='us-east-1')
     queue = sqs.create_queue(QueueName="blah")
     msg = queue.send_message(
@@ -189,7 +205,7 @@ def test_set_queue_attribute():
 
 
 @mock_sqs
-def test_send_message():
+def test_send_receive_message_without_attributes():
     sqs = boto3.resource('sqs', region_name='us-east-1')
     conn = boto3.client("sqs", region_name='us-east-1')
     conn.create_queue(QueueName="test-queue")
@@ -198,14 +214,81 @@ def test_send_message():
     body_one = 'this is a test message'
     body_two = 'this is another test message'
 
-    response = queue.send_message(MessageBody=body_one)
-    response = queue.send_message(MessageBody=body_two)
+    queue.send_message(MessageBody=body_one)
+    queue.send_message(MessageBody=body_two)
 
     messages = conn.receive_message(
         QueueUrl=queue.url, MaxNumberOfMessages=2)['Messages']
 
-    messages[0]['Body'].should.equal(body_one)
-    messages[1]['Body'].should.equal(body_two)
+    message1 = messages[0]
+    message2 = messages[1]
+
+    message1['Body'].should.equal(body_one)
+    message2['Body'].should.equal(body_two)
+
+    message1.shouldnt.have.key('MD5OfMessageAttributes')
+    message2.shouldnt.have.key('MD5OfMessageAttributes')
+
+@mock_sqs
+def test_send_receive_message_with_attributes():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    conn = boto3.client("sqs", region_name='us-east-1')
+    conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+
+    body_one = 'this is a test message'
+    body_two = 'this is another test message'
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageAttributes={
+            'timestamp': {
+                'StringValue': '1493147359900',
+                'DataType': 'Number',
+            }
+        }
+    )
+
+    queue.send_message(
+        MessageBody=body_two,
+        MessageAttributes={
+            'timestamp': {
+                'StringValue': '1493147359901',
+                'DataType': 'Number',
+            }
+        }
+    )
+
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2)['Messages']
+
+    message1 = messages[0]
+    message2 = messages[1]
+
+    message1.get('Body').should.equal(body_one)
+    message2.get('Body').should.equal(body_two)
+
+    message1.get('MD5OfMessageAttributes').should.equal('235c5c510d26fb653d073faed50ae77c')
+    message2.get('MD5OfMessageAttributes').should.equal('994258b45346a2cc3f9cbb611aa7af30')
+
+
+@mock_sqs
+def test_send_receive_message_timestamps():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    conn = boto3.client("sqs", region_name='us-east-1')
+    conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+
+    queue.send_message(MessageBody="derp")
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=1)['Messages']
+
+    message = messages[0]
+    sent_timestamp = message.get('Attributes').get('SentTimestamp')
+    approximate_first_receive_timestamp = message.get('Attributes').get('ApproximateFirstReceiveTimestamp')
+
+    int.when.called_with(sent_timestamp).shouldnt.throw(ValueError)
+    int.when.called_with(approximate_first_receive_timestamp).shouldnt.throw(ValueError)
 
 
 @mock_sqs

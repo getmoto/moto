@@ -214,6 +214,21 @@ def test_create_and_delete_listener_boto3_support():
     balancer['ListenerDescriptions'][1]['Listener'][
         'InstancePort'].should.equal(8443)
 
+    # Creating this listener with an conflicting definition throws error
+    with assert_raises(ClientError):
+        client.create_load_balancer_listeners(
+            LoadBalancerName='my-lb',
+            Listeners=[
+                {'Protocol': 'tcp', 'LoadBalancerPort': 443, 'InstancePort': 1234}]
+        )
+
+    client.delete_load_balancer_listeners(
+        LoadBalancerName='my-lb',
+        LoadBalancerPorts=[443])
+
+    balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
+    list(balancer['ListenerDescriptions']).should.have.length_of(1)
+
 
 @mock_elb_deprecated
 def test_set_sslcertificate():
