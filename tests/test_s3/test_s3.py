@@ -1341,6 +1341,98 @@ def test_boto3_multipart_etag():
 
 
 @mock_s3
+def test_boto3_put_object_with_tagging():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-tags'
+    s3.create_bucket(Bucket=bucket_name)
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test',
+        Tagging='foo=bar',
+    )
+
+    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key)
+
+    resp['TagSet'].should.contain({'Key': 'foo', 'Value': 'bar'})
+
+
+@mock_s3
+def test_boto3_put_object_tagging():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-tags'
+    s3.create_bucket(Bucket=bucket_name)
+
+    with assert_raises(ClientError) as err:
+        s3.put_object_tagging(
+            Bucket=bucket_name,
+            Key=key,
+            Tagging={'TagSet': [
+                {'Key': 'item1', 'Value': 'foo'},
+                {'Key': 'item2', 'Value': 'bar'},
+            ]}
+        )
+
+    e = err.exception
+    e.response['Error'].should.equal({
+        'Code': 'NoSuchKey',
+        'Message': 'The specified key does not exist.',
+        'RequestID': '7a62c49f-347e-4fc4-9331-6e8eEXAMPLE',
+    })
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test'
+    )
+
+    resp = s3.put_object_tagging(
+        Bucket=bucket_name,
+        Key=key,
+        Tagging={'TagSet': [
+            {'Key': 'item1', 'Value': 'foo'},
+            {'Key': 'item2', 'Value': 'bar'},
+        ]}
+    )
+
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+
+@mock_s3
+def test_boto3_get_object_tagging():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-tags'
+    s3.create_bucket(Bucket=bucket_name)
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test'
+    )
+
+    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key)
+    resp['TagSet'].should.have.length_of(0)
+
+    resp = s3.put_object_tagging(
+        Bucket=bucket_name,
+        Key=key,
+        Tagging={'TagSet': [
+            {'Key': 'item1', 'Value': 'foo'},
+            {'Key': 'item2', 'Value': 'bar'},
+        ]}
+    )
+    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key)
+
+    resp['TagSet'].should.have.length_of(2)
+    resp['TagSet'].should.contain({'Key': 'item1', 'Value': 'foo'})
+    resp['TagSet'].should.contain({'Key': 'item2', 'Value': 'bar'})
+
+
+@mock_s3
 def test_boto3_list_object_versions():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = 'mybucket'
