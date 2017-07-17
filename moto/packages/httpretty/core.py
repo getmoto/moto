@@ -72,6 +72,10 @@ from datetime import datetime
 from datetime import timedelta
 from errno import EAGAIN
 
+# Some versions of python internally shadowed the
+# SocketType variable incorrectly https://bugs.python.org/issue20386
+BAD_SOCKET_SHADOW = socket.socket != socket.SocketType
+
 old_socket = socket.socket
 old_create_connection = socket.create_connection
 old_gethostbyname = socket.gethostbyname
@@ -976,7 +980,8 @@ class httpretty(HttpBaseClass):
     def disable(cls):
         cls._is_enabled = False
         socket.socket = old_socket
-        socket.SocketType = old_socket
+        if not BAD_SOCKET_SHADOW:
+            socket.SocketType = old_socket
         socket._socketobject = old_socket
 
         socket.create_connection = old_create_connection
@@ -986,7 +991,8 @@ class httpretty(HttpBaseClass):
 
         socket.__dict__['socket'] = old_socket
         socket.__dict__['_socketobject'] = old_socket
-        socket.__dict__['SocketType'] = old_socket
+        if not BAD_SOCKET_SHADOW:
+            socket.__dict__['SocketType'] = old_socket
 
         socket.__dict__['create_connection'] = old_create_connection
         socket.__dict__['gethostname'] = old_gethostname
@@ -1014,13 +1020,10 @@ class httpretty(HttpBaseClass):
     @classmethod
     def enable(cls):
         cls._is_enabled = True
-        # Some versions of python internally shadowed the
-        # SocketType variable incorrectly https://bugs.python.org/issue20386
-        bad_socket_shadow = (socket.socket != socket.SocketType)
 
         socket.socket = fakesock.socket
         socket._socketobject = fakesock.socket
-        if not bad_socket_shadow:
+        if not BAD_SOCKET_SHADOW:
             socket.SocketType = fakesock.socket
 
         socket.create_connection = create_fake_connection
@@ -1030,7 +1033,7 @@ class httpretty(HttpBaseClass):
 
         socket.__dict__['socket'] = fakesock.socket
         socket.__dict__['_socketobject'] = fakesock.socket
-        if not bad_socket_shadow:
+        if not BAD_SOCKET_SHADOW:
             socket.__dict__['SocketType'] = fakesock.socket
 
         socket.__dict__['create_connection'] = create_fake_connection
