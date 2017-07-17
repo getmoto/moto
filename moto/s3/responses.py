@@ -14,7 +14,7 @@ from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_n
 
 
 from .exceptions import BucketAlreadyExists, S3ClientError, MissingKey, InvalidPartOrder
-from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
+from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, FakeTag
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
 
@@ -520,6 +520,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if 'acl' in query:
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return 200, response_headers, template.render(obj=key)
+        if 'tagging' in query:
+            template = self.response_template(S3_OBJECT_TAGGING_RESPONSE)
+            return 200, response_headers, template.render(obj=key)
 
         response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
@@ -556,11 +559,17 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
         acl = self._acl_from_headers(request.headers)
+        tagging = self._tagging_from_headers(request.headers)
 
         if 'acl' in query:
             key = self.backend.get_key(bucket_name, key_name)
             # TODO: Support the XML-based ACL format
             key.set_acl(acl)
+            return 200, response_headers, ""
+
+        if 'tagging' in query:
+            tagging = self._tagging_from_xml(body)
+            self.backend.set_key_tagging(bucket_name, key_name, tagging)
             return 200, response_headers, ""
 
         if 'x-amz-copy-source' in request.headers:
@@ -596,6 +605,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             new_key.set_metadata(metadata)
             new_key.set_acl(acl)
             new_key.website_redirect_location = request.headers.get('x-amz-website-redirect-location')
+            new_key.set_tagging(tagging)
 
         template = self.response_template(S3_OBJECT_RESPONSE)
         response_headers.update(new_key.response_dict)
@@ -654,6 +664,30 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return FakeAcl(grants)
         else:
             return None
+
+    def _tagging_from_headers(self, headers):
+        if headers.get('x-amz-tagging'):
+            parsed_header = parse_qs(headers['x-amz-tagging'], keep_blank_values=True)
+            tags = []
+            for tag in parsed_header.items():
+                tags.append(FakeTag(tag[0], tag[1][0]))
+
+            tag_set = FakeTagSet(tags)
+            tagging = FakeTagging(tag_set)
+            return tagging
+        else:
+            return FakeTagging()
+
+    def _tagging_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+
+        tags = []
+        for tag in parsed_xml['Tagging']['TagSet']['Tag']:
+            tags.append(FakeTag(tag['Key'], tag['Value']))
+
+        tag_set = FakeTagSet(tags)
+        tagging = FakeTagging(tag_set)
+        return tagging
 
     def _key_response_delete(self, bucket_name, query, key_name, headers):
         if query.get('uploadId'):
@@ -967,6 +1001,19 @@ S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
         {% endfor %}
       </AccessControlList>
     </AccessControlPolicy>"""
+
+S3_OBJECT_TAGGING_RESPONSE = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<Tagging xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <TagSet>
+    {% for tag in obj.tagging.tag_set.tags %}
+    <Tag>
+      <Key>{{ tag.key }}</Key>
+      <Value>{{ tag.value }}</Value>
+    </Tag>
+    {% endfor %}
+  </TagSet>
+</Tagging>"""
 
 S3_OBJECT_COPY_RESPONSE = """\
 <CopyObjectResult xmlns="http://doc.s3.amazonaws.com/2006-03-01">

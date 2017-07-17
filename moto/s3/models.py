@@ -11,7 +11,7 @@ import six
 from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall
+from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -43,6 +43,7 @@ class FakeKey(BaseModel):
         self._etag = etag
         self._version_id = version_id
         self._is_versioned = is_versioned
+        self._tagging = FakeTagging()
 
     @property
     def version_id(self):
@@ -58,6 +59,9 @@ class FakeKey(BaseModel):
         if replace:
             self._metadata = {}
         self._metadata.update(metadata)
+
+    def set_tagging(self, tagging):
+        self._tagging = tagging
 
     def set_storage_class(self, storage_class):
         self._storage_class = storage_class
@@ -102,6 +106,10 @@ class FakeKey(BaseModel):
     @property
     def metadata(self):
         return self._metadata
+
+    @property
+    def tagging(self):
+        return self._tagging
 
     @property
     def response_dict(self):
@@ -251,6 +259,25 @@ def get_canned_acl(acl):
     else:
         assert False, 'Unknown canned acl: %s' % (acl,)
     return FakeAcl(grants=grants)
+
+
+class FakeTagging(BaseModel):
+
+    def __init__(self, tag_set=None):
+        self.tag_set = tag_set or FakeTagSet()
+
+
+class FakeTagSet(BaseModel):
+
+    def __init__(self, tags=None):
+        self.tags = tags or []
+
+
+class FakeTag(BaseModel):
+
+    def __init__(self, key, value=None):
+        self.key = key
+        self.value = value
 
 
 class LifecycleRule(BaseModel):
@@ -474,6 +501,13 @@ class S3Backend(BaseBackend):
             return key
         else:
             return None
+
+    def set_key_tagging(self, bucket_name, key_name, tagging):
+        key = self.get_key(bucket_name, key_name)
+        if key is None:
+            raise MissingKey(key_name)
+        key.set_tagging(tagging)
+        return key
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)
