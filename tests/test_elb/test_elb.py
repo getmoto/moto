@@ -143,6 +143,28 @@ def test_describe_paginated_balancers():
     assert 'NextToken' not in resp2.keys()
 
 
+@mock_elb
+@mock_ec2
+def test_add_and_remove_security_groups():
+    client = boto3.client('elb', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    security_group = ec2.create_security_group(
+        GroupName='sg01', Description='Test security group sg01', VpcId=vpc.id)
+
+    client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    response = client.apply_security_groups_to_load_balancer(
+        LoadBalancerName='my-lb',
+        SecurityGroups=[security_group.id])
+    assert response['SecurityGroups'] == [security_group.id]
+
 
 @mock_elb_deprecated
 def test_add_listener():
