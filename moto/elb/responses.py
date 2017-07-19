@@ -108,7 +108,7 @@ class ELBResponse(BaseResponse):
 
     def register_instances_with_load_balancer(self):
         load_balancer_name = self._get_param('LoadBalancerName')
-        instance_ids = [param.values()[0] for param in self._get_list_prefix('Instances.member')]
+        instance_ids = [list(param.values())[0] for param in self._get_list_prefix('Instances.member')]
         template = self.response_template(REGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.register_instances(
             load_balancer_name, instance_ids)
@@ -127,7 +127,7 @@ class ELBResponse(BaseResponse):
 
     def deregister_instances_from_load_balancer(self):
         load_balancer_name = self._get_param('LoadBalancerName')
-        instance_ids = [param.values()[0] for param in self._get_list_prefix('Instances.member')]
+        instance_ids = [list(param.values())[0] for param in self._get_list_prefix('Instances.member')]
         template = self.response_template(DEREGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.deregister_instances(
             load_balancer_name, instance_ids)
@@ -259,7 +259,7 @@ class ELBResponse(BaseResponse):
 
     def describe_instance_health(self):
         load_balancer_name = self._get_param('LoadBalancerName')
-        instance_ids = [param.values()[0] for param in self._get_list_prefix('Instances.member')]
+        instance_ids = [list(param.values())[0] for param in self._get_list_prefix('Instances.member')]
         if len(instance_ids) == 0:
             instance_ids = self.elb_backend.get_load_balancer(
                 load_balancer_name).instance_ids
