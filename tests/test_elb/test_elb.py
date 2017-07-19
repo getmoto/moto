@@ -11,7 +11,6 @@ from boto.ec2.elb.attributes import (
 )
 from boto.ec2.elb.policies import (
     Policies,
-    AppCookieStickinessPolicy,
     LBCookieStickinessPolicy,
     OtherPolicy,
 )
