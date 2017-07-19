@@ -27,6 +27,7 @@ class ELBResponse(BaseResponse):
         ports = self._get_list_prefix("Listeners.member")
         scheme = self._get_param('Scheme')
         subnets = self._get_multi_param("Subnets.member")
+        security_groups = self._get_multi_param("SecurityGroups.member")
 
         load_balancer = self.elb_backend.create_load_balancer(
             name=load_balancer_name,
@@ -34,6 +35,7 @@ class ELBResponse(BaseResponse):
             ports=ports,
             scheme=scheme,
             subnets=subnets,
+            security_groups=security_groups,
         )
         self._add_tags(load_balancer)
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
@@ -84,6 +86,13 @@ class ELBResponse(BaseResponse):
         template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
+    def apply_security_groups_to_load_balancer(self):
+        load_balancer_name = self._get_param('LoadBalancerName')
+        security_group_ids = self._get_multi_param("SecurityGroups.member")
+        self.elb_backend.apply_security_groups_to_load_balancer(load_balancer_name, security_group_ids)
+        template = self.response_template(APPLY_SECURITY_GROUPS_TEMPLATE)
+        return template.render(security_group_ids=security_group_ids)
+
     def configure_health_check(self):
         check = self.elb_backend.configure_health_check(
             load_balancer_name=self._get_param('LoadBalancerName'),
@@ -99,8 +108,7 @@ class ELBResponse(BaseResponse):
 
     def register_instances_with_load_balancer(self):
         load_balancer_name = self._get_param('LoadBalancerName')
-        instance_ids = [value[0] for key, value in self.querystring.items(
-        ) if "Instances.member" in key]
+        instance_ids = [param.values()[0] for param in self._get_list_prefix('Instances.member')]
         template = self.response_template(REGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.register_instances(
             load_balancer_name, instance_ids)
@@ -119,8 +127,7 @@ class ELBResponse(BaseResponse):
 
     def deregister_instances_from_load_balancer(self):
         load_balancer_name = self._get_param('LoadBalancerName')
-        instance_ids = [value[0] for key, value in self.querystring.items(
-        ) if "Instances.member" in key]
+        instance_ids = [param.values()[0] for param in self._get_list_prefix('Instances.member')]
         template = self.response_template(DEREGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.deregister_instances(
             load_balancer_name, instance_ids)
@@ -252,8 +259,7 @@ class ELBResponse(BaseResponse):
 
     def describe_instance_health(self):
         load_balancer_name = self._get_param('LoadBalancerName')
-        instance_ids = [value[0] for key, value in self.querystring.items(
-        ) if "Instances.member" in key]
+        instance_ids = [param.values()[0] for param in self._get_list_prefix('Instances.member')]
         if len(instance_ids) == 0:
             instance_ids = self.elb_backend.get_load_balancer(
                 load_balancer_name).instance_ids
@@ -400,6 +406,9 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
       {% for load_balancer in load_balancers %}
         <member>
           <SecurityGroups>
+            {% for security_group_id in load_balancer.security_groups %}
+            <member>{{ security_group_id }}</member>
+            {% endfor %}
           </SecurityGroups>
           <LoadBalancerName>{{ load_balancer.name }}</LoadBalancerName>
           <CreatedTime>{{ load_balancer.created_time }}</CreatedTime>
@@ -512,6 +521,19 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
     <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
   </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
+
+APPLY_SECURITY_GROUPS_TEMPLATE = """<ApplySecurityGroupsToLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <ApplySecurityGroupsToLoadBalancerResult>
+    <SecurityGroups>
+      {% for security_group_id in security_group_ids %}
+      <member>{{ security_group_id }}</member>
+      {% endfor %}
+    </SecurityGroups>
+  </ApplySecurityGroupsToLoadBalancerResult>
+  <ResponseMetadata>
+    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+  </ResponseMetadata>
+</ApplySecurityGroupsToLoadBalancerResponse>"""
 
 CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <ConfigureHealthCheckResult>

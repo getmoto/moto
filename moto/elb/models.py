@@ -20,6 +20,7 @@ from .exceptions import (
     DuplicateLoadBalancerName,
     DuplicateListenerError,
     EmptyListenersError,
+    InvalidSecurityGroupError,
     LoadBalancerNotFoundError,
     TooManyTagsError,
 )
@@ -63,7 +64,7 @@ class FakeBackend(BaseModel):
 
 class FakeLoadBalancer(BaseModel):
 
-    def __init__(self, name, zones, ports, scheme='internet-facing', vpc_id=None, subnets=None):
+    def __init__(self, name, zones, ports, scheme='internet-facing', vpc_id=None, subnets=None, security_groups=None):
         self.name = name
         self.health_check = None
         self.instance_ids = []
@@ -77,6 +78,7 @@ class FakeLoadBalancer(BaseModel):
         self.policies.other_policies = []
         self.policies.app_cookie_stickiness_policies = []
         self.policies.lb_cookie_stickiness_policies = []
+        self.security_groups = security_groups or []
         self.subnets = subnets or []
         self.vpc_id = vpc_id or 'vpc-56e10e3d'
         self.tags = {}
@@ -233,7 +235,7 @@ class ELBBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_load_balancer(self, name, zones, ports, scheme='internet-facing', subnets=None):
+    def create_load_balancer(self, name, zones, ports, scheme='internet-facing', subnets=None, security_groups=None):
         vpc_id = None
         ec2_backend = ec2_backends[self.region_name]
         if subnets:
@@ -243,8 +245,19 @@ class ELBBackend(BaseBackend):
             raise DuplicateLoadBalancerName(name)
         if not ports:
             raise EmptyListenersError()
+        if not security_groups:
+            security_groups = []
+        for security_group in security_groups:
+            if ec2_backend.get_security_group_from_id(security_group) is None:
+                raise InvalidSecurityGroupError()
         new_load_balancer = FakeLoadBalancer(
-            name=name, zones=zones, ports=ports, scheme=scheme, subnets=subnets, vpc_id=vpc_id)
+            name=name,
+            zones=zones,
+            ports=ports,
+            scheme=scheme,
+            subnets=subnets,
+            security_groups=security_groups,
+            vpc_id=vpc_id)
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
 
@@ -301,6 +314,14 @@ class ELBBackend(BaseBackend):
 
     def get_load_balancer(self, load_balancer_name):
         return self.load_balancers.get(load_balancer_name)
+
+    def apply_security_groups_to_load_balancer(self, load_balancer_name, security_group_ids):
+        load_balancer = self.load_balancers.get(load_balancer_name)
+        ec2_backend = ec2_backends[self.region_name]
+        for security_group_id in security_group_ids:
+            if ec2_backend.get_security_group_from_id(security_group_id) is None:
+                raise InvalidSecurityGroupError()
+        load_balancer.security_groups = security_group_ids
 
     def configure_health_check(self, load_balancer_name, timeout,
                                healthy_threshold, unhealthy_threshold, interval,

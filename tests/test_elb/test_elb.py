@@ -18,17 +18,22 @@ from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
 
 
 @mock_elb_deprecated
+@mock_ec2_deprecated
 def test_create_load_balancer():
     conn = boto.connect_elb()
+    ec2 = boto.connect_ec2('the_key', 'the_secret')
+
+    security_group = ec2.create_security_group('sg-abc987', 'description')
 
     zones = ['us-east-1a', 'us-east-1b']
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
-    conn.create_load_balancer('my-lb', zones, ports, scheme='internal')
+    conn.create_load_balancer('my-lb', zones, ports, scheme='internal', security_groups=[security_group.id])
 
     balancers = conn.get_all_load_balancers()
     balancer = balancers[0]
     balancer.name.should.equal("my-lb")
     balancer.scheme.should.equal("internal")
+    list(balancer.security_groups).should.equal([security_group.id])
     set(balancer.availability_zones).should.equal(
         set(['us-east-1a', 'us-east-1b']))
     listener1 = balancer.listeners[0]
@@ -139,9 +144,9 @@ def test_describe_paginated_balancers():
 
 @mock_elb
 @mock_ec2
-def test_add_and_remove_security_groups():
+def test_apply_security_groups_to_load_balancer():
     client = boto3.client('elb', region_name='us-east-1')
-    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
 
     vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
     security_group = ec2.create_security_group(
@@ -157,7 +162,17 @@ def test_add_and_remove_security_groups():
     response = client.apply_security_groups_to_load_balancer(
         LoadBalancerName='my-lb',
         SecurityGroups=[security_group.id])
+
     assert response['SecurityGroups'] == [security_group.id]
+    balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
+    assert balancer['SecurityGroups'] == [security_group.id]
+
+    # Usign a not-real security group raises an error
+    with assert_raises(ClientError) as error:
+        response = client.apply_security_groups_to_load_balancer(
+            LoadBalancerName='my-lb',
+            SecurityGroups=['not-really-a-security-group'])
+    assert "One or more of the specified security groups do not exist." in str(error.exception)
 
 
 @mock_elb_deprecated
