@@ -167,7 +167,7 @@ def test_apply_security_groups_to_load_balancer():
     balancer = client.describe_load_balancers()['LoadBalancerDescriptions'][0]
     assert balancer['SecurityGroups'] == [security_group.id]
 
-    # Usign a not-real security group raises an error
+    # Using a not-real security group raises an error
     with assert_raises(ClientError) as error:
         response = client.apply_security_groups_to_load_balancer(
             LoadBalancerName='my-lb',
