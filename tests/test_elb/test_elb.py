@@ -9,11 +9,6 @@ from boto.ec2.elb.attributes import (
     ConnectionDrainingAttribute,
     AccessLogAttribute,
 )
-from boto.ec2.elb.policies import (
-    Policies,
-    LBCookieStickinessPolicy,
-    OtherPolicy,
-)
 from botocore.exceptions import ClientError
 from boto.exception import BotoServerError
 from nose.tools import assert_raises
