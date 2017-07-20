@@ -172,6 +172,13 @@ class Stream(BaseModel):
             }
         }
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        region = properties.get('Region', 'us-east-1')
+        shard_count = properties.get('ShardCount', 1)
+        return Stream(properties['Name'], shard_count, region)
+
 
 class FirehoseRecord(BaseModel):
 
