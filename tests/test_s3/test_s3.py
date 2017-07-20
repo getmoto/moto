@@ -1251,6 +1251,31 @@ def test_boto3_head_object():
 
 
 @mock_s3
+def test_boto3_bucket_deletion():
+    cli = boto3.client('s3', region_name='us-east-1')
+    cli.create_bucket(Bucket="foobar")
+
+    cli.put_object(Bucket="foobar", Key="the-key", Body="some value")
+
+    # Try to delete a bucket that still has keys
+    cli.delete_bucket.when.called_with(Bucket="foobar").should.throw(
+        cli.exceptions.ClientError,
+        ('An error occurred (BucketNotEmpty) when calling the DeleteBucket operation: '
+         'The bucket you tried to delete is not empty'))
+
+    cli.delete_object(Bucket="foobar", Key="the-key")
+    cli.delete_bucket(Bucket="foobar")
+
+    # Get non-existing bucket
+    cli.head_bucket.when.called_with(Bucket="foobar").should.throw(
+        cli.exceptions.ClientError,
+        "An error occurred (404) when calling the HeadBucket operation: Not Found")
+
+    # Delete non-existing bucket
+    cli.delete_bucket.when.called_with(Bucket="foobar").should.throw(cli.exceptions.NoSuchBucket)
+
+
+@mock_s3
 def test_boto3_get_object():
     s3 = boto3.resource('s3', region_name='us-east-1')
     s3.create_bucket(Bucket="blah")
@@ -1560,4 +1585,3 @@ TEST_XML = """\
     </ns0:RoutingRules>
 </ns0:WebsiteConfiguration>
 """
-
