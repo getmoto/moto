@@ -13,7 +13,7 @@ from moto.core.responses import _TemplateEnvironmentMixin
 from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_name_from_url, parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
 
 
-from .exceptions import BucketAlreadyExists, S3ClientError, MissingKey, InvalidPartOrder
+from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, MissingKey, InvalidPartOrder
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, FakeTag
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
@@ -155,7 +155,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 "Method {0} has not been impelemented in the S3 backend yet".format(method))
 
     def _bucket_response_head(self, bucket_name, headers):
-        self.backend.get_bucket(bucket_name)
+        try:
+            self.backend.get_bucket(bucket_name)
+        except MissingBucket:
+            # Unless we do this, boto3 does not raise ClientError on
+            # HEAD (which the real API responds with), and instead
+            # raises NoSuchBucket, leading to inconsistency in
+            # error response between real and mocked responses.
+            return 404, {}, "Not Found"
         return 200, {}, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
