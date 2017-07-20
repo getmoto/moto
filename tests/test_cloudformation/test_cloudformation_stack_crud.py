@@ -569,7 +569,6 @@ def test_describe_stack_events_shows_create_update_and_delete():
 
 
 @mock_cloudformation_deprecated
-@mock_route53_deprecated
 def test_create_stack_lambda_and_dynamodb():
     conn = boto.connect_cloudformation()
     dummy_template = {
@@ -643,3 +642,31 @@ def test_create_stack_lambda_and_dynamodb():
     stack = conn.describe_stacks()[0]
     resources = stack.list_resources()
     assert len(resources) == 4
+
+
+@mock_cloudformation_deprecated
+def test_create_stack_kinesis():
+    conn = boto.connect_cloudformation()
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Stack Kinesis Test 1",
+        "Parameters": {},
+        "Resources": {
+            "stream1": {
+                "Type" : "AWS::Kinesis::Stream",
+                "Properties" : {
+                    "Name": "stream1",
+                    "ShardCount": 2
+                }
+            }
+        }
+    }
+    conn.create_stack(
+        "test_stack_kinesis_1",
+        template_body=json.dumps(dummy_template),
+        parameters={}.items()
+    )
+
+    stack = conn.describe_stacks()[0]
+    resources = stack.list_resources()
+    assert len(resources) == 1
