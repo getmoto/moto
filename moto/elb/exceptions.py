@@ -64,3 +64,11 @@ class EmptyListenersError(ELBClientError):
         super(EmptyListenersError, self).__init__(
             "ValidationError",
             "Listeners cannot be empty")
+
+
+class InvalidSecurityGroupError(ELBClientError):
+
+    def __init__(self):
+        super(InvalidSecurityGroupError, self).__init__(
+            "ValidationError",
+            "One or more of the specified security groups do not exist.")

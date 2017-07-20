@@ -3553,8 +3553,8 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
                  DHCPOptionsSetBackend, NetworkAclBackend, VpnGatewayBackend,
                  CustomerGatewayBackend, NatGatewayBackend):
     def __init__(self, region_name):
-        super(EC2Backend, self).__init__()
         self.region_name = region_name
+        super(EC2Backend, self).__init__()
 
         # Default VPC exists by default, which is the current behavior
         # of EC2-VPC. See for detail:
