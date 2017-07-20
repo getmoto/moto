@@ -43,6 +43,7 @@ Currently implemented Services:
 | ECS                   | @mock_ecs           | basic endpoints done              |
 +-----------------------+---------------------+-----------------------------------+
 | ELB                   | @mock_elb           | core endpoints done               |
+|                       | @mock_elbv2         | core endpoints done               |
 +-----------------------+---------------------+-----------------------------------+
 | EMR                   | @mock_emr           | core endpoints done               |
 +-----------------------+---------------------+-----------------------------------+
