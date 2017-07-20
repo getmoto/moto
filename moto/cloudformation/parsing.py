@@ -15,6 +15,7 @@ from moto.ec2 import models as ec2_models
 from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
 from moto.iam import models as iam_models
+from moto.kinesis import models as kinesis_models
 from moto.kms import models as kms_models
 from moto.rds import models as rds_models
 from moto.rds2 import models as rds2_models
@@ -31,6 +32,7 @@ MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
     "AWS::AutoScaling::LaunchConfiguration": autoscaling_models.FakeLaunchConfiguration,
     "AWS::DynamoDB::Table": dynamodb_models.Table,
+    "AWS::Kinesis::Stream": kinesis_models.Stream,
     "AWS::Lambda::EventSourceMapping": lambda_models.EventSourceMapping,
     "AWS::Lambda::Function": lambda_models.LambdaFunction,
     "AWS::Lambda::Version": lambda_models.LambdaVersion,
