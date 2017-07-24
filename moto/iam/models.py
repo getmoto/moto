@@ -256,6 +256,7 @@ class User(BaseModel):
         self.policies = {}
         self.access_keys = []
         self.password = None
+        self.password_reset_required = False
 
     @property
     def arn(self):
@@ -772,6 +773,24 @@ class IAMBackend(BaseBackend):
             raise IAMConflictException(
                 "User {0} already has password".format(user_name))
         user.password = password
+        return user
+
+    def get_login_profile(self, user_name):
+        user = self.get_user(user_name)
+        if not user.password:
+            raise IAMNotFoundException(
+                "Login profile for {0} not found".format(user_name))
+        return user
+
+    def update_login_profile(self, user_name, password, password_reset_required):
+        # This does not currently deal with PasswordPolicyViolation.
+        user = self.get_user(user_name)
+        if not user.password:
+            raise IAMNotFoundException(
+                "Login profile for {0} not found".format(user_name))
+        user.password = password
+        user.password_reset_required = password_reset_required
+        return user
 
     def delete_login_profile(self, user_name):
         user = self.get_user(user_name)
