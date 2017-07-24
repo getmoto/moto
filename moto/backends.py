@@ -13,6 +13,7 @@ from moto.ec2 import ec2_backends
 from moto.ecr import ecr_backends
 from moto.ecs import ecs_backends
 from moto.elb import elb_backends
+from moto.elbv2 import elbv2_backends
 from moto.emr import emr_backends
 from moto.events import events_backends
 from moto.glacier import glacier_backends
@@ -43,6 +44,7 @@ BACKENDS = {
     'ecr': ecr_backends,
     'ecs': ecs_backends,
     'elb': elb_backends,
+    'elbv2': elbv2_backends,
     'events': events_backends,
     'emr': emr_backends,
     'glacier': glacier_backends,
