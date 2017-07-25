@@ -1,12 +1,13 @@
 from __future__ import unicode_literals
 import json
+from datetime import datetime
+import time
 
 from moto.core.responses import BaseResponse
 from .models import ecr_backends
 
 
 class ECRResponse(BaseResponse):
-
     @property
     def ecr_backend(self):
         return ecr_backends[self.region]
@@ -111,9 +112,17 @@ class ECRResponse(BaseResponse):
                 'ECR.generate_presigned_url is not yet implemented')
 
     def get_authorization_token(self):
-        if self.is_not_dryrun('GetAuthorizationToken'):
-            raise NotImplementedError(
-                'ECR.get_authorization_token is not yet implemented')
+        registry_ids = self._get_param('registryIds')
+        if not registry_ids:
+            registry_ids = [self.region]
+        auth_data = []
+        for registry_id in registry_ids:
+            auth_data.append({
+                'authorizationToken': '{}-auth-token'.format(registry_id),
+                'expiresAt': time.mktime(datetime(2015, 1, 1).timetuple()),
+                'proxyEndpoint': 'https://012345678910.dkr.ecr.{}.amazonaws.com'.format(registry_id)
+            })
+        return json.dumps({'authorizationData': auth_data})
 
     def get_download_url_for_layer(self):
         if self.is_not_dryrun('GetDownloadUrlForLayer'):

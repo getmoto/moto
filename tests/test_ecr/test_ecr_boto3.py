@@ -2,11 +2,13 @@ from __future__ import unicode_literals
 
 import hashlib
 import json
+from datetime import datetime
 from random import random
 
 import sure  # noqa
 
 import boto3
+from dateutil.tz import tzlocal
 
 from moto import mock_ecr
 
@@ -368,3 +370,39 @@ def test_describe_images_by_digest():
         image_detail['repositoryName'].should.equal("test_repository")
         image_detail['imageTags'].should.equal([put_response['imageId']['imageTag']])
         image_detail['imageDigest'].should.equal(digest)
+
+
+@mock_ecr
+def test_get_authorization_token_assume_region():
+    client = boto3.client('ecr', region_name='us-east-1')
+    auth_token_response = client.get_authorization_token()
+
+    list(auth_token_response.keys()).should.equal(['authorizationData', 'ResponseMetadata'])
+    auth_token_response['authorizationData'].should.equal([
+        {
+            'authorizationToken': 'us-east-1-auth-token',
+            'proxyEndpoint': 'https://012345678910.dkr.ecr.us-east-1.amazonaws.com',
+            'expiresAt': datetime(2015, 1, 1, tzinfo=tzlocal())
+        },
+    ])
+
+
+@mock_ecr
+def test_get_authorization_token_explicit_regions():
+    client = boto3.client('ecr', region_name='us-east-1')
+    auth_token_response = client.get_authorization_token(registryIds=['us-east-1', 'us-west-1'])
+
+    list(auth_token_response.keys()).should.equal(['authorizationData', 'ResponseMetadata'])
+    auth_token_response['authorizationData'].should.equal([
+        {
+            'authorizationToken': 'us-east-1-auth-token',
+            'proxyEndpoint': 'https://012345678910.dkr.ecr.us-east-1.amazonaws.com',
+            'expiresAt': datetime(2015, 1, 1, tzinfo=tzlocal()),
+        },
+        {
+            'authorizationToken': 'us-west-1-auth-token',
+            'proxyEndpoint': 'https://012345678910.dkr.ecr.us-west-1.amazonaws.com',
+            'expiresAt': datetime(2015, 1, 1, tzinfo=tzlocal())
+
+        }
+    ])
