@@ -247,3 +247,33 @@ def test_put_parameter_secure_custom_kms():
     response['Parameters'][0]['Name'].should.equal('test')
     response['Parameters'][0]['Value'].should.equal('value')
     response['Parameters'][0]['Type'].should.equal('SecureString')
+
+@mock_ssm
+def test_add_remove_list_tags_for_resource():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.add_tags_to_resource(
+        ResourceId='test',
+        ResourceType='Parameter',
+        Tags=[{'Key': 'test-key', 'Value': 'test-value'}]
+    )
+
+    response = client.list_tags_for_resource(
+        ResourceId='test',
+        ResourceType='Parameter'
+    )
+    len(response['TagList']).should.equal(1)
+    response['TagList'][0]['Key'].should.equal('test-key')
+    response['TagList'][0]['Value'].should.equal('test-value')
+
+    client.remove_tags_from_resource(
+        ResourceId='test',
+        ResourceType='Parameter',
+        TagKeys=['test-key']
+    )
+
+    response = client.list_tags_for_resource(
+        ResourceId='test',
+        ResourceType='Parameter'
+    )
+    len(response['TagList']).should.equal(0)
