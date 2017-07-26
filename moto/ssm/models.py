@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from collections import defaultdict
+
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 
@@ -42,6 +44,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def __init__(self):
         self._parameters = {}
+        self._resource_tags = defaultdict(lambda: defaultdict(dict))
 
     def delete_parameter(self, name):
         try:
@@ -67,6 +70,19 @@ class SimpleSystemManagerBackend(BaseBackend):
             return
         self._parameters[name] = Parameter(
             name, value, type, description, keyid)
+
+    def add_tags_to_resource(self, resource_type, resource_id, tags):
+        for key, value in tags.items():
+            self._resource_tags[resource_type][resource_id][key] = value
+
+    def remove_tags_from_resource(self, resource_type, resource_id, keys):
+        tags = self._resource_tags[resource_type][resource_id]
+        for key in keys:
+            if key in tags:
+                del tags[key]
+
+    def list_tags_for_resource(self, resource_type, resource_id):
+        return self._resource_tags[resource_type][resource_id]
 
 
 ssm_backends = {}
