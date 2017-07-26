@@ -380,7 +380,7 @@ def test_get_authorization_token_assume_region():
     list(auth_token_response.keys()).should.equal(['authorizationData', 'ResponseMetadata'])
     auth_token_response['authorizationData'].should.equal([
         {
-            'authorizationToken': 'us-east-1-auth-token',
+            'authorizationToken': 'QVdTOnVzLWVhc3QtMS1hdXRoLXRva2Vu',
             'proxyEndpoint': 'https://012345678910.dkr.ecr.us-east-1.amazonaws.com',
             'expiresAt': datetime(2015, 1, 1, tzinfo=tzlocal())
         },
@@ -395,12 +395,12 @@ def test_get_authorization_token_explicit_regions():
     list(auth_token_response.keys()).should.equal(['authorizationData', 'ResponseMetadata'])
     auth_token_response['authorizationData'].should.equal([
         {
-            'authorizationToken': 'us-east-1-auth-token',
+            'authorizationToken': 'QVdTOnVzLWVhc3QtMS1hdXRoLXRva2Vu',
             'proxyEndpoint': 'https://012345678910.dkr.ecr.us-east-1.amazonaws.com',
             'expiresAt': datetime(2015, 1, 1, tzinfo=tzlocal()),
         },
         {
-            'authorizationToken': 'us-west-1-auth-token',
+            'authorizationToken': 'QVdTOnVzLXdlc3QtMS1hdXRoLXRva2Vu',
             'proxyEndpoint': 'https://012345678910.dkr.ecr.us-west-1.amazonaws.com',
             'expiresAt': datetime(2015, 1, 1, tzinfo=tzlocal())
 

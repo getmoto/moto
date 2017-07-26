@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import json
+from base64 import b64encode
 from datetime import datetime
 import time
 
@@ -117,8 +118,10 @@ class ECRResponse(BaseResponse):
             registry_ids = [self.region]
         auth_data = []
         for registry_id in registry_ids:
+            password = '{}-auth-token'.format(registry_id)
+            auth_token = b64encode("AWS:{}".format(password).encode('ascii')).decode()
             auth_data.append({
-                'authorizationToken': '{}-auth-token'.format(registry_id),
+                'authorizationToken': auth_token,
                 'expiresAt': time.mktime(datetime(2015, 1, 1).timetuple()),
                 'proxyEndpoint': 'https://012345678910.dkr.ecr.{}.amazonaws.com'.format(registry_id)
             })
