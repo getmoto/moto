@@ -290,10 +290,27 @@ class IamResponse(BaseResponse):
     def create_login_profile(self):
         user_name = self._get_param('UserName')
         password = self._get_param('Password')
-        iam_backend.create_login_profile(user_name, password)
+        password = self._get_param('Password')
+        user = iam_backend.create_login_profile(user_name, password)
 
         template = self.response_template(CREATE_LOGIN_PROFILE_TEMPLATE)
-        return template.render(user_name=user_name)
+        return template.render(user=user)
+
+    def get_login_profile(self):
+        user_name = self._get_param('UserName')
+        user = iam_backend.get_login_profile(user_name)
+
+        template = self.response_template(GET_LOGIN_PROFILE_TEMPLATE)
+        return template.render(user=user)
+
+    def update_login_profile(self):
+        user_name = self._get_param('UserName')
+        password = self._get_param('Password')
+        password_reset_required = self._get_param('PasswordResetRequired')
+        user = iam_backend.update_login_profile(user_name, password, password_reset_required)
+
+        template = self.response_template(UPDATE_LOGIN_PROFILE_TEMPLATE)
+        return template.render(user=user)
 
     def add_user_to_group(self):
         group_name = self._get_param('GroupName')
@@ -918,18 +935,40 @@ LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
    </ResponseMetadata>
 </{{ action }}UsersResponse>"""
 
-CREATE_LOGIN_PROFILE_TEMPLATE = """
-<CreateLoginProfileResponse>
+CREATE_LOGIN_PROFILE_TEMPLATE = """<CreateLoginProfileResponse>
    <CreateLoginProfileResult>
       <LoginProfile>
-         <UserName>{{ user_name }}</UserName>
-         <CreateDate>2011-09-19T23:00:56Z</CreateDate>
+         <UserName>{{ user.name }}</UserName>
+         <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
       </LoginProfile>
    </CreateLoginProfileResult>
    <ResponseMetadata>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </CreateLoginProfileResponse>
+"""
+
+GET_LOGIN_PROFILE_TEMPLATE = """<GetLoginProfileResponse>
+   <GetLoginProfileResult>
+      <LoginProfile>
+         <UserName>{{ user.name }}</UserName>
+         <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
+         {% if user.password_reset_required %}
+         <PasswordResetRequired>true</PasswordResetRequired>
+         {% endif %}
+      </LoginProfile>
+   </GetLoginProfileResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetLoginProfileResponse>
+"""
+
+UPDATE_LOGIN_PROFILE_TEMPLATE = """<UpdateLoginProfileResponse>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</UpdateLoginProfileResponse>
 """
 
 GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>

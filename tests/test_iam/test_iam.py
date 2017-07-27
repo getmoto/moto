@@ -115,6 +115,29 @@ def test_remove_role_from_instance_profile():
 
 
 @mock_iam()
+def test_get_login_profile():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_user(UserName='my-user')
+    conn.create_login_profile(UserName='my-user', Password='my-pass')
+
+    response = conn.get_login_profile(UserName='my-user')
+    response['LoginProfile']['UserName'].should.equal('my-user')
+
+
+@mock_iam()
+def test_update_login_profile():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_user(UserName='my-user')
+    conn.create_login_profile(UserName='my-user', Password='my-pass')
+    response = conn.get_login_profile(UserName='my-user')
+    response['LoginProfile'].get('PasswordResetRequired').should.equal(None)
+
+    conn.update_login_profile(UserName='my-user', Password='new-pass', PasswordResetRequired=True)
+    response = conn.get_login_profile(UserName='my-user')
+    response['LoginProfile'].get('PasswordResetRequired').should.equal(True)
+
+
+@mock_iam()
 def test_delete_role():
     conn = boto3.client('iam', region_name='us-east-1')
 
