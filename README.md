@@ -123,28 +123,29 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 Imagine you have a function that you use to launch new ec2 instances:
 
 ```python
-import boto
+import boto3
+
 
 def add_servers(ami_id, count):
-    conn = boto.connect_ec2('the_key', 'the_secret')
-    for index in range(count):
-        conn.run_instances(ami_id)
+    client = boto3.client('ec2', region_name='us-west-1')
+    client.run_instances(ImageId=ami_id, MinCount=count, MaxCount=count)
 ```
 
 To test it:
 
 ```python
 from . import add_servers
+from moto import mock_ec2
 
 @mock_ec2
 def test_add_servers():
     add_servers('ami-1234abcd', 2)
 
-    conn = boto.connect_ec2('the_key', 'the_secret')
-    reservations = conn.get_all_instances()
-    assert len(reservations) == 2
-    instance1 = reservations[0].instances[0]
-    assert instance1.image_id == 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-west-1')
+    instances = client.describe_instances()['Reservations'][0]['Instances']
+    assert len(instances) == 2
+    instance1 = instances[0]
+    assert instance1['ImageId'] == 'ami-1234abcd'
 ```
 
 ## Usage
@@ -156,13 +157,14 @@ All of the services can be used as a decorator, context manager, or in a raw for
 ```python
 @mock_s3
 def test_my_model_save():
-    conn = boto.connect_s3()
-    conn.create_bucket('mybucket')
-
+    # Create Bucket so that test can run
+    conn = boto3.resource('s3', region_name='us-east-1')
+    conn.create_bucket(Bucket='mybucket')
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
+    body = conn.Object('mybucket', 'steve').get()['Body'].read().decode()
 
-    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+    assert body == 'is awesome'
 ```
 
 ### Context Manager
@@ -170,13 +172,13 @@ def test_my_model_save():
 ```python
 def test_my_model_save():
     with mock_s3():
-        conn = boto.connect_s3()
-        conn.create_bucket('mybucket')
-
+        conn = boto3.resource('s3', region_name='us-east-1')
+        conn.create_bucket(Bucket='mybucket')
         model_instance = MyModel('steve', 'is awesome')
         model_instance.save()
+        body = conn.Object('mybucket', 'steve').get()['Body'].read().decode()
 
-        assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+        assert body == 'is awesome'
 ```
 
 
@@ -187,13 +189,13 @@ def test_my_model_save():
     mock = mock_s3()
     mock.start()
 
-    conn = boto.connect_s3()
-    conn.create_bucket('mybucket')
+    conn = boto3.resource('s3', region_name='us-east-1')
+    conn.create_bucket(Bucket='mybucket')
 
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+    assert conn.Object('mybucket', 'steve').get()['Body'].read().decode() == 'is awesome'
 
     mock.stop()
 ```
