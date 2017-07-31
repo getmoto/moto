@@ -1,4 +1,7 @@
 from __future__ import unicode_literals
+
+import json
+
 from six.moves.urllib.parse import parse_qs
 
 import boto3
@@ -56,9 +59,15 @@ def test_publish_to_sqs_in_different_region():
 @freeze_time("2013-01-01")
 @mock_sns
 def test_publish_to_http():
-    responses.add(
+    def callback(request):
+        request.headers["Content-Type"].should.equal("application/json")
+        json.loads.when.called_with(request.body).should_not.throw(Exception)
+        return 200, {}, ""
+
+    responses.add_callback(
         method="POST",
         url="http://example.com/foobar",
+        callback=callback,
     )
 
     conn = boto3.client('sns', region_name='us-east-1')
