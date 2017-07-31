@@ -33,6 +33,36 @@ def test_creating_subscription():
     subscriptions = conn.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(0)
 
+@mock_sns
+def test_deleting_subscriptions_by_deleting_topic():
+    conn = boto3.client('sns', region_name='us-east-1')
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]['TopicArn']
+
+    conn.subscribe(TopicArn=topic_arn,
+                   Protocol="http",
+                   Endpoint="http://example.com/")
+
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["TopicArn"].should.equal(topic_arn)
+    subscription["Protocol"].should.equal("http")
+    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription["Endpoint"].should.equal("http://example.com/")
+
+    # Now delete the topic
+    conn.delete_topic(TopicArn=topic_arn)
+
+    # And there should now be 0 topics
+    topics_json = conn.list_topics()
+    topics = topics_json["Topics"]
+    topics.should.have.length_of(0)
+
+    # And there should be zero subscriptions left
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(0)
 
 @mock_sns
 def test_getting_subscriptions_by_topic():
