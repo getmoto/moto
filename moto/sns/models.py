@@ -193,10 +193,17 @@ class SNSBackend(BaseBackend):
             next_token = None
         return values, next_token
 
+    def _get_topic_subscriptions(self, topic):
+        return [sub for sub in self.subscriptions.values() if sub.topic == topic]
+
     def list_topics(self, next_token=None):
         return self._get_values_nexttoken(self.topics, next_token)
 
     def delete_topic(self, arn):
+        topic = self.get_topic(arn)
+        subscriptions = self._get_topic_subscriptions(topic)
+        for sub in subscriptions:
+            self.unsubscribe(sub.arn)
         self.topics.pop(arn)
 
     def get_topic(self, arn):
@@ -222,7 +229,7 @@ class SNSBackend(BaseBackend):
         if topic_arn:
             topic = self.get_topic(topic_arn)
             filtered = OrderedDict(
-                [(k, sub) for k, sub in self.subscriptions.items() if sub.topic == topic])
+                [(sub.arn, sub) for sub in self._get_topic_subscriptions(topic)])
             return self._get_values_nexttoken(filtered, next_token)
         else:
             return self._get_values_nexttoken(self.subscriptions, next_token)
