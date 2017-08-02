@@ -492,7 +492,7 @@ def test_target_group_attributes():
     attributes['deregistration_delay.timeout_seconds'].should.equal('300')
     attributes['stickiness.enabled'].should.equal('false')
 
-    # add cookie stickiness
+    # Add cookie stickiness
     response = conn.modify_target_group_attributes(
         TargetGroupArn=target_group_arn,
         Attributes=[
@@ -506,7 +506,7 @@ def test_target_group_attributes():
             },
         ])
 
-    # the response should have only the keys updated
+    # The response should have only the keys updated
     response['Attributes'].should.have.length_of(2)
     attributes = {attr['Key']: attr['Value'] for attr in response['Attributes']}
     attributes['stickiness.type'].should.equal('lb_cookie')
