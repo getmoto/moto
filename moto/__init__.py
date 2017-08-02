@@ -17,6 +17,7 @@ from .ec2 import mock_ec2, mock_ec2_deprecated  # flake8: noqa
 from .ecr import mock_ecr, mock_ecr_deprecated  # flake8: noqa
 from .ecs import mock_ecs, mock_ecs_deprecated  # flake8: noqa
 from .elb import mock_elb, mock_elb_deprecated  # flake8: noqa
+from .elbv2 import mock_elbv2  # flake8: noqa
 from .emr import mock_emr, mock_emr_deprecated  # flake8: noqa
 from .events import mock_events  # flake8: noqa
 from .glacier import mock_glacier, mock_glacier_deprecated  # flake8: noqa
