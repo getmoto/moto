@@ -11,7 +11,10 @@ from boto.redshift.exceptions import (
 )
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_redshift_deprecated, mock_redshift
+from moto import mock_ec2
+from moto import mock_ec2_deprecated
+from moto import mock_redshift
+from moto import mock_redshift_deprecated
 
 
 @mock_redshift
@@ -150,6 +153,32 @@ def test_create_cluster_in_subnet_group():
     cluster_response = redshift_conn.describe_clusters("my_cluster")
     cluster = cluster_response['DescribeClustersResponse'][
         'DescribeClustersResult']['Clusters'][0]
+    cluster['ClusterSubnetGroupName'].should.equal('my_subnet_group')
+
+
+@mock_redshift
+@mock_ec2
+def test_create_cluster_in_subnet_group_boto3():
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24')
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.create_cluster_subnet_group(
+        ClusterSubnetGroupName='my_subnet_group',
+        Description='This is my subnet group',
+        SubnetIds=[subnet.id]
+    )
+
+    client.create_cluster(
+        ClusterIdentifier="my_cluster",
+        NodeType="dw.hs1.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        ClusterSubnetGroupName='my_subnet_group',
+    )
+
+    cluster_response = client.describe_clusters(ClusterIdentifier="my_cluster")
+    cluster = cluster_response['Clusters'][0]
     cluster['ClusterSubnetGroupName'].should.equal('my_subnet_group')
 
 
