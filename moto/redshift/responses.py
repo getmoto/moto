@@ -122,6 +122,10 @@ class RedshiftResponse(BaseResponse):
         cluster_subnet_group_name = self._get_param('ClusterSubnetGroupName')
         description = self._get_param('Description')
         subnet_ids = self._get_multi_param('SubnetIds.member')
+        # There's a bug in boto3 where the subnet ids are not passed
+        # according to the AWS documentation
+        if not subnet_ids:
+            subnet_ids = self._get_multi_param('SubnetIds.SubnetIdentifier')
 
         subnet_group = self.redshift_backend.create_cluster_subnet_group(
             cluster_subnet_group_name=cluster_subnet_group_name,
