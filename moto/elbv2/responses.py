@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import elbv2_backends
-from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
+from .exceptions import DuplicateTagKeysError
+from .exceptions import LoadBalancerNotFoundError
+from .exceptions import TargetGroupNotFoundError
 
 
 class ELBV2Response(BaseResponse):
@@ -107,6 +109,14 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_TARGET_GROUPS_TEMPLATE)
         return template.render(target_groups=target_groups)
 
+    def describe_target_group_attributes(self):
+        target_group_arn = self._get_param('TargetGroupArn')
+        target_group = self.elbv2_backend.target_groups.get(target_group_arn)
+        if not target_group:
+            raise TargetGroupNotFoundError()
+        template = self.response_template(DESCRIBE_TARGET_GROUP_ATTRIBUTES_TEMPLATE)
+        return template.render(attributes=target_group.attributes)
+
     def describe_listeners(self):
         load_balancer_arn = self._get_param('LoadBalancerArn')
         listener_arns = self._get_multi_param('ListenerArns.member')
@@ -134,6 +144,19 @@ class ELBV2Response(BaseResponse):
         self.elbv2_backend.delete_listener(arn)
         template = self.response_template(DELETE_LISTENER_TEMPLATE)
         return template.render()
+
+    def modify_target_group_attributes(self):
+        target_group_arn = self._get_param('TargetGroupArn')
+        target_group = self.elbv2_backend.target_groups.get(target_group_arn)
+        attributes = {
+            attr['key']: attr['value']
+            for attr in self._get_list_prefix('Attributes.member')
+        }
+        target_group.attributes.update(attributes)
+        if not target_group:
+            raise TargetGroupNotFoundError()
+        template = self.response_template(MODIFY_TARGET_GROUP_ATTRIBUTES_TEMPLATE)
+        return template.render(attributes=attributes)
 
     def register_targets(self):
         target_group_arn = self._get_param('TargetGroupArn')
@@ -455,6 +478,23 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
 </DescribeTargetGroupsResponse>"""
 
 
+DESCRIBE_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<DescribeTargetGroupAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DescribeTargetGroupAttributesResult>
+    <Attributes>
+      {% for key, value in attributes.items() %}
+      <member>
+        <Key>{{ key }}</Key>
+        <Value>{{ value }}</Value>
+      </member>
+      {% endfor %}
+    </Attributes>
+  </DescribeTargetGroupAttributesResult>
+  <ResponseMetadata>
+    <RequestId>70092c0e-f3a9-11e5-ae48-cff02092876b</RequestId>
+  </ResponseMetadata>
+</DescribeTargetGroupAttributesResponse>"""
+
+
 DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeListenersResult>
     <Listeners>
@@ -503,6 +543,22 @@ CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http:/
     <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
   </ResponseMetadata>
 </ConfigureHealthCheckResponse>"""
+
+MODIFY_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<ModifyTargetGroupAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <ModifyTargetGroupAttributesResult>
+    <Attributes>
+      {% for key, value in attributes.items() %}
+      <member>
+        <Key>{{ key }}</Key>
+        <Value>{{ value }}</Value>
+      </member>
+      {% endfor %}
+    </Attributes>
+  </ModifyTargetGroupAttributesResult>
+  <ResponseMetadata>
+    <RequestId>70092c0e-f3a9-11e5-ae48-cff02092876b</RequestId>
+  </ResponseMetadata>
+</ModifyTargetGroupAttributesResponse>"""
 
 REGISTER_TARGETS_TEMPLATE = """<RegisterTargetsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <RegisterTargetsResult>

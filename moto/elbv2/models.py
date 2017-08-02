@@ -55,6 +55,11 @@ class FakeTargetGroup(BaseModel):
         self.unhealthy_threshold_count = unhealthy_threshold_count
         self.load_balancer_arns = []
 
+        self.attributes = {
+            'deregistration_delay.timeout_seconds': 300,
+            'stickiness.enabled': 'false',
+        }
+
         self.targets = OrderedDict()
 
     def register(self, targets):
