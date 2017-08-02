@@ -4,10 +4,10 @@ from .models import elbv2_backends
 from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
 
 
-class ELBResponse(BaseResponse):
+class ELBV2Response(BaseResponse):
 
     @property
-    def elb_backend(self):
+    def elbv2_backend(self):
         return elbv2_backends[self.region]
 
     def create_load_balancer(self):
@@ -16,7 +16,7 @@ class ELBResponse(BaseResponse):
         security_groups = self._get_multi_param("SecurityGroups.member")
         scheme = self._get_param('Scheme')
 
-        load_balancer = self.elb_backend.create_load_balancer(
+        load_balancer = self.elbv2_backend.create_load_balancer(
             name=load_balancer_name,
             security_groups=security_groups,
             subnet_ids=subnet_ids,
@@ -39,7 +39,7 @@ class ELBResponse(BaseResponse):
         healthy_threshold_count = self._get_param('HealthyThresholdCount', '5')
         unhealthy_threshold_count = self._get_param('UnhealthyThresholdCount', '2')
 
-        target_group = self.elb_backend.create_target_group(
+        target_group = self.elbv2_backend.create_target_group(
             name,
             vpc_id=vpc_id,
             protocol=protocol,
@@ -68,7 +68,7 @@ class ELBResponse(BaseResponse):
             certificate = None
         default_actions = self._get_list_prefix('DefaultActions.member')
 
-        listener = self.elb_backend.create_listener(
+        listener = self.elbv2_backend.create_listener(
             load_balancer_arn=load_balancer_arn,
             protocol=protocol,
             port=port,
@@ -82,7 +82,7 @@ class ELBResponse(BaseResponse):
     def describe_load_balancers(self):
         arns = self._get_multi_param("LoadBalancerArns.member")
         names = self._get_multi_param("Names.member")
-        all_load_balancers = list(self.elb_backend.describe_load_balancers(arns, names))
+        all_load_balancers = list(self.elbv2_backend.describe_load_balancers(arns, names))
         marker = self._get_param('Marker')
         all_names = [balancer.name for balancer in all_load_balancers]
         if marker:
@@ -103,7 +103,7 @@ class ELBResponse(BaseResponse):
         target_group_arns = self._get_multi_param('TargetGroupArns.member')
         names = self._get_multi_param('Names.member')
 
-        target_groups = self.elb_backend.describe_target_groups(load_balancer_arn, target_group_arns, names)
+        target_groups = self.elbv2_backend.describe_target_groups(load_balancer_arn, target_group_arns, names)
         template = self.response_template(DESCRIBE_TARGET_GROUPS_TEMPLATE)
         return template.render(target_groups=target_groups)
 
@@ -113,32 +113,32 @@ class ELBResponse(BaseResponse):
         if not load_balancer_arn and not listener_arns:
             raise LoadBalancerNotFoundError()
 
-        listeners = self.elb_backend.describe_listeners(load_balancer_arn, listener_arns)
+        listeners = self.elbv2_backend.describe_listeners(load_balancer_arn, listener_arns)
         template = self.response_template(DESCRIBE_LISTENERS_TEMPLATE)
         return template.render(listeners=listeners)
 
     def delete_load_balancer(self):
         arn = self._get_param('LoadBalancerArn')
-        self.elb_backend.delete_load_balancer(arn)
+        self.elbv2_backend.delete_load_balancer(arn)
         template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
     def delete_target_group(self):
         arn = self._get_param('TargetGroupArn')
-        self.elb_backend.delete_target_group(arn)
+        self.elbv2_backend.delete_target_group(arn)
         template = self.response_template(DELETE_TARGET_GROUP_TEMPLATE)
         return template.render()
 
     def delete_listener(self):
         arn = self._get_param('ListenerArn')
-        self.elb_backend.delete_listener(arn)
+        self.elbv2_backend.delete_listener(arn)
         template = self.response_template(DELETE_LISTENER_TEMPLATE)
         return template.render()
 
     def register_targets(self):
         target_group_arn = self._get_param('TargetGroupArn')
         targets = self._get_list_prefix('Targets.member')
-        self.elb_backend.register_targets(target_group_arn, targets)
+        self.elbv2_backend.register_targets(target_group_arn, targets)
 
         template = self.response_template(REGISTER_TARGETS_TEMPLATE)
         return template.render()
@@ -146,7 +146,7 @@ class ELBResponse(BaseResponse):
     def deregister_targets(self):
         target_group_arn = self._get_param('TargetGroupArn')
         targets = self._get_list_prefix('Targets.member')
-        self.elb_backend.deregister_targets(target_group_arn, targets)
+        self.elbv2_backend.deregister_targets(target_group_arn, targets)
 
         template = self.response_template(DEREGISTER_TARGETS_TEMPLATE)
         return template.render()
@@ -154,7 +154,7 @@ class ELBResponse(BaseResponse):
     def describe_target_health(self):
         target_group_arn = self._get_param('TargetGroupArn')
         targets = self._get_list_prefix('Targets.member')
-        target_health_descriptions = self.elb_backend.describe_target_health(target_group_arn, targets)
+        target_health_descriptions = self.elbv2_backend.describe_target_health(target_group_arn, targets)
 
         template = self.response_template(DESCRIBE_TARGET_HEALTH_TEMPLATE)
         return template.render(target_health_descriptions=target_health_descriptions)
@@ -163,7 +163,7 @@ class ELBResponse(BaseResponse):
         resource_arns = self._get_multi_param('ResourceArns.member')
 
         for arn in resource_arns:
-            load_balancer = self.elb_backend.load_balancers.get(arn)
+            load_balancer = self.elbv2_backend.load_balancers.get(arn)
             if not load_balancer:
                 raise LoadBalancerNotFoundError()
             self._add_tags(load_balancer)
@@ -176,7 +176,7 @@ class ELBResponse(BaseResponse):
         tag_keys = self._get_multi_param('TagKeys.member')
 
         for arn in resource_arns:
-            load_balancer = self.elb_backend.load_balancers.get(arn)
+            load_balancer = self.elbv2_backend.load_balancers.get(arn)
             if not load_balancer:
                 raise LoadBalancerNotFoundError()
             [load_balancer.remove_tag(key) for key in tag_keys]
@@ -191,7 +191,7 @@ class ELBResponse(BaseResponse):
                 number = key.split('.')[2]
                 load_balancer_arn = self._get_param(
                     'ResourceArns.member.{0}'.format(number))
-                elb = self.elb_backend.load_balancers.get(load_balancer_arn)
+                elb = self.elbv2_backend.load_balancers.get(load_balancer_arn)
                 if not elb:
                     raise LoadBalancerNotFoundError()
                 elbs.append(elb)

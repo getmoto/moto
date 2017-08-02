@@ -1,10 +1,6 @@
 from __future__ import unicode_literals
-from .responses import ELBResponse
+from .responses import ELBV2Response
 
-url_bases = [
-    "https?://elasticloadbalancing.(.+).amazonaws.com",
-]
+url_bases = []
 
-url_paths = {
-    '{0}/$': ELBResponse.dispatch,
-}
+url_paths = {}
