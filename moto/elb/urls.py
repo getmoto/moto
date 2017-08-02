@@ -1,5 +1,8 @@
 from __future__ import unicode_literals
-from .responses import ELBResponse
+from six.moves.urllib.parse import parse_qs
+from botocore.awsrequest import AWSPreparedRequest
+
+from moto.elb.responses import ELBResponse
 from moto.elbv2.responses import ELBV2Response
 
 
@@ -16,6 +19,9 @@ def api_version_elb_backend(*args, **kwargs):
     if hasattr(request, 'values'):
         # boto3
         version = request.values.get('Version')
+    elif isinstance(request, AWSPreparedRequest):
+        # botocore
+        version = parse_qs(request.body).get('Version')[0]
     else:
         # boto
         request.parse_request()
