@@ -445,3 +445,76 @@ def test_register_targets():
 
     response = conn.describe_target_health(TargetGroupArn=target_group.get('TargetGroupArn'))
     response.get('TargetHealthDescriptions').should.have.length_of(1)
+
+
+@mock_ec2
+@mock_elbv2
+def test_target_group_attributes():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    response = conn.create_target_group(
+        Name='a-target',
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPort='8080',
+        HealthCheckPath='/',
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={'HttpCode': '200'})
+    target_group = response.get('TargetGroups')[0]
+
+    # Check it's in the describe_target_groups response
+    response = conn.describe_target_groups()
+    response.get('TargetGroups').should.have.length_of(1)
+    target_group_arn = target_group['TargetGroupArn']
+
+    # The attributes should start with the two defaults
+    response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
+    response['Attributes'].should.have.length_of(2)
+    attributes = {attr['Key']: attr['Value'] for attr in response['Attributes']}
+    attributes['deregistration_delay.timeout_seconds'].should.equal('300')
+    attributes['stickiness.enabled'].should.equal('false')
+
+    # Add cookie stickiness
+    response = conn.modify_target_group_attributes(
+        TargetGroupArn=target_group_arn,
+        Attributes=[
+            {
+                'Key': 'stickiness.enabled',
+                'Value': 'true',
+            },
+            {
+                'Key': 'stickiness.type',
+                'Value': 'lb_cookie',
+            },
+        ])
+
+    # The response should have only the keys updated
+    response['Attributes'].should.have.length_of(2)
+    attributes = {attr['Key']: attr['Value'] for attr in response['Attributes']}
+    attributes['stickiness.type'].should.equal('lb_cookie')
+    attributes['stickiness.enabled'].should.equal('true')
+
+    # These new values should be in the full attribute list
+    response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
+    response['Attributes'].should.have.length_of(3)
+    attributes = {attr['Key']: attr['Value'] for attr in response['Attributes']}
+    attributes['stickiness.type'].should.equal('lb_cookie')
+    attributes['stickiness.enabled'].should.equal('true')
