@@ -8,7 +8,7 @@ Test the different server responses
 '''
 
 
-def test_elbv2_describe_instances():
+def test_elbv2_describe_load_balancers():
     backend = server.create_backend_app("elbv2")
     test_client = backend.test_client()
 
