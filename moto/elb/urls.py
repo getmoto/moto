@@ -20,10 +20,10 @@ def api_version_elb_backend(*args, **kwargs):
         # boto3
         version = request.values.get('Version')
     elif isinstance(request, AWSPreparedRequest):
-        # botocore
+        # boto in-memory
         version = parse_qs(request.body).get('Version')[0]
     else:
-        # boto
+        # boto in server mode
         request.parse_request()
         version = request.querystring.get('Version')[0]
 
