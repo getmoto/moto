@@ -3,6 +3,7 @@ import json
 import re
 import sys
 import argparse
+import six
 
 from six.moves.urllib.parse import urlencode
 
@@ -47,6 +48,13 @@ class DomainDispatcherApplication(object):
 
     def get_application(self, environ):
         path_info = environ.get('PATH_INFO', '')
+
+        # The URL path might contain non-ASCII text, for instance unicode S3 bucket names
+        if six.PY2 and isinstance(path_info, str):
+            path_info = six.u(path_info)
+        if six.PY3 and isinstance(path_info, six.binary_type):
+            path_info = path_info.decode('utf-8')
+
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
             host = "moto_api"
         elif path_info.startswith("/latest/meta-data/"):
