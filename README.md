@@ -148,6 +148,28 @@ def test_add_servers():
     assert instance1['ImageId'] == 'ami-1234abcd'
 ```
 
+#### Using moto 1.0.X with boto2
+moto 1.0.X mock docorators are defined for boto3 and do not work with boto2. Use the @mock_AWSSVC_deprecated to work with boto2.
+
+Using moto with boto2
+```python
+from moto import mock_ec2_deprecated 
+import boto
+ 
+@mock_ec2_deprecated
+def test_something_with_ec2():
+    ec2_conn = boto.ec2.connect_to_region('us-east-1')
+    ec2_conn.get_only_instances(instance_ids='i-123456')
+
+```
+
+When using both boto2 and boto3, one can do this to avoid confusion:
+```python
+from moto import mock_ec2_deprecated as mock_ec2_b2
+from moto import mock_ec2
+
+```
+
 ## Usage
 
 All of the services can be used as a decorator, context manager, or in a raw form.
