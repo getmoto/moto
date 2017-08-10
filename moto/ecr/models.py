@@ -7,6 +7,11 @@ from moto.ec2 import ec2_backends
 from copy import copy
 import hashlib
 
+from moto.ecr.exceptions import ImageNotFoundException, RepositoryNotFoundException
+
+
+DEFAULT_REGISTRY_ID = '012345678910'
+
 
 class BaseObject(BaseModel):
 
@@ -35,14 +40,13 @@ class BaseObject(BaseModel):
 class Repository(BaseObject):
 
     def __init__(self, repository_name):
-        self.arn = 'arn:aws:ecr:us-east-1:012345678910:repository/{0}'.format(
-            repository_name)
+        self.registry_id = DEFAULT_REGISTRY_ID
+        self.arn = 'arn:aws:ecr:us-east-1:{0}:repository/{1}'.format(
+            self.registry_id, repository_name)
         self.name = repository_name
         # self.created = datetime.utcnow()
-        self.uri = '012345678910.dkr.ecr.us-east-1.amazonaws.com/{0}'.format(
-            repository_name
-        )
-        self.registry_id = '012345678910'
+        self.uri = '{0}.dkr.ecr.us-east-1.amazonaws.com/{1}'.format(
+            self.registry_id, repository_name)
         self.images = []
 
     @property
@@ -93,7 +97,7 @@ class Repository(BaseObject):
 
 class Image(BaseObject):
 
-    def __init__(self, tag, manifest, repository, registry_id="012345678910"):
+    def __init__(self, tag, manifest, repository, registry_id=DEFAULT_REGISTRY_ID):
         self.image_tag = tag
         self.image_manifest = manifest
         self.image_size_in_bytes = 50 * 1024 * 1024
@@ -151,6 +155,11 @@ class ECRBackend(BaseBackend):
         """
         maxResults and nextToken not implemented
         """
+        if repository_names:
+            for repository_name in repository_names:
+                if repository_name not in self.repositories:
+                    raise RepositoryNotFoundException(repository_name, registry_id or DEFAULT_REGISTRY_ID)
+
         repositories = []
         for repository in self.repositories.values():
             # If a registry_id was supplied, ensure this repository matches
@@ -170,11 +179,11 @@ class ECRBackend(BaseBackend):
         self.repositories[repository_name] = repository
         return repository
 
-    def delete_repository(self, respository_name, registry_id=None):
-        if respository_name in self.repositories:
-            return self.repositories.pop(respository_name)
+    def delete_repository(self, repository_name, registry_id=None):
+        if repository_name in self.repositories:
+            return self.repositories.pop(repository_name)
         else:
-            raise Exception("{0} is not a repository".format(respository_name))
+            raise RepositoryNotFoundException(repository_name, registry_id or DEFAULT_REGISTRY_ID)
 
     def list_images(self, repository_name, registry_id=None):
         """
@@ -198,17 +207,27 @@ class ECRBackend(BaseBackend):
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
         else:
-            raise Exception("{0} is not a repository".format(repository_name))
+            raise RepositoryNotFoundException(repository_name, registry_id or DEFAULT_REGISTRY_ID)
 
         if image_ids:
             response = set()
             for image_id in image_ids:
-                if 'imageDigest' in image_id:
-                    desired_digest = image_id['imageDigest']
-                    response.update([i for i in repository.images if i.get_image_digest() == desired_digest])
-                if 'imageTag' in image_id:
-                    desired_tag = image_id['imageTag']
-                    response.update([i for i in repository.images if i.image_tag == desired_tag])
+                found = False
+                for image in repository.images:
+                    if (('imageDigest' in image_id and image.get_image_digest() == image_id['imageDigest']) or
+                            ('imageTag' in image_id and image.image_tag == image_id['imageTag'])):
+                        found = True
+                        response.add(image)
+                if not found:
+                    image_id_representation = "{imageDigest:'%s', imageTag:'%s'}" % (
+                        image_id.get('imageDigest', 'null'),
+                        image_id.get('imageTag', 'null'),
+                    )
+                    raise ImageNotFoundException(
+                        image_id=image_id_representation,
+                        repository_name=repository_name,
+                        registry_id=registry_id or DEFAULT_REGISTRY_ID)
+
         else:
             response = []
             for image in repository.images:
