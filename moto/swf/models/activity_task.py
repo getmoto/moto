@@ -2,13 +2,15 @@ from __future__ import unicode_literals
 from datetime import datetime
 import uuid
 
+from moto.core import BaseModel
 from moto.core.utils import unix_time
 from ..exceptions import SWFWorkflowExecutionClosedError
 
 from .timeout import Timeout
 
 
-class ActivityTask(object):
+class ActivityTask(BaseModel):
+
     def __init__(self, activity_id, activity_type, scheduled_event_id,
                  workflow_execution, timeouts, input=None):
         self.activity_id = activity_id

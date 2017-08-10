@@ -4,14 +4,18 @@ import functools
 import logging
 import copy
 import warnings
+import re
 
 from moto.autoscaling import models as autoscaling_models
 from moto.awslambda import models as lambda_models
+from moto.cloudwatch import models as cloudwatch_models
 from moto.datapipeline import models as datapipeline_models
+from moto.dynamodb import models as dynamodb_models
 from moto.ec2 import models as ec2_models
 from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
 from moto.iam import models as iam_models
+from moto.kinesis import models as kinesis_models
 from moto.kms import models as kms_models
 from moto.rds import models as rds_models
 from moto.rds2 import models as rds2_models
@@ -21,14 +25,17 @@ from moto.s3 import models as s3_models
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
 from .utils import random_suffix
-from .exceptions import MissingParameterError, UnformattedGetAttTemplateException
+from .exceptions import MissingParameterError, UnformattedGetAttTemplateException, ValidationError
 from boto.cloudformation.stack import Output
-from boto.exception import BotoServerError
 
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
     "AWS::AutoScaling::LaunchConfiguration": autoscaling_models.FakeLaunchConfiguration,
+    "AWS::DynamoDB::Table": dynamodb_models.Table,
+    "AWS::Kinesis::Stream": kinesis_models.Stream,
+    "AWS::Lambda::EventSourceMapping": lambda_models.EventSourceMapping,
     "AWS::Lambda::Function": lambda_models.LambdaFunction,
+    "AWS::Lambda::Version": lambda_models.LambdaVersion,
     "AWS::EC2::EIP": ec2_models.ElasticAddress,
     "AWS::EC2::Instance": ec2_models.Instance,
     "AWS::EC2::InternetGateway": ec2_models.InternetGateway,
@@ -54,6 +61,7 @@ MODEL_MAP = {
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,
     "AWS::KMS::Key": kms_models.Key,
+    "AWS::Logs::LogGroup": cloudwatch_models.LogGroup,
     "AWS::RDS::DBInstance": rds_models.Database,
     "AWS::RDS::DBSecurityGroup": rds_models.SecurityGroup,
     "AWS::RDS::DBSubnetGroup": rds_models.SubnetGroup,
@@ -94,6 +102,7 @@ logger = logging.getLogger("moto")
 
 
 class LazyDict(dict):
+
     def __getitem__(self, key):
         val = dict.__getitem__(self, key)
         if callable(val):
@@ -133,31 +142,66 @@ def clean_json(resource_json, resources_map):
             try:
                 return resource.get_cfn_attribute(resource_json['Fn::GetAtt'][1])
             except NotImplementedError as n:
-                logger.warning(n.message.format(resource_json['Fn::GetAtt'][0]))
+                logger.warning(str(n).format(
+                    resource_json['Fn::GetAtt'][0]))
             except UnformattedGetAttTemplateException:
-                raise BotoServerError(
-                    UnformattedGetAttTemplateException.status_code,
+                raise ValidationError(
                     'Bad Request',
                     UnformattedGetAttTemplateException.description.format(
                         resource_json['Fn::GetAtt'][0], resource_json['Fn::GetAtt'][1]))
 
         if 'Fn::If' in resource_json:
             condition_name, true_value, false_value = resource_json['Fn::If']
-            if resources_map[condition_name]:
+            if resources_map.lazy_condition_map[condition_name]:
                 return clean_json(true_value, resources_map)
             else:
                 return clean_json(false_value, resources_map)
 
         if 'Fn::Join' in resource_json:
-            join_list = []
-            for val in resource_json['Fn::Join'][1]:
-                cleaned_val = clean_json(val, resources_map)
-                join_list.append('{0}'.format(cleaned_val) if cleaned_val else '{0}'.format(val))
-            return resource_json['Fn::Join'][0].join(join_list)
+            join_list = clean_json(resource_json['Fn::Join'][1], resources_map)
+            return resource_json['Fn::Join'][0].join([str(x) for x in join_list])
+
+        if 'Fn::Split' in resource_json:
+            to_split = clean_json(resource_json['Fn::Split'][1], resources_map)
+            return to_split.split(resource_json['Fn::Split'][0])
+
+        if 'Fn::Select' in resource_json:
+            select_index = int(resource_json['Fn::Select'][0])
+            select_list = clean_json(resource_json['Fn::Select'][1], resources_map)
+            return select_list[select_index]
+
+        if 'Fn::Sub' in resource_json:
+            if isinstance(resource_json['Fn::Sub'], list):
+                warnings.warn(
+                    "Tried to parse Fn::Sub with variable mapping but it's not supported by moto's CloudFormation implementation")
+            else:
+                fn_sub_value = clean_json(resource_json['Fn::Sub'], resources_map)
+                to_sub = re.findall('(?=\${)[^!^"]*?}', fn_sub_value)
+                literals = re.findall('(?=\${!)[^"]*?}', fn_sub_value)
+                for sub in to_sub:
+                    if '.' in sub:
+                        cleaned_ref = clean_json({'Fn::GetAtt': re.findall('(?<=\${)[^"]*?(?=})', sub)[0].split('.')}, resources_map)
+                    else:
+                        cleaned_ref = clean_json({'Ref': re.findall('(?<=\${)[^"]*?(?=})', sub)[0]}, resources_map)
+                    fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
+                for literal in literals:
+                    fn_sub_value = fn_sub_value.replace(literal, literal.replace('!', ''))
+                return fn_sub_value
+            pass
+
+        if 'Fn::ImportValue' in resource_json:
+            cleaned_val = clean_json(resource_json['Fn::ImportValue'], resources_map)
+            values = [x.value for x in resources_map.cross_stack_resources.values() if x.name == cleaned_val]
+            if any(values):
+                return values[0]
 
         cleaned_json = {}
         for key, value in resource_json.items():
-            cleaned_json[key] = clean_json(value, resources_map)
+            cleaned_val = clean_json(value, resources_map)
+            if cleaned_val is None:
+                # If we didn't find anything, don't add this attribute
+                continue
+            cleaned_json[key] = cleaned_val
         return cleaned_json
     elif isinstance(resource_json, list):
         return [clean_json(val, resources_map) for val in resource_json]
@@ -206,7 +250,7 @@ def parse_resource(logical_id, resource_json, resources_map):
 
 def parse_and_create_resource(logical_id, resource_json, resources_map, region_name):
     condition = resource_json.get('Condition')
-    if condition and not resources_map[condition]:
+    if condition and not resources_map.lazy_condition_map[condition]:
         # If this has a False condition, don't create the resource
         return None
 
@@ -215,14 +259,16 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
     if not resource_tuple:
         return None
     resource_class, resource_json, resource_name = resource_tuple
-    resource = resource_class.create_from_cloudformation_json(resource_name, resource_json, region_name)
+    resource = resource_class.create_from_cloudformation_json(
+        resource_name, resource_json, region_name)
     resource.type = resource_type
     resource.logical_resource_id = logical_id
     return resource
 
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, new_resource_json, new_resource_name = parse_resource(logical_id, resource_json, resources_map)
+    resource_class, new_resource_json, new_resource_name = parse_resource(
+        logical_id, resource_json, resources_map)
     original_resource = resources_map[logical_id]
     new_resource = resource_class.update_from_cloudformation_json(
         original_resource=original_resource,
@@ -236,8 +282,10 @@ def parse_and_update_resource(logical_id, resource_json, resources_map, region_n
 
 
 def parse_and_delete_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, resource_json, resource_name = parse_resource(logical_id, resource_json, resources_map)
-    resource_class.delete_from_cloudformation_json(resource_name, resource_json, region_name)
+    resource_class, resource_json, resource_name = parse_resource(
+        logical_id, resource_json, resources_map)
+    resource_class.delete_from_cloudformation_json(
+        resource_name, resource_json, region_name)
 
 
 def parse_condition(condition, resources_map, condition_map):
@@ -286,13 +334,14 @@ class ResourceMap(collections.Mapping):
     each resources is passed this lazy map that it can grab dependencies from.
     """
 
-    def __init__(self, stack_id, stack_name, parameters, tags, region_name, template):
+    def __init__(self, stack_id, stack_name, parameters, tags, region_name, template, cross_stack_resources):
         self._template = template
         self._resource_json_map = template['Resources']
         self._region_name = region_name
         self.input_parameters = parameters
         self.tags = copy.deepcopy(tags)
         self.resolved_parameters = {}
+        self.cross_stack_resources = cross_stack_resources
 
         # Create the default resources
         self._parsed_resources = {
@@ -312,7 +361,8 @@ class ResourceMap(collections.Mapping):
             resource_json = self._resource_json_map.get(resource_logical_id)
             if not resource_json:
                 raise KeyError(resource_logical_id)
-            new_resource = parse_and_create_resource(resource_logical_id, resource_json, self, self._region_name)
+            new_resource = parse_and_create_resource(
+                resource_logical_id, resource_json, self, self._region_name)
             if new_resource is not None:
                 self._parsed_resources[resource_logical_id] = new_resource
             return new_resource
@@ -339,11 +389,13 @@ class ResourceMap(collections.Mapping):
         # Set any input parameters that were passed
         for key, value in self.input_parameters.items():
             if key in self.resolved_parameters:
-                if parameter_slots[key].get('Type', 'String') == 'CommaDelimitedList':
+                value_type = parameter_slots[key].get('Type', 'String')
+                if value_type == 'CommaDelimitedList' or value_type.startswith("List"):
                     value = value.split(',')
                 self.resolved_parameters[key] = value
 
-        # Check if there are any non-default params that were not passed input params
+        # Check if there are any non-default params that were not passed input
+        # params
         for key, value in self.resolved_parameters.items():
             if value is None:
                 raise MissingParameterError(key)
@@ -352,13 +404,13 @@ class ResourceMap(collections.Mapping):
 
     def load_conditions(self):
         conditions = self._template.get('Conditions', {})
-        lazy_condition_map = LazyDict()
+        self.lazy_condition_map = LazyDict()
         for condition_name, condition in conditions.items():
-            lazy_condition_map[condition_name] = functools.partial(parse_condition,
-                condition, self._parsed_resources, lazy_condition_map)
+            self.lazy_condition_map[condition_name] = functools.partial(parse_condition,
+                condition, self._parsed_resources, self.lazy_condition_map)
 
-        for condition_name in lazy_condition_map:
-            self._parsed_resources[condition_name] = lazy_condition_map[condition_name]
+        for condition_name in self.lazy_condition_map:
+            self.lazy_condition_map[condition_name]
 
     def create(self):
         self.load_mapping()
@@ -368,13 +420,16 @@ class ResourceMap(collections.Mapping):
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.
         self.tags.update({'aws:cloudformation:stack-name': self.get('AWS::StackName'),
-                'aws:cloudformation:stack-id': self.get('AWS::StackId')})
+                          'aws:cloudformation:stack-id': self.get('AWS::StackId')})
         for resource in self.resources:
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 self.tags['aws:cloudformation:logical-id'] = resource
-                ec2_models.ec2_backends[self._region_name].create_tags([self[resource].physical_resource_id], self.tags)
+                ec2_models.ec2_backends[self._region_name].create_tags(
+                    [self[resource].physical_resource_id], self.tags)
 
-    def update(self, template):
+    def update(self, template, parameters=None):
+        if parameters:
+            self.input_parameters = parameters
         self.load_mapping()
         self.load_parameters()
         self.load_conditions()
@@ -386,24 +441,29 @@ class ResourceMap(collections.Mapping):
         new_resource_names = set(new_template) - set(old_template)
         for resource_name in new_resource_names:
             resource_json = new_template[resource_name]
-            new_resource = parse_and_create_resource(resource_name, resource_json, self, self._region_name)
+            new_resource = parse_and_create_resource(
+                resource_name, resource_json, self, self._region_name)
             self._parsed_resources[resource_name] = new_resource
 
         removed_resource_nams = set(old_template) - set(new_template)
         for resource_name in removed_resource_nams:
             resource_json = old_template[resource_name]
-            parse_and_delete_resource(resource_name, resource_json, self, self._region_name)
+            parse_and_delete_resource(
+                resource_name, resource_json, self, self._region_name)
             self._parsed_resources.pop(resource_name)
 
-        resources_to_update = set(name for name in new_template if name in old_template and new_template[name] != old_template[name])
+        resources_to_update = set(name for name in new_template if name in old_template and new_template[
+                                  name] != old_template[name])
         tries = 1
         while resources_to_update and tries < 5:
             for resource_name in resources_to_update.copy():
                 resource_json = new_template[resource_name]
                 try:
-                    changed_resource = parse_and_update_resource(resource_name, resource_json, self, self._region_name)
+                    changed_resource = parse_and_update_resource(
+                        resource_name, resource_json, self, self._region_name)
                 except Exception as e:
-                    # skip over dependency violations, and try again in a second pass
+                    # skip over dependency violations, and try again in a
+                    # second pass
                     last_exception = e
                 else:
                     self._parsed_resources[resource_name] = changed_resource
@@ -422,7 +482,8 @@ class ResourceMap(collections.Mapping):
                     if parsed_resource and hasattr(parsed_resource, 'delete'):
                         parsed_resource.delete(self._region_name)
                 except Exception as e:
-                    # skip over dependency violations, and try again in a second pass
+                    # skip over dependency violations, and try again in a
+                    # second pass
                     last_exception = e
                 else:
                     remaining_resources.remove(resource)
@@ -430,9 +491,12 @@ class ResourceMap(collections.Mapping):
         if tries == 5:
             raise last_exception
 
+
 class OutputMap(collections.Mapping):
-    def __init__(self, resources, template):
+
+    def __init__(self, resources, template, stack_id):
         self._template = template
+        self._stack_id = stack_id
         self._output_json_map = template.get('Outputs')
 
         # Create the default resources
@@ -446,7 +510,8 @@ class OutputMap(collections.Mapping):
             return self._parsed_outputs[output_logical_id]
         else:
             output_json = self._output_json_map.get(output_logical_id)
-            new_output = parse_output(output_logical_id, output_json, self._resource_map)
+            new_output = parse_output(
+                output_logical_id, output_json, self._resource_map)
             self._parsed_outputs[output_logical_id] = new_output
             return new_output
 
@@ -460,6 +525,37 @@ class OutputMap(collections.Mapping):
     def outputs(self):
         return self._output_json_map.keys() if self._output_json_map else []
 
+    @property
+    def exports(self):
+        exports = []
+        if self.outputs:
+            for key, value in self._output_json_map.items():
+                if value.get('Export'):
+                    cleaned_name = clean_json(value['Export'].get('Name'), self._resource_map)
+                    cleaned_value = clean_json(value.get('Value'), self._resource_map)
+                    exports.append(Export(self._stack_id, cleaned_name, cleaned_value))
+        return exports
+
     def create(self):
         for output in self.outputs:
             self[output]
+
+
+class Export(object):
+
+    def __init__(self, exporting_stack_id, name, value):
+        self._exporting_stack_id = exporting_stack_id
+        self._name = name
+        self._value = value
+
+    @property
+    def exporting_stack_id(self):
+        return self._exporting_stack_id
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def value(self):
+        return self._value

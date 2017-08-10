@@ -16,7 +16,8 @@ def test_iam_server_get():
     backend = server.create_backend_app("iam")
     test_client = backend.test_client()
 
-    group_data = test_client.action_data("CreateGroup", GroupName="test group", Path="/")
+    group_data = test_client.action_data(
+        "CreateGroup", GroupName="test group", Path="/")
     group_id = re.search("<GroupId>(.*)</GroupId>", group_data).groups()[0]
 
     groups_data = test_client.action_data("ListGroups")

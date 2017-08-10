@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import email
 
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from .exceptions import MessageRejectedError
 from .utils import get_random_message_id
 
@@ -10,17 +10,20 @@ from .utils import get_random_message_id
 RECIPIENT_LIMIT = 50
 
 
-class Message(object):
+class Message(BaseModel):
+
     def __init__(self, message_id):
         self.id = message_id
 
 
-class RawMessage(object):
+class RawMessage(BaseModel):
+
     def __init__(self, message_id):
         self.id = message_id
 
 
-class SESQuota(object):
+class SESQuota(BaseModel):
+
     def __init__(self, sent):
         self.sent = sent
 
@@ -30,8 +33,10 @@ class SESQuota(object):
 
 
 class SESBackend(BaseBackend):
+
     def __init__(self):
         self.addresses = []
+        self.email_addresses = []
         self.domains = []
         self.sent_messages = []
         self.sent_message_count = 0
@@ -45,11 +50,17 @@ class SESBackend(BaseBackend):
     def verify_email_identity(self, address):
         self.addresses.append(address)
 
+    def verify_email_address(self, address):
+        self.email_addresses.append(address)
+
     def verify_domain(self, domain):
         self.domains.append(domain)
 
     def list_identities(self):
         return self.domains + self.addresses
+
+    def list_verified_email_addresses(self):
+        return self.email_addresses
 
     def delete_identity(self, identity):
         if '@' in identity:
@@ -96,5 +107,6 @@ class SESBackend(BaseBackend):
 
     def get_send_quota(self):
         return SESQuota(self.sent_message_count)
+
 
 ses_backend = SESBackend()

@@ -3,12 +3,12 @@ from __future__ import unicode_literals
 import hashlib
 
 import boto.glacier
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 
 from .utils import get_job_id
 
 
-class ArchiveJob(object):
+class ArchiveJob(BaseModel):
 
     def __init__(self, job_id, archive_id):
         self.job_id = job_id
@@ -35,7 +35,8 @@ class ArchiveJob(object):
         }
 
 
-class Vault(object):
+class Vault(BaseModel):
+
     def __init__(self, vault_name, region):
         self.vault_name = vault_name
         self.region = region

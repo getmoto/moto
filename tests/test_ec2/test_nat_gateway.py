@@ -56,7 +56,8 @@ def test_delete_nat_gateway():
     nat_gateway_id = nat_gateway['NatGateway']['NatGatewayId']
     response = conn.delete_nat_gateway(NatGatewayId=nat_gateway_id)
 
-    response['ResponseMetadata'].pop('HTTPHeaders', None) # this is hard to match against, so remove it
+    # this is hard to match against, so remove it
+    response['ResponseMetadata'].pop('HTTPHeaders', None)
     response['ResponseMetadata'].pop('RetryAttempts', None)
     response.should.equal({
         'NatGatewayId': nat_gateway_id,
@@ -89,14 +90,20 @@ def test_create_and_describe_nat_gateway():
 
     enis = conn.describe_network_interfaces()['NetworkInterfaces']
     eni_id = enis[0]['NetworkInterfaceId']
-    public_ip = conn.describe_addresses(AllocationIds=[allocation_id])['Addresses'][0]['PublicIp']
+    public_ip = conn.describe_addresses(AllocationIds=[allocation_id])[
+        'Addresses'][0]['PublicIp']
 
     describe_response['NatGateways'].should.have.length_of(1)
-    describe_response['NatGateways'][0]['NatGatewayId'].should.equal(nat_gateway_id)
+    describe_response['NatGateways'][0][
+        'NatGatewayId'].should.equal(nat_gateway_id)
     describe_response['NatGateways'][0]['State'].should.equal('available')
     describe_response['NatGateways'][0]['SubnetId'].should.equal(subnet_id)
     describe_response['NatGateways'][0]['VpcId'].should.equal(vpc_id)
-    describe_response['NatGateways'][0]['NatGatewayAddresses'][0]['AllocationId'].should.equal(allocation_id)
-    describe_response['NatGateways'][0]['NatGatewayAddresses'][0]['NetworkInterfaceId'].should.equal(eni_id)
-    assert describe_response['NatGateways'][0]['NatGatewayAddresses'][0]['PrivateIp'].startswith('10.')
-    describe_response['NatGateways'][0]['NatGatewayAddresses'][0]['PublicIp'].should.equal(public_ip)
+    describe_response['NatGateways'][0]['NatGatewayAddresses'][
+        0]['AllocationId'].should.equal(allocation_id)
+    describe_response['NatGateways'][0]['NatGatewayAddresses'][
+        0]['NetworkInterfaceId'].should.equal(eni_id)
+    assert describe_response['NatGateways'][0][
+        'NatGatewayAddresses'][0]['PrivateIp'].startswith('10.')
+    describe_response['NatGateways'][0]['NatGatewayAddresses'][
+        0]['PublicIp'].should.equal(public_ip)

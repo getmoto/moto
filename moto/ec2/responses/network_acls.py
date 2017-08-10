@@ -39,13 +39,38 @@ class NetworkACLs(BaseResponse):
         return template.render()
 
     def delete_network_acl_entry(self):
-        raise NotImplementedError(
-            'NetworkACLs(AmazonVPC).delete_network_acl_entry is not yet implemented')
+        network_acl_id = self.querystring.get('NetworkAclId')[0]
+        rule_number = self.querystring.get('RuleNumber')[0]
+        egress = self.querystring.get('Egress')[0]
+        self.ec2_backend.delete_network_acl_entry(network_acl_id, rule_number, egress)
+        template = self.response_template(DELETE_NETWORK_ACL_ENTRY_RESPONSE)
+        return template.render()
+
+    def replace_network_acl_entry(self):
+        network_acl_id = self.querystring.get('NetworkAclId')[0]
+        rule_number = self.querystring.get('RuleNumber')[0]
+        protocol = self.querystring.get('Protocol')[0]
+        rule_action = self.querystring.get('RuleAction')[0]
+        egress = self.querystring.get('Egress')[0]
+        cidr_block = self.querystring.get('CidrBlock')[0]
+        icmp_code = self.querystring.get('Icmp.Code', [None])[0]
+        icmp_type = self.querystring.get('Icmp.Type', [None])[0]
+        port_range_from = self.querystring.get('PortRange.From')[0]
+        port_range_to = self.querystring.get('PortRange.To')[0]
+
+        self.ec2_backend.replace_network_acl_entry(
+            network_acl_id, rule_number, protocol, rule_action,
+            egress, cidr_block, icmp_code, icmp_type,
+            port_range_from, port_range_to)
+
+        template = self.response_template(REPLACE_NETWORK_ACL_ENTRY_RESPONSE)
+        return template.render()
 
     def describe_network_acls(self):
         network_acl_ids = network_acl_ids_from_querystring(self.querystring)
         filters = filters_from_querystring(self.querystring)
-        network_acls = self.ec2_backend.get_all_network_acls(network_acl_ids, filters)
+        network_acls = self.ec2_backend.get_all_network_acls(
+            network_acl_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_ACL_RESPONSE)
         return template.render(network_acls=network_acls)
 
@@ -59,10 +84,6 @@ class NetworkACLs(BaseResponse):
         )
         template = self.response_template(REPLACE_NETWORK_ACL_ASSOCIATION)
         return template.render(association=association)
-
-    def replace_network_acl_entry(self):
-        raise NotImplementedError(
-            'NetworkACLs(AmazonVPC).replace_network_acl_entry is not yet implemented')
 
 
 CREATE_NETWORK_ACL_RESPONSE = """
@@ -146,6 +167,13 @@ CREATE_NETWORK_ACL_ENTRY_RESPONSE = """
 </CreateNetworkAclEntryResponse>
 """
 
+REPLACE_NETWORK_ACL_ENTRY_RESPONSE = """
+<ReplaceNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <return>true</return>
+</ReplaceNetworkAclEntryResponse>
+"""
+
 REPLACE_NETWORK_ACL_ASSOCIATION = """
 <ReplaceNetworkAclAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
@@ -158,4 +186,11 @@ DELETE_NETWORK_ACL_ASSOCIATION = """
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
 </DeleteNetworkAclResponse>
+"""
+
+DELETE_NETWORK_ACL_ENTRY_RESPONSE = """
+<DeleteNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <return>true</return>
+</DeleteNetworkAclEntryResponse>
 """

@@ -5,7 +5,7 @@ from boto.ec2.autoscale.group import AutoScalingGroup
 from boto.ec2.autoscale.policy import ScalingPolicy
 import sure  # noqa
 
-from moto import mock_autoscaling
+from moto import mock_autoscaling_deprecated
 
 
 def setup_autoscale_group():
@@ -27,7 +27,7 @@ def setup_autoscale_group():
     return group
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_policy():
     setup_autoscale_group()
     conn = boto.connect_autoscale()
@@ -48,7 +48,7 @@ def test_create_policy():
     policy.cooldown.should.equal(60)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_policy_default_values():
     setup_autoscale_group()
     conn = boto.connect_autoscale()
@@ -67,7 +67,7 @@ def test_create_policy_default_values():
     policy.cooldown.should.equal(300)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_update_policy():
     setup_autoscale_group()
     conn = boto.connect_autoscale()
@@ -94,7 +94,7 @@ def test_update_policy():
     policy.scaling_adjustment.should.equal(2)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_delete_policy():
     setup_autoscale_group()
     conn = boto.connect_autoscale()
@@ -112,7 +112,7 @@ def test_delete_policy():
     conn.get_all_policies().should.have.length_of(0)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_execute_policy_exact_capacity():
     setup_autoscale_group()
     conn = boto.connect_autoscale()
@@ -130,7 +130,7 @@ def test_execute_policy_exact_capacity():
     instances.should.have.length_of(3)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_execute_policy_positive_change_in_capacity():
     setup_autoscale_group()
     conn = boto.connect_autoscale()
@@ -148,7 +148,7 @@ def test_execute_policy_positive_change_in_capacity():
     instances.should.have.length_of(5)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_execute_policy_percent_change_in_capacity():
     setup_autoscale_group()
     conn = boto.connect_autoscale()
@@ -166,7 +166,7 @@ def test_execute_policy_percent_change_in_capacity():
     instances.should.have.length_of(3)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_execute_policy_small_percent_change_in_capacity():
     """ http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html
     If PercentChangeInCapacity returns a value between 0 and 1,

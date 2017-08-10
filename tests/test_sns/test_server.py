@@ -15,8 +15,10 @@ def test_sns_server_get():
 
     topic_data = test_client.action_data("CreateTopic", Name="test topic")
     topic_data.should.contain("CreateTopicResult")
-    topic_data.should.contain("<TopicArn>arn:aws:sns:us-east-1:123456789012:test topic</TopicArn>")
+    topic_data.should.contain(
+        "<TopicArn>arn:aws:sns:us-east-1:123456789012:test topic</TopicArn>")
 
     topics_data = test_client.action_data("ListTopics")
     topics_data.should.contain("ListTopicsResult")
-    topic_data.should.contain("<TopicArn>arn:aws:sns:us-east-1:123456789012:test topic</TopicArn>")
+    topic_data.should.contain(
+        "<TopicArn>arn:aws:sns:us-east-1:123456789012:test topic</TopicArn>")

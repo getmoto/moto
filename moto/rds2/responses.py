@@ -5,8 +5,6 @@ from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds2_backends
 from .exceptions import DBParameterGroupNotFoundError
-import json
-import re
 
 
 class RDS2Response(BaseResponse):
@@ -28,6 +26,7 @@ class RDS2Response(BaseResponse):
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
+            "license_model": self._get_param("LicenseModel"),
             "iops": self._get_int_param("Iops"),
             "kms_key_id": self._get_param("KmsKeyId"),
             "master_user_password": self._get_param('MasterUserPassword'),
@@ -41,11 +40,12 @@ class RDS2Response(BaseResponse):
             "region": self.region,
             "security_groups": self._get_multi_param('DBSecurityGroups.DBSecurityGroupName'),
             "storage_encrypted": self._get_param("StorageEncrypted"),
-            "storage_type": self._get_param("StorageType"),
+            "storage_type": self._get_param("StorageType", 'standard'),
             # VpcSecurityGroupIds.member.N
             "tags": list(),
         }
-        args['tags'] = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+        args['tags'] = self.unpack_complex_list_params(
+            'Tags.Tag', ('Key', 'Value'))
         return args
 
     def _get_db_replica_kwargs(self):
@@ -85,7 +85,8 @@ class RDS2Response(BaseResponse):
         while self._get_param('{0}.{1}.{2}'.format(label, count, names[0])):
             param = dict()
             for i in range(len(names)):
-                param[names[i]] = self._get_param('{0}.{1}.{2}'.format(label, count, names[i]))
+                param[names[i]] = self._get_param(
+                    '{0}.{1}.{2}'.format(label, count, names[i]))
             unpacked_list.append(param)
             count += 1
         return unpacked_list
@@ -94,21 +95,16 @@ class RDS2Response(BaseResponse):
         unpacked_list = list()
         count = 1
         while self._get_param('{0}.{1}'.format(label, count)):
-            unpacked_list.append(self._get_param('{0}.{1}'.format(label, count)))
+            unpacked_list.append(self._get_param(
+                '{0}.{1}'.format(label, count)))
             count += 1
         return unpacked_list
-
-    def create_dbinstance(self):
-        return self.create_db_instance()
 
     def create_db_instance(self):
         db_kwargs = self._get_db_kwargs()
         database = self.backend.create_database(db_kwargs)
         template = self.response_template(CREATE_DATABASE_TEMPLATE)
         return template.render(database=database)
-
-    def create_dbinstance_read_replica(self):
-        return self.create_db_instance_read_replica()
 
     def create_db_instance_read_replica(self):
         db_kwargs = self._get_db_replica_kwargs()
@@ -117,42 +113,65 @@ class RDS2Response(BaseResponse):
         template = self.response_template(CREATE_DATABASE_REPLICA_TEMPLATE)
         return template.render(database=database)
 
-    def describe_dbinstances(self):
-        return self.describe_db_instances()
-
     def describe_db_instances(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
-        databases = self.backend.describe_databases(db_instance_identifier)
-        template = self.response_template(DESCRIBE_DATABASES_TEMPLATE)
-        return template.render(databases=databases)
+        all_instances = list(self.backend.describe_databases(db_instance_identifier))
+        marker = self._get_param('Marker')
+        all_ids = [instance.db_instance_identifier for instance in all_instances]
+        if marker:
+            start = all_ids.index(marker) + 1
+        else:
+            start = 0
+        page_size = self._get_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
+        instances_resp = all_instances[start:start + page_size]
+        next_marker = None
+        if len(all_instances) > start + page_size:
+            next_marker = instances_resp[-1].db_instance_identifier
 
-    def modify_dbinstance(self):
-        return self.modify_db_instance()
+        template = self.response_template(DESCRIBE_DATABASES_TEMPLATE)
+        return template.render(databases=instances_resp, marker=next_marker)
 
     def modify_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         db_kwargs = self._get_db_kwargs()
-        database = self.backend.modify_database(db_instance_identifier, db_kwargs)
+        database = self.backend.modify_database(
+            db_instance_identifier, db_kwargs)
         template = self.response_template(MODIFY_DATABASE_TEMPLATE)
         return template.render(database=database)
 
-    def delete_dbinstance(self):
-        return self.delete_db_instance()
-
     def delete_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
-        database = self.backend.delete_database(db_instance_identifier)
+        db_snapshot_name = self._get_param('FinalDBSnapshotIdentifier')
+        database = self.backend.delete_database(db_instance_identifier, db_snapshot_name)
         template = self.response_template(DELETE_DATABASE_TEMPLATE)
         return template.render(database=database)
-
-    def reboot_dbinstance(self):
-        return self.reboot_db_instance()
 
     def reboot_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         database = self.backend.reboot_db_instance(db_instance_identifier)
         template = self.response_template(REBOOT_DATABASE_TEMPLATE)
         return template.render(database=database)
+
+    def create_db_snapshot(self):
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
+        tags = self._get_param('Tags', [])
+        snapshot = self.backend.create_snapshot(db_instance_identifier, db_snapshot_identifier, tags)
+        template = self.response_template(CREATE_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
+
+    def describe_db_snapshots(self):
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
+        snapshots = self.backend.describe_snapshots(db_instance_identifier, db_snapshot_identifier)
+        template = self.response_template(DESCRIBE_SNAPSHOTS_TEMPLATE)
+        return template.render(snapshots=snapshots)
+
+    def delete_db_snapshot(self):
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
+        snapshot = self.backend.delete_snapshot(db_snapshot_identifier)
+        template = self.response_template(DELETE_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
 
     def list_tags_for_resource(self):
         arn = self._get_param('ResourceName')
@@ -174,69 +193,54 @@ class RDS2Response(BaseResponse):
         template = self.response_template(REMOVE_TAGS_FROM_RESOURCE_TEMPLATE)
         return template.render()
 
-    def create_dbsecurity_group(self):
-        return self.create_db_security_group()
-
     def create_db_security_group(self):
         group_name = self._get_param('DBSecurityGroupName')
         description = self._get_param('DBSecurityGroupDescription')
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
-        security_group = self.backend.create_security_group(group_name, description, tags)
+        security_group = self.backend.create_security_group(
+            group_name, description, tags)
         template = self.response_template(CREATE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
-    def describe_dbsecurity_groups(self):
-        return self.describe_db_security_groups()
-
     def describe_db_security_groups(self):
         security_group_name = self._get_param('DBSecurityGroupName')
-        security_groups = self.backend.describe_security_groups(security_group_name)
+        security_groups = self.backend.describe_security_groups(
+            security_group_name)
         template = self.response_template(DESCRIBE_SECURITY_GROUPS_TEMPLATE)
         return template.render(security_groups=security_groups)
 
-    def delete_dbsecurity_group(self):
-        return self.delete_db_security_group()
-
     def delete_db_security_group(self):
         security_group_name = self._get_param('DBSecurityGroupName')
-        security_group = self.backend.delete_security_group(security_group_name)
+        security_group = self.backend.delete_security_group(
+            security_group_name)
         template = self.response_template(DELETE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
-
-    def authorize_dbsecurity_group_ingress(self):
-        return self.authorize_db_security_group_ingress()
 
     def authorize_db_security_group_ingress(self):
         security_group_name = self._get_param('DBSecurityGroupName')
         cidr_ip = self._get_param('CIDRIP')
-        security_group = self.backend.authorize_security_group(security_group_name, cidr_ip)
+        security_group = self.backend.authorize_security_group(
+            security_group_name, cidr_ip)
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
-
-    def create_dbsubnet_group(self):
-        return self.create_db_subnet_group()
 
     def create_db_subnet_group(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         description = self._get_param('DBSubnetGroupDescription')
         subnet_ids = self._get_multi_param('SubnetIds.SubnetIdentifier')
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
-        subnets = [ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids]
-        subnet_group = self.backend.create_subnet_group(subnet_name, description, subnets, tags)
+        subnets = [ec2_backends[self.region].get_subnet(
+            subnet_id) for subnet_id in subnet_ids]
+        subnet_group = self.backend.create_subnet_group(
+            subnet_name, description, subnets, tags)
         template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)
-
-    def describe_dbsubnet_groups(self):
-        return self.describe_db_subnet_groups()
 
     def describe_db_subnet_groups(self):
         subnet_name = self._get_param('DBSubnetGroupName')
         subnet_groups = self.backend.describe_subnet_groups(subnet_name)
         template = self.response_template(DESCRIBE_SUBNET_GROUPS_TEMPLATE)
         return template.render(subnet_groups=subnet_groups)
-
-    def delete_dbsubnet_group(self):
-        return self.delete_db_subnet_group()
 
     def delete_db_subnet_group(self):
         subnet_name = self._get_param('DBSubnetGroupName')
@@ -267,7 +271,8 @@ class RDS2Response(BaseResponse):
     def describe_option_group_options(self):
         engine_name = self._get_param('EngineName')
         major_engine_version = self._get_param('MajorEngineVersion')
-        option_group_options = self.backend.describe_option_group_options(engine_name, major_engine_version)
+        option_group_options = self.backend.describe_option_group_options(
+            engine_name, major_engine_version)
         return option_group_options
 
     def modify_option_group(self):
@@ -287,7 +292,8 @@ class RDS2Response(BaseResponse):
         count = 1
         options_to_remove = []
         while self._get_param('OptionsToRemove.member.{0}'.format(count)):
-            options_to_remove.append(self._get_param('OptionsToRemove.member.{0}'.format(count)))
+            options_to_remove.append(self._get_param(
+                'OptionsToRemove.member.{0}'.format(count)))
             count += 1
         apply_immediately = self._get_param('ApplyImmediately')
         option_group = self.backend.modify_option_group(option_group_name,
@@ -297,28 +303,20 @@ class RDS2Response(BaseResponse):
         template = self.response_template(MODIFY_OPTION_GROUP_TEMPLATE)
         return template.render(option_group=option_group)
 
-    def create_dbparameter_group(self):
-        return self.create_db_parameter_group()
-
     def create_db_parameter_group(self):
         kwargs = self._get_db_parameter_group_kwargs()
         db_parameter_group = self.backend.create_db_parameter_group(kwargs)
         template = self.response_template(CREATE_DB_PARAMETER_GROUP_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_group)
 
-    def describe_dbparameter_groups(self):
-        return self.describe_db_parameter_groups()
-
     def describe_db_parameter_groups(self):
         kwargs = self._get_db_parameter_group_kwargs()
         kwargs['max_records'] = self._get_param('MaxRecords')
         kwargs['marker'] = self._get_param('Marker')
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
-        template = self.response_template(DESCRIBE_DB_PARAMETER_GROUPS_TEMPLATE)
+        template = self.response_template(
+            DESCRIBE_DB_PARAMETER_GROUPS_TEMPLATE)
         return template.render(db_parameter_groups=db_parameter_groups)
-
-    def modify_dbparameter_group(self):
-        return self.modify_db_parameter_group()
 
     def modify_db_parameter_group(self):
         db_parameter_group_name = self._get_param('DBParameterGroupName')
@@ -342,24 +340,20 @@ class RDS2Response(BaseResponse):
 
         return parameter_group_parameters.values()
 
-    def describe_dbparameters(self):
-        return self.describe_db_parameters()
-
     def describe_db_parameters(self):
         db_parameter_group_name = self._get_param('DBParameterGroupName')
-        db_parameter_groups = self.backend.describe_db_parameter_groups({'name': db_parameter_group_name})
+        db_parameter_groups = self.backend.describe_db_parameter_groups(
+            {'name': db_parameter_group_name})
         if not db_parameter_groups:
             raise DBParameterGroupNotFoundError(db_parameter_group_name)
 
         template = self.response_template(DESCRIBE_DB_PARAMETERS_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_groups[0])
 
-    def delete_dbparameter_group(self):
-        return self.delete_db_parameter_group()
-
     def delete_db_parameter_group(self):
         kwargs = self._get_db_parameter_group_kwargs()
-        db_parameter_group = self.backend.delete_db_parameter_group(kwargs['name'])
+        db_parameter_group = self.backend.delete_db_parameter_group(kwargs[
+                                                                    'name'])
         template = self.response_template(DELETE_DB_PARAMETER_GROUP_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_group)
 
@@ -389,6 +383,9 @@ DESCRIBE_DATABASES_TEMPLATE = """<DescribeDBInstancesResponse xmlns="http://rds.
       {{ database.to_xml() }}
     {%- endfor -%}
     </DBInstances>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
   </DescribeDBInstancesResult>
   <ResponseMetadata>
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
@@ -422,6 +419,42 @@ DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazon
     <RequestId>7369556f-b70d-11c3-faca-6ba18376ea1b</RequestId>
   </ResponseMetadata>
 </DeleteDBInstanceResponse>"""
+
+CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CreateDBSnapshotResult>
+  {{ snapshot.to_xml() }}
+  </CreateDBSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</CreateDBSnapshotResponse>
+"""
+
+DESCRIBE_SNAPSHOTS_TEMPLATE = """<DescribeDBSnapshotsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeDBSnapshotsResult>
+    <DBSnapshots>
+    {%- for snapshot in snapshots -%}
+      {{ snapshot.to_xml() }}
+    {%- endfor -%}
+    </DBSnapshots>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+  </DescribeDBSnapshotsResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DescribeDBSnapshotsResponse>"""
+
+DELETE_SNAPSHOT_TEMPLATE = """<DeleteDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DeleteDBSnapshotResult>
+  {{ snapshot.to_xml() }}
+  </DeleteDBSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DeleteDBSnapshotResponse>
+"""
 
 CREATE_SECURITY_GROUP_TEMPLATE = """<CreateDBSecurityGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBSecurityGroupResult>

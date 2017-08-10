@@ -12,6 +12,7 @@ ERROR_WITH_KEY_NAME = """{% extends 'single_error' %}
 
 
 class S3ClientError(RESTError):
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('template', 'single_error')
         self.templates['bucket_error'] = ERROR_WITH_BUCKET_NAME
@@ -19,6 +20,7 @@ class S3ClientError(RESTError):
 
 
 class BucketError(S3ClientError):
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('template', 'bucket_error')
         self.templates['bucket_error'] = ERROR_WITH_BUCKET_NAME

@@ -32,7 +32,8 @@ def tags_from_query_string(querystring_dict):
             tag_key = querystring_dict.get("Tags.{0}.Key".format(tag_index))[0]
             tag_value_key = "Tags.{0}.Value".format(tag_index)
             if tag_value_key in querystring_dict:
-                response_values[tag_key] = querystring_dict.get(tag_value_key)[0]
+                response_values[tag_key] = querystring_dict.get(tag_value_key)[
+                    0]
             else:
                 response_values[tag_key] = None
     return response_values
@@ -42,7 +43,8 @@ def steps_from_query_string(querystring_dict):
     steps = []
     for step in querystring_dict:
         step['jar'] = step.pop('hadoop_jar_step._jar')
-        step['properties'] = dict((o['Key'], o['Value']) for o in step.get('properties', []))
+        step['properties'] = dict((o['Key'], o['Value'])
+                                  for o in step.get('properties', []))
         step['args'] = []
         idx = 1
         keyfmt = 'hadoop_jar_step._args.member.{0}'

@@ -2,10 +2,10 @@ from __future__ import unicode_literals
 import boto
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2_deprecated
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_virtual_private_gateways():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -16,7 +16,8 @@ def test_virtual_private_gateways():
     vpn_gateway.state.should.equal('available')
     vpn_gateway.availability_zone.should.equal('us-east-1a')
 
-@mock_ec2
+
+@mock_ec2_deprecated
 def test_describe_vpn_gateway():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpn_gateway = conn.create_vpn_gateway('ipsec.1', 'us-east-1a')
@@ -32,7 +33,7 @@ def test_describe_vpn_gateway():
     vpn_gateway.availability_zone.should.equal('us-east-1a')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_vpn_gateway_vpc_attachment():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -50,7 +51,7 @@ def test_vpn_gateway_vpc_attachment():
     attachments[0].state.should.equal('attached')
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_delete_vpn_gateway():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpn_gateway = conn.create_vpn_gateway('ipsec.1', 'us-east-1a')
@@ -60,7 +61,7 @@ def test_delete_vpn_gateway():
     vgws.should.have.length_of(0)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_vpn_gateway_tagging():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpn_gateway = conn.create_vpn_gateway('ipsec.1', 'us-east-1a')
@@ -76,7 +77,7 @@ def test_vpn_gateway_tagging():
     vpn_gateway.tags["a key"].should.equal("some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_detach_vpn_gateway():
 
     conn = boto.connect_vpc('the_key', 'the_secret')

@@ -147,6 +147,7 @@ def test_activity_task_cannot_change_state_on_closed_workflow_execution():
     )
     wfe.complete(123)
 
-    task.timeout.when.called_with(Timeout(task, 0, "foo")).should.throw(SWFWorkflowExecutionClosedError)
+    task.timeout.when.called_with(Timeout(task, 0, "foo")).should.throw(
+        SWFWorkflowExecutionClosedError)
     task.complete.when.called_with().should.throw(SWFWorkflowExecutionClosedError)
     task.fail.when.called_with().should.throw(SWFWorkflowExecutionClosedError)

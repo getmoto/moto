@@ -1,15 +1,17 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 
 import sure  # noqa
 
+from moto import mock_autoscaling_deprecated
 from moto import mock_autoscaling
 from tests.helpers import requires_boto_gte
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_launch_configuration():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -30,15 +32,17 @@ def test_create_launch_configuration():
     launch_config.image_id.should.equal('ami-abcd1234')
     launch_config.instance_type.should.equal('t1.micro')
     launch_config.key_name.should.equal('the_keys')
-    set(launch_config.security_groups).should.equal(set(['default', 'default2']))
+    set(launch_config.security_groups).should.equal(
+        set(['default', 'default2']))
     launch_config.user_data.should.equal(b"This is some user_data")
     launch_config.instance_monitoring.enabled.should.equal('true')
-    launch_config.instance_profile_name.should.equal('arn:aws:iam::123456789012:instance-profile/testing')
+    launch_config.instance_profile_name.should.equal(
+        'arn:aws:iam::123456789012:instance-profile/testing')
     launch_config.spot_price.should.equal(0.1)
 
 
 @requires_boto_gte("2.27.0")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_launch_configuration_with_block_device_mappings():
     block_device_mapping = BlockDeviceMapping()
 
@@ -78,16 +82,19 @@ def test_create_launch_configuration_with_block_device_mappings():
     launch_config.image_id.should.equal('ami-abcd1234')
     launch_config.instance_type.should.equal('m1.small')
     launch_config.key_name.should.equal('the_keys')
-    set(launch_config.security_groups).should.equal(set(['default', 'default2']))
+    set(launch_config.security_groups).should.equal(
+        set(['default', 'default2']))
     launch_config.user_data.should.equal(b"This is some user_data")
     launch_config.instance_monitoring.enabled.should.equal('true')
-    launch_config.instance_profile_name.should.equal('arn:aws:iam::123456789012:instance-profile/testing')
+    launch_config.instance_profile_name.should.equal(
+        'arn:aws:iam::123456789012:instance-profile/testing')
     launch_config.spot_price.should.equal(0.1)
     len(launch_config.block_device_mappings).should.equal(3)
 
     returned_mapping = launch_config.block_device_mappings
 
-    set(returned_mapping.keys()).should.equal(set(['/dev/xvdb', '/dev/xvdp', '/dev/xvdh']))
+    set(returned_mapping.keys()).should.equal(
+        set(['/dev/xvdb', '/dev/xvdp', '/dev/xvdh']))
 
     returned_mapping['/dev/xvdh'].iops.should.equal(1000)
     returned_mapping['/dev/xvdh'].size.should.equal(100)
@@ -101,7 +108,7 @@ def test_create_launch_configuration_with_block_device_mappings():
 
 
 @requires_boto_gte("2.12")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_launch_configuration_for_2_12():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -116,7 +123,7 @@ def test_create_launch_configuration_for_2_12():
 
 
 @requires_boto_gte("2.25.0")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_launch_configuration_using_ip_association():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -131,7 +138,7 @@ def test_create_launch_configuration_using_ip_association():
 
 
 @requires_boto_gte("2.25.0")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_launch_configuration_using_ip_association_should_default_to_false():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -144,7 +151,7 @@ def test_create_launch_configuration_using_ip_association_should_default_to_fals
     launch_config.associate_public_ip_address.should.equal(False)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_launch_configuration_defaults():
     """ Test with the minimum inputs and check that all of the proper defaults
     are assigned for the other attributes """
@@ -171,7 +178,7 @@ def test_create_launch_configuration_defaults():
 
 
 @requires_boto_gte("2.12")
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_create_launch_configuration_defaults_for_2_12():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -184,7 +191,7 @@ def test_create_launch_configuration_defaults_for_2_12():
     launch_config.ebs_optimized.should.equal(False)
 
 
-@mock_autoscaling
+@mock_autoscaling_deprecated
 def test_launch_configuration_describe_filter():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
@@ -198,11 +205,31 @@ def test_launch_configuration_describe_filter():
     config.name = 'tester3'
     conn.create_launch_configuration(config)
 
-    conn.get_all_launch_configurations(names=['tester', 'tester2']).should.have.length_of(2)
+    conn.get_all_launch_configurations(
+        names=['tester', 'tester2']).should.have.length_of(2)
     conn.get_all_launch_configurations().should.have.length_of(3)
 
 
 @mock_autoscaling
+def test_launch_configuration_describe_paginated():
+    conn = boto3.client('autoscaling', region_name='us-east-1')
+    for i in range(51):
+        conn.create_launch_configuration(LaunchConfigurationName='TestLC%d' % i)
+
+    response = conn.describe_launch_configurations()
+    lcs = response["LaunchConfigurations"]
+    marker = response["NextToken"]
+    lcs.should.have.length_of(50)
+    marker.should.equal(lcs[-1]['LaunchConfigurationName'])
+
+    response2 = conn.describe_launch_configurations(NextToken=marker)
+
+    lcs.extend(response2["LaunchConfigurations"])
+    lcs.should.have.length_of(51)
+    assert 'NextToken' not in response2.keys()
+
+
+@mock_autoscaling_deprecated
 def test_launch_configuration_delete():
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(

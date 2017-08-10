@@ -1,12 +1,12 @@
 from __future__ import unicode_literals
 # TODO add tests for all of these
 
-EQ_FUNCTION = lambda item_value, test_value: item_value == test_value
-NE_FUNCTION = lambda item_value, test_value: item_value != test_value
-LE_FUNCTION = lambda item_value, test_value: item_value <= test_value
-LT_FUNCTION = lambda item_value, test_value: item_value < test_value
-GE_FUNCTION = lambda item_value, test_value: item_value >= test_value
-GT_FUNCTION = lambda item_value, test_value: item_value > test_value
+EQ_FUNCTION = lambda item_value, test_value: item_value == test_value  # flake8: noqa
+NE_FUNCTION = lambda item_value, test_value: item_value != test_value  # flake8: noqa
+LE_FUNCTION = lambda item_value, test_value: item_value <= test_value  # flake8: noqa
+LT_FUNCTION = lambda item_value, test_value: item_value < test_value  # flake8: noqa
+GE_FUNCTION = lambda item_value, test_value: item_value >= test_value  # flake8: noqa
+GT_FUNCTION = lambda item_value, test_value: item_value > test_value  # flake8: noqa
 
 COMPARISON_FUNCS = {
     'EQ': EQ_FUNCTION,

@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import boto.datapipeline
 import sure  # noqa
 
-from moto import mock_datapipeline
+from moto import mock_datapipeline_deprecated
 from moto.datapipeline.utils import remove_capitalization_of_dict_keys
 
 
@@ -13,14 +13,15 @@ def get_value_from_fields(key, fields):
             return field['stringValue']
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
 def test_create_pipeline():
     conn = boto.datapipeline.connect_to_region("us-west-2")
 
     res = conn.create_pipeline("mypipeline", "some-unique-id")
 
     pipeline_id = res["pipelineId"]
-    pipeline_descriptions = conn.describe_pipelines([pipeline_id])["pipelineDescriptionList"]
+    pipeline_descriptions = conn.describe_pipelines(
+        [pipeline_id])["pipelineDescriptionList"]
     pipeline_descriptions.should.have.length_of(1)
 
     pipeline_description = pipeline_descriptions[0]
@@ -78,7 +79,7 @@ PIPELINE_OBJECTS = [
 ]
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
 def test_creating_pipeline_definition():
     conn = boto.datapipeline.connect_to_region("us-west-2")
     res = conn.create_pipeline("mypipeline", "some-unique-id")
@@ -97,7 +98,7 @@ def test_creating_pipeline_definition():
     }])
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
 def test_describing_pipeline_objects():
     conn = boto.datapipeline.connect_to_region("us-west-2")
     res = conn.create_pipeline("mypipeline", "some-unique-id")
@@ -105,7 +106,8 @@ def test_describing_pipeline_objects():
 
     conn.put_pipeline_definition(PIPELINE_OBJECTS, pipeline_id)
 
-    objects = conn.describe_objects(["Schedule", "Default"], pipeline_id)['pipelineObjects']
+    objects = conn.describe_objects(["Schedule", "Default"], pipeline_id)[
+        'pipelineObjects']
 
     objects.should.have.length_of(2)
     default_object = [x for x in objects if x['id'] == 'Default'][0]
@@ -116,7 +118,7 @@ def test_describing_pipeline_objects():
     }])
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
 def test_activate_pipeline():
     conn = boto.datapipeline.connect_to_region("us-west-2")
 
@@ -125,7 +127,8 @@ def test_activate_pipeline():
     pipeline_id = res["pipelineId"]
     conn.activate_pipeline(pipeline_id)
 
-    pipeline_descriptions = conn.describe_pipelines([pipeline_id])["pipelineDescriptionList"]
+    pipeline_descriptions = conn.describe_pipelines(
+        [pipeline_id])["pipelineDescriptionList"]
     pipeline_descriptions.should.have.length_of(1)
     pipeline_description = pipeline_descriptions[0]
     fields = pipeline_description['fields']
@@ -133,7 +136,20 @@ def test_activate_pipeline():
     get_value_from_fields('@pipelineState', fields).should.equal("SCHEDULED")
 
 
-@mock_datapipeline
+@mock_datapipeline_deprecated
+def test_delete_pipeline():
+    conn = boto.datapipeline.connect_to_region("us-west-2")
+    res = conn.create_pipeline("mypipeline", "some-unique-id")
+    pipeline_id = res["pipelineId"]
+
+    conn.delete_pipeline(pipeline_id)
+
+    response = conn.list_pipelines()
+
+    response["pipelineIdList"].should.have.length_of(0)
+
+
+@mock_datapipeline_deprecated
 def test_listing_pipelines():
     conn = boto.datapipeline.connect_to_region("us-west-2")
     res1 = conn.create_pipeline("mypipeline1", "some-unique-id1")
@@ -152,6 +168,19 @@ def test_listing_pipelines():
         "id": res2["pipelineId"],
         "name": "mypipeline2"
     })
+
+
+@mock_datapipeline_deprecated
+def test_listing_paginated_pipelines():
+    conn = boto.datapipeline.connect_to_region("us-west-2")
+    for i in range(100):
+        conn.create_pipeline("mypipeline%d" % i, "some-unique-id%d" % i)
+
+    response = conn.list_pipelines()
+
+    response["hasMoreResults"].should.be(True)
+    response["marker"].should.equal(response["pipelineIdList"][-1]['id'])
+    response["pipelineIdList"].should.have.length_of(50)
 
 
 # testing a helper function

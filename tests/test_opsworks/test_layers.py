@@ -43,7 +43,8 @@ def test_create_layer_response():
         Name="_",
         Shortname="TestLayerShortName"
     ).should.throw(
-        Exception, re.compile(r'already a layer with shortname "TestLayerShortName"')
+        Exception, re.compile(
+            r'already a layer with shortname "TestLayerShortName"')
     )
 
 
@@ -66,7 +67,6 @@ def test_describe_layers():
 
     rv1 = client.describe_layers(StackId=stack_id)
     rv2 = client.describe_layers(LayerIds=[layer_id])
-    rv1.should.equal(rv2)
+    rv1['Layers'].should.equal(rv2['Layers'])
 
     rv1['Layers'][0]['Name'].should.equal("TestLayer")
-

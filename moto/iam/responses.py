@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
-from .models import iam_backend
+from .models import iam_backend, User
 
 
 class IamResponse(BaseResponse):
@@ -18,7 +18,8 @@ class IamResponse(BaseResponse):
         path = self._get_param('Path')
         policy_document = self._get_param('PolicyDocument')
         policy_name = self._get_param('PolicyName')
-        policy = iam_backend.create_policy(description, path, policy_document, policy_name)
+        policy = iam_backend.create_policy(
+            description, path, policy_document, policy_name)
         template = self.response_template(CREATE_POLICY_TEMPLATE)
         return template.render(policy=policy)
 
@@ -27,7 +28,8 @@ class IamResponse(BaseResponse):
         max_items = self._get_int_param('MaxItems', 100)
         path_prefix = self._get_param('PathPrefix', '/')
         role_name = self._get_param('RoleName')
-        policies, marker = iam_backend.list_attached_role_policies(role_name, marker=marker, max_items=max_items, path_prefix=path_prefix)
+        policies, marker = iam_backend.list_attached_role_policies(
+            role_name, marker=marker, max_items=max_items, path_prefix=path_prefix)
         template = self.response_template(LIST_ATTACHED_ROLE_POLICIES_TEMPLATE)
         return template.render(policies=policies, marker=marker)
 
@@ -37,16 +39,19 @@ class IamResponse(BaseResponse):
         only_attached = self._get_bool_param('OnlyAttached', False)
         path_prefix = self._get_param('PathPrefix', '/')
         scope = self._get_param('Scope', 'All')
-        policies, marker = iam_backend.list_policies(marker, max_items, only_attached, path_prefix, scope)
+        policies, marker = iam_backend.list_policies(
+            marker, max_items, only_attached, path_prefix, scope)
         template = self.response_template(LIST_POLICIES_TEMPLATE)
         return template.render(policies=policies, marker=marker)
 
     def create_role(self):
         role_name = self._get_param('RoleName')
         path = self._get_param('Path')
-        assume_role_policy_document = self._get_param('AssumeRolePolicyDocument')
+        assume_role_policy_document = self._get_param(
+            'AssumeRolePolicyDocument')
 
-        role = iam_backend.create_role(role_name, assume_role_policy_document, path)
+        role = iam_backend.create_role(
+            role_name, assume_role_policy_document, path)
         template = self.response_template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
@@ -56,6 +61,12 @@ class IamResponse(BaseResponse):
 
         template = self.response_template(GET_ROLE_TEMPLATE)
         return template.render(role=role)
+
+    def delete_role(self):
+        role_name = self._get_param('RoleName')
+        iam_backend.delete_role(role_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteRoleResponse")
 
     def list_role_policies(self):
         role_name = self._get_param('RoleName')
@@ -74,7 +85,8 @@ class IamResponse(BaseResponse):
     def get_role_policy(self):
         role_name = self._get_param('RoleName')
         policy_name = self._get_param('PolicyName')
-        policy_name, policy_document = iam_backend.get_role_policy(role_name, policy_name)
+        policy_name, policy_document = iam_backend.get_role_policy(
+            role_name, policy_name)
         template = self.response_template(GET_ROLE_POLICY_TEMPLATE)
         return template.render(role_name=role_name,
                                policy_name=policy_name,
@@ -87,11 +99,42 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAssumeRolePolicyResponse")
 
+    def create_policy_version(self):
+        policy_arn = self._get_param('PolicyArn')
+        policy_document = self._get_param('PolicyDocument')
+        set_as_default = self._get_param('SetAsDefault')
+        policy_version = iam_backend.create_policy_version(policy_arn, policy_document, set_as_default)
+        template = self.response_template(CREATE_POLICY_VERSION_TEMPLATE)
+        return template.render(policy_version=policy_version)
+
+    def get_policy_version(self):
+        policy_arn = self._get_param('PolicyArn')
+        version_id = self._get_param('VersionId')
+        policy_version = iam_backend.get_policy_version(policy_arn, version_id)
+        template = self.response_template(GET_POLICY_VERSION_TEMPLATE)
+        return template.render(policy_version=policy_version)
+
+    def list_policy_versions(self):
+        policy_arn = self._get_param('PolicyArn')
+        policy_versions = iam_backend.list_policy_versions(policy_arn)
+
+        template = self.response_template(LIST_POLICY_VERSIONS_TEMPLATE)
+        return template.render(policy_versions=policy_versions)
+
+    def delete_policy_version(self):
+        policy_arn = self._get_param('PolicyArn')
+        version_id = self._get_param('VersionId')
+
+        iam_backend.delete_policy_version(policy_arn, version_id)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeletePolicyVersion')
+
     def create_instance_profile(self):
         profile_name = self._get_param('InstanceProfileName')
         path = self._get_param('Path')
 
-        profile = iam_backend.create_instance_profile(profile_name, path, role_ids=[])
+        profile = iam_backend.create_instance_profile(
+            profile_name, path, role_ids=[])
         template = self.response_template(CREATE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
 
@@ -107,7 +150,8 @@ class IamResponse(BaseResponse):
         role_name = self._get_param('RoleName')
 
         iam_backend.add_role_to_instance_profile(profile_name, role_name)
-        template = self.response_template(ADD_ROLE_TO_INSTANCE_PROFILE_TEMPLATE)
+        template = self.response_template(
+            ADD_ROLE_TO_INSTANCE_PROFILE_TEMPLATE)
         return template.render()
 
     def remove_role_from_instance_profile(self):
@@ -115,7 +159,8 @@ class IamResponse(BaseResponse):
         role_name = self._get_param('RoleName')
 
         iam_backend.remove_role_from_instance_profile(profile_name, role_name)
-        template = self.response_template(REMOVE_ROLE_FROM_INSTANCE_PROFILE_TEMPLATE)
+        template = self.response_template(
+            REMOVE_ROLE_FROM_INSTANCE_PROFILE_TEMPLATE)
         return template.render()
 
     def list_roles(self):
@@ -132,9 +177,11 @@ class IamResponse(BaseResponse):
 
     def list_instance_profiles_for_role(self):
         role_name = self._get_param('RoleName')
-        profiles = iam_backend.get_instance_profiles_for_role(role_name=role_name)
+        profiles = iam_backend.get_instance_profiles_for_role(
+            role_name=role_name)
 
-        template = self.response_template(LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE)
+        template = self.response_template(
+            LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE)
         return template.render(instance_profiles=profiles)
 
     def upload_server_certificate(self):
@@ -144,7 +191,8 @@ class IamResponse(BaseResponse):
         private_key = self._get_param('PrivateKey')
         cert_chain = self._get_param('CertificateName')
 
-        cert = iam_backend.upload_server_cert(cert_name, cert_body, private_key, cert_chain=cert_chain, path=path)
+        cert = iam_backend.upload_server_cert(
+            cert_name, cert_body, private_key, cert_chain=cert_chain, path=path)
         template = self.response_template(UPLOAD_CERT_TEMPLATE)
         return template.render(certificate=cert)
 
@@ -186,6 +234,32 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_GROUPS_FOR_USER_TEMPLATE)
         return template.render(groups=groups)
 
+    def put_group_policy(self):
+        group_name = self._get_param('GroupName')
+        policy_name = self._get_param('PolicyName')
+        policy_document = self._get_param('PolicyDocument')
+        iam_backend.put_group_policy(group_name, policy_name, policy_document)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="PutGroupPolicyResponse")
+
+    def list_group_policies(self):
+        group_name = self._get_param('GroupName')
+        marker = self._get_param('Marker')
+        max_items = self._get_param('MaxItems')
+        policies = iam_backend.list_group_policies(group_name,
+            marker=marker, max_items=max_items)
+        template = self.response_template(LIST_GROUP_POLICIES_TEMPLATE)
+        return template.render(name="ListGroupPoliciesResponse",
+                               policies=policies,
+                               marker=marker)
+
+    def get_group_policy(self):
+        group_name = self._get_param('GroupName')
+        policy_name = self._get_param('PolicyName')
+        policy_result = iam_backend.get_group_policy(group_name, policy_name)
+        template = self.response_template(GET_GROUP_POLICY_TEMPLATE)
+        return template.render(name="GetGroupPolicyResponse", **policy_result)
+
     def create_user(self):
         user_name = self._get_param('UserName')
         path = self._get_param('Path')
@@ -196,7 +270,12 @@ class IamResponse(BaseResponse):
 
     def get_user(self):
         user_name = self._get_param('UserName')
-        user = iam_backend.get_user(user_name)
+        if user_name:
+            user = iam_backend.get_user(user_name)
+        else:
+            user = User(name='default_user')
+            # If no user is specific, IAM returns the current user
+
         template = self.response_template(USER_TEMPLATE)
         return template.render(action='Get', user=user)
 
@@ -211,10 +290,27 @@ class IamResponse(BaseResponse):
     def create_login_profile(self):
         user_name = self._get_param('UserName')
         password = self._get_param('Password')
-        iam_backend.create_login_profile(user_name, password)
+        password = self._get_param('Password')
+        user = iam_backend.create_login_profile(user_name, password)
 
         template = self.response_template(CREATE_LOGIN_PROFILE_TEMPLATE)
-        return template.render(user_name=user_name)
+        return template.render(user=user)
+
+    def get_login_profile(self):
+        user_name = self._get_param('UserName')
+        user = iam_backend.get_login_profile(user_name)
+
+        template = self.response_template(GET_LOGIN_PROFILE_TEMPLATE)
+        return template.render(user=user)
+
+    def update_login_profile(self):
+        user_name = self._get_param('UserName')
+        password = self._get_param('Password')
+        password_reset_required = self._get_param('PasswordResetRequired')
+        user = iam_backend.update_login_profile(user_name, password, password_reset_required)
+
+        template = self.response_template(UPDATE_LOGIN_PROFILE_TEMPLATE)
+        return template.render(user=user)
 
     def add_user_to_group(self):
         group_name = self._get_param('GroupName')
@@ -243,6 +339,12 @@ class IamResponse(BaseResponse):
             policy_name=policy_name,
             policy_document=policy_document
         )
+
+    def list_user_policies(self):
+        user_name = self._get_param('UserName')
+        policies = iam_backend.list_user_policies(user_name)
+        template = self.response_template(LIST_USER_POLICIES_TEMPLATE)
+        return template.render(policies=policies)
 
     def put_user_policy(self):
         user_name = self._get_param('UserName')
@@ -282,6 +384,35 @@ class IamResponse(BaseResponse):
         iam_backend.delete_access_key(access_key_id, user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name='DeleteAccessKey')
+
+    def deactivate_mfa_device(self):
+        user_name = self._get_param('UserName')
+        serial_number = self._get_param('SerialNumber')
+
+        iam_backend.deactivate_mfa_device(user_name, serial_number)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeactivateMFADevice')
+
+    def enable_mfa_device(self):
+        user_name = self._get_param('UserName')
+        serial_number = self._get_param('SerialNumber')
+        authentication_code_1 = self._get_param('AuthenticationCode1')
+        authentication_code_2 = self._get_param('AuthenticationCode2')
+
+        iam_backend.enable_mfa_device(
+            user_name,
+            serial_number,
+            authentication_code_1,
+            authentication_code_2
+        )
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='EnableMFADevice')
+
+    def list_mfa_devices(self):
+        user_name = self._get_param('UserName')
+        devices = iam_backend.list_mfa_devices(user_name)
+        template = self.response_template(LIST_MFA_DEVICES_TEMPLATE)
+        return template.render(user_name=user_name, devices=devices)
 
     def delete_user(self):
         user_name = self._get_param('UserName')
@@ -396,7 +527,7 @@ CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="http
       <Roles/>
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver</Arn>
+      <Arn>{{ profile.arn }}</Arn>
       <CreateDate>2012-05-09T16:11:10.222Z</CreateDate>
     </InstanceProfile>
   </CreateInstanceProfileResult>
@@ -413,7 +544,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
         {% for role in profile.roles %}
         <member>
           <Path>{{ role.path }}</Path>
-          <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+          <Arn>{{ role.arn }}</Arn>
           <RoleName>{{ role.name }}</RoleName>
           <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
           <CreateDate>2012-05-09T15:45:35Z</CreateDate>
@@ -423,7 +554,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
       </Roles>
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver</Arn>
+      <Arn>{{ profile.arn }}</Arn>
       <CreateDate>2012-05-09T16:11:10Z</CreateDate>
     </InstanceProfile>
   </GetInstanceProfileResult>
@@ -436,7 +567,7 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
   <CreateRoleResult>
     <Role>
       <Path>{{ role.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+      <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       <CreateDate>2012-05-08T23:34:01.495Z</CreateDate>
@@ -463,7 +594,7 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
   <GetRoleResult>
     <Role>
       <Path>{{ role.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+      <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       <CreateDate>2012-05-08T23:34:01Z</CreateDate>
@@ -494,7 +625,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
       {% for role in roles %}
       <member>
         <Path>{{ role.path }}</Path>
-        <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+        <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
         <CreateDate>2012-05-09T15:45:35Z</CreateDate>
@@ -522,6 +653,53 @@ LIST_ROLE_POLICIES = """<ListRolePoliciesResponse xmlns="https://iam.amazonaws.c
 </ResponseMetadata>
 </ListRolePoliciesResponse>"""
 
+CREATE_POLICY_VERSION_TEMPLATE = """<CreatePolicyVersionResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <CreatePolicyVersionResult>
+    <PolicyVersion>
+      <Document>{{ policy_version.document }}</Document>
+      <VersionId>{{ policy_version.version_id }}</VersionId>
+      <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
+      <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+    </PolicyVersion>
+  </CreatePolicyVersionResult>
+  <ResponseMetadata>
+    <RequestId>20f7279f-99ee-11e1-a4c3-27EXAMPLE804</RequestId>
+  </ResponseMetadata>
+</CreatePolicyVersionResponse>"""
+
+GET_POLICY_VERSION_TEMPLATE = """<GetPolicyVersionResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetPolicyVersionResult>
+    <PolicyVersion>
+      <Document>{{ policy_version.document }}</Document>
+      <VersionId>{{ policy_version.version_id }}</VersionId>
+      <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
+      <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+    </PolicyVersion>
+  </GetPolicyVersionResult>
+  <ResponseMetadata>
+    <RequestId>20f7279f-99ee-11e1-a4c3-27EXAMPLE804</RequestId>
+  </ResponseMetadata>
+</GetPolicyVersionResponse>"""
+
+LIST_POLICY_VERSIONS_TEMPLATE = """<ListPolicyVersionsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListPolicyVersionsResult>
+    <IsTruncated>false</IsTruncated>
+    <Versions>
+      {% for policy_version in policy_versions %}
+      <member>
+        <Document>{{ policy_version.document }}</Document>
+        <VersionId>{{ policy_version.version_id }}</VersionId>
+        <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
+        <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+      </member>
+      {% endfor %}
+    </Versions>
+  </ListPolicyVersionsResult>
+  <ResponseMetadata>
+    <RequestId>20f7279f-99ee-11e1-a4c3-27EXAMPLE804</RequestId>
+  </ResponseMetadata>
+</ListPolicyVersionsResponse>"""
+
 LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ListInstanceProfilesResult>
     <IsTruncated>false</IsTruncated>
@@ -533,7 +711,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
           {% for role in instance.roles %}
           <member>
             <Path>{{ role.path }}</Path>
-            <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+            <Arn>{{ role.arn }}</Arn>
             <RoleName>{{ role.name }}</RoleName>
             <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
             <CreateDate>2012-05-09T15:45:35Z</CreateDate>
@@ -543,7 +721,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
         </Roles>
         <InstanceProfileName>{{ instance.name }}</InstanceProfileName>
         <Path>{{ instance.path }}</Path>
-        <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Database</Arn>
+        <Arn>{{ instance.arn }}</Arn>
         <CreateDate>2012-05-09T16:27:03Z</CreateDate>
       </member>
       {% endfor %}
@@ -561,7 +739,7 @@ UPLOAD_CERT_TEMPLATE = """<UploadServerCertificateResponse>
       {% if certificate.path %}
       <Path>{{ certificate.path }}</Path>
       {% endif %}
-      <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
+      <Arn>{{ certificate.arn }}</Arn>
       <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
       <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
       <Expiration>2012-05-08T01:02:03.004Z</Expiration>
@@ -578,18 +756,14 @@ LIST_SERVER_CERTIFICATES_TEMPLATE = """<ListServerCertificatesResponse>
     <ServerCertificateMetadataList>
       {% for certificate in server_certificates %}
       <member>
-        <ServerCertificateMetadata>
-          <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
-          {% if certificate.path %}
-          <Path>{{ certificate.path }}</Path>
-          <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
-          {% else %}
-          <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
-          {% endif %}
-          <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
-          <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
-          <Expiration>2012-05-08T01:02:03.004Z</Expiration>
-        </ServerCertificateMetadata>
+        <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
+        {% if certificate.path %}
+            <Path>{{ certificate.path }}</Path>
+        {% endif %}
+        <Arn>{{ certificate.arn }}</Arn>
+        <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
+        <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
+        <Expiration>2012-05-08T01:02:03.004Z</Expiration>
       </member>
       {% endfor %}
     </ServerCertificateMetadataList>
@@ -605,11 +779,9 @@ GET_SERVER_CERTIFICATE_TEMPLATE = """<GetServerCertificateResponse>
       <ServerCertificateMetadata>
         <ServerCertificateName>{{ certificate.cert_name }}</ServerCertificateName>
         {% if certificate.path %}
-        <Path>{{ certificate.path }}</Path>
-        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.path }}/{{ certificate.cert_name }}</Arn>
-        {% else %}
-        <Arn>arn:aws:iam::123456789012:server-certificate/{{ certificate.cert_name }}</Arn>
+            <Path>{{ certificate.path }}</Path>
         {% endif %}
+        <Arn>{{ certificate.arn }}</Arn>
         <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
         <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
         <Expiration>2012-05-08T01:02:03.004Z</Expiration>
@@ -628,7 +800,7 @@ CREATE_GROUP_TEMPLATE = """<CreateGroupResponse>
          <Path>{{ group.path }}</Path>
          <GroupName>{{ group.name }}</GroupName>
          <GroupId>{{ group.id }}</GroupId>
-         <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+         <Arn>{{ group.arn }}</Arn>
       </Group>
    </CreateGroupResult>
    <ResponseMetadata>
@@ -642,7 +814,7 @@ GET_GROUP_TEMPLATE = """<GetGroupResponse>
          <Path>{{ group.path }}</Path>
          <GroupName>{{ group.name }}</GroupName>
          <GroupId>{{ group.id }}</GroupId>
-         <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+         <Arn>{{ group.arn }}</Arn>
       </Group>
       <Users>
         {% for user in group.users %}
@@ -650,9 +822,7 @@ GET_GROUP_TEMPLATE = """<GetGroupResponse>
             <Path>{{ user.path }}</Path>
             <UserName>{{ user.name }}</UserName>
             <UserId>{{ user.id }}</UserId>
-            <Arn>
-            arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name}}
-            </Arn>
+            <Arn>{{ user.arn }}</Arn>
           </member>
         {% endfor %}
       </Users>
@@ -671,7 +841,7 @@ LIST_GROUPS_TEMPLATE = """<ListGroupsResponse>
             <Path>{{ group.path }}</Path>
             <GroupName>{{ group.name }}</GroupName>
             <GroupId>{{ group.id }}</GroupId>
-            <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+            <Arn>{{ group.arn }}</Arn>
         </member>
         {% endfor %}
     </Groups>
@@ -690,7 +860,7 @@ LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
             <Path>{{ group.path }}</Path>
             <GroupName>{{ group.name }}</GroupName>
             <GroupId>{{ group.id }}</GroupId>
-            <Arn>arn:aws:iam::123456789012:group/{{ group.path }}</Arn>
+            <Arn>{{ group.arn }}</Arn>
         </member>
         {% endfor %}
     </Groups>
@@ -701,6 +871,35 @@ LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
   </ResponseMetadata>
 </ListGroupsForUserResponse>"""
 
+LIST_GROUP_POLICIES_TEMPLATE = """<ListGroupPoliciesResponse>
+  <ListGroupPoliciesResult>
+    {% if marker is none %}
+    <IsTruncated>false</IsTruncated>
+    {% else %}
+    <IsTruncated>true</IsTruncated>
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <PolicyNames>
+    {% for policy in policies %}
+        <member>{{ policy }}</member>
+    {% endfor %}
+    </PolicyNames>
+  </ListGroupPoliciesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListGroupPoliciesResponse>"""
+
+GET_GROUP_POLICY_TEMPLATE = """<GetGroupPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<GetGroupPolicyResult>
+  <PolicyName>{{ policy_name }}</PolicyName>
+  <GroupName>{{ group_name }}</GroupName>
+  <PolicyDocument>{{ policy_document }}</PolicyDocument>
+</GetGroupPolicyResult>
+<ResponseMetadata>
+  <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</GetGroupPolicyResponse>"""
 
 USER_TEMPLATE = """<{{ action }}UserResponse>
    <{{ action }}UserResult>
@@ -708,7 +907,8 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
          <Path>{{ user.path }}</Path>
          <UserName>{{ user.name }}</UserName>
          <UserId>{{ user.id }}</UserId>
-         <Arn>arn:aws:iam::123456789012:user/{{ user.path }}/{{ user.name }}</Arn>
+         <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
+         <Arn>{{ user.arn }}</Arn>
      </User>
    </{{ action }}UserResult>
    <ResponseMetadata>
@@ -724,6 +924,7 @@ LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
              <UserId>{{ user.id }}</UserId>
              <Path>{{ user.path }}</Path>
              <UserName>{{ user.name }}</UserName>
+             <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
              <Arn>{{ user.arn }}</Arn>
          </member>
          {% endfor %}
@@ -734,18 +935,40 @@ LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
    </ResponseMetadata>
 </{{ action }}UsersResponse>"""
 
-CREATE_LOGIN_PROFILE_TEMPLATE = """
-<CreateLoginProfileResponse>
+CREATE_LOGIN_PROFILE_TEMPLATE = """<CreateLoginProfileResponse>
    <CreateLoginProfileResult>
       <LoginProfile>
-         <UserName>{{ user_name }}</UserName>
-         <CreateDate>2011-09-19T23:00:56Z</CreateDate>
+         <UserName>{{ user.name }}</UserName>
+         <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
       </LoginProfile>
    </CreateLoginProfileResult>
    <ResponseMetadata>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </CreateLoginProfileResponse>
+"""
+
+GET_LOGIN_PROFILE_TEMPLATE = """<GetLoginProfileResponse>
+   <GetLoginProfileResult>
+      <LoginProfile>
+         <UserName>{{ user.name }}</UserName>
+         <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
+         {% if user.password_reset_required %}
+         <PasswordResetRequired>true</PasswordResetRequired>
+         {% endif %}
+      </LoginProfile>
+   </GetLoginProfileResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetLoginProfileResponse>
+"""
+
+UPDATE_LOGIN_PROFILE_TEMPLATE = """<UpdateLoginProfileResponse>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</UpdateLoginProfileResponse>
 """
 
 GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>
@@ -760,6 +983,20 @@ GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </GetUserPolicyResponse>"""
+
+LIST_USER_POLICIES_TEMPLATE = """<ListUserPoliciesResponse>
+   <ListUserPoliciesResult>
+      <PolicyNames>
+        {% for policy in policies %}
+         <member>{{ policy }}</member>
+        {% endfor %}
+      </PolicyNames>
+   </ListUserPoliciesResult>
+   <IsTruncated>false</IsTruncated>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListUserPoliciesResponse>"""
 
 CREATE_ACCESS_KEY_TEMPLATE = """<CreateAccessKeyResponse>
    <CreateAccessKeyResult>
@@ -786,6 +1023,7 @@ LIST_ACCESS_KEYS_TEMPLATE = """<ListAccessKeysResponse>
             <UserName>{{ user_name }}</UserName>
             <AccessKeyId>{{ key.access_key_id }}</AccessKeyId>
             <Status>{{ key.status }}</Status>
+            <CreateDate>{{ key.create_date }}</CreateDate>
          </member>
         {% endfor %}
       </AccessKeyMetadata>
@@ -838,7 +1076,7 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
         {% for role in profile.roles %}
         <member>
           <Path>{{ role.path }}</Path>
-          <Arn>arn:aws:iam::123456789012:role{{ role.path }}S3Access</Arn>
+          <Arn>{{ role.arn }}</Arn>
           <RoleName>{{ role.name }}</RoleName>
           <AssumeRolePolicyDocument>{{ role.assume_policy_document }}</AssumeRolePolicyDocument>
           <CreateDate>2012-05-09T15:45:35Z</CreateDate>
@@ -848,7 +1086,7 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
       </Roles>
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
-      <Arn>arn:aws:iam::123456789012:instance-profile{{ profile.path }}Webserver</Arn>
+      <Arn>{{ profile.arn }}</Arn>
       <CreateDate>2012-05-09T16:27:11Z</CreateDate>
     </member>
     {% endfor %}
@@ -858,3 +1096,20 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
   <RequestId>6a8c3992-99f4-11e1-a4c3-27EXAMPLE804</RequestId>
 </ResponseMetadata>
 </ListInstanceProfilesForRoleResponse>"""
+
+LIST_MFA_DEVICES_TEMPLATE = """<ListMFADevicesResponse>
+   <ListMFADevicesResult>
+      <MFADevices>
+        {% for device in devices %}
+         <member>
+            <UserName>{{ user_name }}</UserName>
+            <SerialNumber>{{ device.serial_number }}</SerialNumber>
+         </member>
+        {% endfor %}
+      </MFADevices>
+      <IsTruncated>false</IsTruncated>
+   </ListMFADevicesResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListMFADevicesResponse>"""

@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -27,7 +28,8 @@ class SQSResponse(BaseResponse):
     @property
     def attribute(self):
         if not hasattr(self, '_attribute'):
-            self._attribute = dict([(a['name'], a['value']) for a in self._get_list_prefix('Attribute')])
+            self._attribute = dict([(a['name'], a['value'])
+                                    for a in self._get_list_prefix('Attribute')])
         return self._attribute
 
     def _get_queue_name(self):
@@ -57,26 +59,29 @@ class SQSResponse(BaseResponse):
         return status_code, headers, body
 
     def create_queue(self):
+        request_url = urlparse(self.uri)
         queue_name = self.querystring.get("QueueName")[0]
         queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=self.attribute.get('VisibilityTimeout'),
-            wait_time_seconds=self.attribute.get('WaitTimeSeconds'))
+                                              wait_time_seconds=self.attribute.get('WaitTimeSeconds'))
         template = self.response_template(CREATE_QUEUE_RESPONSE)
-        return template.render(queue=queue)
+        return template.render(queue=queue, request_url=request_url)
 
     def get_queue_url(self):
+        request_url = urlparse(self.uri)
         queue_name = self.querystring.get("QueueName")[0]
         queue = self.sqs_backend.get_queue(queue_name)
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
-            return template.render(queue=queue)
+            return template.render(queue=queue, request_url=request_url)
         else:
             return "", dict(status=404)
 
     def list_queues(self):
+        request_url = urlparse(self.uri)
         queue_name_prefix = self.querystring.get("QueueNamePrefix", [None])[0]
         queues = self.sqs_backend.list_queues(queue_name_prefix)
         template = self.response_template(LIST_QUEUES_RESPONSE)
-        return template.render(queues=queues)
+        return template.render(queues=queues, request_url=request_url)
 
     def change_message_visibility(self):
         queue_name = self._get_queue_name()
@@ -108,7 +113,8 @@ class SQSResponse(BaseResponse):
     def set_queue_attributes(self):
         queue_name = self._get_queue_name()
         if "Attribute.Name" in self.querystring:
-            key = camelcase_to_underscores(self.querystring.get("Attribute.Name")[0])
+            key = camelcase_to_underscores(
+                self.querystring.get("Attribute.Name")[0])
             value = self.querystring.get("Attribute.Value")[0]
             self.sqs_backend.set_queue_attribute(queue_name, key, value)
         for a in self._get_list_prefix("Attribute"):
@@ -122,6 +128,7 @@ class SQSResponse(BaseResponse):
         queue = self.sqs_backend.delete_queue(queue_name)
         if not queue:
             return "A queue with name {0} does not exist".format(queue_name), dict(status=404)
+
         template = self.response_template(DELETE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 
@@ -170,20 +177,25 @@ class SQSResponse(BaseResponse):
         messages = []
         for index in range(1, 11):
             # Loop through looking for messages
-            message_key = 'SendMessageBatchRequestEntry.{0}.MessageBody'.format(index)
+            message_key = 'SendMessageBatchRequestEntry.{0}.MessageBody'.format(
+                index)
             message_body = self.querystring.get(message_key)
             if not message_body:
                 # Found all messages
                 break
 
-            message_user_id_key = 'SendMessageBatchRequestEntry.{0}.Id'.format(index)
+            message_user_id_key = 'SendMessageBatchRequestEntry.{0}.Id'.format(
+                index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
-            delay_key = 'SendMessageBatchRequestEntry.{0}.DelaySeconds'.format(index)
+            delay_key = 'SendMessageBatchRequestEntry.{0}.DelaySeconds'.format(
+                index)
             delay_seconds = self.querystring.get(delay_key, [None])[0]
-            message = self.sqs_backend.send_message(queue_name, message_body[0], delay_seconds=delay_seconds)
+            message = self.sqs_backend.send_message(
+                queue_name, message_body[0], delay_seconds=delay_seconds)
             message.user_id = message_user_id
 
-            message_attributes = parse_message_attributes(self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index))
+            message_attributes = parse_message_attributes(
+                self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index))
             if type(message_attributes) == tuple:
                 return message_attributes[0], message_attributes[1]
             message.message_attributes = message_attributes
@@ -215,7 +227,8 @@ class SQSResponse(BaseResponse):
         message_ids = []
         for index in range(1, 11):
             # Loop through looking for messages
-            receipt_key = 'DeleteMessageBatchRequestEntry.{0}.ReceiptHandle'.format(index)
+            receipt_key = 'DeleteMessageBatchRequestEntry.{0}.ReceiptHandle'.format(
+                index)
             receipt_handle = self.querystring.get(receipt_key)
             if not receipt_handle:
                 # Found all messages
@@ -223,7 +236,8 @@ class SQSResponse(BaseResponse):
 
             self.sqs_backend.delete_message(queue_name, receipt_handle[0])
 
-            message_user_id_key = 'DeleteMessageBatchRequestEntry.{0}.Id'.format(index)
+            message_user_id_key = 'DeleteMessageBatchRequestEntry.{0}.Id'.format(
+                index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
             message_ids.append(message_user_id)
 
@@ -257,7 +271,8 @@ class SQSResponse(BaseResponse):
         except ValueError:
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
-        messages = self.sqs_backend.receive_messages(queue_name, message_count, wait_time, visibility_timeout)
+        messages = self.sqs_backend.receive_messages(
+            queue_name, message_count, wait_time, visibility_timeout)
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         output = template.render(messages=messages)
         return output
@@ -265,7 +280,7 @@ class SQSResponse(BaseResponse):
 
 CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
     <CreateQueueResult>
-        <QueueUrl>{{ queue.url }}</QueueUrl>
+        <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
         <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
     </CreateQueueResult>
     <ResponseMetadata>
@@ -275,7 +290,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
 
 GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
     <GetQueueUrlResult>
-        <QueueUrl>{{ queue.url }}</QueueUrl>
+        <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
     </GetQueueUrlResult>
     <ResponseMetadata>
         <RequestId>470a6f13-2ed9-4181-ad8a-2fdea142988e</RequestId>
@@ -285,7 +300,7 @@ GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
 LIST_QUEUES_RESPONSE = """<ListQueuesResponse>
     <ListQueuesResult>
         {% for queue in queues %}
-            <QueueUrl>{{ queue.url }}</QueueUrl>
+            <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
         {% endfor %}
     </ListQueuesResult>
     <ResponseMetadata>
@@ -322,10 +337,10 @@ SET_QUEUE_ATTRIBUTE_RESPONSE = """<SetQueueAttributesResponse>
 SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
     <SendMessageResult>
         <MD5OfMessageBody>
-            {{- message.md5 -}}
+            {{- message.body_md5 -}}
         </MD5OfMessageBody>
         {% if message.message_attributes.items()|count > 0 %}
-          <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+        <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
         {% endif %}
         <MessageId>
             {{- message.id -}}
@@ -342,7 +357,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
         <Message>
           <MessageId>{{ message.id }}</MessageId>
           <ReceiptHandle>{{ message.receipt_handle }}</ReceiptHandle>
-          <MD5OfBody>{{ message.md5 }}</MD5OfBody>
+          <MD5OfBody>{{ message.body_md5 }}</MD5OfBody>
           <Body>{{ message.body }}</Body>
           <Attribute>
             <Name>SenderId</Name>
@@ -361,7 +376,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
           {% if message.message_attributes.items()|count > 0 %}
-            <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+          <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
           {% endif %}
           {% for name, value in message.message_attributes.items() %}
             <MessageAttribute>
@@ -390,9 +405,9 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
         <SendMessageBatchResultEntry>
             <Id>{{ message.user_id }}</Id>
             <MessageId>{{ message.id }}</MessageId>
-            <MD5OfMessageBody>{{ message.md5 }}</MD5OfMessageBody>
+            <MD5OfMessageBody>{{ message.body_md5 }}</MD5OfMessageBody>
             {% if message.message_attributes.items()|count > 0 %}
-              <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+            <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
             {% endif %}
         </SendMessageBatchResultEntry>
     {% endfor %}
@@ -443,7 +458,8 @@ ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/do
     <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
 </ErrorResponse>"""
 
-ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = "Invalid request, maximum visibility timeout is {0}".format(MAXIMUM_VISIBILTY_TIMEOUT)
+ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = "Invalid request, maximum visibility timeout is {0}".format(
+    MAXIMUM_VISIBILTY_TIMEOUT)
 
 ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
     <Error>

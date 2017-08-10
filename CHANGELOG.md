@@ -4,6 +4,26 @@ Moto Changelog
 Latest
 ------
 
+1.0.1
+-----
+
+    * Add Cloudformation exports
+    * Add ECR
+    * IAM policy versions
+
+1.0.0
+-----
+
+    BACKWARDS INCOMPATIBLE
+    * The normal @mock_<service> decorators will no longer work with boto. It is suggested that you upgrade to boto3 or use the standalone-server mode. If you would still like to use boto, you must use the @mock_<service>_deprecated decorators which will be removed in a future release.
+    * The @mock_s3bucket_path decorator is now deprecated. Use the @mock_s3 decorator instead.
+    * Drop support for Python 2.6
+    * Redshift server defaults to returning XML instead of JSON
+
+    Added features
+    * Reset API: a reset API has been added to flush all of the current data ex: `requests.post("http://motoapi.amazonaws.com/moto-api/reset")`
+    * A dashboard is now available with moto_server at http://localhost:5000/moto-api/
+
 0.4.31
 ------
 

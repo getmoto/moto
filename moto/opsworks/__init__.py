@@ -1,13 +1,7 @@
 from __future__ import unicode_literals
 from .models import opsworks_backends
-from ..core.models import MockAWS
+from ..core.models import base_decorator, deprecated_base_decorator
 
 opsworks_backend = opsworks_backends['us-east-1']
-
-
-def mock_opsworks(func=None):
-    if func:
-        return MockAWS(opsworks_backends)(func)
-    else:
-        return MockAWS(opsworks_backends)
-
+mock_opsworks = base_decorator(opsworks_backends)
+mock_opsworks_deprecated = deprecated_base_decorator(opsworks_backends)

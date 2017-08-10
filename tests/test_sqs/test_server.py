@@ -19,20 +19,28 @@ def test_sqs_list_identities():
     res = test_client.get('/?Action=ListQueues')
     res.data.should.contain(b"ListQueuesResponse")
 
-    res = test_client.put('/?Action=CreateQueue&QueueName=testqueue')
-    res = test_client.put('/?Action=CreateQueue&QueueName=otherqueue')
+    # Make sure that we can receive messages from queues whose name contains dots (".")
+    # The AWS API mandates that the names of FIFO queues use the suffix ".fifo"
+    # See: https://github.com/spulec/moto/issues/866
+
+    for queue_name in ('testqueue', 'otherqueue.fifo'):
+
+        res = test_client.put('/?Action=CreateQueue&QueueName=%s' % queue_name)
+
+
+        res = test_client.put(
+            '/123/%s?MessageBody=test-message&Action=SendMessage' % queue_name)
+
+        res = test_client.get(
+            '/123/%s?Action=ReceiveMessage&MaxNumberOfMessages=1' % queue_name)
+
+        message = re.search("<Body>(.*?)</Body>",
+                            res.data.decode('utf-8')).groups()[0]
+        message.should.equal('test-message')
 
     res = test_client.get('/?Action=ListQueues&QueueNamePrefix=other')
+    res.data.should.contain(b'otherqueue.fifo')
     res.data.should_not.contain(b'testqueue')
-
-    res = test_client.put(
-        '/123/testqueue?MessageBody=test-message&Action=SendMessage')
-
-    res = test_client.get(
-        '/123/testqueue?Action=ReceiveMessage&MaxNumberOfMessages=1')
-
-    message = re.search("<Body>(.*?)</Body>", res.data.decode('utf-8')).groups()[0]
-    message.should.equal('test-message')
 
 
 def test_messages_polling():
@@ -58,7 +66,8 @@ def test_messages_polling():
             msg_res = test_client.get(
                 '/123/testqueue?Action=ReceiveMessage&MaxNumberOfMessages=1&WaitTimeSeconds=5'
             )
-            new_msgs = re.findall("<Body>(.*?)</Body>", msg_res.data.decode('utf-8'))
+            new_msgs = re.findall("<Body>(.*?)</Body>",
+                                  msg_res.data.decode('utf-8'))
             count += len(new_msgs)
             messages.append(new_msgs)
 
@@ -71,5 +80,6 @@ def test_messages_polling():
     get_messages_thread.join()
     insert_messages_thread.join()
 
-    # got each message in a separate call to ReceiveMessage, despite the long WaitTimeSeconds
+    # got each message in a separate call to ReceiveMessage, despite the long
+    # WaitTimeSeconds
     assert len(messages) == 5

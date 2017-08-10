@@ -1,0 +1,32 @@
+Unreleased
+----------
+
+- Allow empty list/dict as json object (GH-100)
+
+0.5.1
+-----
+
+- Add LICENSE, README and CHANGES to the PyPI distribution (GH-97).
+
+0.5.0
+-----
+
+- Allow passing a JSON body to `response.add` (GH-82)
+- Improve ConnectionError emulation (GH-73)
+- Correct assertion in assert_all_requests_are_fired (GH-71)
+
+0.4.0
+-----
+
+- Requests 2.0+ is required
+- Mocking now happens on the adapter instead of the session
+
+0.3.0
+-----
+
+- Add the ability to mock errors (GH-22)
+- Add responses.mock context manager (GH-36)
+- Support custom adapters (GH-33)
+- Add support for regexp error matching (GH-25)
+- Add support for dynamic bodies via `responses.add_callback` (GH-24)
+- Preserve argspec when using `responses.activate` decorator (GH-18)

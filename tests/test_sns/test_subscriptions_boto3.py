@@ -33,6 +33,36 @@ def test_creating_subscription():
     subscriptions = conn.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(0)
 
+@mock_sns
+def test_deleting_subscriptions_by_deleting_topic():
+    conn = boto3.client('sns', region_name='us-east-1')
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]['TopicArn']
+
+    conn.subscribe(TopicArn=topic_arn,
+                   Protocol="http",
+                   Endpoint="http://example.com/")
+
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["TopicArn"].should.equal(topic_arn)
+    subscription["Protocol"].should.equal("http")
+    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription["Endpoint"].should.equal("http://example.com/")
+
+    # Now delete the topic
+    conn.delete_topic(TopicArn=topic_arn)
+
+    # And there should now be 0 topics
+    topics_json = conn.list_topics()
+    topics = topics_json["Topics"]
+    topics.should.have.length_of(0)
+
+    # And there should be zero subscriptions left
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(0)
 
 @mock_sns
 def test_getting_subscriptions_by_topic():
@@ -52,7 +82,8 @@ def test_getting_subscriptions_by_topic():
                    Protocol="http",
                    Endpoint="http://example2.com/")
 
-    topic1_subscriptions = conn.list_subscriptions_by_topic(TopicArn=topic1_arn)["Subscriptions"]
+    topic1_subscriptions = conn.list_subscriptions_by_topic(TopicArn=topic1_arn)[
+        "Subscriptions"]
     topic1_subscriptions.should.have.length_of(1)
     topic1_subscriptions[0]['Endpoint'].should.equal("http://example1.com/")
 
@@ -77,14 +108,19 @@ def test_subscription_paging():
     next_token.should.equal(str(DEFAULT_PAGE_SIZE))
 
     all_subscriptions = conn.list_subscriptions(NextToken=next_token)
-    all_subscriptions["Subscriptions"].should.have.length_of(int(DEFAULT_PAGE_SIZE / 3))
+    all_subscriptions["Subscriptions"].should.have.length_of(
+        int(DEFAULT_PAGE_SIZE / 3))
     all_subscriptions.shouldnt.have("NextToken")
 
-    topic1_subscriptions = conn.list_subscriptions_by_topic(TopicArn=topic1_arn)
-    topic1_subscriptions["Subscriptions"].should.have.length_of(DEFAULT_PAGE_SIZE)
+    topic1_subscriptions = conn.list_subscriptions_by_topic(
+        TopicArn=topic1_arn)
+    topic1_subscriptions["Subscriptions"].should.have.length_of(
+        DEFAULT_PAGE_SIZE)
     next_token = topic1_subscriptions["NextToken"]
     next_token.should.equal(str(DEFAULT_PAGE_SIZE))
 
-    topic1_subscriptions = conn.list_subscriptions_by_topic(TopicArn=topic1_arn, NextToken=next_token)
-    topic1_subscriptions["Subscriptions"].should.have.length_of(int(DEFAULT_PAGE_SIZE / 3))
+    topic1_subscriptions = conn.list_subscriptions_by_topic(
+        TopicArn=topic1_arn, NextToken=next_token)
+    topic1_subscriptions["Subscriptions"].should.have.length_of(
+        int(DEFAULT_PAGE_SIZE / 3))
     topic1_subscriptions.shouldnt.have("NextToken")

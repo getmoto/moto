@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
+
+from collections import defaultdict
 import datetime
 import json
 import logging
 import re
 
 import pytz
-from boto.exception import JSONResponseError
+from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
 
@@ -59,6 +61,7 @@ class DynamicDictLoader(DictLoader):
         Including the fixed (current) method version here to ensure performance benefit
         even for those using older jinja versions.
     """
+
     def get_source(self, environment, template):
         if template in self.mapping:
             source = self.mapping[template]
@@ -77,7 +80,8 @@ class _TemplateEnvironmentMixin(object):
     def __init__(self):
         super(_TemplateEnvironmentMixin, self).__init__()
         self.loader = DynamicDictLoader({})
-        self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape)
+        self.environment = Environment(
+            loader=self.loader, autoescape=self.should_autoescape)
 
     @property
     def should_autoescape(self):
@@ -123,23 +127,26 @@ class BaseResponse(_TemplateEnvironmentMixin):
             for key, value in request.form.items():
                 querystring[key] = [value, ]
 
+        raw_body = self.body
+        if isinstance(self.body, six.binary_type):
+            self.body = self.body.decode('utf-8')
+
         if not querystring:
-            querystring.update(parse_qs(urlparse(full_url).query, keep_blank_values=True))
+            querystring.update(
+                parse_qs(urlparse(full_url).query, keep_blank_values=True))
         if not querystring:
             if 'json' in request.headers.get('content-type', []) and self.aws_service_spec:
-                if isinstance(self.body, six.binary_type):
-                    decoded = json.loads(self.body.decode('utf-8'))
-                else:
-                    decoded = json.loads(self.body)
+                decoded = json.loads(self.body)
 
-                target = request.headers.get('x-amz-target') or request.headers.get('X-Amz-Target')
+                target = request.headers.get(
+                    'x-amz-target') or request.headers.get('X-Amz-Target')
                 service, method = target.split('.')
                 input_spec = self.aws_service_spec.input_spec(method)
                 flat = flatten_json_request_body('', decoded, input_spec)
                 for key, value in flat.items():
                     querystring[key] = [value]
-            else:
-                querystring.update(parse_qs(self.body, keep_blank_values=True))
+            elif self.body:
+                querystring.update(parse_qs(raw_body, keep_blank_values=True))
         if not querystring:
             querystring.update(headers)
 
@@ -149,15 +156,20 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.path = urlparse(full_url).path
         self.querystring = querystring
         self.method = request.method
-        self.region = self.get_region_from_url(full_url)
+        self.region = self.get_region_from_url(request, full_url)
 
         self.headers = request.headers
-        self.response_headers = headers
+        if 'host' not in self.headers:
+            self.headers['host'] = urlparse(full_url).netloc
+        self.response_headers = {"server": "amazon.com"}
 
-    def get_region_from_url(self, full_url):
+    def get_region_from_url(self, request, full_url):
         match = re.search(self.region_regex, full_url)
         if match:
             region = match.group(1)
+        elif 'Authorization' in request.headers:
+            region = request.headers['Authorization'].split(",")[
+                0].split("/")[2]
         else:
             region = self.default_region
         return region
@@ -171,7 +183,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
         action = self.querystring.get('Action', [""])[0]
         if not action:  # Some services use a header for the action
             # Headers are case-insensitive. Probably a better way to do this.
-            match = self.headers.get('x-amz-target') or self.headers.get('X-Amz-Target')
+            match = self.headers.get(
+                'x-amz-target') or self.headers.get('X-Amz-Target')
             if match:
                 action = match.split(".")[-1]
 
@@ -189,8 +202,13 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 body, new_headers = response
                 status = new_headers.get('status', 200)
                 headers.update(new_headers)
+                # Cast status to string
+                if "status" in headers:
+                    headers['status'] = str(headers['status'])
                 return status, headers, body
-        raise NotImplementedError("The {0} action has not been implemented".format(action))
+
+        raise NotImplementedError(
+            "The {0} action has not been implemented".format(action))
 
     def _get_param(self, param_name, if_none=None):
         val = self.querystring.get(param_name)
@@ -250,7 +268,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
         params = {}
         for key, value in self.querystring.items():
             if key.startswith(param_prefix):
-                params[camelcase_to_underscores(key.replace(param_prefix, ""))] = value[0]
+                params[camelcase_to_underscores(
+                    key.replace(param_prefix, ""))] = value[0]
         return params
 
     def _get_list_prefix(self, param_prefix):
@@ -283,7 +302,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
             new_items = {}
             for key, value in self.querystring.items():
                 if key.startswith(index_prefix):
-                    new_items[camelcase_to_underscores(key.replace(index_prefix, ""))] = value[0]
+                    new_items[camelcase_to_underscores(
+                        key.replace(index_prefix, ""))] = value[0]
             if not new_items:
                 break
             results.append(new_items)
@@ -312,56 +332,78 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         return results
 
+    def _parse_tag_specification(self, param_prefix):
+        tags = self._get_list_prefix(param_prefix)
+
+        results = defaultdict(dict)
+        for tag in tags:
+            resource_type = tag.pop("resource_type")
+
+            param_index = 1
+            while True:
+                key_name = 'tag.{0}._key'.format(param_index)
+                value_name = 'tag.{0}._value'.format(param_index)
+
+                try:
+                    results[resource_type][tag[key_name]] = tag[value_name]
+                except KeyError:
+                    break
+                param_index += 1
+
+        return results
+
     @property
     def request_json(self):
         return 'JSON' in self.querystring.get('ContentType', [])
 
     def is_not_dryrun(self, action):
         if 'true' in self.querystring.get('DryRun', ['false']):
-            raise JSONResponseError(400, 'DryRunOperation', body={'message': 'An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set' % action})
+            message = 'An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set' % action
+            raise DryRunClientError(
+                error_type="DryRunOperation", message=message)
         return True
 
-def metadata_response(request, full_url, headers):
-    """
-    Mock response for localhost metadata
 
-    http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AESDG-chapter-instancedata.html
-    """
-    parsed_url = urlparse(full_url)
-    tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
-    credentials = dict(
-        AccessKeyId="test-key",
-        SecretAccessKey="test-secret-key",
-        Token="test-session-token",
-        Expiration=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ")
-    )
+class MotoAPIResponse(BaseResponse):
 
-    path = parsed_url.path
+    def reset_response(self, request, full_url, headers):
+        if request.method == "POST":
+            from .models import moto_api_backend
+            moto_api_backend.reset()
+            return 200, {}, json.dumps({"status": "ok"})
+        return 400, {}, json.dumps({"Error": "Need to POST to reset Moto"})
 
-    meta_data_prefix = "/latest/meta-data/"
-    # Strip prefix if it is there
-    if path.startswith(meta_data_prefix):
-        path = path[len(meta_data_prefix):]
+    def model_data(self, request, full_url, headers):
+        from moto.core.models import model_data
 
-    if path == '':
-        result = 'iam'
-    elif path == 'iam':
-        result = json.dumps({
-            'security-credentials': {
-                'default-role': credentials
-            }
-        })
-    elif path == 'iam/security-credentials/':
-        result = 'default-role'
-    elif path == 'iam/security-credentials/default-role':
-        result = json.dumps(credentials)
-    else:
-        raise NotImplementedError("The {0} metadata path has not been implemented".format(path))
-    return 200, headers, result
+        results = {}
+        for service in sorted(model_data):
+            models = model_data[service]
+            results[service] = {}
+            for name in sorted(models):
+                model = models[name]
+                results[service][name] = []
+                for instance in model.instances:
+                    inst_result = {}
+                    for attr in dir(instance):
+                        if not attr.startswith("_"):
+                            try:
+                                json.dumps(getattr(instance, attr))
+                            except TypeError:
+                                pass
+                            else:
+                                inst_result[attr] = getattr(instance, attr)
+                    results[service][name].append(inst_result)
+        return 200, {"Content-Type": "application/javascript"}, json.dumps(results)
+
+    def dashboard(self, request, full_url, headers):
+        from flask import render_template
+        return render_template('dashboard.html')
 
 
 class _RecursiveDictRef(object):
     """Store a recursive reference to dict."""
+
     def __init__(self):
         self.key = None
         self.dic = {}
@@ -371,6 +413,9 @@ class _RecursiveDictRef(object):
 
     def __getattr__(self, key):
         return self.dic.__getattr__(key)
+
+    def __getitem__(self, key):
+        return self.dic.__getitem__(key)
 
     def set_reference(self, key, dic):
         """Set the RecursiveDictRef object to keep reference to dict object
@@ -521,12 +566,15 @@ def flatten_json_request_body(prefix, dict_body, spec):
         if node_type == 'list':
             for idx, v in enumerate(value, 1):
                 pref = key + '.member.' + str(idx)
-                flat.update(flatten_json_request_body(pref, v, spec[key]['member']))
+                flat.update(flatten_json_request_body(
+                    pref, v, spec[key]['member']))
         elif node_type == 'map':
             for idx, (k, v) in enumerate(value.items(), 1):
                 pref = key + '.entry.' + str(idx)
-                flat.update(flatten_json_request_body(pref + '.key', k, spec[key]['key']))
-                flat.update(flatten_json_request_body(pref + '.value', v, spec[key]['value']))
+                flat.update(flatten_json_request_body(
+                    pref + '.key', k, spec[key]['key']))
+                flat.update(flatten_json_request_body(
+                    pref + '.value', v, spec[key]['value']))
         else:
             flat.update(flatten_json_request_body(key, value, spec[key]))
 
@@ -561,7 +609,8 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
                 # this can happen when with an older version of
                 # botocore for which the node in XML template is not
                 # defined in service spec.
-                log.warning('Field %s is not defined by the botocore version in use', k)
+                log.warning(
+                    'Field %s is not defined by the botocore version in use', k)
                 continue
 
             if spec[k]['type'] == 'list':
@@ -573,7 +622,8 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
                     else:
                         od[k] = [transform(v['member'], spec[k]['member'])]
                 elif isinstance(v['member'], list):
-                    od[k] = [transform(o, spec[k]['member']) for o in v['member']]
+                    od[k] = [transform(o, spec[k]['member'])
+                             for o in v['member']]
                 elif isinstance(v['member'], OrderedDict):
                     od[k] = [transform(v['member'], spec[k]['member'])]
                 else:

@@ -1,17 +1,19 @@
-# Moto - Mock Boto
+# Moto - Mock AWS Services
+
+[![Join the chat at https://gitter.im/awsmoto/Lobby](https://badges.gitter.im/awsmoto/Lobby.svg)](https://gitter.im/awsmoto/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![Build Status](https://travis-ci.org/spulec/moto.png?branch=master)](https://travis-ci.org/spulec/moto)
 [![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.png?branch=master)](https://coveralls.io/r/spulec/moto)
+[![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
 
 # In a nutshell
 
-Moto is a library that allows your python tests to easily mock out the boto library.
+Moto is a library that allows your tests to easily mock out AWS Services.
 
-Imagine you have the following code that you want to test:
+Imagine you have the following python code that you want to test:
 
 ```python
-import boto
-from boto.s3.key import Key
+import boto3
 
 class MyModel(object):
     def __init__(self, name, value):
@@ -19,11 +21,9 @@ class MyModel(object):
         self.value = value
 
     def save(self):
-        conn = boto.connect_s3()
-        bucket = conn.get_bucket('mybucket')
-        k = Key(bucket)
-        k.key = self.name
-        k.set_contents_from_string(self.value)
+        s3 = boto3.client('s3', region_name='us-east-1')
+        s3.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
+
 ```
 
 Take a minute to think how you would have tested that in the past.
@@ -31,25 +31,28 @@ Take a minute to think how you would have tested that in the past.
 Now see how you could test it with Moto:
 
 ```python
-import boto
+import boto3
 from moto import mock_s3
 from mymodule import MyModel
 
+
 @mock_s3
 def test_my_model_save():
-    conn = boto.connect_s3()
+    conn = boto3.resource('s3', region_name='us-east-1')
     # We need to create the bucket since this is all in Moto's 'virtual' AWS account
-    conn.create_bucket('mybucket')
+    conn.create_bucket(Bucket='mybucket')
 
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+    body = conn.Object('mybucket', 'steve').get()['Body'].read().decode("utf-8")
+
+    assert body == b'is awesome'
 ```
 
 With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps the state of the buckets and keys.
 
-It gets even better! Moto isn't just S3. Here's the status of the other AWS services implemented.
+It gets even better! Moto isn't just for Python code and it isn't just for S3. Look at the [standalone server mode](https://github.com/spulec/moto#stand-alone-server-mode) for more information about running Moto with other languages. Here's the status of the other AWS services implemented:
 
 ```gherkin
 |------------------------------------------------------------------------------|
@@ -107,9 +110,11 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 |------------------------------------------------------------------------------|
 | SQS                   | @mock_sqs        | core endpoints done               |
 |------------------------------------------------------------------------------|
+| SSM                   | @mock_ssm        | core endpoints done               |
+|------------------------------------------------------------------------------|
 | STS                   | @mock_sts        | core endpoints done               |
 |------------------------------------------------------------------------------|
-| SWF                   | @mock_sfw        | basic endpoints done              |
+| SWF                   | @mock_swf        | basic endpoints done              |
 |------------------------------------------------------------------------------|
 ```
 
@@ -118,28 +123,51 @@ It gets even better! Moto isn't just S3. Here's the status of the other AWS serv
 Imagine you have a function that you use to launch new ec2 instances:
 
 ```python
-import boto
+import boto3
+
 
 def add_servers(ami_id, count):
-    conn = boto.connect_ec2('the_key', 'the_secret')
-    for index in range(count):
-        conn.run_instances(ami_id)
+    client = boto3.client('ec2', region_name='us-west-1')
+    client.run_instances(ImageId=ami_id, MinCount=count, MaxCount=count)
 ```
 
 To test it:
 
 ```python
 from . import add_servers
+from moto import mock_ec2
 
 @mock_ec2
 def test_add_servers():
     add_servers('ami-1234abcd', 2)
 
-    conn = boto.connect_ec2('the_key', 'the_secret')
-    reservations = conn.get_all_instances()
-    assert len(reservations) == 2
-    instance1 = reservations[0].instances[0]
-    assert instance1.image_id == 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-west-1')
+    instances = client.describe_instances()['Reservations'][0]['Instances']
+    assert len(instances) == 2
+    instance1 = instances[0]
+    assert instance1['ImageId'] == 'ami-1234abcd'
+```
+
+#### Using moto 1.0.X with boto2
+moto 1.0.X mock docorators are defined for boto3 and do not work with boto2. Use the @mock_AWSSVC_deprecated to work with boto2.
+
+Using moto with boto2
+```python
+from moto import mock_ec2_deprecated 
+import boto
+ 
+@mock_ec2_deprecated
+def test_something_with_ec2():
+    ec2_conn = boto.ec2.connect_to_region('us-east-1')
+    ec2_conn.get_only_instances(instance_ids='i-123456')
+
+```
+
+When using both boto2 and boto3, one can do this to avoid confusion:
+```python
+from moto import mock_ec2_deprecated as mock_ec2_b2
+from moto import mock_ec2
+
 ```
 
 ## Usage
@@ -151,13 +179,14 @@ All of the services can be used as a decorator, context manager, or in a raw for
 ```python
 @mock_s3
 def test_my_model_save():
-    conn = boto.connect_s3()
-    conn.create_bucket('mybucket')
-
+    # Create Bucket so that test can run
+    conn = boto3.resource('s3', region_name='us-east-1')
+    conn.create_bucket(Bucket='mybucket')
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
+    body = conn.Object('mybucket', 'steve').get()['Body'].read().decode()
 
-    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+    assert body == 'is awesome'
 ```
 
 ### Context Manager
@@ -165,13 +194,13 @@ def test_my_model_save():
 ```python
 def test_my_model_save():
     with mock_s3():
-        conn = boto.connect_s3()
-        conn.create_bucket('mybucket')
-
+        conn = boto3.resource('s3', region_name='us-east-1')
+        conn.create_bucket(Bucket='mybucket')
         model_instance = MyModel('steve', 'is awesome')
         model_instance.save()
+        body = conn.Object('mybucket', 'steve').get()['Body'].read().decode()
 
-        assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+        assert body == 'is awesome'
 ```
 
 
@@ -182,21 +211,16 @@ def test_my_model_save():
     mock = mock_s3()
     mock.start()
 
-    conn = boto.connect_s3()
-    conn.create_bucket('mybucket')
+    conn = boto3.resource('s3', region_name='us-east-1')
+    conn.create_bucket(Bucket='mybucket')
 
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+    assert conn.Object('mybucket', 'steve').get()['Body'].read().decode() == 'is awesome'
 
     mock.stop()
 ```
-
-## Use with other libraries (boto3) or languages
-
-In general, Moto doesn't rely on anything specific to Boto. It only mocks AWS endpoints, so there should be no issue with boto3 or using other languages. Feel free to open an issue if something isn't working though. If you are using another language, you will need to either use the stand-alone server mode (more below) or monkey patch the HTTP calls yourself.
-
 
 ## Stand-alone Server Mode
 
@@ -263,7 +287,3 @@ boto3.resource(
 ```console
 $ pip install moto
 ```
-
-## Thanks
-
-A huge thanks to [Gabriel Falcão](https://github.com/gabrielfalcao) and his [HTTPretty](https://github.com/gabrielfalcao/HTTPretty) library. Moto would not exist without it.

@@ -12,15 +12,15 @@ from ..exceptions import (
     SWFTypeDeprecatedFault,
     SWFValidationException,
 )
-from .activity_task import ActivityTask
-from .activity_type import ActivityType
-from .decision_task import DecisionTask
-from .domain import Domain
-from .generic_type import GenericType
-from .history_event import HistoryEvent
-from .timeout import Timeout
-from .workflow_type import WorkflowType
-from .workflow_execution import WorkflowExecution
+from .activity_task import ActivityTask  # flake8: noqa
+from .activity_type import ActivityType  # flake8: noqa
+from .decision_task import DecisionTask  # flake8: noqa
+from .domain import Domain  # flake8: noqa
+from .generic_type import GenericType  # flake8: noqa
+from .history_event import HistoryEvent  # flake8: noqa
+from .timeout import Timeout  # flake8: noqa
+from .workflow_type import WorkflowType  # flake8: noqa
+from .workflow_execution import WorkflowExecution  # flake8: noqa
 
 
 KNOWN_SWF_TYPES = {
@@ -30,6 +30,7 @@ KNOWN_SWF_TYPES = {
 
 
 class SWFBackend(BaseBackend):
+
     def __init__(self, region_name):
         self.region_name = region_name
         self.domains = []
@@ -246,7 +247,8 @@ class SWFBackend(BaseBackend):
         if decision_task.state != "STARTED":
             if decision_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
-                    "decision task, scheduledEventId = {0}".format(decision_task.scheduled_event_id)
+                    "decision task, scheduledEventId = {0}".format(
+                        decision_task.scheduled_event_id)
                 )
             else:
                 raise ValueError(
@@ -300,7 +302,8 @@ class SWFBackend(BaseBackend):
         count = 0
         for _task_list, tasks in domain.activity_task_lists.items():
             if _task_list == task_list:
-                pending = [t for t in tasks if t.state in ["SCHEDULED", "STARTED"]]
+                pending = [t for t in tasks if t.state in [
+                    "SCHEDULED", "STARTED"]]
                 count += len(pending)
         return count
 
@@ -330,7 +333,8 @@ class SWFBackend(BaseBackend):
         if activity_task.state != "STARTED":
             if activity_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
-                    "activity, scheduledEventId = {0}".format(activity_task.scheduled_event_id)
+                    "activity, scheduledEventId = {0}".format(
+                        activity_task.scheduled_event_id)
                 )
             else:
                 raise ValueError(
@@ -354,15 +358,18 @@ class SWFBackend(BaseBackend):
         self._process_timeouts()
         activity_task = self._find_activity_task_from_token(task_token)
         wfe = activity_task.workflow_execution
-        wfe.fail_activity_task(activity_task.task_token, reason=reason, details=details)
+        wfe.fail_activity_task(activity_task.task_token,
+                               reason=reason, details=details)
 
     def terminate_workflow_execution(self, domain_name, workflow_id, child_policy=None,
                                      details=None, reason=None, run_id=None):
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
-        wfe = domain.get_workflow_execution(workflow_id, run_id=run_id, raise_if_closed=True)
-        wfe.terminate(child_policy=child_policy, details=details, reason=reason)
+        wfe = domain.get_workflow_execution(
+            workflow_id, run_id=run_id, raise_if_closed=True)
+        wfe.terminate(child_policy=child_policy,
+                      details=details, reason=reason)
 
     def record_activity_task_heartbeat(self, task_token, details=None):
         # process timeouts on all objects

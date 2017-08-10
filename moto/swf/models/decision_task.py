@@ -2,13 +2,15 @@ from __future__ import unicode_literals
 from datetime import datetime
 import uuid
 
+from moto.core import BaseModel
 from moto.core.utils import unix_time
 from ..exceptions import SWFWorkflowExecutionClosedError
 
 from .timeout import Timeout
 
 
-class DecisionTask(object):
+class DecisionTask(BaseModel):
+
     def __init__(self, workflow_execution, scheduled_event_id):
         self.workflow_execution = workflow_execution
         self.workflow_type = workflow_execution.workflow_type
@@ -60,7 +62,8 @@ class DecisionTask(object):
         if not self.started or not self.workflow_execution.open:
             return None
         # TODO: handle the "NONE" case
-        start_to_close_at = self.started_timestamp + int(self.start_to_close_timeout)
+        start_to_close_at = self.started_timestamp + \
+            int(self.start_to_close_timeout)
         _timeout = Timeout(self, start_to_close_at, "START_TO_CLOSE")
         if _timeout.reached:
             return _timeout

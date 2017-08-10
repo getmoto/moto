@@ -7,7 +7,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 import sure  # noqa
 from freezegun import freeze_time
-from moto import mock_dynamodb2
+from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
 try:
@@ -61,7 +61,7 @@ def iterate_results(res):
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")
 def test_create_table():
     table = create_table()
@@ -77,20 +77,21 @@ def test_create_table():
             'TableSizeBytes': 0,
             'TableName': 'messages',
             'TableStatus': 'ACTIVE',
+            'TableArn': 'arn:aws:dynamodb:us-east-1:123456789011:table/messages',
             'KeySchema': [
                 {'KeyType': 'HASH', 'AttributeName': 'forum_name'},
                 {'KeyType': 'RANGE', 'AttributeName': 'subject'}
             ],
             'LocalSecondaryIndexes': [],
             'ItemCount': 0, 'CreationDateTime': 1326499200.0,
-            'GlobalSecondaryIndexes': [],
+            'GlobalSecondaryIndexes': []
         }
     }
     table.describe().should.equal(expected)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")
 def test_create_table_with_local_index():
     table = create_table_with_local_indexes()
@@ -109,6 +110,7 @@ def test_create_table_with_local_index():
             'TableSizeBytes': 0,
             'TableName': 'messages',
             'TableStatus': 'ACTIVE',
+            'TableArn': 'arn:aws:dynamodb:us-east-1:123456789011:table/messages',
             'KeySchema': [
                 {'KeyType': 'HASH', 'AttributeName': 'forum_name'},
                 {'KeyType': 'RANGE', 'AttributeName': 'subject'}
@@ -125,14 +127,14 @@ def test_create_table_with_local_index():
             ],
             'ItemCount': 0,
             'CreationDateTime': 1326499200.0,
-            'GlobalSecondaryIndexes': [],
+            'GlobalSecondaryIndexes': []
         }
     }
     table.describe().should.equal(expected)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_delete_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
     table = create_table()
@@ -140,11 +142,12 @@ def test_delete_table():
 
     table.delete()
     conn.list_tables()["TableNames"].should.have.length_of(0)
-    conn.delete_table.when.called_with('messages').should.throw(JSONResponseError)
+    conn.delete_table.when.called_with(
+        'messages').should.throw(JSONResponseError)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_update_table_throughput():
     table = create_table()
     table.throughput["read"].should.equal(10)
@@ -169,7 +172,7 @@ def test_update_table_throughput():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_item_add_and_describe_and_update():
     table = create_table()
     ok = table.put_item(data={
@@ -181,7 +184,8 @@ def test_item_add_and_describe_and_update():
     })
     ok.should.equal(True)
 
-    table.get_item(forum_name="LOLCat Forum", subject='Check this out!').should_not.be.none
+    table.get_item(forum_name="LOLCat Forum",
+                   subject='Check this out!').should_not.be.none
 
     returned_item = table.get_item(
         forum_name='LOLCat Forum',
@@ -212,7 +216,7 @@ def test_item_add_and_describe_and_update():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_item_partial_save():
     table = create_table()
 
@@ -224,7 +228,8 @@ def test_item_partial_save():
     }
 
     table.put_item(data=data)
-    returned_item = table.get_item(forum_name="LOLCat Forum", subject='The LOLz')
+    returned_item = table.get_item(
+        forum_name="LOLCat Forum", subject='The LOLz')
 
     returned_item['SentBy'] = 'User B'
     returned_item.partial_save()
@@ -242,7 +247,7 @@ def test_item_partial_save():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_item_put_without_table():
     table = Table('undeclared-table')
     item_data = {
@@ -256,7 +261,7 @@ def test_item_put_without_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_missing_item():
     table = create_table()
 
@@ -267,14 +272,15 @@ def test_get_missing_item():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_item_with_undeclared_table():
     table = Table('undeclared-table')
-    table.get_item.when.called_with(test_hash=3241526475).should.throw(JSONResponseError)
+    table.get_item.when.called_with(
+        test_hash=3241526475).should.throw(JSONResponseError)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_item_without_range_key():
     table = Table.create('messages', schema=[
         HashKey('test_hash'),
@@ -287,11 +293,12 @@ def test_get_item_without_range_key():
     hash_key = 3241526475
     range_key = 1234567890987
     table.put_item(data={'test_hash': hash_key, 'test_range': range_key})
-    table.get_item.when.called_with(test_hash=hash_key).should.throw(ValidationException)
+    table.get_item.when.called_with(
+        test_hash=hash_key).should.throw(ValidationException)
 
 
 @requires_boto_gte("2.30.0")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_delete_item():
     table = create_table()
     item_data = {
@@ -309,11 +316,12 @@ def test_delete_item():
     response.should.equal(True)
 
     table.count().should.equal(0)
-    item.delete().should.equal(False)
+    # Deletes are idempotent
+    item.delete().should.equal(True)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_delete_item_with_undeclared_table():
     table = Table("undeclared-table")
     item_data = {
@@ -327,7 +335,7 @@ def test_delete_item_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query():
     table = create_table()
 
@@ -355,19 +363,23 @@ def test_query():
 
     table.count().should.equal(4)
 
-    results = table.query_2(forum_name__eq='the-key', subject__gt='1', consistent=True)
+    results = table.query_2(forum_name__eq='the-key',
+                            subject__gt='1', consistent=True)
     expected = ["123", "456", "789"]
     for index, item in enumerate(results):
         item["subject"].should.equal(expected[index])
 
-    results = table.query_2(forum_name__eq="the-key", subject__gt='1', reverse=True)
+    results = table.query_2(forum_name__eq="the-key",
+                            subject__gt='1', reverse=True)
     for index, item in enumerate(results):
         item["subject"].should.equal(expected[len(expected) - 1 - index])
 
-    results = table.query_2(forum_name__eq='the-key', subject__gt='1', consistent=True)
+    results = table.query_2(forum_name__eq='the-key',
+                            subject__gt='1', consistent=True)
     sum(1 for _ in results).should.equal(3)
 
-    results = table.query_2(forum_name__eq='the-key', subject__gt='234', consistent=True)
+    results = table.query_2(forum_name__eq='the-key',
+                            subject__gt='234', consistent=True)
     sum(1 for _ in results).should.equal(2)
 
     results = table.query_2(forum_name__eq='the-key', subject__gt='9999')
@@ -379,12 +391,13 @@ def test_query():
     results = table.query_2(forum_name__eq='the-key', subject__beginswith='7')
     sum(1 for _ in results).should.equal(1)
 
-    results = table.query_2(forum_name__eq='the-key', subject__between=['567', '890'])
+    results = table.query_2(forum_name__eq='the-key',
+                            subject__between=['567', '890'])
     sum(1 for _ in results).should.equal(1)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_with_undeclared_table():
     table = Table('undeclared')
     results = table.query(
@@ -396,7 +409,7 @@ def test_query_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_scan():
     table = create_table()
     item_data = {
@@ -451,7 +464,7 @@ def test_scan():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_scan_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
     conn.scan.when.called_with(
@@ -468,7 +481,7 @@ def test_scan_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_write_batch():
     table = create_table()
     with table.batch_write() as batch:
@@ -498,7 +511,7 @@ def test_write_batch():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_batch_read():
     table = create_table()
     item_data = {
@@ -542,14 +555,14 @@ def test_batch_read():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_key_fields():
     table = create_table()
     kf = table.get_key_fields()
     kf.should.equal(['forum_name', 'subject'])
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_create_with_global_indexes():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -558,15 +571,15 @@ def test_create_with_global_indexes():
         RangeKey('version'),
     ], global_indexes=[
         GlobalAllIndex('topic-created_at-index',
-            parts=[
-                HashKey('topic'),
-                RangeKey('created_at', data_type='N')
-            ],
-            throughput={
-                'read': 6,
-                'write': 1
-            }
-        ),
+                       parts=[
+                           HashKey('topic'),
+                           RangeKey('created_at', data_type='N')
+                       ],
+                       throughput={
+                           'read': 6,
+                           'write': 1
+                       }
+                       ),
     ])
 
     table_description = conn.describe_table("messages")
@@ -594,32 +607,32 @@ def test_create_with_global_indexes():
     ])
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_with_global_indexes():
     table = Table.create('messages', schema=[
         HashKey('subject'),
         RangeKey('version'),
     ], global_indexes=[
         GlobalAllIndex('topic-created_at-index',
-            parts=[
-                HashKey('topic'),
-                RangeKey('created_at', data_type='N')
-            ],
-            throughput={
-                'read': 6,
-                'write': 1
-            }
-        ),
+                       parts=[
+                           HashKey('topic'),
+                           RangeKey('created_at', data_type='N')
+                       ],
+                       throughput={
+                           'read': 6,
+                           'write': 1
+                       }
+                       ),
         GlobalAllIndex('status-created_at-index',
-            parts=[
-                HashKey('status'),
-                RangeKey('created_at', data_type='N')
-            ],
-            throughput={
-                'read': 2,
-                'write': 1
-            }
-        )
+                       parts=[
+                           HashKey('status'),
+                           RangeKey('created_at', data_type='N')
+                       ],
+                       throughput={
+                           'read': 2,
+                           'write': 1
+                       }
+                       )
     ])
 
     item_data = {
@@ -638,7 +651,7 @@ def test_query_with_global_indexes():
     list(results).should.have.length_of(0)
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_with_local_indexes():
     table = create_table_with_local_indexes()
     item_data = {
@@ -653,12 +666,13 @@ def test_query_with_local_indexes():
 
     item['version'] = '2'
     item.save(overwrite=True)
-    results = table.query(forum_name__eq='Cool Forum', index='threads_index', threads__eq=1)
+    results = table.query(forum_name__eq='Cool Forum',
+                          index='threads_index', threads__eq=1)
     list(results).should.have.length_of(1)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_filter_eq():
     table = create_table_with_local_indexes()
     item_data = [
@@ -691,7 +705,7 @@ def test_query_filter_eq():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_filter_lt():
     table = create_table_with_local_indexes()
     item_data = [
@@ -726,7 +740,7 @@ def test_query_filter_lt():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_filter_gt():
     table = create_table_with_local_indexes()
     item_data = [
@@ -760,7 +774,7 @@ def test_query_filter_gt():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_filter_lte():
     table = create_table_with_local_indexes()
     item_data = [
@@ -794,7 +808,7 @@ def test_query_filter_lte():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_filter_gte():
     table = create_table_with_local_indexes()
     item_data = [
@@ -827,7 +841,48 @@ def test_query_filter_gte():
     list(results).should.have.length_of(2)
 
 
-@mock_dynamodb2
+@requires_boto_gte("2.9")
+@mock_dynamodb2_deprecated
+def test_query_non_hash_range_key():
+    table = create_table_with_local_indexes()
+    item_data = [
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Check this out!',
+            'version': '1',
+            'threads': 1,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Read this now!',
+            'version': '3',
+            'threads': 5,
+        },
+        {
+            'forum_name': 'Cool Forum',
+            'subject': 'Please read this... please',
+            'version': '2',
+            'threads': 0,
+        }
+    ]
+    for data in item_data:
+        item = Item(table, data)
+        item.save(overwrite=True)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', version__gt="2"
+    )
+    results = list(results)
+    results.should.have.length_of(1)
+
+    results = table.query(
+        forum_name__eq='Cool Forum', version__lt="3"
+    )
+    results = list(results)
+    results.should.have.length_of(2)
+
+
+@mock_dynamodb2_deprecated
 def test_reverse_query():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -851,7 +906,7 @@ def test_reverse_query():
     [r['created_at'] for r in results].should.equal(expected)
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_lookup():
     from decimal import Decimal
     table = Table.create('messages', schema=[
@@ -871,7 +926,7 @@ def test_lookup():
     message.get('test_range').should.equal(Decimal(range_key))
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_failed_overwrite():
     table = Table.create('messages', schema=[
         HashKey('id'),
@@ -888,7 +943,8 @@ def test_failed_overwrite():
     table.put_item(data=data2, overwrite=True)
 
     data3 = {'id': '123', 'range': 'abc', 'data': '812'}
-    table.put_item.when.called_with(data=data3).should.throw(ConditionalCheckFailedException)
+    table.put_item.when.called_with(data=data3).should.throw(
+        ConditionalCheckFailedException)
 
     returned_item = table.lookup('123', 'abc')
     dict(returned_item).should.equal(data2)
@@ -900,7 +956,7 @@ def test_failed_overwrite():
     dict(returned_item).should.equal(data4)
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_conflicting_writes():
     table = Table.create('messages', schema=[
         HashKey('id'),
@@ -972,7 +1028,8 @@ def test_boto3_conditions():
 
     # Test a query returning all items
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('1'),
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").gt('1'),
         ScanIndexForward=True,
     )
     expected = ["123", "456", "789"]
@@ -981,7 +1038,8 @@ def test_boto3_conditions():
 
     # Return all items again, but in reverse
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('1'),
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").gt('1'),
         ScanIndexForward=False,
     )
     for index, item in enumerate(reversed(results['Items'])):
@@ -989,29 +1047,34 @@ def test_boto3_conditions():
 
     # Filter the subjects to only return some of the results
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('234'),
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").gt('234'),
         ConsistentRead=True,
     )
     results['Count'].should.equal(2)
 
     # Filter to return no results
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").gt('9999')
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").gt('9999')
     )
     results['Count'].should.equal(0)
 
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").begins_with('12')
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").begins_with('12')
     )
     results['Count'].should.equal(1)
 
     results = table.query(
-        KeyConditionExpression=Key("subject").begins_with('7') & Key('forum_name').eq('the-key')
+        KeyConditionExpression=Key("subject").begins_with(
+            '7') & Key('forum_name').eq('the-key')
     )
     results['Count'].should.equal(1)
 
     results = table.query(
-        KeyConditionExpression=Key('forum_name').eq('the-key') & Key("subject").between('567', '890')
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key') & Key("subject").between('567', '890')
     )
     results['Count'].should.equal(1)
 
@@ -1337,7 +1400,8 @@ def test_boto3_query_gsi_range_comparison():
 
     # Test a query returning all johndoe items
     results = table.query(
-        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt(0),
+        KeyConditionExpression=Key('username').eq(
+            'johndoe') & Key("created").gt(0),
         ScanIndexForward=True,
         IndexName='TestGSI',
     )
@@ -1347,7 +1411,8 @@ def test_boto3_query_gsi_range_comparison():
 
     # Return all johndoe items again, but in reverse
     results = table.query(
-        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt(0),
+        KeyConditionExpression=Key('username').eq(
+            'johndoe') & Key("created").gt(0),
         ScanIndexForward=False,
         IndexName='TestGSI',
     )
@@ -1357,7 +1422,8 @@ def test_boto3_query_gsi_range_comparison():
     # Filter the creation to only return some of the results
     # And reverse order of hash + range key
     results = table.query(
-        KeyConditionExpression=Key("created").gt(1) & Key('username').eq('johndoe'),
+        KeyConditionExpression=Key("created").gt(
+            1) & Key('username').eq('johndoe'),
         ConsistentRead=True,
         IndexName='TestGSI',
     )
@@ -1365,20 +1431,23 @@ def test_boto3_query_gsi_range_comparison():
 
     # Filter to return no results
     results = table.query(
-        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").gt(9),
+        KeyConditionExpression=Key('username').eq(
+            'janedoe') & Key("created").gt(9),
         IndexName='TestGSI',
     )
     results['Count'].should.equal(0)
 
     results = table.query(
-        KeyConditionExpression=Key('username').eq('janedoe') & Key("created").eq(5),
+        KeyConditionExpression=Key('username').eq(
+            'janedoe') & Key("created").eq(5),
         IndexName='TestGSI',
     )
     results['Count'].should.equal(1)
 
     # Test range key sorting
     results = table.query(
-        KeyConditionExpression=Key('username').eq('johndoe') & Key("created").gt(0),
+        KeyConditionExpression=Key('username').eq(
+            'johndoe') & Key("created").gt(0),
         IndexName='TestGSI',
     )
     expected = [Decimal('1'), Decimal('2'), Decimal('3')]
@@ -1514,7 +1583,6 @@ def test_boto3_update_table_gsi_throughput():
     gsi_throughput = table.global_secondary_indexes[0]['ProvisionedThroughput']
     gsi_throughput['ReadCapacityUnits'].should.equal(10)
     gsi_throughput['WriteCapacityUnits'].should.equal(11)
-
 
 
 @mock_dynamodb2

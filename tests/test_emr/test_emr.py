@@ -11,7 +11,7 @@ from boto.emr.step import StreamingStep
 import six
 import sure  # noqa
 
-from moto import mock_emr
+from moto import mock_emr_deprecated
 from tests.helpers import requires_boto_gte
 
 
@@ -35,7 +35,7 @@ input_instance_groups = [
 ]
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_describe_cluster():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -100,19 +100,20 @@ def test_describe_cluster():
     # cluster.status.timeline.enddatetime.should.be.a(six.string_types)
     # cluster.status.timeline.readydatetime.should.be.a(six.string_types)
 
-    dict((item.key, item.value) for item in cluster.tags).should.equal(input_tags)
+    dict((item.key, item.value)
+         for item in cluster.tags).should.equal(input_tags)
 
     cluster.terminationprotected.should.equal('false')
     cluster.visibletoallusers.should.equal('true')
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_describe_jobflows():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
     expected = {}
 
-    for idx in range(400):
+    for idx in range(4):
         cluster_name = 'cluster' + str(idx)
         args['name'] = cluster_name
         cluster_id = conn.run_jobflow(**args)
@@ -128,7 +129,7 @@ def test_describe_jobflows():
     timestamp = datetime.now(pytz.utc)
     time.sleep(1)
 
-    for idx in range(400, 600):
+    for idx in range(4, 6):
         cluster_name = 'cluster' + str(idx)
         args['name'] = cluster_name
         cluster_id = conn.run_jobflow(**args)
@@ -139,7 +140,7 @@ def test_describe_jobflows():
             'state': 'TERMINATED'
         }
     jobs = conn.describe_jobflows()
-    jobs.should.have.length_of(512)
+    jobs.should.have.length_of(6)
 
     for cluster_id, y in expected.items():
         resp = conn.describe_jobflows(jobflow_ids=[cluster_id])
@@ -147,18 +148,18 @@ def test_describe_jobflows():
         resp[0].jobflowid.should.equal(cluster_id)
 
     resp = conn.describe_jobflows(states=['WAITING'])
-    resp.should.have.length_of(400)
+    resp.should.have.length_of(4)
     for x in resp:
         x.state.should.equal('WAITING')
 
     resp = conn.describe_jobflows(created_before=timestamp)
-    resp.should.have.length_of(400)
+    resp.should.have.length_of(4)
 
     resp = conn.describe_jobflows(created_after=timestamp)
-    resp.should.have.length_of(200)
+    resp.should.have.length_of(2)
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_describe_jobflow():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -241,7 +242,7 @@ def test_describe_jobflow():
     jf.visibletoallusers.should.equal('true')
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_list_clusters():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -285,7 +286,8 @@ def test_list_clusters():
             y = expected[x.id]
             x.id.should.equal(y['id'])
             x.name.should.equal(y['name'])
-            x.normalizedinstancehours.should.equal(y['normalizedinstancehours'])
+            x.normalizedinstancehours.should.equal(
+                y['normalizedinstancehours'])
             x.status.state.should.equal(y['state'])
             x.status.timeline.creationdatetime.should.be.a(six.string_types)
             if y['state'] == 'TERMINATED':
@@ -309,7 +311,7 @@ def test_list_clusters():
     resp.clusters.should.have.length_of(30)
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -326,7 +328,7 @@ def test_run_jobflow():
     job_flow.steps.should.have.length_of(0)
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow_in_multiple_regions():
     regions = {}
     for region in ['us-east-1', 'eu-west-1']:
@@ -343,7 +345,7 @@ def test_run_jobflow_in_multiple_regions():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow_with_new_params():
     # Test that run_jobflow works with newer params
     conn = boto.connect_emr()
@@ -351,7 +353,7 @@ def test_run_jobflow_with_new_params():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow_with_visible_to_all_users():
     conn = boto.connect_emr()
     for expected in (True, False):
@@ -364,18 +366,20 @@ def test_run_jobflow_with_visible_to_all_users():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_run_jobflow_with_instance_groups():
     input_groups = dict((g.name, g) for g in input_instance_groups)
     conn = boto.connect_emr()
     job_id = conn.run_jobflow(instance_groups=input_instance_groups,
                               **run_jobflow_args)
     job_flow = conn.describe_jobflow(job_id)
-    int(job_flow.instancecount).should.equal(sum(g.num_instances for g in input_instance_groups))
+    int(job_flow.instancecount).should.equal(
+        sum(g.num_instances for g in input_instance_groups))
     for instance_group in job_flow.instancegroups:
         expected = input_groups[instance_group.name]
         instance_group.should.have.property('instancegroupid')
-        int(instance_group.instancerunningcount).should.equal(expected.num_instances)
+        int(instance_group.instancerunningcount).should.equal(
+            expected.num_instances)
         instance_group.instancerole.should.equal(expected.role)
         instance_group.instancetype.should.equal(expected.type)
         instance_group.market.should.equal(expected.market)
@@ -384,7 +388,7 @@ def test_run_jobflow_with_instance_groups():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_set_termination_protection():
     conn = boto.connect_emr()
     job_id = conn.run_jobflow(**run_jobflow_args)
@@ -401,7 +405,7 @@ def test_set_termination_protection():
 
 
 @requires_boto_gte("2.8")
-@mock_emr
+@mock_emr_deprecated
 def test_set_visible_to_all_users():
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
@@ -419,7 +423,7 @@ def test_set_visible_to_all_users():
     job_flow.visibletoallusers.should.equal('false')
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_terminate_jobflow():
     conn = boto.connect_emr()
     job_id = conn.run_jobflow(**run_jobflow_args)
@@ -433,7 +437,7 @@ def test_terminate_jobflow():
 
 # testing multiple end points for each feature
 
-@mock_emr
+@mock_emr_deprecated
 def test_bootstrap_actions():
     bootstrap_actions = [
         BootstrapAction(
@@ -466,7 +470,7 @@ def test_bootstrap_actions():
         list(arg.value for arg in x.args).should.equal(y.args())
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_instance_groups():
     input_groups = dict((g.name, g) for g in input_instance_groups)
 
@@ -483,7 +487,8 @@ def test_instance_groups():
     conn.add_instance_groups(job_id, input_instance_groups[2:])
 
     jf = conn.describe_jobflow(job_id)
-    int(jf.instancecount).should.equal(sum(g.num_instances for g in input_instance_groups))
+    int(jf.instancecount).should.equal(
+        sum(g.num_instances for g in input_instance_groups))
     for x in jf.instancegroups:
         y = input_groups[x.name]
         if hasattr(y, 'bidprice'):
@@ -536,7 +541,7 @@ def test_instance_groups():
     int(igs['task-2'].instancerunningcount).should.equal(3)
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_steps():
     input_steps = [
         StreamingStep(
@@ -572,7 +577,8 @@ def test_steps():
         list(arg.value for arg in step.args).should.have.length_of(8)
         step.creationdatetime.should.be.a(six.string_types)
         # step.enddatetime.should.be.a(six.string_types)
-        step.jar.should.equal('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+        step.jar.should.equal(
+            '/home/hadoop/contrib/streaming/hadoop-streaming.jar')
         step.laststatechangereason.should.be.a(six.string_types)
         step.mainclass.should.equal('')
         step.name.should.be.a(six.string_types)
@@ -592,7 +598,8 @@ def test_steps():
             '-input', y.input,
             '-output', y.output,
         ])
-        x.config.jar.should.equal('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+        x.config.jar.should.equal(
+            '/home/hadoop/contrib/streaming/hadoop-streaming.jar')
         x.config.mainclass.should.equal('')
         # properties
         x.should.have.property('id').should.be.a(six.string_types)
@@ -610,7 +617,8 @@ def test_steps():
             '-input', y.input,
             '-output', y.output,
         ])
-        x.config.jar.should.equal('/home/hadoop/contrib/streaming/hadoop-streaming.jar')
+        x.config.jar.should.equal(
+            '/home/hadoop/contrib/streaming/hadoop-streaming.jar')
         x.config.mainclass.should.equal('')
         # properties
         x.should.have.property('id').should.be.a(six.string_types)
@@ -633,7 +641,7 @@ def test_steps():
     test_list_steps_with_states()
 
 
-@mock_emr
+@mock_emr_deprecated
 def test_tags():
     input_tags = {"tag1": "val1", "tag2": "val2"}
 

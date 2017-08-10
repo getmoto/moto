@@ -1,0 +1,15 @@
+.. _other_langs:
+
+===============
+Other languages
+===============
+
+You don't need to use Python to use Moto; it can be used with any language. To use it with another language, run moto_server. Here are some examples in other languages:
+
+* `Java`_
+* `Ruby`_
+* `Javascript`_
+
+.. _Java: https://github.com/spulec/moto/blob/master/other_langs/sqsSample.java
+.. _Ruby: https://github.com/spulec/moto/blob/master/other_langs/test.rb
+.. _Javascript: https://github.com/spulec/moto/blob/master/other_langs/test.js

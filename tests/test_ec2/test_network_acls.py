@@ -2,10 +2,10 @@ from __future__ import unicode_literals
 import boto
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2_deprecated
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_default_network_acl_created_with_vpc():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -13,7 +13,7 @@ def test_default_network_acl_created_with_vpc():
     all_network_acls.should.have.length_of(2)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_network_acls():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -22,7 +22,7 @@ def test_network_acls():
     all_network_acls.should.have.length_of(3)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_new_subnet_associates_with_default_network_acl():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.get_all_vpcs()[0]
@@ -36,7 +36,7 @@ def test_new_subnet_associates_with_default_network_acl():
     [a.subnet_id for a in acl.associations].should.contain(subnet.id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_network_acl_entries():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -62,7 +62,62 @@ def test_network_acl_entries():
     entries[0].rule_action.should.equal('ALLOW')
 
 
-@mock_ec2
+@mock_ec2_deprecated
+def test_delete_network_acl_entry():
+    conn = boto.connect_vpc('the_key', 'the secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+
+    network_acl = conn.create_network_acl(vpc.id)
+
+    conn.create_network_acl_entry(
+        network_acl.id, 110, 6,
+        'ALLOW', '0.0.0.0/0', False,
+        port_range_from='443',
+        port_range_to='443'
+    )
+    conn.delete_network_acl_entry(
+        network_acl.id, 110, False
+    )
+
+    all_network_acls = conn.get_all_network_acls()
+
+    test_network_acl = next(na for na in all_network_acls
+                            if na.id == network_acl.id)
+    entries = test_network_acl.network_acl_entries
+    entries.should.have.length_of(0)
+
+
+@mock_ec2_deprecated
+def test_replace_network_acl_entry():
+    conn = boto.connect_vpc('the_key', 'the secret')
+    vpc = conn.create_vpc("10.0.0.0/16")
+
+    network_acl = conn.create_network_acl(vpc.id)
+
+    conn.create_network_acl_entry(
+        network_acl.id, 110, 6,
+        'ALLOW', '0.0.0.0/0', False,
+        port_range_from='443',
+        port_range_to='443'
+    )
+    conn.replace_network_acl_entry(
+        network_acl.id, 110, -1,
+        'DENY', '0.0.0.0/0', False,
+        port_range_from='22',
+        port_range_to='22'
+    )
+
+    all_network_acls = conn.get_all_network_acls()
+
+    test_network_acl = next(na for na in all_network_acls
+                            if na.id == network_acl.id)
+    entries = test_network_acl.network_acl_entries
+    entries.should.have.length_of(1)
+    entries[0].rule_number.should.equal('110')
+    entries[0].protocol.should.equal('-1')
+    entries[0].rule_action.should.equal('DENY')
+
+@mock_ec2_deprecated
 def test_associate_new_network_acl_with_subnet():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -81,7 +136,7 @@ def test_associate_new_network_acl_with_subnet():
     test_network_acl.associations[0].subnet_id.should.equal(subnet.id)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_delete_network_acl():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -101,7 +156,7 @@ def test_delete_network_acl():
     any(acl.id == network_acl.id for acl in updated_network_acls).shouldnt.be.ok
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_network_acl_tagging():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.create_vpc("10.0.0.0/16")
