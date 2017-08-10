@@ -19,7 +19,7 @@ class EventsHandler(BaseResponse):
         }
 
     def load_body(self):
-        decoded_body = self.body.decode('utf-8')
+        decoded_body = self.body
         return json.loads(decoded_body or '{}')
 
     def error(self, type_, message='', status=400):
@@ -29,10 +29,11 @@ class EventsHandler(BaseResponse):
 
     def delete_rule(self):
         body = self.load_body()
-        name = body.get('NamePrefix')
+        name = body.get('Name')
 
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
+        events_backend.delete_rule(name)
 
         return '', self.response_headers
 
@@ -87,7 +88,8 @@ class EventsHandler(BaseResponse):
         if not target_arn:
             return self.error('ValidationException', 'Parameter TargetArn is required.')
 
-        rule_names = events_backend.list_rule_names_by_target(target_arn, next_token, limit)
+        rule_names = events_backend.list_rule_names_by_target(
+            target_arn, next_token, limit)
 
         return json.dumps(rule_names), self.response_headers
 
@@ -118,7 +120,8 @@ class EventsHandler(BaseResponse):
             return self.error('ValidationException', 'Parameter Rule is required.')
 
         try:
-            targets = events_backend.list_targets_by_rule(rule_name, next_token, limit)
+            targets = events_backend.list_targets_by_rule(
+                rule_name, next_token, limit)
         except KeyError:
             return self.error('ResourceNotFoundException', 'Rule ' + rule_name + ' does not exist.')
 
@@ -140,7 +143,8 @@ class EventsHandler(BaseResponse):
             try:
                 json.loads(event_pattern)
             except ValueError:
-                # Not quite as informative as the real error, but it'll work for now.
+                # Not quite as informative as the real error, but it'll work
+                # for now.
                 return self.error('InvalidEventPatternException', 'Event pattern is not valid.')
 
         if sched_exp:

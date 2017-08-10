@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import base64
 import json
 import re
+import six
 
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -17,11 +18,12 @@ reserved_aliases = [
     'alias/aws/rds',
 ]
 
+
 class KmsResponse(BaseResponse):
 
     @property
     def parameters(self):
-        return json.loads(self.body.decode("utf-8"))
+        return json.loads(self.body)
 
     @property
     def kms_backend(self):
@@ -32,13 +34,15 @@ class KmsResponse(BaseResponse):
         key_usage = self.parameters.get('KeyUsage')
         description = self.parameters.get('Description')
 
-        key = self.kms_backend.create_key(policy, key_usage, description, self.region)
+        key = self.kms_backend.create_key(
+            policy, key_usage, description, self.region)
         return json.dumps(key.to_dict())
 
     def describe_key(self):
         key_id = self.parameters.get('KeyId')
         try:
-            key = self.kms_backend.describe_key(self.kms_backend.get_key_id(key_id))
+            key = self.kms_backend.describe_key(
+                self.kms_backend.get_key_id(key_id))
         except KeyError:
             headers = dict(self.headers)
             headers['status'] = 404
@@ -69,7 +73,8 @@ class KmsResponse(BaseResponse):
                                     body={'message': 'Invalid identifier', '__type': 'ValidationException'})
 
         if alias_name in reserved_aliases:
-            raise JSONResponseError(400, 'Bad Request', body={'__type': 'NotAuthorizedException'})
+            raise JSONResponseError(400, 'Bad Request', body={
+                                    '__type': 'NotAuthorizedException'})
 
         if ':' in alias_name:
             raise JSONResponseError(400, 'Bad Request', body={
@@ -80,7 +85,7 @@ class KmsResponse(BaseResponse):
             raise JSONResponseError(400, 'Bad Request', body={
                 'message': "1 validation error detected: Value '{alias_name}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$"
                                     .format(**locals()),
-                '__type': 'ValidationException'})
+                                    '__type': 'ValidationException'})
 
         if self.kms_backend.alias_exists(target_key_id):
             raise JSONResponseError(400, 'Bad Request', body={
@@ -119,7 +124,7 @@ class KmsResponse(BaseResponse):
         response_aliases = [
             {
                 'AliasArn': u'arn:aws:kms:{region}:012345678912:{reserved_alias}'.format(region=region,
-                                                                                      reserved_alias=reserved_alias),
+                                                                                         reserved_alias=reserved_alias),
                 'AliasName': reserved_alias
             } for reserved_alias in reserved_aliases
         ]
@@ -146,7 +151,7 @@ class KmsResponse(BaseResponse):
             self.kms_backend.enable_key_rotation(key_id)
         except KeyError:
             raise JSONResponseError(404, 'Not Found', body={
-                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
                 '__type': 'NotFoundException'})
 
         return json.dumps(None)
@@ -158,7 +163,7 @@ class KmsResponse(BaseResponse):
             self.kms_backend.disable_key_rotation(key_id)
         except KeyError:
             raise JSONResponseError(404, 'Not Found', body={
-                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
                 '__type': 'NotFoundException'})
         return json.dumps(None)
 
@@ -169,7 +174,7 @@ class KmsResponse(BaseResponse):
             rotation_enabled = self.kms_backend.get_key_rotation_status(key_id)
         except KeyError:
             raise JSONResponseError(404, 'Not Found', body={
-                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
                 '__type': 'NotFoundException'})
         return json.dumps({'KeyRotationEnabled': rotation_enabled})
 
@@ -184,7 +189,7 @@ class KmsResponse(BaseResponse):
             self.kms_backend.put_key_policy(key_id, policy)
         except KeyError:
             raise JSONResponseError(404, 'Not Found', body={
-                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
                 '__type': 'NotFoundException'})
 
         return json.dumps(None)
@@ -199,7 +204,7 @@ class KmsResponse(BaseResponse):
             return json.dumps({'Policy': self.kms_backend.get_key_policy(key_id)})
         except KeyError:
             raise JSONResponseError(404, 'Not Found', body={
-                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
                 '__type': 'NotFoundException'})
 
     def list_key_policies(self):
@@ -209,7 +214,7 @@ class KmsResponse(BaseResponse):
             self.kms_backend.describe_key(key_id)
         except KeyError:
             raise JSONResponseError(404, 'Not Found', body={
-                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region,key_id=key_id),
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
                 '__type': 'NotFoundException'})
 
         return json.dumps({'Truncated': False, 'PolicyNames': ['default']})
@@ -220,16 +225,20 @@ class KmsResponse(BaseResponse):
         decode it in decrypt().
         """
         value = self.parameters.get("Plaintext")
-        return json.dumps({"CiphertextBlob": base64.b64encode(value).encode("utf-8")})
+        if isinstance(value, six.text_type):
+            value = value.encode('utf-8')
+        return json.dumps({"CiphertextBlob": base64.b64encode(value).decode("utf-8")})
 
     def decrypt(self):
         value = self.parameters.get("CiphertextBlob")
-        return json.dumps({"Plaintext": base64.b64decode(value).encode("utf-8")})
+        return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8")})
 
 
 def _assert_valid_key_id(key_id):
     if not re.match(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$', key_id, re.IGNORECASE):
-        raise JSONResponseError(404, 'Not Found', body={'message': ' Invalid keyId', '__type': 'NotFoundException'})
+        raise JSONResponseError(404, 'Not Found', body={
+                                'message': ' Invalid keyId', '__type': 'NotFoundException'})
+
 
 def _assert_default_policy(policy_name):
     if policy_name != 'default':

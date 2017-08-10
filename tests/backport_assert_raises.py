@@ -19,6 +19,7 @@ try:
 except TypeError:
     # this version of assert_raises doesn't support the 1-arg version
     class AssertRaisesContext(object):
+
         def __init__(self, expected):
             self.expected = expected
 

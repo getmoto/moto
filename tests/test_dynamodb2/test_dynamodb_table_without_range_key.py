@@ -6,7 +6,7 @@ from boto3.dynamodb.conditions import Key
 import sure  # noqa
 from freezegun import freeze_time
 from boto.exception import JSONResponseError
-from moto import mock_dynamodb2
+from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from tests.helpers import requires_boto_gte
 import botocore
 try:
@@ -29,7 +29,7 @@ def create_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")
 def test_create_table():
     create_table()
@@ -44,6 +44,7 @@ def test_create_table():
             'TableSizeBytes': 0,
             'TableName': 'messages',
             'TableStatus': 'ACTIVE',
+            'TableArn': 'arn:aws:dynamodb:us-east-1:123456789011:table/messages',
             'KeySchema': [
                 {'KeyType': 'HASH', 'AttributeName': 'forum_name'}
             ],
@@ -62,7 +63,7 @@ def test_create_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_delete_table():
     create_table()
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -71,11 +72,12 @@ def test_delete_table():
     conn.delete_table('messages')
     conn.list_tables()["TableNames"].should.have.length_of(0)
 
-    conn.delete_table.when.called_with('messages').should.throw(JSONResponseError)
+    conn.delete_table.when.called_with(
+        'messages').should.throw(JSONResponseError)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_update_table_throughput():
     table = create_table()
     table.throughput["read"].should.equal(10)
@@ -91,7 +93,7 @@ def test_update_table_throughput():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_item_add_and_describe_and_update():
     table = create_table()
 
@@ -125,7 +127,7 @@ def test_item_add_and_describe_and_update():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_item_partial_save():
     table = create_table()
 
@@ -152,7 +154,7 @@ def test_item_partial_save():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_item_put_without_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -167,7 +169,7 @@ def test_item_put_without_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_item_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -178,7 +180,7 @@ def test_get_item_with_undeclared_table():
 
 
 @requires_boto_gte("2.30.0")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_delete_item():
     table = create_table()
 
@@ -198,11 +200,12 @@ def test_delete_item():
 
     table.count().should.equal(0)
 
-    item.delete().should.equal(False)
+    # Deletes are idempotent and 'False' here would imply an error condition
+    item.delete().should.equal(True)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_delete_item_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -213,7 +216,7 @@ def test_delete_item_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query():
     table = create_table()
 
@@ -233,18 +236,19 @@ def test_query():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_query_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
     conn.query.when.called_with(
         table_name='undeclared-table',
-        key_conditions={"forum_name": {"ComparisonOperator": "EQ", "AttributeValueList": [{"S": "the-key"}]}}
+        key_conditions={"forum_name": {
+            "ComparisonOperator": "EQ", "AttributeValueList": [{"S": "the-key"}]}}
     ).should.throw(JSONResponseError)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_scan():
     table = create_table()
 
@@ -295,7 +299,7 @@ def test_scan():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_scan_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -313,7 +317,7 @@ def test_scan_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_write_batch():
     table = create_table()
 
@@ -344,7 +348,7 @@ def test_write_batch():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_batch_read():
     table = create_table()
 
@@ -385,7 +389,7 @@ def test_batch_read():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_key_fields():
     table = create_table()
     kf = table.get_key_fields()
@@ -393,14 +397,15 @@ def test_get_key_fields():
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_missing_item():
     table = create_table()
-    table.get_item.when.called_with(forum_name='missing').should.throw(ItemNotFound)
+    table.get_item.when.called_with(
+        forum_name='missing').should.throw(ItemNotFound)
 
 
 @requires_boto_gte("2.9")
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_get_special_item():
     table = Table.create('messages', schema=[
         HashKey('date-joined')
@@ -418,7 +423,7 @@ def test_get_special_item():
     dict(returned_item).should.equal(data)
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_update_item_remove():
     conn = boto.dynamodb2.connect_to_region("us-west-2")
     table = Table.create('messages', schema=[
@@ -436,7 +441,8 @@ def test_update_item_remove():
     }
 
     # Then remove the SentBy field
-    conn.update_item("messages", key_map, update_expression="REMOVE SentBy, SentTo")
+    conn.update_item("messages", key_map,
+                     update_expression="REMOVE SentBy, SentTo")
 
     returned_item = table.get_item(username="steve")
     dict(returned_item).should.equal({
@@ -444,7 +450,7 @@ def test_update_item_remove():
     })
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_update_item_set():
     conn = boto.dynamodb2.connect_to_region("us-west-2")
     table = Table.create('messages', schema=[
@@ -460,7 +466,8 @@ def test_update_item_set():
         'username': {"S": "steve"}
     }
 
-    conn.update_item("messages", key_map, update_expression="SET foo=bar, blah=baz REMOVE SentBy")
+    conn.update_item("messages", key_map,
+                     update_expression="SET foo=bar, blah=baz REMOVE SentBy")
 
     returned_item = table.get_item(username="steve")
     dict(returned_item).should.equal({
@@ -470,8 +477,7 @@ def test_update_item_set():
     })
 
 
-
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_failed_overwrite():
     table = Table.create('messages', schema=[
         HashKey('id'),
@@ -487,7 +493,8 @@ def test_failed_overwrite():
     table.put_item(data=data2, overwrite=True)
 
     data3 = {'id': '123', 'data': '812'}
-    table.put_item.when.called_with(data=data3).should.throw(ConditionalCheckFailedException)
+    table.put_item.when.called_with(data=data3).should.throw(
+        ConditionalCheckFailedException)
 
     returned_item = table.lookup('123')
     dict(returned_item).should.equal(data2)
@@ -499,7 +506,7 @@ def test_failed_overwrite():
     dict(returned_item).should.equal(data4)
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 def test_conflicting_writes():
     table = Table.create('messages', schema=[
         HashKey('id'),
@@ -520,6 +527,7 @@ def test_conflicting_writes():
 """
 boto3
 """
+
 
 @mock_dynamodb2
 def test_boto3_create_table():
@@ -600,6 +608,61 @@ def test_boto3_put_item_conditions_fails():
             }
         }).should.throw(botocore.client.ClientError)
 
+@mock_dynamodb2
+def test_boto3_update_item_conditions_fails():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'baz'})
+    table.update_item.when.called_with(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=bar',
+        Expected={
+            'foo': {
+                'Value': 'bar',
+            }
+        }).should.throw(botocore.client.ClientError)
+
+@mock_dynamodb2
+def test_boto3_update_item_conditions_fails_because_expect_not_exists():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'baz'})
+    table.update_item.when.called_with(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=bar',
+        Expected={
+            'foo': {
+                'Exists': False
+            }
+        }).should.throw(botocore.client.ClientError)
+
+@mock_dynamodb2
+def test_boto3_update_item_conditions_pass():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
+    table.update_item(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=baz',
+        Expected={
+            'foo': {
+                'Value': 'bar',
+            }
+        })
+    returned_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(returned_item)['Item']['foo'].should.equal("baz")
+
+@mock_dynamodb2
+def test_boto3_update_item_conditions_pass_because_expext_not_exists():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
+    table.update_item(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=baz',
+        Expected={
+            'whatever': {
+                'Exists': False,
+            }
+        })
+    returned_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(returned_item)['Item']['foo'].should.equal("baz")
 
 @mock_dynamodb2
 def test_boto3_put_item_conditions_pass():
@@ -615,7 +678,6 @@ def test_boto3_put_item_conditions_pass():
         })
     returned_item = table.get_item(Key={'username': 'johndoe'})
     assert dict(returned_item)['Item']['foo'].should.equal("baz")
-
 
 
 @mock_dynamodb2

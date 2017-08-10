@@ -44,7 +44,8 @@ def test_s3_server_bucket_create():
     res = test_client.get('/missing-bucket', 'http://localhost:5000')
     res.status_code.should.equal(404)
 
-    res = test_client.put('/foobar/bar', 'http://localhost:5000', data='test value')
+    res = test_client.put(
+        '/foobar/bar', 'http://localhost:5000', data='test value')
     res.status_code.should.equal(200)
 
     res = test_client.get('/foobar/bar', 'http://localhost:5000')

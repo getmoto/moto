@@ -35,7 +35,8 @@ def test_create_and_delete_topic():
 @mock_sns
 def test_get_missing_topic():
     conn = boto3.client("sns", region_name="us-east-1")
-    conn.get_topic_attributes.when.called_with(TopicArn="a-fake-arn").should.throw(ClientError)
+    conn.get_topic_attributes.when.called_with(
+        TopicArn="a-fake-arn").should.throw(ClientError)
 
 
 @mock_sns
@@ -53,7 +54,8 @@ def test_topic_corresponds_to_region():
         conn.create_topic(Name="some-topic")
         topics_json = conn.list_topics()
         topic_arn = topics_json["Topics"][0]['TopicArn']
-        topic_arn.should.equal("arn:aws:sns:{0}:123456789012:some-topic".format(region))
+        topic_arn.should.equal(
+            "arn:aws:sns:{0}:123456789012:some-topic".format(region))
 
 
 @mock_sns
@@ -70,13 +72,14 @@ def test_topic_attributes():
         .format(conn._client_config.region_name)
     )
     attributes["Owner"].should.equal('123456789012')
-    attributes["Policy"].should.equal(DEFAULT_TOPIC_POLICY)
+    json.loads(attributes["Policy"]).should.equal(DEFAULT_TOPIC_POLICY)
     attributes["DisplayName"].should.equal("")
     attributes["SubscriptionsPending"].should.equal('0')
     attributes["SubscriptionsConfirmed"].should.equal('0')
     attributes["SubscriptionsDeleted"].should.equal('0')
     attributes["DeliveryPolicy"].should.equal("")
-    attributes["EffectiveDeliveryPolicy"].should.equal(DEFAULT_EFFECTIVE_DELIVERY_POLICY)
+    json.loads(attributes["EffectiveDeliveryPolicy"]).should.equal(
+        DEFAULT_EFFECTIVE_DELIVERY_POLICY)
 
     # boto can't handle prefix-mandatory strings:
     # i.e. unicode on Python 2 -- u"foobar"
@@ -84,11 +87,13 @@ def test_topic_attributes():
     if six.PY2:
         policy = json.dumps({b"foo": b"bar"})
         displayname = b"My display name"
-        delivery = json.dumps({b"http": {b"defaultHealthyRetryPolicy": {b"numRetries": 5}}})
+        delivery = json.dumps(
+            {b"http": {b"defaultHealthyRetryPolicy": {b"numRetries": 5}}})
     else:
         policy = json.dumps({u"foo": u"bar"})
         displayname = u"My display name"
-        delivery = json.dumps({u"http": {u"defaultHealthyRetryPolicy": {u"numRetries": 5}}})
+        delivery = json.dumps(
+            {u"http": {u"defaultHealthyRetryPolicy": {u"numRetries": 5}}})
     conn.set_topic_attributes(TopicArn=topic_arn,
                               AttributeName="Policy",
                               AttributeValue=policy)
@@ -102,7 +107,8 @@ def test_topic_attributes():
     attributes = conn.get_topic_attributes(TopicArn=topic_arn)['Attributes']
     attributes["Policy"].should.equal('{"foo": "bar"}')
     attributes["DisplayName"].should.equal("My display name")
-    attributes["DeliveryPolicy"].should.equal('{"http": {"defaultHealthyRetryPolicy": {"numRetries": 5}}}')
+    attributes["DeliveryPolicy"].should.equal(
+        '{"http": {"defaultHealthyRetryPolicy": {"numRetries": 5}}}')
 
 
 @mock_sns

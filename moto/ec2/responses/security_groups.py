@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-import collections
-
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -55,10 +53,11 @@ def process_rules_from_querystring(querystring):
                 source_groups.append(group_dict['GroupName'][0])
 
         yield (group_name_or_id, ip_protocol, from_port, to_port, ip_ranges,
-                source_groups, source_group_ids)
+               source_groups, source_group_ids)
 
 
 class SecurityGroups(BaseResponse):
+
     def authorize_security_group_egress(self):
         if self.is_not_dryrun('GrantSecurityGroupEgress'):
             for args in process_rules_from_querystring(self.querystring):
@@ -77,12 +76,15 @@ class SecurityGroups(BaseResponse):
         vpc_id = self.querystring.get("VpcId", [None])[0]
 
         if self.is_not_dryrun('CreateSecurityGroup'):
-            group = self.ec2_backend.create_security_group(name, description, vpc_id=vpc_id)
+            group = self.ec2_backend.create_security_group(
+                name, description, vpc_id=vpc_id)
             template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
             return template.render(group=group)
 
     def delete_security_group(self):
-        # TODO this should raise an error if there are instances in the group. See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DeleteSecurityGroup.html
+        # TODO this should raise an error if there are instances in the group.
+        # See
+        # http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DeleteSecurityGroup.html
 
         name = self.querystring.get('GroupName')
         sg_id = self.querystring.get('GroupId')
@@ -140,7 +142,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
    <securityGroupInfo>
       {% for group in groups %}
           <item>
-             <ownerId>111122223333</ownerId>
+             <ownerId>123456789012</ownerId>
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
@@ -160,7 +162,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>111122223333</userId>
+                                 <userId>123456789012</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
@@ -185,7 +187,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>111122223333</userId>
+                                 <userId>123456789012</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>

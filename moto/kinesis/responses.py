@@ -4,14 +4,13 @@ import json
 
 from moto.core.responses import BaseResponse
 from .models import kinesis_backends
-from werkzeug.exceptions import BadRequest
 
 
 class KinesisResponse(BaseResponse):
 
     @property
     def parameters(self):
-        return json.loads(self.body.decode("utf-8"))
+        return json.loads(self.body)
 
     @property
     def kinesis_backend(self):
@@ -20,12 +19,13 @@ class KinesisResponse(BaseResponse):
     @property
     def is_firehose(self):
         host = self.headers.get('host') or self.headers['Host']
-        return host.startswith('firehose')
+        return host.startswith('firehose') or 'firehose' in self.headers.get('Authorization', '')
 
     def create_stream(self):
         stream_name = self.parameters.get('StreamName')
         shard_count = self.parameters.get('ShardCount')
-        self.kinesis_backend.create_stream(stream_name, shard_count, self.region)
+        self.kinesis_backend.create_stream(
+            stream_name, shard_count, self.region)
         return ""
 
     def describe_stream(self):
@@ -35,10 +35,24 @@ class KinesisResponse(BaseResponse):
 
     def list_streams(self):
         streams = self.kinesis_backend.list_streams()
+        stream_names = [stream.stream_name for stream in streams]
+        max_streams = self._get_param('Limit', 10)
+        try:
+            token = self.parameters.get('ExclusiveStartStreamName')
+        except ValueError:
+            token = self._get_param('ExclusiveStartStreamName')
+        if token:
+            start = stream_names.index(token) + 1
+        else:
+            start = 0
+        streams_resp = stream_names[start:start + max_streams]
+        has_more_streams = False
+        if start + max_streams < len(stream_names):
+            has_more_streams = True
 
         return json.dumps({
-            "HasMoreStreams": False,
-            "StreamNames": [stream.stream_name for stream in streams],
+            "HasMoreStreams": has_more_streams,
+            "StreamNames": streams_resp
         })
 
     def delete_stream(self):
@@ -50,7 +64,8 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         shard_id = self.parameters.get("ShardId")
         shard_iterator_type = self.parameters.get("ShardIteratorType")
-        starting_sequence_number = self.parameters.get("StartingSequenceNumber")
+        starting_sequence_number = self.parameters.get(
+            "StartingSequenceNumber")
 
         shard_iterator = self.kinesis_backend.get_shard_iterator(
             stream_name, shard_id, shard_iterator_type, starting_sequence_number,
@@ -64,7 +79,8 @@ class KinesisResponse(BaseResponse):
         shard_iterator = self.parameters.get("ShardIterator")
         limit = self.parameters.get("Limit")
 
-        next_shard_iterator, records = self.kinesis_backend.get_records(shard_iterator, limit)
+        next_shard_iterator, records = self.kinesis_backend.get_records(
+            shard_iterator, limit)
 
         return json.dumps({
             "NextShardIterator": next_shard_iterator,
@@ -77,7 +93,8 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         partition_key = self.parameters.get("PartitionKey")
         explicit_hash_key = self.parameters.get("ExplicitHashKey")
-        sequence_number_for_ordering = self.parameters.get("SequenceNumberForOrdering")
+        sequence_number_for_ordering = self.parameters.get(
+            "SequenceNumberForOrdering")
         data = self.parameters.get("Data")
 
         sequence_number, shard_id = self.kinesis_backend.put_record(
@@ -105,7 +122,7 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         shard_to_split = self.parameters.get("ShardToSplit")
         new_starting_hash_key = self.parameters.get("NewStartingHashKey")
-        response = self.kinesis_backend.split_shard(
+        self.kinesis_backend.split_shard(
             stream_name, shard_to_split, new_starting_hash_key
         )
         return ""
@@ -114,15 +131,17 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         shard_to_merge = self.parameters.get("ShardToMerge")
         adjacent_shard_to_merge = self.parameters.get("AdjacentShardToMerge")
-        response = self.kinesis_backend.merge_shards(
+        self.kinesis_backend.merge_shards(
             stream_name, shard_to_merge, adjacent_shard_to_merge
         )
         return ""
 
     ''' Firehose '''
+
     def create_delivery_stream(self):
         stream_name = self.parameters['DeliveryStreamName']
-        redshift_config = self.parameters.get('RedshiftDestinationConfiguration')
+        redshift_config = self.parameters.get(
+            'RedshiftDestinationConfiguration')
 
         if redshift_config:
             redshift_s3_config = redshift_config['S3Configuration']
@@ -149,7 +168,8 @@ class KinesisResponse(BaseResponse):
                 's3_compression_format': s3_config.get('CompressionFormat'),
                 's3_buffering_hings': s3_config['BufferingHints'],
             }
-        stream = self.kinesis_backend.create_delivery_stream(stream_name, **stream_kwargs)
+        stream = self.kinesis_backend.create_delivery_stream(
+            stream_name, **stream_kwargs)
         return json.dumps({
             'DeliveryStreamARN': stream.arn
         })
@@ -177,7 +197,8 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters['DeliveryStreamName']
         record_data = self.parameters['Record']['Data']
 
-        record = self.kinesis_backend.put_firehose_record(stream_name, record_data)
+        record = self.kinesis_backend.put_firehose_record(
+            stream_name, record_data)
         return json.dumps({
             "RecordId": record.record_id,
         })
@@ -188,7 +209,8 @@ class KinesisResponse(BaseResponse):
 
         request_responses = []
         for record in records:
-            record_response = self.kinesis_backend.put_firehose_record(stream_name, record['Data'])
+            record_response = self.kinesis_backend.put_firehose_record(
+                stream_name, record['Data'])
             request_responses.append({
                 "RecordId": record_response.record_id
             })
@@ -207,7 +229,8 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get('StreamName')
         exclusive_start_tag_key = self.parameters.get('ExclusiveStartTagKey')
         limit = self.parameters.get('Limit')
-        response =  self.kinesis_backend.list_tags_for_stream(stream_name, exclusive_start_tag_key, limit)
+        response = self.kinesis_backend.list_tags_for_stream(
+            stream_name, exclusive_start_tag_key, limit)
         return json.dumps(response)
 
     def remove_tags_from_stream(self):

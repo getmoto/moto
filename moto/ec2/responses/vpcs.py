@@ -5,9 +5,12 @@ from moto.ec2.utils import filters_from_querystring, vpc_ids_from_querystring
 
 
 class VPCs(BaseResponse):
+
     def create_vpc(self):
         cidr_block = self.querystring.get('CidrBlock')[0]
-        vpc = self.ec2_backend.create_vpc(cidr_block)
+        instance_tenancy = self.querystring.get(
+            'InstanceTenancy', ['default'])[0]
+        vpc = self.ec2_backend.create_vpc(cidr_block, instance_tenancy)
         template = self.response_template(CREATE_VPC_RESPONSE)
         return template.render(vpc=vpc)
 
@@ -39,7 +42,8 @@ class VPCs(BaseResponse):
             if self.querystring.get('%s.Value' % attribute):
                 attr_name = camelcase_to_underscores(attribute)
                 attr_value = self.querystring.get('%s.Value' % attribute)[0]
-                self.ec2_backend.modify_vpc_attribute(vpc_id, attr_name, attr_value)
+                self.ec2_backend.modify_vpc_attribute(
+                    vpc_id, attr_name, attr_value)
                 return MODIFY_VPC_ATTRIBUTE_RESPONSE
 
 
@@ -51,7 +55,7 @@ CREATE_VPC_RESPONSE = """
       <state>pending</state>
       <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
       <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-1a2b3c4d2{% endif %}</dhcpOptionsId>
-      <instanceTenancy>default</instanceTenancy>
+      <instanceTenancy>{{ vpc.instance_tenancy }}</instanceTenancy>
       <tagSet>
         {% for tag in vpc.get_tags() %}
           <item>
@@ -75,7 +79,7 @@ DESCRIBE_VPCS_RESPONSE = """
         <state>{{ vpc.state }}</state>
         <cidrBlock>{{ vpc.cidr_block }}</cidrBlock>
         <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-7a8b9c2d{% endif %}</dhcpOptionsId>
-        <instanceTenancy>default</instanceTenancy>
+        <instanceTenancy>{{ vpc.instance_tenancy }}</instanceTenancy>
         <isDefault>{{ vpc.is_default }}</isDefault>
         <tagSet>
           {% for tag in vpc.get_tags() %}

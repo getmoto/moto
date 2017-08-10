@@ -15,7 +15,8 @@ WorkflowExecution = namedtuple(
 
 def test_domain_short_dict_representation():
     domain = Domain("foo", "52")
-    domain.to_short_dict().should.equal({"name": "foo", "status": "REGISTERED"})
+    domain.to_short_dict().should.equal(
+        {"name": "foo", "status": "REGISTERED"})
 
     domain.description = "foo bar"
     domain.to_short_dict()["description"].should.equal("foo bar")
@@ -67,16 +68,23 @@ def test_domain_decision_tasks():
 def test_domain_get_workflow_execution():
     domain = Domain("my-domain", "60")
 
-    wfe1 = WorkflowExecution(workflow_id="wf-id-1", run_id="run-id-1", execution_status="OPEN", open=True)
-    wfe2 = WorkflowExecution(workflow_id="wf-id-1", run_id="run-id-2", execution_status="CLOSED", open=False)
-    wfe3 = WorkflowExecution(workflow_id="wf-id-2", run_id="run-id-3", execution_status="OPEN", open=True)
-    wfe4 = WorkflowExecution(workflow_id="wf-id-3", run_id="run-id-4", execution_status="CLOSED", open=False)
+    wfe1 = WorkflowExecution(
+        workflow_id="wf-id-1", run_id="run-id-1", execution_status="OPEN", open=True)
+    wfe2 = WorkflowExecution(
+        workflow_id="wf-id-1", run_id="run-id-2", execution_status="CLOSED", open=False)
+    wfe3 = WorkflowExecution(
+        workflow_id="wf-id-2", run_id="run-id-3", execution_status="OPEN", open=True)
+    wfe4 = WorkflowExecution(
+        workflow_id="wf-id-3", run_id="run-id-4", execution_status="CLOSED", open=False)
     domain.workflow_executions = [wfe1, wfe2, wfe3, wfe4]
 
     # get workflow execution through workflow_id and run_id
-    domain.get_workflow_execution("wf-id-1", run_id="run-id-1").should.equal(wfe1)
-    domain.get_workflow_execution("wf-id-1", run_id="run-id-2").should.equal(wfe2)
-    domain.get_workflow_execution("wf-id-3", run_id="run-id-4").should.equal(wfe4)
+    domain.get_workflow_execution(
+        "wf-id-1", run_id="run-id-1").should.equal(wfe1)
+    domain.get_workflow_execution(
+        "wf-id-1", run_id="run-id-2").should.equal(wfe2)
+    domain.get_workflow_execution(
+        "wf-id-3", run_id="run-id-4").should.equal(wfe4)
 
     domain.get_workflow_execution.when.called_with(
         "wf-id-1", run_id="non-existent"
@@ -98,7 +106,8 @@ def test_domain_get_workflow_execution():
     )
 
     # raise_if_closed attribute
-    domain.get_workflow_execution("wf-id-1", run_id="run-id-1", raise_if_closed=True).should.equal(wfe1)
+    domain.get_workflow_execution(
+        "wf-id-1", run_id="run-id-1", raise_if_closed=True).should.equal(wfe1)
     domain.get_workflow_execution.when.called_with(
         "wf-id-3", run_id="run-id-4", raise_if_closed=True
     ).should.throw(

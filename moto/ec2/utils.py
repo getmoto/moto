@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+import fnmatch
 import random
 import re
 import six
@@ -32,13 +34,15 @@ EC2_RESOURCE_TO_PREFIX = {
     'vpn-gateway': 'vgw'}
 
 
-EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
+EC2_PREFIX_TO_RESOURCE = dict((v, k)
+                              for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
 
 
 def random_id(prefix='', size=8):
     chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
 
-    resource_id = ''.join(six.text_type(random.choice(chars)) for x in range(size))
+    resource_id = ''.join(six.text_type(random.choice(chars))
+                          for x in range(size))
     return '{0}-{1}'.format(prefix, resource_id)
 
 
@@ -186,6 +190,14 @@ def image_ids_from_querystring(querystring_dict):
     return image_ids
 
 
+def executable_users_from_querystring(querystring_dict):
+    user_ids = []
+    for key, value in querystring_dict.items():
+        if 'ExecutableBy' in key:
+            user_ids.append(value[0])
+    return user_ids
+
+
 def route_table_ids_from_querystring(querystring_dict):
     route_table_ids = []
     for key, value in querystring_dict.items():
@@ -228,7 +240,8 @@ def tags_from_query_string(querystring_dict):
             tag_key = querystring_dict.get("Tag.{0}.Key".format(tag_index))[0]
             tag_value_key = "Tag.{0}.Value".format(tag_index)
             if tag_value_key in querystring_dict:
-                response_values[tag_key] = querystring_dict.get(tag_value_key)[0]
+                response_values[tag_key] = querystring_dict.get(tag_value_key)[
+                    0]
             else:
                 response_values[tag_key] = None
     return response_values
@@ -262,7 +275,8 @@ def dhcp_configuration_from_querystring(querystring, option=u'DhcpConfiguration'
             key_index = key.split(".")[1]
             value_index = 1
             while True:
-                value_key = u'{0}.{1}.Value.{2}'.format(option, key_index, value_index)
+                value_key = u'{0}.{1}.Value.{2}'.format(
+                    option, key_index, value_index)
                 if value_key in querystring:
                     values.extend(querystring[value_key])
                 else:
@@ -337,16 +351,20 @@ def get_obj_tag(obj, filter_name):
     tags = dict((tag['key'], tag['value']) for tag in obj.get_tags())
     return tags.get(tag_name)
 
+
 def get_obj_tag_names(obj):
     tags = set((tag['key'] for tag in obj.get_tags()))
     return tags
+
 
 def get_obj_tag_values(obj):
     tags = set((tag['value'] for tag in obj.get_tags()))
     return tags
 
+
 def tag_filter_matches(obj, filter_name, filter_values):
-    regex_filters = [re.compile(simple_aws_filter_to_re(f)) for f in filter_values]
+    regex_filters = [re.compile(simple_aws_filter_to_re(f))
+                     for f in filter_values]
     if filter_name == 'tag-key':
         tag_values = get_obj_tag_names(obj)
     elif filter_name == 'tag-value':
@@ -373,7 +391,8 @@ filter_dict_attribute_mapping = {
     'private-ip-address': 'private_ip',
     'ip-address': 'public_ip',
     'availability-zone': 'placement',
-    'architecture': 'architecture'
+    'architecture': 'architecture',
+    'image-id': 'image_id'
 }
 
 
@@ -400,7 +419,7 @@ def instance_value_in_filter_values(instance_value, filter_values):
         if not set(filter_values).intersection(set(instance_value)):
             return False
     elif instance_value not in filter_values:
-            return False
+        return False
     return True
 
 
@@ -451,8 +470,15 @@ def filter_internet_gateways(igws, filter_dict):
 def is_filter_matching(obj, filter, filter_value):
     value = obj.get_filter_value(filter)
 
+    if not filter_value:
+        return False
+
     if isinstance(value, six.string_types):
-        return value in filter_value
+        if not isinstance(filter_value, list):
+            filter_value = [filter_value]
+        if any(fnmatch.fnmatch(value, pattern) for pattern in filter_value):
+            return True
+        return False
 
     try:
         value = set(value)
@@ -464,13 +490,13 @@ def is_filter_matching(obj, filter, filter_value):
 def generic_filter(filters, objects):
     if filters:
         for (_filter, _filter_value) in filters.items():
-            objects = [obj for obj in objects if is_filter_matching(obj, _filter, _filter_value)]
+            objects = [obj for obj in objects if is_filter_matching(
+                obj, _filter, _filter_value)]
 
     return objects
 
 
 def simple_aws_filter_to_re(filter_string):
-    import fnmatch
     tmp_filter = filter_string.replace('\?', '[?]')
     tmp_filter = tmp_filter.replace('\*', '[*]')
     tmp_filter = fnmatch.translate(tmp_filter)
@@ -480,8 +506,10 @@ def simple_aws_filter_to_re(filter_string):
 def random_key_pair():
     def random_hex():
         return chr(random.choice(list(range(48, 58)) + list(range(97, 102))))
+
     def random_fingerprint():
-        return ':'.join([random_hex()+random_hex() for i in range(20)])
+        return ':'.join([random_hex() + random_hex() for i in range(20)])
+
     def random_material():
         return ''.join([
             chr(random.choice(list(range(65, 91)) + list(range(48, 58)) +
@@ -489,7 +517,7 @@ def random_key_pair():
             for i in range(1000)
         ])
     material = "---- BEGIN RSA PRIVATE KEY ----" + random_material() + \
-            "-----END RSA PRIVATE KEY-----"
+        "-----END RSA PRIVATE KEY-----"
     return {
         'fingerprint': random_fingerprint(),
         'material': material
@@ -500,9 +528,11 @@ def get_prefix(resource_id):
     resource_id_prefix, separator, after = resource_id.partition('-')
     if resource_id_prefix == EC2_RESOURCE_TO_PREFIX['network-interface']:
         if after.startswith('attach'):
-            resource_id_prefix = EC2_RESOURCE_TO_PREFIX['network-interface-attachment']
+            resource_id_prefix = EC2_RESOURCE_TO_PREFIX[
+                'network-interface-attachment']
     if resource_id_prefix not in EC2_RESOURCE_TO_PREFIX.values():
-        uuid4hex = re.compile('[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}\Z', re.I)
+        uuid4hex = re.compile(
+            '[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}\Z', re.I)
         if uuid4hex.match(resource_id) is not None:
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX['reserved-instance']
         else:
@@ -539,20 +569,20 @@ def generate_instance_identity_document(instance):
     """
 
     document = {
-            'devPayProductCodes': None,
-            'availabilityZone': instance.placement['AvailabilityZone'],
-            'privateIp': instance.private_ip_address,
-            'version': '2010-8-31',
-            'region': instance.placement['AvailabilityZone'][:-1],
-            'instanceId': instance.id,
-            'billingProducts': None,
-            'instanceType': instance.instance_type,
-            'accountId': '012345678910',
-            'pendingTime': '2015-11-19T16:32:11Z',
-            'imageId': instance.image_id,
-            'kernelId': instance.kernel_id,
-            'ramdiskId': instance.ramdisk_id,
-            'architecture': instance.architecture,
-            }
+        'devPayProductCodes': None,
+        'availabilityZone': instance.placement['AvailabilityZone'],
+        'privateIp': instance.private_ip_address,
+        'version': '2010-8-31',
+        'region': instance.placement['AvailabilityZone'][:-1],
+        'instanceId': instance.id,
+        'billingProducts': None,
+        'instanceType': instance.instance_type,
+        'accountId': '012345678910',
+        'pendingTime': '2015-11-19T16:32:11Z',
+        'imageId': instance.image_id,
+        'kernelId': instance.kernel_id,
+        'ramdiskId': instance.ramdisk_id,
+        'architecture': instance.architecture,
+    }
 
     return document

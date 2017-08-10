@@ -5,9 +5,10 @@ url_bases = [
     "https?://lambda.(.+).amazonaws.com",
 ]
 
+response = LambdaResponse()
+
 url_paths = {
-    # double curly braces because the `format()` method is called on the strings
-    '{0}/\d{{4}}-\d{{2}}-\d{{2}}/functions/?$': LambdaResponse.root,
-    '{0}/\d{{4}}-\d{{2}}-\d{{2}}/functions/(?P<function_name>[\w_-]+)/?$': LambdaResponse.function,
-    '{0}/\d{{4}}-\d{{2}}-\d{{2}}/functions/(?P<function_name>[\w_-]+)/invocations?$': LambdaResponse.invoke,
+    '{0}/(?P<api_version>[^/]+)/functions/?$': response.root,
+    '{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/?$': response.function,
+    '{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/invocations/?$': response.invoke,
 }

@@ -16,7 +16,7 @@ class SWFResponse(BaseResponse):
     # SWF parameters are passed through a JSON body, so let's ease retrieval
     @property
     def _params(self):
-        return json.loads(self.body.decode("utf-8"))
+        return json.loads(self.body)
 
     def _check_int(self, parameter):
         if not isinstance(parameter, int):
@@ -64,7 +64,8 @@ class SWFResponse(BaseResponse):
         reverse_order = self._params.get("reverseOrder", None)
         self._check_string(domain_name)
         self._check_string(status)
-        types = self.swf_backend.list_types(kind, domain_name, status, reverse_order=reverse_order)
+        types = self.swf_backend.list_types(
+            kind, domain_name, status, reverse_order=reverse_order)
         return json.dumps({
             "typeInfos": [_type.to_medium_dict() for _type in types]
         })
@@ -97,7 +98,8 @@ class SWFResponse(BaseResponse):
         status = self._params["registrationStatus"]
         self._check_string(status)
         reverse_order = self._params.get("reverseOrder", None)
-        domains = self.swf_backend.list_domains(status, reverse_order=reverse_order)
+        domains = self.swf_backend.list_domains(
+            status, reverse_order=reverse_order)
         return json.dumps({
             "domainInfos": [domain.to_short_dict() for domain in domains]
         })
@@ -107,7 +109,8 @@ class SWFResponse(BaseResponse):
         start_time_filter = self._params.get('startTimeFilter', None)
         close_time_filter = self._params.get('closeTimeFilter', None)
         execution_filter = self._params.get('executionFilter', None)
-        workflow_id = execution_filter['workflowId'] if execution_filter else None
+        workflow_id = execution_filter[
+            'workflowId'] if execution_filter else None
         maximum_page_size = self._params.get('maximumPageSize', 1000)
         reverse_order = self._params.get('reverseOrder', None)
         tag_filter = self._params.get('tagFilter', None)
@@ -162,7 +165,8 @@ class SWFResponse(BaseResponse):
         domain = self._params['domain']
         start_time_filter = self._params['startTimeFilter']
         execution_filter = self._params.get('executionFilter', None)
-        workflow_id = execution_filter['workflowId'] if execution_filter else None
+        workflow_id = execution_filter[
+            'workflowId'] if execution_filter else None
         maximum_page_size = self._params.get('maximumPageSize', 1000)
         reverse_order = self._params.get('reverseOrder', None)
         tag_filter = self._params.get('tagFilter', None)
@@ -234,10 +238,14 @@ class SWFResponse(BaseResponse):
             task_list = default_task_list.get("name")
         else:
             task_list = None
-        default_task_heartbeat_timeout = self._params.get("defaultTaskHeartbeatTimeout")
-        default_task_schedule_to_close_timeout = self._params.get("defaultTaskScheduleToCloseTimeout")
-        default_task_schedule_to_start_timeout = self._params.get("defaultTaskScheduleToStartTimeout")
-        default_task_start_to_close_timeout = self._params.get("defaultTaskStartToCloseTimeout")
+        default_task_heartbeat_timeout = self._params.get(
+            "defaultTaskHeartbeatTimeout")
+        default_task_schedule_to_close_timeout = self._params.get(
+            "defaultTaskScheduleToCloseTimeout")
+        default_task_schedule_to_start_timeout = self._params.get(
+            "defaultTaskScheduleToStartTimeout")
+        default_task_start_to_close_timeout = self._params.get(
+            "defaultTaskStartToCloseTimeout")
         description = self._params.get("description")
 
         self._check_string(domain)
@@ -280,8 +288,10 @@ class SWFResponse(BaseResponse):
         else:
             task_list = None
         default_child_policy = self._params.get("defaultChildPolicy")
-        default_task_start_to_close_timeout = self._params.get("defaultTaskStartToCloseTimeout")
-        default_execution_start_to_close_timeout = self._params.get("defaultExecutionStartToCloseTimeout")
+        default_task_start_to_close_timeout = self._params.get(
+            "defaultTaskStartToCloseTimeout")
+        default_execution_start_to_close_timeout = self._params.get(
+            "defaultExecutionStartToCloseTimeout")
         description = self._params.get("description")
 
         self._check_string(domain)
@@ -322,10 +332,12 @@ class SWFResponse(BaseResponse):
         else:
             task_list = None
         child_policy = self._params.get("childPolicy")
-        execution_start_to_close_timeout = self._params.get("executionStartToCloseTimeout")
+        execution_start_to_close_timeout = self._params.get(
+            "executionStartToCloseTimeout")
         input_ = self._params.get("input")
         tag_list = self._params.get("tagList")
-        task_start_to_close_timeout = self._params.get("taskStartToCloseTimeout")
+        task_start_to_close_timeout = self._params.get(
+            "taskStartToCloseTimeout")
 
         self._check_string(domain)
         self._check_string(workflow_id)
@@ -360,7 +372,8 @@ class SWFResponse(BaseResponse):
         self._check_string(run_id)
         self._check_string(workflow_id)
 
-        wfe = self.swf_backend.describe_workflow_execution(domain_name, run_id, workflow_id)
+        wfe = self.swf_backend.describe_workflow_execution(
+            domain_name, run_id, workflow_id)
         return json.dumps(wfe.to_full_dict())
 
     def get_workflow_execution_history(self):
@@ -369,7 +382,8 @@ class SWFResponse(BaseResponse):
         run_id = _workflow_execution["runId"]
         workflow_id = _workflow_execution["workflowId"]
         reverse_order = self._params.get("reverseOrder", None)
-        wfe = self.swf_backend.describe_workflow_execution(domain_name, run_id, workflow_id)
+        wfe = self.swf_backend.describe_workflow_execution(
+            domain_name, run_id, workflow_id)
         events = wfe.events(reverse_order=reverse_order)
         return json.dumps({
             "events": [evt.to_dict() for evt in events]
@@ -399,7 +413,8 @@ class SWFResponse(BaseResponse):
         task_list = self._params["taskList"]["name"]
         self._check_string(domain_name)
         self._check_string(task_list)
-        count = self.swf_backend.count_pending_decision_tasks(domain_name, task_list)
+        count = self.swf_backend.count_pending_decision_tasks(
+            domain_name, task_list)
         return json.dumps({"count": count, "truncated": False})
 
     def respond_decision_task_completed(self):
@@ -435,7 +450,8 @@ class SWFResponse(BaseResponse):
         task_list = self._params["taskList"]["name"]
         self._check_string(domain_name)
         self._check_string(task_list)
-        count = self.swf_backend.count_pending_activity_tasks(domain_name, task_list)
+        count = self.swf_backend.count_pending_activity_tasks(
+            domain_name, task_list)
         return json.dumps({"count": count, "truncated": False})
 
     def respond_activity_task_completed(self):
@@ -453,7 +469,8 @@ class SWFResponse(BaseResponse):
         reason = self._params.get("reason")
         details = self._params.get("details")
         self._check_string(task_token)
-        # TODO: implement length limits on reason and details (common pb with client libs)
+        # TODO: implement length limits on reason and details (common pb with
+        # client libs)
         self._check_none_or_string(reason)
         self._check_none_or_string(details)
         self.swf_backend.respond_activity_task_failed(

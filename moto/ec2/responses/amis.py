@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring, \
-    filters_from_querystring, sequence_from_querystring
+    filters_from_querystring, sequence_from_querystring, executable_users_from_querystring
 
 
 class AmisResponse(BaseResponse):
+
     def create_image(self):
         name = self.querystring.get('Name')[0]
         if "Description" in self.querystring:
@@ -14,17 +15,21 @@ class AmisResponse(BaseResponse):
         instance_ids = instance_ids_from_querystring(self.querystring)
         instance_id = instance_ids[0]
         if self.is_not_dryrun('CreateImage'):
-            image = self.ec2_backend.create_image(instance_id, name, description)
+            image = self.ec2_backend.create_image(
+                instance_id, name, description)
             template = self.response_template(CREATE_IMAGE_RESPONSE)
             return template.render(image=image)
 
     def copy_image(self):
         source_image_id = self.querystring.get('SourceImageId')[0]
         source_region = self.querystring.get('SourceRegion')[0]
-        name = self.querystring.get('Name')[0] if self.querystring.get('Name') else None
-        description = self.querystring.get('Description')[0] if self.querystring.get('Description') else None
+        name = self.querystring.get(
+            'Name')[0] if self.querystring.get('Name') else None
+        description = self.querystring.get(
+            'Description')[0] if self.querystring.get('Description') else None
         if self.is_not_dryrun('CopyImage'):
-            image = self.ec2_backend.copy_image(source_image_id, source_region, name, description)
+            image = self.ec2_backend.copy_image(
+                source_image_id, source_region, name, description)
             template = self.response_template(COPY_IMAGE_RESPONSE)
             return template.render(image=image)
 
@@ -38,7 +43,9 @@ class AmisResponse(BaseResponse):
     def describe_images(self):
         ami_ids = image_ids_from_querystring(self.querystring)
         filters = filters_from_querystring(self.querystring)
-        images = self.ec2_backend.describe_images(ami_ids=ami_ids, filters=filters)
+        exec_users = executable_users_from_querystring(self.querystring)
+        images = self.ec2_backend.describe_images(
+            ami_ids=ami_ids, filters=filters, exec_users=exec_users)
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 
@@ -56,18 +63,22 @@ class AmisResponse(BaseResponse):
         user_ids = sequence_from_querystring('UserId', self.querystring)
         if self.is_not_dryrun('ModifyImageAttribute'):
             if (operation_type == 'add'):
-                self.ec2_backend.add_launch_permission(ami_id, user_ids=user_ids, group=group)
+                self.ec2_backend.add_launch_permission(
+                    ami_id, user_ids=user_ids, group=group)
             elif (operation_type == 'remove'):
-                self.ec2_backend.remove_launch_permission(ami_id, user_ids=user_ids, group=group)
+                self.ec2_backend.remove_launch_permission(
+                    ami_id, user_ids=user_ids, group=group)
             return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
 
     def register_image(self):
         if self.is_not_dryrun('RegisterImage'):
-            raise NotImplementedError('AMIs.register_image is not yet implemented')
+            raise NotImplementedError(
+                'AMIs.register_image is not yet implemented')
 
     def reset_image_attribute(self):
         if self.is_not_dryrun('ResetImageAttribute'):
-            raise NotImplementedError('AMIs.reset_image_attribute is not yet implemented')
+            raise NotImplementedError(
+                'AMIs.reset_image_attribute is not yet implemented')
 
 
 CREATE_IMAGE_RESPONSE = """<CreateImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -80,7 +91,8 @@ COPY_IMAGE_RESPONSE = """<CopyImageResponse xmlns="http://ec2.amazonaws.com/doc/
    <imageId>{{ image.id }}</imageId>
 </CopyImageResponse>"""
 
-# TODO almost all of these params should actually be templated based on the ec2 image
+# TODO almost all of these params should actually be templated based on
+# the ec2 image
 DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <imagesSet>
@@ -89,7 +101,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
           <imageId>{{ image.id }}</imageId>
           <imageLocation>amazon/getting-started</imageLocation>
           <imageState>{{ image.state }}</imageState>
-          <imageOwnerId>111122223333</imageOwnerId>
+          <imageOwnerId>123456789012</imageOwnerId>
           <isPublic>{{ image.is_public_string }}</isPublic>
           <architecture>{{ image.architecture }}</architecture>
           <imageType>machine</imageType>

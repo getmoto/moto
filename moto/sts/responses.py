@@ -43,6 +43,7 @@ class TokenResponse(BaseResponse):
         template = self.response_template(GET_CALLER_IDENTITY_RESPONSE)
         return template.render()
 
+
 GET_SESSION_TOKEN_RESPONSE = """<GetSessionTokenResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
   <GetSessionTokenResult>
     <Credentials>

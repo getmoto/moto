@@ -8,7 +8,8 @@ from moto.ec2.utils import sequence_from_querystring, tags_from_query_string, fi
 class TagResponse(BaseResponse):
 
     def create_tags(self):
-        resource_ids = sequence_from_querystring('ResourceId', self.querystring)
+        resource_ids = sequence_from_querystring(
+            'ResourceId', self.querystring)
         validate_resource_ids(resource_ids)
         self.ec2_backend.do_resources_exist(resource_ids)
         tags = tags_from_query_string(self.querystring)
@@ -17,7 +18,8 @@ class TagResponse(BaseResponse):
             return CREATE_RESPONSE
 
     def delete_tags(self):
-        resource_ids = sequence_from_querystring('ResourceId', self.querystring)
+        resource_ids = sequence_from_querystring(
+            'ResourceId', self.querystring)
         validate_resource_ids(resource_ids)
         tags = tags_from_query_string(self.querystring)
         if self.is_not_dryrun('DeleteTags'):

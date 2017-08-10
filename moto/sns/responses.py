@@ -109,7 +109,8 @@ class SNSResponse(BaseResponse):
         attribute_name = self._get_param('AttributeName')
         attribute_name = camelcase_to_underscores(attribute_name)
         attribute_value = self._get_param('AttributeValue')
-        self.backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
+        self.backend.set_topic_attribute(
+            topic_arn, attribute_name, attribute_value)
 
         if self.request_json:
             return json.dumps({
@@ -162,7 +163,8 @@ class SNSResponse(BaseResponse):
 
     def list_subscriptions(self):
         next_token = self._get_param('NextToken')
-        subscriptions, next_token = self.backend.list_subscriptions(next_token=next_token)
+        subscriptions, next_token = self.backend.list_subscriptions(
+            next_token=next_token)
 
         if self.request_json:
             return json.dumps({
@@ -190,7 +192,8 @@ class SNSResponse(BaseResponse):
     def list_subscriptions_by_topic(self):
         topic_arn = self._get_param('TopicArn')
         next_token = self._get_param('NextToken')
-        subscriptions, next_token = self.backend.list_subscriptions(topic_arn, next_token=next_token)
+        subscriptions, next_token = self.backend.list_subscriptions(
+            topic_arn, next_token=next_token)
 
         if self.request_json:
             return json.dumps({
@@ -241,7 +244,8 @@ class SNSResponse(BaseResponse):
         name = self._get_param('Name')
         platform = self._get_param('Platform')
         attributes = self._get_attributes()
-        platform_application = self.backend.create_platform_application(self.region, name, platform, attributes)
+        platform_application = self.backend.create_platform_application(
+            self.region, name, platform, attributes)
 
         if self.request_json:
             return json.dumps({
@@ -274,7 +278,8 @@ class SNSResponse(BaseResponse):
                 }
             })
 
-        template = self.response_template(GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
+        template = self.response_template(
+            GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
         return template.render(application=application)
 
     def set_platform_application_attributes(self):
@@ -292,7 +297,8 @@ class SNSResponse(BaseResponse):
                 }
             })
 
-        template = self.response_template(SET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
+        template = self.response_template(
+            SET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
         return template.render()
 
     def list_platform_applications(self):
@@ -361,7 +367,8 @@ class SNSResponse(BaseResponse):
 
     def list_endpoints_by_platform_application(self):
         application_arn = self._get_param('PlatformApplicationArn')
-        endpoints = self.backend.list_endpoints_by_platform_application(application_arn)
+        endpoints = self.backend.list_endpoints_by_platform_application(
+            application_arn)
 
         if self.request_json:
             return json.dumps({
@@ -381,7 +388,8 @@ class SNSResponse(BaseResponse):
                 }
             })
 
-        template = self.response_template(LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE)
+        template = self.response_template(
+            LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE)
         return template.render(endpoints=endpoints)
 
     def get_endpoint_attributes(self):
@@ -436,7 +444,6 @@ class SNSResponse(BaseResponse):
 
         template = self.response_template(DELETE_ENDPOINT_TEMPLATE)
         return template.render()
-
 
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">

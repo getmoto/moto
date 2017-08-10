@@ -11,10 +11,10 @@ from botocore.exceptions import ParamValidationError
 import json
 import sure  # noqa
 
-from moto import mock_cloudformation, mock_ec2
+from moto import mock_cloudformation_deprecated, mock_ec2, mock_ec2_deprecated
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_subnets():
     ec2 = boto.connect_ec2('the_key', 'the_secret')
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -36,7 +36,7 @@ def test_subnets():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_subnet_create_vpc_validation():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
@@ -47,7 +47,7 @@ def test_subnet_create_vpc_validation():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_subnet_tagging():
     conn = boto.connect_vpc('the_key', 'the_secret')
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -65,11 +65,12 @@ def test_subnet_tagging():
     subnet.tags["a key"].should.equal("some value")
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_subnet_should_have_proper_availability_zone_set():
     conn = boto.vpc.connect_to_region('us-west-1')
     vpcA = conn.create_vpc("10.0.0.0/16")
-    subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24", availability_zone='us-west-1b')
+    subnetA = conn.create_subnet(
+        vpcA.id, "10.0.0.0/24", availability_zone='us-west-1b')
     subnetA.availability_zone.should.equal('us-west-1b')
 
 
@@ -82,12 +83,13 @@ def test_default_subnet():
     default_vpc.reload()
     default_vpc.is_default.should.be.ok
 
-    subnet = ec2.create_subnet(VpcId=default_vpc.id, CidrBlock='172.31.0.0/20', AvailabilityZone='us-west-1a')
+    subnet = ec2.create_subnet(
+        VpcId=default_vpc.id, CidrBlock='172.31.0.0/20', AvailabilityZone='us-west-1a')
     subnet.reload()
     subnet.map_public_ip_on_launch.shouldnt.be.ok
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_non_default_subnet():
     vpc_cli = boto.vpc.connect_to_region('us-west-1')
 
@@ -109,7 +111,8 @@ def test_boto3_non_default_subnet():
     vpc.reload()
     vpc.is_default.shouldnt.be.ok
 
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
     subnet.reload()
     subnet.map_public_ip_on_launch.shouldnt.be.ok
 
@@ -122,7 +125,8 @@ def test_modify_subnet_attribute():
     # Get the default VPC
     vpc = list(ec2.vpcs.all())[0]
 
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
 
     # 'map_public_ip_on_launch' is set when calling 'DescribeSubnets' action
     subnet.reload()
@@ -130,11 +134,13 @@ def test_modify_subnet_attribute():
     # For non default subnet, attribute value should be 'False'
     subnet.map_public_ip_on_launch.shouldnt.be.ok
 
-    client.modify_subnet_attribute(SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': False})
+    client.modify_subnet_attribute(
+        SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': False})
     subnet.reload()
     subnet.map_public_ip_on_launch.shouldnt.be.ok
 
-    client.modify_subnet_attribute(SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': True})
+    client.modify_subnet_attribute(
+        SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': True})
     subnet.reload()
     subnet.map_public_ip_on_launch.should.be.ok
 
@@ -144,21 +150,26 @@ def test_modify_subnet_attribute_validation():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
     client = boto3.client('ec2', region_name='us-west-1')
     vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
 
     with assert_raises(ParamValidationError):
-        client.modify_subnet_attribute(SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': 'invalid'})
+        client.modify_subnet_attribute(
+            SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': 'invalid'})
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_get_subnets_filtering():
     ec2 = boto.ec2.connect_to_region('us-west-1')
     conn = boto.vpc.connect_to_region('us-west-1')
     vpcA = conn.create_vpc("10.0.0.0/16")
-    subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24", availability_zone='us-west-1a')
+    subnetA = conn.create_subnet(
+        vpcA.id, "10.0.0.0/24", availability_zone='us-west-1a')
     vpcB = conn.create_vpc("10.0.0.0/16")
-    subnetB1 = conn.create_subnet(vpcB.id, "10.0.0.0/24", availability_zone='us-west-1a')
-    subnetB2 = conn.create_subnet(vpcB.id, "10.0.1.0/24", availability_zone='us-west-1b')
+    subnetB1 = conn.create_subnet(
+        vpcB.id, "10.0.0.0/24", availability_zone='us-west-1a')
+    subnetB2 = conn.create_subnet(
+        vpcB.id, "10.0.1.0/24", availability_zone='us-west-1b')
 
     all_subnets = conn.get_all_subnets()
     all_subnets.should.have.length_of(3 + len(ec2.get_all_zones()))
@@ -166,25 +177,33 @@ def test_get_subnets_filtering():
     # Filter by VPC ID
     subnets_by_vpc = conn.get_all_subnets(filters={'vpc-id': vpcB.id})
     subnets_by_vpc.should.have.length_of(2)
-    set([subnet.id for subnet in subnets_by_vpc]).should.equal(set([subnetB1.id, subnetB2.id]))
+    set([subnet.id for subnet in subnets_by_vpc]).should.equal(
+        set([subnetB1.id, subnetB2.id]))
 
     # Filter by CIDR variations
     subnets_by_cidr1 = conn.get_all_subnets(filters={'cidr': "10.0.0.0/24"})
     subnets_by_cidr1.should.have.length_of(2)
-    set([subnet.id for subnet in subnets_by_cidr1]).should.equal(set([subnetA.id, subnetB1.id]))
+    set([subnet.id for subnet in subnets_by_cidr1]
+        ).should.equal(set([subnetA.id, subnetB1.id]))
 
-    subnets_by_cidr2 = conn.get_all_subnets(filters={'cidr-block': "10.0.0.0/24"})
+    subnets_by_cidr2 = conn.get_all_subnets(
+        filters={'cidr-block': "10.0.0.0/24"})
     subnets_by_cidr2.should.have.length_of(2)
-    set([subnet.id for subnet in subnets_by_cidr2]).should.equal(set([subnetA.id, subnetB1.id]))
+    set([subnet.id for subnet in subnets_by_cidr2]
+        ).should.equal(set([subnetA.id, subnetB1.id]))
 
-    subnets_by_cidr3 = conn.get_all_subnets(filters={'cidrBlock': "10.0.0.0/24"})
+    subnets_by_cidr3 = conn.get_all_subnets(
+        filters={'cidrBlock': "10.0.0.0/24"})
     subnets_by_cidr3.should.have.length_of(2)
-    set([subnet.id for subnet in subnets_by_cidr3]).should.equal(set([subnetA.id, subnetB1.id]))
+    set([subnet.id for subnet in subnets_by_cidr3]
+        ).should.equal(set([subnetA.id, subnetB1.id]))
 
     # Filter by VPC ID and CIDR
-    subnets_by_vpc_and_cidr = conn.get_all_subnets(filters={'vpc-id': vpcB.id, 'cidr': "10.0.0.0/24"})
+    subnets_by_vpc_and_cidr = conn.get_all_subnets(
+        filters={'vpc-id': vpcB.id, 'cidr': "10.0.0.0/24"})
     subnets_by_vpc_and_cidr.should.have.length_of(1)
-    set([subnet.id for subnet in subnets_by_vpc_and_cidr]).should.equal(set([subnetB1.id]))
+    set([subnet.id for subnet in subnets_by_vpc_and_cidr]
+        ).should.equal(set([subnetB1.id]))
 
     # Filter by subnet ID
     subnets_by_id = conn.get_all_subnets(filters={'subnet-id': subnetA.id})
@@ -192,9 +211,11 @@ def test_get_subnets_filtering():
     set([subnet.id for subnet in subnets_by_id]).should.equal(set([subnetA.id]))
 
     # Filter by availabilityZone
-    subnets_by_az = conn.get_all_subnets(filters={'availabilityZone': 'us-west-1a', 'vpc-id': vpcB.id})
+    subnets_by_az = conn.get_all_subnets(
+        filters={'availabilityZone': 'us-west-1a', 'vpc-id': vpcB.id})
     subnets_by_az.should.have.length_of(1)
-    set([subnet.id for subnet in subnets_by_az]).should.equal(set([subnetB1.id]))
+    set([subnet.id for subnet in subnets_by_az]
+        ).should.equal(set([subnetB1.id]))
 
     # Filter by defaultForAz
 
@@ -202,11 +223,12 @@ def test_get_subnets_filtering():
     subnets_by_az.should.have.length_of(len(conn.get_all_zones()))
 
     # Unsupported filter
-    conn.get_all_subnets.when.called_with(filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
+    conn.get_all_subnets.when.called_with(
+        filters={'not-implemented-filter': 'foobar'}).should.throw(NotImplementedError)
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_ec2_deprecated
+@mock_cloudformation_deprecated
 def test_subnet_tags_through_cloudformation():
     vpc_conn = boto.vpc.connect_to_region('us-west-1')
     vpc = vpc_conn.create_vpc("10.0.0.0/16")

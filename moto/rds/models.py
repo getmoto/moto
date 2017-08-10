@@ -1,20 +1,19 @@
 from __future__ import unicode_literals
 
-import copy
 import datetime
 
 import boto.rds
 from jinja2 import Template
 
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
 from moto.rds2.models import rds2_backends
-from .exceptions import DBInstanceNotFoundError, DBSecurityGroupNotFoundError, DBSubnetGroupNotFoundError
 
 
-class Database(object):
+class Database(BaseModel):
+
     def __init__(self, **kwargs):
         self.status = "available"
 
@@ -35,7 +34,8 @@ class Database(object):
         self.storage_type = kwargs.get("storage_type")
         self.master_username = kwargs.get('master_username')
         self.master_password = kwargs.get('master_password')
-        self.auto_minor_version_upgrade = kwargs.get('auto_minor_version_upgrade')
+        self.auto_minor_version_upgrade = kwargs.get(
+            'auto_minor_version_upgrade')
         if self.auto_minor_version_upgrade is None:
             self.auto_minor_version_upgrade = True
         self.allocated_storage = kwargs.get('allocated_storage')
@@ -57,7 +57,8 @@ class Database(object):
         self.db_subnet_group_name = kwargs.get("db_subnet_group_name")
         self.instance_create_time = str(datetime.datetime.utcnow())
         if self.db_subnet_group_name:
-            self.db_subnet_group = rds_backends[self.region].describe_subnet_groups(self.db_subnet_group_name)[0]
+            self.db_subnet_group = rds_backends[
+                self.region].describe_subnet_groups(self.db_subnet_group_name)[0]
         else:
             self.db_subnet_group = []
 
@@ -69,6 +70,11 @@ class Database(object):
         # OptionGroupName
         # DBParameterGroupName
         # VpcSecurityGroupIds.member.N
+
+    @property
+    def db_instance_arn(self):
+        return "arn:aws:rds:{0}:1234567890:db:{1}".format(
+            self.region, self.db_instance_identifier)
 
     @property
     def physical_resource_id(self):
@@ -176,7 +182,7 @@ class Database(object):
               <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
               {% endif %}
               <Engine>{{ database.engine }}</Engine>
-              <LicenseModel>general-public-license</LicenseModel>
+              <LicenseModel>{{ database.license_model }}</LicenseModel>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
               <DBParameterGroups>
               </DBParameterGroups>
@@ -230,6 +236,7 @@ class Database(object):
                 <Address>{{ database.address }}</Address>
                 <Port>{{ database.port }}</Port>
               </Endpoint>
+              <DBInstanceArn>{{ database.db_instance_arn }}</DBInstanceArn>
             </DBInstance>""")
         return template.render(database=self)
 
@@ -238,7 +245,8 @@ class Database(object):
         backend.delete_database(self.db_instance_identifier)
 
 
-class SecurityGroup(object):
+class SecurityGroup(BaseModel):
+
     def __init__(self, group_name, description):
         self.group_name = group_name
         self.description = description
@@ -284,7 +292,8 @@ class SecurityGroup(object):
         properties = cloudformation_json['Properties']
         group_name = resource_name.lower() + get_random_hex(12)
         description = properties['GroupDescription']
-        security_group_ingress_rules = properties.get('DBSecurityGroupIngress', [])
+        security_group_ingress_rules = properties.get(
+            'DBSecurityGroupIngress', [])
         tags = properties.get('Tags')
 
         ec2_backend = ec2_backends[region_name]
@@ -300,10 +309,12 @@ class SecurityGroup(object):
                 if ingress_type == "CIDRIP":
                     security_group.authorize_cidr(ingress_value)
                 elif ingress_type == "EC2SecurityGroupName":
-                    subnet = ec2_backend.get_security_group_from_name(ingress_value)
+                    subnet = ec2_backend.get_security_group_from_name(
+                        ingress_value)
                     security_group.authorize_security_group(subnet)
                 elif ingress_type == "EC2SecurityGroupId":
-                    subnet = ec2_backend.get_security_group_from_id(ingress_value)
+                    subnet = ec2_backend.get_security_group_from_id(
+                        ingress_value)
                     security_group.authorize_security_group(subnet)
         return security_group
 
@@ -312,7 +323,8 @@ class SecurityGroup(object):
         backend.delete_security_group(self.group_name)
 
 
-class SubnetGroup(object):
+class SubnetGroup(BaseModel):
+
     def __init__(self, subnet_name, description, subnets):
         self.subnet_name = subnet_name
         self.description = description
@@ -352,7 +364,8 @@ class SubnetGroup(object):
         tags = properties.get('Tags')
 
         ec2_backend = ec2_backends[region_name]
-        subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
+        subnets = [ec2_backend.get_subnet(subnet_id)
+                   for subnet_id in subnet_ids]
         rds_backend = rds_backends[region_name]
         subnet_group = rds_backend.create_subnet_group(
             subnet_name,
@@ -385,4 +398,6 @@ class RDSBackend(BaseBackend):
     def rds2_backend(self):
         return rds2_backends[self.region]
 
-rds_backends = dict((region.name, RDSBackend(region.name)) for region in boto.rds.regions())
+
+rds_backends = dict((region.name, RDSBackend(region.name))
+                    for region in boto.rds.regions())

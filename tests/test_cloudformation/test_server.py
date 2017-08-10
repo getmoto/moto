@@ -20,11 +20,14 @@ def test_cloudformation_server_get():
         "Resources": {},
     }
     create_stack_resp = test_client.action_data("CreateStack", StackName=stack_name,
-        TemplateBody=json.dumps(template_body))
-    create_stack_resp.should.match(r"<CreateStackResponse>.*<CreateStackResult>.*<StackId>.*</StackId>.*</CreateStackResult>.*</CreateStackResponse>", re.DOTALL)
-    stack_id_from_create_response = re.search("<StackId>(.*)</StackId>", create_stack_resp).groups()[0]
+                                                TemplateBody=json.dumps(template_body))
+    create_stack_resp.should.match(
+        r"<CreateStackResponse>.*<CreateStackResult>.*<StackId>.*</StackId>.*</CreateStackResult>.*</CreateStackResponse>", re.DOTALL)
+    stack_id_from_create_response = re.search(
+        "<StackId>(.*)</StackId>", create_stack_resp).groups()[0]
 
     list_stacks_resp = test_client.action_data("ListStacks")
-    stack_id_from_list_response = re.search("<StackId>(.*)</StackId>", list_stacks_resp).groups()[0]
+    stack_id_from_list_response = re.search(
+        "<StackId>(.*)</StackId>", list_stacks_resp).groups()[0]
 
     stack_id_from_create_response.should.equal(stack_id_from_list_response)

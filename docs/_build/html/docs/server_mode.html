@@ -1,0 +1,283 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Server mode &mdash; Moto 0.4.10 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Moto 0.4.10 documentation" href="../index.html"/>
+        <link rel="next" title="Moto APIs" href="moto_apis.html"/>
+        <link rel="prev" title="Getting Started with Moto" href="getting_started.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Moto
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.4.10
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started with Moto</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Server mode</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#other-languages">Other languages</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moto_apis.html">Moto APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ec2_tut.html">Use Moto as EC2 backend</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Moto</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Server mode</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/docs/server_mode.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="server-mode">
+<span id="id1"></span><h1>Server mode<a class="headerlink" href="#server-mode" title="Permalink to this headline">¶</a></h1>
+<p>Moto has a stand-alone server mode. This allows you to utilize
+the backend structure of Moto even if you don&#8217;t use Python.</p>
+<p>It uses flask, which isn&#8217;t a default dependency. You can install the
+server &#8216;extra&#8217; package with:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">moto</span><span class="p">[</span><span class="n">server</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>You can then start it running a service:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ moto_server ec2
+</pre></div>
+</div>
+<p>You can also pass the port:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ moto_server ec2 -p3000
+ * Running on http://127.0.0.1:3000/
+</pre></div>
+</div>
+<p>If you want to be able to use the server externally you can pass an IP
+address to bind to as a hostname or allow any of your external
+interfaces with 0.0.0.0:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ moto_server ec2 -H <span class="m">0</span>.0.0.0
+ * Running on http://0.0.0.0:5000/
+</pre></div>
+</div>
+<p>Please be aware this might allow other network users to access your
+server.</p>
+<p>Then go to <a class="reference external" href="http://localhost:5000/?Action=DescribeInstances">localhost</a> to see a list of running instances (it will be empty since you haven&#8217;t added any yet).</p>
+<p>If you want to use boto3 with this, you can pass an <cite>endpoint_url</cite> to the resource</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">boto3</span><span class="o">.</span><span class="n">resource</span><span class="p">(</span>
+    <span class="n">service_name</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span>
+    <span class="n">region_name</span><span class="o">=</span><span class="s1">&#39;us-west-1&#39;</span><span class="p">,</span>
+    <span class="n">endpoint_url</span><span class="o">=</span><span class="s1">&#39;http://localhost:5000&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="other-languages">
+<h2>Other languages<a class="headerlink" href="#other-languages" title="Permalink to this headline">¶</a></h2>
+<p>You don&#8217;t need to use Python to use Moto; it can be used with any language. Here are some examples to run it with other languages:</p>
+<ul class="simple">
+<li><a class="reference external" href="https://github.com/spulec/moto/blob/master/other_langs/sqsSample.java">Java</a></li>
+<li><a class="reference external" href="https://github.com/spulec/moto/blob/master/other_langs/test.rb">Ruby</a></li>
+<li><a class="reference external" href="https://github.com/spulec/moto/blob/master/other_langs/test.js">Javascript</a></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="moto_apis.html" class="btn btn-neutral float-right" title="Moto APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="getting_started.html" class="btn btn-neutral" title="Getting Started with Moto" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Steve Pulec.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.4.10',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

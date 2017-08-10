@@ -12,10 +12,18 @@ def camelcase_to_underscores(argument):
     python underscore variable like the_new_attribute'''
     result = ''
     prev_char_title = True
-    for char in argument:
-        if char.istitle() and not prev_char_title:
-            # Only add underscore if char is capital, not first letter, and prev
-            # char wasn't capital
+    for index, char in enumerate(argument):
+        try:
+            next_char_title = argument[index + 1].istitle()
+        except IndexError:
+            next_char_title = True
+
+        upper_to_lower = char.istitle() and not next_char_title
+        lower_to_upper = char.istitle() and not prev_char_title
+
+        if index and (upper_to_lower or lower_to_upper):
+            # Only add underscore if char is capital, not first letter, and next
+            # char is not capital
             result += "_"
         prev_char_title = char.istitle()
         if not char.isspace():  # Only add non-whitespace
@@ -79,6 +87,29 @@ def convert_regex_to_flask_path(url_path):
     return url_path
 
 
+class convert_httpretty_response(object):
+
+    def __init__(self, callback):
+        self.callback = callback
+
+    @property
+    def __name__(self):
+        # For instance methods, use class and method names. Otherwise
+        # use module and method name
+        if inspect.ismethod(self.callback):
+            outer = self.callback.__self__.__class__.__name__
+        else:
+            outer = self.callback.__module__
+        return "{0}.{1}".format(outer, self.callback.__name__)
+
+    def __call__(self, request, url, headers, **kwargs):
+        result = self.callback(request, url, headers)
+        status, headers, response = result
+        if 'server' not in headers:
+            headers["server"] = "amazon.com"
+        return status, headers, response
+
+
 class convert_flask_to_httpretty_response(object):
 
     def __init__(self, callback):
@@ -95,21 +126,63 @@ class convert_flask_to_httpretty_response(object):
         return "{0}.{1}".format(outer, self.callback.__name__)
 
     def __call__(self, args=None, **kwargs):
-        from flask import request
+        from flask import request, Response
 
         result = self.callback(request, request.url, {})
         # result is a status, headers, response tuple
+        if len(result) == 3:
+            status, headers, content = result
+        else:
+            status, headers, content = 200, {}, result
+
+        response = Response(response=content, status=status, headers=headers)
+        if request.method == "HEAD" and 'content-length' in headers:
+            response.headers['Content-Length'] = headers['content-length']
+        return response
+
+
+class convert_flask_to_responses_response(object):
+
+    def __init__(self, callback):
+        self.callback = callback
+
+    @property
+    def __name__(self):
+        # For instance methods, use class and method names. Otherwise
+        # use module and method name
+        if inspect.ismethod(self.callback):
+            outer = self.callback.__self__.__class__.__name__
+        else:
+            outer = self.callback.__module__
+        return "{0}.{1}".format(outer, self.callback.__name__)
+
+    def __call__(self, request, *args, **kwargs):
+        for key, val in request.headers.items():
+            if isinstance(val, six.binary_type):
+                request.headers[key] = val.decode("utf-8")
+
+        result = self.callback(request, request.url, request.headers)
         status, headers, response = result
-        return response, status, headers
+        return status, headers, response
 
 
 def iso_8601_datetime_with_milliseconds(datetime):
     return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + 'Z'
 
 
+def iso_8601_datetime_without_milliseconds(datetime):
+    return datetime.strftime("%Y-%m-%dT%H:%M:%S") + 'Z'
+
+
+RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
+
+
 def rfc_1123_datetime(datetime):
-    RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
     return datetime.strftime(RFC1123)
+
+
+def str_to_rfc_1123_datetime(str):
+    return datetime.datetime.strptime(str, RFC1123)
 
 
 def unix_time(dt=None):

@@ -5,26 +5,27 @@ from nose.tools import assert_raises
 
 import boto
 import boto3
-from boto.exception import EC2ResponseError, JSONResponseError
+from boto.exception import EC2ResponseError
 import six
 
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2, mock_ec2_deprecated
 
 import logging
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_allocate_classic():
     """Allocate/release Classic EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         standard = conn.allocate_address(dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set')
 
     standard = conn.allocate_address()
     standard.should.be.a(boto.ec2.address.Address)
@@ -32,26 +33,28 @@ def test_eip_allocate_classic():
     standard.instance_id.should.be.none
     standard.domain.should.be.equal("standard")
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         standard.release(dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set')
 
     standard.release()
     standard.should_not.be.within(conn.get_all_addresses())
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_allocate_vpc():
     """Allocate/release VPC EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         vpc = conn.allocate_address(domain="vpc", dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set')
 
     vpc = conn.allocate_address(domain="vpc")
     vpc.should.be.a(boto.ec2.address.Address)
@@ -60,7 +63,7 @@ def test_eip_allocate_vpc():
     vpc.release()
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_allocate_invalid_domain():
     """Allocate EIP invalid domain"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -72,7 +75,7 @@ def test_eip_allocate_invalid_domain():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_associate_classic():
     """Associate/Disassociate EIP to classic instance"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -89,24 +92,29 @@ def test_eip_associate_classic():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-    with assert_raises(JSONResponseError) as ex:
-        conn.associate_address(instance_id=instance.id, public_ip=eip.public_ip, dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    with assert_raises(EC2ResponseError) as ex:
+        conn.associate_address(instance_id=instance.id,
+                               public_ip=eip.public_ip, dry_run=True)
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the AssociateAddress operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the AssociateAddress operation: Request would have succeeded, but DryRun flag is set')
 
     conn.associate_address(instance_id=instance.id, public_ip=eip.public_ip)
-    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
+    # no .update() on address ):
+    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]
     eip.instance_id.should.be.equal(instance.id)
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         conn.disassociate_address(public_ip=eip.public_ip, dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the DisAssociateAddress operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the DisAssociateAddress operation: Request would have succeeded, but DryRun flag is set')
 
     conn.disassociate_address(public_ip=eip.public_ip)
-    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
+    # no .update() on address ):
+    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]
     eip.instance_id.should.be.equal(u'')
     eip.release()
     eip.should_not.be.within(conn.get_all_addresses())
@@ -114,7 +122,8 @@ def test_eip_associate_classic():
 
     instance.terminate()
 
-@mock_ec2
+
+@mock_ec2_deprecated
 def test_eip_associate_vpc():
     """Associate/Disassociate EIP to VPC instance"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -131,34 +140,38 @@ def test_eip_associate_vpc():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-    conn.associate_address(instance_id=instance.id, allocation_id=eip.allocation_id)
-    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
+    conn.associate_address(instance_id=instance.id,
+                           allocation_id=eip.allocation_id)
+    # no .update() on address ):
+    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]
     eip.instance_id.should.be.equal(instance.id)
     conn.disassociate_address(association_id=eip.association_id)
-    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
+    # no .update() on address ):
+    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]
     eip.instance_id.should.be.equal(u'')
     eip.association_id.should.be.none
 
-    with assert_raises(JSONResponseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         eip.release(dry_run=True)
-    ex.exception.reason.should.equal('DryRunOperation')
+    ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal('An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set')
+    ex.exception.message.should.equal(
+        'An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set')
 
     eip.release()
     eip = None
 
     instance.terminate()
 
+
 @mock_ec2
 def test_eip_boto3_vpc_association():
     """Associate EIP to VPC instance in a new subnet with boto3"""
-    session = boto3.session.Session(region_name='us-west-1')
-    service = session.resource('ec2')
-    client = session.client('ec2')
+    service = boto3.resource('ec2', region_name='us-west-1')
+    client = boto3.client('ec2', region_name='us-west-1')
     vpc_res = client.create_vpc(CidrBlock='10.0.0.0/24')
     subnet_res = client.create_subnet(
-            VpcId=vpc_res['Vpc']['VpcId'], CidrBlock='10.0.0.0/24')
+        VpcId=vpc_res['Vpc']['VpcId'], CidrBlock='10.0.0.0/24')
     instance = service.create_instances(**{
         'InstanceType': 't2.micro',
         'ImageId': 'ami-test',
@@ -176,7 +189,7 @@ def test_eip_boto3_vpc_association():
     instance.public_dns_name.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_associate_network_interface():
     """Associate/Disassociate EIP to NIC"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -193,18 +206,22 @@ def test_eip_associate_network_interface():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-    conn.associate_address(network_interface_id=eni.id, allocation_id=eip.allocation_id)
-    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
+    conn.associate_address(network_interface_id=eni.id,
+                           allocation_id=eip.allocation_id)
+    # no .update() on address ):
+    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]
     eip.network_interface_id.should.be.equal(eni.id)
 
     conn.disassociate_address(association_id=eip.association_id)
-    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]  # no .update() on address ):
+    # no .update() on address ):
+    eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]
     eip.network_interface_id.should.be.equal(u'')
     eip.association_id.should.be.none
     eip.release()
     eip = None
 
-@mock_ec2
+
+@mock_ec2_deprecated
 def test_eip_reassociate():
     """reassociate EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -220,12 +237,14 @@ def test_eip_reassociate():
 
     # Different ID detects resource association
     with assert_raises(EC2ResponseError) as cm:
-        conn.associate_address(instance_id=instance2.id, public_ip=eip.public_ip, allow_reassociation=False)
+        conn.associate_address(
+            instance_id=instance2.id, public_ip=eip.public_ip, allow_reassociation=False)
     cm.exception.code.should.equal('Resource.AlreadyAssociated')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-    conn.associate_address.when.called_with(instance_id=instance2.id, public_ip=eip.public_ip, allow_reassociation=True).should_not.throw(EC2ResponseError)
+    conn.associate_address.when.called_with(
+        instance_id=instance2.id, public_ip=eip.public_ip, allow_reassociation=True).should_not.throw(EC2ResponseError)
 
     eip.release()
     eip = None
@@ -233,7 +252,8 @@ def test_eip_reassociate():
     instance1.terminate()
     instance2.terminate()
 
-@mock_ec2
+
+@mock_ec2_deprecated
 def test_eip_reassociate_nic():
     """reassociate EIP"""
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -244,24 +264,29 @@ def test_eip_reassociate_nic():
     eni2 = conn.create_network_interface(subnet.id)
 
     eip = conn.allocate_address()
-    conn.associate_address(network_interface_id=eni1.id, public_ip=eip.public_ip)
+    conn.associate_address(network_interface_id=eni1.id,
+                           public_ip=eip.public_ip)
 
     # Same ID is idempotent
-    conn.associate_address(network_interface_id=eni1.id, public_ip=eip.public_ip)
+    conn.associate_address(network_interface_id=eni1.id,
+                           public_ip=eip.public_ip)
 
     # Different ID detects resource association
     with assert_raises(EC2ResponseError) as cm:
-        conn.associate_address(network_interface_id=eni2.id, public_ip=eip.public_ip)
+        conn.associate_address(
+            network_interface_id=eni2.id, public_ip=eip.public_ip)
     cm.exception.code.should.equal('Resource.AlreadyAssociated')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-    conn.associate_address.when.called_with(network_interface_id=eni2.id, public_ip=eip.public_ip, allow_reassociation=True).should_not.throw(EC2ResponseError)
+    conn.associate_address.when.called_with(
+        network_interface_id=eni2.id, public_ip=eip.public_ip, allow_reassociation=True).should_not.throw(EC2ResponseError)
 
     eip.release()
     eip = None
 
-@mock_ec2
+
+@mock_ec2_deprecated
 def test_eip_associate_invalid_args():
     """Associate EIP, invalid args """
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -280,7 +305,7 @@ def test_eip_associate_invalid_args():
     instance.terminate()
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_disassociate_bogus_association():
     """Disassociate bogus EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -291,7 +316,8 @@ def test_eip_disassociate_bogus_association():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
-@mock_ec2
+
+@mock_ec2_deprecated
 def test_eip_release_bogus_eip():
     """Release bogus EIP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -303,7 +329,7 @@ def test_eip_release_bogus_eip():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_disassociate_arg_error():
     """Invalid arguments disassociate address"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -315,7 +341,7 @@ def test_eip_disassociate_arg_error():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_release_arg_error():
     """Invalid arguments release address"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -327,7 +353,7 @@ def test_eip_release_arg_error():
     cm.exception.request_id.should_not.be.none
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_describe():
     """Listing of allocated Elastic IP Addresses."""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -335,7 +361,7 @@ def test_eip_describe():
     number_of_classic_ips = 2
     number_of_vpc_ips = 2
 
-    #allocate some IPs
+    # allocate some IPs
     for _ in range(number_of_classic_ips):
         eips.append(conn.allocate_address())
     for _ in range(number_of_vpc_ips):
@@ -345,25 +371,28 @@ def test_eip_describe():
     # Can we find each one individually?
     for eip in eips:
         if eip.allocation_id:
-            lookup_addresses = conn.get_all_addresses(allocation_ids=[eip.allocation_id])
+            lookup_addresses = conn.get_all_addresses(
+                allocation_ids=[eip.allocation_id])
         else:
-            lookup_addresses = conn.get_all_addresses(addresses=[eip.public_ip])
+            lookup_addresses = conn.get_all_addresses(
+                addresses=[eip.public_ip])
         len(lookup_addresses).should.be.equal(1)
         lookup_addresses[0].public_ip.should.be.equal(eip.public_ip)
 
     # Can we find first two when we search for them?
-    lookup_addresses = conn.get_all_addresses(addresses=[eips[0].public_ip, eips[1].public_ip])
+    lookup_addresses = conn.get_all_addresses(
+        addresses=[eips[0].public_ip, eips[1].public_ip])
     len(lookup_addresses).should.be.equal(2)
     lookup_addresses[0].public_ip.should.be.equal(eips[0].public_ip)
     lookup_addresses[1].public_ip.should.be.equal(eips[1].public_ip)
 
-    #Release all IPs
+    # Release all IPs
     for eip in eips:
         eip.release()
     len(conn.get_all_addresses()).should.be.equal(0)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_eip_describe_none():
     """Error when search for bogus IP"""
     conn = boto.connect_ec2('the_key', 'the_secret')
@@ -373,4 +402,3 @@ def test_eip_describe_none():
     cm.exception.code.should.equal('InvalidAddress.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
-

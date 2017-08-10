@@ -5,12 +5,13 @@ from datetime import timedelta
 import boto.emr
 import pytz
 from dateutil.parser import parse as dtparse
-from moto.core import BaseBackend
-
+from moto.core import BaseBackend, BaseModel
+from moto.emr.exceptions import EmrError
 from .utils import random_instance_group_id, random_cluster_id, random_step_id
 
 
-class FakeApplication(object):
+class FakeApplication(BaseModel):
+
     def __init__(self, name, version, args=None, additional_info=None):
         self.additional_info = additional_info or {}
         self.args = args or []
@@ -18,14 +19,16 @@ class FakeApplication(object):
         self.version = version
 
 
-class FakeBootstrapAction(object):
+class FakeBootstrapAction(BaseModel):
+
     def __init__(self, args, name, script_path):
         self.args = args or []
         self.name = name
         self.script_path = script_path
 
 
-class FakeInstanceGroup(object):
+class FakeInstanceGroup(BaseModel):
+
     def __init__(self, instance_count, instance_role, instance_type,
                  market='ON_DEMAND', name=None, id=None, bid_price=None):
         self.id = id or random_instance_group_id()
@@ -54,7 +57,8 @@ class FakeInstanceGroup(object):
         self.num_instances = instance_count
 
 
-class FakeStep(object):
+class FakeStep(BaseModel):
+
     def __init__(self,
                  state,
                  name='',
@@ -77,7 +81,8 @@ class FakeStep(object):
         self.state = state
 
 
-class FakeCluster(object):
+class FakeCluster(BaseModel):
+
     def __init__(self,
                  emr_backend,
                  name,
@@ -135,17 +140,24 @@ class FakeCluster(object):
                   'instance_type': instance_attrs['slave_instance_type'],
                   'market': 'ON_DEMAND',
                   'name': 'slave'}])
-        self.additional_master_security_groups = instance_attrs.get('additional_master_security_groups')
-        self.additional_slave_security_groups = instance_attrs.get('additional_slave_security_groups')
+        self.additional_master_security_groups = instance_attrs.get(
+            'additional_master_security_groups')
+        self.additional_slave_security_groups = instance_attrs.get(
+            'additional_slave_security_groups')
         self.availability_zone = instance_attrs.get('availability_zone')
         self.ec2_key_name = instance_attrs.get('ec2_key_name')
         self.ec2_subnet_id = instance_attrs.get('ec2_subnet_id')
         self.hadoop_version = instance_attrs.get('hadoop_version')
-        self.keep_job_flow_alive_when_no_steps = instance_attrs.get('keep_job_flow_alive_when_no_steps')
-        self.master_security_group = instance_attrs.get('emr_managed_master_security_group')
-        self.service_access_security_group = instance_attrs.get('service_access_security_group')
-        self.slave_security_group = instance_attrs.get('emr_managed_slave_security_group')
-        self.termination_protected = instance_attrs.get('termination_protected')
+        self.keep_job_flow_alive_when_no_steps = instance_attrs.get(
+            'keep_job_flow_alive_when_no_steps')
+        self.master_security_group = instance_attrs.get(
+            'emr_managed_master_security_group')
+        self.service_access_security_group = instance_attrs.get(
+            'service_access_security_group')
+        self.slave_security_group = instance_attrs.get(
+            'emr_managed_slave_security_group')
+        self.termination_protected = instance_attrs.get(
+            'termination_protected')
 
         self.release_label = release_label
         self.requested_ami_version = requested_ami_version
@@ -286,7 +298,8 @@ class ElasticMapReduceBackend(BaseBackend):
         clusters = self.clusters.values()
 
         within_two_month = datetime.now(pytz.utc) - timedelta(days=60)
-        clusters = [c for c in clusters if c.creation_datetime >= within_two_month]
+        clusters = [
+            c for c in clusters if c.creation_datetime >= within_two_month]
 
         if job_flow_ids:
             clusters = [c for c in clusters if c.id in job_flow_ids]
@@ -294,11 +307,14 @@ class ElasticMapReduceBackend(BaseBackend):
             clusters = [c for c in clusters if c.state in job_flow_states]
         if created_after:
             created_after = dtparse(created_after)
-            clusters = [c for c in clusters if c.creation_datetime > created_after]
+            clusters = [
+                c for c in clusters if c.creation_datetime > created_after]
         if created_before:
             created_before = dtparse(created_before)
-            clusters = [c for c in clusters if c.creation_datetime < created_before]
+            clusters = [
+                c for c in clusters if c.creation_datetime < created_before]
 
+        # Amazon EMR can return a maximum of 512 job flow descriptions
         return sorted(clusters, key=lambda x: x.id)[:512]
 
     def describe_step(self, cluster_id, step_id):
@@ -308,7 +324,9 @@ class ElasticMapReduceBackend(BaseBackend):
                 return step
 
     def get_cluster(self, cluster_id):
-        return self.clusters[cluster_id]
+        if cluster_id in self.clusters:
+            return self.clusters[cluster_id]
+        raise EmrError('ResourceNotFoundException', '', 'error_json')
 
     def get_instance_groups(self, instance_group_ids):
         return [
@@ -321,7 +339,8 @@ class ElasticMapReduceBackend(BaseBackend):
         max_items = 50
         actions = self.clusters[cluster_id].bootstrap_actions
         start_idx = 0 if marker is None else int(marker)
-        marker = None if len(actions) <= start_idx + max_items else str(start_idx + max_items)
+        marker = None if len(actions) <= start_idx + \
+            max_items else str(start_idx + max_items)
         return actions[start_idx:start_idx + max_items], marker
 
     def list_clusters(self, cluster_states=None, created_after=None,
@@ -332,13 +351,16 @@ class ElasticMapReduceBackend(BaseBackend):
             clusters = [c for c in clusters if c.state in cluster_states]
         if created_after:
             created_after = dtparse(created_after)
-            clusters = [c for c in clusters if c.creation_datetime > created_after]
+            clusters = [
+                c for c in clusters if c.creation_datetime > created_after]
         if created_before:
             created_before = dtparse(created_before)
-            clusters = [c for c in clusters if c.creation_datetime < created_before]
+            clusters = [
+                c for c in clusters if c.creation_datetime < created_before]
         clusters = sorted(clusters, key=lambda x: x.id)
         start_idx = 0 if marker is None else int(marker)
-        marker = None if len(clusters) <= start_idx + max_items else str(start_idx + max_items)
+        marker = None if len(clusters) <= start_idx + \
+            max_items else str(start_idx + max_items)
         return clusters[start_idx:start_idx + max_items], marker
 
     def list_instance_groups(self, cluster_id, marker=None):
@@ -346,7 +368,8 @@ class ElasticMapReduceBackend(BaseBackend):
         groups = sorted(self.clusters[cluster_id].instance_groups,
                         key=lambda x: x.id)
         start_idx = 0 if marker is None else int(marker)
-        marker = None if len(groups) <= start_idx + max_items else str(start_idx + max_items)
+        marker = None if len(groups) <= start_idx + \
+            max_items else str(start_idx + max_items)
         return groups[start_idx:start_idx + max_items], marker
 
     def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
@@ -357,7 +380,8 @@ class ElasticMapReduceBackend(BaseBackend):
         if step_states:
             steps = [s for s in steps if s.state in step_states]
         start_idx = 0 if marker is None else int(marker)
-        marker = None if len(steps) <= start_idx + max_items else str(start_idx + max_items)
+        marker = None if len(steps) <= start_idx + \
+            max_items else str(start_idx + max_items)
         return steps[start_idx:start_idx + max_items], marker
 
     def modify_instance_groups(self, instance_groups):

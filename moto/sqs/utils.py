@@ -22,25 +22,32 @@ def parse_message_attributes(querystring, base='', value_namespace='Value.'):
             # Found all attributes
             break
 
-        data_type_key = base + 'MessageAttribute.{0}.{1}DataType'.format(index, value_namespace)
+        data_type_key = base + \
+            'MessageAttribute.{0}.{1}DataType'.format(index, value_namespace)
         data_type = querystring.get(data_type_key)
         if not data_type:
-            raise MessageAttributesInvalid("The message attribute '{0}' must contain non-empty message attribute value.".format(name[0]))
+            raise MessageAttributesInvalid(
+                "The message attribute '{0}' must contain non-empty message attribute value.".format(name[0]))
 
         data_type_parts = data_type[0].split('.')
         if len(data_type_parts) > 2 or data_type_parts[0] not in ['String', 'Binary', 'Number']:
-            raise MessageAttributesInvalid("The message attribute '{0}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String.".format(name[0]))
+            raise MessageAttributesInvalid(
+                "The message attribute '{0}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String.".format(name[0]))
 
         type_prefix = 'String'
         if data_type_parts[0] == 'Binary':
             type_prefix = 'Binary'
 
-        value_key = base + 'MessageAttribute.{0}.{1}{2}Value'.format(index, value_namespace, type_prefix)
+        value_key = base + \
+            'MessageAttribute.{0}.{1}{2}Value'.format(
+                index, value_namespace, type_prefix)
         value = querystring.get(value_key)
         if not value:
-            raise MessageAttributesInvalid("The message attribute '{0}' must contain non-empty message attribute value for message attribute type '{1}'.".format(name[0], data_type[0]))
+            raise MessageAttributesInvalid(
+                "The message attribute '{0}' must contain non-empty message attribute value for message attribute type '{1}'.".format(name[0], data_type[0]))
 
-        message_attributes[name[0]] = {'data_type': data_type[0], type_prefix.lower() + '_value': value[0]}
+        message_attributes[name[0]] = {'data_type': data_type[
+            0], type_prefix.lower() + '_value': value[0]}
 
         index += 1
 

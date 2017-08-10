@@ -1,36 +1,46 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+
+import datetime
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
 from functools import wraps
+from gzip import GzipFile
 from io import BytesIO
+import zlib
 
 import json
 import boto
 import boto3
 from botocore.client import ClientError
+import botocore.exceptions
 from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
+import six
 import requests
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 import sure  # noqa
 
-from moto import mock_s3
+from moto import settings, mock_s3, mock_s3_deprecated
+import moto.s3.models as s3model
 
-
-REDUCED_PART_SIZE = 256
+if settings.TEST_SERVER_MODE:
+    REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE
+    EXPECTED_ETAG = '"140f92a6df9f9e415f74a1463bcee9bb-2"'
+else:
+    REDUCED_PART_SIZE = 256
+    EXPECTED_ETAG = '"66d1a1a2ed08fd05c137f316af4ff255-2"'
 
 
 def reduced_min_part_size(f):
     """ speed up tests by temporarily making the multipart minimum part size
         small
     """
-    import moto.s3.models as s3model
     orig_size = s3model.UPLOAD_PART_MIN_SIZE
 
     @wraps(f)
@@ -44,46 +54,44 @@ def reduced_min_part_size(f):
 
 
 class MyModel(object):
+
     def __init__(self, name, value):
         self.name = name
         self.value = value
 
     def save(self):
-        conn = boto.connect_s3('the_key', 'the_secret')
-        bucket = conn.get_bucket('mybucket')
-        k = Key(bucket)
-        k.key = self.name
-        k.set_contents_from_string(self.value)
+        s3 = boto3.client('s3', region_name='us-east-1')
+        s3.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
 
 
 @mock_s3
 def test_my_model_save():
     # Create Bucket so that test can run
-    conn = boto.connect_s3('the_key', 'the_secret')
-    conn.create_bucket('mybucket')
+    conn = boto3.resource('s3', region_name='us-east-1')
+    conn.create_bucket(Bucket='mybucket')
     ####################################
 
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn.get_bucket('mybucket').get_key('steve').get_contents_as_string().should.equal(b'is awesome')
+    body = conn.Object('mybucket', 'steve').get()['Body'].read().decode()
+
+    assert body == 'is awesome'
 
 
 @mock_s3
 def test_key_etag():
-    # Create Bucket so that test can run
-    conn = boto.connect_s3('the_key', 'the_secret')
-    conn.create_bucket('mybucket')
-    ####################################
+    conn = boto3.resource('s3', region_name='us-east-1')
+    conn.create_bucket(Bucket='mybucket')
 
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    conn.get_bucket('mybucket').get_key('steve').etag.should.equal(
+    conn.Bucket('mybucket').Object('steve').e_tag.should.equal(
         '"d32bda93738f7e03adb22e66c90fbc04"')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_multipart_upload_too_small():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -95,7 +103,7 @@ def test_multipart_upload_too_small():
     multipart.complete_upload.should.throw(S3ResponseError)
 
 
-@mock_s3
+@mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_upload():
     conn = boto.connect_s3('the_key', 'the_secret')
@@ -109,10 +117,11 @@ def test_multipart_upload():
     multipart.upload_part_from_file(BytesIO(part2), 2)
     multipart.complete_upload()
     # we should get both parts as the key contents
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(part1 + part2)
 
 
-@mock_s3
+@mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_upload_out_of_order():
     conn = boto.connect_s3('the_key', 'the_secret')
@@ -126,16 +135,18 @@ def test_multipart_upload_out_of_order():
     multipart.upload_part_from_file(BytesIO(part1), 2)
     multipart.complete_upload()
     # we should get both parts as the key contents
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(part1 + part2)
 
 
-@mock_s3
+@mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_upload_with_headers():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
 
-    multipart = bucket.initiate_multipart_upload("the-key", metadata={"foo": "bar"})
+    multipart = bucket.initiate_multipart_upload(
+        "the-key", metadata={"foo": "bar"})
     part1 = b'0' * 10
     multipart.upload_part_from_file(BytesIO(part1), 1)
     multipart.complete_upload()
@@ -144,7 +155,7 @@ def test_multipart_upload_with_headers():
     key.metadata.should.equal({"foo": "bar"})
 
 
-@mock_s3
+@mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_upload_with_copy_key():
     conn = boto.connect_s3('the_key', 'the_secret')
@@ -158,10 +169,11 @@ def test_multipart_upload_with_copy_key():
     multipart.upload_part_from_file(BytesIO(part1), 1)
     multipart.copy_part_from_key("foobar", "original-key", 2, 0, 3)
     multipart.complete_upload()
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + b"key_")
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(part1 + b"key_")
 
 
-@mock_s3
+@mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_upload_cancel():
     conn = boto.connect_s3('the_key', 'the_secret')
@@ -175,7 +187,7 @@ def test_multipart_upload_cancel():
     # have the ability to list mulipart uploads for a bucket.
 
 
-@mock_s3
+@mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_etag():
     # Create Bucket so that test can run
@@ -190,11 +202,10 @@ def test_multipart_etag():
     multipart.upload_part_from_file(BytesIO(part2), 2)
     multipart.complete_upload()
     # we should get both parts as the key contents
-    bucket.get_key("the-key").etag.should.equal(
-        '"66d1a1a2ed08fd05c137f316af4ff255-2"')
+    bucket.get_key("the-key").etag.should.equal(EXPECTED_ETAG)
 
 
-@mock_s3
+@mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_invalid_order():
     # Create Bucket so that test can run
@@ -214,7 +225,7 @@ def test_multipart_invalid_order():
         multipart.key_name, multipart.id, xml).should.throw(S3ResponseError)
 
 
-@mock_s3
+@mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_duplicate_upload():
     conn = boto.connect_s3('the_key', 'the_secret')
@@ -229,10 +240,11 @@ def test_multipart_duplicate_upload():
     multipart.upload_part_from_file(BytesIO(part2), 2)
     multipart.complete_upload()
     # We should get only one copy of part 1.
-    bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + part2)
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(part1 + part2)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_list_multiparts():
     # Create Bucket so that test can run
     conn = boto.connect_s3('the_key', 'the_secret')
@@ -253,32 +265,34 @@ def test_list_multiparts():
     uploads.should.be.empty
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_key_save_to_missing_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.get_bucket('mybucket', validate=False)
 
     key = Key(bucket)
     key.key = "the-key"
-    key.set_contents_from_string.when.called_with("foobar").should.throw(S3ResponseError)
+    key.set_contents_from_string.when.called_with(
+        "foobar").should.throw(S3ResponseError)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_missing_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
     bucket.get_key("the-key").should.equal(None)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_missing_key_urllib2():
     conn = boto.connect_s3('the_key', 'the_secret')
     conn.create_bucket("foobar")
 
-    urlopen.when.called_with("http://foobar.s3.amazonaws.com/the-key").should.throw(HTTPError)
+    urlopen.when.called_with(
+        "http://foobar.s3.amazonaws.com/the-key").should.throw(HTTPError)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_empty_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -291,7 +305,7 @@ def test_empty_key():
     key.get_contents_as_string().should.equal(b'')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_empty_key_set_on_existing_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -307,7 +321,7 @@ def test_empty_key_set_on_existing_key():
     bucket.get_key("the-key").get_contents_as_string().should.equal(b'')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_large_key_save():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -315,10 +329,11 @@ def test_large_key_save():
     key.key = "the-key"
     key.set_contents_from_string("foobar" * 100000)
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b'foobar' * 100000)
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(b'foobar' * 100000)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_copy_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -328,11 +343,13 @@ def test_copy_key():
 
     bucket.copy_key('new-key', 'foobar', 'the-key')
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b"some value")
-    bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key(
+        "new-key").get_contents_as_string().should.equal(b"some value")
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_copy_key_with_version():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -344,11 +361,13 @@ def test_copy_key_with_version():
 
     bucket.copy_key('new-key', 'foobar', 'the-key', src_version_id='0')
 
-    bucket.get_key("the-key").get_contents_as_string().should.equal(b"another value")
-    bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key(
+        "the-key").get_contents_as_string().should.equal(b"another value")
+    bucket.get_key(
+        "new-key").get_contents_as_string().should.equal(b"some value")
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_set_metadata():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -360,7 +379,7 @@ def test_set_metadata():
     bucket.get_key('the-key').get_metadata('md').should.equal('Metadatastring')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_copy_key_replace_metadata():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -373,11 +392,12 @@ def test_copy_key_replace_metadata():
                     metadata={'momd': 'Mometadatastring'})
 
     bucket.get_key("new-key").get_metadata('md').should.be.none
-    bucket.get_key("new-key").get_metadata('momd').should.equal('Mometadatastring')
+    bucket.get_key(
+        "new-key").get_metadata('momd').should.equal('Mometadatastring')
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_s3
+@mock_s3_deprecated
 def test_last_modified():
     # See https://github.com/boto/boto/issues/466
     conn = boto.connect_s3()
@@ -389,22 +409,24 @@ def test_last_modified():
     rs = bucket.get_all_keys()
     rs[0].last_modified.should.equal('2012-01-01T12:00:00.000Z')
 
-    bucket.get_key("the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
+    bucket.get_key(
+        "the-key").last_modified.should.equal('Sun, 01 Jan 2012 12:00:00 GMT')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_missing_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
     conn.get_bucket.when.called_with('mybucket').should.throw(S3ResponseError)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_bucket_with_dash():
     conn = boto.connect_s3('the_key', 'the_secret')
-    conn.get_bucket.when.called_with('mybucket-test').should.throw(S3ResponseError)
+    conn.get_bucket.when.called_with(
+        'mybucket-test').should.throw(S3ResponseError)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_create_existing_bucket():
     "Trying to create a bucket that already exists should raise an Error"
     conn = boto.s3.connect_to_region("us-west-2")
@@ -413,7 +435,7 @@ def test_create_existing_bucket():
         conn.create_bucket('foobar')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_create_existing_bucket_in_us_east_1():
     "Trying to create a bucket that already exists in us-east-1 returns the bucket"
 
@@ -430,14 +452,15 @@ def test_create_existing_bucket_in_us_east_1():
     bucket.name.should.equal("foobar")
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_other_region():
-    conn = S3Connection('key', 'secret', host='s3-website-ap-southeast-2.amazonaws.com')
+    conn = S3Connection(
+        'key', 'secret', host='s3-website-ap-southeast-2.amazonaws.com')
     conn.create_bucket("foobar")
     list(conn.get_bucket("foobar").get_all_keys()).should.equal([])
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_bucket_deletion():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -459,7 +482,7 @@ def test_bucket_deletion():
     conn.delete_bucket.when.called_with("foobar").should.throw(S3ResponseError)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_get_all_buckets():
     conn = boto.connect_s3('the_key', 'the_secret')
     conn.create_bucket("foobar")
@@ -470,6 +493,7 @@ def test_get_all_buckets():
 
 
 @mock_s3
+@mock_s3_deprecated
 def test_post_to_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -483,6 +507,7 @@ def test_post_to_bucket():
 
 
 @mock_s3
+@mock_s3_deprecated
 def test_post_with_metadata_to_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -496,7 +521,7 @@ def test_post_with_metadata_to_bucket():
     bucket.get_key('the-key').get_metadata('test').should.equal('metadata')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_delete_missing_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
@@ -505,7 +530,7 @@ def test_delete_missing_key():
     deleted_key.key.should.equal("foobar")
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_delete_keys():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
@@ -523,7 +548,7 @@ def test_delete_keys():
     keys[0].name.should.equal('file1')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_delete_keys_with_invalid():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
@@ -542,17 +567,7 @@ def test_delete_keys_with_invalid():
     keys[0].name.should.equal('file1')
 
 
-@mock_s3
-def test_bucket_method_not_implemented():
-    requests.patch.when.called_with("https://foobar.s3.amazonaws.com/").should.throw(NotImplementedError)
-
-
-@mock_s3
-def test_key_method_not_implemented():
-    requests.post.when.called_with("https://foobar.s3.amazonaws.com/foo").should.throw(NotImplementedError)
-
-
-@mock_s3
+@mock_s3_deprecated
 def test_bucket_name_with_dot():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('firstname.lastname')
@@ -561,7 +576,7 @@ def test_bucket_name_with_dot():
     k.set_contents_from_string('somedata')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_key_with_special_characters():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('test_bucket_name')
@@ -574,7 +589,7 @@ def test_key_with_special_characters():
     keys[0].name.should.equal("test_list_keys_2/x?y")
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_unicode_key_with_slash():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -586,7 +601,7 @@ def test_unicode_key_with_slash():
     key.get_contents_as_string().should.equal(b'value')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_bucket_key_listing_order():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('test_bucket')
@@ -621,14 +636,15 @@ def test_bucket_key_listing_order():
 
     delimiter = None
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
-    keys.should.equal([u'toplevel/x/key', u'toplevel/x/y/key', u'toplevel/x/y/z/key'])
+    keys.should.equal(
+        [u'toplevel/x/key', u'toplevel/x/y/key', u'toplevel/x/y/z/key'])
 
     delimiter = '/'
     keys = [x.name for x in bucket.list(prefix + 'x', delimiter)]
     keys.should.equal([u'toplevel/x/'])
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_key_with_reduced_redundancy():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('test_bucket_name')
@@ -640,7 +656,7 @@ def test_key_with_reduced_redundancy():
     list(bucket)[0].storage_class.should.equal('REDUCED_REDUNDANCY')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_copy_key_reduced_redundancy():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -648,7 +664,8 @@ def test_copy_key_reduced_redundancy():
     key.key = "the-key"
     key.set_contents_from_string("some value")
 
-    bucket.copy_key('new-key', 'foobar', 'the-key', storage_class='REDUCED_REDUNDANCY')
+    bucket.copy_key('new-key', 'foobar', 'the-key',
+                    storage_class='REDUCED_REDUNDANCY')
 
     # we use the bucket iterator because of:
     # https:/github.com/boto/boto/issues/1173
@@ -658,7 +675,7 @@ def test_copy_key_reduced_redundancy():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_s3
+@mock_s3_deprecated
 def test_restore_key():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -679,7 +696,7 @@ def test_restore_key():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_s3
+@mock_s3_deprecated
 def test_restore_key_headers():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
@@ -693,7 +710,7 @@ def test_restore_key_headers():
     key.expiry_date.should.equal("Mon, 02 Jan 2012 12:00:00 GMT")
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_get_versioning_status():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
@@ -710,7 +727,7 @@ def test_get_versioning_status():
     d.should.have.key('Versioning').being.equal('Suspended')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_key_version():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
@@ -728,7 +745,7 @@ def test_key_version():
     key.version_id.should.equal('1')
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_list_versions():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
@@ -754,7 +771,7 @@ def test_list_versions():
     versions[1].get_contents_as_string().should.equal(b"Version 2")
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_acl_setting():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('foobar')
@@ -775,7 +792,7 @@ def test_acl_setting():
                g.permission == 'READ' for g in grants), grants
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_acl_setting_via_headers():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('foobar')
@@ -797,7 +814,7 @@ def test_acl_setting_via_headers():
                g.permission == 'FULL_CONTROL' for g in grants), grants
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_acl_switching():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('foobar')
@@ -814,7 +831,7 @@ def test_acl_switching():
                    g.permission == 'READ' for g in grants), grants
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_bucket_acl_setting():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('foobar')
@@ -826,7 +843,7 @@ def test_bucket_acl_setting():
                g.permission == 'READ' for g in grants), grants
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_bucket_acl_switching():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('foobar')
@@ -839,7 +856,7 @@ def test_bucket_acl_switching():
                    g.permission == 'READ' for g in grants), grants
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_unicode_key():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('mybucket')
@@ -852,7 +869,7 @@ def test_unicode_key():
     assert fetched_key.get_contents_as_string().decode("utf-8") == 'Hello world!'
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_unicode_value():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('mybucket')
@@ -864,7 +881,7 @@ def test_unicode_value():
     assert key.get_contents_as_string().decode("utf-8") == u'こんにちは.jpg'
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_setting_content_encoding():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('mybucket')
@@ -877,14 +894,14 @@ def test_setting_content_encoding():
     key.content_encoding.should.equal("gzip")
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_bucket_location():
     conn = boto.s3.connect_to_region("us-west-2")
     bucket = conn.create_bucket('mybucket')
     bucket.get_location().should.equal("us-west-2")
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_ranged_get():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('mybucket')
@@ -894,39 +911,59 @@ def test_ranged_get():
     key.set_contents_from_string(rep * 10)
 
     # Implicitly bounded range requests.
-    key.get_contents_as_string(headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=99-'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=99-'}).should.equal(b'9')
 
     # Explicitly bounded range requests starting from the first byte.
-    key.get_contents_as_string(headers={'Range': 'bytes=0-0'}).should.equal(b'0')
-    key.get_contents_as_string(headers={'Range': 'bytes=0-49'}).should.equal(rep * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=0-100'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=0-700'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-0'}).should.equal(b'0')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-49'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-99'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-100'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=0-700'}).should.equal(rep * 10)
 
     # Explicitly bounded range requests starting from the / a middle byte.
-    key.get_contents_as_string(headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
-    key.get_contents_as_string(headers={'Range': 'bytes=50-99'}).should.equal(rep * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=50-100'}).should.equal(rep * 5)
-    key.get_contents_as_string(headers={'Range': 'bytes=50-700'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-54'}).should.equal(rep[:5])
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-99'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-100'}).should.equal(rep * 5)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=50-700'}).should.equal(rep * 5)
 
     # Explicitly bounded range requests starting from the last byte.
-    key.get_contents_as_string(headers={'Range': 'bytes=99-99'}).should.equal(b'9')
-    key.get_contents_as_string(headers={'Range': 'bytes=99-100'}).should.equal(b'9')
-    key.get_contents_as_string(headers={'Range': 'bytes=99-700'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=99-99'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=99-100'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=99-700'}).should.equal(b'9')
 
     # Suffix range requests.
-    key.get_contents_as_string(headers={'Range': 'bytes=-1'}).should.equal(b'9')
-    key.get_contents_as_string(headers={'Range': 'bytes=-60'}).should.equal(rep * 6)
-    key.get_contents_as_string(headers={'Range': 'bytes=-100'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=-101'}).should.equal(rep * 10)
-    key.get_contents_as_string(headers={'Range': 'bytes=-700'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-1'}).should.equal(b'9')
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-60'}).should.equal(rep * 6)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-100'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-101'}).should.equal(rep * 10)
+    key.get_contents_as_string(
+        headers={'Range': 'bytes=-700'}).should.equal(rep * 10)
 
     key.size.should.equal(100)
 
 
-@mock_s3
+@mock_s3_deprecated
 def test_policy():
     conn = boto.connect_s3()
     bucket_name = 'mybucket'
@@ -976,6 +1013,31 @@ def test_policy():
         bucket.get_policy()
 
 
+@mock_s3_deprecated
+def test_website_configuration_xml():
+    conn = boto.connect_s3()
+    bucket = conn.create_bucket('test-bucket')
+    bucket.set_website_configuration_xml(TEST_XML)
+    bucket.get_website_configuration_xml().should.equal(TEST_XML)
+
+
+@mock_s3_deprecated
+def test_key_with_trailing_slash_in_ordinary_calling_format():
+    conn = boto.connect_s3(
+        'access_key',
+        'secret_key',
+        calling_format=boto.s3.connection.OrdinaryCallingFormat()
+    )
+    bucket = conn.create_bucket('test_bucket_name')
+
+    key_name = 'key_with_slash/'
+
+    key = Key(bucket, key_name)
+    key.set_contents_from_string('some value')
+
+    [k.name for k in bucket.get_all_keys()].should.contain(key_name)
+
+
 """
 boto3
 """
@@ -990,13 +1052,148 @@ def test_boto3_key_etag():
     resp['ETag'].should.equal('"d32bda93738f7e03adb22e66c90fbc04"')
 
 @mock_s3
+def test_website_redirect_location():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+
+    s3.put_object(Bucket='mybucket', Key='steve', Body=b'is awesome')
+    resp = s3.get_object(Bucket='mybucket', Key='steve')
+    resp.get('WebsiteRedirectLocation').should.be.none
+
+    url = 'https://github.com/spulec/moto'
+    s3.put_object(Bucket='mybucket', Key='steve', Body=b'is awesome', WebsiteRedirectLocation=url)
+    resp = s3.get_object(Bucket='mybucket', Key='steve')
+    resp['WebsiteRedirectLocation'].should.equal(url)
+
+@mock_s3
 def test_boto3_list_keys_xml_escaped():
     s3 = boto3.client('s3', region_name='us-east-1')
     s3.create_bucket(Bucket='mybucket')
     key_name = 'Q&A.txt'
     s3.put_object(Bucket='mybucket', Key=key_name, Body=b'is awesome')
+
     resp = s3.list_objects_v2(Bucket='mybucket', Prefix=key_name)
+
     assert resp['Contents'][0]['Key'] == key_name
+    assert resp['KeyCount'] == 1
+    assert resp['MaxKeys'] == 1000
+    assert resp['Prefix'] == key_name
+    assert resp['IsTruncated'] == False
+    assert 'Delimiter' not in resp
+    assert 'StartAfter' not in resp
+    assert 'NextContinuationToken' not in resp
+    assert 'Owner' not in resp['Contents'][0]
+
+
+@mock_s3
+def test_boto3_list_objects_v2_truncated_response():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='one', Body=b'1')
+    s3.put_object(Bucket='mybucket', Key='two', Body=b'22')
+    s3.put_object(Bucket='mybucket', Key='three', Body=b'333')
+
+    # First list
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'one'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == True
+    assert 'Delimiter' not in resp
+    assert 'StartAfter' not in resp
+    assert 'Owner' not in listed_object  # owner info was not requested
+
+    next_token = resp['NextContinuationToken']
+
+    # Second list
+    resp = s3.list_objects_v2(
+        Bucket='mybucket', MaxKeys=1, ContinuationToken=next_token)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'three'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == True
+    assert 'Delimiter' not in resp
+    assert 'StartAfter' not in resp
+    assert 'Owner' not in listed_object
+
+    next_token = resp['NextContinuationToken']
+
+    # Third list
+    resp = s3.list_objects_v2(
+        Bucket='mybucket', MaxKeys=1, ContinuationToken=next_token)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'two'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == False
+    assert 'Delimiter' not in resp
+    assert 'Owner' not in listed_object
+    assert 'StartAfter' not in resp
+    assert 'NextContinuationToken' not in resp
+
+
+@mock_s3
+def test_boto3_list_objects_v2_truncated_response_start_after():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='one', Body=b'1')
+    s3.put_object(Bucket='mybucket', Key='two', Body=b'22')
+    s3.put_object(Bucket='mybucket', Key='three', Body=b'333')
+
+    # First list
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1, StartAfter='one')
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'three'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == True
+    assert resp['StartAfter'] == 'one'
+    assert 'Delimiter' not in resp
+    assert 'Owner' not in listed_object
+
+    next_token = resp['NextContinuationToken']
+
+    # Second list
+    # The ContinuationToken must take precedence over StartAfter.
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=1, StartAfter='one',
+                              ContinuationToken=next_token)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'two'
+    assert resp['MaxKeys'] == 1
+    assert resp['Prefix'] == ''
+    assert resp['KeyCount'] == 1
+    assert resp['IsTruncated'] == False
+    # When ContinuationToken is given, StartAfter is ignored. This also means
+    # AWS does not return it in the response.
+    assert 'StartAfter' not in resp
+    assert 'Delimiter' not in resp
+    assert 'Owner' not in listed_object
+
+
+@mock_s3
+def test_boto3_list_objects_v2_fetch_owner():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='one', Body=b'11')
+
+    resp = s3.list_objects_v2(Bucket='mybucket', FetchOwner=True)
+    owner = resp['Contents'][0]['Owner']
+
+    assert 'ID' in owner
+    assert 'DisplayName' in owner
+    assert len(owner.keys()) == 2
+
 
 @mock_s3
 def test_boto3_bucket_create():
@@ -1005,7 +1202,24 @@ def test_boto3_bucket_create():
 
     s3.Object('blah', 'hello.txt').put(Body="some text")
 
-    s3.Object('blah', 'hello.txt').get()['Body'].read().decode("utf-8").should.equal("some text")
+    s3.Object('blah', 'hello.txt').get()['Body'].read().decode(
+        "utf-8").should.equal("some text")
+
+
+@mock_s3
+def test_bucket_create_duplicate():
+    s3 = boto3.resource('s3', region_name='us-west-2')
+    s3.create_bucket(Bucket="blah", CreateBucketConfiguration={
+        'LocationConstraint': 'us-west-2',
+    })
+    with assert_raises(ClientError) as exc:
+        s3.create_bucket(
+            Bucket="blah",
+            CreateBucketConfiguration={
+                'LocationConstraint': 'us-west-2',
+            }
+        )
+    exc.exception.response['Error']['Code'].should.equal('BucketAlreadyExists')
 
 
 @mock_s3
@@ -1015,7 +1229,8 @@ def test_boto3_bucket_create_eu_central():
 
     s3.Object('blah', 'hello.txt').put(Body="some text")
 
-    s3.Object('blah', 'hello.txt').get()['Body'].read().decode("utf-8").should.equal("some text")
+    s3.Object('blah', 'hello.txt').get()['Body'].read().decode(
+        "utf-8").should.equal("some text")
 
 
 @mock_s3
@@ -1025,10 +1240,38 @@ def test_boto3_head_object():
 
     s3.Object('blah', 'hello.txt').put(Body="some text")
 
-    s3.Object('blah', 'hello.txt').meta.client.head_object(Bucket='blah', Key='hello.txt')
+    s3.Object('blah', 'hello.txt').meta.client.head_object(
+        Bucket='blah', Key='hello.txt')
 
-    with assert_raises(ClientError):
-        s3.Object('blah', 'hello2.txt').meta.client.head_object(Bucket='blah', Key='hello_bad.txt')
+    with assert_raises(ClientError) as e:
+        s3.Object('blah', 'hello2.txt').meta.client.head_object(
+            Bucket='blah', Key='hello_bad.txt')
+    e.exception.response['Error']['Code'].should.equal('404')
+
+
+@mock_s3
+def test_boto3_bucket_deletion():
+    cli = boto3.client('s3', region_name='us-east-1')
+    cli.create_bucket(Bucket="foobar")
+
+    cli.put_object(Bucket="foobar", Key="the-key", Body="some value")
+
+    # Try to delete a bucket that still has keys
+    cli.delete_bucket.when.called_with(Bucket="foobar").should.throw(
+        cli.exceptions.ClientError,
+        ('An error occurred (BucketNotEmpty) when calling the DeleteBucket operation: '
+         'The bucket you tried to delete is not empty'))
+
+    cli.delete_object(Bucket="foobar", Key="the-key")
+    cli.delete_bucket(Bucket="foobar")
+
+    # Get non-existing bucket
+    cli.head_bucket.when.called_with(Bucket="foobar").should.throw(
+        cli.exceptions.ClientError,
+        "An error occurred (404) when calling the HeadBucket operation: Not Found")
+
+    # Delete non-existing bucket
+    cli.delete_bucket.when.called_with(Bucket="foobar").should.throw(cli.exceptions.NoSuchBucket)
 
 
 @mock_s3
@@ -1038,7 +1281,8 @@ def test_boto3_get_object():
 
     s3.Object('blah', 'hello.txt').put(Body="some text")
 
-    s3.Object('blah', 'hello.txt').meta.client.head_object(Bucket='blah', Key='hello.txt')
+    s3.Object('blah', 'hello.txt').meta.client.head_object(
+        Bucket='blah', Key='hello.txt')
 
     with assert_raises(ClientError) as e:
         s3.Object('blah', 'hello2.txt').get()
@@ -1069,6 +1313,30 @@ def test_boto3_head_object_with_versioning():
 
 
 @mock_s3
+def test_boto3_head_object_if_modified_since():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = 'hello.txt'
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test'
+    )
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        s3.head_object(
+            Bucket=bucket_name,
+            Key=key,
+            IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        )
+    e = err.exception
+    e.response['Error'].should.equal({'Code': '304', 'Message': 'Not Modified'})
+
+
+@mock_s3
 @reduced_min_part_size
 def test_boto3_multipart_etag():
     # Create Bucket so that test can run
@@ -1093,7 +1361,209 @@ def test_boto3_multipart_etag():
                                    for i, etag in enumerate(etags, 1)]})
     # we should get both parts as the key contents
     resp = s3.get_object(Bucket='mybucket', Key='the-key')
-    resp['ETag'].should.equal('"66d1a1a2ed08fd05c137f316af4ff255-2"')
+    resp['ETag'].should.equal(EXPECTED_ETAG)
+
+
+@mock_s3
+def test_boto3_put_object_with_tagging():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-tags'
+    s3.create_bucket(Bucket=bucket_name)
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test',
+        Tagging='foo=bar',
+    )
+
+    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key)
+
+    resp['TagSet'].should.contain({'Key': 'foo', 'Value': 'bar'})
+
+
+@mock_s3
+def test_boto3_put_object_tagging():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-tags'
+    s3.create_bucket(Bucket=bucket_name)
+
+    with assert_raises(ClientError) as err:
+        s3.put_object_tagging(
+            Bucket=bucket_name,
+            Key=key,
+            Tagging={'TagSet': [
+                {'Key': 'item1', 'Value': 'foo'},
+                {'Key': 'item2', 'Value': 'bar'},
+            ]}
+        )
+
+    e = err.exception
+    e.response['Error'].should.equal({
+        'Code': 'NoSuchKey',
+        'Message': 'The specified key does not exist.',
+        'RequestID': '7a62c49f-347e-4fc4-9331-6e8eEXAMPLE',
+    })
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test'
+    )
+
+    resp = s3.put_object_tagging(
+        Bucket=bucket_name,
+        Key=key,
+        Tagging={'TagSet': [
+            {'Key': 'item1', 'Value': 'foo'},
+            {'Key': 'item2', 'Value': 'bar'},
+        ]}
+    )
+
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+
+@mock_s3
+def test_boto3_get_object_tagging():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-tags'
+    s3.create_bucket(Bucket=bucket_name)
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test'
+    )
+
+    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key)
+    resp['TagSet'].should.have.length_of(0)
+
+    resp = s3.put_object_tagging(
+        Bucket=bucket_name,
+        Key=key,
+        Tagging={'TagSet': [
+            {'Key': 'item1', 'Value': 'foo'},
+            {'Key': 'item2', 'Value': 'bar'},
+        ]}
+    )
+    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key)
+
+    resp['TagSet'].should.have.length_of(2)
+    resp['TagSet'].should.contain({'Key': 'item1', 'Value': 'foo'})
+    resp['TagSet'].should.contain({'Key': 'item2', 'Value': 'bar'})
+
+
+@mock_s3
+def test_boto3_list_object_versions():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-versions'
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            'Status': 'Enabled'
+        }
+    )
+    items = (six.b('v1'), six.b('v2'))
+    for body in items:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+    response = s3.list_object_versions(
+        Bucket=bucket_name
+    )
+    # Two object versions should be returned
+    len(response['Versions']).should.equal(2)
+    keys = set([item['Key'] for item in response['Versions']])
+    keys.should.equal({key})
+    # Test latest object version is returned
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+    response['Body'].read().should.equal(items[-1])
+
+
+@mock_s3
+def test_boto3_delete_markers():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-versions'
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            'Status': 'Enabled'
+        }
+    )
+    items = (six.b('v1'), six.b('v2'))
+    for body in items:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+    s3.delete_object(
+        Bucket=bucket_name,
+        Key=key
+    )
+    with assert_raises(ClientError) as e:
+        s3.get_object(
+            Bucket=bucket_name,
+            Key=key
+        )
+        e.response['Error']['Code'].should.equal('404')
+
+    s3.delete_object(
+        Bucket=bucket_name,
+        Key=key,
+        VersionId='2'
+    )
+    response = s3.get_object(
+        Bucket=bucket_name,
+        Key=key
+    )
+    response['Body'].read().should.equal(items[-1])
+    response = s3.list_object_versions(
+        Bucket=bucket_name
+    )
+    response['Versions'].should.have.length_of(2)
+    response['Versions'][-1]['IsLatest'].should.be.true
+    response['Versions'][0]['IsLatest'].should.be.false
+    [(key_metadata['Key'], key_metadata['VersionId'])
+     for key_metadata in response['Versions']].should.equal(
+        [('key-with-versions', '0'), ('key-with-versions', '1')]
+    )
+
+
+@mock_s3
+def test_get_stream_gzipped():
+    payload = b"this is some stuff here"
+
+    s3_client = boto3.client("s3", region_name='us-east-1')
+    s3_client.create_bucket(Bucket='moto-tests')
+    buffer_ = BytesIO()
+    with GzipFile(fileobj=buffer_, mode='w') as f:
+        f.write(payload)
+    payload_gz = buffer_.getvalue()
+
+    s3_client.put_object(
+        Bucket='moto-tests',
+        Key='keyname',
+        Body=payload_gz,
+        ContentEncoding='gzip',
+    )
+
+    obj = s3_client.get_object(
+        Bucket='moto-tests',
+        Key='keyname',
+    )
+    res = zlib.decompress(obj['Body'].read(), 16+zlib.MAX_WBITS)
+    assert res == payload
+
 
 
 TEST_XML = """\
@@ -1114,28 +1584,3 @@ TEST_XML = """\
     </ns0:RoutingRules>
 </ns0:WebsiteConfiguration>
 """
-
-
-@mock_s3
-def test_website_configuration_xml():
-    conn = boto.connect_s3()
-    bucket = conn.create_bucket('test-bucket')
-    bucket.set_website_configuration_xml(TEST_XML)
-    bucket.get_website_configuration_xml().should.equal(TEST_XML)
-
-
-@mock_s3
-def test_key_with_trailing_slash_in_ordinary_calling_format():
-    conn = boto.connect_s3(
-        'access_key',
-        'secret_key',
-        calling_format=boto.s3.connection.OrdinaryCallingFormat()
-    )
-    bucket = conn.create_bucket('test_bucket_name')
-
-    key_name = 'key_with_slash/'
-
-    key = Key(bucket, key_name)
-    key.set_contents_from_string('some value')
-
-    [k.name for k in bucket.get_all_keys()].should.contain(key_name)

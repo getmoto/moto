@@ -4,10 +4,10 @@ import boto.ec2
 import boto3
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2, mock_ec2_deprecated
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_describe_regions():
     conn = boto.connect_ec2('the_key', 'the_secret')
     regions = conn.get_all_regions()
@@ -16,7 +16,7 @@ def test_describe_regions():
         region.endpoint.should.contain(region.name)
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_availability_zones():
     conn = boto.connect_ec2('the_key', 'the_secret')
     regions = conn.get_all_regions()

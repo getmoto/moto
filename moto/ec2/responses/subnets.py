@@ -5,13 +5,15 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class Subnets(BaseResponse):
+
     def create_subnet(self):
         vpc_id = self.querystring.get('VpcId')[0]
         cidr_block = self.querystring.get('CidrBlock')[0]
         if 'AvailabilityZone' in self.querystring:
             availability_zone = self.querystring['AvailabilityZone'][0]
         else:
-            zone = random.choice(self.ec2_backend.describe_availability_zones())
+            zone = random.choice(
+                self.ec2_backend.describe_availability_zones())
             availability_zone = zone.name
         subnet = self.ec2_backend.create_subnet(
             vpc_id,

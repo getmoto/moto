@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-import boto.ec2.elb
+import datetime
 from boto.ec2.elb.attributes import (
     LbAttributes,
     ConnectionSettingAttribute,
@@ -12,18 +12,22 @@ from boto.ec2.elb.policies import (
     Policies,
     OtherPolicy,
 )
-from moto.core import BaseBackend
+from moto.compat import OrderedDict
+from moto.core import BaseBackend, BaseModel
 from moto.ec2.models import ec2_backends
 from .exceptions import (
-    LoadBalancerNotFoundError,
-    TooManyTagsError,
     BadHealthCheckDefinition,
     DuplicateLoadBalancerName,
+    DuplicateListenerError,
+    EmptyListenersError,
+    InvalidSecurityGroupError,
+    LoadBalancerNotFoundError,
+    TooManyTagsError,
 )
 
 
+class FakeHealthCheck(BaseModel):
 
-class FakeHealthCheck(object):
     def __init__(self, timeout, healthy_threshold, unhealthy_threshold,
                  interval, target):
         self.timeout = timeout
@@ -35,7 +39,8 @@ class FakeHealthCheck(object):
             raise BadHealthCheckDefinition
 
 
-class FakeListener(object):
+class FakeListener(BaseModel):
+
     def __init__(self, load_balancer_port, instance_port, protocol, ssl_certificate_id):
         self.load_balancer_port = load_balancer_port
         self.instance_port = instance_port
@@ -47,7 +52,8 @@ class FakeListener(object):
         return "FakeListener(lbp: %s, inp: %s, pro: %s, cid: %s, policies: %s)" % (self.load_balancer_port, self.instance_port, self.protocol, self.ssl_certificate_id, self.policy_names)
 
 
-class FakeBackend(object):
+class FakeBackend(BaseModel):
+
     def __init__(self, instance_port):
         self.instance_port = instance_port
         self.policy_names = []
@@ -56,20 +62,23 @@ class FakeBackend(object):
         return "FakeBackend(inp: %s, policies: %s)" % (self.instance_port, self.policy_names)
 
 
-class FakeLoadBalancer(object):
-    def __init__(self, name, zones, ports, scheme='internet-facing', vpc_id=None, subnets=None):
+class FakeLoadBalancer(BaseModel):
+
+    def __init__(self, name, zones, ports, scheme='internet-facing', vpc_id=None, subnets=None, security_groups=None):
         self.name = name
         self.health_check = None
         self.instance_ids = []
         self.zones = zones
         self.listeners = []
         self.backends = []
+        self.created_time = datetime.datetime.now()
         self.scheme = scheme
         self.attributes = FakeLoadBalancer.get_default_attributes()
         self.policies = Policies()
         self.policies.other_policies = []
         self.policies.app_cookie_stickiness_policies = []
         self.policies.lb_cookie_stickiness_policies = []
+        self.security_groups = security_groups or []
         self.subnets = subnets or []
         self.vpc_id = vpc_id or 'vpc-56e10e3d'
         self.tags = {}
@@ -78,16 +87,20 @@ class FakeLoadBalancer(object):
         for port in ports:
             listener = FakeListener(
                 protocol=(port.get('protocol') or port['Protocol']),
-                load_balancer_port=(port.get('load_balancer_port') or port['LoadBalancerPort']),
-                instance_port=(port.get('instance_port') or port['InstancePort']),
-                ssl_certificate_id=port.get('sslcertificate_id', port.get('SSLCertificateId')),
+                load_balancer_port=(
+                    port.get('load_balancer_port') or port['LoadBalancerPort']),
+                instance_port=(
+                    port.get('instance_port') or port['InstancePort']),
+                ssl_certificate_id=port.get(
+                    'ssl_certificate_id', port.get('SSLCertificateId')),
             )
             self.listeners.append(listener)
 
             # it is unclear per the AWS documentation as to when or how backend
             # information gets set, so let's guess and set it here *shrug*
             backend = FakeBackend(
-                instance_port=(port.get('instance_port') or port['InstancePort']),
+                instance_port=(
+                    port.get('instance_port') or port['InstancePort']),
             )
             self.backends.append(backend)
 
@@ -120,7 +133,8 @@ class FakeLoadBalancer(object):
                 port_policies[port] = policies_for_port
 
         for port, policies in port_policies.items():
-            elb_backend.set_load_balancer_policies_of_backend_server(new_elb.name, port, list(policies))
+            elb_backend.set_load_balancer_policies_of_backend_server(
+                new_elb.name, port, list(policies))
 
         health_check = properties.get('HealthCheck')
         if health_check:
@@ -137,7 +151,8 @@ class FakeLoadBalancer(object):
 
     @classmethod
     def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
-        cls.delete_from_cloudformation_json(original_resource.name, cloudformation_json, region_name)
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name)
         return cls.create_from_cloudformation_json(new_resource_name, cloudformation_json, region_name)
 
     @classmethod
@@ -155,15 +170,19 @@ class FakeLoadBalancer(object):
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'CanonicalHostedZoneName':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneName" ]"')
+            raise NotImplementedError(
+                '"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneName" ]"')
         elif attribute_name == 'CanonicalHostedZoneNameID':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneNameID" ]"')
+            raise NotImplementedError(
+                '"Fn::GetAtt" : [ "{0}" , "CanonicalHostedZoneNameID" ]"')
         elif attribute_name == 'DNSName':
             return self.dns_name
         elif attribute_name == 'SourceSecurityGroup.GroupName':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.GroupName" ]"')
+            raise NotImplementedError(
+                '"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.GroupName" ]"')
         elif attribute_name == 'SourceSecurityGroup.OwnerAlias':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.OwnerAlias" ]"')
+            raise NotImplementedError(
+                '"Fn::GetAtt" : [ "{0}" , "SourceSecurityGroup.OwnerAlias" ]"')
         raise UnformattedGetAttTemplateException()
 
     @classmethod
@@ -209,14 +228,14 @@ class ELBBackend(BaseBackend):
 
     def __init__(self, region_name=None):
         self.region_name = region_name
-        self.load_balancers = {}
+        self.load_balancers = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_load_balancer(self, name, zones, ports, scheme='internet-facing', subnets=None):
+    def create_load_balancer(self, name, zones, ports, scheme='internet-facing', subnets=None, security_groups=None):
         vpc_id = None
         ec2_backend = ec2_backends[self.region_name]
         if subnets:
@@ -224,7 +243,21 @@ class ELBBackend(BaseBackend):
             vpc_id = subnet.vpc_id
         if name in self.load_balancers:
             raise DuplicateLoadBalancerName(name)
-        new_load_balancer = FakeLoadBalancer(name=name, zones=zones, ports=ports, scheme=scheme, subnets=subnets, vpc_id=vpc_id)
+        if not ports:
+            raise EmptyListenersError()
+        if not security_groups:
+            security_groups = []
+        for security_group in security_groups:
+            if ec2_backend.get_security_group_from_id(security_group) is None:
+                raise InvalidSecurityGroupError()
+        new_load_balancer = FakeLoadBalancer(
+            name=name,
+            zones=zones,
+            ports=ports,
+            scheme=scheme,
+            subnets=subnets,
+            security_groups=security_groups,
+            vpc_id=vpc_id)
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
 
@@ -238,16 +271,24 @@ class ELBBackend(BaseBackend):
                 ssl_certificate_id = port.get('sslcertificate_id')
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
+                        if protocol != listener.protocol:
+                            raise DuplicateListenerError(name, lb_port)
+                        if instance_port != listener.instance_port:
+                            raise DuplicateListenerError(name, lb_port)
+                        if ssl_certificate_id != listener.ssl_certificate_id:
+                            raise DuplicateListenerError(name, lb_port)
                         break
                 else:
-                    balancer.listeners.append(FakeListener(lb_port, instance_port, protocol, ssl_certificate_id))
+                    balancer.listeners.append(FakeListener(
+                        lb_port, instance_port, protocol, ssl_certificate_id))
 
         return balancer
 
     def describe_load_balancers(self, names):
         balancers = self.load_balancers.values()
         if names:
-            matched_balancers = [balancer for balancer in balancers if balancer.name in names]
+            matched_balancers = [
+                balancer for balancer in balancers if balancer.name in names]
             if len(names) != len(matched_balancers):
                 missing_elb = list(set(names) - set(matched_balancers))[0]
                 raise LoadBalancerNotFoundError(missing_elb)
@@ -274,6 +315,14 @@ class ELBBackend(BaseBackend):
     def get_load_balancer(self, load_balancer_name):
         return self.load_balancers.get(load_balancer_name)
 
+    def apply_security_groups_to_load_balancer(self, load_balancer_name, security_group_ids):
+        load_balancer = self.load_balancers.get(load_balancer_name)
+        ec2_backend = ec2_backends[self.region_name]
+        for security_group_id in security_group_ids:
+            if ec2_backend.get_security_group_from_id(security_group_id) is None:
+                raise InvalidSecurityGroupError()
+        load_balancer.security_groups = security_group_ids
+
     def configure_health_check(self, load_balancer_name, timeout,
                                healthy_threshold, unhealthy_threshold, interval,
                                target):
@@ -288,7 +337,8 @@ class ELBBackend(BaseBackend):
         if balancer:
             for idx, listener in enumerate(balancer.listeners):
                 if lb_port == listener.load_balancer_port:
-                    balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
+                    balancer.listeners[
+                        idx].ssl_certificate_id = ssl_certificate_id
 
         return balancer
 
@@ -299,7 +349,8 @@ class ELBBackend(BaseBackend):
 
     def deregister_instances(self, load_balancer_name, instance_ids):
         load_balancer = self.get_load_balancer(load_balancer_name)
-        new_instance_ids = [instance_id for instance_id in load_balancer.instance_ids if instance_id not in instance_ids]
+        new_instance_ids = [
+            instance_id for instance_id in load_balancer.instance_ids if instance_id not in instance_ids]
         load_balancer.instance_ids = new_instance_ids
         return load_balancer
 
@@ -342,7 +393,8 @@ class ELBBackend(BaseBackend):
 
     def set_load_balancer_policies_of_backend_server(self, load_balancer_name, instance_port, policies):
         load_balancer = self.get_load_balancer(load_balancer_name)
-        backend = [b for b in load_balancer.backends if int(b.instance_port) == instance_port][0]
+        backend = [b for b in load_balancer.backends if int(
+            b.instance_port) == instance_port][0]
         backend_idx = load_balancer.backends.index(backend)
         backend.policy_names = policies
         load_balancer.backends[backend_idx] = backend
@@ -350,7 +402,8 @@ class ELBBackend(BaseBackend):
 
     def set_load_balancer_policies_of_listener(self, load_balancer_name, load_balancer_port, policies):
         load_balancer = self.get_load_balancer(load_balancer_name)
-        listener = [l for l in load_balancer.listeners if int(l.load_balancer_port) == load_balancer_port][0]
+        listener = [l for l in load_balancer.listeners if int(
+            l.load_balancer_port) == load_balancer_port][0]
         listener_idx = load_balancer.listeners.index(listener)
         listener.policy_names = policies
         load_balancer.listeners[listener_idx] = listener

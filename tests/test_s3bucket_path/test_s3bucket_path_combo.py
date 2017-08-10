@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import boto
 from boto.s3.connection import OrdinaryCallingFormat
 
-from moto import mock_s3bucket_path, mock_s3
+from moto import mock_s3_deprecated
 
 
 def create_connection(key=None, secret=None):
@@ -11,12 +11,12 @@ def create_connection(key=None, secret=None):
 
 
 def test_bucketpath_combo_serial():
-    @mock_s3bucket_path
+    @mock_s3_deprecated
     def make_bucket_path():
         conn = create_connection()
         conn.create_bucket('mybucketpath')
 
-    @mock_s3
+    @mock_s3_deprecated
     def make_bucket():
         conn = boto.connect_s3('the_key', 'the_secret')
         conn.create_bucket('mybucket')

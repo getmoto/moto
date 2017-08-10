@@ -13,7 +13,8 @@ def compose_new_shard_iterator(stream_name, shard, shard_iterator_type, starting
     elif shard_iterator_type == "LATEST":
         last_sequence_id = shard.get_max_sequence_number()
     else:
-        raise InvalidArgumentError("Invalid ShardIteratorType: {0}".format(shard_iterator_type))
+        raise InvalidArgumentError(
+            "Invalid ShardIteratorType: {0}".format(shard_iterator_type))
     return compose_shard_iterator(stream_name, shard, last_sequence_id)
 
 

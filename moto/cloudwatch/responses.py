@@ -1,6 +1,5 @@
 from moto.core.responses import BaseResponse
 from .models import cloudwatch_backends
-import logging
 
 
 class CloudWatchResponse(BaseResponse):
@@ -18,7 +17,8 @@ class CloudWatchResponse(BaseResponse):
         dimensions = self._get_list_prefix('Dimensions.member')
         alarm_actions = self._get_multi_param('AlarmActions.member')
         ok_actions = self._get_multi_param('OKActions.member')
-        insufficient_data_actions = self._get_multi_param("InsufficientDataActions.member")
+        insufficient_data_actions = self._get_multi_param(
+            "InsufficientDataActions.member")
         unit = self._get_param('Unit')
         cloudwatch_backend = cloudwatch_backends[self.region]
         alarm = cloudwatch_backend.put_metric_alarm(name, namespace, metric_name,
@@ -40,14 +40,16 @@ class CloudWatchResponse(BaseResponse):
         cloudwatch_backend = cloudwatch_backends[self.region]
 
         if action_prefix:
-            alarms = cloudwatch_backend.get_alarms_by_action_prefix(action_prefix)
+            alarms = cloudwatch_backend.get_alarms_by_action_prefix(
+                action_prefix)
         elif alarm_name_prefix:
-            alarms = cloudwatch_backend.get_alarms_by_alarm_name_prefix(alarm_name_prefix)
+            alarms = cloudwatch_backend.get_alarms_by_alarm_name_prefix(
+                alarm_name_prefix)
         elif alarm_names:
             alarms = cloudwatch_backend.get_alarms_by_alarm_names(alarm_names)
         elif state_value:
             alarms = cloudwatch_backend.get_alarms_by_state_value(state_value)
-        else :
+        else:
             alarms = cloudwatch_backend.get_all_alarms()
 
         template = self.response_template(DESCRIBE_ALARMS_TEMPLATE)
@@ -66,19 +68,24 @@ class CloudWatchResponse(BaseResponse):
         metric_index = 1
         while True:
             try:
-                metric_name = self.querystring['MetricData.member.{0}.MetricName'.format(metric_index)][0]
+                metric_name = self.querystring[
+                    'MetricData.member.{0}.MetricName'.format(metric_index)][0]
             except KeyError:
                 break
-            value = self.querystring.get('MetricData.member.{0}.Value'.format(metric_index), [None])[0]
+            value = self.querystring.get(
+                'MetricData.member.{0}.Value'.format(metric_index), [None])[0]
             dimensions = []
             dimension_index = 1
             while True:
                 try:
-                    dimension_name = self.querystring['MetricData.member.{0}.Dimensions.member.{1}.Name'.format(metric_index, dimension_index)][0]
+                    dimension_name = self.querystring[
+                        'MetricData.member.{0}.Dimensions.member.{1}.Name'.format(metric_index, dimension_index)][0]
                 except KeyError:
                     break
-                dimension_value = self.querystring['MetricData.member.{0}.Dimensions.member.{1}.Value'.format(metric_index, dimension_index)][0]
-                dimensions.append({'name': dimension_name, 'value': dimension_value})
+                dimension_value = self.querystring[
+                    'MetricData.member.{0}.Dimensions.member.{1}.Value'.format(metric_index, dimension_index)][0]
+                dimensions.append(
+                    {'name': dimension_name, 'value': dimension_value})
                 dimension_index += 1
             metric_data.append([metric_name, value, dimensions])
             metric_index += 1

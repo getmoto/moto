@@ -18,4 +18,5 @@ def test_list_vaults():
 
     res = test_client.get('/1234bcd/vaults')
 
-    json.loads(res.data.decode("utf-8")).should.equal({u'Marker': None, u'VaultList': []})
+    json.loads(res.data.decode("utf-8")
+               ).should.equal({u'Marker': None, u'VaultList': []})
