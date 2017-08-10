@@ -56,3 +56,18 @@ class InvalidSubnetError(RedshiftClientError):
         super(InvalidSubnetError, self).__init__(
             'InvalidSubnet',
             "Subnet {0} not found.".format(subnet_identifier))
+
+
+class ClusterSnapshotNotFoundError(RedshiftClientError):
+    def __init__(self, snapshot_identifier):
+        super(ClusterSnapshotNotFoundError, self).__init__(
+            'ClusterSnapshotNotFound',
+            "Snapshot {0} not found.".format(snapshot_identifier))
+
+
+class ClusterSnapshotAlreadyExistsError(RedshiftClientError):
+    def __init__(self, snapshot_identifier):
+        super(ClusterSnapshotAlreadyExistsError, self).__init__(
+            'ClusterSnapshotAlreadyExists',
+            "Cannot create the snapshot because a snapshot with the "
+            "identifier {0} already exists".format(snapshot_identifier))

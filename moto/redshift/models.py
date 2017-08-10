@@ -1,12 +1,19 @@
 from __future__ import unicode_literals
 
+import copy
+import datetime
+
 import boto.redshift
+from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2 import ec2_backends
 from .exceptions import (
     ClusterNotFoundError,
     ClusterParameterGroupNotFoundError,
     ClusterSecurityGroupNotFoundError,
+    ClusterSnapshotAlreadyExistsError,
+    ClusterSnapshotNotFoundError,
     ClusterSubnetGroupNotFoundError,
     InvalidSubnetError,
 )
@@ -23,6 +30,7 @@ class Cluster(BaseModel):
                  encrypted, region):
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
+        self.status = 'available'
         self.node_type = node_type
         self.master_username = master_username
         self.master_user_password = master_user_password
@@ -152,7 +160,7 @@ class Cluster(BaseModel):
             } for group in self.vpc_security_groups],
             "ClusterSubnetGroupName": self.cluster_subnet_group_name,
             "AvailabilityZone": self.availability_zone,
-            "ClusterStatus": "creating",
+            "ClusterStatus": self.status,
             "NumberOfNodes": self.number_of_nodes,
             "AutomatedSnapshotRetentionPeriod": self.automated_snapshot_retention_period,
             "PubliclyAccessible": self.publicly_accessible,
@@ -171,6 +179,13 @@ class Cluster(BaseModel):
             "NodeType": self.node_type,
             "ClusterIdentifier": self.cluster_identifier,
             "AllowVersionUpgrade": self.allow_version_upgrade,
+            "Endpoint": {
+                "Address": '{}.{}.redshift.amazonaws.com'.format(
+                    self.cluster_identifier,
+                    self.region),
+                "Port": self.port
+            },
+            "PendingModifiedValues": []
         }
 
 
@@ -262,6 +277,42 @@ class ParameterGroup(BaseModel):
         }
 
 
+class Snapshot(BaseModel):
+
+    def __init__(self, cluster, snapshot_identifier, tags=None):
+        self.cluster = copy.copy(cluster)
+        self.snapshot_identifier = snapshot_identifier
+        self.snapshot_type = 'manual'
+        self.status = 'available'
+        self.tags = tags or []
+        self.create_time = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.now())
+
+    @property
+    def arn(self):
+        return "arn:aws:redshift:{0}:1234567890:snapshot:{1}/{2}".format(
+            self.cluster.region,
+            self.cluster.cluster_identifier,
+            self.snapshot_identifier)
+
+    def to_json(self):
+        return {
+            'SnapshotIdentifier': self.snapshot_identifier,
+            'ClusterIdentifier': self.cluster.cluster_identifier,
+            'SnapshotCreateTime': self.create_time,
+            'Status': self.status,
+            'Port': self.cluster.port,
+            'AvailabilityZone': self.cluster.availability_zone,
+            'MasterUsername': self.cluster.master_username,
+            'ClusterVersion': self.cluster.cluster_version,
+            'SnapshotType': self.snapshot_type,
+            'NodeType': self.cluster.node_type,
+            'NumberOfNodes': self.cluster.number_of_nodes,
+            'DBName': self.cluster.db_name,
+            'Tags': self.tags
+        }
+
+
 class RedshiftBackend(BaseBackend):
 
     def __init__(self, ec2_backend):
@@ -278,6 +329,7 @@ class RedshiftBackend(BaseBackend):
             )
         }
         self.ec2_backend = ec2_backend
+        self.snapshots = OrderedDict()
 
     def reset(self):
         ec2_backend = self.ec2_backend
@@ -382,6 +434,54 @@ class RedshiftBackend(BaseBackend):
         if parameter_group_name in self.parameter_groups:
             return self.parameter_groups.pop(parameter_group_name)
         raise ClusterParameterGroupNotFoundError(parameter_group_name)
+
+    def create_snapshot(self, cluster_identifier, snapshot_identifier, tags):
+        cluster = self.clusters.get(cluster_identifier)
+        if not cluster:
+            raise ClusterNotFoundError(cluster_identifier)
+        if self.snapshots.get(snapshot_identifier) is not None:
+            raise ClusterSnapshotAlreadyExistsError(snapshot_identifier)
+        snapshot = Snapshot(cluster, snapshot_identifier, tags)
+        self.snapshots[snapshot_identifier] = snapshot
+        return snapshot
+
+    def describe_snapshots(self, cluster_identifier, snapshot_identifier):
+        if cluster_identifier:
+            for snapshot in self.snapshots.values():
+                if snapshot.cluster.cluster_identifier == cluster_identifier:
+                    return [snapshot]
+            raise ClusterNotFoundError(cluster_identifier)
+
+        if snapshot_identifier:
+            if snapshot_identifier in self.snapshots:
+                return [self.snapshots[snapshot_identifier]]
+            raise ClusterSnapshotNotFoundError(snapshot_identifier)
+
+        return self.snapshots.values()
+
+    def delete_snapshot(self, snapshot_identifier):
+        if snapshot_identifier not in self.snapshots:
+            raise ClusterSnapshotNotFoundError(snapshot_identifier)
+
+        deleted_snapshot = self.snapshots.pop(snapshot_identifier)
+        deleted_snapshot.status = 'deleted'
+        return deleted_snapshot
+
+    def describe_tags_for_resource_type(self, resource_type):
+        tagged_resources = []
+        if resource_type == 'Snapshot':
+            for snapshot in self.snapshots.values():
+                for tag in snapshot.tags:
+                    data = {
+                        'ResourceName': snapshot.arn,
+                        'ResourceType': 'snapshot',
+                        'Tag': {
+                            'Key': tag['Key'],
+                            'Value': tag['Value']
+                        }
+                    }
+                    tagged_resources.append(data)
+        return tagged_resources
 
 
 redshift_backends = {}
