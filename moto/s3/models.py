@@ -423,7 +423,7 @@ class S3Backend(BaseBackend):
                             key_marker=None,
                             max_keys=None,
                             version_id_marker=None,
-                            prefix=None):
+                            prefix=''):
         bucket = self.get_bucket(bucket_name)
 
         if any((delimiter, encoding_type, key_marker, version_id_marker)):

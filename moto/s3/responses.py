@@ -215,7 +215,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             encoding_type = querystring.get('encoding-type', [None])[0]
             key_marker = querystring.get('key-marker', [None])[0]
             max_keys = querystring.get('max-keys', [None])[0]
-            prefix = querystring.get('prefix', [None])[0]
+            prefix = querystring.get('prefix', [''])[0]
             version_id_marker = querystring.get('version-id-marker', [None])[0]
 
             bucket = self.backend.get_bucket(bucket_name)
