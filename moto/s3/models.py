@@ -430,7 +430,7 @@ class S3Backend(BaseBackend):
             raise NotImplementedError(
                 "Called get_bucket_versions with some of delimiter, encoding_type, key_marker, version_id_marker")
 
-        return itertools.chain(*(l for _, l in bucket.keys.iterlists() if l[0].name.startswith(prefix)))
+        return itertools.chain(*(l for key, l in bucket.keys.iterlists() if key.startswith(prefix)))
 
     def get_bucket_policy(self, bucket_name):
         return self.get_bucket(bucket_name).policy
