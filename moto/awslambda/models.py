@@ -167,6 +167,7 @@ class LambdaFunction(BaseModel):
             try:
                 # TODO:
                 stdout, stderr = sp_check_output("docker", "run", "--rm", "-i",
+                                                 "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
                                                  "-v",
                                                  "{}:/var/task".format(td),
                                                  "lambci/lambda:{}".format(
