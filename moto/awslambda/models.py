@@ -353,4 +353,6 @@ def do_validate_s3():
 
 # Handle us forgotten regions, unless Lambda truly only runs out of US and
 lambda_backends = {_region.name: LambdaBackend(_region.name)
-                   for _region in boto.awslambda.regions() + ['ap-southeast-2']}
+                   for _region in boto.awslambda.regions()}
+
+lambda_backends['ap-southeast-2'] = LambdaBackend('ap-southeast-2')
