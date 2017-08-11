@@ -37,7 +37,7 @@ def sp_check_output(*args, stdin: str = None):
 
         logger.info('Ran: {} output: {} {} success'.format(args, proc.stdout,
                                                            proc.stderr))
-        return proc.stdout, proc.stderr
+        return proc.stdout.decode('utf-8'), proc.stderr.decode('utf-8')
     except:
         logger.exception("Exception running: {}".format(args))
         raise
@@ -165,6 +165,7 @@ class LambdaFunction(BaseModel):
                 td = td.replace("/var/folders/", "/private/var/folders/")
 
             try:
+                # TODO:
                 stdout, stderr = sp_check_output("docker", "run", "--rm", "-i",
                                                  "-v",
                                                  "{}:/var/task".format(td),
