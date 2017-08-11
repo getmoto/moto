@@ -45,7 +45,8 @@ class ECRResponse(BaseResponse):
 
     def delete_repository(self):
         repository_str = self._get_param('repositoryName')
-        repository = self.ecr_backend.delete_repository(repository_str)
+        registry_id = self._get_param('registryId')
+        repository = self.ecr_backend.delete_repository(repository_str, registry_id)
         return json.dumps({
             'repository': repository.response_object
         })

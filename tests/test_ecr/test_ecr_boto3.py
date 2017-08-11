@@ -5,9 +5,11 @@ import json
 from datetime import datetime
 from random import random
 
+import re
 import sure  # noqa
 
 import boto3
+from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 
 from moto import mock_ecr
@@ -139,19 +141,6 @@ def test_describe_repositories_3():
 
     respository_uri = '012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1'
     response['repositories'][0]['repositoryUri'].should.equal(respository_uri)
-
-
-@mock_ecr
-def test_describe_repositories_4():
-    client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
-        repositoryName='test_repository1'
-    )
-    _ = client.create_repository(
-        repositoryName='test_repository0'
-    )
-    response = client.describe_repositories(repositoryNames=['not_a_valid_name'])
-    len(response['repositories']).should.equal(0)
 
 
 @mock_ecr
@@ -342,6 +331,54 @@ def test_describe_images_by_tag():
         image_detail['repositoryName'].should.equal("test_repository")
         image_detail['imageTags'].should.equal([put_response['imageId']['imageTag']])
         image_detail['imageDigest'].should.equal(put_response['imageId']['imageDigest'])
+
+
+@mock_ecr
+def test_describe_repository_that_doesnt_exist():
+    client = boto3.client('ecr', region_name='us-east-1')
+
+    error_msg = re.compile(
+        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123'.*",
+        re.MULTILINE)
+    client.describe_repositories.when.called_with(
+        repositoryNames=['repo-that-doesnt-exist'],
+        registryId='123',
+    ).should.throw(ClientError, error_msg)
+
+@mock_ecr
+def test_describe_image_that_doesnt_exist():
+    client = boto3.client('ecr', region_name='us-east-1')
+    client.create_repository(repositoryName='test_repository')
+
+    error_msg1 = re.compile(
+        r".*The image with imageId {imageDigest:'null', imageTag:'testtag'} does not exist within "
+        r"the repository with name 'test_repository' in the registry with id '123'.*",
+        re.MULTILINE)
+
+    client.describe_images.when.called_with(
+        repositoryName='test_repository', imageIds=[{'imageTag': 'testtag'}], registryId='123',
+    ).should.throw(ClientError, error_msg1)
+
+    error_msg2 = re.compile(
+        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123'.*",
+        re.MULTILINE)
+    client.describe_images.when.called_with(
+        repositoryName='repo-that-doesnt-exist', imageIds=[{'imageTag': 'testtag'}], registryId='123',
+    ).should.throw(ClientError, error_msg2)
+
+
+@mock_ecr
+def test_delete_repository_that_doesnt_exist():
+    client = boto3.client('ecr', region_name='us-east-1')
+
+    error_msg = re.compile(
+        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123'.*",
+        re.MULTILINE)
+
+    client.delete_repository.when.called_with(
+        repositoryName='repo-that-doesnt-exist',
+        registryId='123').should.throw(
+        ClientError, error_msg)
 
 
 @mock_ecr
