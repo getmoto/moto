@@ -653,3 +653,108 @@ def test_autoscaling_describe_policies_boto3():
     response['ScalingPolicies'].should.have.length_of(1)
     response['ScalingPolicies'][0][
         'PolicyName'].should.equal('test_policy_down')
+
+@mock_autoscaling
+@mock_ec2
+def test_detach_one_instance():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=2,
+        DesiredCapacity=2,
+        Tags=[
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'propogated-tag-key',
+             'Value': 'propogate-tag-value',
+             'PropagateAtLaunch': True
+             }]
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    instance_to_detach = response['AutoScalingGroups'][0]['Instances'][0]['InstanceId']
+    instance_to_keep = response['AutoScalingGroups'][0]['Instances'][1]['InstanceId']
+
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
+
+    response = client.detach_instances(
+        AutoScalingGroupName='test_asg',
+        InstanceIds=[instance_to_detach],
+        ShouldDecrementDesiredCapacity=True
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    response['AutoScalingGroups'][0]['Instances'].should.have.length_of(1)
+
+    # test to ensure tag has been removed
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
+    tags = response['Reservations'][0]['Instances'][0]['Tags']
+    tags.should.have.length_of(1)
+
+    # test to ensure tag is present on other instance
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_keep])
+    tags = response['Reservations'][0]['Instances'][0]['Tags']
+    tags.should.have.length_of(2)
+
+@mock_autoscaling
+@mock_ec2
+def test_detach_one_instance_decrement():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=2,
+        DesiredCapacity=2,
+        Tags=[
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'propogated-tag-key',
+             'Value': 'propogate-tag-value',
+             'PropagateAtLaunch': True
+             }]
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    instance_to_detach = response['AutoScalingGroups'][0]['Instances'][0]['InstanceId']
+    instance_to_keep = response['AutoScalingGroups'][0]['Instances'][1]['InstanceId']
+
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
+
+    response = client.detach_instances(
+        AutoScalingGroupName='test_asg',
+        InstanceIds=[instance_to_detach],
+        ShouldDecrementDesiredCapacity=False
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    # test to ensure instance was replaced
+    response['AutoScalingGroups'][0]['Instances'].should.have.length_of(2)
+
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
+    tags = response['Reservations'][0]['Instances'][0]['Tags']
+    tags.should.have.length_of(1)
+
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_keep])
+    tags = response['Reservations'][0]['Instances'][0]['Tags']
+    tags.should.have.length_of(2)
