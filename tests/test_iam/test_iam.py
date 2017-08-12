@@ -599,3 +599,30 @@ def test_boto3_create_login_profile():
 
     with assert_raises(ClientError):
         conn.create_login_profile(UserName='my-user', Password='Password')
+
+
+@mock_iam()
+def test_attach_detach_user_policy():
+    iam = boto3.resource('iam', region_name='us-east-1')
+    client = boto3.client('iam', region_name='us-east-1')
+
+    user = iam.create_user(UserName='test-user')
+
+    policy_name = 'UserAttachedPolicy'
+    policy = iam.create_policy(PolicyName=policy_name,
+                               PolicyDocument='{"mypolicy": "test"}',
+                               Path='/mypolicy/',
+                               Description='my user attached policy')
+
+    client.attach_user_policy(UserName=user.name, PolicyArn=policy.arn)
+
+    resp = client.list_attached_user_policies(UserName=user.name)
+    resp['AttachedPolicies'].should.have.length_of(1)
+    attached_policy = resp['AttachedPolicies'][0]
+    attached_policy['PolicyArn'].should.equal(policy.arn)
+    attached_policy['PolicyName'].should.equal(policy_name)
+
+    client.detach_user_policy(UserName=user.name, PolicyArn=policy.arn)
+
+    resp = client.list_attached_user_policies(UserName=user.name)
+    resp['AttachedPolicies'].should.have.length_of(0)
