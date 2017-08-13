@@ -18,7 +18,9 @@ from .exceptions import (RDSClientError,
                          DBSnapshotNotFoundError,
                          DBSecurityGroupNotFoundError,
                          DBSubnetGroupNotFoundError,
-                         DBParameterGroupNotFoundError)
+                         DBParameterGroupNotFoundError,
+                         InvalidDBClusterStateFaultError,
+                         InvalidDBInstanceStateError)
 
 
 class Database(BaseModel):
@@ -737,28 +739,30 @@ class RDS2Backend(BaseBackend):
         database = self.describe_databases(db_instance_identifier)[0]
         # todo: certain rds types not allowed to be stopped at this time.
         if database.is_replica or database.multi_az:
-                # should be 400 error
-                return RDSClientError('InvalidDBClusterStateFault', 'Invalid DB type, when trying to perform StopDBInstance. See AWS RDS documentation on rds.stop_db_instance')
+                # todo: more db types not supported by stop/start instance api
+                raise InvalidDBClusterStateFaultError(db_instance_identifier)
         if database.status != 'available':
-            return RDSClientError('InvalidDBInstanceState', 'when calling the StopDBInstance operation: Instance %s is not in available state' % db_instance_identifier)
-        if db_snapshot_identifier:
-            self.create_rds_snapshot(db_instance_identifier, db_snapshot_identifier)
+            raise InvalidDBInstanceStateError(db_instance_identifier, 'stop')
+        # todo: create rds snapshots
+        # if db_snapshot_identifier:
+        #     self.create_rds_snapshot(db_instance_identifier, db_snapshot_identifier)
         database.status = 'shutdown'
         return database
 
     def start_database(self, db_instance_identifier):
         database = self.describe_databases(db_instance_identifier)[0]
-        if database.status != 'shutdown':  # should be 400 error
-            return RDSClientError('InvalidDBInstanceState', 'when calling the StartDBInstance operation: Instance %s is not stopped, it cannot be started.' % db_instance_identifier)
+        # todo: bunch of different error messages to be generated from this api call
+        if database.status != 'shutdown':
+            raise InvalidDBInstanceStateError(db_instance_identifier, 'start')
         database.status = 'available'
-        return
+        return database
 
-    def create_rds_snapshot(self, db_instance_identifier, db_snapshot_identifier):
-        database = self.describe_databases(db_instance_identifier)[0]
-        # todo
-        # DBSnapshotAlreadyExists
-        # SnapshotQuotaExceeded
-        return None
+    # def create_rds_snapshot(self, db_instance_identifier, db_snapshot_identifier):
+    #     database = self.describe_databases(db_instance_identifier)[0]
+    #     # todo
+    #     # DBSnapshotAlreadyExists
+    #     # SnapshotQuotaExceeded
+    #     return None
 
     def find_db_from_id(self, db_id):
         if self.arn_regex.match(db_id):

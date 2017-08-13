@@ -58,3 +58,18 @@ class DBParameterGroupNotFoundError(RDSClientError):
         super(DBParameterGroupNotFoundError, self).__init__(
             'DBParameterGroupNotFound',
             'DB Parameter Group {0} not found.'.format(db_parameter_group_name))
+
+class InvalidDBClusterStateFaultError(RDSClientError):
+
+    def __init__(self, database_identifier):
+        super(InvalidDBClusterStateFaultError, self).__init__(
+            'InvalidDBClusterStateFault',
+            'Invalid DB type, when trying to perform StopDBInstance on {0}e. See AWS RDS documentation on rds.stop_db_instance'.format(database_identifier))
+
+class InvalidDBInstanceStateError(RDSClientError):
+
+    def __init__(self, database_identifier, istate):
+        estate = "in available state" if istate == 'stop' else "stopped, it cannot be started"
+        super(InvalidDBInstanceStateError, self).__init__(
+            'InvalidDBInstanceState',
+            'when calling the {}DBInstance operation: Instance {} is not {}.'.format(istate.title(), database_identifier, estate))
