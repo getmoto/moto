@@ -424,7 +424,7 @@ REBOOT_DATABASE_TEMPLATE = """<RebootDBInstanceResponse xmlns="http://rds.amazon
   </ResponseMetadata>
 </RebootDBInstanceResponse>"""
 
-START_DATABASE_TEMPLATE = """<StartDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+START_DATABASE_TEMPLATE = """<StartDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
   <StartDBInstanceResult>
   {{ database.to_xml() }}
   </StartDBInstanceResult>
@@ -433,7 +433,7 @@ START_DATABASE_TEMPLATE = """<StartDBInstanceResponse xmlns="http://rds.amazonaw
   </ResponseMetadata>
 </StartDBInstanceResponse>"""
 
-STOP_DATABASE_TEMPLATE = """<StopDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+STOP_DATABASE_TEMPLATE = """<StopDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
   <StopDBInstanceResult>
   {{ database.to_xml() }}
   </StopDBInstanceResult>
@@ -442,7 +442,7 @@ STOP_DATABASE_TEMPLATE = """<StopDBInstanceResponse xmlns="http://rds.amazonaws.
   </ResponseMetadata>
 </StopDBInstanceResponse>"""
 
-DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <DeleteDBInstanceResult>
     {{ database.to_xml() }}
   </DeleteDBInstanceResult>
@@ -451,7 +451,7 @@ DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazon
   </ResponseMetadata>
 </DeleteDBInstanceResponse>"""
 
-CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBSnapshotResult>
   {{ snapshot.to_xml() }}
   </CreateDBSnapshotResult>
