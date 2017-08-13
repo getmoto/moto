@@ -13,6 +13,13 @@ class IamResponse(BaseResponse):
         template = self.response_template(ATTACH_ROLE_POLICY_TEMPLATE)
         return template.render()
 
+    def detach_role_policy(self):
+        role_name = self._get_param('RoleName')
+        policy_arn = self._get_param('PolicyArn')
+        iam_backend.detach_role_policy(policy_arn, role_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DetachRolePolicyResponse")
+
     def create_policy(self):
         description = self._get_param('Description')
         path = self._get_param('Path')
@@ -81,6 +88,13 @@ class IamResponse(BaseResponse):
         iam_backend.put_role_policy(role_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="PutRolePolicyResponse")
+
+    def delete_role_policy(self):
+        role_name = self._get_param('RoleName')
+        policy_name = self._get_param('PolicyName')
+        iam_backend.delete_role_policy(role_name, policy_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteRolePolicyResponse")
 
     def get_role_policy(self):
         role_name = self._get_param('RoleName')
@@ -445,6 +459,12 @@ ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </AttachRolePolicyResponse>"""
+
+DETACH_ROLE_POLICY_TEMPLATE = """<DetachRolePolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DetachRolePolicyResponse>"""
 
 CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
   <CreatePolicyResult>

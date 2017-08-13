@@ -76,6 +76,10 @@ class ManagedPolicy(Policy):
         self.attachment_count += 1
         role.managed_policies[self.name] = self
 
+    def detach_from_role(self, role):
+        self.attachment_count -= 1
+        del role.managed_policies[self.name]
+
 
 class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
@@ -119,6 +123,9 @@ class Role(BaseModel):
 
     def put_policy(self, policy_name, policy_json):
         self.policies[policy_name] = policy_json
+
+    def delete_policy(self, policy_name):
+        del self.policies[policy_name]
 
     @property
     def physical_resource_id(self):
@@ -497,6 +504,11 @@ class IAMBackend(BaseBackend):
         policy = arns[policy_arn]
         policy.attach_to_role(self.get_role(role_name))
 
+    def detach_role_policy(self, policy_arn, role_name):
+        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        policy = arns[policy_arn]
+        policy.detach_from_role(self.get_role(role_name))
+
     def create_policy(self, description, path, policy_document, policy_name):
         policy = ManagedPolicy(
             policy_name,
@@ -583,6 +595,10 @@ class IAMBackend(BaseBackend):
     def put_role_policy(self, role_name, policy_name, policy_json):
         role = self.get_role(role_name)
         role.put_policy(policy_name, policy_json)
+
+    def delete_role_policy(self, role_name, policy_name):
+        role = self.get_role(role_name)
+        role.delete_policy(policy_name)
 
     def get_role_policy(self, role_name, policy_name):
         role = self.get_role(role_name)
