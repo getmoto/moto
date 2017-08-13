@@ -196,7 +196,7 @@ class RDS2Response(BaseResponse):
 
     def stop_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
-        db_snapshot_identifier = self._get_param('DBInstanceIdentifier')
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
         database = self.backend.stop_database(db_instance_identifier, db_snapshot_identifier)
         template = self.response_template(STOP_DATABASE_TEMPLATE)
         return template.render(database=database)
