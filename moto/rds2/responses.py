@@ -23,6 +23,7 @@ class RDS2Response(BaseResponse):
             "db_instance_identifier": self._get_param('DBInstanceIdentifier'),
             "db_name": self._get_param("DBName"),
             "db_parameter_group_name": self._get_param("DBParameterGroupName"),
+            "db_snapshot_identifier": self._get_param('DBSnapshotIdentifier'),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
@@ -192,6 +193,19 @@ class RDS2Response(BaseResponse):
         self.backend.remove_tags_from_resource(arn, tag_keys)
         template = self.response_template(REMOVE_TAGS_FROM_RESOURCE_TEMPLATE)
         return template.render()
+
+    def stop_db_instance(self):
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        db_snapshot_identifier = self._get_param('DBInstanceIdentifier')
+        database = self.backend.stop_database(db_instance_identifier, db_snapshot_identifier)
+        template = self.response_template(STOP_DATABASE_TEMPLATE)
+        return template.render(database=database)
+
+    def start_db_instance(self):
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        database = self.backend.start_database(db_instance_identifier)
+        template = self.response_template(START_DATABASE_TEMPLATE)
+        return template.render(database=database)
 
     def create_db_security_group(self):
         group_name = self._get_param('DBSecurityGroupName')
@@ -410,8 +424,25 @@ REBOOT_DATABASE_TEMPLATE = """<RebootDBInstanceResponse xmlns="http://rds.amazon
   </ResponseMetadata>
 </RebootDBInstanceResponse>"""
 
+START_DATABASE_TEMPLATE = """<StartDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <StartDBInstanceResult>
+  {{ database.to_xml() }}
+  </StartDBInstanceResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab9</RequestId>
+  </ResponseMetadata>
+</StartDBInstanceResponse>"""
 
-DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+STOP_DATABASE_TEMPLATE = """<StopDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <StopDBInstanceResult>
+  {{ database.to_xml() }}
+  </StopDBInstanceResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab8</RequestId>
+  </ResponseMetadata>
+</StopDBInstanceResponse>"""
+
+DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
   <DeleteDBInstanceResult>
     {{ database.to_xml() }}
   </DeleteDBInstanceResult>
@@ -420,7 +451,7 @@ DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazon
   </ResponseMetadata>
 </DeleteDBInstanceResponse>"""
 
-CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
   <CreateDBSnapshotResult>
   {{ snapshot.to_xml() }}
   </CreateDBSnapshotResult>

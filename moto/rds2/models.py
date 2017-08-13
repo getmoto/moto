@@ -733,6 +733,37 @@ class RDS2Backend(BaseBackend):
         database = self.describe_databases(db_instance_identifier)[0]
         return database
 
+    def _check_can_stop_rds_instance_(self, database=None):
+        # todo: certain rds types not allowed to be stopped at this time.
+        if database:
+            if database.is_replica or database.multi_az:
+                # should be 400 error
+                return RDSClientError('InvalidDBClusterStateFault', 'Invalid DB type, when trying to perform StopDBInstance. See AWS RDS documentation on rds.stop_db_instance')
+        return True
+
+    def stop_database(self, db_instance_identifier, snapshot_name=None):
+        database = self.describe_databases(db_instance_identifier)[0]
+        self._check_can_stop_rds_instance_(database)
+        if database.status != 'available':
+            return RDSClientError('InvalidDBInstanceState', 'when calling the StopDBInstance operation: Instance testdb is not in available state')
+        self.create_rds_snapshot(db_instance_identifier, db_instance_identifier)
+        database.status = 'shutdown'
+        return database
+
+    def start_database(self, db_instance_identifier):
+        database = self.describe_databases(db_instance_identifier)[0]
+        if database.status != 'shutdown':
+            # should be 400 error
+            return RDSClientError('InvalidDBInstanceState', 'when calling the StartDBInstance operation: Instance {} is not stopped, it cannot be started.' % db_instance_identifier)
+        database.status = 'available'
+        return
+
+    def create_rds_snapshot(self, db_instance_identifier, db_snapshot_identifier):
+        # todo
+        # DBSnapshotAlreadyExists
+        # SnapshotQuotaExceeded
+        return None
+
     def find_db_from_id(self, db_id):
         if self.arn_regex.match(db_id):
             arn_breakdown = db_id.split(':')
