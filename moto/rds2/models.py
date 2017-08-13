@@ -741,7 +741,8 @@ class RDS2Backend(BaseBackend):
                 return RDSClientError('InvalidDBClusterStateFault', 'Invalid DB type, when trying to perform StopDBInstance. See AWS RDS documentation on rds.stop_db_instance')
         if database.status != 'available':
             return RDSClientError('InvalidDBInstanceState', 'when calling the StopDBInstance operation: Instance %s is not in available state' % db_instance_identifier)
-        self.create_rds_snapshot(db_instance_identifier, db_snapshot_identifier)
+        if db_snapshot_identifier:
+            self.create_rds_snapshot(db_instance_identifier, db_snapshot_identifier)
         database.status = 'shutdown'
         return database
 
