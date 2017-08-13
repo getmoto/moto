@@ -125,7 +125,11 @@ class Role(BaseModel):
         self.policies[policy_name] = policy_json
 
     def delete_policy(self, policy_name):
-        del self.policies[policy_name]
+        try:
+            del self.policies[policy_name]
+        except KeyError:
+            raise IAMNotFoundException(
+                "The role policy with name {0} cannot be found.".format(policy_name))
 
     @property
     def physical_resource_id(self):
@@ -506,8 +510,11 @@ class IAMBackend(BaseBackend):
 
     def detach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
-        policy = arns[policy_arn]
-        policy.detach_from_role(self.get_role(role_name))
+        try:
+            policy = arns[policy_arn]
+            policy.detach_from_role(self.get_role(role_name))
+        except KeyError:
+            raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
 
     def create_policy(self, description, path, policy_document, policy_name):
         policy = ManagedPolicy(

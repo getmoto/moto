@@ -225,6 +225,9 @@ def test_list_role_policies():
     role.policy_names.should.have.length_of(1)
     role.policy_names[0].should.equal("test policy 2")
 
+    with assert_raises(BotoServerError):
+        conn.delete_role_policy("my-role", "test policy")
+
 
 @mock_iam_deprecated()
 def test_put_role_policy():
@@ -573,6 +576,15 @@ def test_managed_policy():
                              list_marker='AttachedPolicies')
     resp['list_attached_role_policies_response']['list_attached_role_policies_result'][
         'attached_policies'].should.have.length_of(1)
+
+    with assert_raises(BotoServerError):
+        conn.detach_role_policy(
+            "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole",
+            role_name)
+
+    with assert_raises(BotoServerError):
+        conn.detach_role_policy(
+            "arn:aws:iam::aws:policy/Nonexistent", role_name)
 
 
 @mock_iam
