@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import moto
 from botocore import xform_name
 from botocore.session import Session
