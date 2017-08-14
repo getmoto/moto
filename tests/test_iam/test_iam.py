@@ -213,7 +213,20 @@ def test_list_role_policies():
     conn.create_role("my-role")
     conn.put_role_policy("my-role", "test policy", "my policy")
     role = conn.list_role_policies("my-role")
+    role.policy_names.should.have.length_of(1)
     role.policy_names[0].should.equal("test policy")
+
+    conn.put_role_policy("my-role", "test policy 2", "another policy")
+    role = conn.list_role_policies("my-role")
+    role.policy_names.should.have.length_of(2)
+
+    conn.delete_role_policy("my-role", "test policy")
+    role = conn.list_role_policies("my-role")
+    role.policy_names.should.have.length_of(1)
+    role.policy_names[0].should.equal("test policy 2")
+
+    with assert_raises(BotoServerError):
+        conn.delete_role_policy("my-role", "test policy")
 
 
 @mock_iam_deprecated()
@@ -547,6 +560,31 @@ def test_managed_policy():
                              list_marker='AttachedPolicies')
     resp['list_attached_role_policies_response']['list_attached_role_policies_result'][
         'attached_policies'].should.have.length_of(2)
+
+    conn.detach_role_policy(
+        "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole",
+        role_name)
+    rows = conn.list_policies(only_attached=True)['list_policies_response'][
+        'list_policies_result']['policies']
+    rows.should.have.length_of(1)
+    for x in rows:
+        int(x['attachment_count']).should.be.greater_than(0)
+
+    # boto has not implemented this end point but accessible this way
+    resp = conn.get_response('ListAttachedRolePolicies',
+                             {'RoleName': role_name},
+                             list_marker='AttachedPolicies')
+    resp['list_attached_role_policies_response']['list_attached_role_policies_result'][
+        'attached_policies'].should.have.length_of(1)
+
+    with assert_raises(BotoServerError):
+        conn.detach_role_policy(
+            "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole",
+            role_name)
+
+    with assert_raises(BotoServerError):
+        conn.detach_role_policy(
+            "arn:aws:iam::aws:policy/Nonexistent", role_name)
 
 
 @mock_iam
