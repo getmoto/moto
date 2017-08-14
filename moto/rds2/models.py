@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import copy
 import datetime
+import os
 
 from collections import defaultdict
 import boto.rds2
@@ -20,7 +21,9 @@ from .exceptions import (RDSClientError,
                          DBSubnetGroupNotFoundError,
                          DBParameterGroupNotFoundError,
                          InvalidDBClusterStateFaultError,
-                         InvalidDBInstanceStateError)
+                         InvalidDBInstanceStateError,
+                         SnapshotQuotaExceededError,
+                         DBSnapshotAlreadyExistsError)
 
 
 class Database(BaseModel):
@@ -410,6 +413,7 @@ class Snapshot(BaseModel):
         self.tags = tags or []
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
+
     @property
     def snapshot_arn(self):
         return "arn:aws:rds:{0}:1234567890:snapshot:{1}".format(self.database.region, self.snapshot_id)
@@ -676,10 +680,14 @@ class RDS2Backend(BaseBackend):
         self.databases[database_id] = database
         return database
 
-    def create_snapshot(self, db_instance_identifier, db_snapshot_identifier, tags):
+    def create_snapshot(self, db_instance_identifier, db_snapshot_identifier, tags=None):
         database = self.databases.get(db_instance_identifier)
         if not database:
             raise DBInstanceNotFoundError(db_instance_identifier)
+        if db_snapshot_identifier in self.snapshots:
+            raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
+        if len(self.snapshots) >= int(os.environ.get('MOTO_RDS_SNAPSHOT_LIMIT', '100')):
+            raise SnapshotQuotaExceededError()
         snapshot = Snapshot(database, db_snapshot_identifier, tags)
         self.snapshots[db_snapshot_identifier] = snapshot
         return snapshot
@@ -743,9 +751,8 @@ class RDS2Backend(BaseBackend):
                 raise InvalidDBClusterStateFaultError(db_instance_identifier)
         if database.status != 'available':
             raise InvalidDBInstanceStateError(db_instance_identifier, 'stop')
-        # todo: create rds snapshots
-        # if db_snapshot_identifier:
-        #     self.create_rds_snapshot(db_instance_identifier, db_snapshot_identifier)
+        if db_snapshot_identifier:
+            self.create_snapshot(db_instance_identifier, db_snapshot_identifier)
         database.status = 'shutdown'
         return database
 
@@ -756,13 +763,6 @@ class RDS2Backend(BaseBackend):
             raise InvalidDBInstanceStateError(db_instance_identifier, 'start')
         database.status = 'available'
         return database
-
-    # def create_rds_snapshot(self, db_instance_identifier, db_snapshot_identifier):
-    #     database = self.describe_databases(db_instance_identifier)[0]
-    #     # todo
-    #     # DBSnapshotAlreadyExists
-    #     # SnapshotQuotaExceeded
-    #     return None
 
     def find_db_from_id(self, db_id):
         if self.arn_regex.match(db_id):

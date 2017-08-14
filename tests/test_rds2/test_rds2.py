@@ -31,6 +31,7 @@ def test_create_database():
     database['DBInstance']['DBName'].should.equal('staging-postgres')
     database['DBInstance']['DBInstanceIdentifier'].should.equal("db-master-1")
 
+
 @mock_rds2
 def test_stop_database():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -46,12 +47,17 @@ def test_stop_database():
                                        DBSecurityGroups=["my_sg"])
     mydb = conn.describe_db_instances(DBInstanceIdentifier=database['DBInstance']['DBInstanceIdentifier'])['DBInstances'][0]
     mydb['DBInstanceStatus'].should.equal('available')
-    # test stopping database
+    # test stopping database should shutdown
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
     response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
     # test rdsclient error when trying to stop an already stopped database
     conn.stop_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
+    # test stopping a stopped database with snapshot should error and no snapshot should exist for that call
+    conn.stop_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap').should.throw(ClientError)
+    response = conn.describe_db_snapshots()
+    response['DBSnapshots'].should.equal([])
+
 
 @mock_rds2
 def test_start_database():
@@ -68,14 +74,27 @@ def test_start_database():
                                        DBSecurityGroups=["my_sg"])
     mydb = conn.describe_db_instances(DBInstanceIdentifier=database['DBInstance']['DBInstanceIdentifier'])['DBInstances'][0]
     mydb['DBInstanceStatus'].should.equal('available')
-    # test trying to start an already started database
+    # test starting an already started database should error
     conn.start_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
-    # stop and test start - should go from shutdown to available
-    response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
+    # stop and test start - should go from shutdown to available, create snapshot and check snapshot
+    response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap')
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
     response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response = conn.describe_db_snapshots()
+    response['DBSnapshots'][0]['DBSnapshotIdentifier'].should.equal('rocky4570-rds-snap')
     response = conn.start_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
     response['DBInstance']['DBInstanceStatus'].should.equal('available')
+    # starting database should not remove snapshot
+    response = conn.describe_db_snapshots()
+    response['DBSnapshots'][0]['DBSnapshotIdentifier'].should.equal('rocky4570-rds-snap')
+    # test stopping database, create snapshot with existing snapshot already created should throw error
+    conn.stop_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap').should.throw(ClientError)
+    # test stopping database not invoking snapshot should succeed.
+    response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+
 
 @mock_rds2
 def test_fail_to_stop_multi_az():
@@ -98,6 +117,7 @@ def test_fail_to_stop_multi_az():
     conn.stop_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
     # multi-az databases arent allowed to be started up at this time.
     conn.start_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
+
 
 @mock_rds2
 def test_fail_to_stop_readreplica():
@@ -123,6 +143,48 @@ def test_fail_to_stop_readreplica():
     conn.stop_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
     # read-replicas are not allowed to be started at this time.
     conn.start_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
+
+
+@mock_rds2
+def test_snapshotquota_exceeded():
+    import os
+    conn = boto3.client('rds', region_name='us-west-2')
+    database1 = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+                                       AllocatedStorage=10,
+                                       Engine='postgres',
+                                       DBName='staging-postgres',
+                                       DBInstanceClass='db.m1.small',
+                                       LicenseModel='license-included',
+                                       MasterUsername='root',
+                                       MasterUserPassword='hunter2',
+                                       Port=1234,
+                                       DBSecurityGroups=["my_sg"])
+    database2 = conn.create_db_instance(DBInstanceIdentifier='db-master-2',
+                                       AllocatedStorage=10,
+                                       Engine='postgres',
+                                       DBName='staging-postgres',
+                                       DBInstanceClass='db.m1.small',
+                                       LicenseModel='license-included',
+                                       MasterUsername='root',
+                                       MasterUserPassword='hunter2',
+                                       Port=1234,
+                                       DBSecurityGroups=["my_sg"])
+    database3 = conn.create_db_instance(DBInstanceIdentifier='db-master-3',
+                                       AllocatedStorage=10,
+                                       Engine='postgres',
+                                       DBName='staging-postgres',
+                                       DBInstanceClass='db.m1.small',
+                                       LicenseModel='license-included',
+                                       MasterUsername='root',
+                                       MasterUserPassword='hunter2',
+                                       Port=1234,
+                                       DBSecurityGroups=["my_sg"])
+    conn.stop_db_instance(DBInstanceIdentifier=database1['DBInstance']['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap1')
+    conn.stop_db_instance(DBInstanceIdentifier=database2['DBInstance']['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap2')
+    os.environ['MOTO_RDS_SNAPSHOT_LIMIT'] = '2'
+    conn.stop_db_instance.when.called_with(DBInstanceIdentifier=database3['DBInstance']['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap3').should.throw(ClientError)
+    os.unsetenv('MOTO_RDS_SNAPSHOT_LIMIT')
+
 
 @mock_rds2
 def test_get_databases():

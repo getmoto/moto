@@ -74,4 +74,20 @@ class InvalidDBInstanceStateError(RDSClientError):
         estate = "in available state" if istate == 'stop' else "stopped, it cannot be started"
         super(InvalidDBInstanceStateError, self).__init__(
             'InvalidDBInstanceState',
-            'when calling the {}DBInstance operation: Instance {} is not {}.'.format(istate.title(), database_identifier, estate))
+            'Instance {} is not {}.'.format(database_identifier, estate))
+
+
+class SnapshotQuotaExceededError(RDSClientError):
+
+    def __init__(self):
+        super(SnapshotQuotaExceededError, self).__init__(
+            'SnapshotQuotaExceeded',
+            'The request cannot be processed because it would exceed the maximum number of snapshots.')
+
+
+class DBSnapshotAlreadyExistsError(RDSClientError):
+
+    def __init__(self, database_snapshot_identifier):
+        super(DBSnapshotAlreadyExistsError, self).__init__(
+            'DBSnapshotAlreadyExists',
+            'Cannot create the snapshot because a snapshot with the identifier {} already exists.'.format(database_snapshot_identifier))
