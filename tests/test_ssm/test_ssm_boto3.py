@@ -24,6 +24,25 @@ def test_delete_parameter():
     response = client.get_parameters(Names=['test'])
     len(response['Parameters']).should.equal(0)
 
+@mock_ssm
+def test_delete_parameters():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.put_parameter(
+        Name='test',
+        Description='A test parameter',
+        Value='value',
+        Type='String')
+
+    response = client.get_parameters(Names=['test'])
+    len(response['Parameters']).should.equal(1)
+
+    result = client.delete_parameters(Names=['test', 'invalid'])
+    len(result['DeletedParameters']).should.equal(1)
+    len(result['InvalidParameters']).should.equal(1)
+
+    response = client.get_parameters(Names=['test'])
+    len(response['Parameters']).should.equal(0)
 
 @mock_ssm
 def test_put_parameter():
