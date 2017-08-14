@@ -80,6 +80,14 @@ class ManagedPolicy(Policy):
         self.attachment_count -= 1
         del role.managed_policies[self.name]
 
+    def attach_to_user(self, user):
+        self.attachment_count += 1
+        user.managed_policies[self.name] = self
+
+    def detach_from_user(self, user):
+        self.attachment_count -= 1
+        del user.managed_policies[self.name]
+
 
 class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
@@ -265,6 +273,7 @@ class User(BaseModel):
         self.created = datetime.utcnow()
         self.mfa_devices = {}
         self.policies = {}
+        self.managed_policies = {}
         self.access_keys = []
         self.password = None
         self.password_reset_required = False
@@ -516,6 +525,16 @@ class IAMBackend(BaseBackend):
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
 
+    def attach_user_policy(self, policy_arn, user_name):
+        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        policy = arns[policy_arn]
+        policy.attach_to_user(self.get_user(user_name))
+
+    def detach_user_policy(self, policy_arn, user_name):
+        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        policy = arns[policy_arn]
+        policy.detach_from_user(self.get_user(user_name))
+
     def create_policy(self, description, path, policy_document, policy_name):
         policy = ManagedPolicy(
             policy_name,
@@ -531,6 +550,24 @@ class IAMBackend(BaseBackend):
 
     def list_attached_role_policies(self, role_name, marker=None, max_items=100, path_prefix='/'):
         policies = self.get_role(role_name).managed_policies.values()
+
+        if path_prefix:
+            policies = [p for p in policies if p.path.startswith(path_prefix)]
+
+        policies = sorted(policies, key=lambda policy: policy.name)
+        start_idx = int(marker) if marker else 0
+
+        policies = policies[start_idx:start_idx + max_items]
+
+        if len(policies) < max_items:
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        return policies, marker
+
+    def list_attached_user_policies(self, user_name, marker=None, max_items=100, path_prefix='/'):
+        policies = self.get_user(user_name).managed_policies.values()
 
         if path_prefix:
             policies = [p for p in policies if p.path.startswith(path_prefix)]
