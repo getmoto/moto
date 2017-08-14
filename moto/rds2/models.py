@@ -413,7 +413,6 @@ class Snapshot(BaseModel):
         self.tags = tags or []
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
-
     @property
     def snapshot_arn(self):
         return "arn:aws:rds:{0}:1234567890:snapshot:{1}".format(self.database.region, self.snapshot_id)
