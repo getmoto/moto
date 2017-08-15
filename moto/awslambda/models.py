@@ -7,9 +7,9 @@ import io
 import logging
 import os
 import json
-import sys
 import tempfile
 import zipfile
+import uuid
 
 try:
     from StringIO import StringIO
@@ -18,29 +18,13 @@ except:
 
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import unix_time_millis
 from moto.s3.models import s3_backend
+from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 import subprocess
 
 logger = logging.getLogger(__name__)
-
-
-def sp_check_output(*args, stdin: str = None):
-    try:
-        logger.info("Running: {}".format(args))
-        proc = subprocess.run(args, input=stdin, stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
-        if proc.returncode != 0:
-            raise Exception(
-                'Ran: {} output: {} {} failed'.format(args, proc.stdout,
-                                                      proc.stderr))
-
-        logger.info('Ran: {} output: {} {} success'.format(args, proc.stdout,
-                                                           proc.stderr))
-        return proc.stdout.decode('utf-8'), proc.stderr.decode('utf-8')
-    except:
-        logger.exception("Exception running: {}".format(args))
-        raise
 
 
 class LambdaFunction(BaseModel):
@@ -52,12 +36,17 @@ class LambdaFunction(BaseModel):
         self.handler = spec['Handler']
         self.role = spec['Role']
         self.run_time = spec['Runtime']
+        self.logs_backend = logs_backends[self.region]
 
         # optional
         self.description = spec.get('Description', '')
         self.memory_size = spec.get('MemorySize', 128)
         self.publish = spec.get('Publish', False)  # this is ignored currently
         self.timeout = spec.get('Timeout', 3)
+
+        self.logs_group_name = '/aws/lambda/{}'.format(self.function_name)
+        self.logs_backend.create_log_group(self.logs_group_name, [])
+
 
         # this isn't finished yet. it needs to find out the VpcId value
         self._vpc_config = spec.get(
@@ -154,9 +143,14 @@ class LambdaFunction(BaseModel):
             response = test_str
         return response
 
-    def _invoke_lambda(self, code, event={}, context={}):
+    def _invoke_lambda(self, code, event=None, context=None):
         # TODO: context not yet implemented
         # TODO: switch to docker python API
+        if event is None:
+            event = dict()
+        if context is None:
+            context = {}
+
         with tempfile.TemporaryDirectory() as td, \
                 zipfile.ZipFile(io.BytesIO(self.code)) as zf:
             zf.extractall(td)
@@ -165,16 +159,52 @@ class LambdaFunction(BaseModel):
                 td = td.replace("/var/folders/", "/private/var/folders/")
 
             try:
-                # TODO:
-                stdout, stderr = sp_check_output("docker", "run", "--rm", "-i",
-                                                 "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
-                                                 "-v",
-                                                 "{}:/var/task".format(td),
-                                                 "lambci/lambda:{}".format(
-                                                     self.run_time),
-                                                 self.handler,
-                                                 json.dumps(event))
-                return self.convert(stdout), False
+                # TODO: I believe we can keep the container running and feed events as needed
+                #       also need to hook it up to the other services so it can make kws/s3 etc calls
+                #  Should get invoke_id /RequestId from invovation
+
+                proc = subprocess.run([
+                    "docker", "run", "--rm", "-i",
+                     "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
+                     "-e", "AWS_LAMBDA_FUNCTION_NAME={}".format(self.function_name),
+                     "-e", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE={}".format(self.memory_size),
+                     "-e", "AWS_LAMBDA_FUNCTION_VERSION={}".format(self.version),
+                     "-e", "AWS_REGION={}".format(self.region),
+                     "-m", "{}m".format(self.memory_size),
+                     "-v",
+                     "{}:/var/task".format(td),
+                     "lambci/lambda:{}".format(
+                         self.run_time),
+                     self.handler,
+                     json.dumps(event)],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                stdout = proc.stdout.decode('utf-8')
+                stderr =  proc.stderr.decode('utf-8')
+
+                # Send output to "logs" backend
+                invoke_id = uuid.uuid4().hex
+                log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
+                    date=datetime.datetime.utcnow(), version=self.version, invoke_id=invoke_id
+                )
+
+                self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
+
+                log_events = [{'timestamp': unix_time_millis(), "message": line}
+                              for line in stderr.splitlines()]
+                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, log_events, None)
+
+                output = self.convert(stdout)
+                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, [{'timestamp': unix_time_millis(), "message": output}], None)
+
+                if proc.returncode != 0:
+                    raise Exception(
+                        'Ran: {} output: {} {} failed'.format(args, proc.stdout,
+                                                              proc.stderr))
+
+                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, [{'timestamp': unix_time_millis(), "message": output}], None)
+
+                return output, False
             except BaseException as e:
                 return "error running lambda: {}".format(e), True
 
