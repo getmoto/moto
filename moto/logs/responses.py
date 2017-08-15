@@ -100,12 +100,13 @@ class LogsResponse(BaseResponse):
         start_time = self._get_param('startTime')
         # impl, see: http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html
         filter_pattern = self._get_param('filterPattern')
+        interleaved = self._get_param('interleaved', False)
         end_time = self._get_param("endTime")
         limit = self._get_param('limit', 10000)
         assert limit <= 10000
         next_token = self._get_param('nextToken')
 
-        events, next_token, searched_streams = self.logs_backend.filter_log_events(log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern)
+        events, next_token, searched_streams = self.logs_backend.filter_log_events(log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved)
         return json.dumps({
             "events": events,
             "nextToken": next_token,

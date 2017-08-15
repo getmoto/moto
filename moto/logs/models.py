@@ -15,6 +15,15 @@ class LogEvent:
         self.eventId = self.__class__._event_id
         self.__class__._event_id += 1
 
+    def to_filter_dict(self):
+        return {
+            "eventId": self.eventId,
+            "ingestionTime": self.ingestionTime,
+            # "logStreamName":
+            "message": self.message,
+            "timestamp": self.timestamp
+        }
+
 
 class LogStream:
     _log_ids = 0
@@ -79,6 +88,19 @@ class LogStream:
 
         return events_page, back_token, next_token
 
+    def filter_log_events(self, log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved):
+        def filter_func(event):
+            if start_time and event.timestamp < start_time:
+                return False
+
+            if end_time and event.timestamp > end_time:
+                return False
+
+            return True
+
+        events = [{**event.to_filter_dict(), "logStreamName": self.logStreamName} for event in sorted(filter(filter_func, self.events), key=lambda event: event.timestamp)]
+        return events
+
 
 class LogGroup:
     def __init__(self, region, name, tags):
@@ -122,9 +144,28 @@ class LogGroup:
         stream = self.streams[log_stream_name]
         return stream.get_log_events(log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head)
 
-    def filter_log_events(self, log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern):
-        assert not filter_pattern
+    def filter_log_events(self, log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved):
+        assert not filter_pattern  # TODO: impl
 
+        streams = [stream for name, stream in self.streams.items() if not log_stream_names or name in log_stream_names]
+
+        events = []
+        for stream in streams:
+            events += stream.filter_log_events(log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved)
+
+        if interleaved:
+            events = sorted(events, key=lambda event: event.timestamp)
+
+        if next_token is None:
+            next_token = 0
+
+        events_page = events[next_token: next_token + limit]
+        next_token += limit
+        if next_token >= len(events):
+            next_token = None
+
+        searched_streams = [{"logStreamName": stream.logStreamName, "searchedCompletely": True} for stream in streams]
+        return events_page, next_token, searched_streams
 
 
 class LogsBackend(BaseBackend):
@@ -167,10 +208,10 @@ class LogsBackend(BaseBackend):
         log_group = self.groups[log_group_name]
         return log_group.get_log_events(log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head)
 
-    def filter_log_events(self, log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern):
+    def filter_log_events(self, log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved):
         assert log_group_name in self.groups
         log_group = self.groups[log_group_name]
-        return log_group.filter_log_events(log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern)
+        return log_group.filter_log_events(log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved)
 
 
 logs_backends = {region.name: LogsBackend(region.name) for region in boto.logs.regions()}
