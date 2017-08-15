@@ -167,14 +167,19 @@ class LogGroup:
 
 
 class LogsBackend(BaseBackend):
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, region_name):
+        self.region_name = region_name
         self.groups = dict()  # { logGroupName: LogGroup}
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def create_log_group(self, log_group_name, tags):
         assert log_group_name not in self.groups
 
-        self.groups[log_group_name] = LogGroup(self.region, log_group_name, tags)
+        self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
 
     def delete_log_group(self, log_group_name):
         assert log_group_name in self.groups
