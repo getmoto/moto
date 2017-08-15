@@ -159,20 +159,20 @@ class LambdaFunction(BaseModel):
 
                 proc = subprocess.run([
                     "docker", "run", "--rm", "-i",
-                     "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
-                     "-e", "AWS_LAMBDA_FUNCTION_NAME={}".format(self.function_name),
-                     "-e", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE={}".format(self.memory_size),
-                     "-e", "AWS_LAMBDA_FUNCTION_VERSION={}".format(self.version),
-                     "-e", "AWS_REGION={}".format(self.region),
-                     "-m", "{}m".format(self.memory_size),
-                     "-v", "{}:/var/task".format(td),
-                     "lambci/lambda:{}".format(self.run_time),
-                     self.handler,
-                     json.dumps(event)],
+                    "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
+                    "-e", "AWS_LAMBDA_FUNCTION_NAME={}".format(self.function_name),
+                    "-e", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE={}".format(self.memory_size),
+                    "-e", "AWS_LAMBDA_FUNCTION_VERSION={}".format(self.version),
+                    "-e", "AWS_REGION={}".format(self.region),
+                    "-m", "{}m".format(self.memory_size),
+                    "-v", "{}:/var/task".format(td),
+                    "lambci/lambda:{}".format(self.run_time),
+                    self.handler,
+                    json.dumps(event)],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 stdout = proc.stdout.decode('utf-8')
-                stderr =  proc.stderr.decode('utf-8')
+                stderr = proc.stderr.decode('utf-8')
 
                 # Send output to "logs" backend
                 invoke_id = uuid.uuid4().hex
