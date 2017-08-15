@@ -11,11 +11,6 @@ import tempfile
 import zipfile
 import uuid
 
-try:
-    from StringIO import StringIO
-except:
-    from io import StringIO
-
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time_millis
@@ -46,7 +41,6 @@ class LambdaFunction(BaseModel):
 
         self.logs_group_name = '/aws/lambda/{}'.format(self.function_name)
         self.logs_backend.create_log_group(self.logs_group_name, [])
-
 
         # this isn't finished yet. it needs to find out the VpcId value
         self._vpc_config = spec.get(
@@ -171,10 +165,8 @@ class LambdaFunction(BaseModel):
                      "-e", "AWS_LAMBDA_FUNCTION_VERSION={}".format(self.version),
                      "-e", "AWS_REGION={}".format(self.region),
                      "-m", "{}m".format(self.memory_size),
-                     "-v",
-                     "{}:/var/task".format(td),
-                     "lambci/lambda:{}".format(
-                         self.run_time),
+                     "-v", "{}:/var/task".format(td),
+                     "lambci/lambda:{}".format(self.run_time),
                      self.handler,
                      json.dumps(event)],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -199,8 +191,8 @@ class LambdaFunction(BaseModel):
 
                 if proc.returncode != 0:
                     raise Exception(
-                        'Ran: {} output: {} {} failed'.format(args, proc.stdout,
-                                                              proc.stderr))
+                        'lambda invoke failed output: {} {}'.format(
+                            proc.stdout, proc.stderr))
 
                 self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, [{'timestamp': unix_time_millis(), "message": output}], None)
 

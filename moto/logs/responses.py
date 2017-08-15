@@ -47,7 +47,7 @@ class LogsResponse(BaseResponse):
 
     def describe_log_streams(self):
         log_group_name = self._get_param('logGroupName')
-        log_stream_name_prefix= self._get_param('logStreamNamePrefix')
+        log_stream_name_prefix = self._get_param('logStreamNamePrefix')
         descending = self._get_param('descending', False)
         limit = self._get_param('limit', 50)
         assert limit <= 50

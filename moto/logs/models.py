@@ -1,4 +1,4 @@
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend
 import boto.logs
 from moto.core.utils import unix_time_millis
 
