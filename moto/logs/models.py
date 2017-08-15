@@ -2,8 +2,6 @@ from moto.core import BaseBackend, BaseModel
 import boto.logs
 from moto.core.utils import unix_time_millis
 
-# TODO: implement exceptions (see redshift.exceptions)
-
 
 class LogEvent:
     _event_id = 0
@@ -111,7 +109,7 @@ class LogGroup:
 
     def create_log_stream(self, log_stream_name):
         assert log_stream_name not in self.streams
-        self.streams[log_stream_name] = LogStream(log_stream_name)
+        self.streams[log_stream_name] = LogStream(self.region, self.name, log_stream_name)
 
     def delete_log_stream(self, log_stream_name):
         assert log_stream_name in self.streams
