@@ -146,47 +146,6 @@ def test_fail_to_stop_readreplica():
 
 
 @mock_rds2
-def test_snapshotquota_exceeded():
-    import os
-    conn = boto3.client('rds', region_name='us-west-2')
-    database1 = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
-                                       AllocatedStorage=10,
-                                       Engine='postgres',
-                                       DBName='staging-postgres',
-                                       DBInstanceClass='db.m1.small',
-                                       LicenseModel='license-included',
-                                       MasterUsername='root',
-                                       MasterUserPassword='hunter2',
-                                       Port=1234,
-                                       DBSecurityGroups=["my_sg"])
-    database2 = conn.create_db_instance(DBInstanceIdentifier='db-master-2',
-                                       AllocatedStorage=10,
-                                       Engine='postgres',
-                                       DBName='staging-postgres',
-                                       DBInstanceClass='db.m1.small',
-                                       LicenseModel='license-included',
-                                       MasterUsername='root',
-                                       MasterUserPassword='hunter2',
-                                       Port=1234,
-                                       DBSecurityGroups=["my_sg"])
-    database3 = conn.create_db_instance(DBInstanceIdentifier='db-master-3',
-                                       AllocatedStorage=10,
-                                       Engine='postgres',
-                                       DBName='staging-postgres',
-                                       DBInstanceClass='db.m1.small',
-                                       LicenseModel='license-included',
-                                       MasterUsername='root',
-                                       MasterUserPassword='hunter2',
-                                       Port=1234,
-                                       DBSecurityGroups=["my_sg"])
-    conn.stop_db_instance(DBInstanceIdentifier=database1['DBInstance']['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap1')
-    conn.stop_db_instance(DBInstanceIdentifier=database2['DBInstance']['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap2')
-    os.environ['MOTO_RDS_SNAPSHOT_LIMIT'] = '2'
-    conn.stop_db_instance.when.called_with(DBInstanceIdentifier=database3['DBInstance']['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap3').should.throw(ClientError)
-    os.unsetenv('MOTO_RDS_SNAPSHOT_LIMIT')
-
-
-@mock_rds2
 def test_get_databases():
     conn = boto3.client('rds', region_name='us-west-2')
 
