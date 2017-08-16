@@ -14,6 +14,11 @@ from .exceptions import (
     SubnetNotFoundError,
     TargetGroupNotFoundError,
     TooManyTagsError,
+    PriorityInUseError,
+    InvalidConditionFieldError,
+    InvalidConditionValueError,
+    InvalidActionTypeError,
+    ActionTargetGroupNotFoundError,
 )
 
 
@@ -92,6 +97,34 @@ class FakeListener(BaseModel):
         self.ssl_policy = ssl_policy
         self.certificate = certificate
         self.default_actions = default_actions
+        self._non_default_rules = []
+        self._default_rule = FakeRule(
+            listener_arn=self.arn,
+            conditions=[],
+            priority='default',
+            actions=default_actions,
+            is_default=True
+        )
+
+    @property
+    def rules(self):
+        return self._non_default_rules + [self._default_rule]
+
+
+    def register(self, rule):
+        self._non_default_rules.append(rule)
+        self._non_default_rules = sorted(self._non_default_rules, key=lambda x: x.priority)
+
+
+class FakeRule(BaseModel):
+
+    def __init__(self, listener_arn, conditions, priority, actions, is_default):
+        self.listener_arn = listener_arn
+        self.arn = listener_arn.replace(':listener/', ':listener-rule/') + "/%s" % (id(self))
+        self.conditions = conditions
+        self.priority = priority # int or 'default'
+        self.actions = actions
+        self.is_default = is_default
 
 
 class FakeBackend(BaseModel):
@@ -180,6 +213,53 @@ class ELBv2Backend(BaseBackend):
             dns_name=dns_name)
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
+
+    def create_rule(self, listener_arn, conditions, priority, actions):
+        listeners = self.describe_listeners(None, [listener_arn])
+        if not listeners:
+            raise ListenerNotFound()
+        listener = listeners[0]
+
+        # validate conditions
+        for condition in conditions:
+            field = condition['field']
+            if field not in ['path-pattern', 'host-header']:
+                raise InvalidConditionFieldError(field)
+
+            values = condition['values']
+            if len(values) == 0:
+                raise InvalidConditionValueError('A condition value must be specified')
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The '%s' field contains too many values; the limit is '1'" % field
+                )
+
+            # TODO: check pattern of value for 'host-header'
+            # TODO: check pattern of value for 'path-pattern'
+
+        # validate Priority
+        for rule in listener.rules:
+            if rule.priority == priority:
+                raise PriorityInUseError()
+
+        # validate Actions
+        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
+        for i, action in enumerate(actions):
+            index = i + 1
+            action_type = action['type']
+            if action_type not in ['forward']:
+                raise InvalidActionTypeError(action_type, index)
+            action_target_group_arn = action['target_group_arn']
+            if action_target_group_arn not in target_group_arns:
+                raise ActionTargetGroupNotFoundError(action_target_group_arn)
+
+        # TODO: check for error 'TooManyRegistrationsForTargetId'
+        # TODO: check for error 'TooManyRules'
+
+        # create rule
+        rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)
+        listener.register(rule)
+        return listener.rules
 
     def create_target_group(self, name, **kwargs):
         for target_group in self.target_groups.values():

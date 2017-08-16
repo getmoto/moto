@@ -518,3 +518,207 @@ def test_target_group_attributes():
     attributes = {attr['Key']: attr['Value'] for attr in response['Attributes']}
     attributes['stickiness.type'].should.equal('lb_cookie')
     attributes['stickiness.enabled'].should.equal('true')
+
+
+@mock_elbv2
+@mock_ec2
+def test_create_listener_rules():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    response = conn.create_target_group(
+        Name='a-target',
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPort='8080',
+        HealthCheckPath='/',
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={'HttpCode': '200'})
+    target_group = response.get('TargetGroups')[0]
+
+    # Plain HTTP listener
+    response = conn.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol='HTTP',
+        Port=80,
+        DefaultActions=[{'Type': 'forward', 'TargetGroupArn': target_group.get('TargetGroupArn')}])
+    listener = response.get('Listeners')[0]
+    listener.get('Port').should.equal(80)
+    listener.get('Protocol').should.equal('HTTP')
+    listener.get('DefaultActions').should.equal([{
+        'TargetGroupArn': target_group.get('TargetGroupArn'),
+        'Type': 'forward'}])
+    http_listener_arn = listener.get('ListenerArn')
+
+    # create first rule
+    priority = 100
+    host = 'xxx.example.com'
+    path_pattern = 'foobar'
+    rules = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=priority,
+        Conditions=[{
+            'Field': 'host-header',
+            'Values': [ host ]
+        },
+        {
+            'Field': 'path-pattern',
+            'Values': [ path_pattern ]
+        }],
+        Actions=[{
+            'TargetGroupArn': target_group.get('TargetGroupArn'),
+            'Type': 'forward'
+        }]
+    )
+    rules['Rules'][0].get('Priority').should.equal('100')
+
+    # check if rules is sorted by priority
+    priority = 50
+    host = 'yyy.example.com'
+    path_pattern = 'foobar'
+    rules = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=priority,
+        Conditions=[{
+            'Field': 'host-header',
+            'Values': [ host ]
+        },
+        {
+            'Field': 'path-pattern',
+            'Values': [ path_pattern ]
+        }],
+        Actions=[{
+            'TargetGroupArn': target_group.get('TargetGroupArn'),
+            'Type': 'forward'
+        }]
+    )
+    priorities = [rule['Priority'] for rule in rules['Rules']]
+    priorities.should.equal(['50', '100', 'default'])
+
+    # test for invalid action type
+    safe_priority = 2
+    with assert_raises(ClientError):
+        r = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=safe_priority,
+            Conditions=[{
+                'Field': 'host-header',
+                'Values': [ host ]
+            },
+            {
+                'Field': 'path-pattern',
+                'Values': [ path_pattern ]
+            }],
+            Actions=[{
+                'TargetGroupArn': target_group.get('TargetGroupArn'),
+                'Type': 'forward2'
+            }]
+        )
+
+    # test for invalid action type
+    safe_priority = 2
+    invalid_target_group_arn = target_group.get('TargetGroupArn') + 'x'
+    with assert_raises(ClientError):
+        r = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=safe_priority,
+            Conditions=[{
+                'Field': 'host-header',
+                'Values': [ host ]
+            },
+            {
+                'Field': 'path-pattern',
+                'Values': [ path_pattern ]
+            }],
+            Actions=[{
+                'TargetGroupArn': invalid_target_group_arn,
+                'Type': 'forward'
+            }]
+        )
+
+    # test for PriorityInUse
+    host2 = 'yyy.example.com'
+    with assert_raises(ClientError):
+        r = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=priority,
+            Conditions=[{
+                'Field': 'host-header',
+                'Values': [ host ]
+            },
+            {
+                'Field': 'path-pattern',
+                'Values': [ path_pattern ]
+            }],
+            Actions=[{
+                'TargetGroupArn': target_group.get('TargetGroupArn'),
+                'Type': 'forward'
+            }]
+        )
+
+    # test for invalid condition field_name
+    safe_priority = 2
+    with assert_raises(ClientError):
+        r = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=safe_priority,
+            Conditions=[{
+                'Field': 'xxxxxxx',
+                'Values': [ host ]
+            }],
+            Actions=[{
+                'TargetGroupArn': target_group.get('TargetGroupArn'),
+                'Type': 'forward'
+            }]
+        )
+
+    # test for emptry condition value
+    safe_priority = 2
+    with assert_raises(ClientError):
+        r = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=safe_priority,
+            Conditions=[{
+                'Field': 'host-header',
+                'Values': []
+            }],
+            Actions=[{
+                'TargetGroupArn': target_group.get('TargetGroupArn'),
+                'Type': 'forward'
+            }]
+        )
+
+    # test for multiple condition value
+    safe_priority = 2
+    with assert_raises(ClientError):
+        r = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=safe_priority,
+            Conditions=[{
+                'Field': 'host-header',
+                'Values': [host, host]
+            }],
+            Actions=[{
+                'TargetGroupArn': target_group.get('TargetGroupArn'),
+                'Type': 'forward'
+            }]
+        )

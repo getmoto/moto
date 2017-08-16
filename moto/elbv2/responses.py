@@ -28,6 +28,30 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
         return template.render(load_balancer=load_balancer)
 
+    def create_rule(self):
+        lister_arn = self._get_param('ListenerArn')
+        _conditions = self._get_list_prefix('Conditions.member')
+        conditions = []
+        for _condition in _conditions:
+            condition = {}
+            condition['field'] = _condition['field']
+            values = sorted(
+                [e for e in _condition.items() if e[0].startswith('values.member')],
+                key=lambda x: x[0]
+            )
+            condition['values'] = [e[1] for e in values]
+            conditions.append(condition)
+        priority = self._get_int_param('Priority')
+        actions = self._get_list_prefix('Actions.member')
+        rules = self.elbv2_backend.create_rule(
+            listener_arn=lister_arn,
+            conditions=conditions,
+            priority=priority,
+            actions=actions
+        )
+        template = self.response_template(CREATE_RULE_TEMPLATE)
+        return template.render(rules=rules)
+
     def create_target_group(self):
         name = self._get_param('Name')
         vpc_id = self._get_param('VpcId')
@@ -320,6 +344,43 @@ CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://ela
     <RequestId>32d531b2-f2d0-11e5-9192-3fff33344cfa</RequestId>
   </ResponseMetadata>
 </CreateLoadBalancerResponse>"""
+
+CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <CreateRuleResult>
+    <Rules>
+      {% for rule in rules %}
+      <member>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <Conditions>
+          {% for condition in rule.conditions %}
+          <member>
+            <Field>{{ condition["field"] }}</Field>
+            <Values>
+              {% for value in condition["values"] %}
+              <member>{{ value }}</member>
+              {% endfor %}
+            </Values>
+          </member>
+          {% endfor %}
+        </Conditions>
+        <Priority>{{ rule.priority }}</Priority>
+        <Actions>
+          {% for action in rule.actions %}
+          <member>
+            <Type>{{ action["type"] }}</Type>
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+          </member>
+          {% endfor %}
+        </Actions>
+        <RuleArn>{{ rule.arn }}</RuleArn>
+      </member>
+      {% endfor %}
+    </Rules>
+  </CreateRuleResult>
+  <ResponseMetadata>
+    <RequestId>c5478c83-f397-11e5-bb98-57195a6eb84a</RequestId>
+  </ResponseMetadata>
+</CreateRuleResponse>"""
 
 CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <CreateTargetGroupResult>
