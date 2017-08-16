@@ -6,6 +6,7 @@ coverage
 flake8
 freezegun
 flask
+boto>=2.45.0
 boto3>=1.4.4
 botocore>=1.4.28
 six
