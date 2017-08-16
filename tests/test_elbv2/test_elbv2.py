@@ -648,6 +648,12 @@ def test_handle_listener_rules():
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn, PageSize=1)
     len(obtained_rules['Rules']).should.equal(1)
     obtained_rules.should.have.key('NextMarker')
+    next_marker = obtained_rules['NextMarker']
+
+    following_rules = conn.describe_rules(ListenerArn=http_listener_arn, PageSize=1, Marker=next_marker)
+    len(following_rules['Rules']).should.equal(1)
+    following_rules.should.have.key('NextMarker')
+    following_rules['Rules'][0]['RuleArn'].should_not.equal(obtained_rules['Rules'][0]['RuleArn'])
 
     # test for invalid describe rule request
     with assert_raises(ClientError):
