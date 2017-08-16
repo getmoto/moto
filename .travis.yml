@@ -1,6 +1,5 @@
 language: python
 sudo: false
-dist: precise
 services:
   - docker
 python:
