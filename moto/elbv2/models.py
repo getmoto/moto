@@ -357,6 +357,18 @@ class ELBv2Backend(BaseBackend):
     def delete_load_balancer(self, arn):
         self.load_balancers.pop(arn, None)
 
+    def delete_rule(self, arn):
+        for load_balancer_arn in self.load_balancers:
+            listeners = self.load_balancers.get(load_balancer_arn).listeners.values()
+            for listener in listeners:
+                for rule in listener.rules:
+                    if rule.arn == arn:
+                        listener.rules.remove(rule)
+                        return
+
+        # should raise RuleNotFound Error according to the AWS API doc
+        # however, boto3 does't raise error even if rule is not found
+
     def delete_target_group(self, target_group_arn):
         target_group = self.target_groups.pop(target_group_arn)
         if target_group:

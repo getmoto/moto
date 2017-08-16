@@ -614,6 +614,10 @@ def test_create_listener_rules():
     priorities = [rule['Priority'] for rule in rules['Rules']]
     priorities.should.equal(['50', '100', 'default'])
 
+    arn = rules['Rules'][0]['RuleArn']
+    conn.delete_rule(RuleArn=arn)
+    # TODO: describe rule and ensure rule is removed
+
     # test for invalid action type
     safe_priority = 2
     with assert_raises(ClientError):

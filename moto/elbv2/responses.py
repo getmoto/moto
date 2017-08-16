@@ -157,6 +157,12 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
+    def delete_rule(self):
+        arn = self._get_param('RuleArn')
+        self.elbv2_backend.delete_rule(arn)
+        template = self.response_template(DELETE_RULE_TEMPLATE)
+        return template.render()
+
     def delete_target_group(self):
         arn = self._get_param('TargetGroupArn')
         self.elbv2_backend.delete_target_group(arn)
@@ -447,6 +453,13 @@ DELETE_LOAD_BALANCER_TEMPLATE = """<DeleteLoadBalancerResponse xmlns="http://ela
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteLoadBalancerResponse>"""
+
+DELETE_RULE_TEMPLATE = """<DeleteRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DeleteRuleResult/>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteRuleResponse>"""
 
 DELETE_TARGET_GROUP_TEMPLATE = """<DeleteTargetGroupResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DeleteTargetGroupResult/>
