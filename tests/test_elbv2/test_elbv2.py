@@ -573,7 +573,7 @@ def test_create_listener_rules():
     priority = 100
     host = 'xxx.example.com'
     path_pattern = 'foobar'
-    rules = conn.create_rule(
+    created_rule = conn.create_rule(
         ListenerArn=http_listener_arn,
         Priority=priority,
         Conditions=[{
@@ -588,8 +588,8 @@ def test_create_listener_rules():
             'TargetGroupArn': target_group.get('TargetGroupArn'),
             'Type': 'forward'
         }]
-    )
-    rules['Rules'][0].get('Priority').should.equal('100')
+    )['Rules'][0]
+    created_rule['Priority'].should.equal('100')
 
     # check if rules is sorted by priority
     priority = 50
@@ -611,12 +611,12 @@ def test_create_listener_rules():
             'Type': 'forward'
         }]
     )
-    priorities = [rule['Priority'] for rule in rules['Rules']]
-    priorities.should.equal(['50', '100', 'default'])
 
     # test for describe listeners
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
-    obtained_rules['Rules'].should.equal(rules['Rules'])
+    len(obtained_rules['Rules']).should.equal(3)
+    priorities = [rule['Priority'] for rule in obtained_rules['Rules']]
+    priorities.should.equal(['50', '100', 'default'])
 
     first_rule = obtained_rules['Rules'][0]
     obtained_rules = conn.describe_rules(RuleArns=[first_rule['RuleArn']])

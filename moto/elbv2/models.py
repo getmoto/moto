@@ -261,7 +261,7 @@ class ELBv2Backend(BaseBackend):
         # create rule
         rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)
         listener.register(rule)
-        return listener.rules
+        return [rule]
 
     def create_target_group(self, name, **kwargs):
         for target_group in self.target_groups.values():
