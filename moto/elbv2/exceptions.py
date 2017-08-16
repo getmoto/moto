@@ -142,3 +142,11 @@ class ActionTargetGroupNotFoundError(ELBClientError):
             "TargetGroupNotFound",
             "Target group '%s' not found" % arn
         )
+
+
+class InvalidDescribeRulesRequest(ELBClientError):
+
+    def __init__(self, msg):
+        super(InvalidDescribeRulesRequest, self).__init__(
+            "ValidationError", msg
+        )

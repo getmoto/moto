@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import base64
 from moto.core.responses import BaseResponse
 from .models import elbv2_backends
 from .exceptions import DuplicateTagKeysError
@@ -123,6 +124,26 @@ class ELBV2Response(BaseResponse):
 
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(load_balancers=load_balancers_resp, marker=next_marker)
+
+    def describe_rules(self):
+        listener_arn = self._get_param('ListenerArn')
+        rule_arns = self._get_multi_param('RuleArns.member') if any(k for k in list(self.querystring.keys()) if k.startswith('RuleArns.member')) else None
+        all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
+        all_arns = [rule.arn for rule in all_rules]
+        all_arns = [base64.urlsafe_b64encode(bytes(rule.arn, 'UTF-8')) for rule in all_rules]
+        page_size = self._get_int_param('PageSize', 50) # set 50 for temporary
+
+        marker = self._get_param('Marker')
+        if marker:
+            start = all_arns.index(marker) + 1
+        else:
+            start = 0
+        rules_resp = all_rules[start:start + page_size]
+        next_marker = None
+        if len(all_rules) > start + page_size:
+            next_marker = base64.urlsafe_b64encode(bytes(rules_resp[-1].arn, 'UTF-8'))
+        template = self.response_template(DESCRIBE_RULES_TEMPLATE)
+        return template.render(rules=rules_resp, marker=next_marker)
 
     def describe_target_groups(self):
         load_balancer_arn = self._get_param('LoadBalancerArn')
@@ -516,6 +537,45 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
   </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
+DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DescribeRulesResult>
+    <Rules>
+      {% for rule in rules %}
+      <member>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <Conditions>
+          {% for condition in rule.conditions %}
+          <member>
+            <Field>{{ condition["field"] }}</Field>
+            <Values>
+              {% for value in condition["values"] %}
+              <member>{{ value }}</member>
+              {% endfor %}
+            </Values>
+          </member>
+          {% endfor %}
+        </Conditions>
+        <Priority>{{ rule.priority }}</Priority>
+        <Actions>
+          {% for action in rule.actions %}
+          <member>
+            <Type>{{ action["type"] }}</Type>
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+          </member>
+          {% endfor %}
+        </Actions>
+        <RuleArn>{{ rule.arn }}</RuleArn>
+      </member>
+      {% endfor %}
+    </Rules>
+    {% if marker %}
+    <NextMarker>{{ marker }}</NextMarker>
+    {% endif %}
+  </DescribeRulesResult>
+  <ResponseMetadata>
+    <RequestId>74926cf3-f3a3-11e5-b543-9f2c3fbb9bee</RequestId>
+  </ResponseMetadata>
+</DescribeRulesResponse>"""
 
 DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeTargetGroupsResult>

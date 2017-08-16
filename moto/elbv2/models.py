@@ -19,6 +19,7 @@ from .exceptions import (
     InvalidConditionValueError,
     InvalidActionTypeError,
     ActionTargetGroupNotFoundError,
+    InvalidDescribeRulesRequest
 )
 
 
@@ -312,6 +313,29 @@ class ELBv2Backend(BaseBackend):
                 matched_balancers.append(matched_balancer)
 
         return matched_balancers
+
+    def describe_rules(self, listener_arn, rule_arns):
+        if listener_arn is None and not rule_arns:
+            raise InvalidDescribeRulesRequest(
+                "You must specify either listener rule ARNs or a listener ARN"
+            )
+        if listener_arn is not None and rule_arns is not None:
+            raise InvalidDescribeRulesRequest(
+                'Listener rule ARNs and a listener ARN cannot be specified at the same time'
+            )
+        if listener_arn:
+            listener = self.describe_listeners(None, [listener_arn])[0]
+            return listener.rules
+
+        # search for rule arns
+        matched_rules = []
+        for load_balancer_arn in self.load_balancers:
+            listeners = self.load_balancers.get(load_balancer_arn).listeners.values()
+            for listener in listeners:
+                for rule in listener.rules:
+                    if rule.arn in rule_arns:
+                        matched_rules.append(rule)
+        return matched_rules
 
     def describe_target_groups(self, load_balancer_arn, target_group_arns, names):
         if load_balancer_arn:

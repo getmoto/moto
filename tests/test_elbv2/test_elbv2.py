@@ -614,7 +614,32 @@ def test_create_listener_rules():
     priorities = [rule['Priority'] for rule in rules['Rules']]
     priorities.should.equal(['50', '100', 'default'])
 
-    arn = rules['Rules'][0]['RuleArn']
+    # test for describe listeners
+    first_rule = rules['Rules'][0]
+    obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
+    obtained_rules['Rules'].should.equal(rules['Rules'])
+
+    obtained_rules = conn.describe_rules(RuleArns=[first_rule['RuleArn']])
+    obtained_rules['Rules'].should.equal([first_rule])
+
+    # test for pagination
+    obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn, PageSize=1)
+    len(obtained_rules['Rules']).should.equal(1)
+    obtained_rules.should.have.key('NextMarker')
+
+    # test for invalid describe rule request
+    with assert_raises(ClientError):
+        conn.describe_rules()
+    with assert_raises(ClientError):
+        conn.describe_rules(RuleArns=[])
+    with assert_raises(ClientError):
+        conn.describe_rules(
+            ListenerArn=http_listener_arn,
+            RuleArns=[first_rule['RuleArn']]
+        )
+
+    # delete
+    arn = first_rule['RuleArn']
     conn.delete_rule(RuleArn=arn)
     # TODO: describe rule and ensure rule is removed
 
