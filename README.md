@@ -82,6 +82,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | ELB                   | @mock_elb        | core endpoints done               |
 |------------------------------------------------------------------------------|
+| ELBv2                 | @mock_elbv2      | core endpoints done               |
+|------------------------------------------------------------------------------|
 | EMR                   | @mock_emr        | core endpoints done               |
 |------------------------------------------------------------------------------|
 | Glacier               | @mock_glacier    | core endpoints done               |
