@@ -311,15 +311,20 @@ class LambdaVersion(BaseModel):
 
 
 class LambdaBackend(BaseBackend):
-    def __init__(self, region):
+    def __init__(self, region_name):
         self._functions = {}
-        self._region = region
+        self.region_name = region_name
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def has_function(self, function_name):
         return function_name in self._functions
 
     def create_function(self, spec):
-        fn = LambdaFunction(spec, self._region)
+        fn = LambdaFunction(spec, self.region_name)
         self._functions[fn.function_name] = fn
         return fn
 
