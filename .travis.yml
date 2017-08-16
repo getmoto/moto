@@ -1,5 +1,7 @@
 language: python
 sudo: false
+services:
+  - docker
 python:
   - 2.7
   - 3.6
