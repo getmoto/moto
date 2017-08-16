@@ -522,7 +522,7 @@ def test_target_group_attributes():
 
 @mock_elbv2
 @mock_ec2
-def test_create_listener_rules():
+def test_handle_listener_rules():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
