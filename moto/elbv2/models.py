@@ -113,7 +113,6 @@ class FakeListener(BaseModel):
     def rules(self):
         return self._non_default_rules + [self._default_rule]
 
-
     def register(self, rule):
         self._non_default_rules.append(rule)
         self._non_default_rules = sorted(self._non_default_rules, key=lambda x: x.priority)
@@ -125,7 +124,7 @@ class FakeRule(BaseModel):
         self.listener_arn = listener_arn
         self.arn = listener_arn.replace(':listener/', ':listener-rule/') + "/%s" % (id(self))
         self.conditions = conditions
-        self.priority = priority # int or 'default'
+        self.priority = priority  # int or 'default'
         self.actions = actions
         self.is_default = is_default
 
@@ -220,7 +219,7 @@ class ELBv2Backend(BaseBackend):
     def create_rule(self, listener_arn, conditions, priority, actions):
         listeners = self.describe_listeners(None, [listener_arn])
         if not listeners:
-            raise ListenerNotFound()
+            raise ListenerNotFoundError()
         listener = listeners[0]
 
         # validate conditions
@@ -449,7 +448,6 @@ class ELBv2Backend(BaseBackend):
         rule.conditions = conditions
         rule.actions = actions
         return [rule]
-
 
     def register_targets(self, target_group_arn, instances):
         target_group = self.target_groups.get(target_group_arn)

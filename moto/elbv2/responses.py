@@ -131,7 +131,7 @@ class ELBV2Response(BaseResponse):
         all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
         all_arns = [rule.arn for rule in all_rules]
         all_arns = [base64.urlsafe_b64encode(bytes(rule.arn, 'UTF-8')) for rule in all_rules]
-        page_size = self._get_int_param('PageSize', 50) # set 50 for temporary
+        page_size = self._get_int_param('PageSize', 50)  # set 50 for temporary
 
         marker = self._get_param('Marker')
         if marker:
@@ -905,8 +905,7 @@ DESCRIBE_TARGET_HEALTH_TEMPLATE = """<DescribeTargetHealthResponse xmlns="http:/
   </ResponseMetadata>
 </DescribeTargetHealthResponse>"""
 
-
-SET_RULE_PRIORITIES_TEMPLATE="""<SetRulePrioritiesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <SetRulePrioritiesResult>
     <Rules>
       {% for rule in rules %}
