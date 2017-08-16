@@ -57,6 +57,10 @@ class SimpleSystemManagerResponse(BaseResponse):
             param_data = parameter.response_object(with_decryption)
             response['Parameters'].append(param_data)
 
+        param_names = [param.name for param in result]
+        for name in names:
+            if name not in param_names:
+                response['InvalidParameters'].append(name)
         return json.dumps(response)
 
     def describe_parameters(self):
