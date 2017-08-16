@@ -40,7 +40,7 @@ class LambdaFunction(BaseModel):
         self.timeout = spec.get('Timeout', 3)
 
         self.logs_group_name = '/aws/lambda/{}'.format(self.function_name)
-        self.logs_backend.create_log_group(self.logs_group_name, [])
+        self.logs_backend.ensure_log_group(self.logs_group_name, [])
 
         # this isn't finished yet. it needs to find out the VpcId value
         self._vpc_config = spec.get(

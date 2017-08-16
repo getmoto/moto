@@ -178,7 +178,11 @@ class LogsBackend(BaseBackend):
 
     def create_log_group(self, log_group_name, tags):
         assert log_group_name not in self.groups
+        self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
 
+    def ensure_log_group(self, log_group_name, tags):
+        if log_group_name in self.groups:
+            return
         self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
 
     def delete_log_group(self, log_group_name):
