@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import sys
 import base64
 from moto.core.responses import BaseResponse
 from .models import elbv2_backends
@@ -125,12 +126,17 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(load_balancers=load_balancers_resp, marker=next_marker)
 
+    def _b64_encode(self, s):
+        if sys.version_info >= (3, 0):
+            return base64.urlsafe_b64encode(bytes(s, 'UTF-8'))
+        return s
+
     def describe_rules(self):
         listener_arn = self._get_param('ListenerArn')
         rule_arns = self._get_multi_param('RuleArns.member') if any(k for k in list(self.querystring.keys()) if k.startswith('RuleArns.member')) else None
         all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
         all_arns = [rule.arn for rule in all_rules]
-        all_arns = [base64.urlsafe_b64encode(bytes(rule.arn, 'UTF-8')) for rule in all_rules]
+        all_arns = [self._b64_encode(rule.arn) for rule in all_rules]
         page_size = self._get_int_param('PageSize', 50)  # set 50 for temporary
 
         marker = self._get_param('Marker')
@@ -141,7 +147,7 @@ class ELBV2Response(BaseResponse):
         rules_resp = all_rules[start:start + page_size]
         next_marker = None
         if len(all_rules) > start + page_size:
-            next_marker = base64.urlsafe_b64encode(bytes(rules_resp[-1].arn, 'UTF-8'))
+            next_marker = rules_resp[-1].arn
         template = self.response_template(DESCRIBE_RULES_TEMPLATE)
         return template.render(rules=rules_resp, marker=next_marker)
 
