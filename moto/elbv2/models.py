@@ -19,7 +19,8 @@ from .exceptions import (
     InvalidConditionValueError,
     InvalidActionTypeError,
     ActionTargetGroupNotFoundError,
-    InvalidDescribeRulesRequest
+    InvalidDescribeRulesRequest,
+    RuleNotFoundError
 )
 
 
@@ -405,6 +406,49 @@ class ELBv2Backend(BaseBackend):
             if listener:
                 return listener
         raise ListenerNotFoundError()
+
+    def modify_rule(self, rule_arn, conditions, actions):
+        rules = self.describe_rules(listener_arn=None, rule_arns=[rule_arn])
+        if not rules:
+            raise RuleNotFoundError()
+        rule = rules[0]
+
+        # validate conditions
+        for condition in conditions:
+            field = condition['field']
+            if field not in ['path-pattern', 'host-header']:
+                raise InvalidConditionFieldError(field)
+
+            values = condition['values']
+            if len(values) == 0:
+                raise InvalidConditionValueError('A condition value must be specified')
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The '%s' field contains too many values; the limit is '1'" % field
+                )
+
+            # TODO: check pattern of value for 'host-header'
+            # TODO: check pattern of value for 'path-pattern'
+
+        # validate Actions
+        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
+        for i, action in enumerate(actions):
+            index = i + 1
+            action_type = action['type']
+            if action_type not in ['forward']:
+                raise InvalidActionTypeError(action_type, index)
+            action_target_group_arn = action['target_group_arn']
+            if action_target_group_arn not in target_group_arns:
+                raise ActionTargetGroupNotFoundError(action_target_group_arn)
+
+        # TODO: check for error 'TooManyRegistrationsForTargetId'
+        # TODO: check for error 'TooManyRules'
+
+        # modify rule
+        rule.conditions = conditions
+        rule.actions = actions
+        return [rule]
+
 
     def register_targets(self, target_group_arn, instances):
         target_group = self.target_groups.get(target_group_arn)

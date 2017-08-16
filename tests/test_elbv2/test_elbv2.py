@@ -615,10 +615,10 @@ def test_create_listener_rules():
     priorities.should.equal(['50', '100', 'default'])
 
     # test for describe listeners
-    first_rule = rules['Rules'][0]
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
     obtained_rules['Rules'].should.equal(rules['Rules'])
 
+    first_rule = obtained_rules['Rules'][0]
     obtained_rules = conn.describe_rules(RuleArns=[first_rule['RuleArn']])
     obtained_rules['Rules'].should.equal([first_rule])
 
@@ -637,6 +637,28 @@ def test_create_listener_rules():
             ListenerArn=http_listener_arn,
             RuleArns=[first_rule['RuleArn']]
         )
+
+    # modify
+    new_host = 'new.example.com'
+    new_path_pattern = 'new_path'
+    modified_rule = conn.modify_rule(
+        RuleArn=first_rule['RuleArn'],
+        Conditions=[{
+                'Field': 'host-header',
+                'Values': [ new_host ]
+            },
+            {
+                'Field': 'path-pattern',
+                'Values': [ new_path_pattern ]
+            }],
+            Actions=[{
+                'TargetGroupArn': target_group.get('TargetGroupArn'),
+                'Type': 'forward'
+            }]
+
+    )['Rules'][0]
+    rules = conn.describe_rules(ListenerArn=http_listener_arn)
+    modified_rule.should.equal(rules['Rules'][0])
 
     # delete
     arn = first_rule['RuleArn']

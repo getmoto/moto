@@ -150,3 +150,11 @@ class InvalidDescribeRulesRequest(ELBClientError):
         super(InvalidDescribeRulesRequest, self).__init__(
             "ValidationError", msg
         )
+
+
+class RuleNotFoundError(ELBClientError):
+
+    def __init__(self):
+        super(RuleNotFoundError, self).__init__(
+            "RuleNotFound",
+            "The specified rule does not exist.")
