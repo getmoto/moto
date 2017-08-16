@@ -255,6 +255,14 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_TARGET_HEALTH_TEMPLATE)
         return template.render(target_health_descriptions=target_health_descriptions)
 
+    def set_rule_priorities(self):
+        rule_priorities = self._get_list_prefix('RulePriorities.member')
+        for rule_priority in rule_priorities:
+            rule_priority['priority'] = int(rule_priority['priority'])
+        rules = self.elbv2_backend.set_rule_priorities(rule_priorities)
+        template = self.response_template(SET_RULE_PRIORITIES_TEMPLATE)
+        return template.render(rules=rules)
+
     def add_tags(self):
         resource_arns = self._get_multi_param('ResourceArns.member')
 
@@ -896,3 +904,41 @@ DESCRIBE_TARGET_HEALTH_TEMPLATE = """<DescribeTargetHealthResponse xmlns="http:/
     <RequestId>c534f810-f389-11e5-9192-3fff33344cfa</RequestId>
   </ResponseMetadata>
 </DescribeTargetHealthResponse>"""
+
+
+SET_RULE_PRIORITIES_TEMPLATE="""<SetRulePrioritiesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <SetRulePrioritiesResult>
+    <Rules>
+      {% for rule in rules %}
+      <member>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <Conditions>
+          {% for condition in rule.conditions %}
+          <member>
+            <Field>{{ condition["field"] }}</Field>
+            <Values>
+              {% for value in condition["values"] %}
+              <member>{{ value }}</member>
+              {% endfor %}
+            </Values>
+          </member>
+          {% endfor %}
+        </Conditions>
+        <Priority>{{ rule.priority }}</Priority>
+        <Actions>
+          {% for action in rule.actions %}
+          <member>
+            <Type>{{ action["type"] }}</Type>
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+          </member>
+          {% endfor %}
+        </Actions>
+        <RuleArn>{{ rule.arn }}</RuleArn>
+      </member>
+      {% endfor %}
+    </Rules>
+  </SetRulePrioritiesResult>
+  <ResponseMetadata>
+    <RequestId>4d7a8036-f3a7-11e5-9c02-8fd20490d5a6</RequestId>
+  </ResponseMetadata>
+</SetRulePrioritiesResponse>"""

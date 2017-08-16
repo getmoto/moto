@@ -612,6 +612,27 @@ def test_create_listener_rules():
         }]
     )
 
+    # test for PriorityInUse
+    host2 = 'yyy.example.com'
+    with assert_raises(ClientError):
+        r = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=priority,
+            Conditions=[{
+                'Field': 'host-header',
+                'Values': [ host ]
+            },
+            {
+                'Field': 'path-pattern',
+                'Values': [ path_pattern ]
+            }],
+            Actions=[{
+                'TargetGroupArn': target_group.get('TargetGroupArn'),
+                'Type': 'forward'
+            }]
+        )
+
+
     # test for describe listeners
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
     len(obtained_rules['Rules']).should.equal(3)
@@ -619,6 +640,7 @@ def test_create_listener_rules():
     priorities.should.equal(['50', '100', 'default'])
 
     first_rule = obtained_rules['Rules'][0]
+    second_rule = obtained_rules['Rules'][1]
     obtained_rules = conn.describe_rules(RuleArns=[first_rule['RuleArn']])
     obtained_rules['Rules'].should.equal([first_rule])
 
@@ -638,7 +660,7 @@ def test_create_listener_rules():
             RuleArns=[first_rule['RuleArn']]
         )
 
-    # modify
+    # modify rule
     new_host = 'new.example.com'
     new_path_pattern = 'new_path'
     modified_rule = conn.modify_rule(
@@ -660,10 +682,23 @@ def test_create_listener_rules():
     rules = conn.describe_rules(ListenerArn=http_listener_arn)
     modified_rule.should.equal(rules['Rules'][0])
 
+    # modify priority
+    conn.set_rule_priorities(
+        RulePriorities=[
+            {'RuleArn': first_rule['RuleArn'], 'Priority': int(first_rule['Priority']) - 1}
+        ]
+    )
+    with assert_raises(ClientError):
+        conn.set_rule_priorities(
+            RulePriorities=[
+                {'RuleArn': first_rule['RuleArn'], 'Priority': 999},
+                {'RuleArn': second_rule['RuleArn'], 'Priority': 999}
+            ]
+        )
+
     # delete
     arn = first_rule['RuleArn']
     conn.delete_rule(RuleArn=arn)
-    # TODO: describe rule and ensure rule is removed
 
     # test for invalid action type
     safe_priority = 2
@@ -702,26 +737,6 @@ def test_create_listener_rules():
             }],
             Actions=[{
                 'TargetGroupArn': invalid_target_group_arn,
-                'Type': 'forward'
-            }]
-        )
-
-    # test for PriorityInUse
-    host2 = 'yyy.example.com'
-    with assert_raises(ClientError):
-        r = conn.create_rule(
-            ListenerArn=http_listener_arn,
-            Priority=priority,
-            Conditions=[{
-                'Field': 'host-header',
-                'Values': [ host ]
-            },
-            {
-                'Field': 'path-pattern',
-                'Values': [ path_pattern ]
-            }],
-            Actions=[{
-                'TargetGroupArn': target_group.get('TargetGroupArn'),
                 'Type': 'forward'
             }]
         )

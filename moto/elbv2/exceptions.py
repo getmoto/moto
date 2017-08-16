@@ -158,3 +158,11 @@ class RuleNotFoundError(ELBClientError):
         super(RuleNotFoundError, self).__init__(
             "RuleNotFound",
             "The specified rule does not exist.")
+
+
+class DuplicatePriorityError(ELBClientError):
+
+    def __init__(self, invalid_value):
+        super(DuplicatePriorityError, self).__init__(
+            "ValidationError",
+            "Priority '%s' was provided multiple times" % invalid_value)

@@ -20,7 +20,8 @@ from .exceptions import (
     InvalidActionTypeError,
     ActionTargetGroupNotFoundError,
     InvalidDescribeRulesRequest,
-    RuleNotFoundError
+    RuleNotFoundError,
+    DuplicatePriorityError
 )
 
 
@@ -470,6 +471,39 @@ class ELBv2Backend(BaseBackend):
         if not targets:
             targets = target_group.targets.values()
         return [target_group.health_for(target) for target in targets]
+
+    def set_rule_priorities(self, rule_priorities):
+        # validate
+        priorities = [rule_priority['priority'] for rule_priority in rule_priorities]
+        for priority in set(priorities):
+            if priorities.count(priority) > 1:
+                raise DuplicatePriorityError(priority)
+
+        # validate
+        for rule_priority in rule_priorities:
+            given_rule_arn = rule_priority['rule_arn']
+            priority = rule_priority['priority']
+            _given_rules = self.describe_rules(listener_arn=None, rule_arns=[given_rule_arn])
+            if not _given_rules:
+                raise RuleNotFoundError()
+            given_rule = _given_rules[0]
+            listeners = self.describe_listeners(None, [given_rule.listener_arn])
+            listener = listeners[0]
+            for rule_in_listener in listener.rules:
+                if rule_in_listener.priority == priority:
+                    raise PriorityInUseError()
+        # modify
+        modified_rules = []
+        for rule_priority in rule_priorities:
+            given_rule_arn = rule_priority['rule_arn']
+            priority = rule_priority['priority']
+            _given_rules = self.describe_rules(listener_arn=None, rule_arns=[given_rule_arn])
+            if not _given_rules:
+                raise RuleNotFoundError()
+            given_rule = _given_rules[0]
+            given_rule.priority = priority
+            modified_rules.append(given_rule)
+        return modified_rules
 
 
 elbv2_backends = {}
