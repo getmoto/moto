@@ -14,6 +14,14 @@ from .exceptions import (
     SubnetNotFoundError,
     TargetGroupNotFoundError,
     TooManyTagsError,
+    PriorityInUseError,
+    InvalidConditionFieldError,
+    InvalidConditionValueError,
+    InvalidActionTypeError,
+    ActionTargetGroupNotFoundError,
+    InvalidDescribeRulesRequest,
+    RuleNotFoundError,
+    DuplicatePriorityError
 )
 
 
@@ -92,6 +100,33 @@ class FakeListener(BaseModel):
         self.ssl_policy = ssl_policy
         self.certificate = certificate
         self.default_actions = default_actions
+        self._non_default_rules = []
+        self._default_rule = FakeRule(
+            listener_arn=self.arn,
+            conditions=[],
+            priority='default',
+            actions=default_actions,
+            is_default=True
+        )
+
+    @property
+    def rules(self):
+        return self._non_default_rules + [self._default_rule]
+
+    def register(self, rule):
+        self._non_default_rules.append(rule)
+        self._non_default_rules = sorted(self._non_default_rules, key=lambda x: x.priority)
+
+
+class FakeRule(BaseModel):
+
+    def __init__(self, listener_arn, conditions, priority, actions, is_default):
+        self.listener_arn = listener_arn
+        self.arn = listener_arn.replace(':listener/', ':listener-rule/') + "/%s" % (id(self))
+        self.conditions = conditions
+        self.priority = priority  # int or 'default'
+        self.actions = actions
+        self.is_default = is_default
 
 
 class FakeBackend(BaseModel):
@@ -181,6 +216,53 @@ class ELBv2Backend(BaseBackend):
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
 
+    def create_rule(self, listener_arn, conditions, priority, actions):
+        listeners = self.describe_listeners(None, [listener_arn])
+        if not listeners:
+            raise ListenerNotFoundError()
+        listener = listeners[0]
+
+        # validate conditions
+        for condition in conditions:
+            field = condition['field']
+            if field not in ['path-pattern', 'host-header']:
+                raise InvalidConditionFieldError(field)
+
+            values = condition['values']
+            if len(values) == 0:
+                raise InvalidConditionValueError('A condition value must be specified')
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The '%s' field contains too many values; the limit is '1'" % field
+                )
+
+            # TODO: check pattern of value for 'host-header'
+            # TODO: check pattern of value for 'path-pattern'
+
+        # validate Priority
+        for rule in listener.rules:
+            if rule.priority == priority:
+                raise PriorityInUseError()
+
+        # validate Actions
+        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
+        for i, action in enumerate(actions):
+            index = i + 1
+            action_type = action['type']
+            if action_type not in ['forward']:
+                raise InvalidActionTypeError(action_type, index)
+            action_target_group_arn = action['target_group_arn']
+            if action_target_group_arn not in target_group_arns:
+                raise ActionTargetGroupNotFoundError(action_target_group_arn)
+
+        # TODO: check for error 'TooManyRegistrationsForTargetId'
+        # TODO: check for error 'TooManyRules'
+
+        # create rule
+        rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)
+        listener.register(rule)
+        return [rule]
+
     def create_target_group(self, name, **kwargs):
         for target_group in self.target_groups.values():
             if target_group.name == name:
@@ -233,6 +315,29 @@ class ELBv2Backend(BaseBackend):
 
         return matched_balancers
 
+    def describe_rules(self, listener_arn, rule_arns):
+        if listener_arn is None and not rule_arns:
+            raise InvalidDescribeRulesRequest(
+                "You must specify either listener rule ARNs or a listener ARN"
+            )
+        if listener_arn is not None and rule_arns is not None:
+            raise InvalidDescribeRulesRequest(
+                'Listener rule ARNs and a listener ARN cannot be specified at the same time'
+            )
+        if listener_arn:
+            listener = self.describe_listeners(None, [listener_arn])[0]
+            return listener.rules
+
+        # search for rule arns
+        matched_rules = []
+        for load_balancer_arn in self.load_balancers:
+            listeners = self.load_balancers.get(load_balancer_arn).listeners.values()
+            for listener in listeners:
+                for rule in listener.rules:
+                    if rule.arn in rule_arns:
+                        matched_rules.append(rule)
+        return matched_rules
+
     def describe_target_groups(self, load_balancer_arn, target_group_arns, names):
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
@@ -277,6 +382,18 @@ class ELBv2Backend(BaseBackend):
     def delete_load_balancer(self, arn):
         self.load_balancers.pop(arn, None)
 
+    def delete_rule(self, arn):
+        for load_balancer_arn in self.load_balancers:
+            listeners = self.load_balancers.get(load_balancer_arn).listeners.values()
+            for listener in listeners:
+                for rule in listener.rules:
+                    if rule.arn == arn:
+                        listener.rules.remove(rule)
+                        return
+
+        # should raise RuleNotFound Error according to the AWS API doc
+        # however, boto3 does't raise error even if rule is not found
+
     def delete_target_group(self, target_group_arn):
         target_group = self.target_groups.pop(target_group_arn)
         if target_group:
@@ -289,6 +406,48 @@ class ELBv2Backend(BaseBackend):
             if listener:
                 return listener
         raise ListenerNotFoundError()
+
+    def modify_rule(self, rule_arn, conditions, actions):
+        rules = self.describe_rules(listener_arn=None, rule_arns=[rule_arn])
+        if not rules:
+            raise RuleNotFoundError()
+        rule = rules[0]
+
+        # validate conditions
+        for condition in conditions:
+            field = condition['field']
+            if field not in ['path-pattern', 'host-header']:
+                raise InvalidConditionFieldError(field)
+
+            values = condition['values']
+            if len(values) == 0:
+                raise InvalidConditionValueError('A condition value must be specified')
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The '%s' field contains too many values; the limit is '1'" % field
+                )
+
+            # TODO: check pattern of value for 'host-header'
+            # TODO: check pattern of value for 'path-pattern'
+
+        # validate Actions
+        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
+        for i, action in enumerate(actions):
+            index = i + 1
+            action_type = action['type']
+            if action_type not in ['forward']:
+                raise InvalidActionTypeError(action_type, index)
+            action_target_group_arn = action['target_group_arn']
+            if action_target_group_arn not in target_group_arns:
+                raise ActionTargetGroupNotFoundError(action_target_group_arn)
+
+        # TODO: check for error 'TooManyRegistrationsForTargetId'
+        # TODO: check for error 'TooManyRules'
+
+        # modify rule
+        rule.conditions = conditions
+        rule.actions = actions
+        return [rule]
 
     def register_targets(self, target_group_arn, instances):
         target_group = self.target_groups.get(target_group_arn)
@@ -310,6 +469,39 @@ class ELBv2Backend(BaseBackend):
         if not targets:
             targets = target_group.targets.values()
         return [target_group.health_for(target) for target in targets]
+
+    def set_rule_priorities(self, rule_priorities):
+        # validate
+        priorities = [rule_priority['priority'] for rule_priority in rule_priorities]
+        for priority in set(priorities):
+            if priorities.count(priority) > 1:
+                raise DuplicatePriorityError(priority)
+
+        # validate
+        for rule_priority in rule_priorities:
+            given_rule_arn = rule_priority['rule_arn']
+            priority = rule_priority['priority']
+            _given_rules = self.describe_rules(listener_arn=None, rule_arns=[given_rule_arn])
+            if not _given_rules:
+                raise RuleNotFoundError()
+            given_rule = _given_rules[0]
+            listeners = self.describe_listeners(None, [given_rule.listener_arn])
+            listener = listeners[0]
+            for rule_in_listener in listener.rules:
+                if rule_in_listener.priority == priority:
+                    raise PriorityInUseError()
+        # modify
+        modified_rules = []
+        for rule_priority in rule_priorities:
+            given_rule_arn = rule_priority['rule_arn']
+            priority = rule_priority['priority']
+            _given_rules = self.describe_rules(listener_arn=None, rule_arns=[given_rule_arn])
+            if not _given_rules:
+                raise RuleNotFoundError()
+            given_rule = _given_rules[0]
+            given_rule.priority = priority
+            modified_rules.append(given_rule)
+        return modified_rules
 
 
 elbv2_backends = {}
