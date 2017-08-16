@@ -96,7 +96,11 @@ class LogStream:
 
             return True
 
-        events = [{**event.to_filter_dict(), "logStreamName": self.logStreamName} for event in sorted(filter(filter_func, self.events), key=lambda event: event.timestamp)]
+        events = []
+        for event in sorted(filter(filter_func, self.events), key=lambda x: x.timestamp):
+            event_obj = event.to_filter_dict()
+            event_obj['logStreamName'] = self.logStreamName
+            events.append(event_obj)
         return events
 
 
