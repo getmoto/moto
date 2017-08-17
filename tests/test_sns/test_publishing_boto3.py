@@ -57,11 +57,11 @@ def test_publish_to_sqs_dump_json():
                 "s3SchemaVersion": "1.0"
             }
         }]
-    })
+    }, sort_keys=True)
     conn.publish(TopicArn=topic_arn, Message=message)
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
     messages = queue.receive_messages(MaxNumberOfMessages=1)
-    expected = '{\\"Records\\": [{\\"eventVersion\\": \\"2.0\\", \\"eventSource\\": \\"aws:s3\\", \\"s3\\": {\\"s3SchemaVersion\\": \\"1.0\\"}}]}'
+    expected = u'{\\"Records\\": [{\\"eventSource\\": \\"aws:s3\\", \\"eventVersion\\": \\"2.0\\", \\"s3\\": {\\"s3SchemaVersion\\": \\"1.0\\"}}]}'
     messages[0].body.should.equal(expected)
 
 
