@@ -4,7 +4,7 @@ from .responses import S3ResponseInstance
 
 url_bases = [
     "https?://s3(.*).amazonaws.com",
-    "https?://(?P<bucket_name>[a-zA-Z0-9\-_.]*)\.?s3(.*).amazonaws.com"
+    r"https?://(?P<bucket_name>[a-zA-Z0-9\-_.]*)\.?s3(.*).amazonaws.com"
 ]
 
 
