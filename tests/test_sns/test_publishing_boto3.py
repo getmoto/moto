@@ -36,6 +36,37 @@ def test_publish_to_sqs():
 
 @mock_sqs
 @mock_sns
+def test_publish_to_sqs_dump_json():
+    conn = boto3.client('sns', region_name='us-east-1')
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]['TopicArn']
+
+    sqs_conn = boto3.resource('sqs', region_name='us-east-1')
+    sqs_conn.create_queue(QueueName="test-queue")
+
+    conn.subscribe(TopicArn=topic_arn,
+                   Protocol="sqs",
+                   Endpoint="arn:aws:sqs:us-east-1:123456789012:test-queue")
+
+    message = json.dumps({
+        "Records": [{
+            "eventVersion": "2.0",
+            "eventSource": "aws:s3",
+            "s3": {
+                "s3SchemaVersion": "1.0"
+            }
+        }]
+    })
+    conn.publish(TopicArn=topic_arn, Message=message)
+    queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    expected = '{\\"Records\\": [{\\"eventVersion\\": \\"2.0\\", \\"eventSource\\": \\"aws:s3\\", \\"s3\\": {\\"s3SchemaVersion\\": \\"1.0\\"}}]}'
+    messages[0].body.should.equal(expected)
+
+
+@mock_sqs
+@mock_sns
 def test_publish_to_sqs_in_different_region():
     conn = boto3.client('sns', region_name='us-west-1')
     conn.create_topic(Name="some-topic")
