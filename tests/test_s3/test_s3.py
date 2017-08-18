@@ -506,7 +506,6 @@ def test_post_to_bucket():
     bucket.get_key('the-key').get_contents_as_string().should.equal(b'nothing')
 
 
-@mock_s3
 @mock_s3_deprecated
 def test_post_with_metadata_to_bucket():
     conn = boto.connect_s3('the_key', 'the_secret')
