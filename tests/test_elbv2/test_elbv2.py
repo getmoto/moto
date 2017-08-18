@@ -327,6 +327,23 @@ def test_create_target_group_and_listeners():
     response = conn.describe_target_groups()
     response.get('TargetGroups').should.have.length_of(0)
 
+    # Fail to create target group with name which length is 33
+    long_name = 'A' * 33
+    with assert_raises(ClientError):
+        conn.create_target_group(
+            Name=long_name,
+            Protocol='HTTP',
+            Port=8080,
+            VpcId=vpc.id,
+            HealthCheckProtocol='HTTP',
+            HealthCheckPort='8080',
+            HealthCheckPath='/',
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=5,
+            HealthyThresholdCount=5,
+            UnhealthyThresholdCount=2,
+            Matcher={'HttpCode': '200'})
+
 
 @mock_elbv2
 @mock_ec2

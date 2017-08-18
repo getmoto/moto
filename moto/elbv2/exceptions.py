@@ -166,3 +166,11 @@ class DuplicatePriorityError(ELBClientError):
         super(DuplicatePriorityError, self).__init__(
             "ValidationError",
             "Priority '%s' was provided multiple times" % invalid_value)
+
+
+class InvalidTargetGroupNameError(ELBClientError):
+
+    def __init__(self, invalid_name):
+        super(InvalidTargetGroupNameError, self).__init__(
+            "ValidationError",
+            "Target group name '%s' cannot be longer than '32' characters" % invalid_name)

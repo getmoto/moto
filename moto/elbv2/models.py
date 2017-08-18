@@ -21,7 +21,8 @@ from .exceptions import (
     ActionTargetGroupNotFoundError,
     InvalidDescribeRulesRequest,
     RuleNotFoundError,
-    DuplicatePriorityError
+    DuplicatePriorityError,
+    InvalidTargetGroupNameError
 )
 
 
@@ -264,6 +265,8 @@ class ELBv2Backend(BaseBackend):
         return [rule]
 
     def create_target_group(self, name, **kwargs):
+        if len(name) > 32:
+            raise InvalidTargetGroupNameError(name)
         for target_group in self.target_groups.values():
             if target_group.name == name:
                 raise DuplicateTargetGroupName()
