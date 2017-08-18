@@ -354,7 +354,7 @@ class ELBv2Backend(BaseBackend):
             matched = []
             for name in names:
                 found = None
-                for target_group in self.target_groups:
+                for target_group in self.target_groups.values():
                     if target_group.name == name:
                         found = target_group
                 if not found:

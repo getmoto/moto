@@ -485,6 +485,12 @@ def test_target_group_attributes():
     response.get('TargetGroups').should.have.length_of(1)
     target_group_arn = target_group['TargetGroupArn']
 
+    # check if Names filter works
+    response = conn.describe_target_groups(Names=[])
+    response = conn.describe_target_groups(Names=['a-target'])
+    response.get('TargetGroups').should.have.length_of(1)
+    target_group_arn = target_group['TargetGroupArn']
+
     # The attributes should start with the two defaults
     response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
     response['Attributes'].should.have.length_of(2)
