@@ -170,7 +170,7 @@ class DuplicatePriorityError(ELBClientError):
 
 class InvalidTargetGroupNameError(ELBClientError):
 
-    def __init__(self, invalid_name):
+    def __init__(self, msg):
         super(InvalidTargetGroupNameError, self).__init__(
-            "ValidationError",
-            "Target group name '%s' cannot be longer than '32' characters" % invalid_name)
+            "ValidationError", msg
+        )
