@@ -166,3 +166,11 @@ class DuplicatePriorityError(ELBClientError):
         super(DuplicatePriorityError, self).__init__(
             "ValidationError",
             "Priority '%s' was provided multiple times" % invalid_value)
+
+
+class InvalidTargetGroupNameError(ELBClientError):
+
+    def __init__(self, msg):
+        super(InvalidTargetGroupNameError, self).__init__(
+            "ValidationError", msg
+        )

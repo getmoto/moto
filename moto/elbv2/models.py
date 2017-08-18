@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import re
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2.models import ec2_backends
@@ -21,7 +22,8 @@ from .exceptions import (
     ActionTargetGroupNotFoundError,
     InvalidDescribeRulesRequest,
     RuleNotFoundError,
-    DuplicatePriorityError
+    DuplicatePriorityError,
+    InvalidTargetGroupNameError
 )
 
 
@@ -264,6 +266,25 @@ class ELBv2Backend(BaseBackend):
         return [rule]
 
     def create_target_group(self, name, **kwargs):
+        if len(name) > 32:
+            raise InvalidTargetGroupNameError(
+                "Target group name '%s' cannot be longer than '32' characters" % name
+            )
+        if not re.match('^[a-zA-Z0-9\-]+$', name):
+            raise InvalidTargetGroupNameError(
+                "Target group name '%s' can only contain characters that are alphanumeric characters or hyphens(-)" % name
+            )
+
+        # undocumented validation
+        if not re.match('(?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$', name):
+            raise InvalidTargetGroupNameError(
+                "1 validation error detected: Value '%s' at 'targetGroup.targetGroupArn.targetGroupName' failed to satisfy constraint: Member must satisfy regular expression pattern: (?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$" % name
+            )
+
+        if name.startswith('-') or name.endswith('-'):
+            raise InvalidTargetGroupNameError(
+                "Target group name '%s' cannot begin or end with '-'" % name
+            )
         for target_group in self.target_groups.values():
             if target_group.name == name:
                 raise DuplicateTargetGroupName()

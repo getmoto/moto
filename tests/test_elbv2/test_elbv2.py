@@ -330,6 +330,65 @@ def test_create_target_group_and_listeners():
 
 @mock_elbv2
 @mock_ec2
+def test_create_invalid_target_group():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+
+    # Fail to create target group with name which length is 33
+    long_name = 'A' * 33
+    with assert_raises(ClientError):
+        conn.create_target_group(
+            Name=long_name,
+            Protocol='HTTP',
+            Port=8080,
+            VpcId=vpc.id,
+            HealthCheckProtocol='HTTP',
+            HealthCheckPort='8080',
+            HealthCheckPath='/',
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=5,
+            HealthyThresholdCount=5,
+            UnhealthyThresholdCount=2,
+            Matcher={'HttpCode': '200'})
+
+    invalid_names = ['-name', 'name-', '-name-', 'example.com', 'test@test', 'Na--me']
+    for name in invalid_names:
+        with assert_raises(ClientError):
+            conn.create_target_group(
+                Name=name,
+                Protocol='HTTP',
+                Port=8080,
+                VpcId=vpc.id,
+                HealthCheckProtocol='HTTP',
+                HealthCheckPort='8080',
+                HealthCheckPath='/',
+                HealthCheckIntervalSeconds=5,
+                HealthCheckTimeoutSeconds=5,
+                HealthyThresholdCount=5,
+                UnhealthyThresholdCount=2,
+                Matcher={'HttpCode': '200'})
+
+    valid_names = ['name', 'Name', '000']
+    for name in valid_names:
+        conn.create_target_group(
+            Name=name,
+            Protocol='HTTP',
+            Port=8080,
+            VpcId=vpc.id,
+            HealthCheckProtocol='HTTP',
+            HealthCheckPort='8080',
+            HealthCheckPath='/',
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=5,
+            HealthyThresholdCount=5,
+            UnhealthyThresholdCount=2,
+            Matcher={'HttpCode': '200'})
+
+
+@mock_elbv2
+@mock_ec2
 def test_describe_paginated_balancers():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
