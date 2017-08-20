@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from six.moves.urllib.parse import parse_qs
 
 import boto
+import re
 from freezegun import freeze_time
 import sure  # noqa
 
@@ -35,7 +36,8 @@ def test_publish_to_sqs():
     queue = sqs_conn.get_queue("test-queue")
     message = queue.read(1)
     expected = MESSAGE_FROM_SQS_TEMPLATE  % (message_to_publish, published_message_id, 'us-east-1')
-    message.get_body().should.equal(expected)
+    acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", '2015-01-01T12:00:00.000Z', message.get_body())
+    acquired_message.should.equal(expected)
 
 
 @mock_sqs_deprecated
@@ -61,4 +63,6 @@ def test_publish_to_sqs_in_different_region():
     queue = sqs_conn.get_queue("test-queue")
     message = queue.read(1)
     expected = MESSAGE_FROM_SQS_TEMPLATE  % (message_to_publish, published_message_id, 'us-west-1')
-    message.get_body().should.equal(expected)
+
+    acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", '2015-01-01T12:00:00.000Z', message.get_body())
+    acquired_message.should.equal(expected)
