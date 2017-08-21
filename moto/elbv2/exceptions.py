@@ -174,3 +174,11 @@ class InvalidTargetGroupNameError(ELBClientError):
         super(InvalidTargetGroupNameError, self).__init__(
             "ValidationError", msg
         )
+
+class InvalidModifyRuleArgumentsError(ELBClientError):
+
+    def __init__(self):
+        super(InvalidModifyRuleArgumentsError, self).__init__(
+            "ValidationError",
+            "Either conditions or actions must be specified"
+        )

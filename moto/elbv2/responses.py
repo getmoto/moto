@@ -199,15 +199,19 @@ class ELBV2Response(BaseResponse):
         rule_arn = self._get_param('RuleArn')
         _conditions = self._get_list_prefix('Conditions.member')
         conditions = []
-        for _condition in _conditions:
-            condition = {}
-            condition['field'] = _condition['field']
-            values = sorted(
-                [e for e in _condition.items() if e[0].startswith('values.member')],
-                key=lambda x: x[0]
-            )
-            condition['values'] = [e[1] for e in values]
-            conditions.append(condition)
+        if _conditions is None:
+            conditions = None
+        else:
+            conditions = []
+            for _condition in _conditions:
+                condition = {}
+                condition['field'] = _condition['field']
+                values = sorted(
+                    [e for e in _condition.items() if e[0].startswith('values.member')],
+                    key=lambda x: x[0]
+                )
+                condition['values'] = [e[1] for e in values]
+                conditions.append(condition)
         actions = self._get_list_prefix('Actions.member')
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn,

@@ -731,7 +731,7 @@ def test_handle_listener_rules():
             RuleArns=[first_rule['RuleArn']]
         )
 
-    # modify rule
+    # modify rule partially
     new_host = 'new.example.com'
     new_path_pattern = 'new_path'
     modified_rule = conn.modify_rule(
@@ -743,15 +743,15 @@ def test_handle_listener_rules():
             {
                 'Field': 'path-pattern',
                 'Values': [ new_path_pattern ]
-            }],
-            Actions=[{
-                'TargetGroupArn': target_group.get('TargetGroupArn'),
-                'Type': 'forward'
             }]
-
     )['Rules'][0]
+
     rules = conn.describe_rules(ListenerArn=http_listener_arn)
-    modified_rule.should.equal(rules['Rules'][0])
+    obtained_rule = rules['Rules'][0]
+    modified_rule.should.equal(obtained_rule)
+    obtained_rule['Conditions'][0]['Values'][0].should.equal(new_host)
+    obtained_rule['Conditions'][1]['Values'][0].should.equal(new_path_pattern)
+    obtained_rule['Actions'][0]['TargetGroupArn'].should.equal(target_group.get('TargetGroupArn'))
 
     # modify priority
     conn.set_rule_priorities(
