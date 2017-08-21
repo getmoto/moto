@@ -770,6 +770,8 @@ def test_handle_listener_rules():
     # delete
     arn = first_rule['RuleArn']
     conn.delete_rule(RuleArn=arn)
+    rules = conn.describe_rules(ListenerArn=http_listener_arn)['Rules']
+    len(rules).should.equal(2)
 
     # test for invalid action type
     safe_priority = 2

@@ -116,6 +116,9 @@ class FakeListener(BaseModel):
     def rules(self):
         return self._non_default_rules + [self._default_rule]
 
+    def remove_rule(self, rule):
+        self._non_default_rules.remove(rule)
+
     def register(self, rule):
         self._non_default_rules.append(rule)
         self._non_default_rules = sorted(self._non_default_rules, key=lambda x: x.priority)
@@ -410,7 +413,7 @@ class ELBv2Backend(BaseBackend):
             for listener in listeners:
                 for rule in listener.rules:
                     if rule.arn == arn:
-                        listener.rules.remove(rule)
+                        listener.remove_rule(rule)
                         return
 
         # should raise RuleNotFound Error according to the AWS API doc
