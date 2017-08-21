@@ -199,7 +199,6 @@ class ELBV2Response(BaseResponse):
         rule_arn = self._get_param('RuleArn')
         _conditions = self._get_list_prefix('Conditions.member')
         conditions = []
-        conditions = []
         for _condition in _conditions:
             condition = {}
             condition['field'] = _condition['field']
