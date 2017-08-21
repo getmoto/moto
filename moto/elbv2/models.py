@@ -27,6 +27,7 @@ from .exceptions import (
     InvalidModifyRuleArgumentsError
 )
 
+
 class FakeHealthStatus(BaseModel):
 
     def __init__(self, instance_id, port, health_port, status, reason=None):

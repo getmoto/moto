@@ -175,6 +175,7 @@ class InvalidTargetGroupNameError(ELBClientError):
             "ValidationError", msg
         )
 
+
 class InvalidModifyRuleArgumentsError(ELBClientError):
 
     def __init__(self):
