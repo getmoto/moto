@@ -272,7 +272,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
                     key.replace(param_prefix, ""))] = value[0]
         return params
 
-    def _get_list_prefix(self, param_prefix):
+    def _get_list_prefix(self, param_prefix, if_none=[]):
         """
         Given a query dict like
         {
@@ -295,6 +295,11 @@ class BaseResponse(_TemplateEnvironmentMixin):
             'hadoop_jar_step._jar': u'streaming2.jar',
         }]
         """
+
+        # if param_prefix not in querystring, return `if_none`
+        if not any(_ for _ in self.querystring.keys() if _.startswith(param_prefix)):
+            return if_none
+
         results = []
         param_index = 1
         while True:
