@@ -23,7 +23,8 @@ from .exceptions import (
     InvalidDescribeRulesRequest,
     RuleNotFoundError,
     DuplicatePriorityError,
-    InvalidTargetGroupNameError
+    InvalidTargetGroupNameError,
+    InvalidModifyRuleArgumentsError
 )
 
 
@@ -429,45 +430,50 @@ class ELBv2Backend(BaseBackend):
         raise ListenerNotFoundError()
 
     def modify_rule(self, rule_arn, conditions, actions):
+        # if conditions or actions is empty list, do not update the attributes
+        if not conditions and not actions:
+            raise InvalidModifyRuleArgumentsError()
         rules = self.describe_rules(listener_arn=None, rule_arns=[rule_arn])
         if not rules:
             raise RuleNotFoundError()
         rule = rules[0]
 
-        # validate conditions
-        for condition in conditions:
-            field = condition['field']
-            if field not in ['path-pattern', 'host-header']:
-                raise InvalidConditionFieldError(field)
+        if conditions:
+            for condition in conditions:
+                field = condition['field']
+                if field not in ['path-pattern', 'host-header']:
+                    raise InvalidConditionFieldError(field)
 
-            values = condition['values']
-            if len(values) == 0:
-                raise InvalidConditionValueError('A condition value must be specified')
-            if len(values) > 1:
-                raise InvalidConditionValueError(
-                    "The '%s' field contains too many values; the limit is '1'" % field
-                )
-
-            # TODO: check pattern of value for 'host-header'
-            # TODO: check pattern of value for 'path-pattern'
+                values = condition['values']
+                if len(values) == 0:
+                    raise InvalidConditionValueError('A condition value must be specified')
+                if len(values) > 1:
+                    raise InvalidConditionValueError(
+                        "The '%s' field contains too many values; the limit is '1'" % field
+                    )
+                # TODO: check pattern of value for 'host-header'
+                # TODO: check pattern of value for 'path-pattern'
 
         # validate Actions
         target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
-        for i, action in enumerate(actions):
-            index = i + 1
-            action_type = action['type']
-            if action_type not in ['forward']:
-                raise InvalidActionTypeError(action_type, index)
-            action_target_group_arn = action['target_group_arn']
-            if action_target_group_arn not in target_group_arns:
-                raise ActionTargetGroupNotFoundError(action_target_group_arn)
+        if actions:
+            for i, action in enumerate(actions):
+                index = i + 1
+                action_type = action['type']
+                if action_type not in ['forward']:
+                    raise InvalidActionTypeError(action_type, index)
+                action_target_group_arn = action['target_group_arn']
+                if action_target_group_arn not in target_group_arns:
+                    raise ActionTargetGroupNotFoundError(action_target_group_arn)
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
 
         # modify rule
-        rule.conditions = conditions
-        rule.actions = actions
+        if conditions:
+            rule.conditions = conditions
+        if actions:
+            rule.actions = actions
         return [rule]
 
     def register_targets(self, target_group_arn, instances):
