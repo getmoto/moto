@@ -970,11 +970,9 @@ def test_ec2_classic_has_public_ip_address():
     reservation = conn.run_instances('ami-1234abcd', key_name="keypair_name")
     instance = reservation.instances[0]
     instance.ip_address.should_not.equal(None)
-    instance.public_dns_name.should.contain(instance.ip_address)
-
+    instance.public_dns_name.should.contain(instance.ip_address.replace('.', '-'))
     instance.private_ip_address.should_not.equal(None)
-    instance.private_dns_name.should.contain(instance.private_ip_address)
-
+    instance.private_dns_name.should.contain(instance.private_ip_address.replace('.', '-'))
 
 @mock_ec2_deprecated
 def test_run_instance_with_keypair():
