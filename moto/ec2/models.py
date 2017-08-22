@@ -366,6 +366,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.user_data = user_data
         self.security_groups = security_groups
         self.instance_type = kwargs.get("instance_type", "m1.small")
+        self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
         self.vpc_id = None
         self.subnet_id = kwargs.get("subnet_id")
