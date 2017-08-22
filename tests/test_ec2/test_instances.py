@@ -409,6 +409,33 @@ def test_get_instances_filtering_by_image_id():
                                                        'Values': [image_id]}])['Reservations']
     reservations[0]['Instances'].should.have.length_of(1)
 
+@mock_ec2
+def test_get_instances_filtering_by_private_dns():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-east-1')
+    conn = boto3.resource('ec2', 'us-east-1')
+    conn.create_instances(ImageId=image_id,
+                          MinCount=1,
+                          MaxCount=1,
+                          PrivateIpAddress='10.0.0.1')
+    reservations = client.describe_instances(Filters=[
+        {'Name': 'private-dns-name', 'Values': ['ip-10-0-0-1.ec2.internal']}
+    ])['Reservations']
+    reservations[0]['Instances'].should.have.length_of(1)
+
+@mock_ec2
+def test_get_instances_filtering_by_ni_private_dns():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-west-2')
+    conn = boto3.resource('ec2', 'us-west-2')
+    conn.create_instances(ImageId=image_id,
+                          MinCount=1,
+                          MaxCount=1,
+                          PrivateIpAddress='10.0.0.1')
+    reservations = client.describe_instances(Filters=[
+        {'Name': 'network-interface.private-dns-name', 'Values': ['ip-10-0-0-1.us-west-2.compute.internal']}
+    ])['Reservations']
+    reservations[0]['Instances'].should.have.length_of(1)
 
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_tag():
