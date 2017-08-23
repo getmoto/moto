@@ -82,7 +82,7 @@ class FakeTargetGroup(BaseModel):
 
     def deregister(self, targets):
         for target in targets:
-            t = self.targets.pop(target['id'])
+            t = self.targets.pop(target['id'], None)
             if not t:
                 raise InvalidTargetError()
 
@@ -420,14 +420,14 @@ class ELBv2Backend(BaseBackend):
         # however, boto3 does't raise error even if rule is not found
 
     def delete_target_group(self, target_group_arn):
-        target_group = self.target_groups.pop(target_group_arn)
+        target_group = self.target_groups.pop(target_group_arn, None)
         if target_group:
             return target_group
         raise TargetGroupNotFoundError()
 
     def delete_listener(self, listener_arn):
         for load_balancer in self.load_balancers.values():
-            listener = load_balancer.listeners.pop(listener_arn)
+            listener = load_balancer.listeners.pop(listener_arn, None)
             if listener:
                 return listener
         raise ListenerNotFoundError()
