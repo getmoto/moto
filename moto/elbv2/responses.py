@@ -668,7 +668,7 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
         {% if listener.certificate %}
         <Certificates>
           <member>
-            <CertificateArn>{{ listener.certificate }} </CertificateArn>
+            <CertificateArn>{{ listener.certificate }}</CertificateArn>
           </member>
         </Certificates>
         {% endif %}
