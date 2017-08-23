@@ -48,11 +48,12 @@ class InstanceResponse(BaseResponse):
             "AssociatePublicIpAddress", [None])[0]
         key_name = self.querystring.get("KeyName", [None])[0]
         tags = self._parse_tag_specification("TagSpecification")
+        region_name = self.region
 
         if self.is_not_dryrun('RunInstance'):
             new_reservation = self.ec2_backend.add_instances(
                 image_id, min_count, user_data, security_group_names,
-                instance_type=instance_type, placement=placement, subnet_id=subnet_id,
+                instance_type=instance_type, placement=placement, region_name=region_name, subnet_id=subnet_id,
                 key_name=key_name, security_group_ids=security_group_ids,
                 nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip,
                 tags=tags)
