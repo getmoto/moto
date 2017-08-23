@@ -32,6 +32,7 @@ class LambdaFunction(BaseModel):
         self.role = spec['Role']
         self.run_time = spec['Runtime']
         self.logs_backend = logs_backends[self.region]
+        self.environment_vars = spec.get('Environment', {}).get('Variables', {})
 
         # optional
         self.description = spec.get('Description', '')
@@ -96,7 +97,7 @@ class LambdaFunction(BaseModel):
         return json.dumps(self.get_configuration())
 
     def get_configuration(self):
-        return {
+        config = {
             "CodeSha256": self.code_sha_256,
             "CodeSize": self.code_size,
             "Description": self.description,
@@ -111,6 +112,13 @@ class LambdaFunction(BaseModel):
             "Version": self.version,
             "VpcConfig": self.vpc_config,
         }
+
+        if self.environment_vars:
+            config['Environment'] = {
+                'Variables': self.environment_vars
+            }
+
+        return config
 
     def get_code(self):
         return {
@@ -156,6 +164,9 @@ class LambdaFunction(BaseModel):
                 # TODO: I believe we can keep the container running and feed events as needed
                 #       also need to hook it up to the other services so it can make kws/s3 etc calls
                 #  Should get invoke_id /RequestId from invovation
+                env_vars = []
+                for name, value in self.environment_vars.items():
+                    env_vars.extend(['-e', '{}={}'.format(name, value)])
 
                 proc = subprocess.run([
                     "docker", "run", "--rm", "-i",
@@ -166,9 +177,9 @@ class LambdaFunction(BaseModel):
                     "-e", "AWS_REGION={}".format(self.region),
                     "-m", "{}m".format(self.memory_size),
                     "-v", "{}:/var/task".format(td),
-                    "lambci/lambda:{}".format(self.run_time),
-                    self.handler,
-                    json.dumps(event)],
+                    ] + env_vars + ["lambci/lambda:{}".format(self.run_time),
+                        self.handler,
+                        json.dumps(event)],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 stdout = proc.stdout.decode('utf-8')
