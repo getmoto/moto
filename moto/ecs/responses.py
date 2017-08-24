@@ -18,8 +18,8 @@ class EC2ContainerServiceResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param):
-        return self.request_params.get(param, None)
+    def _get_param(self, param, if_none=None):
+        return self.request_params.get(param, if_none)
 
     def create_cluster(self):
         cluster_name = self._get_param('clusterName')

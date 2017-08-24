@@ -202,7 +202,7 @@ def test_create_function_from_aws_bucket():
     result.pop('LastModified')
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
+        'FunctionArn': 'arn:aws:lambda:us-west-2:123456789012:function:testFunction',
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.handler',
@@ -247,7 +247,7 @@ def test_create_function_from_zipfile():
 
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:123456789012:function:testFunction',
+        'FunctionArn': 'arn:aws:lambda:us-west-2:123456789012:function:testFunction',
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.handler',
@@ -308,7 +308,7 @@ def test_get_function():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
+            "FunctionArn": "arn:aws:lambda:us-west-2:123456789012:function:testFunction",
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
             "MemorySize": 128,
@@ -402,7 +402,7 @@ def test_list_create_list_get_delete_list():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
+            "FunctionArn": "arn:aws:lambda:us-west-2:123456789012:function:testFunction",
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
             "MemorySize": 128,

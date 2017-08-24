@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     "Jinja2>=2.8",
-    "boto>=2.36.0",
+    "boto>=2.48.0",
     "boto3>=1.2.1",
     "cookies",
     "requests>=2.5",

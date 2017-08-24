@@ -3649,6 +3649,5 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
         return True
 
 
-ec2_backends = {}
-for region in RegionsAndZonesBackend.regions:
-    ec2_backends[region.name] = EC2Backend(region.name)
+ec2_backends = {region.name: EC2Backend(region.name)
+                for region in RegionsAndZonesBackend.regions}
