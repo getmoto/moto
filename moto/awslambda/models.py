@@ -168,17 +168,18 @@ class LambdaFunction(BaseModel):
                 for name, value in self.environment_vars.items():
                     env_vars.extend(['-e', '{}={}'.format(name, value)])
 
-                proc = subprocess.run([
-                    "docker", "run", "--rm", "-i",
-                    "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
-                    "-e", "AWS_LAMBDA_FUNCTION_NAME={}".format(self.function_name),
-                    "-e", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE={}".format(self.memory_size),
-                    "-e", "AWS_LAMBDA_FUNCTION_VERSION={}".format(self.version),
-                    "-e", "AWS_REGION={}".format(self.region),
-                    "-m", "{}m".format(self.memory_size),
-                    "-v", "{}:/var/task".format(td),
-                    ] + env_vars + ["lambci/lambda:{}".format(self.run_time),
-                                    self.handler, json.dumps(event)],
+                proc = subprocess.run(
+                    [
+                        "docker", "run", "--rm", "-i",
+                        "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
+                        "-e", "AWS_LAMBDA_FUNCTION_NAME={}".format(self.function_name),
+                        "-e", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE={}".format(self.memory_size),
+                        "-e", "AWS_LAMBDA_FUNCTION_VERSION={}".format(self.version),
+                        "-e", "AWS_REGION={}".format(self.region),
+                        "-m", "{}m".format(self.memory_size),
+                        "-v", "{}:/var/task".format(td),
+                    ] + env_vars +
+                    ["lambci/lambda:{}".format(self.run_time), self.handler, json.dumps(event)],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 stdout = proc.stdout.decode('utf-8')
@@ -197,14 +198,16 @@ class LambdaFunction(BaseModel):
                 self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, log_events, None)
 
                 output = self.convert(stdout)
-                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, [{'timestamp': unix_time_millis(), "message": output}], None)
+                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name,
+                                                 [{'timestamp': unix_time_millis(), "message": output}], None)
 
                 if proc.returncode != 0:
                     raise Exception(
                         'lambda invoke failed output: {} {}'.format(
                             proc.stdout, proc.stderr))
 
-                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, [{'timestamp': unix_time_millis(), "message": output}], None)
+                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name,
+                                                 [{'timestamp': unix_time_millis(), "message": output}], None)
 
                 return output, False
             except BaseException as e:
