@@ -94,7 +94,7 @@ class LogsResponse(BaseResponse):
             "nextForwardToken": next_foward_token
         })
 
-    def filer_log_events(self):
+    def filter_log_events(self):
         log_group_name = self._get_param('logGroupName')
         log_stream_names = self._get_param('logStreamNames', [])
         start_time = self._get_param('startTime')
