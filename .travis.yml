@@ -1,5 +1,4 @@
 language: python
-dist: precise
 sudo: false
 services:
   - docker
@@ -9,6 +8,8 @@ python:
 env:
     - TEST_SERVER_MODE=false
     - TEST_SERVER_MODE=true
+before_install:
+  - export BOTO_CONFIG=/dev/null
 install:
   - travis_retry pip install boto==2.45.0
   - travis_retry pip install boto3
