@@ -25,7 +25,7 @@ import subprocess
 logger = logging.getLogger(__name__)
 
 
-def sp_check_output(*args, stdin: str = None):
+def sp_check_output(*args, stdin=None):
     try:
         logger.info("Running: {}".format(args))
         proc = subprocess.run(args, input=stdin, stdout=subprocess.PIPE,
