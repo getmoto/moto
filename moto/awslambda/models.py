@@ -178,8 +178,7 @@ class LambdaFunction(BaseModel):
                     "-m", "{}m".format(self.memory_size),
                     "-v", "{}:/var/task".format(td),
                     ] + env_vars + ["lambci/lambda:{}".format(self.run_time),
-                        self.handler,
-                        json.dumps(event)],
+                                    self.handler, json.dumps(event)],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 stdout = proc.stdout.decode('utf-8')
