@@ -4,9 +4,11 @@ import base64
 import datetime
 import hashlib
 import io
+import logging
 import os
 import json
 import sys
+import tempfile
 import zipfile
 
 try:
@@ -18,12 +20,33 @@ import boto.awslambda
 from moto.core import BaseBackend, BaseModel
 from moto.s3.models import s3_backend
 from moto.s3.exceptions import MissingBucket, MissingKey
+import subprocess
+
+logger = logging.getLogger(__name__)
+
+
+def sp_check_output(*args, stdin=None):
+    try:
+        logger.info("Running: {}".format(args))
+        proc = subprocess.run(args, input=stdin, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
+        if proc.returncode != 0:
+            raise Exception(
+                'Ran: {} output: {} {} failed'.format(args, proc.stdout,
+                                                      proc.stderr))
+
+        logger.info('Ran: {} output: {} {} success'.format(args, proc.stdout,
+                                                           proc.stderr))
+        return proc.stdout, proc.stderr
+    except:
+        logger.exception("Exception running: {}".format(args))
+        raise
 
 
 class LambdaFunction(BaseModel):
-
-    def __init__(self, spec, validate_s3=True):
+    def __init__(self, spec, region, validate_s3=True):
         # required
+        self.region = region
         self.code = spec['Code']
         self.function_name = spec['FunctionName']
         self.handler = spec['Handler']
@@ -42,7 +65,8 @@ class LambdaFunction(BaseModel):
 
         # auto-generated
         self.version = '$LATEST'
-        self.last_modified = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        self.last_modified = datetime.datetime.utcnow().strftime(
+            '%Y-%m-%d %H:%M:%S')
         if 'ZipFile' in self.code:
             # more hackery to handle unicode/bytes/str in python3 and python2 -
             # argh!
@@ -52,10 +76,7 @@ class LambdaFunction(BaseModel):
             except Exception:
                 to_unzip_code = base64.b64decode(self.code['ZipFile'])
 
-            zbuffer = io.BytesIO()
-            zbuffer.write(to_unzip_code)
-            zip_file = zipfile.ZipFile(zbuffer, 'r', zipfile.ZIP_DEFLATED)
-            self.code = zip_file.read("".join(zip_file.namelist()))
+            self.code = to_unzip_code
             self.code_size = len(to_unzip_code)
             self.code_sha_256 = hashlib.sha256(to_unzip_code).hexdigest()
         else:
@@ -78,8 +99,8 @@ class LambdaFunction(BaseModel):
             if key:
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
-        self.function_arn = 'arn:aws:lambda:123456789012:function:{0}'.format(
-            self.function_name)
+        self.function_arn = 'arn:aws:lambda:{}:123456789012:function:{}'.format(
+            self.region, self.function_name)
 
     @property
     def vpc_config(self):
@@ -111,19 +132,22 @@ class LambdaFunction(BaseModel):
     def get_code(self):
         return {
             "Code": {
-                "Location": "s3://lambda-functions.aws.amazon.com/{0}".format(self.code['S3Key']),
+                "Location": "s3://lambda-functions.aws.amazon.com/{0}".format(
+                    self.code['S3Key']),
                 "RepositoryType": "S3"
             },
             "Configuration": self.get_configuration(),
         }
 
-    def convert(self, s):
+    @staticmethod
+    def convert(s):
         try:
             return str(s, encoding='utf-8')
         except:
             return s
 
-    def is_json(self, test_str):
+    @staticmethod
+    def is_json(test_str):
         try:
             response = json.loads(test_str)
         except:
@@ -131,38 +155,26 @@ class LambdaFunction(BaseModel):
         return response
 
     def _invoke_lambda(self, code, event={}, context={}):
-        # TO DO: context not yet implemented
-        try:
-            mycode = "\n".join(['import json',
-                                self.convert(self.code),
-                                self.convert('print(json.dumps(lambda_handler(%s, %s)))' % (self.is_json(self.convert(event)), context))])
+        # TODO: context not yet implemented
+        # TODO: switch to docker python API
+        with tempfile.TemporaryDirectory() as td, \
+                zipfile.ZipFile(io.BytesIO(self.code)) as zf:
+            zf.extractall(td)
 
-        except Exception as ex:
-            print("Exception %s", ex)
+            if td.startswith("/var/folders/"):
+                td = td.replace("/var/folders/", "/private/var/folders/")
 
-        errored = False
-        try:
-            original_stdout = sys.stdout
-            original_stderr = sys.stderr
-            codeOut = StringIO()
-            codeErr = StringIO()
-            sys.stdout = codeOut
-            sys.stderr = codeErr
-            exec(mycode)
-            exec_err = codeErr.getvalue()
-            exec_out = codeOut.getvalue()
-            result = self.convert(exec_out.strip())
-            if exec_err:
-                result = "\n".join([exec_out.strip(), self.convert(exec_err)])
-        except Exception as ex:
-            errored = True
-            result = '%s\n\n\nException %s' % (mycode, ex)
-        finally:
-            codeErr.close()
-            codeOut.close()
-            sys.stdout = original_stdout
-            sys.stderr = original_stderr
-        return self.convert(result), errored
+            try:
+                stdout, stderr = sp_check_output("docker", "run", "--rm", "-i",
+                                                 "-v",
+                                                 "{}:/var/task".format(td),
+                                                 "lambci/lambda:{}".format(
+                                                     self.run_time),
+                                                 self.handler,
+                                                 json.dumps(event))
+                return self.convert(stdout), False
+            except BaseException as e:
+                return "error running lambda: {}".format(e), True
 
     def invoke(self, body, request_headers, response_headers):
         payload = dict()
@@ -182,7 +194,8 @@ class LambdaFunction(BaseModel):
         return result
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json,
+                                        region_name):
         properties = cloudformation_json['Properties']
 
         # required
@@ -205,17 +218,19 @@ class LambdaFunction(BaseModel):
         # this snippet converts this plaintext code to a proper base64-encoded ZIP file.
         if 'ZipFile' in properties['Code']:
             spec['Code']['ZipFile'] = base64.b64encode(
-                cls._create_zipfile_from_plaintext_code(spec['Code']['ZipFile']))
+                cls._create_zipfile_from_plaintext_code(
+                    spec['Code']['ZipFile']))
 
         backend = lambda_backends[region_name]
         fn = backend.create_function(spec)
         return fn
 
     def get_cfn_attribute(self, attribute_name):
-        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        from moto.cloudformation.exceptions import \
+            UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
-            region = 'us-east-1'
-            return 'arn:aws:lambda:{0}:123456789012:function:{1}'.format(region, self.function_name)
+            return 'arn:aws:lambda:{0}:123456789012:function:{1}'.format(
+                self.region, self.function_name)
         raise UnformattedGetAttTemplateException()
 
     @staticmethod
@@ -229,7 +244,6 @@ class LambdaFunction(BaseModel):
 
 
 class EventSourceMapping(BaseModel):
-
     def __init__(self, spec):
         # required
         self.function_name = spec['FunctionName']
@@ -239,10 +253,12 @@ class EventSourceMapping(BaseModel):
         # optional
         self.batch_size = spec.get('BatchSize', 100)
         self.enabled = spec.get('Enabled', True)
-        self.starting_position_timestamp = spec.get('StartingPositionTimestamp', None)
+        self.starting_position_timestamp = spec.get('StartingPositionTimestamp',
+                                                    None)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json,
+                                        region_name):
         properties = cloudformation_json['Properties']
         spec = {
             'FunctionName': properties['FunctionName'],
@@ -257,12 +273,12 @@ class EventSourceMapping(BaseModel):
 
 
 class LambdaVersion(BaseModel):
-
     def __init__(self, spec):
         self.version = spec['Version']
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json,
+                                        region_name):
         properties = cloudformation_json['Properties']
         spec = {
             'Version': properties.get('Version')
@@ -271,15 +287,15 @@ class LambdaVersion(BaseModel):
 
 
 class LambdaBackend(BaseBackend):
-
-    def __init__(self):
+    def __init__(self, region):
         self._functions = {}
+        self._region = region
 
     def has_function(self, function_name):
         return function_name in self._functions
 
     def create_function(self, spec):
-        fn = LambdaFunction(spec)
+        fn = LambdaFunction(spec, self._region)
         self._functions[fn.function_name] = fn
         return fn
 
@@ -292,15 +308,51 @@ class LambdaBackend(BaseBackend):
     def list_functions(self):
         return self._functions.values()
 
+    def send_message(self, function_name, message):
+        event = {
+            "Records": [
+                {
+                    "EventVersion": "1.0",
+                    "EventSubscriptionArn": "arn:aws:sns:EXAMPLE",
+                    "EventSource": "aws:sns",
+                    "Sns": {
+                        "SignatureVersion": "1",
+                        "Timestamp": "1970-01-01T00:00:00.000Z",
+                        "Signature": "EXAMPLE",
+                        "SigningCertUrl": "EXAMPLE",
+                        "MessageId": "95df01b4-ee98-5cb9-9903-4c221d41eb5e",
+                        "Message": message,
+                        "MessageAttributes": {
+                            "Test": {
+                                "Type": "String",
+                                "Value": "TestString"
+                            },
+                            "TestBinary": {
+                                "Type": "Binary",
+                                "Value": "TestBinary"
+                            }
+                        },
+                        "Type": "Notification",
+                        "UnsubscribeUrl": "EXAMPLE",
+                        "TopicArn": "arn:aws:sns:EXAMPLE",
+                        "Subject": "TestInvoke"
+                    }
+                }
+            ]
+
+        }
+        self._functions[function_name].invoke(event, {}, {})
+        pass
+
 
 def do_validate_s3():
     return os.environ.get('VALIDATE_LAMBDA_S3', '') in ['', '1', 'true']
 
 
 lambda_backends = {}
-for region in boto.awslambda.regions():
-    lambda_backends[region.name] = LambdaBackend()
+for _region in boto.awslambda.regions():
+    lambda_backends[_region.name] = LambdaBackend(_region.name)
 
 # Handle us forgotten regions, unless Lambda truly only runs out of US and
-for region in ['ap-southeast-2']:
-    lambda_backends[region] = LambdaBackend()
+for _region in ['ap-southeast-2']:
+    lambda_backends[_region] = LambdaBackend(_region)
