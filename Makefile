@@ -7,7 +7,7 @@ init:
 lint:
 	flake8 moto
 
-test: lint
+test:
 	rm -f .coverage
 	rm -rf cover
 	@nosetests -sv --with-coverage --cover-html ./tests/
