@@ -331,13 +331,16 @@ def get_object_value(obj, attr):
     keys = attr.split('.')
     val = obj
     for key in keys:
-        # TODO: Fix case of val being a list and iterate over if so
         if hasattr(val, key):
             val = getattr(val, key)
         elif isinstance(val, dict):
             val = val[key]
+        elif isinstance(val, list):
+            for item in val:
+                item_val = get_object_value(item, key)
+                if item_val:
+                    return item_val
         else:
-            # TODO: returns none before iterating to next key
             return None
     return val
 
