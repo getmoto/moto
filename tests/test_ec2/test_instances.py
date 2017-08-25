@@ -437,6 +437,27 @@ def test_get_instances_filtering_by_ni_private_dns():
     ])['Reservations']
     reservations[0]['Instances'].should.have.length_of(1)
 
+@mock_ec2
+def test_get_instances_filtering_by_instance_group_name():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-east-1')
+    conn = boto3.resource('ec2', 'us-east-1')
+    #group = conn.create_security_group('test_sg', "some description")
+    response = client.create_security_group(
+        Description='test',
+        GroupName='test_sg'
+    )
+    client.run_instances(ImageId=image_id,
+                          MinCount=1,
+                          MaxCount=1,
+                          SecurityGroups=['test_sg'])
+    reservations = client.describe_instances(Filters=[
+        {'Name': 'instance.group-name', 'Values': ['test_sg']}
+    ])['Reservations']
+    reservations[0]['Instances'].should.have.length_of(1)
+
+test_get_instances_filtering_by_instance_group_name()
+
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_tag():
     conn = boto.connect_ec2()
