@@ -24,3 +24,11 @@ class SnsEndpointDisabled(RESTError):
     def __init__(self, message):
         super(SnsEndpointDisabled, self).__init__(
             "EndpointDisabled", message)
+
+
+class SNSInvalidParameter(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(SNSInvalidParameter, self).__init__(
+            "InvalidParameter", message)

@@ -445,6 +445,20 @@ class SNSResponse(BaseResponse):
         template = self.response_template(DELETE_ENDPOINT_TEMPLATE)
         return template.render()
 
+    def get_subscription_attributes(self):
+        arn = self._get_param('SubscriptionArn')
+        attributes = self.backend.get_subscription_attributes(arn)
+        template = self.response_template(GET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
+        return template.render(attributes=attributes)
+
+    def set_subscription_attributes(self):
+        arn = self._get_param('SubscriptionArn')
+        attr_name = self._get_param('AttributeName')
+        attr_value = self._get_param('AttributeValue')
+        self.backend.set_subscription_attributes(arn, attr_name, attr_value)
+        template = self.response_template(SET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
+        return template.render()
+
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
      <CreateTopicResult>
@@ -719,3 +733,28 @@ LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE = """<ListSubscriptionsByTopicResponse xmln
     <RequestId>384ac68d-3775-11df-8963-01868b7c937a</RequestId>
   </ResponseMetadata>
 </ListSubscriptionsByTopicResponse>"""
+
+
+# Not responding aws system attribetus like 'Owner' and 'SubscriptionArn'
+GET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE = """<GetSubscriptionAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <GetSubscriptionAttributesResult>
+    <Attributes>
+      {% for name, value in attributes.items() %}
+      <entry>
+        <key>{{ name }}</key>
+        <value>{{ value }}</value>
+      </entry>
+      {% endfor %}
+    </Attributes>
+  </GetSubscriptionAttributesResult>
+  <ResponseMetadata>
+    <RequestId>057f074c-33a7-11df-9540-99d0768312d3</RequestId>
+  </ResponseMetadata>
+</GetSubscriptionAttributesResponse>"""
+
+
+SET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE = """<SetSubscriptionAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <ResponseMetadata>
+    <RequestId>a8763b99-33a7-11df-a9b7-05d48da6f042</RequestId>
+  </ResponseMetadata>
+</SetSubscriptionAttributesResponse>"""
