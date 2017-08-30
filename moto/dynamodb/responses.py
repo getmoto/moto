@@ -7,33 +7,6 @@ from moto.core.utils import camelcase_to_underscores
 from .models import dynamodb_backend, dynamo_json_dump
 
 
-GET_SESSION_TOKEN_RESULT = """
-<GetSessionTokenResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
- <GetSessionTokenResult>
- <Credentials>
- <SessionToken>
- AQoEXAMPLEH4aoAH0gNCAPyJxz4BlCFFxWNE1OPTgk5TthT+FvwqnKwRcOIfrRh3c/L
- To6UDdyJwOOvEVPvLXCrrrUtdnniCEXAMPLE/IvU1dYUg2RVAJBanLiHb4IgRmpRV3z
- rkuWJOgQs8IZZaIv2BXIa2R4OlgkBN9bkUDNCJiBeb/AXlzBBko7b15fjrBs2+cTQtp
- Z3CYWFXG8C5zqx37wnOE49mRl/+OtkIKGO7fAE
- </SessionToken>
- <SecretAccessKey>
- wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY
- </SecretAccessKey>
- <Expiration>2011-07-11T19:55:29.611Z</Expiration>
- <AccessKeyId>AKIAIOSFODNN7EXAMPLE</AccessKeyId>
- </Credentials>
- </GetSessionTokenResult>
- <ResponseMetadata>
- <RequestId>58c5dbae-abef-11e0-8cfe-09039844ac7d</RequestId>
- </ResponseMetadata>
-</GetSessionTokenResponse>"""
-
-
-def sts_handler():
-    return GET_SESSION_TOKEN_RESULT
-
-
 class DynamoHandler(BaseResponse):
 
     def get_endpoint_name(self, headers):
@@ -51,11 +24,7 @@ class DynamoHandler(BaseResponse):
         return status, self.response_headers, dynamo_json_dump({'__type': type_})
 
     def call_action(self):
-        body = self.body
-        if 'GetSessionToken' in body:
-            return 200, self.response_headers, sts_handler()
-
-        self.body = json.loads(body or '{}')
+        self.body = json.loads(self.body or '{}')
         endpoint = self.get_endpoint_name(self.headers)
         if endpoint:
             endpoint = camelcase_to_underscores(endpoint)
