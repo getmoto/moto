@@ -211,7 +211,7 @@ def test_create_function_from_aws_bucket():
     result.pop('LastModified')
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:us-west-2:123456789012:function:testFunction',
+        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.lambda_handler',
@@ -256,7 +256,7 @@ def test_create_function_from_zipfile():
 
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:us-west-2:123456789012:function:testFunction',
+        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.lambda_handler',
@@ -317,7 +317,7 @@ def test_get_function():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:us-west-2:123456789012:function:testFunction",
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
