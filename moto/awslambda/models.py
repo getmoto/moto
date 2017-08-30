@@ -168,18 +168,19 @@ class LambdaFunction(BaseModel):
                 for name, value in self.environment_vars.items():
                     env_vars.extend(['-e', '{}={}'.format(name, value)])
 
+                lambda_args = \
+                    ["docker", "run", "--rm", "-i",
+                     "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
+                     "-e", "AWS_LAMBDA_FUNCTION_NAME={}".format(self.function_name),
+                     "-e", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE={}".format(self.memory_size),
+                     "-e", "AWS_LAMBDA_FUNCTION_VERSION={}".format(self.version),
+                     "-e", "AWS_REGION={}".format(self.region),
+                     "-m", "{}m".format(self.memory_size),
+                     "-v", "{}:/var/task".format(td)] + env_vars + \
+                    ["lambci/lambda:{}".format(self.run_time), self.handler, json.dumps(event)]
+
                 proc = subprocess.run(
-                    [
-                        "docker", "run", "--rm", "-i",
-                        "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
-                        "-e", "AWS_LAMBDA_FUNCTION_NAME={}".format(self.function_name),
-                        "-e", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE={}".format(self.memory_size),
-                        "-e", "AWS_LAMBDA_FUNCTION_VERSION={}".format(self.version),
-                        "-e", "AWS_REGION={}".format(self.region),
-                        "-m", "{}m".format(self.memory_size),
-                        "-v", "{}:/var/task".format(td),
-                    ] + env_vars +
-                    ["lambci/lambda:{}".format(self.run_time), self.handler, json.dumps(event)],
+                    lambda_args,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 stdout = proc.stdout.decode('utf-8')
@@ -217,7 +218,7 @@ class LambdaFunction(BaseModel):
         payload = dict()
 
         # Get the invocation type:
-        res, errored = self._invoke_lambda(code=self.code, event=body)
+        res, errored = self._invoke_lambda(code=self.code, event=json.loads(body))
         if request_headers.get("x-amz-invocation-type") == "RequestResponse":
             encoded = base64.b64encode(res.encode('utf-8'))
             response_headers["x-amz-log-result"] = encoded.decode('utf-8')

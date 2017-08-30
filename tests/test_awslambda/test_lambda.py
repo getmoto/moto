@@ -16,7 +16,7 @@ from moto import mock_lambda, mock_s3, mock_ec2, settings
 def _process_lamda(pfunc):
     zip_output = io.BytesIO()
     zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
-    zip_file.writestr('lambda_function.zip', pfunc)
+    zip_file.writestr('lambda_function.py', pfunc)
     zip_file.close()
     zip_output.seek(0)
     return zip_output.read()
@@ -58,7 +58,7 @@ def test_invoke_requestresponse_function():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
+        Handler='lambda_function.lambda_handler',
         Code={
             'ZipFile': get_test_zip_file1(),
         },
@@ -86,7 +86,7 @@ def test_invoke_event_function():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
+        Handler='lambda_function.lambda_handler',
         Code={
             'ZipFile': get_test_zip_file1(),
         },
@@ -122,7 +122,7 @@ def test_invoke_function_get_ec2_volume():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
+        Handler='lambda_function.lambda_handler',
         Code={
             'ZipFile': get_test_zip_file2(),
         },
@@ -150,7 +150,7 @@ def test_create_based_on_s3_with_missing_bucket():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
+        Handler='lambda_function.lambda_handler',
         Code={
             'S3Bucket': 'this-bucket-does-not-exist',
             'S3Key': 'test.zip',
@@ -181,7 +181,7 @@ def test_create_function_from_aws_bucket():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
+        Handler='lambda_function.lambda_handler',
         Code={
             'S3Bucket': 'test-bucket',
             'S3Key': 'test.zip',
@@ -205,7 +205,7 @@ def test_create_function_from_aws_bucket():
         'FunctionArn': 'arn:aws:lambda:us-west-2:123456789012:function:testFunction',
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
-        'Handler': 'lambda_function.handler',
+        'Handler': 'lambda_function.lambda_handler',
         "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
         "CodeSize": len(zip_content),
         'Description': 'test lambda function',
@@ -230,7 +230,7 @@ def test_create_function_from_zipfile():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
+        Handler='lambda_function.lambda_handler',
         Code={
             'ZipFile': zip_content,
         },
@@ -250,7 +250,7 @@ def test_create_function_from_zipfile():
         'FunctionArn': 'arn:aws:lambda:us-west-2:123456789012:function:testFunction',
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
-        'Handler': 'lambda_function.handler',
+        'Handler': 'lambda_function.lambda_handler',
         'CodeSize': len(zip_content),
         'Description': 'test lambda function',
         'Timeout': 3,
@@ -281,7 +281,7 @@ def test_get_function():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
+        Handler='lambda_function.lambda_handler',
         Code={
             'S3Bucket': 'test-bucket',
             'S3Key': 'test.zip',
@@ -310,7 +310,7 @@ def test_get_function():
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:us-west-2:123456789012:function:testFunction",
             "FunctionName": "testFunction",
-            "Handler": "lambda_function.handler",
+            "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
             "Role": "test-iam-role",
             "Runtime": "python2.7",
@@ -339,7 +339,7 @@ def test_delete_function():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
+        Handler='lambda_function.lambda_handler',
         Code={
             'S3Bucket': 'test-bucket',
             'S3Key': 'test.zip',
@@ -383,7 +383,7 @@ def test_list_create_list_get_delete_list():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
+        Handler='lambda_function.lambda_handler',
         Code={
             'S3Bucket': 'test-bucket',
             'S3Key': 'test.zip',
@@ -404,7 +404,7 @@ def test_list_create_list_get_delete_list():
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:us-west-2:123456789012:function:testFunction",
             "FunctionName": "testFunction",
-            "Handler": "lambda_function.handler",
+            "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
             "Role": "test-iam-role",
             "Runtime": "python2.7",
