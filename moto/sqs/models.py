@@ -59,6 +59,7 @@ class Message(BaseModel):
                 return str.encode('utf-8')
             return str
         md5 = hashlib.md5()
+        struct_format = "!I".encode('ascii')  # ensure it's a bytestring
         for name in sorted(self.message_attributes.keys()):
             attr = self.message_attributes[name]
             data_type = attr['data_type']
@@ -67,10 +68,10 @@ class Message(BaseModel):
             # Each part of each attribute is encoded right after it's
             # own length is packed into a 4-byte integer
             # 'timestamp' -> b'\x00\x00\x00\t'
-            encoded += struct.pack("!I", len(utf8(name))) + utf8(name)
+            encoded += struct.pack(struct_format, len(utf8(name))) + utf8(name)
             # The datatype is additionally given a final byte
             # representing which type it is
-            encoded += struct.pack("!I", len(data_type)) + utf8(data_type)
+            encoded += struct.pack(struct_format, len(data_type)) + utf8(data_type)
             encoded += TRANSPORT_TYPE_ENCODINGS[data_type]
 
             if data_type == 'String' or data_type == 'Number':
@@ -86,7 +87,7 @@ class Message(BaseModel):
                 # MD5 so as not to break client softwre
                 return('deadbeefdeadbeefdeadbeefdeadbeef')
 
-            encoded += struct.pack("!I", len(utf8(value))) + utf8(value)
+            encoded += struct.pack(struct_format, len(utf8(value))) + utf8(value)
 
             md5.update(encoded)
         return md5.hexdigest()

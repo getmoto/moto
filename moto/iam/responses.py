@@ -13,6 +13,27 @@ class IamResponse(BaseResponse):
         template = self.response_template(ATTACH_ROLE_POLICY_TEMPLATE)
         return template.render()
 
+    def detach_role_policy(self):
+        role_name = self._get_param('RoleName')
+        policy_arn = self._get_param('PolicyArn')
+        iam_backend.detach_role_policy(policy_arn, role_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DetachRolePolicyResponse")
+
+    def attach_user_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        user_name = self._get_param('UserName')
+        iam_backend.attach_user_policy(policy_arn, user_name)
+        template = self.response_template(ATTACH_USER_POLICY_TEMPLATE)
+        return template.render()
+
+    def detach_user_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        user_name = self._get_param('UserName')
+        iam_backend.detach_user_policy(policy_arn, user_name)
+        template = self.response_template(DETACH_USER_POLICY_TEMPLATE)
+        return template.render()
+
     def create_policy(self):
         description = self._get_param('Description')
         path = self._get_param('Path')
@@ -31,6 +52,17 @@ class IamResponse(BaseResponse):
         policies, marker = iam_backend.list_attached_role_policies(
             role_name, marker=marker, max_items=max_items, path_prefix=path_prefix)
         template = self.response_template(LIST_ATTACHED_ROLE_POLICIES_TEMPLATE)
+        return template.render(policies=policies, marker=marker)
+
+    def list_attached_user_policies(self):
+        marker = self._get_param('Marker')
+        max_items = self._get_int_param('MaxItems', 100)
+        path_prefix = self._get_param('PathPrefix', '/')
+        user_name = self._get_param('UserName')
+        policies, marker = iam_backend.list_attached_user_policies(
+            user_name, marker=marker, max_items=max_items,
+            path_prefix=path_prefix)
+        template = self.response_template(LIST_ATTACHED_USER_POLICIES_TEMPLATE)
         return template.render(policies=policies, marker=marker)
 
     def list_policies(self):
@@ -81,6 +113,13 @@ class IamResponse(BaseResponse):
         iam_backend.put_role_policy(role_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="PutRolePolicyResponse")
+
+    def delete_role_policy(self):
+        role_name = self._get_param('RoleName')
+        policy_name = self._get_param('PolicyName')
+        iam_backend.delete_role_policy(role_name, policy_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteRolePolicyResponse")
 
     def get_role_policy(self):
         role_name = self._get_param('RoleName')
@@ -446,6 +485,24 @@ ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
   </ResponseMetadata>
 </AttachRolePolicyResponse>"""
 
+DETACH_ROLE_POLICY_TEMPLATE = """<DetachRolePolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DetachRolePolicyResponse>"""
+
+ATTACH_USER_POLICY_TEMPLATE = """<AttachUserPolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</AttachUserPolicyResponse>"""
+
+DETACH_USER_POLICY_TEMPLATE = """<DetachUserPolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DetachUserPolicyResponse>"""
+
 CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
   <CreatePolicyResult>
     <Policy>
@@ -485,6 +542,28 @@ LIST_ATTACHED_ROLE_POLICIES_TEMPLATE = """<ListAttachedRolePoliciesResponse>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </ListAttachedRolePoliciesResponse>"""
+
+LIST_ATTACHED_USER_POLICIES_TEMPLATE = """<ListAttachedUserPoliciesResponse>
+  <ListAttachedUserPoliciesResult>
+    {% if marker is none %}
+    <IsTruncated>false</IsTruncated>
+    {% else %}
+    <IsTruncated>true</IsTruncated>
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <AttachedPolicies>
+      {% for policy in policies %}
+      <member>
+        <PolicyName>{{ policy.name }}</PolicyName>
+        <PolicyArn>{{ policy.arn }}</PolicyArn>
+      </member>
+      {% endfor %}
+    </AttachedPolicies>
+  </ListAttachedUserPoliciesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListAttachedUserPoliciesResponse>"""
 
 LIST_POLICIES_TEMPLATE = """<ListPoliciesResponse>
   <ListPoliciesResult>

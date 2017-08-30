@@ -101,3 +101,85 @@ class EmptyListenersError(ELBClientError):
         super(EmptyListenersError, self).__init__(
             "ValidationError",
             "Listeners cannot be empty")
+
+
+class PriorityInUseError(ELBClientError):
+
+    def __init__(self):
+        super(PriorityInUseError, self).__init__(
+            "PriorityInUse",
+            "The specified priority is in use.")
+
+
+class InvalidConditionFieldError(ELBClientError):
+
+    def __init__(self, invalid_name):
+        super(InvalidConditionFieldError, self).__init__(
+            "ValidationError",
+            "Condition field '%s' must be one of '[path-pattern, host-header]" % (invalid_name))
+
+
+class InvalidConditionValueError(ELBClientError):
+
+    def __init__(self, msg):
+        super(InvalidConditionValueError, self).__init__(
+            "ValidationError", msg)
+
+
+class InvalidActionTypeError(ELBClientError):
+
+    def __init__(self, invalid_name, index):
+        super(InvalidActionTypeError, self).__init__(
+            "ValidationError",
+            "1 validation error detected: Value '%s' at 'actions.%s.member.type' failed to satisfy constraint: Member must satisfy enum value set: [forward]" % (invalid_name, index)
+        )
+
+
+class ActionTargetGroupNotFoundError(ELBClientError):
+
+    def __init__(self, arn):
+        super(ActionTargetGroupNotFoundError, self).__init__(
+            "TargetGroupNotFound",
+            "Target group '%s' not found" % arn
+        )
+
+
+class InvalidDescribeRulesRequest(ELBClientError):
+
+    def __init__(self, msg):
+        super(InvalidDescribeRulesRequest, self).__init__(
+            "ValidationError", msg
+        )
+
+
+class RuleNotFoundError(ELBClientError):
+
+    def __init__(self):
+        super(RuleNotFoundError, self).__init__(
+            "RuleNotFound",
+            "The specified rule does not exist.")
+
+
+class DuplicatePriorityError(ELBClientError):
+
+    def __init__(self, invalid_value):
+        super(DuplicatePriorityError, self).__init__(
+            "ValidationError",
+            "Priority '%s' was provided multiple times" % invalid_value)
+
+
+class InvalidTargetGroupNameError(ELBClientError):
+
+    def __init__(self, msg):
+        super(InvalidTargetGroupNameError, self).__init__(
+            "ValidationError", msg
+        )
+
+
+class InvalidModifyRuleArgumentsError(ELBClientError):
+
+    def __init__(self):
+        super(InvalidModifyRuleArgumentsError, self).__init__(
+            "ValidationError",
+            "Either conditions or actions must be specified"
+        )

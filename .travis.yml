@@ -15,7 +15,7 @@ install:
   - travis_retry pip install boto3
   - travis_retry pip install .
   - travis_retry pip install -r requirements-dev.txt
-  - travis_retry pip install coveralls
+  - travis_retry pip install coveralls==1.1
   - |
     if [ "$TEST_SERVER_MODE" = "true" ]; then
       AWS_SECRET_ACCESS_KEY=server_secret AWS_ACCESS_KEY_ID=server_key moto_server -p 5000&

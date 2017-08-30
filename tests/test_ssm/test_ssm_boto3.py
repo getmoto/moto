@@ -24,6 +24,25 @@ def test_delete_parameter():
     response = client.get_parameters(Names=['test'])
     len(response['Parameters']).should.equal(0)
 
+@mock_ssm
+def test_delete_parameters():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.put_parameter(
+        Name='test',
+        Description='A test parameter',
+        Value='value',
+        Type='String')
+
+    response = client.get_parameters(Names=['test'])
+    len(response['Parameters']).should.equal(1)
+
+    result = client.delete_parameters(Names=['test', 'invalid'])
+    len(result['DeletedParameters']).should.equal(1)
+    len(result['InvalidParameters']).should.equal(1)
+
+    response = client.get_parameters(Names=['test'])
+    len(response['Parameters']).should.equal(0)
 
 @mock_ssm
 def test_put_parameter():
@@ -142,7 +161,6 @@ def test_describe_parameters_filter_type():
             p['KeyId'] = 'a key'
         client.put_parameter(**p)
 
-
     response = client.describe_parameters(Filters=[
         {
             'Key': 'Type',
@@ -169,7 +187,6 @@ def test_describe_parameters_filter_keyid():
             p['KeyId'] = "key:%d" % i
         client.put_parameter(**p)
 
-
     response = client.describe_parameters(Filters=[
         {
             'Key': 'KeyId',
@@ -180,6 +197,20 @@ def test_describe_parameters_filter_keyid():
     response['Parameters'][0]['Name'].should.equal('param-10')
     response['Parameters'][0]['Type'].should.equal('SecureString')
     ''.should.equal(response.get('NextToken', ''))
+
+
+@mock_ssm
+def test_get_parameter_invalid():
+    client = client = boto3.client('ssm', region_name='us-east-1')
+    response = client.get_parameters(
+        Names=[
+            'invalid'
+        ],
+        WithDecryption=False)
+
+    len(response['Parameters']).should.equal(0)
+    len(response['InvalidParameters']).should.equal(1)
+    response['InvalidParameters'][0].should.equal('invalid')
 
 
 @mock_ssm

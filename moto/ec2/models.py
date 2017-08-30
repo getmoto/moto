@@ -366,6 +366,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.user_data = user_data
         self.security_groups = security_groups
         self.instance_type = kwargs.get("instance_type", "m1.small")
+        self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
         self.vpc_id = None
         self.subnet_id = kwargs.get("subnet_id")
@@ -433,7 +434,11 @@ class Instance(TaggedEC2Resource, BotoInstance):
 
     @property
     def private_dns(self):
-        return "ip-{0}.ec2.internal".format(self.private_ip)
+        formatted_ip = self.private_ip.replace('.', '-')
+        if self.region_name == "us-east-1":
+            return "ip-{0}.ec2.internal".format(formatted_ip)
+        else:
+            return "ip-{0}.{1}.compute.internal".format(formatted_ip, self.region_name)
 
     @property
     def public_ip(self):
@@ -442,7 +447,11 @@ class Instance(TaggedEC2Resource, BotoInstance):
     @property
     def public_dns(self):
         if self.public_ip:
-            return "ec2-{0}.compute-1.amazonaws.com".format(self.public_ip)
+            formatted_ip = self.public_ip.replace('.', '-')
+            if self.region_name == "us-east-1":
+                return "ec2-{0}.compute-1.amazonaws.com".format(formatted_ip)
+            else:
+                return "ec2-{0}.{1}.compute.amazonaws.com".format(formatted_ip, self.region_name)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):

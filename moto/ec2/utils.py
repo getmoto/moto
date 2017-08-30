@@ -335,6 +335,11 @@ def get_object_value(obj, attr):
             val = getattr(val, key)
         elif isinstance(val, dict):
             val = val[key]
+        elif isinstance(val, list):
+            for item in val:
+                item_val = get_object_value(item, key)
+                if item_val:
+                    return item_val
         else:
             return None
     return val
@@ -385,14 +390,17 @@ filter_dict_attribute_mapping = {
     'state-reason-code': '_state_reason.code',
     'source-dest-check': 'source_dest_check',
     'vpc-id': 'vpc_id',
-    'group-id': 'security_groups',
-    'instance.group-id': 'security_groups',
+    'group-id': 'security_groups.id',
+    'instance.group-id': 'security_groups.id',
+    'instance.group-name': 'security_groups.name',
     'instance-type': 'instance_type',
     'private-ip-address': 'private_ip',
     'ip-address': 'public_ip',
     'availability-zone': 'placement',
     'architecture': 'architecture',
-    'image-id': 'image_id'
+    'image-id': 'image_id',
+    'network-interface.private-dns-name': 'private_dns',
+    'private-dns-name': 'private_dns'
 }
 
 

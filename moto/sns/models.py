@@ -83,7 +83,8 @@ class Subscription(BaseModel):
         if self.protocol == 'sqs':
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
-            sqs_backends[region].send_message(queue_name, message)
+            enveloped_message = json.dumps(self.get_post_data(message, message_id), sort_keys=True, indent=2, separators=(',', ': '))
+            sqs_backends[region].send_message(queue_name, enveloped_message)
         elif self.protocol in ['http', 'https']:
             post_data = self.get_post_data(message, message_id)
             requests.post(self.endpoint, json=post_data)

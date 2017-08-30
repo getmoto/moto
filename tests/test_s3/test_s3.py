@@ -770,6 +770,14 @@ def test_list_versions():
     versions[1].version_id.should.equal('1')
     versions[1].get_contents_as_string().should.equal(b"Version 2")
 
+    key = Key(bucket, 'the2-key')
+    key.set_contents_from_string("Version 1")
+
+    keys = list(bucket.list())
+    keys.should.have.length_of(2)
+    versions = list(bucket.list_versions(prefix='the2-'))
+    versions.should.have.length_of(1)
+
 
 @mock_s3_deprecated
 def test_acl_setting():
