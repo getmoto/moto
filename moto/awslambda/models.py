@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from tempfile import TemporaryDirectory
-except AttributeError:
+except ImportError:
     from backports.tempfile import TemporaryDirectory
 
 
