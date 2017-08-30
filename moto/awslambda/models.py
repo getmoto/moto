@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import base64
 import datetime
+import docker
 import hashlib
 import io
 import logging
@@ -10,6 +11,9 @@ import json
 import re
 import zipfile
 import uuid
+import functools
+import traceback
+import requests.adapters
 
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
@@ -17,7 +21,7 @@ from moto.core.utils import unix_time_millis
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
-import subprocess
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +33,7 @@ except ImportError:
 
 
 _stderr_regex = re.compile(r'START|END|REPORT RequestId: .*')
+_orig_adapter_send = requests.adapters.HTTPAdapter.send
 
 
 class LambdaFunction(BaseModel):
@@ -42,6 +47,20 @@ class LambdaFunction(BaseModel):
         self.run_time = spec['Runtime']
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get('Environment', {}).get('Variables', {})
+        self._docker_client = docker.from_env()
+
+        # Unfortunately mocking replaces this method w/o fallback enabled, so we
+        # need to replace it if we detect it's been mocked
+        if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
+            _orig_get_adapter = self._docker_client.api.get_adapter
+
+            def replace_adapter_send(*args, **kwargs):
+                adapter = _orig_get_adapter(*args, **kwargs)
+
+                if isinstance(adapter, requests.adapters.HTTPAdapter):
+                    adapter.send = functools.partial(_orig_adapter_send, adapter)
+                return adapter
+            self._docker_client.api.get_adapter = replace_adapter_send
 
         # optional
         self.description = spec.get('Description', '')
@@ -156,7 +175,6 @@ class LambdaFunction(BaseModel):
 
     def _invoke_lambda(self, code, event=None, context=None):
         # TODO: context not yet implemented
-        # TODO: switch to docker python API
         if event is None:
             event = dict()
         if context is None:
@@ -173,27 +191,28 @@ class LambdaFunction(BaseModel):
                 # TODO: I believe we can keep the container running and feed events as needed
                 #       also need to hook it up to the other services so it can make kws/s3 etc calls
                 #  Should get invoke_id /RequestId from invovation
-                env_vars = []
-                for name, value in self.environment_vars.items():
-                    env_vars.extend(['-e', '{}={}'.format(name, value)])
+                env_vars = {
+                    **self.environment_vars,
+                    "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
+                    "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
+                    "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": self.memory_size,
+                    "AWS_LAMBDA_FUNCTION_VERSION": self.version,
+                    "AWS_REGION": self.region,
+                }
 
-                lambda_args = \
-                    ["docker", "run", "--rm", "-i", "--net=host",
-                     "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
-                     "-e", "AWS_LAMBDA_FUNCTION_NAME={}".format(self.function_name),
-                     "-e", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE={}".format(self.memory_size),
-                     "-e", "AWS_LAMBDA_FUNCTION_VERSION={}".format(self.version),
-                     "-e", "AWS_REGION={}".format(self.region),
-                     "-m", "{}m".format(self.memory_size),
-                     "-v", "{}:/var/task".format(td)] + env_vars + \
-                    ["lambci/lambda:{}".format(self.run_time), self.handler, json.dumps(event)]
+                container = None
+                try:
+                    container = self._docker_client.containers.run("lambci/lambda:{}".format(self.run_time),
+                                                       [self.handler, json.dumps(event)], stdout=True, stderr=True, remove=False,
+                                                       mem_limit="{}m".format(self.memory_size), network_mode="host",
+                                                       volumes=["{}:/var/task".format(td)], environment=env_vars, detach=True)
+                finally:
+                    if container:
+                        exit_code = container.wait()
+                        output = container.logs()
+                        container.remove()
 
-                proc = subprocess.run(
-                    lambda_args,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-                stdout = proc.stdout.decode('utf-8')
-                stderr = proc.stderr.decode('utf-8')
+                output = output.decode('utf-8')
 
                 # Send output to "logs" backend
                 invoke_id = uuid.uuid4().hex
@@ -204,38 +223,18 @@ class LambdaFunction(BaseModel):
                 self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
 
                 log_events = [{'timestamp': unix_time_millis(), "message": line}
-                              for line in stderr.splitlines()]
+                              for line in output.splitlines()]
                 self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, log_events, None)
 
-                output = ''
-                for line in self.convert(stderr).splitlines():
-                    if _stderr_regex.match(line):
-                        continue
-
-                    if output:
-                        output += os.linesep
-
-                    output += line
-
-                if stdout:
-                    if output:
-                        output += os.linesep
-
-                output += self.convert(stdout)
-
-                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name,
-                                                 [{'timestamp': unix_time_millis(), "message": output}], None)
-
-                if proc.returncode != 0:
+                if exit_code != 0:
                     raise Exception(
-                        'lambda invoke failed output: {} {}'.format(
-                            proc.stdout, proc.stderr))
+                        'lambda invoke failed output: {}'.format(output))
 
-                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name,
-                                                 [{'timestamp': unix_time_millis(), "message": output}], None)
-
+                # strip out RequestId lines
+                output = os.linesep.join([line for line in self.convert(output).splitlines() if not _stderr_regex.match(line)])
                 return output, False
             except BaseException as e:
+                traceback.print_exc()
                 return "error running lambda: {}".format(e), True
 
     def invoke(self, body, request_headers, response_headers):
