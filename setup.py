@@ -16,6 +16,7 @@ install_requires = [
     "pytz",
     "python-dateutil",
     "mock",
+    "backports.tempfile",  # TODO: make conditional
 ]
 
 extras_require = {

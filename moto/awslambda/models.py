@@ -7,7 +7,6 @@ import io
 import logging
 import os
 import json
-import tempfile
 import zipfile
 import uuid
 
@@ -20,6 +19,12 @@ from moto.s3.exceptions import MissingBucket, MissingKey
 import subprocess
 
 logger = logging.getLogger(__name__)
+
+
+try:
+    from tempfile import TemporaryDirectory
+except AttributeError:
+    from backports.tempfile import TemporaryDirectory
 
 
 class LambdaFunction(BaseModel):
@@ -153,7 +158,7 @@ class LambdaFunction(BaseModel):
         if context is None:
             context = {}
 
-        with tempfile.TemporaryDirectory() as td, \
+        with TemporaryDirectory() as td, \
                 zipfile.ZipFile(io.BytesIO(self.code)) as zf:
             zf.extractall(td)
 
