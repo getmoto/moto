@@ -192,7 +192,6 @@ class LambdaFunction(BaseModel):
                 #       also need to hook it up to the other services so it can make kws/s3 etc calls
                 #  Should get invoke_id /RequestId from invovation
                 env_vars = {
-                    **self.environment_vars,
                     "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
                     "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
                     "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": self.memory_size,
@@ -200,12 +199,15 @@ class LambdaFunction(BaseModel):
                     "AWS_REGION": self.region,
                 }
 
-                container = None
+                env_vars.update(self.environment_vars)
+
+                container = output = exit_code = None
                 try:
-                    container = self._docker_client.containers.run("lambci/lambda:{}".format(self.run_time),
-                                                       [self.handler, json.dumps(event)], stdout=True, stderr=True, remove=False,
-                                                       mem_limit="{}m".format(self.memory_size), network_mode="host",
-                                                       volumes=["{}:/var/task".format(td)], environment=env_vars, detach=True)
+                    container = self._docker_client.containers.run(
+                        "lambci/lambda:{}".format(self.run_time),
+                        [self.handler, json.dumps(event)], stdout=True, stderr=True, remove=False,
+                        mem_limit="{}m".format(self.memory_size), network_mode="host",
+                        volumes=["{}:/var/task".format(td)], environment=env_vars, detach=True)
                 finally:
                     if container:
                         exit_code = container.wait()
