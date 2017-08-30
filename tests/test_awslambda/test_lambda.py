@@ -35,7 +35,6 @@ def get_test_zip_file2():
 import subprocess
 
 docker_host_ip = subprocess.check_output("/sbin/ip route|awk '/default/ {{ print $3 }}'", shell=True).strip()
-endpoint_url="http://" + {base_url}
 
 def lambda_handler(event, context):
     volume_id = event.get('volume_id')
@@ -83,8 +82,8 @@ def test_invoke_requestresponse_function():
 
     result_obj.should.equal(in_data)
 
-    json.loads(success_result["Payload"].read().decode(
-        'utf-8')).should.equal(in_data)
+    payload = success_result["Payload"].read().decode('utf-8')
+    json.loads(payload).should.equal(in_data)
 
 
 @mock_lambda
@@ -145,10 +144,12 @@ if settings.TEST_SERVER_MODE:
         result = conn.invoke(FunctionName='testFunction',
                              InvocationType='RequestResponse', Payload=json.dumps(in_data))
         result["StatusCode"].should.equal(202)
-        msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s' % (
+        msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s\n' % (
             vol.id, vol.id, vol.state, vol.size, json.dumps(in_data))
         base64.b64decode(result["LogResult"]).decode('utf-8').should.equal(msg)
-        result['Payload'].read().decode('utf-8').should.equal(msg)
+
+        payload = result['Payload'].read().decode('utf-8')
+        payload.should.equal(msg)
 
 
 @mock_lambda
@@ -411,7 +412,7 @@ def test_list_create_list_get_delete_list():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:us-west-2:123456789012:function:testFunction",
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,

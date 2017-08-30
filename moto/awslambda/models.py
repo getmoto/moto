@@ -7,6 +7,7 @@ import io
 import logging
 import os
 import json
+import re
 import zipfile
 import uuid
 
@@ -25,6 +26,9 @@ try:
     from tempfile import TemporaryDirectory
 except ImportError:
     from backports.tempfile import TemporaryDirectory
+
+
+_stderr_regex = re.compile(r'START|END|REPORT RequestId: .*')
 
 
 class LambdaFunction(BaseModel):
@@ -174,7 +178,7 @@ class LambdaFunction(BaseModel):
                     env_vars.extend(['-e', '{}={}'.format(name, value)])
 
                 lambda_args = \
-                    ["docker", "run", "--rm", "-i",
+                    ["docker", "run", "--rm", "-i", "--net=host",
                      "-e", "AWS_LAMBDA_FUNCTION_TIMEOUT={}".format(self.timeout),
                      "-e", "AWS_LAMBDA_FUNCTION_NAME={}".format(self.function_name),
                      "-e", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE={}".format(self.memory_size),
@@ -203,7 +207,22 @@ class LambdaFunction(BaseModel):
                               for line in stderr.splitlines()]
                 self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, log_events, None)
 
-                output = self.convert(stdout)
+                output = ''
+                for line in self.convert(stderr).splitlines():
+                    if _stderr_regex.match(line):
+                        continue
+
+                    if output:
+                        output += os.linesep
+
+                    output += line
+
+                if stdout:
+                    if output:
+                        output += os.linesep
+
+                output += self.convert(stdout)
+
                 self.logs_backend.put_log_events(self.logs_group_name, log_stream_name,
                                                  [{'timestamp': unix_time_millis(), "message": output}], None)
 
