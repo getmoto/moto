@@ -32,15 +32,20 @@ def lambda_handler(event, context):
 
 def get_test_zip_file2():
     pfunc = """
+import subprocess
+
+docker_host_ip = subprocess.check_output("/sbin/ip route|awk '/default/ {{ print $3 }}'", shell=True).strip()
+endpoint_url="http://" + {base_url}
+
 def lambda_handler(event, context):
     volume_id = event.get('volume_id')
     print('get volume details for %s' % volume_id)
     import boto3
-    ec2 = boto3.resource('ec2', region_name='us-west-2', endpoint_url="http://{base_url}")
+    ec2 = boto3.resource('ec2', region_name='us-west-2', endpoint_url='http://' + {base_url})
     vol = ec2.Volume(volume_id)
     print('Volume - %s  state=%s, size=%s' % (volume_id, vol.state, vol.size))
     return event
-""".format(base_url="localhost:5000" if settings.TEST_SERVER_MODE else "ec2.us-west-2.amazonaws.com")
+""".format(base_url="docker_host_ip + ':5000'" if settings.TEST_SERVER_MODE else "'ec2.us-west-2.amazonaws.com'")
     return _process_lamda(pfunc)
 
 
