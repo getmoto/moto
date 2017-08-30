@@ -217,8 +217,11 @@ class LambdaFunction(BaseModel):
     def invoke(self, body, request_headers, response_headers):
         payload = dict()
 
+        if body:
+            body = json.loads(body)
+
         # Get the invocation type:
-        res, errored = self._invoke_lambda(code=self.code, event=json.loads(body))
+        res, errored = self._invoke_lambda(code=self.code, event=body)
         if request_headers.get("x-amz-invocation-type") == "RequestResponse":
             encoded = base64.b64encode(res.encode('utf-8'))
             response_headers["x-amz-log-result"] = encoded.decode('utf-8')

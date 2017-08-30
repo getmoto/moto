@@ -73,8 +73,11 @@ def test_invoke_requestresponse_function():
                                  Payload=json.dumps(in_data))
 
     success_result["StatusCode"].should.equal(202)
-    base64.b64decode(success_result["LogResult"]).decode(
-        'utf-8').should.equal(json.dumps(in_data))
+    result_obj = json.loads(
+        base64.b64decode(success_result["LogResult"]).decode('utf-8'))
+
+    result_obj.should.equal(in_data)
+
     json.loads(success_result["Payload"].read().decode(
         'utf-8')).should.equal(in_data)
 
@@ -110,36 +113,37 @@ def test_invoke_event_function():
         'utf-8')).should.equal({})
 
 
-@mock_ec2
-@mock_lambda
-def test_invoke_function_get_ec2_volume():
-    conn = boto3.resource("ec2", "us-west-2")
-    vol = conn.create_volume(Size=99, AvailabilityZone='us-west-2')
-    vol = conn.Volume(vol.id)
+if settings.TEST_SERVER_MODE:
+    @mock_ec2
+    @mock_lambda
+    def test_invoke_function_get_ec2_volume():
+        conn = boto3.resource("ec2", "us-west-2")
+        vol = conn.create_volume(Size=99, AvailabilityZone='us-west-2')
+        vol = conn.Volume(vol.id)
 
-    conn = boto3.client('lambda', 'us-west-2')
-    conn.create_function(
-        FunctionName='testFunction',
-        Runtime='python2.7',
-        Role='test-iam-role',
-        Handler='lambda_function.lambda_handler',
-        Code={
-            'ZipFile': get_test_zip_file2(),
-        },
-        Description='test lambda function',
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
+        conn = boto3.client('lambda', 'us-west-2')
+        conn.create_function(
+            FunctionName='testFunction',
+            Runtime='python2.7',
+            Role='test-iam-role',
+            Handler='lambda_function.lambda_handler',
+            Code={
+                'ZipFile': get_test_zip_file2(),
+            },
+            Description='test lambda function',
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+        )
 
-    in_data = {'volume_id': vol.id}
-    result = conn.invoke(FunctionName='testFunction',
-                         InvocationType='RequestResponse', Payload=json.dumps(in_data))
-    result["StatusCode"].should.equal(202)
-    msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s' % (
-        vol.id, vol.id, vol.state, vol.size, json.dumps(in_data))
-    base64.b64decode(result["LogResult"]).decode('utf-8').should.equal(msg)
-    result['Payload'].read().decode('utf-8').should.equal(msg)
+        in_data = {'volume_id': vol.id}
+        result = conn.invoke(FunctionName='testFunction',
+                             InvocationType='RequestResponse', Payload=json.dumps(in_data))
+        result["StatusCode"].should.equal(202)
+        msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s' % (
+            vol.id, vol.id, vol.state, vol.size, json.dumps(in_data))
+        base64.b64decode(result["LogResult"]).decode('utf-8').should.equal(msg)
+        result['Payload'].read().decode('utf-8').should.equal(msg)
 
 
 @mock_lambda
@@ -437,12 +441,12 @@ def test_list_create_list_get_delete_list():
 @mock_lambda
 def test_invoke_lambda_error():
     lambda_fx = """
-    def lambda_handler(event, context):
-        raise Exception('failsauce')
+def lambda_handler(event, context):
+    raise Exception('failsauce')
     """
     zip_output = io.BytesIO()
     zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
-    zip_file.writestr('lambda_function.zip', lambda_fx)
+    zip_file.writestr('lambda_function.py', lambda_fx)
     zip_file.close()
     zip_output.seek(0)
 
