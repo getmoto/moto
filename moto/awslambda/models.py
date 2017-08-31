@@ -83,8 +83,7 @@ class _DockerDataVolumeContext:
                 tar_bytes = zip2tar(self._lambda_func.code_bytes)
                 container.put_archive('/tmp/data', tar_bytes)
             finally:
-                container.kill()
-                container.remove()
+                container.remove(force=True)
 
         return self
 

@@ -144,9 +144,11 @@ if settings.TEST_SERVER_MODE:
         result = conn.invoke(FunctionName='testFunction',
                              InvocationType='RequestResponse', Payload=json.dumps(in_data))
         result["StatusCode"].should.equal(202)
-        msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s\n' % (
+        msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s' % (
             vol.id, vol.id, vol.state, vol.size, json.dumps(in_data))
-        base64.b64decode(result["LogResult"]).decode('utf-8').should.equal(msg)
+
+        log_result = base64.b64decode(result["LogResult"]).decode('utf-8')
+        log_result.should.equal(msg)
 
         payload = result['Payload'].read().decode('utf-8')
         payload.should.equal(msg)
