@@ -12,6 +12,8 @@ import re
 import zipfile
 import uuid
 import functools
+import tarfile
+import calendar
 import traceback
 import requests.adapters
 
@@ -36,7 +38,64 @@ _stderr_regex = re.compile(r'START|END|REPORT RequestId: .*')
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 
 
+def zip2tar(zip_bytes):
+    with TemporaryDirectory() as td:
+        tarname = os.path.join(td, 'data.tar')
+        timeshift = int((datetime.datetime.now() -
+                     datetime.datetime.utcnow()).total_seconds())
+        with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zipf, \
+                tarfile.TarFile(tarname, 'w') as tarf:
+            for zipinfo in zipf.infolist():
+                tarinfo = tarfile.TarInfo(name=zipinfo.filename)
+                tarinfo.size = zipinfo.file_size
+                tarinfo.mtime = calendar.timegm(zipinfo.date_time) - timeshift
+                infile = zipf.open(zipinfo.filename)
+                tarf.addfile(tarinfo, infile)
+
+        with open(tarname, 'rb') as f:
+            tar_data = f.read()
+            return tar_data
+
+
+class _DockerDataVolumeContext:
+    def __init__(self, lambda_func):
+        self._lambda_func = lambda_func
+        self._data_vol = None
+        self._own_vol = True
+
+    @property
+    def name(self):
+        return self._data_vol.name
+
+    def __enter__(self):
+        # See if volume already exists
+        for vol in self._lambda_func.docker_client.volumes.list():
+            if vol.name == self._lambda_func.code_sha_256:
+                self._data_vol = vol
+                self._own_vol = False
+                break
+
+        # if not, self._data_vol it
+        if not self._data_vol:
+            self._data_vol = self._lambda_func.docker_client.volumes.create(self._lambda_func.code_sha_256)
+            container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes={self.name: '/tmp/data'}, detach=True)
+            try:
+                tar_bytes = zip2tar(self._lambda_func.code_bytes)
+                container.put_archive('/tmp/data', tar_bytes)
+            finally:
+                container.kill()
+                container.remove()
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._own_vol and self._data_vol:
+            self._data_vol.remove()
+
+
 class LambdaFunction(BaseModel):
+    _data_volume = None
+
     def __init__(self, spec, region, validate_s3=True):
         # required
         self.region = region
@@ -47,12 +106,12 @@ class LambdaFunction(BaseModel):
         self.run_time = spec['Runtime']
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get('Environment', {}).get('Variables', {})
-        self._docker_client = docker.from_env()
+        self.docker_client = docker.from_env()
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
         if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
-            _orig_get_adapter = self._docker_client.api.get_adapter
+            _orig_get_adapter = self.docker_client.api.get_adapter
 
             def replace_adapter_send(*args, **kwargs):
                 adapter = _orig_get_adapter(*args, **kwargs)
@@ -60,7 +119,7 @@ class LambdaFunction(BaseModel):
                 if isinstance(adapter, requests.adapters.HTTPAdapter):
                     adapter.send = functools.partial(_orig_adapter_send, adapter)
                 return adapter
-            self._docker_client.api.get_adapter = replace_adapter_send
+            self.docker_client.api.get_adapter = replace_adapter_send
 
         # optional
         self.description = spec.get('Description', '')
@@ -79,6 +138,7 @@ class LambdaFunction(BaseModel):
         self.version = '$LATEST'
         self.last_modified = datetime.datetime.utcnow().strftime(
             '%Y-%m-%d %H:%M:%S')
+
         if 'ZipFile' in self.code:
             # more hackery to handle unicode/bytes/str in python3 and python2 -
             # argh!
@@ -88,7 +148,7 @@ class LambdaFunction(BaseModel):
             except Exception:
                 to_unzip_code = base64.b64decode(self.code['ZipFile'])
 
-            self.code = to_unzip_code
+            self.code = self.code_bytes = to_unzip_code
             self.code_size = len(to_unzip_code)
             self.code_sha_256 = hashlib.sha256(to_unzip_code).hexdigest()
         else:
@@ -109,8 +169,10 @@ class LambdaFunction(BaseModel):
                         "InvalidParameterValueException",
                         "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.")
             if key:
+                self.code_bytes = key.value
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+
         self.function_arn = 'arn:aws:lambda:{}:123456789012:function:{}'.format(
             self.region, self.function_name)
 
@@ -180,64 +242,58 @@ class LambdaFunction(BaseModel):
         if context is None:
             context = {}
 
-        with TemporaryDirectory() as td, \
-                zipfile.ZipFile(io.BytesIO(self.code)) as zf:
-            zf.extractall(td)
+        try:
+            # TODO: I believe we can keep the container running and feed events as needed
+            #       also need to hook it up to the other services so it can make kws/s3 etc calls
+            #  Should get invoke_id /RequestId from invovation
+            env_vars = {
+                "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
+                "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
+                "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": self.memory_size,
+                "AWS_LAMBDA_FUNCTION_VERSION": self.version,
+                "AWS_REGION": self.region,
+            }
 
-            if td.startswith("/var/folders/"):
-                td = td.replace("/var/folders/", "/private/var/folders/")
+            env_vars.update(self.environment_vars)
 
-            try:
-                # TODO: I believe we can keep the container running and feed events as needed
-                #       also need to hook it up to the other services so it can make kws/s3 etc calls
-                #  Should get invoke_id /RequestId from invovation
-                env_vars = {
-                    "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
-                    "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
-                    "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": self.memory_size,
-                    "AWS_LAMBDA_FUNCTION_VERSION": self.version,
-                    "AWS_REGION": self.region,
-                }
-
-                env_vars.update(self.environment_vars)
-
-                container = output = exit_code = None
+            container = output = exit_code = None
+            with _DockerDataVolumeContext(self) as data_vol:
                 try:
-                    container = self._docker_client.containers.run(
+                    container = self.docker_client.containers.run(
                         "lambci/lambda:{}".format(self.run_time),
                         [self.handler, json.dumps(event)], stdout=True, stderr=True, remove=False,
                         mem_limit="{}m".format(self.memory_size), network_mode="host",
-                        volumes=["{}:/var/task".format(td)], environment=env_vars, detach=True)
+                        volumes=["{}:/var/task".format(data_vol.name)], environment=env_vars, detach=True)
                 finally:
                     if container:
                         exit_code = container.wait()
                         output = container.logs()
                         container.remove()
 
-                output = output.decode('utf-8')
+            output = output.decode('utf-8')
 
-                # Send output to "logs" backend
-                invoke_id = uuid.uuid4().hex
-                log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
-                    date=datetime.datetime.utcnow(), version=self.version, invoke_id=invoke_id
-                )
+            # Send output to "logs" backend
+            invoke_id = uuid.uuid4().hex
+            log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
+                date=datetime.datetime.utcnow(), version=self.version, invoke_id=invoke_id
+            )
 
-                self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
+            self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
 
-                log_events = [{'timestamp': unix_time_millis(), "message": line}
-                              for line in output.splitlines()]
-                self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, log_events, None)
+            log_events = [{'timestamp': unix_time_millis(), "message": line}
+                          for line in output.splitlines()]
+            self.logs_backend.put_log_events(self.logs_group_name, log_stream_name, log_events, None)
 
-                if exit_code != 0:
-                    raise Exception(
-                        'lambda invoke failed output: {}'.format(output))
+            if exit_code != 0:
+                raise Exception(
+                    'lambda invoke failed output: {}'.format(output))
 
-                # strip out RequestId lines
-                output = os.linesep.join([line for line in self.convert(output).splitlines() if not _stderr_regex.match(line)])
-                return output, False
-            except BaseException as e:
-                traceback.print_exc()
-                return "error running lambda: {}".format(e), True
+            # strip out RequestId lines
+            output = os.linesep.join([line for line in self.convert(output).splitlines() if not _stderr_regex.match(line)])
+            return output, False
+        except BaseException as e:
+            traceback.print_exc()
+            return "error running lambda: {}".format(e), True
 
     def invoke(self, body, request_headers, response_headers):
         payload = dict()
