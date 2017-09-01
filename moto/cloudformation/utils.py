@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import uuid
 import six
 import random
+import yaml
 
 
 def generate_stack_id(stack_name):
@@ -13,3 +14,22 @@ def random_suffix():
     size = 12
     chars = list(range(10)) + ['A-Z']
     return ''.join(six.text_type(random.choice(chars)) for x in range(size))
+
+
+def yaml_tag_constructor(loader, tag, node):
+    """convert shorthand intrinsic function to full name
+    """
+    def _f(loader, tag, node):
+        if tag == '!GetAtt':
+            return node.value.split('.')
+        elif type(node) == yaml.SequenceNode:
+            return loader.construct_sequence(node)
+        else:
+            return node.value
+
+    if tag == '!Ref':
+        key = 'Ref'
+    else:
+        key = 'Fn::{}'.format(tag[1:])
+
+    return {key: _f(loader, tag, node)}

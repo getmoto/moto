@@ -39,6 +39,68 @@ dummy_template = {
     }
 }
 
+
+dummy_template_yaml = """---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack1 with yaml template
+Resources:
+  EC2Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-d3adb33f
+      KeyName: dummy
+      InstanceType: t2.micro
+      Tags:
+        - Key: Description
+          Value: Test tag
+        - Key: Name
+          Value: Name tag for tests
+"""
+
+
+dummy_template_yaml_with_short_form_func = """---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack1 with yaml template
+Resources:
+  EC2Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-d3adb33f
+      KeyName: !Join [ ":", [ du, m, my ] ]
+      InstanceType: t2.micro
+      Tags:
+        - Key: Description
+          Value: Test tag
+        - Key: Name
+          Value: Name tag for tests
+"""
+
+
+dummy_template_yaml_with_ref = """---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack1 with yaml template
+Parameters:
+  TagDescription:
+    Type: String
+  TagName:
+    Type: String
+
+Resources:
+  EC2Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-d3adb33f
+      KeyName: dummy
+      InstanceType: t2.micro
+      Tags:
+        - Key: Description
+          Value:
+            Ref: TagDescription
+        - Key: Name
+          Value: !Ref TagName
+"""
+
+
 dummy_update_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Parameters": {
@@ -110,6 +172,46 @@ def test_boto3_create_stack():
     cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
         dummy_template)
 
+@mock_cloudformation
+def test_boto3_create_stack_with_yaml():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_yaml,
+    )
+
+    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
+        dummy_template_yaml)
+
+
+@mock_cloudformation
+def test_boto3_create_stack_with_short_form_func_yaml():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_yaml_with_short_form_func,
+    )
+
+    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
+        dummy_template_yaml_with_short_form_func)
+
+
+@mock_cloudformation
+def test_boto3_create_stack_with_ref_yaml():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    params = [
+        {'ParameterKey': 'TagDescription', 'ParameterValue': 'desc_ref'},
+        {'ParameterKey': 'TagName', 'ParameterValue': 'name_ref'},
+    ]
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=params
+    )
+
+    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
+        dummy_template_yaml_with_ref)
+
 
 @mock_cloudformation
 def test_creating_stacks_across_regions():
@@ -150,7 +252,6 @@ def test_create_stack_with_role_arn():
         TemplateBody=dummy_template_json,
         RoleARN='arn:aws:iam::123456789012:role/moto',
     )
-
     stack = list(cf.stacks.all())[0]
     stack.role_arn.should.equal('arn:aws:iam::123456789012:role/moto')
 
