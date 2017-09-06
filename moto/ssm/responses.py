@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 import json
 
+from botocore.exceptions import ClientError
+
 from moto.core.responses import BaseResponse
 from .models import ssm_backends
 
@@ -62,6 +64,26 @@ class SimpleSystemManagerResponse(BaseResponse):
             if name not in param_names:
                 response['InvalidParameters'].append(name)
         return json.dumps(response)
+
+    def get_parameter(self):
+        name = self._get_param('Name')
+        with_decryption = self._get_param('WithDecryption')
+
+        try:
+            parameter = self.ssm_backend.get_parameter(name, with_decryption)
+            return json.dumps(dict(
+                Parameter=parameter.response_object(with_decryption)
+            ))
+        except KeyError as key_error:
+            raise ClientError(
+                error_response=dict(
+                    Error=dict(
+                        Code='ParameterNotFound',
+                        Message='Parameter {name} not found'.format(name=key_error.args[0])
+                    )
+                ),
+                operation_name='GetParameter'
+            )
 
     def describe_parameters(self):
         page_size = 10

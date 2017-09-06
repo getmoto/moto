@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import boto3
 import sure   # noqa
+from botocore.exceptions import ClientError
 
 from moto import mock_ssm
 
@@ -200,7 +201,7 @@ def test_describe_parameters_filter_keyid():
 
 
 @mock_ssm
-def test_get_parameter_invalid():
+def test_get_parameters_invalid():
     client = client = boto3.client('ssm', region_name='us-east-1')
     response = client.get_parameters(
         Names=[
@@ -212,6 +213,101 @@ def test_get_parameter_invalid():
     len(response['InvalidParameters']).should.equal(1)
     response['InvalidParameters'][0].should.equal('invalid')
 
+@mock_ssm
+def test_get_parameter_invalid():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    try:
+        client.get_parameter(
+            Name='test',
+            WithDecryption=True
+        )
+        assert False
+    except ClientError as client_error:
+        str(client_error).should.equal(
+            'An error occurred (ParameterNotFound) when calling '
+            'the GetParameter operation: Parameter test not found'
+        )
+
+@mock_ssm
+def test_get_parameter_String():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.put_parameter(
+        Name='test',
+        Description='A test parameter',
+        Value='value',
+        Type='String')
+
+    response = client.get_parameter(
+        Name='test',
+        WithDecryption=False
+    )
+
+    response['Parameter'].should.equal(dict(
+        Name='test',
+        Type='String',
+        Value='value'
+    ))
+
+@mock_ssm
+def test_get_parameter_SecureString_withDecryption():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.put_parameter(
+        Name='test',
+        Description='A test parameter',
+        Value='value',
+        Type='SecureString')
+
+    response = client.get_parameter(
+        Name='test',
+        WithDecryption=True
+    )
+
+    response['Parameter'].should.equal(dict(
+        Name='test',
+        Type='SecureString',
+        Value='value'
+    ))
+
+@mock_ssm
+def test_get_parameter_SecureString_noDecryption():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.put_parameter(
+        Name='test',
+        Description='A test parameter',
+        Value='value',
+        Type='SecureString')
+
+    response = client.get_parameter(
+        Name='test',
+        WithDecryption=False
+    )
+
+    response['Parameter']['Value'].should_not.equal('value')
+
+@mock_ssm
+def test_get_parameter_StringList():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.put_parameter(
+        Name='test',
+        Description='A test parameter',
+        Value='value1,value2',
+        Type='StringList')
+
+    response = client.get_parameter(
+        Name='test',
+        WithDecryption=True
+    )
+
+    response['Parameter'].should.equal(dict(
+        Name='test',
+        Type='StringList',
+        Value='value1,value2'
+    ))
 
 @mock_ssm
 def test_put_parameter_secure_default_kms():
