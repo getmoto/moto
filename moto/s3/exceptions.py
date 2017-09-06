@@ -91,3 +91,23 @@ class EntityTooSmall(S3ClientError):
             "EntityTooSmall",
             "Your proposed upload is smaller than the minimum allowed object size.",
             *args, **kwargs)
+
+
+class InvalidRequest(S3ClientError):
+    code = 400
+
+    def __init__(self, method, *args, **kwargs):
+        super(InvalidRequest, self).__init__(
+            "InvalidRequest",
+            "Found unsupported HTTP method in CORS config. Unsupported method is {}".format(method),
+            *args, **kwargs)
+
+
+class MalformedXML(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(MalformedXML, self).__init__(
+            "MalformedXML",
+            "The XML you provided was not well-formed or did not validate against our published schema",
+            *args, **kwargs)
