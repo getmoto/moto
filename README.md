@@ -78,6 +78,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |     - Security Groups |                  | core endpoints done               |
 |     - Tags            |                  | all  endpoints done               |
 |------------------------------------------------------------------------------|
+| ECR                   | @mock_ecr        | basic endpoints done              |
+|------------------------------------------------------------------------------|
 | ECS                   | @mock_ecs        | basic endpoints done              |
 |------------------------------------------------------------------------------|
 | ELB                   | @mock_elb        | core endpoints done               |
@@ -155,9 +157,9 @@ moto 1.0.X mock docorators are defined for boto3 and do not work with boto2. Use
 
 Using moto with boto2
 ```python
-from moto import mock_ec2_deprecated 
+from moto import mock_ec2_deprecated
 import boto
- 
+
 @mock_ec2_deprecated
 def test_something_with_ec2():
     ec2_conn = boto.ec2.connect_to_region('us-east-1')
