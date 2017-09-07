@@ -10,11 +10,11 @@ install_requires = [
     "requests>=2.5",
     "xmltodict",
     "dicttoxml",
-    "six",
+    "six>1.9",
     "werkzeug",
     "pyaml",
     "pytz",
-    "python-dateutil",
+    "python-dateutil<3.0.0,>=2.1",
     "mock",
 ]
 
