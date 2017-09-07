@@ -478,6 +478,23 @@ class IamResponse(BaseResponse):
         template = self.response_template(CREDENTIAL_REPORT)
         return template.render(report=report)
 
+    def list_account_aliases(self):
+        aliases = iam_backend.list_account_aliases()
+        template = self.response_template(LIST_ACCOUNT_ALIASES_TEMPLATE)
+        return template.render(aliases=aliases)
+
+    def create_account_alias(self):
+        alias = self._get_param('AccountAlias')
+        iam_backend.create_account_alias(alias)
+        template = self.response_template(CREATE_ACCOUNT_ALIAS_TEMPLATE)
+        return template.render()
+
+    def delete_account_alias(self):
+        alias = self._get_param('AccountAlias')
+        iam_backend.delete_account_alias(alias)
+        template = self.response_template(DELETE_ACCOUNT_ALIAS_TEMPLATE)
+        return template.render()
+
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
   <ResponseMetadata>
@@ -1192,3 +1209,32 @@ LIST_MFA_DEVICES_TEMPLATE = """<ListMFADevicesResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </ListMFADevicesResponse>"""
+
+
+LIST_ACCOUNT_ALIASES_TEMPLATE = """<ListAccountAliasesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<ListAccountAliasesResult>
+  <IsTruncated>false</IsTruncated>
+  <AccountAliases>
+    {% for alias in aliases %}
+    <member>{{ alias }}</member>
+    {% endfor %}
+  </AccountAliases>
+</ListAccountAliasesResult>
+<ResponseMetadata>
+  <RequestId>c5a076e9-f1b0-11df-8fbe-45274EXAMPLE</RequestId>
+</ResponseMetadata>
+</ListAccountAliasesResponse>"""
+
+
+CREATE_ACCOUNT_ALIAS_TEMPLATE = """<CreateAccountAliasResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>36b5db08-f1b0-11df-8fbe-45274EXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateAccountAliasResponse>"""
+
+
+DELETE_ACCOUNT_ALIAS_TEMPLATE = """<DeleteAccountAliasResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteAccountAliasResponse>"""
