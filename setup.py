@@ -10,11 +10,11 @@ install_requires = [
     "requests>=2.5",
     "xmltodict",
     "dicttoxml",
-    "six",
+    "six>1.9",
     "werkzeug",
     "pyaml",
     "pytz",
-    "python-dateutil",
+    "python-dateutil<3.0.0,>=2.1",
     "mock",
 ]
 
@@ -24,7 +24,7 @@ extras_require = {
 
 setup(
     name='moto',
-    version='1.1.1',
+    version='1.1.2',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',

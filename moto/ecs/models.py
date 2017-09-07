@@ -114,7 +114,7 @@ class TaskDefinition(BaseObject):
         family = properties.get(
             'Family', 'task-definition-{0}'.format(int(random() * 10 ** 6)))
         container_definitions = properties['ContainerDefinitions']
-        volumes = properties['Volumes']
+        volumes = properties.get('Volumes')
 
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.register_task_definition(
@@ -127,7 +127,7 @@ class TaskDefinition(BaseObject):
         family = properties.get(
             'Family', 'task-definition-{0}'.format(int(random() * 10 ** 6)))
         container_definitions = properties['ContainerDefinitions']
-        volumes = properties['Volumes']
+        volumes = properties.get('Volumes')
         if (original_resource.family != family or
                 original_resource.container_definitions != container_definitions or
                 original_resource.volumes != volumes):

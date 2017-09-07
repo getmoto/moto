@@ -42,7 +42,7 @@ class SubnetNotFoundError(ELBClientError):
 class TargetGroupNotFoundError(ELBClientError):
 
     def __init__(self):
-        super(TooManyTagsError, self).__init__(
+        super(TargetGroupNotFoundError, self).__init__(
             "TargetGroupNotFound",
             "The specified target group does not exist.")
 

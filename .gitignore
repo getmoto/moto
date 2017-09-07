@@ -12,3 +12,4 @@ build/
 *.swp
 .DS_Store
 python_env
+.ropeproject/
