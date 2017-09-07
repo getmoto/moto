@@ -72,7 +72,7 @@ class GlacierResponse(_TemplateEnvironmentMixin):
 
     def _vault_archive_response(self, request, full_url, headers):
         method = request.method
-        body = request.body
+        body = request.data
         parsed_url = urlparse(full_url)
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         vault_name = full_url.split("/")[-2]
@@ -110,7 +110,7 @@ class GlacierResponse(_TemplateEnvironmentMixin):
 
     def _vault_jobs_response(self, request, full_url, headers):
         method = request.method
-        body = request.body
+        body = request.data
         account_id = full_url.split("/")[1]
         vault_name = full_url.split("/")[-2]
 
