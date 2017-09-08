@@ -24,7 +24,7 @@ extras_require = {
 
 setup(
     name='moto',
-    version='1.1.2',
+    version='1.1.3',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',
