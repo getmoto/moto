@@ -255,17 +255,15 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <monitoring>
             <state>enabled</state>
           </monitoring>
-          {% if instance.nics %}
-            {% if instance.nics[0].subnet %}
-              <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
-              <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
-            {% endif %}
-            <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
-            {% if instance.public_ip %}
-                <ipAddress>{{ instance.public_ip }}</ipAddress>
-            {% endif %}
-          {% else %}
+          {% if instance.subnet_id %}
             <subnetId>{{ instance.subnet_id }}</subnetId>
+          {% endif %}
+          {% if instance.vpc_id %}
+            <vpcId>{{ instance.vpc_id }}</vpcId>
+          {% endif %}
+          <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
+          {% if instance.nics[0].public_ip %}
+              <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
           {% endif %}
           <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
           <groupSet>
@@ -396,26 +394,26 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <monitoring>
                       <state>disabled</state>
                     </monitoring>
-                    {% if instance.nics %}
-                      {% if instance.nics[0].subnet %}
-                        <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
-                        <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
-                      {% endif %}
-                      <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
-                      {% if instance.nics[0].public_ip %}
-                          <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
-                      {% endif %}
+                    {% if instance.subnet_id %}
+                      <subnetId>{{ instance.subnet_id }}</subnetId>
+                    {% endif %}
+                    {% if instance.vpc_id %}
+                      <vpcId>{{ instance.vpc_id }}</vpcId>
+                    {% endif %}
+                    <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
+                    {% if instance.nics[0].public_ip %}
+                        <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
                     {% endif %}
                     <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
                     <groupSet>
                       {% for group in instance.dynamic_group_list %}
                       <item>
-              {% if group.id %}
-              <groupId>{{ group.id }}</groupId>
-              <groupName>{{ group.name }}</groupName>
-              {% else %}
-              <groupId>{{ group }}</groupId>
-              {% endif %}
+                      {% if group.id %}
+                      <groupId>{{ group.id }}</groupId>
+                      <groupName>{{ group.name }}</groupName>
+                      {% else %}
+                      <groupId>{{ group }}</groupId>
+                      {% endif %}
                       </item>
                       {% endfor %}
                     </groupSet>

@@ -378,11 +378,15 @@ def test_get_instances_filtering_by_vpc_id():
     reservations1.should.have.length_of(1)
     reservations1[0].instances.should.have.length_of(1)
     reservations1[0].instances[0].id.should.equal(instance1.id)
+    reservations1[0].instances[0].vpc_id.should.equal(vpc1.id)
+    reservations1[0].instances[0].subnet_id.should.equal(subnet1.id)
 
     reservations2 = conn.get_all_instances(filters={'vpc-id': vpc2.id})
     reservations2.should.have.length_of(1)
     reservations2[0].instances.should.have.length_of(1)
     reservations2[0].instances[0].id.should.equal(instance2.id)
+    reservations2[0].instances[0].vpc_id.should.equal(vpc2.id)
+    reservations2[0].instances[0].subnet_id.should.equal(subnet2.id)
 
 
 @mock_ec2_deprecated
