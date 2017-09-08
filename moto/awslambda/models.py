@@ -46,6 +46,9 @@ def zip2tar(zip_bytes):
         with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zipf, \
                 tarfile.TarFile(tarname, 'w') as tarf:
             for zipinfo in zipf.infolist():
+                if zipinfo.is_dir():
+                    continue
+
                 tarinfo = tarfile.TarInfo(name=zipinfo.filename)
                 tarinfo.size = zipinfo.file_size
                 tarinfo.mtime = calendar.timegm(zipinfo.date_time) - timeshift
