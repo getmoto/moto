@@ -467,7 +467,7 @@ class LambdaBackend(BaseBackend):
             ]
 
         }
-        self._functions[function_name].invoke(event, {}, {})
+        self._functions[function_name].invoke(json.dumps(event), {}, {})
         pass
 
 
