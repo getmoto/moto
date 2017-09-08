@@ -257,9 +257,13 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           </monitoring>
           {% if instance.subnet_id %}
             <subnetId>{{ instance.subnet_id }}</subnetId>
+          {% elif instance.nics[0].subnet.id %}
+            <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
           {% endif %}
           {% if instance.vpc_id %}
             <vpcId>{{ instance.vpc_id }}</vpcId>
+          {% elif instance.nics[0].subnet.vpc_id %}
+            <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
           {% endif %}
           <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
           {% if instance.nics[0].public_ip %}
@@ -396,9 +400,13 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     </monitoring>
                     {% if instance.subnet_id %}
                       <subnetId>{{ instance.subnet_id }}</subnetId>
+                    {% elif instance.nics[0].subnet.id %}
+                      <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
                     {% endif %}
                     {% if instance.vpc_id %}
                       <vpcId>{{ instance.vpc_id }}</vpcId>
+                    {% elif instance.nics[0].subnet.vpc_id %}
+                      <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
                     {% endif %}
                     <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
                     {% if instance.nics[0].public_ip %}

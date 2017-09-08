@@ -880,7 +880,6 @@ def test_run_instance_with_nic_autocreated():
     eni.private_ip_addresses.should.have.length_of(1)
     eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
 
-
 @mock_ec2_deprecated
 def test_run_instance_with_nic_preexisting():
     conn = boto.connect_vpc('the_key', 'the_secret')
