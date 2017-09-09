@@ -333,7 +333,6 @@ class ResponseObject(_TemplateEnvironmentMixin):
             start_after=None if continuation_token else start_after
         )
 
-
     def _get_results_from_token(self, result_keys, token):
         continuation_index = 0
         for key in result_keys:
