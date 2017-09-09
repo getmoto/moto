@@ -276,8 +276,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if prefix and isinstance(prefix, six.binary_type):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get('delimiter', [None])[0]
+        marker = querystring.get('marker', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(
             bucket, prefix, delimiter)
+
+        if marker:
+            result_keys = self._get_results_from_token(result_keys, marker)
+
         template = self.response_template(S3_BUCKET_GET_RESPONSE)
         return 200, {}, template.render(
             bucket=bucket,
@@ -305,12 +310,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         if continuation_token or start_after:
             limit = continuation_token or start_after
-            continuation_index = 0
-            for key in result_keys:
-                if key.name > limit:
-                    break
-                continuation_index += 1
-            result_keys = result_keys[continuation_index:]
+            result_keys = self._get_results_from_token(result_keys, limit)
 
         if len(result_keys) > max_keys:
             is_truncated = 'true'
@@ -332,6 +332,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
             next_continuation_token=next_continuation_token,
             start_after=None if continuation_token else start_after
         )
+
+
+    def _get_results_from_token(self, result_keys, token):
+        continuation_index = 0
+        for key in result_keys:
+            if key.name > token:
+                break
+            continuation_index += 1
+        return result_keys[continuation_index:]
 
     def _bucket_response_put(self, request, body, region_name, bucket_name, querystring, headers):
         if not request.headers.get('Content-Length'):
