@@ -171,6 +171,12 @@ class Item(BaseModel):
                         decimal.Decimal(existing.value) +
                         decimal.Decimal(new_value)
                     )})
+                elif set(update_action['Value'].keys()) == set(['SS']):
+                    existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
+                    new_set = set(existing.value).union(set(new_value))
+                    self.attrs[attribute_name] = DynamoType({
+                        "SS": list(new_set)
+                    })
                 else:
                     # TODO: implement other data types
                     raise NotImplementedError(
