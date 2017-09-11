@@ -144,6 +144,16 @@ class DynamoHandler(BaseResponse):
     def put_item(self):
         name = self.body['TableName']
         item = self.body['Item']
+
+        res = re.search('\"\"', json.dumps(item))
+        if res:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return 400, {'server': 'amazon.com'}, dynamo_json_dump(
+                {'__type': er,
+                'message': ('One or more parameter values were invalid: '
+                'An AttributeValue may not contain an empty string')
+                })
+
         overwrite = 'Expected' not in self.body
         if not overwrite:
             expected = self.body['Expected']

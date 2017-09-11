@@ -149,3 +149,33 @@ def test_list_not_found_table_tags():
         conn.list_tags_of_resource(ResourceArn=arn)
     except ClientError as exception:
         assert exception.response['Error']['Code'] == "ResourceNotFoundException"
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_item_add_empty_string_exception():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+    session = boto3.Session()
+    dynamodb = session.resource('dynamodb',
+                                region_name='us-west-2',
+                                aws_access_key_id="ak",
+                                aws_secret_access_key="sk")
+    table = dynamodb.Table('TestTable')
+    try:
+        response = table.put_item(Item={
+            'forum_name': 'LOLCat Forum',
+            'subject': 'Check this out!',
+            'Body': 'http://url_to_lolcat.gif',
+            'SentBy': "",
+            'ReceivedTime': '12/9/2011 11:36:03 PM',
+        })
+    except ClientError as exception:
+        assert exception.response['Error']['Code'] == "ValidationException"
