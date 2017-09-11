@@ -276,6 +276,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if prefix and isinstance(prefix, six.binary_type):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get('delimiter', [None])[0]
+        max_keys = int(querystring.get('max-keys', [1000])[0])
         marker = querystring.get('marker', [None])[0]
         result_keys, result_folders = self.backend.prefix_query(
             bucket, prefix, delimiter)
@@ -283,13 +284,17 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if marker:
             result_keys = self._get_results_from_token(result_keys, marker)
 
+        result_keys, is_truncated, _ = self._truncate_result(result_keys, max_keys)
+
         template = self.response_template(S3_BUCKET_GET_RESPONSE)
         return 200, {}, template.render(
             bucket=bucket,
             prefix=prefix,
             delimiter=delimiter,
             result_keys=result_keys,
-            result_folders=result_folders
+            result_folders=result_folders,
+            is_truncated=is_truncated,
+            max_keys=max_keys
         )
 
     def _handle_list_objects_v2(self, bucket_name, querystring):
@@ -312,13 +317,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             limit = continuation_token or start_after
             result_keys = self._get_results_from_token(result_keys, limit)
 
-        if len(result_keys) > max_keys:
-            is_truncated = 'true'
-            result_keys = result_keys[:max_keys]
-            next_continuation_token = result_keys[-1].name
-        else:
-            is_truncated = 'false'
-            next_continuation_token = None
+        result_keys, is_truncated, \
+            next_continuation_token = self._truncate_result(result_keys, max_keys)
 
         return template.render(
             bucket=bucket,
@@ -340,6 +340,16 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 break
             continuation_index += 1
         return result_keys[continuation_index:]
+
+    def _truncate_result(self, result_keys, max_keys):
+        if len(result_keys) > max_keys:
+            is_truncated = 'true'
+            result_keys = result_keys[:max_keys]
+            next_continuation_token = result_keys[-1].name
+        else:
+            is_truncated = 'false'
+            next_continuation_token = None
+        return result_keys, is_truncated, next_continuation_token
 
     def _bucket_response_put(self, request, body, region_name, bucket_name, querystring, headers):
         if not request.headers.get('Content-Length'):
@@ -841,9 +851,9 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Name>{{ bucket.name }}</Name>
   <Prefix>{{ prefix }}</Prefix>
-  <MaxKeys>1000</MaxKeys>
+  <MaxKeys>{{ max_keys }}</MaxKeys>
   <Delimiter>{{ delimiter }}</Delimiter>
-  <IsTruncated>false</IsTruncated>
+  <IsTruncated>{{ is_truncated }}</IsTruncated>
   {% for key in result_keys %}
     <Contents>
       <Key>{{ key.name }}</Key>
