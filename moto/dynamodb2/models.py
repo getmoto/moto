@@ -118,10 +118,11 @@ class Item(BaseModel):
     def update(self, update_expression, expression_attribute_names, expression_attribute_values):
         # Update subexpressions are identifiable by the operator keyword, so split on that and
         # get rid of the empty leading string.
-        parts = [p for p in re.split(r'\b(SET|REMOVE|ADD|DELETE)\b', update_expression) if p]
+        parts = [p for p in re.split(r'\b(SET|REMOVE|ADD|DELETE)\b', update_expression, flags=re.I) if p]
         # make sure that we correctly found only operator/value pairs
         assert len(parts) % 2 == 0, "Mismatched operators and values in update expression: '{}'".format(update_expression)
         for action, valstr in zip(parts[:-1:2], parts[1::2]):
+            action = action.upper()
             values = valstr.split(',')
             for value in values:
                 # A Real value
