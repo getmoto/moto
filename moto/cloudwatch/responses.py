@@ -1,5 +1,6 @@
 from moto.core.responses import BaseResponse
 from .models import cloudwatch_backends
+import datetime
 
 
 class CloudWatchResponse(BaseResponse):
@@ -21,14 +22,21 @@ class CloudWatchResponse(BaseResponse):
             "InsufficientDataActions.member")
         unit = self._get_param('Unit')
         cloudwatch_backend = cloudwatch_backends[self.region]
-        alarm = cloudwatch_backend.put_metric_alarm(name, namespace, metric_name,
-                                                    comparison_operator,
-                                                    evaluation_periods, period,
-                                                    threshold, statistic,
-                                                    description, dimensions,
-                                                    alarm_actions, ok_actions,
-                                                    insufficient_data_actions,
-                                                    unit)
+        alarm = cloudwatch_backend.put_metric_alarm(
+            name,
+            namespace,
+            metric_name,
+            comparison_operator,
+            evaluation_periods,
+            period,
+            threshold,
+            statistic,
+            description,
+            dimensions,
+            alarm_actions,
+            ok_actions,
+            insufficient_data_actions,
+            unit)
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
 
@@ -63,6 +71,9 @@ class CloudWatchResponse(BaseResponse):
         return template.render()
 
     def put_metric_data(self):
+        print(self.querystring)
+        namespace = self._get_param('Namespace')
+        '''
         namespace = self._get_param('Namespace')
         metric_data = []
         metric_index = 1
@@ -89,6 +100,8 @@ class CloudWatchResponse(BaseResponse):
                 dimension_index += 1
             metric_data.append([metric_name, value, dimensions])
             metric_index += 1
+            '''
+        metric_data = testdata_fixture()
         cloudwatch_backend = cloudwatch_backends[self.region]
         cloudwatch_backend.put_metric_data(namespace, metric_data)
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
@@ -99,6 +112,35 @@ class CloudWatchResponse(BaseResponse):
         metrics = cloudwatch_backend.get_all_metrics()
         template = self.response_template(LIST_METRICS_TEMPLATE)
         return template.render(metrics=metrics)
+
+
+def testdata_fixture():
+    test_data = [
+        {
+            'MetricName': 'test_metric_1',
+            'Dimensions': [
+                {
+                    'Name': 'test_dimension_1',
+                    'Value': 'test_val_1'
+                },
+                {
+                    'Name': 'test_dimension_2',
+                    'Value': 'test_val_2'
+                },
+            ],
+            'StatisticValues': {
+                'SampleCount': 20,
+                'Sum': 40,
+                'Minimum': 60,
+                'Maximum': 80
+            },
+            'Timestamp': datetime.datetime(2015, 1, 1),
+            'Value': 20,
+            'Unit': 'Seconds',
+            'StorageResolution': 123,
+        },
+    ]
+    return test_data
 
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
