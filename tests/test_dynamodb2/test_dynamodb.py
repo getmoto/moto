@@ -164,7 +164,7 @@ def test_item_add_empty_string_exception():
                       AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
                       ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
 
-    try:
+    with assert_raises(ClientError) as ex:
         conn.put_item(
             TableName=name,
             Item={
@@ -176,6 +176,8 @@ def test_item_add_empty_string_exception():
             }
         )
 
-    except ClientError as exception:
-        exception.response['Error']['Code']
-        assert exception.response['Error']['Code'] == "ValidationException"
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal(
+        'One or more parameter values were invalid: An AttributeValue may not contain an empty string'
+    )
