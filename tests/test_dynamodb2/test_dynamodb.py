@@ -149,3 +149,35 @@ def test_list_not_found_table_tags():
         conn.list_tags_of_resource(ResourceArn=arn)
     except ClientError as exception:
         assert exception.response['Error']['Code'] == "ResourceNotFoundException"
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_item_add_empty_string_exception():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+
+    with assert_raises(ClientError) as ex:
+        conn.put_item(
+            TableName=name,
+            Item={
+                'forum_name': { 'S': 'LOLCat Forum' },
+                'subject': { 'S': 'Check this out!' },
+                'Body': { 'S': 'http://url_to_lolcat.gif'},
+                'SentBy': { 'S': "" },
+                'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
+            }
+        )
+
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal(
+        'One or more parameter values were invalid: An AttributeValue may not contain an empty string'
+    )
