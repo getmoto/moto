@@ -163,19 +163,19 @@ def test_item_add_empty_string_exception():
                       KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
                       AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
                       ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
-    session = boto3.Session()
-    dynamodb = session.resource('dynamodb',
-                                region_name='us-west-2',
-                                aws_access_key_id="ak",
-                                aws_secret_access_key="sk")
-    table = dynamodb.Table('TestTable')
+
     try:
-        response = table.put_item(Item={
-            'forum_name': 'LOLCat Forum',
-            'subject': 'Check this out!',
-            'Body': 'http://url_to_lolcat.gif',
-            'SentBy': "",
-            'ReceivedTime': '12/9/2011 11:36:03 PM',
-        })
+        conn.put_item(
+            TableName=name,
+            Item={
+                'forum_name': { 'S': 'LOLCat Forum' },
+                'subject': { 'S': 'Check this out!' },
+                'Body': { 'S': 'http://url_to_lolcat.gif'},
+                'SentBy': { 'S': "" },
+                'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
+            }
+        )
+
     except ClientError as exception:
+        exception.response['Error']['Code']
         assert exception.response['Error']['Code'] == "ValidationException"

@@ -152,7 +152,7 @@ class DynamoHandler(BaseResponse):
                 {'server': 'amazon.com'},
                 dynamo_json_dump({'__type': er,
                                 'message': ('One or more parameter values were '
-                                            'invalid:An AttributeValue may not '
+                                            'invalid: An AttributeValue may not '
                                             'contain an empty string')}
                                  ))
 
