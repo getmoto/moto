@@ -57,7 +57,7 @@ class DynamoType(object):
 
     @property
     def cast_value(self):
-        if self.type == 'N':
+        if self.is_number():
             try:
                 return int(self.value)
             except ValueError:
@@ -75,6 +75,15 @@ class DynamoType(object):
         range_values = [obj.cast_value for obj in range_objs]
         comparison_func = get_comparison_func(range_comparison)
         return comparison_func(self.cast_value, *range_values)
+
+    def is_number(self):
+        return self.type == 'N'
+
+    def is_set(self):
+        return self.type == 'SS' or self.type == 'NS' or self.type == 'BS'
+
+    def same_type(self, other):
+        return self.type == other.type
 
 
 class Item(BaseModel):
@@ -140,6 +149,55 @@ class Item(BaseModel):
                         self.attrs[key] = DynamoType(expression_attribute_values[value])
                     else:
                         self.attrs[key] = DynamoType({"S": value})
+                elif action == 'ADD':
+                    key, value = value.split(" ", 1)
+                    key = key.strip()
+                    value_str = value.strip()
+                    if value_str in expression_attribute_values:
+                        dyn_value = DynamoType(expression_attribute_values[value])
+                    else:
+                        raise TypeError
+
+                    # Handle adding numbers - value gets added to existing value,
+                    # or added to 0 if it doesn't exist yet
+                    if dyn_value.is_number():
+                        existing = self.attrs.get(key, DynamoType({"N": '0'}))
+                        if not existing.same_type(dyn_value):
+                            raise TypeError()
+                        self.attrs[key] = DynamoType({"N": str(
+                            decimal.Decimal(existing.value) +
+                            decimal.Decimal(dyn_value.value)
+                        )})
+
+                    # Handle adding sets - value is added to the set, or set is
+                    # created with only this value if it doesn't exist yet
+                    # New value must be of same set type as previous value
+                    elif dyn_value.is_set():
+                        existing = self.attrs.get(key, DynamoType({dyn_value.type: {}}))
+                        if not existing.same_type(dyn_value):
+                            raise TypeError()
+                        new_set = set(existing.value).union(dyn_value.value)
+                        self.attrs[key] = DynamoType({existing.type: list(new_set)})
+                    else:  # Number and Sets are the only supported types for ADD
+                        raise TypeError
+
+                elif action == 'DELETE':
+                    key, value = value.split(" ", 1)
+                    key = key.strip()
+                    value_str = value.strip()
+                    if value_str in expression_attribute_values:
+                        dyn_value = DynamoType(expression_attribute_values[value])
+                    else:
+                        raise TypeError
+
+                    if not dyn_value.is_set():
+                        raise TypeError
+                    existing = self.attrs.get(key, None)
+                    if existing:
+                        if not existing.same_type(dyn_value):
+                            raise TypeError
+                        new_set = set(existing.value).difference(dyn_value.value)
+                        self.attrs[key] = DynamoType({existing.type: list(new_set)})
                 else:
                     raise NotImplementedError('{} update action not yet supported'.format(action))
 

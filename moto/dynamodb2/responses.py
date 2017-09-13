@@ -497,6 +497,9 @@ class DynamoHandler(BaseResponse):
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er)
+        except TypeError:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er)
 
         item_dict = item.to_json()
         item_dict['ConsumedCapacityUnits'] = 0.5
