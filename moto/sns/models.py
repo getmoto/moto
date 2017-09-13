@@ -15,7 +15,7 @@ from moto.sqs import sqs_backends
 from moto.awslambda import lambda_backends
 
 from .exceptions import (
-    SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled
+    SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
@@ -78,6 +78,7 @@ class Subscription(BaseModel):
         self.endpoint = endpoint
         self.protocol = protocol
         self.arn = make_arn_for_subscription(self.topic.arn)
+        self.attributes = {}
 
     def publish(self, message, message_id):
         if self.protocol == 'sqs':
@@ -307,6 +308,26 @@ class SNSBackend(BaseBackend):
         except KeyError:
             raise SNSNotFoundError(
                 "Endpoint with arn {0} not found".format(arn))
+
+    def get_subscription_attributes(self, arn):
+        _subscription = [_ for _ in self.subscriptions.values() if _.arn == arn]
+        if not _subscription:
+            raise SNSNotFoundError("Subscription with arn {0} not found".format(arn))
+        subscription = _subscription[0]
+
+        return subscription.attributes
+
+    def set_subscription_attributes(self, arn, name, value):
+        if name not in ['RawMessageDelivery', 'DeliveryPolicy']:
+            raise SNSInvalidParameter('AttributeName')
+
+        # TODO: should do validation
+        _subscription = [_ for _ in self.subscriptions.values() if _.arn == arn]
+        if not _subscription:
+            raise SNSNotFoundError("Subscription with arn {0} not found".format(arn))
+        subscription = _subscription[0]
+
+        subscription.attributes[name] = value
 
 
 sns_backends = {}

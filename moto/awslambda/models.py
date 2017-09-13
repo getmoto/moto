@@ -182,6 +182,8 @@ class LambdaFunction(BaseModel):
         self.function_arn = 'arn:aws:lambda:{}:123456789012:function:{}'.format(
             self.region, self.function_name)
 
+        self.tags = dict()
+
     @property
     def vpc_config(self):
         config = self._vpc_config.copy()
@@ -430,6 +432,9 @@ class LambdaBackend(BaseBackend):
     def has_function(self, function_name):
         return function_name in self._functions
 
+    def has_function_arn(self, function_arn):
+        return self.get_function_by_arn(function_arn) is not None
+
     def create_function(self, spec):
         fn = LambdaFunction(spec, self.region_name)
         self._functions[fn.function_name] = fn
@@ -437,6 +442,12 @@ class LambdaBackend(BaseBackend):
 
     def get_function(self, function_name):
         return self._functions[function_name]
+
+    def get_function_by_arn(self, function_arn):
+        for function in self._functions.values():
+            if function.function_arn == function_arn:
+                return function
+        return None
 
     def delete_function(self, function_name):
         del self._functions[function_name]
@@ -479,6 +490,21 @@ class LambdaBackend(BaseBackend):
         }
         self._functions[function_name].invoke(json.dumps(event), {}, {})
         pass
+
+    def list_tags(self, resource):
+        return self.get_function_by_arn(resource).tags
+
+    def tag_resource(self, resource, tags):
+        self.get_function_by_arn(resource).tags.update(tags)
+
+    def untag_resource(self, resource, tagKeys):
+        function = self.get_function_by_arn(resource)
+        for key in tagKeys:
+            try:
+                del function.tags[key]
+            except KeyError:
+                pass
+                # Don't care
 
 
 def do_validate_s3():

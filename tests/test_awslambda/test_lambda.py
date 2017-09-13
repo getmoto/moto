@@ -483,3 +483,89 @@ def lambda_handler(event, context):
 
     assert 'FunctionError' in result
     assert result['FunctionError'] == 'Handled'
+
+@mock_lambda
+@mock_s3
+def test_tags():
+    """
+    test list_tags -> tag_resource -> list_tags -> tag_resource -> list_tags -> untag_resource -> list_tags integration
+    """
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
+    conn = boto3.client('lambda', 'us-west-2')
+
+    function = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    # List tags when there are none
+    conn.list_tags(
+        Resource=function['FunctionArn']
+    )['Tags'].should.equal(dict())
+
+    # List tags when there is one
+    conn.tag_resource(
+        Resource=function['FunctionArn'],
+        Tags=dict(spam='eggs')
+    )['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    conn.list_tags(
+        Resource=function['FunctionArn']
+    )['Tags'].should.equal(dict(spam='eggs'))
+
+    # List tags when another has been added
+    conn.tag_resource(
+        Resource=function['FunctionArn'],
+        Tags=dict(foo='bar')
+    )['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    conn.list_tags(
+        Resource=function['FunctionArn']
+    )['Tags'].should.equal(dict(spam='eggs', foo='bar'))
+
+    # Untag resource
+    conn.untag_resource(
+        Resource=function['FunctionArn'],
+        TagKeys=['spam', 'trolls']
+    )['ResponseMetadata']['HTTPStatusCode'].should.equal(204)
+    conn.list_tags(
+        Resource=function['FunctionArn']
+    )['Tags'].should.equal(dict(foo='bar'))
+
+    # Untag a tag that does not exist (no error and no change)
+    conn.untag_resource(
+        Resource=function['FunctionArn'],
+        TagKeys=['spam']
+    )['ResponseMetadata']['HTTPStatusCode'].should.equal(204)
+
+@mock_lambda
+def test_tags_not_found():
+    """
+    Test list_tags and tag_resource when the lambda with the given arn does not exist
+    """
+    conn = boto3.client('lambda', 'us-west-2')
+    conn.list_tags.when.called_with(
+        Resource='arn:aws:lambda:123456789012:function:not-found'
+    ).should.throw(botocore.client.ClientError)
+
+    conn.tag_resource.when.called_with(
+        Resource='arn:aws:lambda:123456789012:function:not-found',
+        Tags=dict(spam='eggs')
+    ).should.throw(botocore.client.ClientError)
+
+    conn.untag_resource.when.called_with(
+        Resource='arn:aws:lambda:123456789012:function:not-found',
+        TagKeys=['spam']
+    ).should.throw(botocore.client.ClientError)

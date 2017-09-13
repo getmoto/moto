@@ -391,8 +391,7 @@ LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
 
 GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
   <GetTemplateResult>
-    <TemplateBody>{{ stack.template }}
-    </TemplateBody>
+    <TemplateBody>{{ stack.template }}</TemplateBody>
   </GetTemplateResult>
   <ResponseMetadata>
     <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>

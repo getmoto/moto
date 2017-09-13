@@ -507,6 +507,7 @@ class IAMBackend(BaseBackend):
         self.users = {}
         self.credential_report = None
         self.managed_policies = self._init_managed_policies()
+        self.account_aliases = []
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -956,6 +957,16 @@ class IAMBackend(BaseBackend):
         for user in self.users:
             report += self.users[user].to_csv()
         return base64.b64encode(report.encode('ascii')).decode('ascii')
+
+    def list_account_aliases(self):
+        return self.account_aliases
+
+    def create_account_alias(self, alias):
+        # alias is force updated
+        self.account_aliases = [alias]
+
+    def delete_account_alias(self, alias):
+        self.account_aliases = []
 
 
 iam_backend = IAMBackend()
