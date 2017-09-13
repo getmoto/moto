@@ -59,11 +59,13 @@ class MetricDatum(BaseModel):
         self.dimensions = [Dimension(dimension['name'], dimension[
                                      'value']) for dimension in dimensions]
 
+
 class MetricDatumT(BaseModel):
 
     def __init__(self, namespace, data):
         self.namespace = namespace
         self.data = data
+
 
 class MetricDatumv2(BaseModel):
 
@@ -72,20 +74,20 @@ class MetricDatumv2(BaseModel):
     # parse the metricdata object
 
         self.MetricData = [
-                           Metric(
-                               MetricName=metric['MetricName'],
-                               Dimensions=metric['Dimensions'],
-                               Timestamp=metric.get('Timestamp', None),
-                               Value=metric.get('Value', None),
-                               StatisticValues=metric.get('StatisticValues', None),
-                               StorageResolution=metric.get('StorageResolution', None),
-                               Unit=metric.get('Unit', None),
-                           )
-                           for metric in metricdata]
+            Metric(
+                MetricName=metric['MetricName'],
+                Dimensions=metric['Dimensions'],
+                Timestamp=metric.get('Timestamp', None),
+                Value=metric.get('Value', None),
+                StatisticValues=metric.get(
+                    'StatisticValues', None),
+                StorageResolution=metric.get(
+                    'StorageResolution', None),
+                Unit=metric.get('Unit', None),)
+            for metric in metricdata]
 
     def __str__(self):
-        print(self.Namespace)
-        print(str(self.MetricData))
+        return "{} {}".format(self.Namespace, self.MetricData)
 
 
 class Metric():
@@ -101,10 +103,10 @@ class Metric():
 
         self.MetricName = MetricName
         self.Dimensions = [
-                           Dimension(
-                               name=dimension['Name'],
-                               value=dimension['Value'])
-                           for dimension in Dimensions]
+            Dimension(
+                name=dimension['Name'],
+                value=dimension['Value'])
+            for dimension in Dimensions]
 
         if(Timestamp is not None):
             self.Timestamp = Timestamp
@@ -115,9 +117,10 @@ class Metric():
         if(StatisticValues is not None):
             statcount = StatisticValues['SampleCount']
             statsum = StatisticValues['Sum']
-            statmin =StatisticValues['Minimum']
+            statmin = StatisticValues['Minimum']
             statmax = StatisticValues['Maximum']
-            self.StatisticValues = Statistics(statcount,statsum,statmin,statmax)
+            self.StatisticValues = Statistics(
+                statcount, statsum, statmin, statmax)
 
         if(Unit is not None):
             self.Unit = Unit
@@ -129,12 +132,17 @@ class Metric():
 class Statistics():
     def __init__(self, SampleCount, Sum, Minimum, Maximum):
         self.SampleCount = SampleCount
-        self.Sum =Sum
-        self.Minimum=Minimum
-        self.Maximum= Maximum
+        self.Sum = Sum
+        self.Minimum = Minimum
+        self.Maximum = Maximum
 
     def __str__(self):
-        return "{} {} {} {}".format(self.SampleCount, self.Sum, self.Minimum, self.Maximum)
+        return "{} {} {} {}".format(
+            self.SampleCount,
+            self.Sum,
+            self.Minimum,
+            self.Maximum)
+
 
 class CloudWatchBackend(BaseBackend):
 

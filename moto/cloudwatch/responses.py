@@ -1,6 +1,7 @@
 from moto.core.responses import BaseResponse
 from .models import cloudwatch_backends
 import datetime
+from moto.cloudwatch.utils import querystring_to_dict
 
 
 class CloudWatchResponse(BaseResponse):
@@ -71,39 +72,10 @@ class CloudWatchResponse(BaseResponse):
         return template.render()
 
     def put_metric_data(self):
-        print(self.querystring)
         namespace = self._get_param('Namespace')
-        '''
-        namespace = self._get_param('Namespace')
-        metric_data = []
-        metric_index = 1
-        while True:
-            try:
-                metric_name = self.querystring[
-                    'MetricData.member.{0}.MetricName'.format(metric_index)][0]
-            except KeyError:
-                break
-            value = self.querystring.get(
-                'MetricData.member.{0}.Value'.format(metric_index), [None])[0]
-            dimensions = []
-            dimension_index = 1
-            while True:
-                try:
-                    dimension_name = self.querystring[
-                        'MetricData.member.{0}.Dimensions.member.{1}.Name'.format(metric_index, dimension_index)][0]
-                except KeyError:
-                    break
-                dimension_value = self.querystring[
-                    'MetricData.member.{0}.Dimensions.member.{1}.Value'.format(metric_index, dimension_index)][0]
-                dimensions.append(
-                    {'name': dimension_name, 'value': dimension_value})
-                dimension_index += 1
-            metric_data.append([metric_name, value, dimensions])
-            metric_index += 1
-            '''
-        metric_data = testdata_fixture()
+        data = querystring_to_dict(self.querystring, namespace)
         cloudwatch_backend = cloudwatch_backends[self.region]
-        cloudwatch_backend.put_metric_data(namespace, metric_data)
+        cloudwatch_backend.put_metric_data(namespace, data)
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
         return template.render()
 
@@ -222,18 +194,20 @@ LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazona
     <ListMetricsResult>
         <Metrics>
             {% for metric in metrics %}
+            {% for metricdatum in metric.MetricData %}
             <member>
                 <Dimensions>
-                    {% for dimension in metric.dimensions %}
+                    {% for dimension in metricdatum.Dimensions %}
                     <member>
-                        <Name>{{ dimension.name }}</Name>
+                        <Name>{{ dimension.name }}</Name>dimensions
                         <Value>{{ dimension.value }}</Value>
                     </member>
                     {% endfor %}
                 </Dimensions>
-                <MetricName>{{ metric.name }}</MetricName>
-                <Namespace>{{ metric.namespace }}</Namespace>
+                <MetricName>{{ metricdatum.MetricName}}</MetricName>
+                <Namespace>{{ metric.Namespace}}</Namespace>
             </member>
+            {% endfor %}
             {% endfor %}
         </Metrics>
         <NextToken>
