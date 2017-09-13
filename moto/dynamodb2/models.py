@@ -150,7 +150,7 @@ class Item(BaseModel):
                     else:
                         self.attrs[key] = DynamoType({"S": value})
                 elif action == 'ADD':
-                    key, value = value.split(" ", maxsplit=1)
+                    key, value = value.split(" ", 1)
                     key = key.strip()
                     value_str = value.strip()
                     if value_str in expression_attribute_values:
@@ -182,7 +182,7 @@ class Item(BaseModel):
                         raise TypeError
 
                 elif action == 'DELETE':
-                    key, value = value.split(" ", maxsplit=1)
+                    key, value = value.split(" ", 1)
                     key = key.strip()
                     value_str = value.strip()
                     if value_str in expression_attribute_values:
