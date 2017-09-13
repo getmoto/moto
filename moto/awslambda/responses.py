@@ -3,6 +3,12 @@ from __future__ import unicode_literals
 import json
 import re
 
+try:
+    from urllib import unquote
+    from urlparse import urlparse, parse_qs
+except:
+    from urllib.parse import unquote, urlparse, parse_qs
+
 from moto.core.responses import BaseResponse
 
 
@@ -32,6 +38,17 @@ class LambdaResponse(BaseResponse):
             return self._invoke(request, full_url)
         else:
             raise ValueError("Cannot handle request")
+
+    def tag(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == 'GET':
+            return self._list_tags(request, full_url)
+        elif request.method == 'POST':
+            return self._tag_resource(request, full_url)
+        elif request.method == 'DELETE':
+            return self._untag_resource(request, full_url)
+        else:
+            raise ValueError("Cannot handle {0} request".format(request.method))
 
     def _invoke(self, request, full_url):
         response_headers = {}
@@ -102,3 +119,43 @@ class LambdaResponse(BaseResponse):
             return region.group(1)
         else:
             return self.default_region
+
+    def _list_tags(self, request, full_url):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_arn = unquote(path.split('/')[-1])
+
+        if lambda_backend.has_function_arn(function_arn):
+            function = lambda_backend.get_function_by_arn(function_arn)
+            return 200, {}, json.dumps(dict(Tags=function.tags))
+        else:
+            return 404, {}, "{}"
+
+    def _tag_resource(self, request, full_url):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_arn = unquote(path.split('/')[-1])
+
+        spec = json.loads(self.body)
+
+        if lambda_backend.has_function_arn(function_arn):
+            lambda_backend.tag_resource(function_arn, spec['Tags'])
+            return 200, {}, "{}"
+        else:
+            return 404, {}, "{}"
+
+    def _untag_resource(self, request, full_url):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_arn = unquote(path.split('/')[-1].split('?')[0])
+
+        tag_keys = parse_qs(urlparse(full_url).query)['tagKeys']
+
+        if lambda_backend.has_function_arn(function_arn):
+            lambda_backend.untag_resource(function_arn, tag_keys)
+            return 204, {}, "{}"
+        else:
+            return 404, {}, "{}"
