@@ -121,15 +121,10 @@ def test_metricdatumv2_statistics_parse():
     test_datum = moto.cloudwatch.models.MetricDatumv2(
         'test_namespace', test_data)
 
-    print test_datum.MetricData[0].StatisticValues.SampleCount
-
-
     assert test_datum.MetricData[0].StatisticValues.SampleCount == 20
     assert test_datum.MetricData[0].StatisticValues.Sum == 40
     assert test_datum.MetricData[0].StatisticValues.Minimum == 60
     assert test_datum.MetricData[0].StatisticValues.Maximum == 80
-
-
 
 
 @mock_cloudwatch
@@ -138,7 +133,8 @@ def test_metricdatumv2_resolution_parse():
 
     test_datum = moto.cloudwatch.models.MetricDatumv2(
         'test_namespace', test_data)
-    assert test_datum.MetricData[0].StorageResolution== 123
+    assert test_datum.MetricData[0].StorageResolution == 123
+
 
 @mock_cloudwatch
 def test_metricdatumv2_unit_parse():
@@ -146,4 +142,4 @@ def test_metricdatumv2_unit_parse():
 
     test_datum = moto.cloudwatch.models.MetricDatumv2(
         'test_namespace', test_data)
-    assert test_datum.MetricData[0].Unit=='Seconds'
+    assert test_datum.MetricData[0].Unit == 'Seconds'

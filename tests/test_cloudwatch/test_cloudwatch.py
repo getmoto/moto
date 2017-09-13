@@ -259,7 +259,6 @@ def test_put_metric_data_namespace():
         MetricData=test_data
     )
     result = cloudwatch.list_metrics()
-    print result
     assert result['Metrics'][0]['Namespace'] == 'test_namespace'
     assert result['Metrics'][0]['MetricName'] == 'test_metric_1'
     assert result['Metrics'][0]['Dimensions'][0]['Name'] == 'test_dimension_1'
