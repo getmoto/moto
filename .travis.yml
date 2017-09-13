@@ -18,7 +18,7 @@ install:
   - travis_retry pip install coveralls==1.1
   - |
     if [ "$TEST_SERVER_MODE" = "true" ]; then
-      AWS_SECRET_ACCESS_KEY=server_secret AWS_ACCESS_KEY_ID=server_key moto_server -p 5000&
+      AWS_SECRET_ACCESS_KEY=server_secret AWS_ACCESS_KEY_ID=server_key moto_server -H 127.0.0.1 -p 5000&
       export AWS_SECRET_ACCESS_KEY=foobar_secret
       export AWS_ACCESS_KEY_ID=foobar_key
     fi
