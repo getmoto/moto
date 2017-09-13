@@ -469,3 +469,28 @@ def test_invoke_lambda_error():
 
     assert 'FunctionError' in result
     assert result['FunctionError'] == 'Handled'
+
+@mock_lambda
+def test_invoke_async_function():
+    conn = boto3.client('lambda', 'us-west-2')
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': get_test_zip_file1(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    success_result = conn.invoke_async(
+        FunctionName='testFunction', 
+        InvokeArgs=json.dumps({ 'test': 'event' })
+        )
+
+    print(success_result)
+    success_result['Status'].should.equal(202)

@@ -33,19 +33,40 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def invoke_async(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == 'POST':
+            return self._invoke_async(request, full_url)
+        else:
+            raise ValueError("Cannot handle request")
+
     def _invoke(self, request, full_url):
         response_headers = {}
         lambda_backend = self.get_lambda_backend(full_url)
 
         path = request.path if hasattr(request, 'path') else request.path_url
         function_name = path.split('/')[-2]
-
+        
         if lambda_backend.has_function(function_name):
             fn = lambda_backend.get_function(function_name)
             payload = fn.invoke(self.body, self.headers, response_headers)
             response_headers['Content-Length'] = str(len(payload))
             return 202, response_headers, payload
         else:
+            return 404, response_headers, "{}"
+
+    def _invoke_async(self, request, full_url):
+        response_headers = {}
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-3]
+        if lambda_backend.has_function(function_name):
+            fn = lambda_backend.get_function(function_name)
+            fn.invoke(self.body, self.headers, response_headers)
+            response_headers['Content-Length'] = str(0)
+            return 202, response_headers, ""
+        else:    
             return 404, response_headers, "{}"
 
     def _list_functions(self, request, full_url, headers):
