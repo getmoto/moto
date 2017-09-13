@@ -150,9 +150,13 @@ class LambdaFunction(BaseModel):
             except Exception:
                 to_unzip_code = base64.b64decode(self.code['ZipFile'])
 
-            self.code = self.code_bytes = to_unzip_code
+            self.code_bytes = to_unzip_code
             self.code_size = len(to_unzip_code)
             self.code_sha_256 = hashlib.sha256(to_unzip_code).hexdigest()
+
+            # TODO: we should be putting this in a lambda bucket
+            self.code['UUID'] = str(uuid.uuid4())
+            self.code['S3Key'] = '{}-{}'.format(self.function_name, self.code['UUID'])
         else:
             # validate s3 bucket and key
             key = None
@@ -213,6 +217,9 @@ class LambdaFunction(BaseModel):
         return config
 
     def get_code(self):
+        # TODO: this is wrong, it should be something like:
+        #   https://awslambda-us-west-2-tasks.s3-[REGION].amazonaws.com/snapshots/[ACCOUNT]/email_lambda-[LAMBDA_GUID]/..
+        #   for lambdas created from zips, otherwise return the S3 bucket/key that user specified
         return {
             "Code": {
                 "Location": "s3://lambda-functions.aws.amazon.com/{0}".format(

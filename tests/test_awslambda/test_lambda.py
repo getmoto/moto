@@ -277,6 +277,8 @@ def test_create_function_from_zipfile():
         'ResponseMetadata': {'HTTPStatusCode': 201},
     })
 
+    conn.get_function(FunctionName='testFunction')
+
 
 @mock_lambda
 @mock_s3
