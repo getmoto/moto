@@ -1470,6 +1470,22 @@ def test_update_item_add_with_expression():
     ).should.have.raised(ClientError)
     dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
 
+    # Attempt to update with a bad expression
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='ADD str_set bad_value'
+    ).should.have.raised(ClientError)
+
+    # Attempt to add a string value instead of a string set
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='ADD str_set :v',
+        ExpressionAttributeValues={
+            ':v': 'new_string'
+        }
+    ).should.have.raised(ClientError)
+
+
 @mock_dynamodb2
 def test_update_item_delete_with_expression():
     table = _create_table_with_range_key()
@@ -1517,6 +1533,22 @@ def test_update_item_delete_with_expression():
         }
     ).should.have.raised(ClientError)
     dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Try to delete a string set from a number set
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='DELETE num_set :v',
+        ExpressionAttributeValues={
+            ':v': {'del_str'}
+        }
+    ).should.have.raised(ClientError)
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Attempt to update with a bad expression
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='DELETE num_val badvalue'
+    ).should.have.raised(ClientError)
 
 
 @mock_dynamodb2
