@@ -555,3 +555,27 @@ def test_tags_not_found():
         Resource='arn:aws:lambda:123456789012:function:not-found',
         TagKeys=['spam']
     ).should.throw(botocore.client.ClientError)
+
+@mock_lambda
+def test_invoke_async_function():
+    conn = boto3.client('lambda', 'us-west-2')
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': get_test_zip_file1(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    success_result = conn.invoke_async(
+        FunctionName='testFunction', 
+        InvokeArgs=json.dumps({ 'test': 'event' })
+        )
+
+    success_result['Status'].should.equal(202)
