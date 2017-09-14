@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 
 import base64
+from collections import defaultdict
 import datetime
-import docker
+import docker.errors
 import hashlib
 import io
 import logging
@@ -14,6 +15,7 @@ import uuid
 import functools
 import tarfile
 import calendar
+import threading
 import traceback
 import requests.adapters
 
@@ -60,27 +62,42 @@ def zip2tar(zip_bytes):
             return tar_data
 
 
+class _VolumeRefCount:
+    __slots__ = "refcount", "volume"
+
+    def __init__(self, refcount, volume):
+        self.refcount = refcount
+        self.volume = volume
+
+
 class _DockerDataVolumeContext:
+    _data_vol_map = defaultdict(lambda: _VolumeRefCount(0, None))  # {sha256: _VolumeRefCount}
+    _lock = threading.Lock()
+
     def __init__(self, lambda_func):
         self._lambda_func = lambda_func
-        self._data_vol = None
-        self._own_vol = True
+        self._vol_ref = None
 
     @property
     def name(self):
-        return self._data_vol.name
+        return self._vol_ref.volume.name
 
     def __enter__(self):
-        # See if volume already exists
-        for vol in self._lambda_func.docker_client.volumes.list():
-            if vol.name == self._lambda_func.code_sha_256:
-                self._data_vol = vol
-                self._own_vol = False
-                break
+        # See if volume is already known
+        with self.__class__._lock:
+            self._vol_ref = self.__class__._data_vol_map[self._lambda_func.code_sha_256]
+            self._vol_ref.refcount += 1
+            if self._vol_ref.refcount > 1:
+                return self
 
-        # if not, self._data_vol it
-        if not self._data_vol:
-            self._data_vol = self._lambda_func.docker_client.volumes.create(self._lambda_func.code_sha_256)
+            # See if the volume already exists
+            for vol in self._lambda_func.docker_client.volumes.list():
+                if vol.name == self._lambda_func.code_sha_256:
+                    self._vol_ref.volume = vol
+                    return self
+
+            # It doesn't exist so we need to create it
+            self._vol_ref.volume = self._lambda_func.docker_client.volumes.create(self._lambda_func.code_sha_256)
             container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes={self.name: '/tmp/data'}, detach=True)
             try:
                 tar_bytes = zip2tar(self._lambda_func.code_bytes)
@@ -91,13 +108,19 @@ class _DockerDataVolumeContext:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._own_vol and self._data_vol:
-            self._data_vol.remove()
+        with self.__class__._lock:
+            self._vol_ref.refcount -= 1
+            if self._vol_ref.refcount == 0:
+                try:
+                    self._vol_ref.volume.remove()
+                except docker.errors.APIError as e:
+                    if e.status_code != 409:
+                        raise
+
+                    raise  # multiple processes trying to use same volume?
 
 
 class LambdaFunction(BaseModel):
-    _data_volume = None
-
     def __init__(self, spec, region, validate_s3=True):
         # required
         self.region = region
