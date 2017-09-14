@@ -293,10 +293,11 @@ class LambdaFunction(BaseModel):
             container = output = exit_code = None
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
+                    # network_mode="host",
                     container = self.docker_client.containers.run(
                         "lambci/lambda:{}".format(self.run_time),
                         [self.handler, json.dumps(event)], stdout=True, stderr=True, remove=False,
-                        mem_limit="{}m".format(self.memory_size), network_mode="host",
+                        mem_limit="{}m".format(self.memory_size),
                         volumes=["{}:/var/task".format(data_vol.name)], environment=env_vars, detach=True)
                 finally:
                     if container:
