@@ -11,7 +11,7 @@ env:
 before_install:
   - export BOTO_CONFIG=/dev/null
 install:
-  - ./travis_install.sh
+  - source ./travis_install.sh
   - travis_retry pip install coveralls==1.1
   - |
     if [ "$TEST_SERVER_MODE" = "true" ]; then
