@@ -795,16 +795,29 @@ class InstanceBackend(object):
         return reservations
 
 
+class KeyPair(object):
+    def __init__(self, name, fingerprint, material):
+        self.name = name
+        self.fingerprint = fingerprint
+        self.material = material
+
+    def get_filter_value(self, filter_name):
+        if filter_name == 'key-name':
+            return self.name
+        elif filter_name == 'fingerprint':
+            return self.fingerprint
+
+
 class KeyPairBackend(object):
     def __init__(self):
-        self.keypairs = defaultdict(dict)
+        self.keypairs = {}
         super(KeyPairBackend, self).__init__()
 
     def create_key_pair(self, name):
         if name in self.keypairs:
             raise InvalidKeyPairDuplicateError(name)
-        self.keypairs[name] = keypair = random_key_pair()
-        keypair['name'] = name
+        keypair = KeyPair(name, **random_key_pair())
+        self.keypairs[name] = keypair
         return keypair
 
     def delete_key_pair(self, name):
@@ -812,24 +825,27 @@ class KeyPairBackend(object):
             self.keypairs.pop(name)
         return True
 
-    def describe_key_pairs(self, filter_names=None):
+    def describe_key_pairs(self, key_names=None, filters=None):
         results = []
-        for name, keypair in self.keypairs.items():
-            if not filter_names or name in filter_names:
-                keypair['name'] = name
-                results.append(keypair)
+        if key_names:
+            results = [keypair for keypair in self.keypairs.values()
+                       if keypair.name in key_names]
+            if len(key_names) > len(results):
+                unknown_keys = set(key_names) - set(results)
+                raise InvalidKeyPairNameError(unknown_keys)
+        else:
+            results = self.keypairs.values()
 
-        # TODO: Trim error message down to specific invalid name.
-        if filter_names and len(filter_names) > len(results):
-            raise InvalidKeyPairNameError(filter_names)
-
-        return results
+        if filters:
+            return generic_filter(filters, results)
+        else:
+            return results
 
     def import_key_pair(self, key_name, public_key_material):
         if key_name in self.keypairs:
             raise InvalidKeyPairDuplicateError(key_name)
-        self.keypairs[key_name] = keypair = random_key_pair()
-        keypair['name'] = key_name
+        keypair = KeyPair(key_name, **random_key_pair())
+        self.keypairs[key_name] = keypair
         return keypair
 
 
