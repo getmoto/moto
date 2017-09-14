@@ -12,7 +12,7 @@ import requests
 import sure  # noqa
 import time
 
-from moto import settings, mock_sqs, mock_sqs_deprecated
+from moto import settings, mock_sqs, mock_sqs_deprecated, server
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
@@ -143,7 +143,7 @@ def test_create_queues_in_multiple_region():
     list(west2_conn.list_queues()['QueueUrls']).should.have.length_of(1)
 
     if settings.TEST_SERVER_MODE:
-        base_url = 'http://localhost:5000'
+        base_url = server.BASE_URL
     else:
         base_url = 'https://us-west-1.queue.amazonaws.com'
 
@@ -164,7 +164,7 @@ def test_get_queue_with_prefix():
     queue.should.have.length_of(1)
 
     if settings.TEST_SERVER_MODE:
-        base_url = 'http://localhost:5000'
+        base_url = server.BASE_URL
     else:
         base_url = 'https://us-west-1.queue.amazonaws.com'
 

@@ -11,8 +11,6 @@ env:
 before_install:
   - export BOTO_CONFIG=/dev/null
 install:
-  - source ./travis_install.sh
-  - travis_retry pip install coveralls==1.1
   - |
     if [ "$TEST_SERVER_MODE" = "true" ]; then
       docker run --rm -t --name moto_server -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto python:3.6.2-stretch /moto/travis_moto_server.sh &
@@ -20,6 +18,9 @@ install:
       export AWS_SECRET_ACCESS_KEY=foobar_secret
       export AWS_ACCESS_KEY_ID=foobar_key
     fi
+    source ./travis_install.sh
+    travis_retry pip install coveralls==1.1
+
 script:
   - make test
 after_success:
