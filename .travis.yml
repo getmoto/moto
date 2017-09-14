@@ -13,14 +13,15 @@ before_install:
 install:
 # We have to install moto first so the docker install doesn't try to compile it as well
   - |
-    python setup.py build
+    python setup.py sdist
     if [ "$TEST_SERVER_MODE" = "true" ]; then
       docker run --rm -t --name moto_server -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto python:3.6.2-stretch /moto/travis_moto_server.sh &
       sleep 30  # wait for server to come up
       export AWS_SECRET_ACCESS_KEY=foobar_secret
       export AWS_ACCESS_KEY_ID=foobar_key
     fi
-    source ./travis_install.sh
+    travis_retry pip install boto==2.45.0
+    travis_retry pip install dist/moto*.gz
     travis_retry pip install coveralls==1.1
     travis_retry pip install -r requirements-dev.txt
 script:
