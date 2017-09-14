@@ -46,7 +46,7 @@ def zip2tar(zip_bytes):
         with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zipf, \
                 tarfile.TarFile(tarname, 'w') as tarf:
             for zipinfo in zipf.infolist():
-                if zipinfo.is_dir():
+                if zipinfo.filename[-1] == '/':  # is_dir() is py3.6+
                     continue
 
                 tarinfo = tarfile.TarInfo(name=zipinfo.filename)
