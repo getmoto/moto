@@ -313,7 +313,7 @@ def test_get_function():
 
     result.should.equal({
         "Code": {
-            "Location": "s3://lambda-functions.aws.amazon.com/test.zip",
+            "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip".format('us-west-2'),
             "RepositoryType": "S3"
         },
         "Configuration": {
@@ -407,7 +407,7 @@ def test_list_create_list_get_delete_list():
     )
     expected_function_result = {
         "Code": {
-            "Location": "s3://lambda-functions.aws.amazon.com/test.zip",
+            "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip".format('us-west-2'),
             "RepositoryType": "S3"
         },
         "Configuration": {
@@ -617,13 +617,15 @@ def test_get_function_created_with_zipfile():
     response['Configuration'].pop('LastModified')
 
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    assert 'Code' not in response
+    assert len(response['Code']) == 2
+    assert response['Code']['RepositoryType'] == 'S3'
+    assert response['Code']['Location'].startswith('s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com'.format('us-west-2'))
     response['Configuration'].should.equal(
         {
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
+            "FunctionArn":'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
             "MemorySize": 128,

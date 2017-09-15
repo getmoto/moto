@@ -1,6 +1,4 @@
 from __future__ import unicode_literals
-
-import moto.settings
 import sure  # noqa
 from nose.tools import assert_raises
 import requests

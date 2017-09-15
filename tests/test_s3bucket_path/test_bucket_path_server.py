@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-
 import sure  # noqa
 
 import moto.server as server
@@ -61,7 +60,7 @@ def test_s3_server_post_to_bucket():
     res = test_client.put('/foobar2', 'http://localhost:5000/')
     res.status_code.should.equal(200)
 
-    test_client.post('/foobar2', 'http://localhost:5000', data={
+    test_client.post('/foobar2', "https://localhost:5000/", data={
         'key': 'the-key',
         'file': 'nothing'
     })
