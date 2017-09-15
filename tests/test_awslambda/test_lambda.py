@@ -42,7 +42,7 @@ def lambda_handler(event, context):
     volume_id = event.get('volume_id')
     vol = ec2.Volume(volume_id)
 
-    print('get volume details for %s \nVolume - %s  state=%s, size=%s' % (volume_id, volume_id, vol.state, vol.size))
+    print('get volume details for %s\\nVolume - %s  state=%s, size=%s' % (volume_id, volume_id, vol.state, vol.size))
     return event
 """.format(base_url="motoserver:5000" if settings.TEST_SERVER_MODE else "ec2.us-west-2.amazonaws.com")
     return _process_lambda(func_str)
