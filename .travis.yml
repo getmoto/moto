@@ -11,7 +11,8 @@ env:
 before_install:
   - export BOTO_CONFIG=/dev/null
 install:
-  # We build moto first so the docker container doesn't try to compile it as well
+  # We build moto first so the docker container doesn't try to compile it as well, also note we don't use
+  # -d for docker run so the logs show up in travis
   - |
     python setup.py sdist
     if [ "$TEST_SERVER_MODE" = "true" ]; then
