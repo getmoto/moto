@@ -13,6 +13,7 @@ print("Waiting for service to come up")
 while True:
     try:
         urllib.urlopen('http://localhost:5000/', timeout=1)
+        break
     except (ConnError, ConnectionResetError):
         elapsed_s = time.time() - start_ts
         if elapsed_s > 30:
