@@ -57,6 +57,10 @@ def test_ami_create_and_delete():
         "Auto-created snapshot for AMI {0}".format(image.id))
     snapshot.volume_id.should.equal(volume.id)
 
+    # root device should be in AMI's block device mappings
+    root_mapping = image.block_device_mapping.get(image.root_device_name)
+    root_mapping.should_not.be.none
+
     # Deregister
     with assert_raises(EC2ResponseError) as ex:
         success = conn.deregister_image(image_id, dry_run=True)
