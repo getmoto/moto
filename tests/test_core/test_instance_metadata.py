@@ -8,7 +8,7 @@ import requests
 from moto import mock_ec2, settings
 
 if settings.TEST_SERVER_MODE:
-    BASE_URL = moto.settings.SERVER_BASE_URL
+    BASE_URL = 'http://localhost:5000'
 else:
     BASE_URL = 'http://169.254.169.254'
 

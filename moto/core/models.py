@@ -6,9 +6,9 @@ import functools
 import inspect
 import re
 
-import moto.settings
 import six
 
+from moto import settings
 from moto.packages.responses import responses
 from moto.packages.httpretty import HTTPretty
 from .utils import (
