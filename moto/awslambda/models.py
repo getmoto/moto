@@ -316,7 +316,7 @@ class LambdaBackend(BaseBackend):
             try:
                 del function.tags[key]
             except KeyError:
-                pass # Missing tagKeys are ignored
+                pass  # Missing tagKeys are ignored
 
     def has_permission(self, function_name, sid):
         if not self.has_function(function_name):
