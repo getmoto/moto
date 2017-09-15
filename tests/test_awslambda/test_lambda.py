@@ -579,3 +579,49 @@ def test_invoke_async_function():
         )
 
     success_result['Status'].should.equal(202)
+
+@mock_lambda
+@freeze_time('2015-01-01 00:00:00')
+def test_get_function_created_with_zipfile():
+    conn = boto3.client('lambda', 'us-west-2')
+    zip_content = get_test_zip_file1()
+    result = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': zip_content,
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.get_function(
+        FunctionName='testFunction'
+    )
+    response['Configuration'].pop('LastModified')
+
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    assert 'Code' not in response
+    response['Configuration'].should.equal(
+        {
+            "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
+            "CodeSize": len(zip_content),
+            "Description": "test lambda function",
+            "FunctionArn": "arn:aws:lambda:123456789012:function:testFunction",
+            "FunctionName": "testFunction",
+            "Handler": "lambda_function.handler",
+            "MemorySize": 128,
+            "Role": "test-iam-role",
+            "Runtime": "python2.7",
+            "Timeout": 3,
+            "Version": '$LATEST',
+            "VpcConfig": {
+                "SecurityGroupIds": [],
+                "SubnetIds": [],
+            }
+        },
+    )
