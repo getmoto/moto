@@ -12,6 +12,8 @@ import sure  # noqa
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3, mock_ec2, settings
 
+_lambda_region = 'us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'
+
 
 def _process_lamda(pfunc):
     zip_output = io.BytesIO()
@@ -212,7 +214,7 @@ def test_create_function_from_aws_bucket():
     result.pop('LastModified')
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
+        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.lambda_handler',
@@ -257,7 +259,7 @@ def test_create_function_from_zipfile():
 
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
+        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.lambda_handler',
@@ -313,14 +315,14 @@ def test_get_function():
 
     result.should.equal({
         "Code": {
-            "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip".format('us-west-2'),
+            "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip".format(_lambda_region),
             "RepositoryType": "S3"
         },
         "Configuration": {
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
@@ -407,14 +409,14 @@ def test_list_create_list_get_delete_list():
     )
     expected_function_result = {
         "Code": {
-            "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip".format('us-west-2'),
+            "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip".format(_lambda_region),
             "RepositoryType": "S3"
         },
         "Configuration": {
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
@@ -619,13 +621,13 @@ def test_get_function_created_with_zipfile():
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
     assert len(response['Code']) == 2
     assert response['Code']['RepositoryType'] == 'S3'
-    assert response['Code']['Location'].startswith('s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com'.format('us-west-2'))
+    assert response['Code']['Location'].startswith('s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com'.format(_lambda_region))
     response['Configuration'].should.equal(
         {
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn":'arn:aws:lambda:{}:123456789012:function:testFunction'.format('us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'),
+            "FunctionArn":'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
             "MemorySize": 128,
