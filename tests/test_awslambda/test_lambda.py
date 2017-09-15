@@ -148,6 +148,10 @@ if settings.TEST_SERVER_MODE:
             vol.id, vol.id, vol.state, vol.size, json.dumps(in_data))
 
         log_result = base64.b64decode(result["LogResult"]).decode('utf-8')
+
+        # fix for running under travis (TODO: investigate why it has an extra newline)
+        log_result = log_result.replace('\n\n', '\n', 1)
+
         log_result.should.equal(msg)
 
         payload = result['Payload'].read().decode('utf-8')

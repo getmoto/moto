@@ -5,7 +5,6 @@ from collections import defaultdict
 import functools
 import inspect
 import re
-
 import six
 
 from moto import settings
