@@ -111,7 +111,7 @@ class LambdaFunction(BaseModel):
         }
 
     def get_code(self):
-        if 'S3Key' in self.code:
+        if isinstance(self.code, dict):
             return {
                 "Code": {
                     "Location": "s3://lambda-functions.aws.amazon.com/{0}".format(self.code['S3Key']),
