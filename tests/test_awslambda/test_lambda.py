@@ -15,10 +15,10 @@ from moto import mock_lambda, mock_s3, mock_ec2, settings
 _lambda_region = 'us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'
 
 
-def _process_lamda(pfunc):
+def _process_lambda(func_str):
     zip_output = io.BytesIO()
     zip_file = zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED)
-    zip_file.writestr('lambda_function.py', pfunc)
+    zip_file.writestr('lambda_function.py', func_str)
     zip_file.close()
     zip_output.seek(0)
     return zip_output.read()
@@ -29,21 +29,23 @@ def get_test_zip_file1():
 def lambda_handler(event, context):
     return event
 """
-    return _process_lamda(pfunc)
+    return _process_lambda(pfunc)
 
 
 def get_test_zip_file2():
-    pfunc = """
+    func_str = """
+import boto3
+
 def lambda_handler(event, context):
-    volume_id = event.get('volume_id')
-    print('get volume details for %s' % volume_id)
-    import boto3
     ec2 = boto3.resource('ec2', region_name='us-west-2', endpoint_url='http://{base_url}')
+
+    volume_id = event.get('volume_id')
     vol = ec2.Volume(volume_id)
-    print('Volume - %s  state=%s, size=%s' % (volume_id, vol.state, vol.size))
+
+    print('get volume details for %s \nVolume - %s  state=%s, size=%s' % (volume_id, volume_id, vol.state, vol.size))
     return event
 """.format(base_url="motoserver:5000" if settings.TEST_SERVER_MODE else "ec2.us-west-2.amazonaws.com")
-    return _process_lamda(pfunc)
+    return _process_lambda(func_str)
 
 
 @mock_lambda
