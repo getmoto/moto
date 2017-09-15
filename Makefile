@@ -10,7 +10,7 @@ lint:
 test: lint
 	rm -f .coverage
 	rm -rf cover
-	@nosetests -sv --with-coverage --cover-html ./tests/
+	@nosetests -sv --with-coverage --cover-html ./tests/test_awslambda/
 
 test_server:
 	@TEST_SERVER_MODE=true nosetests -sv --with-coverage --cover-html ./tests/

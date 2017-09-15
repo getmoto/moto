@@ -34,8 +34,6 @@ def lambda_handler(event, context):
 
 def get_test_zip_file2():
     pfunc = """
-import subprocess
-
 def lambda_handler(event, context):
     volume_id = event.get('volume_id')
     print('get volume details for %s' % volume_id)
