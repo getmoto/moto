@@ -579,3 +579,57 @@ def test_invoke_async_function():
         )
 
     success_result['Status'].should.equal(202)
+
+@mock_lambda
+def test_permissions():
+    """
+    Test permissions flow: add_permission -> remove_permission
+    """
+    conn = boto3.client('lambda', 'us-west-2')
+    function = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': get_test_zip_file1(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    # Add Permissionto missing function
+    conn.add_permission.when.called_with(
+        FunctionName='missingFunction',
+        StatementId='statement-id',
+        Action='lambda:invoke',
+        Principal='sns.amazonaws.com'
+    ).should.throw(botocore.client.ClientError)
+
+    # Succesfully add permission
+    conn.add_permission(
+        FunctionName=function['FunctionName'],
+        StatementId='statement-id',
+        Action='lambda:invoke',
+        Principal='sns.amazonaws.com'
+    )
+
+    # Remove a permission from a lambda that does not exist
+    conn.remove_permission.when.called_with(
+        FunctionName='missingFunction',
+        StatementId='missingStatement'
+    ).should.throw(botocore.client.ClientError)
+
+    # Remove a permission that does not exist
+    conn.remove_permission.when.called_with(
+        FunctionName=function['FunctionName'],
+        StatementId='missingStatement'
+    ).should.throw(botocore.client.ClientError)
+
+    # Remove a permission
+    conn.remove_permission(
+        FunctionName=function['FunctionName'],
+        StatementId='statement-id'
+    )

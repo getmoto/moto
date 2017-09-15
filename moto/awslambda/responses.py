@@ -57,6 +57,15 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle {0} request".format(request.method))
 
+    def policy(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == 'POST':
+            return self._add_permission(request, full_url)
+        elif request.method == 'DELETE':
+            return self._remove_permission(request, full_url)
+        else:
+            raise ValueError("Cannot handle {0} request".format(request.method))
+
     def _invoke(self, request, full_url):
         response_headers = {}
         lambda_backend = self.get_lambda_backend(full_url)
@@ -177,6 +186,33 @@ class LambdaResponse(BaseResponse):
 
         if lambda_backend.has_function_arn(function_arn):
             lambda_backend.untag_resource(function_arn, tag_keys)
+            return 204, {}, "{}"
+        else:
+            return 404, {}, "{}"
+
+    def _add_permission(self, request, full_url):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-2]
+
+        spec = json.loads(self.body)
+
+        if lambda_backend.has_function(function_name):
+            statement = lambda_backend.add_permission(function_name, spec)
+            return 200, {}, json.dumps(statement)
+        else:
+            return 404, {}, "{}"
+
+    def _remove_permission(self, request, full_url):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-3]
+        sid = path.split('/')[-1]
+
+        if lambda_backend.has_permission(function_name, sid):
+            lambda_backend.remove_permission(function_name, sid)
             return 204, {}, "{}"
         else:
             return 404, {}, "{}"

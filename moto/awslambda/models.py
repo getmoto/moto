@@ -82,6 +82,7 @@ class LambdaFunction(BaseModel):
             self.function_name)
 
         self.tags = dict()
+        self.statements = dict()
 
     @property
     def vpc_config(self):
@@ -315,8 +316,32 @@ class LambdaBackend(BaseBackend):
             try:
                 del function.tags[key]
             except KeyError:
-                pass
-                # Don't care
+                pass # Missing tagKeys are ignored
+
+    def has_permission(self, function_name, sid):
+        if not self.has_function(function_name):
+            return False
+
+        function = self.get_function(function_name)
+        return sid in function.statements
+
+    def add_permission(self, function_name, spec):
+        # TODO This statement should affect permissions for the lambda
+        # TODO there are other optional fields that might be added to the statement
+        function = self.get_function(function_name)
+        statement = dict(
+            Sid=spec['StatementId'],
+            Effect='Allow',
+            Principal=dict(Service=spec['Principal']),
+            Action=spec['Action'],
+            Resource=function.function_arn
+        )
+        function.statements[statement['Sid']] = statement
+        return statement
+
+    def remove_permission(self, function_name, sid):
+        function = self.get_function(function_name)
+        del function.statements[sid]
 
 
 def do_validate_s3():
