@@ -242,17 +242,18 @@ class LambdaFunction(BaseModel):
         return config
 
     def get_code(self):
-        # TODO: this is wrong, it should be something like:
-        #   https://awslambda-us-west-2-tasks.s3-[REGION].amazonaws.com/snapshots/[ACCOUNT]/email_lambda-[LAMBDA_GUID]/..
-        #   for lambdas created from zips, otherwise return the S3 bucket/key that user specified
-        return {
-            "Code": {
-                "Location": "s3://lambda-functions.aws.amazon.com/{0}".format(
-                    self.code['S3Key']),
-                "RepositoryType": "S3"
-            },
-            "Configuration": self.get_configuration(),
-        }
+        if isinstance(self.code, dict):
+            return {
+                "Code": {
+                    "Location": "s3://lambda-functions.aws.amazon.com/{0}".format(self.code['S3Key']),
+                    "RepositoryType": "S3"
+                },
+                "Configuration": self.get_configuration(),
+            }
+        else:
+            return {
+                "Configuration": self.get_configuration(),
+            }
 
     @staticmethod
     def convert(s):
