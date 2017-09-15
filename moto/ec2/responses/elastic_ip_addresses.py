@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import sequence_from_querystring
+from moto.ec2.utils import filters_from_querystring, sequence_from_querystring
 
 
 class ElasticIPAddresses(BaseResponse):
@@ -51,29 +51,12 @@ class ElasticIPAddresses(BaseResponse):
             return template.render(address=eip)
 
     def describe_addresses(self):
+        allocation_ids = sequence_from_querystring('AllocationId', self.querystring)
+        public_ips = sequence_from_querystring('PublicIp', self.querystring)
+        filters = filters_from_querystring(self.querystring)
+        addresses = self.ec2_backend.describe_addresses(
+            allocation_ids, public_ips, filters)
         template = self.response_template(DESCRIBE_ADDRESS_RESPONSE)
-
-        if "Filter.1.Name" in self.querystring:
-            filter_by = sequence_from_querystring(
-                "Filter.1.Name", self.querystring)[0]
-            filter_value = sequence_from_querystring(
-                "Filter.1.Value", self.querystring)
-            if filter_by == 'instance-id':
-                addresses = filter(lambda x: x.instance.id == filter_value[
-                                   0], self.ec2_backend.describe_addresses())
-            else:
-                raise NotImplementedError(
-                    "Filtering not supported in describe_address.")
-        elif "PublicIp.1" in self.querystring:
-            public_ips = sequence_from_querystring(
-                "PublicIp", self.querystring)
-            addresses = self.ec2_backend.address_by_ip(public_ips)
-        elif "AllocationId.1" in self.querystring:
-            allocation_ids = sequence_from_querystring(
-                "AllocationId", self.querystring)
-            addresses = self.ec2_backend.address_by_allocation(allocation_ids)
-        else:
-            addresses = self.ec2_backend.describe_addresses()
         return template.render(addresses=addresses)
 
     def disassociate_address(self):
