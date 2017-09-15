@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import boto
 import boto3
 import botocore.exceptions
+import moto.settings
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage, Message
 
@@ -143,7 +144,7 @@ def test_create_queues_in_multiple_region():
     list(west2_conn.list_queues()['QueueUrls']).should.have.length_of(1)
 
     if settings.TEST_SERVER_MODE:
-        base_url = server.BASE_URL
+        base_url = moto.settings.SERVER_BASE_URL
     else:
         base_url = 'https://us-west-1.queue.amazonaws.com'
 
@@ -164,7 +165,7 @@ def test_get_queue_with_prefix():
     queue.should.have.length_of(1)
 
     if settings.TEST_SERVER_MODE:
-        base_url = server.BASE_URL
+        base_url = moto.settings.SERVER_BASE_URL
     else:
         base_url = 'https://us-west-1.queue.amazonaws.com'
 

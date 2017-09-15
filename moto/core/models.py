@@ -5,9 +5,11 @@ from collections import defaultdict
 import functools
 import inspect
 import re
+
+import moto.settings
 import six
 
-from moto import settings, server
+from moto import settings
 from moto.packages.responses import responses
 from moto.packages.httpretty import HTTPretty
 from .utils import (
@@ -157,7 +159,7 @@ class ServerModeMockAWS(BaseMockAWS):
 
     def reset(self):
         import requests
-        requests.post("{}/moto-api/reset".format(server.BASE_URL))
+        requests.post("{}/moto-api/reset".format(moto.settings.SERVER_BASE_URL))
 
     def enable_patching(self):
         if self.__class__.nested_count == 1:
@@ -169,12 +171,12 @@ class ServerModeMockAWS(BaseMockAWS):
 
         def fake_boto3_client(*args, **kwargs):
             if 'endpoint_url' not in kwargs:
-                kwargs['endpoint_url'] = server.BASE_URL
+                kwargs['endpoint_url'] = moto.settings.SERVER_BASE_URL
             return real_boto3_client(*args, **kwargs)
 
         def fake_boto3_resource(*args, **kwargs):
             if 'endpoint_url' not in kwargs:
-                kwargs['endpoint_url'] = server.BASE_URL
+                kwargs['endpoint_url'] = moto.settings.SERVER_BASE_URL
             return real_boto3_resource(*args, **kwargs)
         self._client_patcher = mock.patch('boto3.client', fake_boto3_client)
         self._resource_patcher = mock.patch(

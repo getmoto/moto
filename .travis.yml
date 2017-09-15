@@ -16,7 +16,6 @@ install:
     python setup.py sdist
     if [ "$TEST_SERVER_MODE" = "true" ]; then
       docker run --rm -t --name moto_server -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto python:3.6.2-stretch /moto/travis_moto_server.sh &
-      sleep 30  # wait for server to come up
       export AWS_SECRET_ACCESS_KEY=foobar_secret
       export AWS_ACCESS_KEY_ID=foobar_key
     fi

@@ -1,12 +1,14 @@
 from __future__ import unicode_literals
+
+import moto.settings
 import sure  # noqa
 from nose.tools import assert_raises
 import requests
 
-from moto import mock_ec2, settings, server
+from moto import mock_ec2, settings
 
 if settings.TEST_SERVER_MODE:
-    BASE_URL = server.BASE_URL
+    BASE_URL = moto.settings.SERVER_BASE_URL
 else:
     BASE_URL = 'http://169.254.169.254'
 

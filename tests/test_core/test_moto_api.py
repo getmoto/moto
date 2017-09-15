@@ -1,12 +1,14 @@
 from __future__ import unicode_literals
+
+import moto.settings
 import sure  # noqa
 from nose.tools import assert_raises
 import requests
 
 import boto3
-from moto import mock_sqs, settings, server
+from moto import mock_sqs, settings
 
-base_url = server.BASE_URL if settings.TEST_SERVER_MODE else "http://motoapi.amazonaws.com"
+base_url = moto.settings.SERVER_BASE_URL if settings.TEST_SERVER_MODE else "http://motoapi.amazonaws.com"
 
 
 @mock_sqs
