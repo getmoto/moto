@@ -11,11 +11,11 @@ env:
 before_install:
   - export BOTO_CONFIG=/dev/null
 install:
-# We have to install moto first so the docker install doesn't try to compile it as well
+  # We build moto first so the docker container doesn't try to compile it as well
   - |
     python setup.py sdist
     if [ "$TEST_SERVER_MODE" = "true" ]; then
-      docker run --rm -t --name moto_server -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto python:3.6.2-stretch /moto/travis_moto_server.sh &
+      docker run --rm -t --name moto_server -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 python:3.6.2-stretch /moto/travis_moto_server.sh &
       export AWS_SECRET_ACCESS_KEY=foobar_secret
       export AWS_ACCESS_KEY_ID=foobar_key
     fi

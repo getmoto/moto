@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import moto.settings
 from sure import expect
 from moto.s3bucket_path.utils import bucket_name_from_url
 
@@ -10,8 +9,7 @@ def test_base_url():
 
 
 def test_localhost_bucket():
-    expect(bucket_name_from_url('{}/wfoobar/abc'.format(
-        moto.settings.SERVER_BASE_URL))
+    expect(bucket_name_from_url('https://localhost:5000/wfoobar/abc')
            ).should.equal("wfoobar")
 
 

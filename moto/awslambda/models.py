@@ -25,7 +25,7 @@ from moto.core.utils import unix_time_millis
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
-
+from moto import settings
 
 logger = logging.getLogger(__name__)
 
@@ -293,12 +293,12 @@ class LambdaFunction(BaseModel):
             container = output = exit_code = None
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
-                    # network_mode="host",
+                    run_kwargs = dict(links={'moto_server': 'moto_server'}) if settings.TEST_SERVER_MODE else {}
                     container = self.docker_client.containers.run(
                         "lambci/lambda:{}".format(self.run_time),
                         [self.handler, json.dumps(event)], stdout=True, stderr=True, remove=False,
                         mem_limit="{}m".format(self.memory_size),
-                        volumes=["{}:/var/task".format(data_vol.name)], environment=env_vars, detach=True)
+                        volumes=["{}:/var/task".format(data_vol.name)], environment=env_vars, detach=True, **run_kwargs)
                 finally:
                     if container:
                         exit_code = container.wait()

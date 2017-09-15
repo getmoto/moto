@@ -8,7 +8,7 @@ import requests
 import boto3
 from moto import mock_sqs, settings
 
-base_url = moto.settings.SERVER_BASE_URL if settings.TEST_SERVER_MODE else "http://motoapi.amazonaws.com"
+base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else "http://motoapi.amazonaws.com"
 
 
 @mock_sqs
