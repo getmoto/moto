@@ -65,7 +65,7 @@ def test_s3_server_post_to_bucket():
         'file': 'nothing'
     })
 
-    res = test_client.get('/foobar2/the-key', 'https://localhost:5000/')
+    res = test_client.get('/foobar2/the-key', 'http://localhost:5000/')
     res.status_code.should.equal(200)
     res.data.should.equal(b"nothing")
 
