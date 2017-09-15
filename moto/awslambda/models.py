@@ -111,13 +111,18 @@ class LambdaFunction(BaseModel):
         }
 
     def get_code(self):
-        return {
-            "Code": {
-                "Location": "s3://lambda-functions.aws.amazon.com/{0}".format(self.code['S3Key']),
-                "RepositoryType": "S3"
-            },
-            "Configuration": self.get_configuration(),
-        }
+        if 'S3Key' in self.code:
+            return {
+                "Code": {
+                    "Location": "s3://lambda-functions.aws.amazon.com/{0}".format(self.code['S3Key']),
+                    "RepositoryType": "S3"
+                },
+                "Configuration": self.get_configuration(),
+            }
+        else:
+            return {
+                "Configuration": self.get_configuration(),
+            }
 
     def convert(self, s):
         try:
