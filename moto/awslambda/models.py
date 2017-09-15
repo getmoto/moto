@@ -293,7 +293,7 @@ class LambdaFunction(BaseModel):
             container = output = exit_code = None
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
-                    run_kwargs = dict(links={'moto_server': 'moto_server'}) if settings.TEST_SERVER_MODE else {}
+                    run_kwargs = dict(links={'motoserver': 'motoserver'}) if settings.TEST_SERVER_MODE else {}
                     container = self.docker_client.containers.run(
                         "lambci/lambda:{}".format(self.run_time),
                         [self.handler, json.dumps(event)], stdout=True, stderr=True, remove=False,

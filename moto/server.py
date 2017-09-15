@@ -62,7 +62,7 @@ class DomainDispatcherApplication(object):
             host = "instance_metadata"
         else:
             host = environ['HTTP_HOST'].split(':')[0]
-        if host in {'localhost', 'moto_server'} or host.startswith("192.168."):
+        if host in {'localhost', 'motoserver'} or host.startswith("192.168."):
             # Fall back to parsing auth header to find service
             # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
             try:

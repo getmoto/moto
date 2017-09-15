@@ -42,7 +42,7 @@ def lambda_handler(event, context):
     vol = ec2.Volume(volume_id)
     print('Volume - %s  state=%s, size=%s' % (volume_id, vol.state, vol.size))
     return event
-""".format(base_url="moto_server:5000" if settings.TEST_SERVER_MODE else "ec2.us-west-2.amazonaws.com")
+""".format(base_url="motoserver:5000" if settings.TEST_SERVER_MODE else "ec2.us-west-2.amazonaws.com")
     return _process_lamda(pfunc)
 
 
