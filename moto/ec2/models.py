@@ -590,10 +590,6 @@ class Instance(TaggedEC2Resource, BotoInstance):
 
             self.attach_eni(use_nic, device_index)
 
-    def set_ip(self, ip_address):
-        # Should we be creating a new ENI?
-        self.nics[0].public_ip = ip_address
-
     def attach_eni(self, eni, device_index):
         device_index = int(device_index)
         self.nics[device_index] = eni
@@ -3047,8 +3043,6 @@ class ElasticAddressBackend(object):
                 eip.eni.public_ip = eip.public_ip
             if eip.domain == "vpc":
                 eip.association_id = random_eip_association_id()
-            if instance:
-                instance.set_ip(eip.public_ip)
 
             return eip
 
@@ -3082,10 +3076,9 @@ class ElasticAddressBackend(object):
         eip = eips[0]
 
         if eip.eni:
+            eip.eni.public_ip = None
             if eip.eni.instance and eip.eni.instance._state.name == "running":
                 eip.eni.check_auto_public_ip()
-            else:
-                eip.eni.public_ip = None
             eip.eni = None
 
         eip.instance = None
