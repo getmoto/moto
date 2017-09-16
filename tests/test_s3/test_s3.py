@@ -864,6 +864,36 @@ def test_bucket_acl_switching():
                    g.permission == 'READ' for g in grants), grants
 
 
+@mock_s3
+def test_s3_object_in_public_bucket():
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('test-bucket')
+    bucket.create(ACL='public-read')
+    bucket.put_object(ACL='public-read', Body=b'ABCD', Key='file.txt')
+    direct_url = 'https://test-bucket.s3.amazonaws.com/file.txt'
+    response = requests.get(direct_url)
+    response.status_code.should.equal(200)
+    response.content.should.equal(b'ABCD')
+    bucket.put_object(ACL='private', Body=b'ABCD', Key='file.txt')
+    response = requests.get(direct_url)
+    response.status_code.should.equal(403)
+
+
+@mock_s3
+def test_s3_object_in_private_bucket():
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('test-bucket')
+    bucket.create(ACL='private')
+    bucket.put_object(ACL='private', Body=b'ABCD', Key='file.txt')
+    direct_url = 'https://test-bucket.s3.amazonaws.com/file.txt'
+    response = requests.get(direct_url)
+    response.status_code.should.equal(403)
+    bucket.put_object(ACL='public-read', Body=b'ABCD', Key='file.txt')
+    response = requests.get(direct_url)
+    response.status_code.should.equal(200)
+    response.content.should.equal(b'ABCD')
+
+
 @mock_s3_deprecated
 def test_unicode_key():
     conn = boto.connect_s3()

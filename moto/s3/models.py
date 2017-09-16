@@ -201,9 +201,17 @@ class FakeGrantee(BaseModel):
         self.uri = uri
         self.display_name = display_name
 
+    def __eq__(self, other):
+        if not isinstance(other, FakeGrantee):
+            return False
+        return self.id == other.id and self.uri == other.uri and self.display_name == other.display_name
+
     @property
     def type(self):
         return 'Group' if self.uri else 'CanonicalUser'
+
+    def __repr__(self):
+        return "FakeGrantee(display_name: '{}', id: '{}', uri: '{}')".format(self.display_name, self.id, self.uri)
 
 
 ALL_USERS_GRANTEE = FakeGrantee(
@@ -226,11 +234,27 @@ class FakeGrant(BaseModel):
         self.grantees = grantees
         self.permissions = permissions
 
+    def __repr__(self):
+        return "FakeGrant(grantees: {}, permissions: {})".format(self.grantees, self.permissions)
+
 
 class FakeAcl(BaseModel):
 
     def __init__(self, grants=[]):
         self.grants = grants
+
+    @property
+    def public_read(self):
+        for grant in self.grants:
+            if ALL_USERS_GRANTEE in grant.grantees:
+                if PERMISSION_READ in grant.permissions:
+                    return True
+                if PERMISSION_FULL_CONTROL in grant.permissions:
+                    return True
+        return False
+
+    def __repr__(self):
+        return "FakeAcl(grants: {})".format(self.grants)
 
 
 def get_canned_acl(acl):
