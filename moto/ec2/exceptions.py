@@ -375,3 +375,20 @@ class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
             "RulesPerSecurityGroupLimitExceeded",
             'The maximum number of rules per security group '
             'has been reached.')
+
+
+class MotoNotImplementedError(NotImplementedError):
+
+    def __init__(self, blurb):
+        super(MotoNotImplementedError, self).__init__(
+            "{0} has not been implemented in Moto yet."
+            " Feel free to open an issue at"
+            " https://github.com/spulec/moto/issues".format(blurb))
+
+
+class FilterNotImplementedError(MotoNotImplementedError):
+
+    def __init__(self, filter_name, method_name):
+        super(FilterNotImplementedError, self).__init__(
+            "The filter '{0}' for {1}".format(
+                filter_name, method_name))
