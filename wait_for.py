@@ -4,8 +4,9 @@ try:
     # py2
     import urllib2 as urllib
     from urllib2 import URLError
+    import socket
 
-    EXCEPTIONS = URLError
+    EXCEPTIONS = (URLError, socket.error)
 except ImportError:
     # py3
     import urllib.request as urllib
