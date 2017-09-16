@@ -25,7 +25,10 @@ install:
     travis_retry pip install dist/moto*.gz
     travis_retry pip install coveralls==1.1
     travis_retry pip install -r requirements-dev.txt
-    python wait_for.py
+
+    if [ "$TEST_SERVER_MODE" = "true" ]; then
+      python wait_for.py
+    fi
 script:
   - make test
 after_success:

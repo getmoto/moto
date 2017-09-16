@@ -1,11 +1,17 @@
 import time
 
 try:
+    # py2
     import urllib2 as urllib
-    from urllib2 import URLError as ConnError
+    from urllib2 import URLError
+
+    EXCEPTIONS = URLError
 except ImportError:
+    # py3
     import urllib.request as urllib
-    from urllib.error import URLError as ConnError
+    from urllib.error import URLError
+
+    EXCEPTIONS = (URLError, ConnectionResetError)
 
 
 start_ts = time.time()
@@ -14,7 +20,7 @@ while True:
     try:
         urllib.urlopen('http://localhost:5000/', timeout=1)
         break
-    except (ConnError, ConnectionResetError):
+    except EXCEPTIONS:
         elapsed_s = time.time() - start_ts
         if elapsed_s > 30:
             raise
