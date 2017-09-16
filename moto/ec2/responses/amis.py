@@ -115,7 +115,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
           {% endif %}
           <description>{{ image.description }}</description>
           <rootDeviceType>ebs</rootDeviceType>
-          <rootDeviceName>/dev/sda</rootDeviceName>
+          <rootDeviceName>/dev/sda1</rootDeviceName>
           <blockDeviceMapping>
             <item>
               <deviceName>/dev/sda1</deviceName>

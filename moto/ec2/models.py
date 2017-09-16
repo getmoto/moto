@@ -2959,6 +2959,27 @@ class ElasticAddress(object):
             return self.allocation_id
         raise UnformattedGetAttTemplateException()
 
+    def get_filter_value(self, filter_name):
+        if filter_name == 'allocation-id':
+            return self.allocation_id
+        elif filter_name == 'association-id':
+            return self.association_id
+        elif filter_name == 'domain':
+            return self.domain
+        elif filter_name == 'instance-id' and self.instance:
+            return self.instance.id
+        elif filter_name == 'network-interface-id' and self.eni:
+            return self.eni.id
+        elif filter_name == 'network-interface-owner-id':
+            msg = "The filter '{0}' for DescribeAddresses has not been" \
+                  " implemented in Moto yet. Feel free to open an issue at" \
+                  " https://github.com/spulec/moto/issues".format(filter_name)
+            raise NotImplementedError(msg)
+        elif filter_name == 'private-ip-address' and self.eni:
+            return self.eni.private_ip_address
+        elif filter_name == 'public-ip':
+            return self.public_ip
+
 
 class ElasticAddressBackend(object):
     def __init__(self):
@@ -3019,6 +3040,9 @@ class ElasticAddressBackend(object):
         if new_instance_association or new_eni_association or reassociate:
             eip.instance = instance
             eip.eni = eni
+            if not eip.eni and instance:
+                # default to primary network interface
+                eip.eni = instance.nics[0]
             if eip.eni:
                 eip.eni.public_ip = eip.public_ip
             if eip.domain == "vpc":
@@ -3030,8 +3054,24 @@ class ElasticAddressBackend(object):
 
         raise ResourceAlreadyAssociatedError(eip.public_ip)
 
-    def describe_addresses(self):
-        return self.addresses
+    def describe_addresses(self, allocation_ids=None, public_ips=None, filters=None):
+        matches = self.addresses
+        if allocation_ids:
+            matches = [addr for addr in matches
+                       if addr.allocation_id in allocation_ids]
+            if len(allocation_ids) > len(matches):
+                unknown_ids = set(allocation_ids) - set(matches)
+                raise InvalidAllocationIdError(unknown_ids)
+        if public_ips:
+            matches = [addr for addr in matches
+                       if addr.public_ip in public_ips]
+            if len(public_ips) > len(matches):
+                unknown_ips = set(allocation_ids) - set(matches)
+                raise InvalidAddressError(unknown_ips)
+        if filters:
+            matches = generic_filter(filters, matches)
+
+        return matches
 
     def disassociate_address(self, address=None, association_id=None):
         eips = []
