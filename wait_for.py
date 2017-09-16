@@ -5,8 +5,9 @@ try:
     import urllib2 as urllib
     from urllib2 import URLError
     import socket
+    import httplib
 
-    EXCEPTIONS = (URLError, socket.error)
+    EXCEPTIONS = (URLError, socket.error, httplib.BadStatusLine)
 except ImportError:
     # py3
     import urllib.request as urllib
