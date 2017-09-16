@@ -1,15 +1,12 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, sequence_from_querystring
+from moto.ec2.utils import filters_from_querystring
 
 
 class ElasticIPAddresses(BaseResponse):
 
     def allocate_address(self):
-        if "Domain" in self.querystring:
-            domain = self.querystring.get('Domain')[0]
-        else:
-            domain = "standard"
+        domain = self._get_param('Domain', if_none='standard')
         if self.is_not_dryrun('AllocateAddress'):
             address = self.ec2_backend.allocate_address(domain)
             template = self.response_template(ALLOCATE_ADDRESS_RESPONSE)
@@ -20,26 +17,28 @@ class ElasticIPAddresses(BaseResponse):
 
         if "InstanceId" in self.querystring:
             instance = self.ec2_backend.get_instance(
-                self.querystring['InstanceId'][0])
+                self._get_param('InstanceId'))
         elif "NetworkInterfaceId" in self.querystring:
             eni = self.ec2_backend.get_network_interface(
-                self.querystring['NetworkInterfaceId'][0])
+                self._get_param('NetworkInterfaceId'))
         else:
             self.ec2_backend.raise_error(
                 "MissingParameter", "Invalid request, expect InstanceId/NetworkId parameter.")
 
         reassociate = False
         if "AllowReassociation" in self.querystring:
-            reassociate = self.querystring['AllowReassociation'][0] == "true"
+            reassociate = self._get_param('AllowReassociation') == "true"
 
         if self.is_not_dryrun('AssociateAddress'):
             if instance or eni:
                 if "PublicIp" in self.querystring:
-                    eip = self.ec2_backend.associate_address(instance=instance, eni=eni, address=self.querystring[
-                                                             'PublicIp'][0], reassociate=reassociate)
+                    eip = self.ec2_backend.associate_address(
+                        instance=instance, eni=eni,
+                        address=self._get_param('PublicIp'), reassociate=reassociate)
                 elif "AllocationId" in self.querystring:
-                    eip = self.ec2_backend.associate_address(instance=instance, eni=eni, allocation_id=self.querystring[
-                                                             'AllocationId'][0], reassociate=reassociate)
+                    eip = self.ec2_backend.associate_address(
+                        instance=instance, eni=eni,
+                        allocation_id=self._get_param('AllocationId'), reassociate=reassociate)
                 else:
                     self.ec2_backend.raise_error(
                         "MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")
@@ -51,8 +50,8 @@ class ElasticIPAddresses(BaseResponse):
             return template.render(address=eip)
 
     def describe_addresses(self):
-        allocation_ids = sequence_from_querystring('AllocationId', self.querystring)
-        public_ips = sequence_from_querystring('PublicIp', self.querystring)
+        allocation_ids = self._get_multi_param('AllocationId')
+        public_ips = self._get_multi_param('PublicIp')
         filters = filters_from_querystring(self.querystring)
         addresses = self.ec2_backend.describe_addresses(
             allocation_ids, public_ips, filters)
@@ -63,10 +62,10 @@ class ElasticIPAddresses(BaseResponse):
         if self.is_not_dryrun('DisAssociateAddress'):
             if "PublicIp" in self.querystring:
                 self.ec2_backend.disassociate_address(
-                    address=self.querystring['PublicIp'][0])
+                    address=self._get_param('PublicIp'))
             elif "AssociationId" in self.querystring:
                 self.ec2_backend.disassociate_address(
-                    association_id=self.querystring['AssociationId'][0])
+                    association_id=self._get_param('AssociationId'))
             else:
                 self.ec2_backend.raise_error(
                     "MissingParameter", "Invalid request, expect PublicIp/AssociationId parameter.")
@@ -77,10 +76,10 @@ class ElasticIPAddresses(BaseResponse):
         if self.is_not_dryrun('ReleaseAddress'):
             if "PublicIp" in self.querystring:
                 self.ec2_backend.release_address(
-                    address=self.querystring['PublicIp'][0])
+                    address=self._get_param('PublicIp'))
             elif "AllocationId" in self.querystring:
                 self.ec2_backend.release_address(
-                    allocation_id=self.querystring['AllocationId'][0])
+                    allocation_id=self._get_param('AllocationId'))
             else:
                 self.ec2_backend.raise_error(
                     "MissingParameter", "Invalid request, expect PublicIp/AllocationId parameter.")

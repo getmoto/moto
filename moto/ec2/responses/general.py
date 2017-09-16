@@ -1,13 +1,11 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import instance_ids_from_querystring
 
 
 class General(BaseResponse):
 
     def get_console_output(self):
-        self.instance_ids = instance_ids_from_querystring(self.querystring)
-        instance_id = self.instance_ids[0]
+        instance_id = self._get_multi_param('InstanceId')[0]
         instance = self.ec2_backend.get_instance(instance_id)
         template = self.response_template(GET_CONSOLE_OUTPUT_RESULT)
         return template.render(instance=instance)

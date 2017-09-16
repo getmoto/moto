@@ -2,14 +2,13 @@ from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
 from moto.ec2.models import validate_resource_ids
-from moto.ec2.utils import sequence_from_querystring, tags_from_query_string, filters_from_querystring
+from moto.ec2.utils import tags_from_query_string, filters_from_querystring
 
 
 class TagResponse(BaseResponse):
 
     def create_tags(self):
-        resource_ids = sequence_from_querystring(
-            'ResourceId', self.querystring)
+        resource_ids = self._get_multi_param('ResourceId')
         validate_resource_ids(resource_ids)
         self.ec2_backend.do_resources_exist(resource_ids)
         tags = tags_from_query_string(self.querystring)
@@ -18,8 +17,7 @@ class TagResponse(BaseResponse):
             return CREATE_RESPONSE
 
     def delete_tags(self):
-        resource_ids = sequence_from_querystring(
-            'ResourceId', self.querystring)
+        resource_ids = self._get_multi_param('ResourceId')
         validate_resource_ids(resource_ids)
         tags = tags_from_query_string(self.querystring)
         if self.is_not_dryrun('DeleteTags'):

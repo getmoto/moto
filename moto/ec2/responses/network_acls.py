@@ -1,28 +1,27 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, \
-    network_acl_ids_from_querystring
+from moto.ec2.utils import filters_from_querystring
 
 
 class NetworkACLs(BaseResponse):
 
     def create_network_acl(self):
-        vpc_id = self.querystring.get('VpcId')[0]
+        vpc_id = self._get_param('VpcId')
         network_acl = self.ec2_backend.create_network_acl(vpc_id)
         template = self.response_template(CREATE_NETWORK_ACL_RESPONSE)
         return template.render(network_acl=network_acl)
 
     def create_network_acl_entry(self):
-        network_acl_id = self.querystring.get('NetworkAclId')[0]
-        rule_number = self.querystring.get('RuleNumber')[0]
-        protocol = self.querystring.get('Protocol')[0]
-        rule_action = self.querystring.get('RuleAction')[0]
-        egress = self.querystring.get('Egress')[0]
-        cidr_block = self.querystring.get('CidrBlock')[0]
-        icmp_code = self.querystring.get('Icmp.Code', [None])[0]
-        icmp_type = self.querystring.get('Icmp.Type', [None])[0]
-        port_range_from = self.querystring.get('PortRange.From')[0]
-        port_range_to = self.querystring.get('PortRange.To')[0]
+        network_acl_id = self._get_param('NetworkAclId')
+        rule_number = self._get_param('RuleNumber')
+        protocol = self._get_param('Protocol')
+        rule_action = self._get_param('RuleAction')
+        egress = self._get_param('Egress')
+        cidr_block = self._get_param('CidrBlock')
+        icmp_code = self._get_param('Icmp.Code')
+        icmp_type = self._get_param('Icmp.Type')
+        port_range_from = self._get_param('PortRange.From')
+        port_range_to = self._get_param('PortRange.To')
 
         network_acl_entry = self.ec2_backend.create_network_acl_entry(
             network_acl_id, rule_number, protocol, rule_action,
@@ -33,30 +32,30 @@ class NetworkACLs(BaseResponse):
         return template.render(network_acl_entry=network_acl_entry)
 
     def delete_network_acl(self):
-        network_acl_id = self.querystring.get('NetworkAclId')[0]
+        network_acl_id = self._get_param('NetworkAclId')
         self.ec2_backend.delete_network_acl(network_acl_id)
         template = self.response_template(DELETE_NETWORK_ACL_ASSOCIATION)
         return template.render()
 
     def delete_network_acl_entry(self):
-        network_acl_id = self.querystring.get('NetworkAclId')[0]
-        rule_number = self.querystring.get('RuleNumber')[0]
-        egress = self.querystring.get('Egress')[0]
+        network_acl_id = self._get_param('NetworkAclId')
+        rule_number = self._get_param('RuleNumber')
+        egress = self._get_param('Egress')
         self.ec2_backend.delete_network_acl_entry(network_acl_id, rule_number, egress)
         template = self.response_template(DELETE_NETWORK_ACL_ENTRY_RESPONSE)
         return template.render()
 
     def replace_network_acl_entry(self):
-        network_acl_id = self.querystring.get('NetworkAclId')[0]
-        rule_number = self.querystring.get('RuleNumber')[0]
-        protocol = self.querystring.get('Protocol')[0]
-        rule_action = self.querystring.get('RuleAction')[0]
-        egress = self.querystring.get('Egress')[0]
-        cidr_block = self.querystring.get('CidrBlock')[0]
-        icmp_code = self.querystring.get('Icmp.Code', [None])[0]
-        icmp_type = self.querystring.get('Icmp.Type', [None])[0]
-        port_range_from = self.querystring.get('PortRange.From')[0]
-        port_range_to = self.querystring.get('PortRange.To')[0]
+        network_acl_id = self._get_param('NetworkAclId')
+        rule_number = self._get_param('RuleNumber')
+        protocol = self._get_param('Protocol')
+        rule_action = self._get_param('RuleAction')
+        egress = self._get_param('Egress')
+        cidr_block = self._get_param('CidrBlock')
+        icmp_code = self._get_param('Icmp.Code')
+        icmp_type = self._get_param('Icmp.Type')
+        port_range_from = self._get_param('PortRange.From')
+        port_range_to = self._get_param('PortRange.To')
 
         self.ec2_backend.replace_network_acl_entry(
             network_acl_id, rule_number, protocol, rule_action,
@@ -67,7 +66,7 @@ class NetworkACLs(BaseResponse):
         return template.render()
 
     def describe_network_acls(self):
-        network_acl_ids = network_acl_ids_from_querystring(self.querystring)
+        network_acl_ids = self._get_multi_param('NetworkAclId')
         filters = filters_from_querystring(self.querystring)
         network_acls = self.ec2_backend.get_all_network_acls(
             network_acl_ids, filters)
@@ -75,8 +74,8 @@ class NetworkACLs(BaseResponse):
         return template.render(network_acls=network_acls)
 
     def replace_network_acl_association(self):
-        association_id = self.querystring.get('AssociationId')[0]
-        network_acl_id = self.querystring.get('NetworkAclId')[0]
+        association_id = self._get_param('AssociationId')
+        network_acl_id = self._get_param('NetworkAclId')
 
         association = self.ec2_backend.replace_network_acl_association(
             association_id,
