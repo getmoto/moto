@@ -292,13 +292,14 @@ class LambdaFunction(BaseModel):
                     run_kwargs = dict(links={'motoserver': 'motoserver'}) if settings.TEST_SERVER_MODE else {}
                     container = self.docker_client.containers.run(
                         "lambci/lambda:{}".format(self.run_time),
-                        [self.handler, json.dumps(event)], stdout=True, stderr=True, remove=False,
+                        [self.handler, json.dumps(event)], remove=False,
                         mem_limit="{}m".format(self.memory_size),
                         volumes=["{}:/var/task".format(data_vol.name)], environment=env_vars, detach=True, **run_kwargs)
                 finally:
                     if container:
                         exit_code = container.wait()
-                        output = container.logs()
+                        output = container.logs(stdout=False, stderr=True)
+                        output += container.logs(stdout=True, stderr=False)
                         container.remove()
 
             output = output.decode('utf-8')
