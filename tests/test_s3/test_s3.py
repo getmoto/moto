@@ -864,6 +864,7 @@ def test_bucket_acl_switching():
                    g.permission == 'READ' for g in grants), grants
 
 
+@mock_s3_deprecated
 @mock_s3
 def test_s3_object_in_public_bucket():
     s3 = boto3.resource('s3')
@@ -879,6 +880,7 @@ def test_s3_object_in_public_bucket():
     response.status_code.should.equal(403)
 
 
+@mock_s3_deprecated
 @mock_s3
 def test_s3_object_in_private_bucket():
     s3 = boto3.resource('s3')
