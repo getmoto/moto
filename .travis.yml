@@ -3,10 +3,10 @@ sudo: false
 services:
   - docker
 python:
-#  - 2.7
+  - 2.7
   - 3.6
 env:
-#    - TEST_SERVER_MODE=false
+    - TEST_SERVER_MODE=false
     - TEST_SERVER_MODE=true
 before_install:
   - export BOTO_CONFIG=/dev/null

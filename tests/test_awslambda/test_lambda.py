@@ -151,7 +151,6 @@ if settings.TEST_SERVER_MODE:
 
         # fix for running under travis (TODO: investigate why it has an extra newline)
         log_result = log_result.replace('\n\n', '\n')
-
         log_result.should.equal(msg)
 
         payload = result['Payload'].read().decode('utf-8')
