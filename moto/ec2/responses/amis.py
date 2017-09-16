@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring, \
-    filters_from_querystring, sequence_from_querystring, executable_users_from_querystring
+from moto.ec2.utils import filters_from_querystring
 
 
 class AmisResponse(BaseResponse):
@@ -12,8 +11,7 @@ class AmisResponse(BaseResponse):
             description = self.querystring.get('Description')[0]
         else:
             description = ""
-        instance_ids = instance_ids_from_querystring(self.querystring)
-        instance_id = instance_ids[0]
+        instance_id = self._get_param('InstanceId')
         if self.is_not_dryrun('CreateImage'):
             image = self.ec2_backend.create_image(
                 instance_id, name, description)
@@ -41,9 +39,9 @@ class AmisResponse(BaseResponse):
             return template.render(success=str(success).lower())
 
     def describe_images(self):
-        ami_ids = image_ids_from_querystring(self.querystring)
+        ami_ids = self._get_multi_param('ImageId')
         filters = filters_from_querystring(self.querystring)
-        exec_users = executable_users_from_querystring(self.querystring)
+        exec_users = self._get_multi_param('ExecutableBy')
         images = self.ec2_backend.describe_images(
             ami_ids=ami_ids, filters=filters, exec_users=exec_users)
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
@@ -60,7 +58,7 @@ class AmisResponse(BaseResponse):
         ami_id = self.querystring.get('ImageId')[0]
         operation_type = self.querystring.get('OperationType')[0]
         group = self.querystring.get('UserGroup.1', [None])[0]
-        user_ids = sequence_from_querystring('UserId', self.querystring)
+        user_ids = self._get_multi_param('UserId')
         if self.is_not_dryrun('ModifyImageAttribute'):
             if (operation_type == 'add'):
                 self.ec2_backend.add_launch_permission(

@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import six
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import keypair_names_from_querystring, filters_from_querystring
+from moto.ec2.utils import filters_from_querystring
 
 
 class KeyPairs(BaseResponse):
@@ -21,7 +21,7 @@ class KeyPairs(BaseResponse):
             return self.response_template(DELETE_KEY_PAIR_RESPONSE).render(success=success)
 
     def describe_key_pairs(self):
-        names = keypair_names_from_querystring(self.querystring)
+        names = self._get_multi_param('KeyName')
         filters = filters_from_querystring(self.querystring)
         keypairs = self.ec2_backend.describe_key_pairs(names, filters)
         template = self.response_template(DESCRIBE_KEY_PAIRS_RESPONSE)

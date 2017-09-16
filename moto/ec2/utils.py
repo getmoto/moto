@@ -174,62 +174,6 @@ def split_route_id(route_id):
     return values[0], values[1]
 
 
-def instance_ids_from_querystring(querystring_dict):
-    instance_ids = []
-    for key, value in querystring_dict.items():
-        if 'InstanceId' in key:
-            instance_ids.append(value[0])
-    return instance_ids
-
-
-def image_ids_from_querystring(querystring_dict):
-    image_ids = []
-    for key, value in querystring_dict.items():
-        if 'ImageId' in key:
-            image_ids.append(value[0])
-    return image_ids
-
-
-def executable_users_from_querystring(querystring_dict):
-    user_ids = []
-    for key, value in querystring_dict.items():
-        if 'ExecutableBy' in key:
-            user_ids.append(value[0])
-    return user_ids
-
-
-def route_table_ids_from_querystring(querystring_dict):
-    route_table_ids = []
-    for key, value in querystring_dict.items():
-        if 'RouteTableId' in key:
-            route_table_ids.append(value[0])
-    return route_table_ids
-
-
-def network_acl_ids_from_querystring(querystring_dict):
-    network_acl_ids = []
-    for key, value in querystring_dict.items():
-        if 'NetworkAclId' in key:
-            network_acl_ids.append(value[0])
-    return network_acl_ids
-
-
-def vpc_ids_from_querystring(querystring_dict):
-    vpc_ids = []
-    for key, value in querystring_dict.items():
-        if 'VpcId' in key:
-            vpc_ids.append(value[0])
-    return vpc_ids
-
-
-def sequence_from_querystring(parameter, querystring_dict):
-    parameter_values = []
-    for key, value in querystring_dict.items():
-        if parameter in key:
-            parameter_values.append(value[0])
-    return parameter_values
-
-
 def tags_from_query_string(querystring_dict):
     prefix = 'Tag'
     suffix = 'Key'
@@ -317,14 +261,6 @@ def dict_from_querystring(parameter, querystring_dict):
             use_dict[use_dict_index][use_dict_element_property] = value[0]
 
     return use_dict
-
-
-def keypair_names_from_querystring(querystring_dict):
-    keypair_names = []
-    for key, value in querystring_dict.items():
-        if 'KeyName' in key:
-            keypair_names.append(value[0])
-    return keypair_names
 
 
 def get_object_value(obj, attr):

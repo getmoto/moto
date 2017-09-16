@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from boto.ec2.instancetype import InstanceType
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, \
+from moto.ec2.utils import filters_from_querystring, \
     dict_from_querystring, optional_from_querystring
 
 
@@ -10,7 +10,7 @@ class InstanceResponse(BaseResponse):
 
     def describe_instances(self):
         filter_dict = filters_from_querystring(self.querystring)
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         token = self._get_param("NextToken")
         if instance_ids:
             reservations = self.ec2_backend.get_reservations_by_instance_ids(
@@ -62,35 +62,35 @@ class InstanceResponse(BaseResponse):
             return template.render(reservation=new_reservation)
 
     def terminate_instances(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('TerminateInstance'):
             instances = self.ec2_backend.terminate_instances(instance_ids)
             template = self.response_template(EC2_TERMINATE_INSTANCES)
             return template.render(instances=instances)
 
     def reboot_instances(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('RebootInstance'):
             instances = self.ec2_backend.reboot_instances(instance_ids)
             template = self.response_template(EC2_REBOOT_INSTANCES)
             return template.render(instances=instances)
 
     def stop_instances(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('StopInstance'):
             instances = self.ec2_backend.stop_instances(instance_ids)
             template = self.response_template(EC2_STOP_INSTANCES)
             return template.render(instances=instances)
 
     def start_instances(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('StartInstance'):
             instances = self.ec2_backend.start_instances(instance_ids)
             template = self.response_template(EC2_START_INSTANCES)
             return template.render(instances=instances)
 
     def describe_instance_status(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         include_all_instances = optional_from_querystring('IncludeAllInstances',
                                                           self.querystring) == 'true'
 
@@ -116,8 +116,7 @@ class InstanceResponse(BaseResponse):
         # instance not in stopped state
         attribute = self.querystring.get("Attribute")[0]
         key = camelcase_to_underscores(attribute)
-        instance_ids = instance_ids_from_querystring(self.querystring)
-        instance_id = instance_ids[0]
+        instance_id = self._get_param('InstanceId')
         instance, value = self.ec2_backend.describe_instance_attribute(
             instance_id, key)
 
@@ -171,8 +170,7 @@ class InstanceResponse(BaseResponse):
             del_on_term_value = True if 'true' == del_on_term_value_str else False
             device_name_value = self.querystring[mapping_device_name][0]
 
-            instance_ids = instance_ids_from_querystring(self.querystring)
-            instance_id = instance_ids[0]
+            instance_id = self._get_param('InstanceId')
             instance = self.ec2_backend.get_instance(instance_id)
 
             if self.is_not_dryrun('ModifyInstanceAttribute'):
@@ -200,8 +198,7 @@ class InstanceResponse(BaseResponse):
             value = self.querystring.get(attribute_key)[0]
             normalized_attribute = camelcase_to_underscores(
                 attribute_key.split(".")[0])
-            instance_ids = instance_ids_from_querystring(self.querystring)
-            instance_id = instance_ids[0]
+            instance_id = self._get_param('InstanceId')
             self.ec2_backend.modify_instance_attribute(
                 instance_id, normalized_attribute, value)
             return EC2_MODIFY_INSTANCE_ATTRIBUTE
@@ -212,8 +209,7 @@ class InstanceResponse(BaseResponse):
             if 'GroupId.' in key:
                 new_security_grp_list.append(self.querystring.get(key)[0])
 
-        instance_ids = instance_ids_from_querystring(self.querystring)
-        instance_id = instance_ids[0]
+        instance_id = self._get_param('InstanceId')
         if self.is_not_dryrun('ModifyInstanceSecurityGroups'):
             self.ec2_backend.modify_instance_security_groups(
                 instance_id, new_security_grp_list)

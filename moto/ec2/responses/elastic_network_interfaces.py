@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import sequence_from_querystring, filters_from_querystring
+from moto.ec2.utils import filters_from_querystring
 
 
 class ElasticNetworkInterfaces(BaseResponse):
@@ -9,7 +9,7 @@ class ElasticNetworkInterfaces(BaseResponse):
         subnet_id = self.querystring.get('SubnetId')[0]
         private_ip_address = self.querystring.get(
             'PrivateIpAddress', [None])[0]
-        groups = sequence_from_querystring('SecurityGroupId', self.querystring)
+        groups = self._get_multi_param('SecurityGroupId')
         subnet = self.ec2_backend.get_subnet(subnet_id)
         if self.is_not_dryrun('CreateNetworkInterface'):
             eni = self.ec2_backend.create_network_interface(
@@ -31,8 +31,7 @@ class ElasticNetworkInterfaces(BaseResponse):
             'ElasticNetworkInterfaces(AmazonVPC).describe_network_interface_attribute is not yet implemented')
 
     def describe_network_interfaces(self):
-        eni_ids = sequence_from_querystring(
-            'NetworkInterfaceId', self.querystring)
+        eni_ids = self._get_multi_param('NetworkInterfaceId')
         filters = filters_from_querystring(self.querystring)
         enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)

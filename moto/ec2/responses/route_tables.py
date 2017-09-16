@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import route_table_ids_from_querystring, filters_from_querystring, optional_from_querystring
+from moto.ec2.utils import filters_from_querystring, optional_from_querystring
 
 
 class RouteTables(BaseResponse):
@@ -55,7 +55,7 @@ class RouteTables(BaseResponse):
         return template.render()
 
     def describe_route_tables(self):
-        route_table_ids = route_table_ids_from_querystring(self.querystring)
+        route_table_ids = self._get_multi_param('RouteTableId')
         filters = filters_from_querystring(self.querystring)
         route_tables = self.ec2_backend.get_all_route_tables(
             route_table_ids, filters)

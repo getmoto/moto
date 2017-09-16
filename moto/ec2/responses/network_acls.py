@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, \
-    network_acl_ids_from_querystring
+from moto.ec2.utils import filters_from_querystring
 
 
 class NetworkACLs(BaseResponse):
@@ -67,7 +66,7 @@ class NetworkACLs(BaseResponse):
         return template.render()
 
     def describe_network_acls(self):
-        network_acl_ids = network_acl_ids_from_querystring(self.querystring)
+        network_acl_ids = self._get_multi_param('NetworkAclId')
         filters = filters_from_querystring(self.querystring)
         network_acls = self.ec2_backend.get_all_network_acls(
             network_acl_ids, filters)

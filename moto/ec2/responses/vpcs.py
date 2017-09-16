@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import filters_from_querystring, vpc_ids_from_querystring
+from moto.ec2.utils import filters_from_querystring
 
 
 class VPCs(BaseResponse):
@@ -21,7 +21,7 @@ class VPCs(BaseResponse):
         return template.render(vpc=vpc)
 
     def describe_vpcs(self):
-        vpc_ids = vpc_ids_from_querystring(self.querystring)
+        vpc_ids = self._get_multi_param('VpcId')
         filters = filters_from_querystring(self.querystring)
         vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
         template = self.response_template(DESCRIBE_VPCS_RESPONSE)

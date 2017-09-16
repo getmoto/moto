@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import (
-    sequence_from_querystring,
     filters_from_querystring,
 )
 
@@ -32,8 +31,7 @@ class InternetGateways(BaseResponse):
     def describe_internet_gateways(self):
         filter_dict = filters_from_querystring(self.querystring)
         if "InternetGatewayId.1" in self.querystring:
-            igw_ids = sequence_from_querystring(
-                "InternetGatewayId", self.querystring)
+            igw_ids = self._get_multi_param("InternetGatewayId")
             igws = self.ec2_backend.describe_internet_gateways(
                 igw_ids, filters=filter_dict)
         else:
