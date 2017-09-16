@@ -7,15 +7,14 @@ from moto.ec2.utils import filters_from_querystring
 class VPCs(BaseResponse):
 
     def create_vpc(self):
-        cidr_block = self.querystring.get('CidrBlock')[0]
-        instance_tenancy = self.querystring.get(
-            'InstanceTenancy', ['default'])[0]
+        cidr_block = self._get_param('CidrBlock')
+        instance_tenancy = self._get_param('InstanceTenancy', if_none='default')
         vpc = self.ec2_backend.create_vpc(cidr_block, instance_tenancy)
         template = self.response_template(CREATE_VPC_RESPONSE)
         return template.render(vpc=vpc)
 
     def delete_vpc(self):
-        vpc_id = self.querystring.get('VpcId')[0]
+        vpc_id = self._get_param('VpcId')
         vpc = self.ec2_backend.delete_vpc(vpc_id)
         template = self.response_template(DELETE_VPC_RESPONSE)
         return template.render(vpc=vpc)
@@ -28,15 +27,15 @@ class VPCs(BaseResponse):
         return template.render(vpcs=vpcs)
 
     def describe_vpc_attribute(self):
-        vpc_id = self.querystring.get('VpcId')[0]
-        attribute = self.querystring.get('Attribute')[0]
+        vpc_id = self._get_param('VpcId')
+        attribute = self._get_param('Attribute')
         attr_name = camelcase_to_underscores(attribute)
         value = self.ec2_backend.describe_vpc_attribute(vpc_id, attr_name)
         template = self.response_template(DESCRIBE_VPC_ATTRIBUTE_RESPONSE)
         return template.render(vpc_id=vpc_id, attribute=attribute, value=value)
 
     def modify_vpc_attribute(self):
-        vpc_id = self.querystring.get('VpcId')[0]
+        vpc_id = self._get_param('VpcId')
 
         for attribute in ('EnableDnsSupport', 'EnableDnsHostnames'):
             if self.querystring.get('%s.Value' % attribute):

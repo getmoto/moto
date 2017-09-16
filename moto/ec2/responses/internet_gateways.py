@@ -8,8 +8,8 @@ from moto.ec2.utils import (
 class InternetGateways(BaseResponse):
 
     def attach_internet_gateway(self):
-        igw_id = self.querystring.get("InternetGatewayId", [None])[0]
-        vpc_id = self.querystring.get("VpcId", [None])[0]
+        igw_id = self._get_param('InternetGatewayId')
+        vpc_id = self._get_param('VpcId')
         if self.is_not_dryrun('AttachInternetGateway'):
             self.ec2_backend.attach_internet_gateway(igw_id, vpc_id)
             template = self.response_template(ATTACH_INTERNET_GATEWAY_RESPONSE)
@@ -22,7 +22,7 @@ class InternetGateways(BaseResponse):
             return template.render(internet_gateway=igw)
 
     def delete_internet_gateway(self):
-        igw_id = self.querystring.get("InternetGatewayId", [None])[0]
+        igw_id = self._get_param('InternetGatewayId')
         if self.is_not_dryrun('DeleteInternetGateway'):
             self.ec2_backend.delete_internet_gateway(igw_id)
             template = self.response_template(DELETE_INTERNET_GATEWAY_RESPONSE)
@@ -44,8 +44,8 @@ class InternetGateways(BaseResponse):
     def detach_internet_gateway(self):
         # TODO validate no instances with EIPs in VPC before detaching
         # raise else DependencyViolationError()
-        igw_id = self.querystring.get("InternetGatewayId", [None])[0]
-        vpc_id = self.querystring.get("VpcId", [None])[0]
+        igw_id = self._get_param('InternetGatewayId')
+        vpc_id = self._get_param('VpcId')
         if self.is_not_dryrun('DetachInternetGateway'):
             self.ec2_backend.detach_internet_gateway(igw_id, vpc_id)
             template = self.response_template(DETACH_INTERNET_GATEWAY_RESPONSE)

@@ -230,11 +230,6 @@ def dhcp_configuration_from_querystring(querystring, option=u'DhcpConfiguration'
     return response_values
 
 
-def optional_from_querystring(parameter, querystring):
-    parameter_array = querystring.get(parameter)
-    return parameter_array[0] if parameter_array else None
-
-
 def filters_from_querystring(querystring_dict):
     response_values = {}
     for key, value in querystring_dict.items():

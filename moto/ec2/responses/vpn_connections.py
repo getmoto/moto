@@ -6,17 +6,17 @@ from moto.ec2.utils import filters_from_querystring
 class VPNConnections(BaseResponse):
 
     def create_vpn_connection(self):
-        type = self.querystring.get("Type", [None])[0]
-        cgw_id = self.querystring.get("CustomerGatewayId", [None])[0]
-        vgw_id = self.querystring.get("VPNGatewayId", [None])[0]
-        static_routes = self.querystring.get("StaticRoutesOnly", [None])[0]
+        type = self._get_param('Type')
+        cgw_id = self._get_param('CustomerGatewayId')
+        vgw_id = self._get_param('VPNGatewayId')
+        static_routes = self._get_param('StaticRoutesOnly')
         vpn_connection = self.ec2_backend.create_vpn_connection(
             type, cgw_id, vgw_id, static_routes_only=static_routes)
         template = self.response_template(CREATE_VPN_CONNECTION_RESPONSE)
         return template.render(vpn_connection=vpn_connection)
 
     def delete_vpn_connection(self):
-        vpn_connection_id = self.querystring.get('VpnConnectionId')[0]
+        vpn_connection_id = self._get_param('VpnConnectionId')
         vpn_connection = self.ec2_backend.delete_vpn_connection(
             vpn_connection_id)
         template = self.response_template(DELETE_VPN_CONNECTION_RESPONSE)

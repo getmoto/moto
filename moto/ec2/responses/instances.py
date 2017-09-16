@@ -3,7 +3,7 @@ from boto.ec2.instancetype import InstanceType
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import filters_from_querystring, \
-    dict_from_querystring, optional_from_querystring
+    dict_from_querystring
 
 
 class InstanceResponse(BaseResponse):
@@ -33,20 +33,18 @@ class InstanceResponse(BaseResponse):
         return template.render(reservations=reservations_resp, next_token=next_token)
 
     def run_instances(self):
-        min_count = int(self.querystring.get('MinCount', ['1'])[0])
-        image_id = self.querystring.get('ImageId')[0]
-        user_data = self.querystring.get('UserData')
+        min_count = int(self._get_param('MinCount', if_none='1'))
+        image_id = self._get_param('ImageId')
+        user_data = self._get_param('UserData')
         security_group_names = self._get_multi_param('SecurityGroup')
         security_group_ids = self._get_multi_param('SecurityGroupId')
         nics = dict_from_querystring("NetworkInterface", self.querystring)
-        instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
-        placement = self.querystring.get(
-            "Placement.AvailabilityZone", [None])[0]
-        subnet_id = self.querystring.get("SubnetId", [None])[0]
-        private_ip = self.querystring.get("PrivateIpAddress", [None])[0]
-        associate_public_ip = self.querystring.get(
-            "AssociatePublicIpAddress", [None])[0]
-        key_name = self.querystring.get("KeyName", [None])[0]
+        instance_type = self._get_param('InstanceType', if_none='m1.small')
+        placement = self._get_param('Placement.AvailabilityZone')
+        subnet_id = self._get_param('SubnetId')
+        private_ip = self._get_param('PrivateIpAddress')
+        associate_public_ip = self._get_param('AssociatePublicIpAddress')
+        key_name = self._get_param('KeyName')
         tags = self._parse_tag_specification("TagSpecification")
         region_name = self.region
 
@@ -91,8 +89,7 @@ class InstanceResponse(BaseResponse):
 
     def describe_instance_status(self):
         instance_ids = self._get_multi_param('InstanceId')
-        include_all_instances = optional_from_querystring('IncludeAllInstances',
-                                                          self.querystring) == 'true'
+        include_all_instances = self._get_param('IncludeAllInstances') == 'true'
 
         if instance_ids:
             instances = self.ec2_backend.get_multi_instances_by_id(
@@ -114,7 +111,7 @@ class InstanceResponse(BaseResponse):
     def describe_instance_attribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if
         # instance not in stopped state
-        attribute = self.querystring.get("Attribute")[0]
+        attribute = self._get_param('Attribute')
         key = camelcase_to_underscores(attribute)
         instance_id = self._get_param('InstanceId')
         instance, value = self.ec2_backend.describe_instance_attribute(
