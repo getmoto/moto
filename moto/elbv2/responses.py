@@ -266,10 +266,17 @@ class ELBV2Response(BaseResponse):
         resource_arns = self._get_multi_param('ResourceArns.member')
 
         for arn in resource_arns:
-            load_balancer = self.elbv2_backend.load_balancers.get(arn)
-            if not load_balancer:
+            if ':targetgroup' in arn:
+                resource = self.elbv2_backend.target_groups.get(arn)
+                if not resource:
+                    raise TargetGroupNotFoundError()
+            elif ':loadbalancer' in arn:
+                resource = self.elbv2_backend.load_balancers.get(arn)
+                if not resource:
+                    raise LoadBalancerNotFoundError()
+            else:
                 raise LoadBalancerNotFoundError()
-            self._add_tags(load_balancer)
+            self._add_tags(resource)
 
         template = self.response_template(ADD_TAGS_TEMPLATE)
         return template.render()
@@ -279,30 +286,41 @@ class ELBV2Response(BaseResponse):
         tag_keys = self._get_multi_param('TagKeys.member')
 
         for arn in resource_arns:
-            load_balancer = self.elbv2_backend.load_balancers.get(arn)
-            if not load_balancer:
+            if ':targetgroup' in arn:
+                resource = self.elbv2_backend.target_groups.get(arn)
+                if not resource:
+                    raise TargetGroupNotFoundError()
+            elif ':loadbalancer' in arn:
+                resource = self.elbv2_backend.load_balancers.get(arn)
+                if not resource:
+                    raise LoadBalancerNotFoundError()
+            else:
                 raise LoadBalancerNotFoundError()
-            [load_balancer.remove_tag(key) for key in tag_keys]
+            [resource.remove_tag(key) for key in tag_keys]
 
         template = self.response_template(REMOVE_TAGS_TEMPLATE)
         return template.render()
 
     def describe_tags(self):
-        elbs = []
-        for key, value in self.querystring.items():
-            if "ResourceArns.member" in key:
-                number = key.split('.')[2]
-                load_balancer_arn = self._get_param(
-                    'ResourceArns.member.{0}'.format(number))
-                elb = self.elbv2_backend.load_balancers.get(load_balancer_arn)
-                if not elb:
+        resource_arns = self._get_multi_param('ResourceArns.member')
+        resources = []
+        for arn in resource_arns:
+            if ':targetgroup' in arn:
+                resource = self.elbv2_backend.target_groups.get(arn)
+                if not resource:
+                    raise TargetGroupNotFoundError()
+            elif ':loadbalancer' in arn:
+                resource = self.elbv2_backend.load_balancers.get(arn)
+                if not resource:
                     raise LoadBalancerNotFoundError()
-                elbs.append(elb)
+            else:
+                raise LoadBalancerNotFoundError()
+            resources.append(resource)
 
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
-        return template.render(load_balancers=elbs)
+        return template.render(resources=resources)
 
-    def _add_tags(self, elb):
+    def _add_tags(self, resource):
         tag_values = []
         tag_keys = []
 
@@ -324,7 +342,7 @@ class ELBV2Response(BaseResponse):
             raise DuplicateTagKeysError(counts[0])
 
         for tag_key, tag_value in zip(tag_keys, tag_values):
-            elb.add_tag(tag_key, tag_value)
+            resource.add_tag(tag_key, tag_value)
 
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
@@ -344,11 +362,11 @@ REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticloadbalancing
 DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeTagsResult>
     <TagDescriptions>
-      {% for load_balancer in load_balancers %}
+      {% for resource in resources %}
       <member>
-        <ResourceArn>{{ load_balancer.arn }}</ResourceArn>
+        <ResourceArn>{{ resource.arn }}</ResourceArn>
         <Tags>
-          {% for key, value in load_balancer.tags.items() %}
+          {% for key, value in resource.tags.items() %}
           <member>
             <Value>{{ value }}</Value>
             <Key>{{ key }}</Key>
