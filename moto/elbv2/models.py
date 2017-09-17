@@ -65,6 +65,7 @@ class FakeTargetGroup(BaseModel):
         self.healthy_threshold_count = healthy_threshold_count
         self.unhealthy_threshold_count = unhealthy_threshold_count
         self.load_balancer_arns = []
+        self.tags = {}
 
         self.attributes = {
             'deregistration_delay.timeout_seconds': 300,
@@ -85,6 +86,11 @@ class FakeTargetGroup(BaseModel):
             t = self.targets.pop(target['id'], None)
             if not t:
                 raise InvalidTargetError()
+
+    def add_tag(self, key, value):
+        if len(self.tags) >= 10 and key not in self.tags:
+            raise TooManyTagsError()
+        self.tags[key] = value
 
     def health_for(self, target):
         t = self.targets.get(target['id'])
