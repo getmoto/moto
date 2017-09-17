@@ -16,6 +16,7 @@ import boto3
 from botocore.client import ClientError
 import botocore.exceptions
 from boto.exception import S3CreateError, S3ResponseError
+from botocore.handlers import disable_signing
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
@@ -862,6 +863,45 @@ def test_bucket_acl_switching():
     grants = bucket.get_acl().acl.grants
     assert not any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
                    g.permission == 'READ' for g in grants), grants
+
+
+@mock_s3
+def test_s3_object_in_public_bucket():
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('test-bucket')
+    bucket.create(ACL='public-read')
+    bucket.put_object(ACL='public-read', Body=b'ABCD', Key='file.txt')
+
+    s3_anonymous = boto3.resource('s3')
+    s3_anonymous.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
+
+    contents = s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()['Body'].read()
+    contents.should.equal(b'ABCD')
+
+    bucket.put_object(ACL='private', Body=b'ABCD', Key='file.txt')
+
+    with assert_raises(ClientError) as exc:
+        s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
+    exc.exception.response['Error']['Code'].should.equal('403')
+
+
+@mock_s3
+def test_s3_object_in_private_bucket():
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('test-bucket')
+    bucket.create(ACL='private')
+    bucket.put_object(ACL='private', Body=b'ABCD', Key='file.txt')
+
+    s3_anonymous = boto3.resource('s3')
+    s3_anonymous.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
+
+    with assert_raises(ClientError) as exc:
+        s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
+    exc.exception.response['Error']['Code'].should.equal('403')
+
+    bucket.put_object(ACL='public-read', Body=b'ABCD', Key='file.txt')
+    contents = s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()['Body'].read()
+    contents.should.equal(b'ABCD')
 
 
 @mock_s3_deprecated
