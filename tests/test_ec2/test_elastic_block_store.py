@@ -83,6 +83,12 @@ def test_filter_volume_by_id():
     vol2 = conn.get_all_volumes(volume_ids=[volume1.id, volume2.id])
     vol2.should.have.length_of(2)
 
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_all_volumes(volume_ids=['vol-does_not_exist'])
+    cm.exception.code.should.equal('InvalidVolume.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
 
 @mock_ec2_deprecated
 def test_volume_filters():
@@ -301,6 +307,12 @@ def test_filter_snapshot_by_id():
         s.start_time.should_not.be.none
         s.volume_id.should.be.within([volume2.id, volume3.id])
         s.region.name.should.equal(conn.region.name)
+
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_all_snapshots(snapshot_ids=['snap-does_not_exist'])
+    cm.exception.code.should.equal('InvalidSnapshot.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated

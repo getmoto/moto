@@ -1360,22 +1360,25 @@ class SecurityGroupBackend(object):
         return group
 
     def describe_security_groups(self, group_ids=None, groupnames=None, filters=None):
-        all_groups = itertools.chain(*[x.values()
-                                       for x in self.groups.values()])
-        groups = []
+        matches = itertools.chain(*[x.values()
+                                    for x in self.groups.values()])
+        if group_ids:
+            matches = [grp for grp in matches
+                       if grp.id in group_ids]
+            if len(group_ids) > len(matches):
+                unknown_ids = set(group_ids) - set(matches)
+                raise InvalidSecurityGroupNotFoundError(unknown_ids)
+        if groupnames:
+            matches = [grp for grp in matches
+                       if grp.name in groupnames]
+            if len(groupnames) > len(matches):
+                unknown_names = set(groupnames) - set(matches)
+                raise InvalidSecurityGroupNotFoundError(unknown_names)
+        if filters:
+            matches = [grp for grp in matches
+                       if grp.matches_filters(filters)]
 
-        if group_ids or groupnames or filters:
-            for group in all_groups:
-                if ((group_ids and group.id not in group_ids) or
-                        (groupnames and group.name not in groupnames)):
-                    continue
-                if filters and not group.matches_filters(filters):
-                    continue
-                groups.append(group)
-        else:
-            groups = all_groups
-
-        return groups
+        return matches
 
     def _delete_security_group(self, vpc_id, group_id):
         if self.groups[vpc_id][group_id].enis:
@@ -1772,11 +1775,17 @@ class EBSBackend(object):
         self.volumes[volume_id] = volume
         return volume
 
-    def describe_volumes(self, filters=None):
+    def describe_volumes(self, volume_ids=None, filters=None):
+        matches = self.volumes.values()
+        if volume_ids:
+            matches = [vol for vol in matches
+                       if vol.id in volume_ids]
+            if len(volume_ids) > len(matches):
+                unknown_ids = set(volume_ids) - set(matches)
+                raise InvalidVolumeIdError(unknown_ids)
         if filters:
-            volumes = self.volumes.values()
-            return generic_filter(filters, volumes)
-        return self.volumes.values()
+            matches = generic_filter(filters, matches)
+        return matches
 
     def get_volume(self, volume_id):
         volume = self.volumes.get(volume_id, None)
@@ -1824,11 +1833,17 @@ class EBSBackend(object):
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
-    def describe_snapshots(self, filters=None):
+    def describe_snapshots(self, snapshot_ids=None, filters=None):
+        matches = self.snapshots.values()
+        if snapshot_ids:
+            matches = [snap for snap in matches
+                       if snap.id in snapshot_ids]
+            if len(snapshot_ids) > len(matches):
+                unknown_ids = set(snapshot_ids) - set(matches)
+                raise InvalidSnapshotIdError(unknown_ids)
         if filters:
-            snapshots = self.snapshots.values()
-            return generic_filter(filters, snapshots)
-        return self.snapshots.values()
+            matches = generic_filter(filters, matches)
+        return matches
 
     def get_snapshot(self, snapshot_id):
         snapshot = self.snapshots.get(snapshot_id, None)
@@ -1947,12 +1962,16 @@ class VPCBackend(object):
         return self.vpcs.get(vpc_id)
 
     def get_all_vpcs(self, vpc_ids=None, filters=None):
+        matches = self.vpcs.values()
         if vpc_ids:
-            vpcs = [vpc for vpc in self.vpcs.values() if vpc.id in vpc_ids]
-        else:
-            vpcs = self.vpcs.values()
-
-        return generic_filter(filters, vpcs)
+            matches = [vpc for vpc in matches
+                       if vpc.id in vpc_ids]
+            if len(vpc_ids) > len(matches):
+                unknown_ids = set(vpc_ids) - set(matches)
+                raise InvalidVPCIdError(unknown_ids)
+        if filters:
+            matches = generic_filter(filters, matches)
+        return matches
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
@@ -2189,16 +2208,19 @@ class SubnetBackend(object):
         return subnet
 
     def get_all_subnets(self, subnet_ids=None, filters=None):
-        subnets = []
+        # Extract a list of all subnets
+        matches = itertools.chain(*[x.values()
+                                    for x in self.subnets.values()])
         if subnet_ids:
-            for subnet_id in subnet_ids:
-                for items in self.subnets.values():
-                    if subnet_id in items:
-                        subnets.append(items[subnet_id])
-        else:
-            for items in self.subnets.values():
-                subnets.extend(items.values())
-        return generic_filter(filters, subnets)
+            matches = [sn for sn in matches
+                       if sn.id in subnet_ids]
+            if len(subnet_ids) > len(matches):
+                unknown_ids = set(subnet_ids) - set(matches)
+                raise InvalidSubnetIdError(unknown_ids)
+        if filters:
+            matches = generic_filter(filters, matches)
+
+        return matches
 
     def delete_subnet(self, subnet_id):
         for subnets in self.subnets.values():

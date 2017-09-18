@@ -348,6 +348,15 @@ def test_get_all_security_groups():
     resp.should.have.length_of(1)
     resp[0].id.should.equal(sg1.id)
 
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_all_security_groups(groupnames=['does_not_exist'])
+    cm.exception.code.should.equal('InvalidGroup.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    resp.should.have.length_of(1)
+    resp[0].id.should.equal(sg1.id)
+
     resp = conn.get_all_security_groups(filters={'vpc-id': ['vpc-mjm05d27']})
     resp.should.have.length_of(1)
     resp[0].id.should.equal(sg1.id)
@@ -681,3 +690,9 @@ def test_get_all_security_groups_filter_with_same_vpc_id():
     security_groups = conn.get_all_security_groups(
         group_ids=[security_group.id], filters={'vpc-id': [vpc_id]})
     security_groups.should.have.length_of(1)
+
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_all_security_groups(group_ids=['does_not_exist'])
+    cm.exception.code.should.equal('InvalidGroup.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
