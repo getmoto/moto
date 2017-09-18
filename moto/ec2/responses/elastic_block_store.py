@@ -54,20 +54,14 @@ class ElasticBlockStore(BaseResponse):
     def describe_snapshots(self):
         filters = filters_from_querystring(self.querystring)
         snapshot_ids = self._get_multi_param('SnapshotId')
-        snapshots = self.ec2_backend.describe_snapshots(filters=filters)
-        # Describe snapshots to handle filter on snapshot_ids
-        snapshots = [
-            s for s in snapshots if s.id in snapshot_ids] if snapshot_ids else snapshots
+        snapshots = self.ec2_backend.describe_snapshots(snapshot_ids=snapshot_ids, filters=filters)
         template = self.response_template(DESCRIBE_SNAPSHOTS_RESPONSE)
         return template.render(snapshots=snapshots)
 
     def describe_volumes(self):
         filters = filters_from_querystring(self.querystring)
         volume_ids = self._get_multi_param('VolumeId')
-        volumes = self.ec2_backend.describe_volumes(filters=filters)
-        # Describe volumes to handle filter on volume_ids
-        volumes = [
-            v for v in volumes if v.id in volume_ids] if volume_ids else volumes
+        volumes = self.ec2_backend.describe_volumes(volume_ids=volume_ids, filters=filters)
         template = self.response_template(DESCRIBE_VOLUMES_RESPONSE)
         return template.render(volumes=volumes)
 
