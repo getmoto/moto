@@ -42,6 +42,25 @@ class SimpleSystemManagerResponse(BaseResponse):
                 response['InvalidParameters'].append(name)
         return json.dumps(response)
 
+    def get_parameter(self):
+        name = self._get_param('Name')
+        with_decryption = self._get_param('WithDecryption')
+
+        result = self.ssm_backend.get_parameter(name, with_decryption)
+
+        if result is None:
+            return '', dict(status=400)
+
+        response = {
+            'Parameter': {
+                'Name': name,
+                'Type': result.type,
+                'Value': result.value
+            }
+        }
+
+        return json.dumps(response)
+
     def get_parameters(self):
         names = self._get_param('Names')
         with_decryption = self._get_param('WithDecryption')
