@@ -49,7 +49,11 @@ class SimpleSystemManagerResponse(BaseResponse):
         result = self.ssm_backend.get_parameter(name, with_decryption)
 
         if result is None:
-            return '', dict(status=400)
+            error = {
+                '__type': 'ParameterNotFound',
+                'message': 'Parameter {0} not found.'.format(name)
+            }
+            return json.dumps(error), dict(status=400)
 
         response = {
             'Parameter': {

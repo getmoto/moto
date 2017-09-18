@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto3
+import botocore.exceptions
 import sure   # noqa
 
 from moto import mock_ssm
@@ -83,6 +84,20 @@ def test_get_parameter():
     response['Parameter']['Name'].should.equal('test')
     response['Parameter']['Value'].should.equal('value')
     response['Parameter']['Type'].should.equal('String')
+
+
+@mock_ssm
+def test_get_nonexistant_parameter():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    try:
+        client.get_parameter(
+            Name='test_noexist',
+            WithDecryption=False)
+        raise RuntimeError('Should of failed')
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal('GetParameter')
+        err.response['Error']['Message'].should.equal('Parameter test_noexist not found.')
 
 
 @mock_ssm
