@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto3
+import botocore.exceptions
 import sure   # noqa
 
 from moto import mock_ssm
@@ -24,6 +25,7 @@ def test_delete_parameter():
     response = client.get_parameters(Names=['test'])
     len(response['Parameters']).should.equal(0)
 
+
 @mock_ssm
 def test_delete_parameters():
     client = boto3.client('ssm', region_name='us-east-1')
@@ -43,6 +45,7 @@ def test_delete_parameters():
 
     response = client.get_parameters(Names=['test'])
     len(response['Parameters']).should.equal(0)
+
 
 @mock_ssm
 def test_put_parameter():
@@ -64,6 +67,39 @@ def test_put_parameter():
     response['Parameters'][0]['Name'].should.equal('test')
     response['Parameters'][0]['Value'].should.equal('value')
     response['Parameters'][0]['Type'].should.equal('String')
+
+
+@mock_ssm
+def test_get_parameter():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.put_parameter(
+        Name='test',
+        Description='A test parameter',
+        Value='value',
+        Type='String')
+
+    response = client.get_parameter(
+        Name='test',
+        WithDecryption=False)
+
+    response['Parameter']['Name'].should.equal('test')
+    response['Parameter']['Value'].should.equal('value')
+    response['Parameter']['Type'].should.equal('String')
+
+
+@mock_ssm
+def test_get_nonexistant_parameter():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    try:
+        client.get_parameter(
+            Name='test_noexist',
+            WithDecryption=False)
+        raise RuntimeError('Should of failed')
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal('GetParameter')
+        err.response['Error']['Message'].should.equal('Parameter test_noexist not found.')
 
 
 @mock_ssm
@@ -278,6 +314,7 @@ def test_put_parameter_secure_custom_kms():
     response['Parameters'][0]['Name'].should.equal('test')
     response['Parameters'][0]['Value'].should.equal('value')
     response['Parameters'][0]['Type'].should.equal('SecureString')
+
 
 @mock_ssm
 def test_add_remove_list_tags_for_resource():
