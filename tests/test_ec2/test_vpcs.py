@@ -113,6 +113,12 @@ def test_vpc_get_by_id():
     vpc1.id.should.be.within(vpc_ids)
     vpc2.id.should.be.within(vpc_ids)
 
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_all_vpcs(vpc_ids=['vpc-does_not_exist'])
+    cm.exception.code.should.equal('InvalidVpcID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
 
 @mock_ec2_deprecated
 def test_vpc_get_by_cidr_block():

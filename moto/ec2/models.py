@@ -1836,8 +1836,8 @@ class EBSBackend(object):
     def describe_snapshots(self, snapshot_ids=None, filters=None):
         matches = self.snapshots.values()
         if snapshot_ids:
-            matches = [vol for vol in matches
-                       if vol.id in snapshot_ids]
+            matches = [snap for snap in matches
+                       if snap.id in snapshot_ids]
             if len(snapshot_ids) > len(matches):
                 unknown_ids = set(snapshot_ids) - set(matches)
                 raise InvalidSnapshotIdError(unknown_ids)
@@ -1962,12 +1962,16 @@ class VPCBackend(object):
         return self.vpcs.get(vpc_id)
 
     def get_all_vpcs(self, vpc_ids=None, filters=None):
+        matches = self.vpcs.values()
         if vpc_ids:
-            vpcs = [vpc for vpc in self.vpcs.values() if vpc.id in vpc_ids]
-        else:
-            vpcs = self.vpcs.values()
-
-        return generic_filter(filters, vpcs)
+            matches = [vpc for vpc in matches
+                       if vpc.id in vpc_ids]
+            if len(vpc_ids) > len(matches):
+                unknown_ids = set(vpc_ids) - set(matches)
+                raise InvalidVPCIdError(unknown_ids)
+        if filters:
+            matches = generic_filter(filters, matches)
+        return matches
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
@@ -2204,16 +2208,19 @@ class SubnetBackend(object):
         return subnet
 
     def get_all_subnets(self, subnet_ids=None, filters=None):
-        subnets = []
+        # Extract a list of all subnets
+        matches = itertools.chain(*[x.values()
+                                    for x in self.subnets.values()])
         if subnet_ids:
-            for subnet_id in subnet_ids:
-                for items in self.subnets.values():
-                    if subnet_id in items:
-                        subnets.append(items[subnet_id])
-        else:
-            for items in self.subnets.values():
-                subnets.extend(items.values())
-        return generic_filter(filters, subnets)
+            matches = [sn for sn in matches
+                       if sn.id in subnet_ids]
+            if len(subnet_ids) > len(matches):
+                unknown_ids = set(subnet_ids) - set(matches)
+                raise InvalidSubnetIdError(unknown_ids)
+        if filters:
+            matches = generic_filter(filters, matches)
+
+        return matches
 
     def delete_subnet(self, subnet_id):
         for subnets in self.subnets.values():

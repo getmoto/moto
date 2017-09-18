@@ -159,6 +159,32 @@ def test_modify_subnet_attribute_validation():
 
 
 @mock_ec2_deprecated
+def test_subnet_get_by_id():
+    ec2 = boto.ec2.connect_to_region('us-west-1')
+    conn = boto.vpc.connect_to_region('us-west-1')
+    vpcA = conn.create_vpc("10.0.0.0/16")
+    subnetA = conn.create_subnet(
+        vpcA.id, "10.0.0.0/24", availability_zone='us-west-1a')
+    vpcB = conn.create_vpc("10.0.0.0/16")
+    subnetB1 = conn.create_subnet(
+        vpcB.id, "10.0.0.0/24", availability_zone='us-west-1a')
+    subnetB2 = conn.create_subnet(
+        vpcB.id, "10.0.1.0/24", availability_zone='us-west-1b')
+
+    subnets_by_id = conn.get_all_subnets(subnet_ids=[subnetA.id, subnetB1.id])
+    subnets_by_id.should.have.length_of(2)
+    subnets_by_id = tuple(map(lambda s: s.id, subnets_by_id))
+    subnetA.id.should.be.within(subnets_by_id)
+    subnetB1.id.should.be.within(subnets_by_id)
+
+    with assert_raises(EC2ResponseError) as cm:
+        conn.get_all_subnets(subnet_ids=['subnet-does_not_exist'])
+    cm.exception.code.should.equal('InvalidSubnetID.NotFound')
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2_deprecated
 def test_get_subnets_filtering():
     ec2 = boto.ec2.connect_to_region('us-west-1')
     conn = boto.vpc.connect_to_region('us-west-1')
