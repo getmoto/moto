@@ -25,6 +25,7 @@ def test_delete_parameter():
     response = client.get_parameters(Names=['test'])
     len(response['Parameters']).should.equal(0)
 
+
 @mock_ssm
 def test_delete_parameters():
     client = boto3.client('ssm', region_name='us-east-1')
@@ -44,6 +45,7 @@ def test_delete_parameters():
 
     response = client.get_parameters(Names=['test'])
     len(response['Parameters']).should.equal(0)
+
 
 @mock_ssm
 def test_put_parameter():
@@ -312,6 +314,7 @@ def test_put_parameter_secure_custom_kms():
     response['Parameters'][0]['Name'].should.equal('test')
     response['Parameters'][0]['Value'].should.equal('value')
     response['Parameters'][0]['Type'].should.equal('SecureString')
+
 
 @mock_ssm
 def test_add_remove_list_tags_for_resource():
