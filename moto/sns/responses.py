@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 import json
+import re
+from collections import defaultdict
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -459,6 +461,47 @@ class SNSResponse(BaseResponse):
         template = self.response_template(SET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
         return template.render()
 
+    def set_sms_attributes(self):
+        attr_regex = re.compile(r'^attributes\.entry\.(?P<index>\d+)\.(?P<type>key|value)$')
+
+        # attributes.entry.1.key
+        # attributes.entry.1.value
+        # to
+        # 1: {key:X, value:Y}
+        temp_dict = defaultdict(dict)
+        for key, value in self.querystring.items():
+            match = attr_regex.match(key)
+            if match is not None:
+                temp_dict[match.group('index')][match.group('type')] = value[0]
+
+        # 1: {key:X, value:Y}
+        # to
+        # X: Y
+        # All of this, just to take into account when people provide invalid stuff.
+        result = {}
+        for item in temp_dict.values():
+            if 'key' in item and 'value' in item:
+                result[item['key']] = item['value']
+
+        self.backend.update_sms_attributes(result)
+
+        template = self.response_template(SET_SMS_ATTRIBUTES_TEMPLATE)
+        return template.render()
+
+    def get_sms_attributes(self):
+        filter_list = set()
+        for key, value in self.querystring.items():
+            if key.startswith('attributes.member.1'):
+                filter_list.add(value[0])
+
+        if len(filter_list) > 0:
+            result = {k: v for k, v in self.backend.sms_attributes.items() if k in filter_list}
+        else:
+            result = self.backend.sms_attributes
+
+        template = self.response_template(GET_SMS_ATTRIBUTES_TEMPLATE)
+        return template.render(attributes=result)
+
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
      <CreateTopicResult>
@@ -758,3 +801,26 @@ SET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE = """<SetSubscriptionAttributesResponse xml
     <RequestId>a8763b99-33a7-11df-a9b7-05d48da6f042</RequestId>
   </ResponseMetadata>
 </SetSubscriptionAttributesResponse>"""
+
+SET_SMS_ATTRIBUTES_TEMPLATE = """<SetSMSAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <SetSMSAttributesResult/>
+  <ResponseMetadata>
+    <RequestId>26332069-c04a-5428-b829-72524b56a364</RequestId>
+  </ResponseMetadata>
+</SetSMSAttributesResponse>"""
+
+GET_SMS_ATTRIBUTES_TEMPLATE = """<GetSMSAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <GetSMSAttributesResult>
+    <attributes>
+      {% for name, value in attributes.items() %}
+      <entry>
+        <key>{{ name }}</key>
+        <value>{{ value }}</value>
+      </entry>
+      {% endfor %}
+    </attributes>
+  </GetSMSAttributesResult>
+  <ResponseMetadata>
+    <RequestId>287f9554-8db3-5e66-8abc-c76f0186db7e</RequestId>
+  </ResponseMetadata>
+</GetSMSAttributesResponse>"""

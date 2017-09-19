@@ -172,11 +172,15 @@ class SNSBackend(BaseBackend):
         self.applications = {}
         self.platform_endpoints = {}
         self.region_name = region_name
+        self.sms_attributes = {}
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    def update_sms_attributes(self, attrs):
+        self.sms_attributes.update(attrs)
 
     def create_topic(self, name):
         topic = Topic(name, self)
