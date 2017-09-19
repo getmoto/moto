@@ -21,8 +21,8 @@ class DynamoHandler(BaseResponse):
         if match:
             return match.split(".")[1]
 
-    def error(self, type_, status=400):
-        return status, self.response_headers, dynamo_json_dump({'__type': type_})
+    def error(self, type_, message, status=400):
+        return status, self.response_headers, dynamo_json_dump({'__type': type_, 'message': message})
 
     def call_action(self):
         self.body = json.loads(self.body or '{}')
@@ -82,7 +82,7 @@ class DynamoHandler(BaseResponse):
             return dynamo_json_dump(table.describe())
         else:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceInUseException'
-            return self.error(er)
+            return self.error(er, 'Resource in use')
 
     def delete_table(self):
         name = self.body['TableName']
@@ -91,7 +91,7 @@ class DynamoHandler(BaseResponse):
             return dynamo_json_dump(table.describe())
         else:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
-            return self.error(er)
+            return self.error(er, 'Requested resource not found')
 
     def tag_resource(self):
         tags = self.body['Tags']
@@ -120,7 +120,7 @@ class DynamoHandler(BaseResponse):
             return json.dumps({'Tags': tags_resp})
         except AttributeError:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
-            return self.error(er)
+            return self.error(er, 'Requested resource not found')
 
     def update_table(self):
         name = self.body['TableName']
@@ -138,7 +138,7 @@ class DynamoHandler(BaseResponse):
             table = dynamodb_backend2.tables[name]
         except KeyError:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
-            return self.error(er)
+            return self.error(er, 'Requested resource not found')
         return dynamo_json_dump(table.describe(base_key='Table'))
 
     def put_item(self):
@@ -190,7 +190,7 @@ class DynamoHandler(BaseResponse):
                 name, item, expected, overwrite)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
-            return self.error(er)
+            return self.error(er, 'A condition specified in the operation could not be evaluated.')
 
         if result:
             item_dict = result.to_json()
@@ -198,7 +198,7 @@ class DynamoHandler(BaseResponse):
             return dynamo_json_dump(item_dict)
         else:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
-            return self.error(er)
+            return self.error(er, 'Requested resource not found')
 
     def batch_write_item(self):
         table_batches = self.body['RequestItems']
@@ -235,15 +235,14 @@ class DynamoHandler(BaseResponse):
             item = dynamodb_backend2.get_item(name, key)
         except ValueError:
             er = 'com.amazon.coral.validate#ValidationException'
-            return self.error(er, status=400)
+            return self.error(er, 'Validation Exception')
         if item:
             item_dict = item.describe_attrs(attributes=None)
             item_dict['ConsumedCapacityUnits'] = 0.5
             return dynamo_json_dump(item_dict)
         else:
             # Item not found
-            er = '{}'
-            return self.error(er, status=200)
+            return 200, self.response_headers, '{}'
 
     def batch_get_item(self):
         table_batches = self.body['RequestItems']
@@ -282,6 +281,12 @@ class DynamoHandler(BaseResponse):
             value_alias_map = self.body['ExpressionAttributeValues']
 
             table = dynamodb_backend2.get_table(name)
+
+            # If table does not exist
+            if table is None:
+                return self.error('com.amazonaws.dynamodb.v20120810#ResourceNotFoundException',
+                                  'Requested resource not found')
+
             index_name = self.body.get('IndexName')
             if index_name:
                 all_indexes = (table.global_indexes or []) + \
@@ -350,7 +355,7 @@ class DynamoHandler(BaseResponse):
                         filter_kwargs[key] = value
                 if hash_key_name is None:
                     er = "'com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
-                    return self.error(er)
+                    return self.error(er, 'Requested resource not found')
                 hash_key = key_conditions[hash_key_name][
                     'AttributeValueList'][0]
                 if len(key_conditions) == 1:
@@ -359,7 +364,7 @@ class DynamoHandler(BaseResponse):
                 else:
                     if range_key_name is None and not filter_kwargs:
                         er = "com.amazon.coral.validate#ValidationException"
-                        return self.error(er)
+                        return self.error(er, 'Validation Exception')
                     else:
                         range_condition = key_conditions.get(range_key_name)
                         if range_condition:
@@ -381,7 +386,7 @@ class DynamoHandler(BaseResponse):
             exclusive_start_key, scan_index_forward, index_name=index_name, **filter_kwargs)
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
-            return self.error(er)
+            return self.error(er, 'Requested resource not found')
 
         result = {
             "Count": len(items),
@@ -417,7 +422,7 @@ class DynamoHandler(BaseResponse):
 
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
-            return self.error(er)
+            return self.error(er, 'Requested resource not found')
 
         result = {
             "Count": len(items),
@@ -436,7 +441,7 @@ class DynamoHandler(BaseResponse):
         table = dynamodb_backend2.get_table(name)
         if not table:
             er = 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException'
-            return self.error(er)
+            return self.error(er, 'A condition specified in the operation could not be evaluated.')
 
         item = dynamodb_backend2.delete_item(name, keys)
         if item and return_values == 'ALL_OLD':
@@ -496,10 +501,10 @@ class DynamoHandler(BaseResponse):
                 expected)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
-            return self.error(er)
+            return self.error(er, 'A condition specified in the operation could not be evaluated.')
         except TypeError:
             er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
-            return self.error(er)
+            return self.error(er, 'Validation Exception')
 
         item_dict = item.to_json()
         item_dict['ConsumedCapacityUnits'] = 0.5
