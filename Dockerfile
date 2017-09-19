@@ -10,6 +10,6 @@ RUN  apk add --no-cache python3 && \
      pip3 --no-cache-dir install --upgrade pip setuptools && \
      pip3 --no-cache-dir install ".[server]"
 
-ENTRYPOINT ["/usr/bin/moto_server"]
+ENTRYPOINT ["/usr/bin/moto_server", "-H", "0.0.0.0"]
 
 EXPOSE 5000
