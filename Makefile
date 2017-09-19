@@ -15,6 +15,9 @@ test: lint
 test_server:
 	@TEST_SERVER_MODE=true nosetests -sv --with-coverage --cover-html ./tests/
 
+aws_managed_policies:
+	scripts/update_managed_policies.py
+
 publish:
 	python setup.py sdist bdist_wheel upload
 	git tag `python setup.py --version`

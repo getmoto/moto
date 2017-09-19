@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 import base64
 from datetime import datetime
+import json
 
 import pytz
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
+from .aws_managed_policies import aws_managed_policies_data
 from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
@@ -92,6 +94,18 @@ class ManagedPolicy(Policy):
 class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
 
+    @classmethod
+    def from_data(cls, name, data):
+        return cls(name,
+                   default_version_id=data.get('DefaultVersionId'),
+                   path=data.get('Path'),
+                   document=data.get('Document'))
+
+# AWS defines some of its own managed policies and we periodically
+# import them via `make aws_managed_policies`
+aws_managed_policies = [
+        AWSManagedPolicy.from_data(name, d) for name, d
+        in json.loads(aws_managed_policies_data).items()]
 
 class InlinePolicy(Policy):
     """TODO: is this needed?"""
@@ -386,115 +400,6 @@ class User(BaseModel):
                                                                                                         access_key_2_active,
                                                                                                         access_key_2_last_rotated
                                                                                                         )
-
-
-# predefine AWS managed policies
-aws_managed_policies = [
-    AWSManagedPolicy(
-        'AmazonElasticMapReduceRole',
-        default_version_id='v6',
-        path='/service-role/',
-        document={
-            "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Resource": "*",
-                "Action": [
-                    "ec2:AuthorizeSecurityGroupEgress",
-                    "ec2:AuthorizeSecurityGroupIngress",
-                    "ec2:CancelSpotInstanceRequests",
-                    "ec2:CreateNetworkInterface",
-                    "ec2:CreateSecurityGroup",
-                    "ec2:CreateTags",
-                    "ec2:DeleteNetworkInterface",
-                    "ec2:DeleteSecurityGroup",
-                    "ec2:DeleteTags",
-                    "ec2:DescribeAvailabilityZones",
-                    "ec2:DescribeAccountAttributes",
-                    "ec2:DescribeDhcpOptions",
-                    "ec2:DescribeInstanceStatus",
-                    "ec2:DescribeInstances",
-                    "ec2:DescribeKeyPairs",
-                    "ec2:DescribeNetworkAcls",
-                    "ec2:DescribeNetworkInterfaces",
-                    "ec2:DescribePrefixLists",
-                    "ec2:DescribeRouteTables",
-                    "ec2:DescribeSecurityGroups",
-                    "ec2:DescribeSpotInstanceRequests",
-                    "ec2:DescribeSpotPriceHistory",
-                    "ec2:DescribeSubnets",
-                    "ec2:DescribeVpcAttribute",
-                    "ec2:DescribeVpcEndpoints",
-                    "ec2:DescribeVpcEndpointServices",
-                    "ec2:DescribeVpcs",
-                    "ec2:DetachNetworkInterface",
-                    "ec2:ModifyImageAttribute",
-                    "ec2:ModifyInstanceAttribute",
-                    "ec2:RequestSpotInstances",
-                    "ec2:RevokeSecurityGroupEgress",
-                    "ec2:RunInstances",
-                    "ec2:TerminateInstances",
-                    "ec2:DeleteVolume",
-                    "ec2:DescribeVolumeStatus",
-                    "ec2:DescribeVolumes",
-                    "ec2:DetachVolume",
-                    "iam:GetRole",
-                    "iam:GetRolePolicy",
-                    "iam:ListInstanceProfiles",
-                    "iam:ListRolePolicies",
-                    "iam:PassRole",
-                    "s3:CreateBucket",
-                    "s3:Get*",
-                    "s3:List*",
-                    "sdb:BatchPutAttributes",
-                    "sdb:Select",
-                    "sqs:CreateQueue",
-                    "sqs:Delete*",
-                    "sqs:GetQueue*",
-                    "sqs:PurgeQueue",
-                    "sqs:ReceiveMessage"
-                ]
-            }]
-        }
-    ),
-    AWSManagedPolicy(
-        'AmazonElasticMapReduceforEC2Role',
-        default_version_id='v2',
-        path='/service-role/',
-        document={
-            "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Resource": "*",
-                "Action": [
-                    "cloudwatch:*",
-                    "dynamodb:*",
-                    "ec2:Describe*",
-                    "elasticmapreduce:Describe*",
-                    "elasticmapreduce:ListBootstrapActions",
-                    "elasticmapreduce:ListClusters",
-                    "elasticmapreduce:ListInstanceGroups",
-                    "elasticmapreduce:ListInstances",
-                    "elasticmapreduce:ListSteps",
-                    "kinesis:CreateStream",
-                    "kinesis:DeleteStream",
-                    "kinesis:DescribeStream",
-                    "kinesis:GetRecords",
-                    "kinesis:GetShardIterator",
-                    "kinesis:MergeShards",
-                    "kinesis:PutRecord",
-                    "kinesis:SplitShard",
-                    "rds:Describe*",
-                    "s3:*",
-                    "sdb:*",
-                    "sns:*",
-                    "sqs:*"
-                ]
-            }]
-        }
-    )
-]
-# TODO: add more predefined AWS managed policies
 
 
 class IAMBackend(BaseBackend):
