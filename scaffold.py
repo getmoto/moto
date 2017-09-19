@@ -2,6 +2,7 @@
 import os
 
 import click
+import jinja2
 from prompt_toolkit import (
     prompt
 )
@@ -15,6 +16,12 @@ import boto3
 from implementation_coverage import (
     get_moto_implementation
 )
+TEMPLATE_DIR = './template'
+
+
+def print_progress(title, body, color):
+    click.secho('\t{}\t'.format(title), fg=color, nl=False)
+    click.echo(body)
 
 
 def select_service_and_operation():
@@ -54,33 +61,77 @@ def select_service_and_operation():
     return service_name, operation_name
 
 
-def create_dirs(service, operation):
+def get_lib_dir(service):
+    return os.path.join('moto', service)
+
+def get_test_dir(service):
+    return os.path.join('tests', 'test_{}'.format(service))
+
+
+def render_teamplte(tmpl_dir, tmpl_filename, context, service, alt_filename=None):
+    is_test = True if 'test' in tmpl_dir else False
+    rendered = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(tmpl_dir)
+    ).get_template(tmpl_filename).render(context)
+
+    dirname = get_test_dir(service) if is_test else get_lib_dir(service)
+    filename = alt_filename or os.path.splitext(tmpl_filename)[0]
+    filepath = os.path.join(dirname, filename)
+
+    if os.path.exists(filepath):
+        print_progress('skip creating', filepath, 'yellow')
+    else:
+        print_progress('creating', filepath, 'green')
+        with open(filepath, 'w') as f:
+            f.write(rendered)
+
+
+def initialize_service(service, operation):
     """create lib and test dirs if not exist
     """
     lib_dir = os.path.join('moto', service)
-    test_dir = os.path.join('test', 'test_{}'.format(service))
+    test_dir = os.path.join('tests', 'test_{}'.format(service))
+
+    print_progress('Initializing service', service, 'green')
+
+    service_class = boto3.client(service).__class__.__name__
+
+    tmpl_context = {
+        'service': service,
+        'service_class': service_class
+    }
+
+    # initialize service directory
     if os.path.exists(lib_dir):
-        return
+        print_progress('skip creating', lib_dir, 'yellow')
+    else:
+        print_progress('creating', lib_dir, 'green')
+        os.makedirs(lib_dir)
 
-    click.secho('\tInitializing service\t', fg='green', nl=False)
-    click.secho(service)
+    tmpl_dir = os.path.join(TEMPLATE_DIR, 'lib')
+    for tmpl_filename in os.listdir(tmpl_dir):
+        render_teamplte(
+            tmpl_dir, tmpl_filename, tmpl_context, service
+        )
 
-    click.secho('\tcraeting\t', fg='green', nl=False)
-    click.echo(lib_dir)
-    os.mkdirs(lib_dir)
-    # do init lib dir
-
-    if not os.path.exists(test_dir):
-        click.secho('\tcraeting\t', fg='green', nl=False)
-        click.echo(test_dir)
-        os.mkdirs(test_dir)
-        # do init test dir
+    # initialize test directory
+    if os.path.exists(test_dir):
+        print_progress('skip creating', test_dir, 'yellow')
+    else:
+        print_progress('creating', test_dir, 'green')
+        os.makedirs(test_dir)
+    tmpl_dir = os.path.join(TEMPLATE_DIR, 'test')
+    for tmpl_filename in os.listdir(tmpl_dir):
+        alt_filename = 'test_{}.py'.format(service) if tmpl_filename == 'test_service.py.j2' else None
+        render_teamplte(
+            tmpl_dir, tmpl_filename, tmpl_context, service, alt_filename
+        )
 
 
 @click.command()
 def main():
     service, operation = select_service_and_operation()
-    create_dirs(service, operation)
+    initialize_service(service, operation)
 
 if __name__ == '__main__':
     main()
