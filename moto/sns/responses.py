@@ -9,10 +9,16 @@ from .models import sns_backends
 
 
 class SNSResponse(BaseResponse):
+    SMS_ATTR_REGEX = re.compile(r'^attributes\.entry\.(?P<index>\d+)\.(?P<type>key|value)$')
+    OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r'^\+?\d+$')
 
     @property
     def backend(self):
         return sns_backends[self.region]
+
+    def _error(self, code, message, sender='Sender'):
+        template = self.response_template(ERROR_RESPONSE)
+        return template.render(code=code, message=message, sender=sender)
 
     def _get_attributes(self):
         attributes = self._get_list_prefix('Attributes.entry')
@@ -462,15 +468,13 @@ class SNSResponse(BaseResponse):
         return template.render()
 
     def set_sms_attributes(self):
-        attr_regex = re.compile(r'^attributes\.entry\.(?P<index>\d+)\.(?P<type>key|value)$')
-
         # attributes.entry.1.key
         # attributes.entry.1.value
         # to
         # 1: {key:X, value:Y}
         temp_dict = defaultdict(dict)
         for key, value in self.querystring.items():
-            match = attr_regex.match(key)
+            match = self.SMS_ATTR_REGEX.match(key)
             if match is not None:
                 temp_dict[match.group('index')][match.group('type')] = value[0]
 
@@ -501,6 +505,19 @@ class SNSResponse(BaseResponse):
 
         template = self.response_template(GET_SMS_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=result)
+
+    def check_if_phone_number_is_opted_out(self):
+        number = self._get_param('phoneNumber')
+        if self.OPT_OUT_PHONE_NUMBER_REGEX.match(number) is None:
+            error_response = self._error(
+                code='InvalidParameter',
+                message='Invalid parameter: PhoneNumber Reason: input incorrectly formatted'
+            )
+            return error_response, dict(status=400)
+
+        # There should be a nicer way to set if a nubmer has opted out
+        template = self.response_template(CHECK_IF_OPTED_OUT_TEMPLATE)
+        return template.render(opt_out=str(number.endswith('99')).lower())
 
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
@@ -824,3 +841,21 @@ GET_SMS_ATTRIBUTES_TEMPLATE = """<GetSMSAttributesResponse xmlns="http://sns.ama
     <RequestId>287f9554-8db3-5e66-8abc-c76f0186db7e</RequestId>
   </ResponseMetadata>
 </GetSMSAttributesResponse>"""
+
+CHECK_IF_OPTED_OUT_TEMPLATE = """<CheckIfPhoneNumberIsOptedOutResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <CheckIfPhoneNumberIsOptedOutResult>
+    <isOptedOut>{{ opt_out }}</isOptedOut>
+  </CheckIfPhoneNumberIsOptedOutResult>
+  <ResponseMetadata>
+    <RequestId>287f9554-8db3-5e66-8abc-c76f0186db7e</RequestId>
+  </ResponseMetadata>
+</CheckIfPhoneNumberIsOptedOutResponse>"""
+
+ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <Error>
+    <Type>{{ sender }}</Type>
+    <Code>{{ code }}</Code>
+    <Message>{{ message }}</Message>
+  </Error>
+  <RequestId>9dd01905-5012-5f99-8663-4b3ecd0dfaef</RequestId>
+</ErrorResponse>"""
