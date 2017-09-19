@@ -519,6 +519,10 @@ class SNSResponse(BaseResponse):
         template = self.response_template(CHECK_IF_OPTED_OUT_TEMPLATE)
         return template.render(opt_out=str(number.endswith('99')).lower())
 
+    def list_phone_numbers_opted_out(self):
+        template = self.response_template(LIST_OPTOUT_TEMPLATE)
+        return template.render(opt_outs=['+447420500600', '+447420505401'])
+
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
      <CreateTopicResult>
@@ -859,3 +863,16 @@ ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-3
   </Error>
   <RequestId>9dd01905-5012-5f99-8663-4b3ecd0dfaef</RequestId>
 </ErrorResponse>"""
+
+LIST_OPTOUT_TEMPLATE = """<ListPhoneNumbersOptedOutResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <ListPhoneNumbersOptedOutResult>
+    <phoneNumbers>
+      {% for item in opt_outs %}
+      <member>{{ item }}</member>
+      {% endfor %}
+    </phoneNumbers>
+  </ListPhoneNumbersOptedOutResult>
+  <ResponseMetadata>
+    <RequestId>985e196d-a237-51b6-b33a-4b5601276b38</RequestId>
+  </ResponseMetadata>
+</ListPhoneNumbersOptedOutResponse>"""

@@ -59,3 +59,13 @@ def test_check_opted_out_invalid():
     # Invalid phone number
     with assert_raises(ClientError):
         conn.check_if_phone_number_is_opted_out(phoneNumber='+44742LALALA')
+
+
+@mock_sns
+def test_list_opted_out():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.list_phone_numbers_opted_out()
+
+    response.should.contain('phoneNumbers')
+    response['phoneNumbers'].should.contain('+447420500600')
+    response['phoneNumbers'].should.contain('+447420505401')
