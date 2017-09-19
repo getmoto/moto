@@ -181,3 +181,16 @@ def test_item_add_empty_string_exception():
     ex.exception.response['Error']['Message'].should.equal(
         'One or more parameter values were invalid: An AttributeValue may not contain an empty string'
     )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_invalid_table():
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+    try:
+        conn.query(TableName='invalid_table', KeyConditionExpression='index1 = :partitionkeyval', ExpressionAttributeValues={':partitionkeyval': {'S':'test'}})
+    except ClientError as exception:
+        assert exception.response['Error']['Code'] == "ResourceNotFoundException"
