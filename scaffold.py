@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import os
+import re
+from lxml import etree
 
 import click
 import jinja2
@@ -16,7 +18,12 @@ import boto3
 from implementation_coverage import (
     get_moto_implementation
 )
+from inflection import singularize
+
 TEMPLATE_DIR = './template'
+
+INPUT_IGNORED_IN_BACKEND = ['Marker', 'PageSize']
+OUTPUT_IGNORED_IN_BACKEND = ['NextMarker']
 
 
 def print_progress(title, body, color):
@@ -127,11 +134,150 @@ def initialize_service(service, operation):
             tmpl_dir, tmpl_filename, tmpl_context, service, alt_filename
         )
 
+def to_upper_camel_case(s):
+    return ''.join([_.title() for _ in s.split('_')])
+
+def to_snake_case(s):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def get_function_in_responses(service, operation):
+    """refers to definition of API in botocore, and autogenerates function
+    You can see example of elbv2 from link below.
+      https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
+    """
+    client = boto3.client(service)
+
+    aws_operation_name = to_upper_camel_case(operation)
+    op_model = client._service_model.operation_model(aws_operation_name)
+    outputs = op_model.output_shape.members
+    inputs = op_model.input_shape.members
+    input_names = [to_snake_case(_) for _ in inputs.keys() if _ not in INPUT_IGNORED_IN_BACKEND]
+    output_names = [to_snake_case(_) for _ in outputs.keys() if _ not in OUTPUT_IGNORED_IN_BACKEND]
+    body = 'def {}(self):\n'.format(operation)
+
+    for input_name, input_type in inputs.items():
+        type_name = input_type.type_name
+        if type_name == 'integer':
+            arg_line_tmpl = '    {} = _get_int_param("{}")\n'
+        elif type_name == 'list':
+            arg_line_tmpl = '    {} = self._get_list_prefix("{}.member")\n'
+        else:
+            arg_line_tmpl = '    {} = self._get_param("{}")\n'
+        body += arg_line_tmpl.format(to_snake_case(input_name), input_name)
+    if output_names:
+        body += '    {} = self.{}_backend.{}(\n'.format(','.join(output_names), service, operation)
+    else:
+        body += '    self.{}_backend.{}(\n'.format(service, operation)
+    for input_name in input_names:
+        body += '        {}={},\n'.format(input_name, input_name)
+
+    body += '    )\n'
+    body += '    template = self.response_template({}_TEMPLATE)\n'.format(operation.upper())
+    body += '    return template.render({})\n'.format(
+        ','.join(['{}={}'.format(_, _) for _ in output_names])
+    )
+    return body
+
+
+def get_function_in_models(service, operation):
+    """refers to definition of API in botocore, and autogenerates function
+    You can see example of elbv2 from link below.
+      https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
+    """
+    client = boto3.client(service)
+    aws_operation_name = to_upper_camel_case(operation)
+    op_model = client._service_model.operation_model(aws_operation_name)
+    inputs = op_model.input_shape.members
+    outputs = op_model.output_shape.members
+    input_names = [to_snake_case(_) for _ in inputs.keys() if _ not in INPUT_IGNORED_IN_BACKEND]
+    output_names = [to_snake_case(_) for _ in outputs.keys() if _ not in OUTPUT_IGNORED_IN_BACKEND]
+    if input_names:
+        body = 'def {}(self, {}):\n'.format(operation, ', '.join(input_names))
+    else:
+        body = 'def {}(self)\n'
+    body += '    # implement here\n'
+    body += '    return {}\n'.format(', '.join(output_names))
+
+    return body
+
+
+def _get_subtree(name, shape, replace_list, name_prefix=[]):
+    class_name = shape.__class__.__name__
+    if class_name in ('StringShape', 'Shape'):
+        t = etree.Element(name)
+        if name_prefix:
+            t.text = '{{ %s.%s }}' % (name_prefix[-1], to_snake_case(name))
+        else:
+            t.text = '{{ %s }}' % to_snake_case(name)
+        return t
+    elif class_name in ('ListShape', ):
+        replace_list.append((name, name_prefix))
+        t = etree.Element(name)
+        t_member = etree.Element('member')
+        t.append(t_member)
+        for nested_name, nested_shape in shape.member.members.items():
+            t_member.append(_get_subtree(nested_name, nested_shape, replace_list, name_prefix + [singularize(name.lower())]))
+        return t
+    raise ValueError('Not supported Shape')
+
+
+def get_response_template(service, operation):
+    """refers to definition of API in botocore, and autogenerates template
+    You can see example of elbv2 from link below.
+      https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
+    """
+    client = boto3.client(service)
+    aws_operation_name = to_upper_camel_case(operation)
+    op_model = client._service_model.operation_model(aws_operation_name)
+    result_wrapper = op_model.output_shape.serialization['resultWrapper']
+    response_wrapper = result_wrapper.replace('Result', 'Response')
+    metadata = op_model.metadata
+    xml_namespace = metadata['xmlNamespace']
+
+    # build xml tree
+    t_root = etree.Element(response_wrapper,  xmlns=xml_namespace)
+
+    # build metadata
+    t_metadata = etree.Element('ResponseMetadata')
+    t_request_id = etree.Element('RequestId')
+    t_request_id.text = '1549581b-12b7-11e3-895e-1334aEXAMPLE'
+    t_metadata.append(t_request_id)
+    t_root.append(t_metadata)
+
+    # build result
+    t_result = etree.Element(result_wrapper)
+    outputs = op_model.output_shape.members
+    replace_list = []
+    for output_name, output_shape in outputs.items():
+        t_result.append(_get_subtree(output_name, output_shape, replace_list))
+    t_root.append(t_result)
+    body = etree.tostring(t_root, pretty_print=True).decode('utf-8')
+    for replace in replace_list:
+        name = replace[0]
+        prefix = replace[1]
+        singular_name = singularize(name)
+
+        start_tag = '<%s>' % name
+        iter_name = '{}.{}'.format(prefix[-1], name.lower())if prefix else name.lower()
+        start_tag_to_replace = '<%s>\n{%% for %s in %s %%}' % (name, singular_name.lower(), iter_name)
+        # TODO: format indents
+        end_tag = '</%s>' % name
+        end_tag_to_replace = '{{ endfor }}\n</%s>' % name
+
+        body = body.replace(start_tag, start_tag_to_replace)
+        body = body.replace(end_tag, end_tag_to_replace)
+    print(body)
 
 @click.command()
 def main():
     service, operation = select_service_and_operation()
     initialize_service(service, operation)
 
+
 if __name__ == '__main__':
-    main()
+#    print(get_function_in_responses('elbv2', 'describe_listeners'))
+#    print(get_function_in_models('elbv2', 'describe_listeners'))
+    get_response_template('elbv2', 'describe_listeners')
+#    main()
