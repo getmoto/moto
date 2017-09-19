@@ -101,11 +101,13 @@ class AWSManagedPolicy(ManagedPolicy):
                    path=data.get('Path'),
                    document=data.get('Document'))
 
+
 # AWS defines some of its own managed policies and we periodically
 # import them via `make aws_managed_policies`
 aws_managed_policies = [
-        AWSManagedPolicy.from_data(name, d) for name, d
-        in json.loads(aws_managed_policies_data).items()]
+    AWSManagedPolicy.from_data(name, d) for name, d
+    in json.loads(aws_managed_policies_data).items()]
+
 
 class InlinePolicy(Policy):
     """TODO: is this needed?"""
