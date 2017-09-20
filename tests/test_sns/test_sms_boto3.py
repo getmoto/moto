@@ -82,3 +82,19 @@ def test_opt_in():
     response = conn.list_phone_numbers_opted_out()
     len(response['phoneNumbers']).should.be.greater_than(0)
     len(response['phoneNumbers']).should.be.lower_than(current_len)
+
+
+@mock_sns
+def test_add_remove_permissions():
+    conn = boto3.client('sns', region_name='us-east-1')
+
+    conn.add_permission(
+        TopicArn='arn:aws:sns:us-east-1:000000000000:terry_test',
+        Label='Test1234',
+        AWSAccountId=['999999999999'],
+        ActionName=['AddPermission']
+    )
+    conn.remove_permission(
+        TopicArn='arn:aws:sns:us-east-1:000000000000:terry_test',
+        Label='Test1234'
+    )

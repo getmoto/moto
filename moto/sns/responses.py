@@ -534,6 +534,30 @@ class SNSResponse(BaseResponse):
         template = self.response_template(OPT_IN_NUMBER_TEMPLATE)
         return template.render()
 
+    def add_permission(self):
+        arn = self._get_param('TopicArn')
+        label = self._get_param('Label')
+        accounts = self._get_multi_param('AWSAccountId.member.')
+        action = self._get_multi_param('ActionName.member.')
+
+        key = (arn, label)
+        self.backend.permissions[key] = {'accounts': accounts, 'action': action}
+
+        template = self.response_template(ADD_PERMISSION)
+        return template.render()
+
+    def remove_permission(self):
+        arn = self._get_param('TopicArn')
+        label = self._get_param('Label')
+
+        try:
+            key = (arn, label)
+            del self.backend.permissions[key]
+        except KeyError:
+            pass
+
+        template = self.response_template(DEL_PERMISSION)
+        return template.render()
 
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
@@ -894,5 +918,16 @@ OPT_IN_NUMBER_TEMPLATE = """<OptInPhoneNumberResponse xmlns="http://sns.amazonaw
   <ResponseMetadata>
     <RequestId>4c61842c-0796-50ef-95ac-d610c0bc8cf8</RequestId>
   </ResponseMetadata>
-</OptInPhoneNumberResponse>
-"""
+</OptInPhoneNumberResponse>"""
+
+ADD_PERMISSION = """<AddPermissionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <ResponseMetadata>
+    <RequestId>c046e713-c5ff-5888-a7bc-b52f0e4f1299</RequestId>
+  </ResponseMetadata>
+</AddPermissionResponse>"""
+
+DEL_PERMISSION = """<RemovePermissionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <ResponseMetadata>
+    <RequestId>e767cc9f-314b-5e1b-b283-9ea3fd4e38a3</RequestId>
+  </ResponseMetadata>
+</RemovePermissionResponse>"""

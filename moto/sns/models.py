@@ -174,6 +174,7 @@ class SNSBackend(BaseBackend):
         self.region_name = region_name
         self.sms_attributes = {}
         self.opt_out_numbers = ['+447420500600', '+447420505401', '+447632960543', '+447632960028', '+447700900149', '+447700900550', '+447700900545', '+447700900907']
+        self.permissions = {}
 
     def reset(self):
         region_name = self.region_name
