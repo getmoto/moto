@@ -67,5 +67,18 @@ def test_list_opted_out():
     response = conn.list_phone_numbers_opted_out()
 
     response.should.contain('phoneNumbers')
-    response['phoneNumbers'].should.contain('+447420500600')
-    response['phoneNumbers'].should.contain('+447420505401')
+    len(response['phoneNumbers']).should.be.greater_than(0)
+
+
+@mock_sns
+def test_opt_in():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.list_phone_numbers_opted_out()
+    current_len = len(response['phoneNumbers'])
+    assert current_len > 0
+
+    conn.opt_in_phone_number(phoneNumber=response['phoneNumbers'][0])
+
+    response = conn.list_phone_numbers_opted_out()
+    len(response['phoneNumbers']).should.be.greater_than(0)
+    len(response['phoneNumbers']).should.be.lower_than(current_len)

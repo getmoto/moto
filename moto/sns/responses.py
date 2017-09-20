@@ -521,7 +521,19 @@ class SNSResponse(BaseResponse):
 
     def list_phone_numbers_opted_out(self):
         template = self.response_template(LIST_OPTOUT_TEMPLATE)
-        return template.render(opt_outs=['+447420500600', '+447420505401'])
+        return template.render(opt_outs=self.backend.opt_out_numbers)
+
+    def opt_in_phone_number(self):
+        number = self._get_param('phoneNumber')
+
+        try:
+            self.backend.opt_out_numbers.remove(number)
+        except ValueError:
+            pass
+
+        template = self.response_template(OPT_IN_NUMBER_TEMPLATE)
+        return template.render()
+
 
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
@@ -876,3 +888,11 @@ LIST_OPTOUT_TEMPLATE = """<ListPhoneNumbersOptedOutResponse xmlns="http://sns.am
     <RequestId>985e196d-a237-51b6-b33a-4b5601276b38</RequestId>
   </ResponseMetadata>
 </ListPhoneNumbersOptedOutResponse>"""
+
+OPT_IN_NUMBER_TEMPLATE = """<OptInPhoneNumberResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <OptInPhoneNumberResult/>
+  <ResponseMetadata>
+    <RequestId>4c61842c-0796-50ef-95ac-d610c0bc8cf8</RequestId>
+  </ResponseMetadata>
+</OptInPhoneNumberResponse>
+"""
