@@ -194,3 +194,37 @@ def test_query_invalid_table():
         conn.query(TableName='invalid_table', KeyConditionExpression='index1 = :partitionkeyval', ExpressionAttributeValues={':partitionkeyval': {'S':'test'}})
     except ClientError as exception:
         assert exception.response['Error']['Code'] == "ResourceNotFoundException"
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_scan_returns_consumed_capacity():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+
+    conn.put_item(
+            TableName=name,
+            Item={
+                'forum_name': { 'S': 'LOLCat Forum' },
+                'subject': { 'S': 'Check this out!' },
+                'Body': { 'S': 'http://url_to_lolcat.gif'},
+                'SentBy': { 'S': "test" },
+                'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
+            }
+        )
+
+    response = conn.scan(
+        TableName=name,
+    )
+
+    assert 'ConsumedCapacity' in response
+    assert 'CapacityUnits' in response['ConsumedCapacity']
+    assert response['ConsumedCapacity']['TableName'] == name

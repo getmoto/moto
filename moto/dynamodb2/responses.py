@@ -427,7 +427,10 @@ class DynamoHandler(BaseResponse):
         result = {
             "Count": len(items),
             "Items": [item.attrs for item in items],
-            "ConsumedCapacityUnits": 1,
+            'ConsumedCapacity': {
+                'TableName': name,
+                'CapacityUnits': 1,
+            },
             "ScannedCount": scanned_count
         }
         if last_evaluated_key is not None:
