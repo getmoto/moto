@@ -540,15 +540,23 @@ class SNSResponse(BaseResponse):
         accounts = self._get_multi_param('AWSAccountId.member.')
         action = self._get_multi_param('ActionName.member.')
 
+        if arn not in self.backend.topics:
+            error_response = self._error('NotFound', 'Topic does not exist')
+            return error_response, dict(status=404)
+
         key = (arn, label)
         self.backend.permissions[key] = {'accounts': accounts, 'action': action}
 
-        template = self.response_template(ADD_PERMISSION)
+        template = self.response_template(ADD_PERMISSION_TEMPLATE)
         return template.render()
 
     def remove_permission(self):
         arn = self._get_param('TopicArn')
         label = self._get_param('Label')
+
+        if arn not in self.backend.topics:
+            error_response = self._error('NotFound', 'Topic does not exist')
+            return error_response, dict(status=404)
 
         try:
             key = (arn, label)
@@ -556,8 +564,28 @@ class SNSResponse(BaseResponse):
         except KeyError:
             pass
 
-        template = self.response_template(DEL_PERMISSION)
+        template = self.response_template(DEL_PERMISSION_TEMPLATE)
         return template.render()
+
+    def confirm_subscription(self):
+        arn = self._get_param('TopicArn')
+
+        if arn not in self.backend.topics:
+            error_response = self._error('NotFound', 'Topic does not exist')
+            return error_response, dict(status=404)
+
+        # Added other parts here for when they are needed
+        # token = self._get_param('Token')
+        # auth = self._get_param('AuthenticateOnUnsubscribe')
+        # if already_subscribed:
+        #     error_response = self._error(
+        #         code='AuthorizationError',
+        #         message='Subscription already confirmed'
+        #     )
+        #     return error_response, dict(status=400)
+
+        template = self.response_template(CONFIRM_SUBSCRIPTION_TEMPLATE)
+        return template.render(sub_arn='{0}:68762e72-e9b1-410a-8b3b-903da69ee1d5'.format(arn))
 
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
@@ -920,14 +948,23 @@ OPT_IN_NUMBER_TEMPLATE = """<OptInPhoneNumberResponse xmlns="http://sns.amazonaw
   </ResponseMetadata>
 </OptInPhoneNumberResponse>"""
 
-ADD_PERMISSION = """<AddPermissionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+ADD_PERMISSION_TEMPLATE = """<AddPermissionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <ResponseMetadata>
     <RequestId>c046e713-c5ff-5888-a7bc-b52f0e4f1299</RequestId>
   </ResponseMetadata>
 </AddPermissionResponse>"""
 
-DEL_PERMISSION = """<RemovePermissionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+DEL_PERMISSION_TEMPLATE = """<RemovePermissionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <ResponseMetadata>
     <RequestId>e767cc9f-314b-5e1b-b283-9ea3fd4e38a3</RequestId>
   </ResponseMetadata>
 </RemovePermissionResponse>"""
+
+CONFIRM_SUBSCRIPTION_TEMPLATE = """<ConfirmSubscriptionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <ConfirmSubscriptionResult>
+    <SubscriptionArn>{{ sub_arn }}</SubscriptionArn>
+  </ConfirmSubscriptionResult>
+  <ResponseMetadata>
+    <RequestId>16eb4dde-7b3c-5b3e-a22a-1fe2a92d3293</RequestId>
+  </ResponseMetadata>
+</ConfirmSubscriptionResponse>"""

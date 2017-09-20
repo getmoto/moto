@@ -77,6 +77,7 @@ class Subscription(BaseModel):
         self.protocol = protocol
         self.arn = make_arn_for_subscription(self.topic.arn)
         self.attributes = {}
+        self.confirmed = False
 
     def publish(self, message, message_id):
         if self.protocol == 'sqs':
