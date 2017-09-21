@@ -574,7 +574,12 @@ class SNSResponse(BaseResponse):
             error_response = self._error('NotFound', 'Topic does not exist')
             return error_response, dict(status=404)
 
-        # Added other parts here for when they are needed
+        # Once Tokens are stored by the `subscribe` endpoint and distributed
+        # to the client somehow, then we can check validity of tokens
+        # presented to this method. The following code works, all thats
+        # needed is to perform a token check and assign that value to the
+        # `already_subscribed` variable.
+        #
         # token = self._get_param('Token')
         # auth = self._get_param('AuthenticateOnUnsubscribe')
         # if already_subscribed:
