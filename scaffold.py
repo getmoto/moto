@@ -93,7 +93,7 @@ def render_teamplte(tmpl_dir, tmpl_filename, context, service, alt_filename=None
             f.write(rendered)
 
 
-def initialize_service(service, operation):
+def initialize_service(service, operation, api_protocol):
     """create lib and test dirs if not exist
     """
     lib_dir = os.path.join('moto', service)
@@ -142,7 +142,7 @@ def to_snake_case(s):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
-def get_function_in_responses(service, operation):
+def get_function_in_query_responses(service, operation):
     """refers to definition of API in botocore, and autogenerates function
     You can see example of elbv2 from link below.
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
@@ -223,8 +223,10 @@ def _get_subtree(name, shape, replace_list, name_prefix=[]):
     raise ValueError('Not supported Shape')
 
 
-def get_response_template(service, operation):
+def get_response_query_template(service, operation):
     """refers to definition of API in botocore, and autogenerates template
+    Assume that response format is xml when protocol is query
+
     You can see example of elbv2 from link below.
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
     """
@@ -254,6 +256,7 @@ def get_response_template(service, operation):
         t_result.append(_get_subtree(output_name, output_shape, replace_list))
     t_root.append(t_result)
     body = etree.tostring(t_root, pretty_print=True).decode('utf-8')
+    body_lines = body.splitlines()
     for replace in replace_list:
         name = replace[0]
         prefix = replace[1]
@@ -261,23 +264,39 @@ def get_response_template(service, operation):
 
         start_tag = '<%s>' % name
         iter_name = '{}.{}'.format(prefix[-1], name.lower())if prefix else name.lower()
-        start_tag_to_replace = '<%s>\n{%% for %s in %s %%}' % (name, singular_name.lower(), iter_name)
-        # TODO: format indents
+        loop_start = '{%% for %s in %s %%}' % (singular_name.lower(), iter_name)
         end_tag = '</%s>' % name
-        end_tag_to_replace = '{{ endfor }}\n</%s>' % name
+        loop_end = '{{ endfor }}'
 
-        body = body.replace(start_tag, start_tag_to_replace)
-        body = body.replace(end_tag, end_tag_to_replace)
-    print(body)
+        start_tag_indexes = [i for i, l in enumerate(body_lines) if start_tag in l]
+        if len(start_tag_indexes) != 1:
+            raise Exception('tag %s not found in response body' % start_tag)
+        start_tag_index = start_tag_indexes[0]
+        body_lines.insert(start_tag_index + 1, loop_start)
+
+        end_tag_indexes = [i for i, l in enumerate(body_lines) if end_tag in l]
+        if len(end_tag_indexes) != 1:
+            raise Exception('tag %s not found in response body' % end_tag)
+        end_tag_index = end_tag_indexes[0]
+        body_lines.insert(end_tag_index, loop_end)
+    body = '\n'.join(body_lines)
+    return body
 
 @click.command()
 def main():
     service, operation = select_service_and_operation()
-    initialize_service(service, operation)
+    api_protocol = boto3.client(service_name)._service_model.metadata['protocol']
+    initialize_service(service, operation, api_protocol)
+    if api_protocol == 'query':
+        func_in_responses = get_function_in_responses(service, operation)
+        func_in_models = get_function_in_models(service, operation)
+        teamplte = get_response_xml_template(service, operation)
+
 
 
 if __name__ == '__main__':
 #    print(get_function_in_responses('elbv2', 'describe_listeners'))
 #    print(get_function_in_models('elbv2', 'describe_listeners'))
-    get_response_template('elbv2', 'describe_listeners')
+    b = get_response_query_template('elbv2', 'describe_listeners')
+    print(b)
 #    main()
