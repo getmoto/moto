@@ -349,6 +349,15 @@ def insert_json_codes(service, operation):
     print_progress('inserting code', models_path, 'green')
     insert_code_to_class(models_path, BaseBackend, func_in_models)
 
+def insert_restjson_codes(service, operation):
+    func_in_models = get_function_in_models(service, operation)
+
+    print_progress('skipping inserting code to responses.py', "dont't know how to implement", 'yellow')
+    # edit models.py
+    models_path = 'moto/{}/models.py'.format(service)
+    print_progress('inserting code', models_path, 'green')
+    insert_code_to_class(models_path, BaseBackend, func_in_models)
+
 @click.command()
 def main():
     service, operation = select_service_and_operation()
@@ -358,7 +367,8 @@ def main():
         insert_query_codes(service, operation)
     elif api_protocol == 'json':
         insert_json_codes(service, operation)
-        pass
+    elif api_protocol == 'rest-json':
+        insert_restjson_codes(service, operation)
     else:
         print_progress('skip inserting code', 'api protocol "{}" is not supported'.format(api_protocol), 'yellow')
 
