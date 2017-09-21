@@ -12,3 +12,4 @@ six>=1.9
 prompt-toolkit==1.0.14
 click==6.7
 inflection==0.3.1
+lxml==4.0.0
