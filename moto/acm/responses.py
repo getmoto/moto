@@ -162,4 +162,3 @@ class AWSCertificateManagerResponse(BaseResponse):
 
     def resend_validation_email(self):
         raise NotImplementedError()
-

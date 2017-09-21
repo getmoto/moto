@@ -236,7 +236,6 @@ class AWSCertificateManagerBackend(BaseBackend):
                 pass
 
 
-
 acm_backends = {}
 for region, ec2_backend in ec2_backends.items():
     acm_backends[region] = AWSCertificateManagerBackend(region)
