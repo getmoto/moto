@@ -60,4 +60,4 @@ with open(output_file, 'w') as f:
                      indent=4,
                      separators=(',', ': '),
                      default=json_serial))
-    f.write(triple_quote)
+    f.write('{}\n'.format(triple_quote))

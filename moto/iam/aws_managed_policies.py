@@ -2641,6 +2641,124 @@ aws_managed_policies_data = """
         "UpdateDate": "2016-12-21T02:01:55+00:00",
         "VersionId": "v4"
     },
+    "AWSElasticLoadBalancingClassicServiceRolePolicy": {
+        "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSElasticLoadBalancingClassicServiceRolePolicy",
+        "AttachmentCount": 0,
+        "CreateDate": "2017-09-19T22:36:18+00:00",
+        "DefaultVersionId": "v1",
+        "Document": {
+            "Statement": [
+                {
+                    "Action": [
+                        "ec2:DescribeAddresses",
+                        "ec2:DescribeInstances",
+                        "ec2:DescribeSubnets",
+                        "ec2:DescribeSecurityGroups",
+                        "ec2:DescribeVpcs",
+                        "ec2:DescribeInternetGateways",
+                        "ec2:DescribeAccountAttributes",
+                        "ec2:DescribeClassicLinkInstances",
+                        "ec2:DescribeVpcClassicLink",
+                        "ec2:CreateSecurityGroup",
+                        "ec2:CreateNetworkInterface",
+                        "ec2:DeleteNetworkInterface",
+                        "ec2:ModifyNetworkInterface",
+                        "ec2:ModifyNetworkInterfaceAttribute",
+                        "ec2:AuthorizeSecurityGroupIngress",
+                        "ec2:AssociateAddress",
+                        "ec2:DisassociateAddress",
+                        "ec2:AttachNetworkInterface",
+                        "ec2:DetachNetworkInterface",
+                        "ec2:AssignPrivateIpAddresses",
+                        "ec2:AssignIpv6Addresses",
+                        "ec2:UnassignIpv6Addresses"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "IsAttachable": true,
+        "IsDefaultVersion": true,
+        "Path": "/aws-service-role/",
+        "PolicyId": "ANPAIUMWW3QP7DPZPNVU4",
+        "PolicyName": "AWSElasticLoadBalancingClassicServiceRolePolicy",
+        "UpdateDate": "2017-09-19T22:36:18+00:00",
+        "VersionId": "v1"
+    },
+    "AWSElasticLoadBalancingServiceRolePolicy": {
+        "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSElasticLoadBalancingServiceRolePolicy",
+        "AttachmentCount": 0,
+        "CreateDate": "2017-09-19T22:19:04+00:00",
+        "DefaultVersionId": "v1",
+        "Document": {
+            "Statement": [
+                {
+                    "Action": [
+                        "ec2:DescribeAddresses",
+                        "ec2:DescribeInstances",
+                        "ec2:DescribeSubnets",
+                        "ec2:DescribeSecurityGroups",
+                        "ec2:DescribeVpcs",
+                        "ec2:DescribeInternetGateways",
+                        "ec2:DescribeAccountAttributes",
+                        "ec2:DescribeClassicLinkInstances",
+                        "ec2:DescribeVpcClassicLink",
+                        "ec2:CreateSecurityGroup",
+                        "ec2:CreateNetworkInterface",
+                        "ec2:DeleteNetworkInterface",
+                        "ec2:ModifyNetworkInterface",
+                        "ec2:ModifyNetworkInterfaceAttribute",
+                        "ec2:AuthorizeSecurityGroupIngress",
+                        "ec2:AssociateAddress",
+                        "ec2:DisassociateAddress",
+                        "ec2:AttachNetworkInterface",
+                        "ec2:DetachNetworkInterface",
+                        "ec2:AssignPrivateIpAddresses",
+                        "ec2:AssignIpv6Addresses",
+                        "ec2:UnassignIpv6Addresses"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "IsAttachable": true,
+        "IsDefaultVersion": true,
+        "Path": "/aws-service-role/",
+        "PolicyId": "ANPAIMHWGGSRHLOQUICJQ",
+        "PolicyName": "AWSElasticLoadBalancingServiceRolePolicy",
+        "UpdateDate": "2017-09-19T22:19:04+00:00",
+        "VersionId": "v1"
+    },
+    "AWSEnhancedClassicNetworkingMangementPolicy": {
+        "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSEnhancedClassicNetworkingMangementPolicy",
+        "AttachmentCount": 0,
+        "CreateDate": "2017-09-20T17:29:09+00:00",
+        "DefaultVersionId": "v1",
+        "Document": {
+            "Statement": [
+                {
+                    "Action": [
+                        "ec2:DescribeInstances",
+                        "ec2:DescribeSecurityGroups"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "IsAttachable": true,
+        "IsDefaultVersion": true,
+        "Path": "/aws-service-role/",
+        "PolicyId": "ANPAI7T4V2HZTS72QVO52",
+        "PolicyName": "AWSEnhancedClassicNetworkingMangementPolicy",
+        "UpdateDate": "2017-09-20T17:29:09+00:00",
+        "VersionId": "v1"
+    },
     "AWSGlueConsoleFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess",
         "AttachmentCount": 0,
@@ -7078,8 +7196,8 @@ aws_managed_policies_data = """
     "AmazonElasticMapReduceFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonElasticMapReduceFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2015-12-21T23:20:38+00:00",
-        "DefaultVersionId": "v4",
+        "CreateDate": "2017-09-20T19:27:37+00:00",
+        "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
                 {
@@ -7130,6 +7248,16 @@ aws_managed_policies_data = """
                     ],
                     "Effect": "Allow",
                     "Resource": "*"
+                },
+                {
+                    "Action": "iam:CreateServiceLinkedRole",
+                    "Condition": {
+                        "StringLike": {
+                            "iam:AWSServiceName": "elasticmapreduce.amazonaws.com"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:iam::*:role/aws-service-role/elasticmapreduce.amazonaws.com/AWSServiceRoleForEMRCleanup"
                 }
             ],
             "Version": "2012-10-17"
@@ -7139,8 +7267,8 @@ aws_managed_policies_data = """
         "Path": "/",
         "PolicyId": "ANPAIZP5JFP3AMSGINBB2",
         "PolicyName": "AmazonElasticMapReduceFullAccess",
-        "UpdateDate": "2015-12-21T23:20:38+00:00",
-        "VersionId": "v4"
+        "UpdateDate": "2017-09-20T19:27:37+00:00",
+        "VersionId": "v5"
     },
     "AmazonElasticMapReduceReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonElasticMapReduceReadOnlyAccess",
