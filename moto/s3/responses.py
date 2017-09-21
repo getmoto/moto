@@ -636,6 +636,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
         acl = self._acl_from_headers(request.headers)
+        if acl is None:
+            acl = self.backend.get_bucket(bucket_name).acl
         tagging = self._tagging_from_headers(request.headers)
 
         if 'acl' in query:
@@ -740,7 +742,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if grants:
             return FakeAcl(grants)
         else:
-            return get_canned_acl('private')
+            return None
 
     def _tagging_from_headers(self, headers):
         if headers.get('x-amz-tagging'):
