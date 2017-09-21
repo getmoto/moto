@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from moto.acm import acm_backends
 from moto.apigateway import apigateway_backends
 from moto.autoscaling import autoscaling_backends
 from moto.awslambda import lambda_backends
@@ -33,6 +34,7 @@ from moto.ssm import ssm_backends
 from moto.sts import sts_backends
 
 BACKENDS = {
+    'acm': acm_backends,
     'apigateway': apigateway_backends,
     'autoscaling': autoscaling_backends,
     'cloudformation': cloudformation_backends,

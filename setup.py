@@ -7,6 +7,7 @@ install_requires = [
     "boto>=2.36.0",
     "boto3>=1.2.1",
     "cookies",
+    "cryptography>=2.0.0",
     "requests>=2.5",
     "xmltodict",
     "dicttoxml",

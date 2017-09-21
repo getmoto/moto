@@ -5,6 +5,7 @@ import logging
 __title__ = 'moto'
 __version__ = '1.0.1'
 
+from .acm import mock_acm  # flake8: noqa
 from .apigateway import mock_apigateway, mock_apigateway_deprecated  # flake8: noqa
 from .autoscaling import mock_autoscaling, mock_autoscaling_deprecated  # flake8: noqa
 from .awslambda import mock_lambda, mock_lambda_deprecated  # flake8: noqa
