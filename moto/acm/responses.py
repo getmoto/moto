@@ -30,7 +30,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
     def add_tags_to_certificate(self):
         arn = self._get_param('CertificateArn')
-        tags = self._get_list_prefix('Tags')
+        tags = self._get_param('Tags')
 
         if arn is None:
             msg = 'A required parameter for the specified action is not supplied.'
@@ -58,7 +58,18 @@ class AWSCertificateManagerResponse(BaseResponse):
         return ''
 
     def describe_certificate(self):
-        raise NotImplementedError()
+        arn = self._get_param('CertificateArn')
+
+        if arn is None:
+            msg = 'A required parameter for the specified action is not supplied.'
+            return {'__type': 'MissingParameter', 'message': msg}, dict(status=400)
+
+        try:
+            cert_bundle = self.acm_backend.get_certificate(arn)
+        except AWSError as err:
+            return err.response()
+
+        return json.dumps(cert_bundle.describe())
 
     def get_certificate(self):
         arn = self._get_param('CertificateArn')
@@ -79,7 +90,18 @@ class AWSCertificateManagerResponse(BaseResponse):
         return json.dumps(result)
 
     def import_certificate(self):
-        # TODO comment on what raises exceptions for all branches
+        """
+        Returns errors on:
+        Certificate, PrivateKey or Chain not being properly formatted
+        Arn not existing if its provided
+        PrivateKey size > 2048
+        Certificate expired or is not yet in effect
+
+        Does not return errors on:
+        Checking Certificate is legit, or a selfsigned chain is provided
+
+        :return: str(JSON) for response
+        """
         certificate = self._get_param('Certificate')
         private_key = self._get_param('PrivateKey')
         chain = self._get_param('CertificateChain')  # Optional
@@ -134,7 +156,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         result = {'Tags': []}
         # Tag "objects" can not contain the Value part
-        for key, value in cert_bundle.tags:
+        for key, value in cert_bundle.tags.items():
             tag_dict = {'Key': key}
             if value is not None:
                 tag_dict['Value'] = value
@@ -144,7 +166,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
     def remove_tags_from_certificate(self):
         arn = self._get_param('CertificateArn')
-        tags = self._get_list_prefix('Tags')
+        tags = self._get_param('Tags')
 
         if arn is None:
             msg = 'A required parameter for the specified action is not supplied.'
