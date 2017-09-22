@@ -2,6 +2,11 @@ from moto.core import BaseBackend, BaseModel
 import boto.ec2.cloudwatch
 import datetime
 
+from .utils import make_arn_for_dashboard
+
+
+DEFAULT_ACCOUNT_ID = 123456789012
+
 
 class Dimension(object):
 
@@ -44,10 +49,34 @@ class MetricDatum(BaseModel):
                                      'value']) for dimension in dimensions]
 
 
+class Dashboard(BaseModel):
+    def __init__(self, name, body):
+        # Guaranteed to be unique for now as the name is also the key of a dictionary where they are stored
+        self.arn = make_arn_for_dashboard(DEFAULT_ACCOUNT_ID, name)
+        self.name = name
+        self.body = body
+        self.last_modified = datetime.datetime.now()
+
+    @property
+    def last_modified_iso(self):
+        return self.last_modified.isoformat()
+
+    @property
+    def size(self):
+        return len(self)
+
+    def __len__(self):
+        return len(self.body)
+
+    def __repr__(self):
+        return '<CloudWatchDashboard {0}>'.format(self.name)
+
+
 class CloudWatchBackend(BaseBackend):
 
     def __init__(self):
         self.alarms = {}
+        self.dashboards = {}
         self.metric_data = []
 
     def put_metric_alarm(self, name, namespace, metric_name, comparison_operator, evaluation_periods,
@@ -109,6 +138,31 @@ class CloudWatchBackend(BaseBackend):
 
     def get_all_metrics(self):
         return self.metric_data
+
+    def put_dashboard(self, name, body):
+        self.dashboards[name] = Dashboard(name, body)
+
+    def list_dashboards(self, prefix=''):
+        for key, value in self.dashboards.items():
+            if key.startswith(prefix):
+                yield value
+
+    def delete_dashboards(self, dashboards):
+        to_delete = set(dashboards)
+        all_dashboards = set(self.dashboards.keys())
+
+        left_over = to_delete - all_dashboards
+        if len(left_over) > 0:
+            # Some dashboards are not found
+            return False, 'The specified dashboard does not exist. [{0}]'.format(', '.join(left_over))
+
+        for dashboard in to_delete:
+            del self.dashboards[dashboard]
+
+        return True, None
+
+    def get_dashboard(self, dashboard):
+        return self.dashboards.get(dashboard)
 
 
 class LogGroup(BaseModel):
