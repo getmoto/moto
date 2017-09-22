@@ -310,7 +310,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
             param_index += 1
         return results
 
-    def _get_map_prefix(self, param_prefix):
+    def _get_map_prefix(self, param_prefix, key_end='.key', value_end='.value'):
         results = {}
         param_index = 1
         while 1:
@@ -319,9 +319,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
             k, v = None, None
             for key, value in self.querystring.items():
                 if key.startswith(index_prefix):
-                    if key.endswith('.key'):
+                    if key.endswith(key_end):
                         k = value[0]
-                    elif key.endswith('.value'):
+                    elif key.endswith(value_end):
                         v = value[0]
 
             if not (k and v):

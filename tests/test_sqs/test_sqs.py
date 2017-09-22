@@ -8,7 +8,6 @@ from boto.exception import SQSError
 from boto.sqs.message import RawMessage, Message
 
 import base64
-import requests
 import sure  # noqa
 import time
 
@@ -16,6 +15,39 @@ from moto import settings, mock_sqs, mock_sqs_deprecated
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
+
+
+@mock_sqs
+def test_create_fifo_queue_fail():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+
+    try:
+        sqs.create_queue(
+            QueueName='test-queue',
+            Attributes={
+                'FifoQueue': 'true',
+            }
+        )
+    except botocore.exceptions.ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameterValue')
+    else:
+        raise RuntimeError('Should of raised InvalidParameterValue Exception')
+
+@mock_sqs
+def test_create_fifo_queue():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+    resp = sqs.create_queue(
+        QueueName='test-queue.fifo',
+        Attributes={
+            'FifoQueue': 'true',
+        }
+    )
+    queue_url = resp['QueueUrl']
+
+    response = sqs.get_queue_attributes(QueueUrl=queue_url)
+    response['Attributes'].should.contain('FifoQueue')
+    response['Attributes']['FifoQueue'].should.equal('true')
+
 
 
 @mock_sqs
@@ -39,6 +71,7 @@ def test_get_inexistent_queue():
     sqs.get_queue_by_name.when.called_with(
         QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
 
+
 @mock_sqs
 def test_message_send_without_attributes():
     sqs = boto3.resource('sqs', region_name='us-east-1')
@@ -55,6 +88,7 @@ def test_message_send_without_attributes():
 
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
+
 
 @mock_sqs
 def test_message_send_with_attributes():
@@ -228,6 +262,7 @@ def test_send_receive_message_without_attributes():
 
     message1.shouldnt.have.key('MD5OfMessageAttributes')
     message2.shouldnt.have.key('MD5OfMessageAttributes')
+
 
 @mock_sqs
 def test_send_receive_message_with_attributes():

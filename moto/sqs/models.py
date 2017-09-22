@@ -12,10 +12,7 @@ import boto.sqs
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import camelcase_to_underscores, get_random_message_id, unix_time, unix_time_millis
 from .utils import generate_receipt_handle
-from .exceptions import (
-    ReceiptHandleIsInvalid,
-    MessageNotInflight
-)
+from .exceptions import ReceiptHandleIsInvalid, MessageNotInflight, MessageAttributesInvalid
 
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
@@ -151,8 +148,12 @@ class Queue(BaseModel):
     camelcase_attributes = ['ApproximateNumberOfMessages',
                             'ApproximateNumberOfMessagesDelayed',
                             'ApproximateNumberOfMessagesNotVisible',
+                            'ContentBasedDeduplication',
                             'CreatedTimestamp',
                             'DelaySeconds',
+                            'FifoQueue',
+                            'KmsDataKeyReusePeriodSeconds',
+                            'KmsMasterKeyId',
                             'LastModifiedTimestamp',
                             'MaximumMessageSize',
                             'MessageRetentionPeriod',
@@ -161,25 +162,35 @@ class Queue(BaseModel):
                             'VisibilityTimeout',
                             'WaitTimeSeconds']
 
-    def __init__(self, name, visibility_timeout, wait_time_seconds, region):
+    def __init__(self, name, region, **kwargs):
         self.name = name
-        self.visibility_timeout = visibility_timeout or 30
+        self.visibility_timeout = int(kwargs.get('VisibilityTimeout', 30))
         self.region = region
 
-        # wait_time_seconds will be set to immediate return messages
-        self.wait_time_seconds = int(wait_time_seconds) if wait_time_seconds else 0
         self._messages = []
 
         now = unix_time()
 
+        # kwargs can also have:
+        # [Policy, RedrivePolicy]
+        self.fifo_queue = kwargs.get('FifoQueue', 'false') == 'true'
+        self.content_based_deduplication = kwargs.get('ContentBasedDeduplication', 'false') == 'true'
+        self.kms_master_key_id = kwargs.get('KmsMasterKeyId', 'alias/aws/sqs')
+        self.kms_data_key_reuse_period_seconds = int(kwargs.get('KmsDataKeyReusePeriodSeconds', 300))
         self.created_timestamp = now
-        self.delay_seconds = 0
+        self.delay_seconds = int(kwargs.get('DelaySeconds', 0))
         self.last_modified_timestamp = now
-        self.maximum_message_size = 64 << 10
-        self.message_retention_period = 86400 * 4  # four days
-        self.queue_arn = 'arn:aws:sqs:{0}:123456789012:{1}'.format(
-            self.region, self.name)
-        self.receive_message_wait_time_seconds = 0
+        self.maximum_message_size = int(kwargs.get('MaximumMessageSize', 64 << 10))
+        self.message_retention_period = int(kwargs.get('MessageRetentionPeriod', 86400 * 4))  # four days
+        self.queue_arn = 'arn:aws:sqs:{0}:123456789012:{1}'.format(self.region, self.name)
+        self.receive_message_wait_time_seconds = int(kwargs.get('ReceiveMessageWaitTimeSeconds', 0))
+
+        # wait_time_seconds will be set to immediate return messages
+        self.wait_time_seconds = int(kwargs.get('WaitTimeSeconds', 0))
+
+        # Check some conditions
+        if self.fifo_queue and not self.name.endswith('.fifo'):
+            raise MessageAttributesInvalid('Queue name must end in .fifo for FIFO queues')
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -188,8 +199,8 @@ class Queue(BaseModel):
         sqs_backend = sqs_backends[region_name]
         return sqs_backend.create_queue(
             name=properties['QueueName'],
-            visibility_timeout=properties.get('VisibilityTimeout'),
-            wait_time_seconds=properties.get('WaitTimeSeconds')
+            region=region_name,
+            **properties
         )
 
     @classmethod
@@ -233,8 +244,10 @@ class Queue(BaseModel):
     def attributes(self):
         result = {}
         for attribute in self.camelcase_attributes:
-            result[attribute] = getattr(
-                self, camelcase_to_underscores(attribute))
+            attr = getattr(self, camelcase_to_underscores(attribute))
+            if isinstance(attr, bool):
+                attr = str(attr).lower()
+            result[attribute] = attr
         return result
 
     def url(self, request_url):
@@ -268,11 +281,10 @@ class SQSBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_queue(self, name, visibility_timeout, wait_time_seconds):
+    def create_queue(self, name, **kwargs):
         queue = self.queues.get(name)
         if queue is None:
-            queue = Queue(name, visibility_timeout,
-                          wait_time_seconds, self.region_name)
+            queue = Queue(name, **kwargs, region=self.region_name)
             self.queues[name] = queue
         return queue
 
