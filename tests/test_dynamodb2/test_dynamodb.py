@@ -281,7 +281,7 @@ def test_query_returns_consumed_capacity():
     assert results['ConsumedCapacity']['CapacityUnits'] == 1
 
 @mock_dynamodb2
-def test_projection_expressions():
+def test_basic_projection_expressions():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
     # Create the DynamoDB table.
@@ -352,3 +352,62 @@ def test_projection_expressions():
     assert results['Items'][0]['body'] == 'some test message'
     assert 'body' in results['Items'][1]
     assert results['Items'][1]['body'] == 'yet another test message'
+
+@mock_dynamodb2
+def test_basic_projection_expressions_with_attr_expression_names():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': 'some test message'
+    })
+
+    table.put_item(Item={
+        'forum_name': 'not-the-key',
+        'subject': '123',
+        'body': 'some other test message'
+    })
+    # Test a query returning all items
+
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key'),
+        ProjectionExpression='#rl, subject',
+        ExpressionAttributeNames={'#rl':'body'},
+    )
+
+    assert 'body' in results['Items'][0]
+    assert results['Items'][0]['body'] == 'some test message'
+    assert 'subject' in results['Items'][0]
+    assert results['Items'][0]['subject'] == '123'

@@ -277,6 +277,13 @@ class DynamoHandler(BaseResponse):
         # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
         key_condition_expression = self.body.get('KeyConditionExpression')
         projection_expression = self.body.get('ProjectionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames')
+
+        if projection_expression and expression_attribute_names:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            for expression in expressions:
+                if expression in expression_attribute_names:
+                    projection_expression = projection_expression.replace(expression, expression_attribute_names[expression])
 
         filter_kwargs = {}
         if key_condition_expression:
