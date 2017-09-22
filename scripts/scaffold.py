@@ -24,7 +24,7 @@ from implementation_coverage import (
 )
 from inflection import singularize
 
-TEMPLATE_DIR = './template'
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), './template')
 
 INPUT_IGNORED_IN_BACKEND = ['Marker', 'PageSize']
 OUTPUT_IGNORED_IN_BACKEND = ['NextMarker']

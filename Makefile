@@ -19,3 +19,7 @@ publish:
 	python setup.py sdist bdist_wheel upload
 	git tag `python setup.py --version`
 	git push origin `python setup.py --version`
+
+scaffold:
+	@pip install -r requirements-dev.txt > /dev/null
+	@python scripts/scaffold.py
