@@ -100,6 +100,36 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(LIST_METRICS_TEMPLATE)
         return template.render(metrics=metrics)
 
+    def delete_dashboards(self):
+        raise NotImplementedError()
+
+    def describe_alarm_history(self):
+        raise NotImplementedError()
+
+    def describe_alarms_for_metric(self):
+        raise NotImplementedError()
+
+    def disable_alarm_actions(self):
+        raise NotImplementedError()
+
+    def enable_alarm_actions(self):
+        raise NotImplementedError()
+
+    def get_dashboard(self):
+        raise NotImplementedError()
+
+    def get_metric_statistics(self):
+        raise NotImplementedError()
+
+    def list_dashboards(self):
+        raise NotImplementedError()
+
+    def put_dashboard(self):
+        raise NotImplementedError()
+
+    def set_alarm_state(self):
+        raise NotImplementedError()
+
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
