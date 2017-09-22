@@ -9,7 +9,8 @@ from moto.ec2 import ec2_backends
 from .utils import make_arn_for_certificate
 
 import cryptography.x509
-from cryptography.hazmat.primitives import serialization
+import cryptography.hazmat.primitives.asymmetric.rsa
+from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
 
 
@@ -69,7 +70,7 @@ class AWSResourceNotFoundException(AWSError):
 
 
 class CertBundle(BaseModel):
-    def __init__(self, certificate, private_key, chain=None, region='us-east-1', arn=None, cert_type='IMPORTED'):
+    def __init__(self, certificate, private_key, chain=None, region='us-east-1', arn=None, cert_type='IMPORTED', cert_status='ISSUED'):
         self.created_at = datetime.datetime.now()
         self.cert = certificate
         self._cert = None
@@ -80,6 +81,7 @@ class CertBundle(BaseModel):
         self.tags = {}
         self._chain = None
         self.type = cert_type  # Should really be an enum
+        self.status = cert_status  # Should really be an enum
 
         # AWS always returns your chain + root CA
         if self.chain is None:
@@ -101,6 +103,56 @@ class CertBundle(BaseModel):
             self.arn = make_arn_for_certificate(DEFAULT_ACCOUNT_ID, region)
         else:
             self.arn = arn
+
+    @classmethod
+    def generate_cert(cls, domain_name, sans=None):
+        if sans is None:
+            sans = set()
+        else:
+            sans = set(sans)
+
+        sans.add(domain_name)
+        sans = [cryptography.x509.DNSName(item) for item in sans]
+
+        key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+        subject = cryptography.x509.Name([
+            cryptography.x509.NameAttribute(cryptography.x509.NameOID.COUNTRY_NAME, u"US"),
+            cryptography.x509.NameAttribute(cryptography.x509.NameOID.STATE_OR_PROVINCE_NAME, u"CA"),
+            cryptography.x509.NameAttribute(cryptography.x509.NameOID.LOCALITY_NAME, u"San Francisco"),
+            cryptography.x509.NameAttribute(cryptography.x509.NameOID.ORGANIZATION_NAME, u"My Company"),
+            cryptography.x509.NameAttribute(cryptography.x509.NameOID.COMMON_NAME, domain_name),
+        ])
+        issuer = cryptography.x509.Name([  # C = US, O = Amazon, OU = Server CA 1B, CN = Amazon
+            cryptography.x509.NameAttribute(cryptography.x509.NameOID.COUNTRY_NAME, u"US"),
+            cryptography.x509.NameAttribute(cryptography.x509.NameOID.ORGANIZATION_NAME, u"Amazon"),
+            cryptography.x509.NameAttribute(cryptography.x509.NameOID.ORGANIZATIONAL_UNIT_NAME, u"Server CA 1B"),
+            cryptography.x509.NameAttribute(cryptography.x509.NameOID.COMMON_NAME, u"Amazon"),
+        ])
+        cert = cryptography.x509.CertificateBuilder().subject_name(
+            subject
+        ).issuer_name(
+            issuer
+        ).public_key(
+            key.public_key()
+        ).serial_number(
+            cryptography.x509.random_serial_number()
+        ).not_valid_before(
+            datetime.datetime.utcnow()
+        ).not_valid_after(
+            datetime.datetime.utcnow() + datetime.timedelta(days=365)
+        ).add_extension(
+            cryptography.x509.SubjectAlternativeName(sans),
+            critical=False,
+        ).sign(key, hashes.SHA512(), default_backend())
+
+        cert_armored = cert.public_bytes(serialization.Encoding.PEM)
+        private_key = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+
+        return cls(cert_armored, private_key, cert_type='AMAZON_ISSUED', cert_status='PENDING_VALIDATION')
 
     def validate_pk(self):
         try:
@@ -160,15 +212,27 @@ class CertBundle(BaseModel):
                 raise
             raise AWSValidationException('The certificate is not PEM-encoded or is not valid.')
 
-    def describe(self):
-        #'RenewalSummary': {},  # Only when cert is amazon issued
+    def check(self):
+        # Basically, if the certificate is pending, and then checked again after 1 min
+        # It will appear as if its been validated
+        if self.type == 'AMAZON_ISSUED' and self.status == 'PENDING_VALIDATION' and \
+           (datetime.datetime.now() - self.created_at).total_seconds() > 60:  # 1min
+            self.status = 'ISSUED'
 
+    def describe(self):
+        # 'RenewalSummary': {},  # Only when cert is amazon issued
         if self._key.key_size == 1024:
             key_algo = 'RSA_1024'
         elif self._key.key_size == 2048:
             key_algo = 'RSA_2048'
         else:
             key_algo = 'EC_prime256v1'
+
+        # Look for SANs
+        san_obj = self._cert.extensions.get_extension_for_oid(cryptography.x509.OID_SUBJECT_ALTERNATIVE_NAME)
+        sans = []
+        if san_obj is not None:
+            sans = [item.value for item in san_obj.value]
 
         result = {
             'Certificate': {
@@ -181,9 +245,9 @@ class CertBundle(BaseModel):
                 'NotBefore': datetime_to_epoch(self._cert.not_valid_before),
                 'Serial': self._cert.serial,
                 'SignatureAlgorithm': self._cert.signature_algorithm_oid._name.upper().replace('ENCRYPTION', ''),
-                'Status': 'ISSUED',  # One of PENDING_VALIDATION, ISSUED, INACTIVE, EXPIRED, VALIDATION_TIMED_OUT, REVOKED, FAILED.
+                'Status': self.status,  # One of PENDING_VALIDATION, ISSUED, INACTIVE, EXPIRED, VALIDATION_TIMED_OUT, REVOKED, FAILED.
                 'Subject': 'CN={0}'.format(self.common_name),
-                'SubjectAlternativeNames': [],
+                'SubjectAlternativeNames': sans,
                 'Type': self.type  # One of IMPORTED, AMAZON_ISSUED
             }
         }
@@ -208,15 +272,43 @@ class AWSCertificateManagerBackend(BaseBackend):
         super(AWSCertificateManagerBackend, self).__init__()
         self.region = region
         self._certificates = {}
+        self._idempotency_tokens = {}
 
     def reset(self):
         region = self.region
         self.__dict__ = {}
         self.__init__(region)
 
-    def _arn_not_found(self, arn):
+    @staticmethod
+    def _arn_not_found(arn):
         msg = 'Certificate with arn {0} not found in account {1}'.format(arn, DEFAULT_ACCOUNT_ID)
         return AWSResourceNotFoundException(msg)
+
+    def _get_arn_from_idempotency_token(self, token):
+        """
+        If token doesnt exist, return None, later it will be
+        set with an expiry and arn.
+
+        If token expiry has passed, delete entry and return None
+
+        Else return ARN
+
+        :param token: String token
+        :return: None or ARN
+        """
+        now = datetime.datetime.now()
+        if token in self._idempotency_tokens:
+            if self._idempotency_tokens[token]['expires'] < now:
+                # Token has expired, new request
+                del self._idempotency_tokens[token]
+                return None
+            else:
+                return self._idempotency_tokens[token]['arn']
+
+        return None
+
+    def _set_idempotency_token_arn(self, token, arn):
+        self._idempotency_tokens[token] = {'arn': arn, 'expires': datetime.datetime.now() + datetime.timedelta(hours=1)}
 
     def import_cert(self, certificate, private_key, chain=None, arn=None):
         if arn is not None:
@@ -240,19 +332,35 @@ class AWSCertificateManagerBackend(BaseBackend):
         :return: List of certificates
         :rtype: list of CertBundle
         """
-        return self._certificates.values()
+        for arn in self._certificates.keys():
+            yield self.get_certificate(arn)
 
     def get_certificate(self, arn):
         if arn not in self._certificates:
             raise self._arn_not_found(arn)
 
-        return self._certificates[arn]
+        cert_bundle = self._certificates[arn]
+        cert_bundle.check()
+        return cert_bundle
 
     def delete_certificate(self, arn):
         if arn not in self._certificates:
             raise self._arn_not_found(arn)
 
         del self._certificates[arn]
+
+    def request_certificate(self, domain_name, domain_validation_options, idempotency_token, subject_alt_names):
+        if idempotency_token is not None:
+            arn = self._get_arn_from_idempotency_token(idempotency_token)
+            if arn is not None:
+                return arn
+
+        cert = CertBundle.generate_cert(domain_name, subject_alt_names)
+        if idempotency_token is not None:
+            self._set_idempotency_token_arn(idempotency_token, cert.arn)
+        self._certificates[cert.arn] = cert
+
+        return cert.arn
 
     def add_tags_to_certificate(self, arn, tags):
         # get_cert does arn check

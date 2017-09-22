@@ -34,7 +34,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         if arn is None:
             msg = 'A required parameter for the specified action is not supplied.'
-            return {'__type': 'MissingParameter', 'message': msg}, dict(status=400)
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
 
         try:
             self.acm_backend.add_tags_to_certificate(arn, tags)
@@ -48,7 +48,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         if arn is None:
             msg = 'A required parameter for the specified action is not supplied.'
-            return {'__type': 'MissingParameter', 'message': msg}, dict(status=400)
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
 
         try:
             self.acm_backend.delete_certificate(arn)
@@ -62,7 +62,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         if arn is None:
             msg = 'A required parameter for the specified action is not supplied.'
-            return {'__type': 'MissingParameter', 'message': msg}, dict(status=400)
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
 
         try:
             cert_bundle = self.acm_backend.get_certificate(arn)
@@ -76,7 +76,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         if arn is None:
             msg = 'A required parameter for the specified action is not supplied.'
-            return {'__type': 'MissingParameter', 'message': msg}, dict(status=400)
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
 
         try:
             cert_bundle = self.acm_backend.get_certificate(arn)
@@ -170,7 +170,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         if arn is None:
             msg = 'A required parameter for the specified action is not supplied.'
-            return {'__type': 'MissingParameter', 'message': msg}, dict(status=400)
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
 
         try:
             self.acm_backend.remove_tags_from_certificate(arn, tags)
@@ -180,7 +180,45 @@ class AWSCertificateManagerResponse(BaseResponse):
         return ''
 
     def request_certificate(self):
-        raise NotImplementedError()
+        domain_name = self._get_param('DomainName')
+        domain_validation_options = self._get_param('DomainValidationOptions')  # is ignored atm
+        idempotency_token = self._get_param('IdempotencyToken')
+        subject_alt_names = self._get_param('SubjectAlternativeNames')
+
+        if len(subject_alt_names) > 10:
+            # There is initial AWS limit of 10
+            msg = 'An ACM limit has been exceeded. Need to request SAN limit to be raised'
+            return json.dumps({'__type': 'LimitExceededException', 'message': msg}), dict(status=400)
+
+        try:
+            arn = self.acm_backend.request_certificate(domain_name, domain_validation_options, idempotency_token, subject_alt_names)
+        except AWSError as err:
+            return err.response()
+
+        return json.dumps({'CertificateArn': arn})
 
     def resend_validation_email(self):
-        raise NotImplementedError()
+        arn = self._get_param('CertificateArn')
+        domain = self._get_param('Domain')
+        # ValidationDomain not used yet.
+        # Contains domain which is equal to or a subset of Domain
+        # that AWS will send validation emails to
+        # https://docs.aws.amazon.com/acm/latest/APIReference/API_ResendValidationEmail.html
+        # validation_domain = self._get_param('ValidationDomain')
+
+        if arn is None:
+            msg = 'A required parameter for the specified action is not supplied.'
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+
+        try:
+            cert_bundle = self.acm_backend.get_certificate(arn)
+
+            if cert_bundle.common_name != domain:
+                msg = 'Parameter Domain does not match certificate domain'
+                _type = 'InvalidDomainValidationOptionsException'
+                return json.dumps({'__type': _type, 'message': msg}), dict(status=400)
+
+        except AWSError as err:
+            return err.response()
+
+        return ''
