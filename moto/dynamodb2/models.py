@@ -412,8 +412,8 @@ class Table(BaseModel):
             return None
 
     def query(self, hash_key, range_comparison, range_objs, limit,
-              exclusive_start_key, scan_index_forward, projection_expression, index_name=None, **filter_kwargs):
-
+              exclusive_start_key, scan_index_forward, projection_expression,
+              index_name=None, **filter_kwargs):
         results = []
         if index_name:
             all_indexes = (self.global_indexes or []) + (self.indexes or [])

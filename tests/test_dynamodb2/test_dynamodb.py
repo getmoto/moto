@@ -390,24 +390,31 @@ def test_basic_projection_expressions_with_attr_expression_names():
     table.put_item(Item={
         'forum_name': 'the-key',
         'subject': '123',
-        'body': 'some test message'
+        'body': 'some test message',
+        'attachment': 'something'
     })
 
     table.put_item(Item={
         'forum_name': 'not-the-key',
         'subject': '123',
-        'body': 'some other test message'
+        'body': 'some other test message',
+        'attachment': 'something'
     })
     # Test a query returning all items
 
     results = table.query(
         KeyConditionExpression=Key('forum_name').eq(
             'the-key'),
-        ProjectionExpression='#rl, subject',
-        ExpressionAttributeNames={'#rl':'body'},
+        ProjectionExpression='#rl, #rt, subject',
+        ExpressionAttributeNames={
+            '#rl': 'body',
+            '#rt': 'attachment'
+            },
     )
 
     assert 'body' in results['Items'][0]
     assert results['Items'][0]['body'] == 'some test message'
     assert 'subject' in results['Items'][0]
     assert results['Items'][0]['subject'] == '123'
+    assert 'attachment' in results['Items'][0]
+    assert results['Items'][0]['attachment'] == 'something'
