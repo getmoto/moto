@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from urllib.parse import urlsplit
 import json
 import six
 import datetime
@@ -7,6 +6,7 @@ import datetime
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from werkzeug.exceptions import HTTPException
+from six.moves.urllib.parse import urlsplit
 
 from .models import xray_backends
 from .exceptions import AWSError, BadSegmentException
