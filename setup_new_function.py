@@ -79,7 +79,7 @@ def get_test_dir(service):
     return os.path.join('tests', 'test_{}'.format(service))
 
 
-def render_teamplte(tmpl_dir, tmpl_filename, context, service, alt_filename=None):
+def render_template(tmpl_dir, tmpl_filename, context, service, alt_filename=None):
     is_test = True if 'test' in tmpl_dir else False
     rendered = jinja2.Environment(
         loader=jinja2.FileSystemLoader(tmpl_dir)
@@ -121,7 +121,7 @@ def initialize_service(service, operation, api_protocol):
 
     tmpl_dir = os.path.join(TEMPLATE_DIR, 'lib')
     for tmpl_filename in os.listdir(tmpl_dir):
-        render_teamplte(
+        render_template(
             tmpl_dir, tmpl_filename, tmpl_context, service
         )
 
@@ -134,7 +134,7 @@ def initialize_service(service, operation, api_protocol):
     tmpl_dir = os.path.join(TEMPLATE_DIR, 'test')
     for tmpl_filename in os.listdir(tmpl_dir):
         alt_filename = 'test_{}.py'.format(service) if tmpl_filename == 'test_service.py.j2' else None
-        render_teamplte(
+        render_template(
             tmpl_dir, tmpl_filename, tmpl_context, service, alt_filename
         )
 
