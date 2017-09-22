@@ -31,16 +31,16 @@ OUTPUT_IGNORED_IN_BACKEND = ['NextMarker']
 
 
 def print_progress(title, body, color):
-    click.secho('\t{}\t'.format(title), fg=color, nl=False)
+    click.secho(u'\t{}\t'.format(title), fg=color, nl=False)
     click.echo(body)
 
 
 def select_service_and_operation():
     service_names = Session().get_available_services()
     service_completer = WordCompleter(service_names)
-    service_name = prompt('Select service: ', completer=service_completer)
+    service_name = prompt(u'Select service: ', completer=service_completer)
     if service_name not in service_names:
-        click.secho('{} is not valid service'.format(service_name), fg='red')
+        click.secho(u'{} is not valid service'.format(service_name), fg='red')
         raise click.Abort()
     moto_client = get_moto_implementation(service_name)
     real_client = boto3.client(service_name, region_name='us-east-1')
@@ -60,7 +60,7 @@ def select_service_and_operation():
         check = 'X' if operation_name in implemented else ' '
         click.secho('[{}] {}'.format(check, operation_name))
     click.echo('=================================')
-    operation_name = prompt('Select Operation: ', completer=operation_completer)
+    operation_name = prompt(u'Select Operation: ', completer=operation_completer)
 
     if operation_name not in operation_names:
         click.secho('{} is not valid operation'.format(operation_name), fg='red')
