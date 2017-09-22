@@ -9,12 +9,28 @@ class Dimension(object):
         self.name = name
         self.value = value
 
+    def __str__(self):
+        return "{} {}".format(self.name, self.value)
+
 
 class FakeAlarm(BaseModel):
 
-    def __init__(self, name, namespace, metric_name, comparison_operator, evaluation_periods,
-                 period, threshold, statistic, description, dimensions, alarm_actions,
-                 ok_actions, insufficient_data_actions, unit):
+    def __init__(
+            self,
+            name,
+            namespace,
+            metric_name,
+            comparison_operator,
+            evaluation_periods,
+            period,
+            threshold,
+            statistic,
+            description,
+            dimensions,
+            alarm_actions,
+            ok_actions,
+            insufficient_data_actions,
+            unit):
         self.name = name
         self.namespace = namespace
         self.metric_name = metric_name
@@ -44,18 +60,127 @@ class MetricDatum(BaseModel):
                                      'value']) for dimension in dimensions]
 
 
+class MetricDatumT(BaseModel):
+
+    def __init__(self, namespace, data):
+        self.namespace = namespace
+        self.data = data
+
+
+class MetricDatumv2(BaseModel):
+
+    def __init__(self, namespace, metricdata):
+        self.Namespace = namespace
+    # parse the metricdata object
+
+        self.MetricData = [
+            Metric(
+                MetricName=metric['MetricName'],
+                Dimensions=metric['Dimensions'],
+                Timestamp=metric.get('Timestamp', None),
+                Value=metric.get('Value', None),
+                StatisticValues=metric.get(
+                    'StatisticValues', None),
+                StorageResolution=metric.get(
+                    'StorageResolution', None),
+                Unit=metric.get('Unit', None),)
+            for metric in metricdata]
+
+    def __str__(self):
+        return "{} {}".format(self.Namespace, self.MetricData)
+
+
+class Metric():
+    def __init__(
+            self,
+            MetricName,
+            Dimensions,
+            Timestamp=None,
+            Value=None,
+            StatisticValues=None,
+            Unit=None,
+            StorageResolution=None):
+
+        self.MetricName = MetricName
+        self.Dimensions = [
+            Dimension(
+                name=dimension['Name'],
+                value=dimension['Value'])
+            for dimension in Dimensions]
+
+        if(Timestamp is not None):
+            self.Timestamp = Timestamp
+
+        if(Value is not None):
+            self.Value = Value
+
+        if(StatisticValues is not None):
+            statcount = StatisticValues['SampleCount']
+            statsum = StatisticValues['Sum']
+            statmin = StatisticValues['Minimum']
+            statmax = StatisticValues['Maximum']
+            self.StatisticValues = Statistics(
+                statcount, statsum, statmin, statmax)
+
+        if(Unit is not None):
+            self.Unit = Unit
+
+        if(StorageResolution is not None):
+            self.StorageResolution = StorageResolution
+
+
+class Statistics():
+    def __init__(self, SampleCount, Sum, Minimum, Maximum):
+        self.SampleCount = SampleCount
+        self.Sum = Sum
+        self.Minimum = Minimum
+        self.Maximum = Maximum
+
+    def __str__(self):
+        return "{} {} {} {}".format(
+            self.SampleCount,
+            self.Sum,
+            self.Minimum,
+            self.Maximum)
+
+
 class CloudWatchBackend(BaseBackend):
 
     def __init__(self):
         self.alarms = {}
         self.metric_data = []
 
-    def put_metric_alarm(self, name, namespace, metric_name, comparison_operator, evaluation_periods,
-                         period, threshold, statistic, description, dimensions,
-                         alarm_actions, ok_actions, insufficient_data_actions, unit):
-        alarm = FakeAlarm(name, namespace, metric_name, comparison_operator, evaluation_periods, period,
-                          threshold, statistic, description, dimensions, alarm_actions,
-                          ok_actions, insufficient_data_actions, unit)
+    def put_metric_alarm(
+            self,
+            name,
+            namespace,
+            metric_name,
+            comparison_operator,
+            evaluation_periods,
+            period,
+            threshold,
+            statistic,
+            description,
+            dimensions,
+            alarm_actions,
+            ok_actions,
+            insufficient_data_actions,
+            unit):
+        alarm = FakeAlarm(
+            name,
+            namespace,
+            metric_name,
+            comparison_operator,
+            evaluation_periods,
+            period,
+            threshold,
+            statistic,
+            description,
+            dimensions,
+            alarm_actions,
+            ok_actions,
+            insufficient_data_actions,
+            unit)
         self.alarms[name] = alarm
         return alarm
 
@@ -102,10 +227,13 @@ class CloudWatchBackend(BaseBackend):
         for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
 
-    def put_metric_data(self, namespace, metric_data):
-        for name, value, dimensions in metric_data:
-            self.metric_data.append(MetricDatum(
-                namespace, name, value, dimensions))
+    def put_metric_data(self, Namespace, MetricData):
+        for datapoint in MetricData:
+            self.metric_data.append(MetricDatumv2(
+                Namespace, MetricData))
+        # for name, value, dimensions in metric_data:
+        #    self.metric_data.append(MetricDatum(
+        #        namespace, name, value, dimensions))
 
     def get_all_metrics(self):
         return self.metric_data
@@ -120,7 +248,11 @@ class LogGroup(BaseModel):
         self.tags = spec.get('Tags', [])
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+    def create_from_cloudformation_json(
+            cls,
+            resource_name,
+            cloudformation_json,
+            region_name):
         properties = cloudformation_json['Properties']
         spec = {
             'LogGroupName': properties['LogGroupName']

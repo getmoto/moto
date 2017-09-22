@@ -1,5 +1,7 @@
 from moto.core.responses import BaseResponse
 from .models import cloudwatch_backends
+import datetime
+from moto.cloudwatch.utils import querystring_to_dict
 
 
 class CloudWatchResponse(BaseResponse):
@@ -21,14 +23,21 @@ class CloudWatchResponse(BaseResponse):
             "InsufficientDataActions.member")
         unit = self._get_param('Unit')
         cloudwatch_backend = cloudwatch_backends[self.region]
-        alarm = cloudwatch_backend.put_metric_alarm(name, namespace, metric_name,
-                                                    comparison_operator,
-                                                    evaluation_periods, period,
-                                                    threshold, statistic,
-                                                    description, dimensions,
-                                                    alarm_actions, ok_actions,
-                                                    insufficient_data_actions,
-                                                    unit)
+        alarm = cloudwatch_backend.put_metric_alarm(
+            name,
+            namespace,
+            metric_name,
+            comparison_operator,
+            evaluation_periods,
+            period,
+            threshold,
+            statistic,
+            description,
+            dimensions,
+            alarm_actions,
+            ok_actions,
+            insufficient_data_actions,
+            unit)
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
 
@@ -64,33 +73,9 @@ class CloudWatchResponse(BaseResponse):
 
     def put_metric_data(self):
         namespace = self._get_param('Namespace')
-        metric_data = []
-        metric_index = 1
-        while True:
-            try:
-                metric_name = self.querystring[
-                    'MetricData.member.{0}.MetricName'.format(metric_index)][0]
-            except KeyError:
-                break
-            value = self.querystring.get(
-                'MetricData.member.{0}.Value'.format(metric_index), [None])[0]
-            dimensions = []
-            dimension_index = 1
-            while True:
-                try:
-                    dimension_name = self.querystring[
-                        'MetricData.member.{0}.Dimensions.member.{1}.Name'.format(metric_index, dimension_index)][0]
-                except KeyError:
-                    break
-                dimension_value = self.querystring[
-                    'MetricData.member.{0}.Dimensions.member.{1}.Value'.format(metric_index, dimension_index)][0]
-                dimensions.append(
-                    {'name': dimension_name, 'value': dimension_value})
-                dimension_index += 1
-            metric_data.append([metric_name, value, dimensions])
-            metric_index += 1
+        data = querystring_to_dict(self.querystring, namespace)
         cloudwatch_backend = cloudwatch_backends[self.region]
-        cloudwatch_backend.put_metric_data(namespace, metric_data)
+        cloudwatch_backend.put_metric_data(namespace, data)
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
         return template.render()
 
@@ -99,6 +84,35 @@ class CloudWatchResponse(BaseResponse):
         metrics = cloudwatch_backend.get_all_metrics()
         template = self.response_template(LIST_METRICS_TEMPLATE)
         return template.render(metrics=metrics)
+
+
+def testdata_fixture():
+    test_data = [
+        {
+            'MetricName': 'test_metric_1',
+            'Dimensions': [
+                {
+                    'Name': 'test_dimension_1',
+                    'Value': 'test_val_1'
+                },
+                {
+                    'Name': 'test_dimension_2',
+                    'Value': 'test_val_2'
+                },
+            ],
+            'StatisticValues': {
+                'SampleCount': 20,
+                'Sum': 40,
+                'Minimum': 60,
+                'Maximum': 80
+            },
+            'Timestamp': datetime.datetime(2015, 1, 1),
+            'Value': 20,
+            'Unit': 'Seconds',
+            'StorageResolution': 123,
+        },
+    ]
+    return test_data
 
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
@@ -180,18 +194,20 @@ LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazona
     <ListMetricsResult>
         <Metrics>
             {% for metric in metrics %}
+            {% for metricdatum in metric.MetricData %}
             <member>
                 <Dimensions>
-                    {% for dimension in metric.dimensions %}
+                    {% for dimension in metricdatum.Dimensions %}
                     <member>
-                        <Name>{{ dimension.name }}</Name>
+                        <Name>{{ dimension.name }}</Name>dimensions
                         <Value>{{ dimension.value }}</Value>
                     </member>
                     {% endfor %}
                 </Dimensions>
-                <MetricName>{{ metric.name }}</MetricName>
-                <Namespace>{{ metric.namespace }}</Namespace>
+                <MetricName>{{ metricdatum.MetricName}}</MetricName>
+                <Namespace>{{ metric.Namespace}}</Namespace>
             </member>
+            {% endfor %}
             {% endfor %}
         </Metrics>
         <NextToken>

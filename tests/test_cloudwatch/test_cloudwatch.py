@@ -1,8 +1,12 @@
 import boto
+import boto3
 from boto.ec2.cloudwatch.alarm import MetricAlarm
 import sure  # noqa
+import datetime
 
-from moto import mock_cloudwatch_deprecated
+from moto import mock_cloudwatch_deprecated, mock_cloudwatch
+from moto.core import BaseBackend, BaseModel
+import moto.cloudwatch.models
 
 
 def alarm_fixture(name="tester", action=None):
@@ -71,6 +75,7 @@ def test_delete_alarm():
     alarms.should.have.length_of(0)
 
 
+'''
 @mock_cloudwatch_deprecated
 def test_put_metric_data():
     conn = boto.connect_cloudwatch()
@@ -89,6 +94,7 @@ def test_put_metric_data():
     metric.name.should.equal('metric')
     dict(metric.dimensions).should.equal(
         {'InstanceId': ['i-0123456,i-0123457']})
+'''
 
 
 @mock_cloudwatch_deprecated
@@ -127,3 +133,169 @@ def test_describe_state_value_unimplemented():
     conn.describe_alarms()
     conn.describe_alarms.when.called_with(
         state_value="foo").should.throw(NotImplementedError)
+
+
+'''
+BOTO3
+'''
+
+# todo:
+# write tests that combine cases where data is missing
+def testdata_stats_fixture():
+    test_data = [
+        {
+            'MetricName': 'test_metric_1',
+            'Dimensions': [
+                {
+                    'Name': 'test_dimension_1',
+                    'Value': 'test_val_1'
+                },
+                {
+                    'Name': 'test_dimension_2',
+                    'Value': 'test_val_2'
+                },
+            ],
+            'StatisticValues': {
+                'SampleCount': 20,
+                'Sum': 40,
+                'Minimum': 60,
+                'Maximum': 80
+            },
+            'Timestamp': datetime.datetime(2015, 1, 1),
+            'Value': 20,
+            'Unit': 'Seconds',
+            'StorageResolution': 123,
+        },
+    ]
+    return test_data
+
+def testdata_value_fixture():
+    test_data = [
+        {
+            'MetricName': 'test_metric_1',
+            'Dimensions': [
+                {
+                    'Name': 'test_dimension_1',
+                    'Value': 'test_val_1'
+                },
+                {
+                    'Name': 'test_dimension_2',
+                    'Value': 'test_val_2'
+                },
+            ],
+            'StatisticValues': {
+                'SampleCount': 20,
+                'Sum': 40,
+                'Minimum': 60,
+                'Maximum': 80
+            },
+            'Timestamp': datetime.datetime(2015, 1, 1),
+            'Value': 20,
+            'Unit': 'Seconds',
+            'StorageResolution': 123,
+        },
+    ]
+    return test_data
+
+def testdata_stats_and_value_fixture():
+    test_data = [
+        {
+            'MetricName': 'test_metric_1',
+            'Dimensions': [
+                {
+                    'Name': 'test_dimension_1',
+                    'Value': 'test_val_1'
+                },
+                {
+                    'Name': 'test_dimension_2',
+                    'Value': 'test_val_2'
+                },
+            ],
+            'StatisticValues': {
+                'SampleCount': 20,
+                'Sum': 40,
+                'Minimum': 60,
+                'Maximum': 80
+            },
+            'Timestamp': datetime.datetime(2015, 1, 1),
+            'Value': 20,
+            'Unit': 'Seconds',
+            'StorageResolution': 123,
+        },
+    ]
+    return test_data
+
+def testdata_multi_metric_fixture():
+    test_data = [
+        {
+            'MetricName': 'test_metric_1',
+            'Dimensions': [
+                {
+                    'Name': 'test_dimension_1',
+                    'Value': 'test_val_1'
+                },
+            ],
+            'Value': 20,
+        },
+        {
+            'MetricName': 'test_metric_2',
+            'Dimensions': [
+                {
+                    'Name': 'test_dimension_2',
+                    'Value': 'test_val_2'
+                },
+            ],
+            'Value': 30,
+        },
+    ]
+    return test_data
+
+@mock_cloudwatch
+def test_put_metric_data_namespace():
+    cloudwatch = boto3.client('cloudwatch', region_name='us-west-1')
+    test_data = testdata_value_fixture()
+    cloudwatch.put_metric_data(
+        Namespace='test_namespace',
+        MetricData=test_data
+    )
+    result = cloudwatch.list_metrics()
+    assert result['Metrics'][0]['Namespace'] == 'test_namespace'
+    assert result['Metrics'][0]['MetricName'] == 'test_metric_1'
+    assert result['Metrics'][0]['Dimensions'][0]['Name'] == 'test_dimension_1'
+
+# these need to be getmetricstatistic tests
+#@mock_cloudwatch
+#def test_put_metric_data_value():
+#    cloudwatch = boto3.client('cloudwatch', region_name='us-west-1')
+#    test_data = testdata_value_fixture()
+#    cloudwatch.put_metric_data(
+#        Namespace='test_namespace',
+#        MetricData=test_data
+#    )
+#    result = cloudwatch.list_metrics()
+#    print result
+#    assert result['Metrics'][0]['Value'] == '20'
+#
+#@mock_cloudwatch
+#def test_put_metric_data_statistics():
+#    cloudwatch = boto3.client('cloudwatch', region_name='us-west-1')
+#    test_data = testdata_stats_fixture()
+#    cloudwatch.put_metric_data(
+#        Namespace='test_namespace',
+#        MetricData=test_data
+#    )
+#    result = cloudwatch.list_metrics()
+#    print result
+#    assert result['Metrics'][0]['StatisticValues']['Maximum'] == 80
+#
+#@mock_cloudwatch
+#def test_put_metric_data_statistics_and_value_error():
+#    cloudwatch = boto3.client('cloudwatch', region_name='us-west-1')
+#    test_data = testdata_fixture()
+#    cloudwatch.put_metric_data(
+#        Namespace='test_namespace',
+#        MetricData=test_data
+#    )
+#    with pytest.raises(Exception) as excinfo:
+#        result = cloudwatch.list_metrics()
+#    assert excinfo != None
