@@ -77,6 +77,7 @@ class Subscription(BaseModel):
         self.protocol = protocol
         self.arn = make_arn_for_subscription(self.topic.arn)
         self.attributes = {}
+        self.confirmed = False
 
     def publish(self, message, message_id):
         if self.protocol == 'sqs':
@@ -172,11 +173,17 @@ class SNSBackend(BaseBackend):
         self.applications = {}
         self.platform_endpoints = {}
         self.region_name = region_name
+        self.sms_attributes = {}
+        self.opt_out_numbers = ['+447420500600', '+447420505401', '+447632960543', '+447632960028', '+447700900149', '+447700900550', '+447700900545', '+447700900907']
+        self.permissions = {}
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    def update_sms_attributes(self, attrs):
+        self.sms_attributes.update(attrs)
 
     def create_topic(self, name):
         topic = Topic(name, self)

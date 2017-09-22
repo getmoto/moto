@@ -37,6 +37,7 @@ def test_creating_subscription():
     subscriptions = conn.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(0)
 
+
 @mock_sns
 def test_deleting_subscriptions_by_deleting_topic():
     conn = boto3.client('sns', region_name='us-east-1')
@@ -67,6 +68,7 @@ def test_deleting_subscriptions_by_deleting_topic():
     # And there should be zero subscriptions left
     subscriptions = conn.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(0)
+
 
 @mock_sns
 def test_getting_subscriptions_by_topic():
@@ -197,3 +199,67 @@ def test_set_subscription_attributes():
             AttributeName='InvalidName',
             AttributeValue='true'
         )
+
+
+@mock_sns
+def test_check_not_opted_out():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.check_if_phone_number_is_opted_out(phoneNumber='+447428545375')
+
+    response.should.contain('isOptedOut')
+    response['isOptedOut'].should.be(False)
+
+
+@mock_sns
+def test_check_opted_out():
+    # Phone number ends in 99 so is hardcoded in the endpoint to return opted
+    # out status
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.check_if_phone_number_is_opted_out(phoneNumber='+447428545399')
+
+    response.should.contain('isOptedOut')
+    response['isOptedOut'].should.be(True)
+
+
+@mock_sns
+def test_check_opted_out_invalid():
+    conn = boto3.client('sns', region_name='us-east-1')
+
+    # Invalid phone number
+    with assert_raises(ClientError):
+        conn.check_if_phone_number_is_opted_out(phoneNumber='+44742LALALA')
+
+
+@mock_sns
+def test_list_opted_out():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.list_phone_numbers_opted_out()
+
+    response.should.contain('phoneNumbers')
+    len(response['phoneNumbers']).should.be.greater_than(0)
+
+
+@mock_sns
+def test_opt_in():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.list_phone_numbers_opted_out()
+    current_len = len(response['phoneNumbers'])
+    assert current_len > 0
+
+    conn.opt_in_phone_number(phoneNumber=response['phoneNumbers'][0])
+
+    response = conn.list_phone_numbers_opted_out()
+    len(response['phoneNumbers']).should.be.greater_than(0)
+    len(response['phoneNumbers']).should.be.lower_than(current_len)
+
+
+@mock_sns
+def test_confirm_subscription():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.create_topic(Name='testconfirm')
+
+    conn.confirm_subscription(
+        TopicArn=response['TopicArn'],
+        Token='2336412f37fb687f5d51e6e241d59b68c4e583a5cee0be6f95bbf97ab8d2441cf47b99e848408adaadf4c197e65f03473d53c4ba398f6abbf38ce2e8ebf7b4ceceb2cd817959bcde1357e58a2861b05288c535822eb88cac3db04f592285249971efc6484194fc4a4586147f16916692',
+        AuthenticateOnUnsubscribe='true'
+    )

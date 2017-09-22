@@ -129,3 +129,20 @@ def test_topic_paging():
     response.shouldnt.have("NextToken")
 
     topics_list.should.have.length_of(int(DEFAULT_PAGE_SIZE / 2))
+
+
+@mock_sns
+def test_add_remove_permissions():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.create_topic(Name='testpermissions')
+
+    conn.add_permission(
+        TopicArn=response['TopicArn'],
+        Label='Test1234',
+        AWSAccountId=['999999999999'],
+        ActionName=['AddPermission']
+    )
+    conn.remove_permission(
+        TopicArn=response['TopicArn'],
+        Label='Test1234'
+    )
