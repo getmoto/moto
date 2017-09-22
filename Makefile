@@ -18,7 +18,14 @@ test_server:
 aws_managed_policies:
 	scripts/update_managed_policies.py
 
-publish:
+upload_pypi_artifact:
 	python setup.py sdist bdist_wheel upload
+
+build_dockerhub_image:
+	docker build -t motoserver/moto .
+
+tag_github_release:
 	git tag `python setup.py --version`
 	git push origin `python setup.py --version`
+
+publish: upload_pypi_artifact build_dockerhub_image tag_github_release
