@@ -870,7 +870,7 @@ def test_s3_object_in_public_bucket():
     s3 = boto3.resource('s3')
     bucket = s3.Bucket('test-bucket')
     bucket.create(ACL='public-read')
-    bucket.put_object(ACL='public-read', Body=b'ABCD', Key='file.txt')
+    bucket.put_object(Body=b'ABCD', Key='file.txt')
 
     s3_anonymous = boto3.resource('s3')
     s3_anonymous.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)

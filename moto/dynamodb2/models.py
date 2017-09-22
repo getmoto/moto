@@ -484,7 +484,6 @@ class Table(BaseModel):
         else:
             results.sort(key=lambda item: item.range_key)
 
-        
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(',')]
             for result in possible_results:
@@ -499,7 +498,6 @@ class Table(BaseModel):
 
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key)
-
         return results, scanned_count, last_evaluated_key
 
     def all_items(self):
