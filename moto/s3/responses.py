@@ -547,9 +547,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
         # ACL and checking for the mere presence of an Authorization
         # header.
         if 'Authorization' not in request.headers:
+            if hasattr(request, 'url'):
+                signed_url = 'Signature=' in request.url
+            elif hasattr(request, 'requestline'):
+                signed_url = 'Signature=' in request.path
             key = self.backend.get_key(bucket_name, key_name)
-            if key and not key.acl.public_read:
-                return 403, {}, ""
+
+            if key:
+                if not key.acl.public_read and not signed_url:
+                    return 403, {}, ""
 
         if hasattr(request, 'body'):
             # Boto
