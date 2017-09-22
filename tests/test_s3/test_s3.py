@@ -875,15 +875,19 @@ def test_s3_object_in_public_bucket():
     s3_anonymous = boto3.resource('s3')
     s3_anonymous.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
 
-    contents = s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()['Body'].read()
-    contents.should.equal(b'ABCD')
+    # contents = s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()['Body'].read()
+    # contents.should.equal(b'ABCD')
 
     bucket.put_object(ACL='private', Body=b'ABCD', Key='file.txt')
 
-    with assert_raises(ClientError) as exc:
-        s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
-    exc.exception.response['Error']['Code'].should.equal('403')
+    # with assert_raises(ClientError) as exc:
+    #     s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
+    # exc.exception.response['Error']['Code'].should.equal('403')
 
+    params = {'Bucket': 'test-bucket','Key': 'file.txt'}
+    presigned_url = boto3.client('s3').generate_presigned_url('get_object', params, ExpiresIn=900)
+    response = requests.get(presigned_url)
+    assert response.status_code == 200
 
 @mock_s3
 def test_s3_object_in_private_bucket():
