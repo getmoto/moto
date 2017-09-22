@@ -284,7 +284,7 @@ class SQSBackend(BaseBackend):
     def create_queue(self, name, **kwargs):
         queue = self.queues.get(name)
         if queue is None:
-            queue = Queue(name, **kwargs, region=self.region_name)
+            queue = Queue(name, region=self.region_name, **kwargs)
             self.queues[name] = queue
         return queue
 
