@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+"""This script generates template codes and response body for specified boto3's operation and apply to appropriate files.
+You only have to select service and operation that you want to add.
+This script looks at the botocore's definition file of specified service and operation, and auto-generates codes and reponses.
+Basically, this script supports almost all services, as long as its protocol is `query`, `json` or `rest-json`.
+Event if aws adds new services, this script will work as long as the protocol is known.
+
+TODO:
+  - This scripts don't generates functions in `responses.py` for `rest-json`, because I don't know the rule of it. want someone fix this.
+  - In some services's operations, this scripts might crash. Make new issue on github then.
+"""
 import os
 import re
 import inspect
