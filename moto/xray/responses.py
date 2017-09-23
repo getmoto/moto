@@ -1,11 +1,8 @@
 from __future__ import unicode_literals
 import json
-import six
 import datetime
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores, method_names_from_class
-from werkzeug.exceptions import HTTPException
 from six.moves.urllib.parse import urlsplit
 
 from .models import xray_backends
@@ -31,31 +28,11 @@ class XRayResponse(BaseResponse):
     def _get_param(self, param, default=None):
         return self.request_params.get(param, default)
 
-    def call_action(self):
+    def _get_action(self):
         # Amazon is just calling urls like /TelemetryRecords etc...
-        action = urlsplit(self.uri).path.lstrip('/')
-        action = camelcase_to_underscores(action)
-        headers = self.response_headers
-        method_names = method_names_from_class(self.__class__)
-        if action in method_names:
-            method = getattr(self, action)
-            try:
-                response = method()
-            except HTTPException as http_error:
-                response = http_error.description, dict(status=http_error.code)
-            if isinstance(response, six.string_types):
-                return 200, headers, response
-            else:
-                body, new_headers = response
-                status = new_headers.get('status', 200)
-                headers.update(new_headers)
-                # Cast status to string
-                if "status" in headers:
-                    headers['status'] = str(headers['status'])
-                return status, headers, body
-
-        raise NotImplementedError(
-            "The {0} action has not been implemented".format(action))
+        # This uses the value after / as the camalcase action, which then
+        # gets converted in call_action to find the following methods
+        return urlsplit(self.uri).path.lstrip('/')
 
     # PutTelemetryRecords
     def telemetry_records(self):
@@ -122,12 +99,52 @@ class XRayResponse(BaseResponse):
 
     # BatchGetTraces
     def traces(self):
-        raise NotImplementedError()
+        trace_ids = self._get_param('TraceIds')
+        next_token = self._get_param('NextToken')  # not implemented yet
 
-    # GetServiceGraph
+        if trace_ids is None:
+            msg = 'Parameter TraceIds is missing'
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+
+        try:
+            result = self.xray_backend.get_trace_ids(trace_ids, next_token)
+        except AWSError as err:
+            return err.response()
+        except Exception as err:
+            return json.dumps({'__type': 'InternalFailure', 'message': str(err)}), dict(status=500)
+
+        return json.dumps(result)
+
+    # GetServiceGraph - just a dummy response for now
     def service_graph(self):
-        raise NotImplementedError()
+        start_time = self._get_param('StartTime')
+        end_time = self._get_param('EndTime')
+        # next_token = self._get_param('NextToken')  # not implemented yet
 
-    # GetTraceGraph
+        if start_time is None:
+            msg = 'Parameter StartTime is missing'
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+        if end_time is None:
+            msg = 'Parameter EndTime is missing'
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+
+        result = {
+            'StartTime': start_time,
+            'EndTime': end_time,
+            'Services': []
+        }
+        return json.dumps(result)
+
+    # GetTraceGraph - just a dummy response for now
     def trace_graph(self):
-        raise NotImplementedError()
+        trace_ids = self._get_param('TraceIds')
+        # next_token = self._get_param('NextToken')  # not implemented yet
+
+        if trace_ids is None:
+            msg = 'Parameter TraceIds is missing'
+            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+
+        result = {
+            'Services': []
+        }
+        return json.dumps(result)
