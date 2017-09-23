@@ -412,7 +412,8 @@ class Table(BaseModel):
             return None
 
     def query(self, hash_key, range_comparison, range_objs, limit,
-              exclusive_start_key, scan_index_forward, index_name=None, **filter_kwargs):
+              exclusive_start_key, scan_index_forward, projection_expression,
+              index_name=None, **filter_kwargs):
         results = []
         if index_name:
             all_indexes = (self.global_indexes or []) + (self.indexes or [])
@@ -482,6 +483,13 @@ class Table(BaseModel):
                              if item.attrs.get(index_range_key['AttributeName']) else None)
         else:
             results.sort(key=lambda item: item.range_key)
+
+        if projection_expression:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            for result in possible_results:
+                for attr in list(result.attrs):
+                    if attr not in expressions:
+                        result.attrs.pop(attr)
 
         if scan_index_forward is False:
             results.reverse()
@@ -678,7 +686,7 @@ class DynamoDBBackend(BaseBackend):
         return table.get_item(hash_key, range_key)
 
     def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts,
-              limit, exclusive_start_key, scan_index_forward, index_name=None, **filter_kwargs):
+              limit, exclusive_start_key, scan_index_forward, projection_expression, index_name=None, **filter_kwargs):
         table = self.tables.get(table_name)
         if not table:
             return None, None
@@ -688,7 +696,7 @@ class DynamoDBBackend(BaseBackend):
                         for range_value in range_value_dicts]
 
         return table.query(hash_key, range_comparison, range_values, limit,
-                           exclusive_start_key, scan_index_forward, index_name, **filter_kwargs)
+                           exclusive_start_key, scan_index_forward, projection_expression, index_name, **filter_kwargs)
 
     def scan(self, table_name, filters, limit, exclusive_start_key):
         table = self.tables.get(table_name)

@@ -547,9 +547,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
         # ACL and checking for the mere presence of an Authorization
         # header.
         if 'Authorization' not in request.headers:
+            if hasattr(request, 'url'):
+                signed_url = 'Signature=' in request.url
+            elif hasattr(request, 'requestline'):
+                signed_url = 'Signature=' in request.path
             key = self.backend.get_key(bucket_name, key_name)
-            if key and not key.acl.public_read:
-                return 403, {}, ""
+
+            if key:
+                if not key.acl.public_read and not signed_url:
+                    return 403, {}, ""
 
         if hasattr(request, 'body'):
             # Boto
@@ -636,6 +642,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
         acl = self._acl_from_headers(request.headers)
+        if acl is None:
+            acl = self.backend.get_bucket(bucket_name).acl
         tagging = self._tagging_from_headers(request.headers)
 
         if 'acl' in query:
@@ -740,7 +748,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if grants:
             return FakeAcl(grants)
         else:
-            return get_canned_acl('private')
+            return None
 
     def _tagging_from_headers(self, headers):
         if headers.get('x-amz-tagging'):

@@ -9,6 +9,7 @@ from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
 from botocore.exceptions import ClientError
+from boto3.dynamodb.conditions import Key
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises
 from nose.tools import assert_raises
@@ -181,3 +182,239 @@ def test_item_add_empty_string_exception():
     ex.exception.response['Error']['Message'].should.equal(
         'One or more parameter values were invalid: An AttributeValue may not contain an empty string'
     )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_invalid_table():
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+    try:
+        conn.query(TableName='invalid_table', KeyConditionExpression='index1 = :partitionkeyval', ExpressionAttributeValues={':partitionkeyval': {'S':'test'}})
+    except ClientError as exception:
+        assert exception.response['Error']['Code'] == "ResourceNotFoundException"
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_scan_returns_consumed_capacity():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+
+    conn.put_item(
+            TableName=name,
+            Item={
+                'forum_name': { 'S': 'LOLCat Forum' },
+                'subject': { 'S': 'Check this out!' },
+                'Body': { 'S': 'http://url_to_lolcat.gif'},
+                'SentBy': { 'S': "test" },
+                'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
+            }
+        )
+
+    response = conn.scan(
+        TableName=name,
+    )
+
+    assert 'ConsumedCapacity' in response
+    assert 'CapacityUnits' in response['ConsumedCapacity']
+    assert response['ConsumedCapacity']['TableName'] == name
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_query_returns_consumed_capacity():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': 'some test message'
+    })
+
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key')
+    )
+
+    assert 'ConsumedCapacity' in results
+    assert 'CapacityUnits' in results['ConsumedCapacity']
+    assert results['ConsumedCapacity']['CapacityUnits'] == 1
+
+@mock_dynamodb2
+def test_basic_projection_expressions():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': 'some test message'
+    })
+
+    table.put_item(Item={
+        'forum_name': 'not-the-key',
+        'subject': '123',
+        'body': 'some other test message'
+    })
+    # Test a query returning all items
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key'),
+        ProjectionExpression='body, subject'
+    )
+
+    assert 'body' in results['Items'][0]
+    assert results['Items'][0]['body'] == 'some test message'
+    assert 'subject' in results['Items'][0]
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '1234',
+        'body': 'yet another test message'
+    })
+
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key'),
+        ProjectionExpression='body'
+    )
+
+    assert 'body' in results['Items'][0]
+    assert results['Items'][0]['body'] == 'some test message'
+    assert 'body' in results['Items'][1]
+    assert results['Items'][1]['body'] == 'yet another test message'
+
+@mock_dynamodb2
+def test_basic_projection_expressions_with_attr_expression_names():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': 'some test message',
+        'attachment': 'something'
+    })
+
+    table.put_item(Item={
+        'forum_name': 'not-the-key',
+        'subject': '123',
+        'body': 'some other test message',
+        'attachment': 'something'
+    })
+    # Test a query returning all items
+
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key'),
+        ProjectionExpression='#rl, #rt, subject',
+        ExpressionAttributeNames={
+            '#rl': 'body',
+            '#rt': 'attachment'
+            },
+    )
+
+    assert 'body' in results['Items'][0]
+    assert results['Items'][0]['body'] == 'some test message'
+    assert 'subject' in results['Items'][0]
+    assert results['Items'][0]['subject'] == '123'
+    assert 'attachment' in results['Items'][0]
+    assert results['Items'][0]['attachment'] == 'something'

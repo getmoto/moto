@@ -525,8 +525,14 @@ def test_managed_policy():
                        path='/mypolicy/',
                        description='my user managed policy')
 
-    aws_policies = conn.list_policies(scope='AWS')['list_policies_response'][
-        'list_policies_result']['policies']
+    marker = 0
+    aws_policies = []
+    while marker is not None:
+        response = conn.list_policies(scope='AWS', marker=marker)[
+                'list_policies_response']['list_policies_result']
+        for policy in response['policies']:
+            aws_policies.append(policy)
+        marker = response.get('marker')
     set(p.name for p in aws_managed_policies).should.equal(
         set(p['policy_name'] for p in aws_policies))
 
@@ -535,8 +541,14 @@ def test_managed_policy():
     set(['UserManagedPolicy']).should.equal(
         set(p['policy_name'] for p in user_policies))
 
-    all_policies = conn.list_policies()['list_policies_response'][
-        'list_policies_result']['policies']
+    marker = 0
+    all_policies = []
+    while marker is not None:
+        response = conn.list_policies(marker=marker)[
+                'list_policies_response']['list_policies_result']
+        for policy in response['policies']:
+            all_policies.append(policy)
+        marker = response.get('marker')
     set(p['policy_name'] for p in aws_policies +
         user_policies).should.equal(set(p['policy_name'] for p in all_policies))
 
