@@ -319,8 +319,9 @@ def insert_code_to_class(path, base_class, new_code):
 
     lines = lines[:end_line_no] + func_lines + lines[end_line_no:]
 
+    body = '\n'.join(lines) + '\n'
     with open(path, 'w') as f:
-        f.write('\n'.join(lines))
+        f.write(body)
 
 
 def insert_query_codes(service, operation):
