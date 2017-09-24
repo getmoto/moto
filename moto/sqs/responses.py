@@ -28,8 +28,7 @@ class SQSResponse(BaseResponse):
     @property
     def attribute(self):
         if not hasattr(self, '_attribute'):
-            self._attribute = dict([(a['name'], a['value'])
-                                    for a in self._get_list_prefix('Attribute')])
+            self._attribute = self._get_map_prefix('Attribute', key_end='Name', value_end='Value')
         return self._attribute
 
     def _get_queue_name(self):
@@ -58,17 +57,25 @@ class SQSResponse(BaseResponse):
             return 404, headers, ERROR_INEXISTENT_QUEUE
         return status_code, headers, body
 
+    def _error(self, code, message, status=400):
+        template = self.response_template(ERROR_TEMPLATE)
+        return template.render(code=code, message=message), dict(status=status)
+
     def create_queue(self):
         request_url = urlparse(self.uri)
-        queue_name = self.querystring.get("QueueName")[0]
-        queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=self.attribute.get('VisibilityTimeout'),
-                                              wait_time_seconds=self.attribute.get('WaitTimeSeconds'))
+        queue_name = self._get_param("QueueName")
+
+        try:
+            queue = self.sqs_backend.create_queue(queue_name, **self.attribute)
+        except MessageAttributesInvalid as e:
+            return self._error('InvalidParameterValue', e.description)
+
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue=queue, request_url=request_url)
 
     def get_queue_url(self):
         request_url = urlparse(self.uri)
-        queue_name = self.querystring.get("QueueName")[0]
+        queue_name = self._get_param("QueueName")
         queue = self.sqs_backend.get_queue(queue_name)
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
@@ -78,14 +85,14 @@ class SQSResponse(BaseResponse):
 
     def list_queues(self):
         request_url = urlparse(self.uri)
-        queue_name_prefix = self.querystring.get("QueueNamePrefix", [None])[0]
+        queue_name_prefix = self._get_param('QueueNamePrefix')
         queues = self.sqs_backend.list_queues(queue_name_prefix)
         template = self.response_template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues, request_url=request_url)
 
     def change_message_visibility(self):
         queue_name = self._get_queue_name()
-        receipt_handle = self.querystring.get("ReceiptHandle")[0]
+        receipt_handle = self._get_param('ReceiptHandle')
 
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
@@ -111,19 +118,15 @@ class SQSResponse(BaseResponse):
         return template.render(queue=queue)
 
     def set_queue_attributes(self):
+        # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
-        if "Attribute.Name" in self.querystring:
-            key = camelcase_to_underscores(
-                self.querystring.get("Attribute.Name")[0])
-            value = self.querystring.get("Attribute.Value")[0]
-            self.sqs_backend.set_queue_attribute(queue_name, key, value)
-        for a in self._get_list_prefix("Attribute"):
-            key = camelcase_to_underscores(a["name"])
-            value = a["value"]
+        for key, value in self.attribute.items():
+            key = camelcase_to_underscores(key)
             self.sqs_backend.set_queue_attribute(queue_name, key, value)
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
+        # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
         queue = self.sqs_backend.delete_queue(queue_name)
         if not queue:
@@ -133,16 +136,11 @@ class SQSResponse(BaseResponse):
         return template.render(queue=queue)
 
     def send_message(self):
-        message = self.querystring.get("MessageBody")[0]
-        delay_seconds = self.querystring.get('DelaySeconds')
+        message = self._get_param('MessageBody')
+        delay_seconds = int(self._get_param('DelaySeconds', 0))
 
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             return ERROR_TOO_LONG_RESPONSE, dict(status=400)
-
-        if delay_seconds:
-            delay_seconds = int(delay_seconds[0])
-        else:
-            delay_seconds = 0
 
         try:
             message_attributes = parse_message_attributes(self.querystring)
@@ -469,4 +467,14 @@ ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc
         <Detail/>
     </Error>
     <RequestId>b8bc806b-fa6b-53b5-8be8-cfa2f9836bc3</RequestId>
+</ErrorResponse>"""
+
+ERROR_TEMPLATE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
+    <Error>
+        <Type>Sender</Type>
+        <Code>{{ code }}</Code>
+        <Message>{{ message }}</Message>
+        <Detail/>
+    </Error>
+    <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
 </ErrorResponse>"""
