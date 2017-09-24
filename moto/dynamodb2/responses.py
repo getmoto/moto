@@ -194,7 +194,10 @@ class DynamoHandler(BaseResponse):
 
         if result:
             item_dict = result.to_json()
-            item_dict['ConsumedCapacityUnits'] = 1
+            item_dict['ConsumedCapacity'] = {
+                'TableName': name,
+                'CapacityUnits': 1
+            }
             return dynamo_json_dump(item_dict)
         else:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
@@ -238,7 +241,10 @@ class DynamoHandler(BaseResponse):
             return self.error(er, 'Validation Exception')
         if item:
             item_dict = item.describe_attrs(attributes=None)
-            item_dict['ConsumedCapacityUnits'] = 0.5
+            item_dict['ConsumedCapacity'] = {
+                'TableName': name,
+                'CapacityUnits': 0.5
+            }
             return dynamo_json_dump(item_dict)
         else:
             # Item not found
@@ -523,7 +529,10 @@ class DynamoHandler(BaseResponse):
             return self.error(er, 'Validation Exception')
 
         item_dict = item.to_json()
-        item_dict['ConsumedCapacityUnits'] = 0.5
+        item_dict['ConsumedCapacity'] = {
+            'TableName': name,
+            'CapacityUnits': 0.5
+        }
         if not existing_item:
             item_dict['Attributes'] = {}
 
