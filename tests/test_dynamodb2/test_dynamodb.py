@@ -405,11 +405,11 @@ def test_basic_projection_expressions_with_attr_expression_names():
     results = table.query(
         KeyConditionExpression=Key('forum_name').eq(
             'the-key'),
+        ProjectionExpression='#rl, #rt, subject',
         ExpressionAttributeNames={
             '#rl': 'body',
             '#rt': 'attachment'
             },
-        ProjectionExpression='#rl, #rt, subject'
     )
 
     assert 'body' in results['Items'][0]
@@ -508,6 +508,55 @@ def test_update_item_returns_consumed_capacity():
         UpdateExpression='set body=:tb',
         ExpressionAttributeValues={
             ':tb': 'a new message'
+    })
+
+    assert 'ConsumedCapacity' in response
+    assert 'CapacityUnits' in response['ConsumedCapacity']
+    assert 'TableName' in response['ConsumedCapacity']
+
+@mock_dynamodb2
+def test_get_item_returns_consumed_capacity():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': 'some test message',
+    })
+
+    response = table.get_item(Key={
+        'forum_name': 'the-key',
+        'subject': '123'
     })
 
     assert 'ConsumedCapacity' in response
