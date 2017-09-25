@@ -3,6 +3,11 @@ Moto Changelog
 
 Latest
 ------
+1.1.3
+-----
+
+    * EC2 vpc_id in responses
+
 1.1.2
 -----
 
