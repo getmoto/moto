@@ -3,6 +3,13 @@ Moto Changelog
 
 Latest
 ------
+1.1.2
+-----
+
+    * IAM account aliases
+    * SNS subscription attributes
+    * bugfixes in Dynamo, CFN, and EC2
+
 1.1.1
 -----
 
