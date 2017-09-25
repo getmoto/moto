@@ -3,6 +3,12 @@ Moto Changelog
 
 Latest
 ------
+1.1.8
+-----
+
+    * Lambda get_function for function created with zipfile
+    * scripts/implementation_coverage.py
+
 1.1.7
 -----
 
