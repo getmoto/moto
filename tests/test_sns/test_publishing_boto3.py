@@ -10,6 +10,7 @@ from freezegun import freeze_time
 import sure  # noqa
 
 from moto.packages.responses import responses
+from botocore.exceptions import ClientError
 from moto import mock_sns, mock_sqs
 from freezegun import freeze_time
 
@@ -41,6 +42,49 @@ def test_publish_to_sqs():
     expected = MESSAGE_FROM_SQS_TEMPLATE  % (message, published_message_id, 'us-east-1')
     acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", u'2015-01-01T12:00:00.000Z', messages[0].body)
     acquired_message.should.equal(expected)
+
+
+@mock_sns
+def test_publish_sms():
+    client = boto3.client('sns', region_name='us-east-1')
+    client.create_topic(Name="some-topic")
+    resp = client.create_topic(Name="some-topic")
+    arn = resp['TopicArn']
+
+    client.subscribe(
+        TopicArn=arn,
+        Protocol='sms',
+        Endpoint='+15551234567'
+    )
+
+    result = client.publish(PhoneNumber="+15551234567", Message="my message")
+    result.should.contain('MessageId')
+
+
+@mock_sns
+def test_publish_bad_sms():
+    client = boto3.client('sns', region_name='us-east-1')
+    client.create_topic(Name="some-topic")
+    resp = client.create_topic(Name="some-topic")
+    arn = resp['TopicArn']
+
+    client.subscribe(
+        TopicArn=arn,
+        Protocol='sms',
+        Endpoint='+15551234567'
+    )
+
+    try:
+        # Test invalid number
+        client.publish(PhoneNumber="NAA+15551234567", Message="my message")
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameter')
+
+    try:
+        # Test not found number
+        client.publish(PhoneNumber="+44001234567", Message="my message")
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('ParameterValueInvalid')
 
 
 @mock_sqs
