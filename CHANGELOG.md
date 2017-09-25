@@ -3,6 +3,13 @@ Moto Changelog
 
 Latest
 ------
+1.1.5
+-----
+
+    * Dynamo allow ADD update_item of a string set
+    * Handle max-keys in list-objects
+    * bugfixes in pagination
+
 1.1.3
 -----
 
