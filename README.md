@@ -58,6 +58,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | Service Name          | Decorator        | Development Status                |
 |------------------------------------------------------------------------------|
+| ACM                   | @mock_acm        | all endpoints done                |
+|------------------------------------------------------------------------------|
 | API Gateway           | @mock_apigateway | core endpoints done               |
 |------------------------------------------------------------------------------|
 | Autoscaling           | @mock_autoscaling| core endpoints done               |
