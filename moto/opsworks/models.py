@@ -422,11 +422,11 @@ class OpsWorksBackend(BaseBackend):
         stackid = kwargs['stack_id']
         if stackid not in self.stacks:
             raise ResourceNotFoundException(stackid)
-        if name in [l.name for l in self.layers.values()]:
+        if name in [l.name for l in self.stacks[stackid].layers]:
             raise ValidationException(
                 'There is already a layer named "{0}" '
                 'for this stack'.format(name))
-        if shortname in [l.shortname for l in self.layers.values()]:
+        if shortname in [l.shortname for l in self.stacks[stackid].layers]:
             raise ValidationException(
                 'There is already a layer with shortname "{0}" '
                 'for this stack'.format(shortname))
