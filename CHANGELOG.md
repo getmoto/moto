@@ -3,6 +3,13 @@ Moto Changelog
 
 Latest
 ------
+1.1.12
+-----
+
+    * implemented all AWS managed policies in source
+    * fixing Dynamodb CapacityUnits format
+    * S3 ACL implementation
+
 1.1.11
 -----
 
