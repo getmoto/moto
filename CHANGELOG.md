@@ -3,6 +3,14 @@ Moto Changelog
 
 Latest
 ------
+1.1.10
+-----
+
+    * EC2 vpc address filtering
+    * EC2 elastic ip dissociation
+    * ELBv2 target group tagging
+    * fixed complexity of accepting new filter implementations
+
 1.1.9
 -----
 
