@@ -3,6 +3,12 @@ Moto Changelog
 
 Latest
 ------
+1.1.7
+-----
+
+    * Lambda invoke_async
+    * EC2 keypair filtering
+
 1.1.6
 -----
 
