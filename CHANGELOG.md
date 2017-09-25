@@ -3,6 +3,13 @@ Moto Changelog
 
 Latest
 ------
+1.1.0
+-----
+
+    * Add ELBv2
+    * IAM user policies
+    * RDS snapshots
+    * IAM policy versions
 
 1.0.1
 -----
