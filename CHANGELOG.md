@@ -3,6 +3,14 @@ Moto Changelog
 
 Latest
 ------
+1.1.11
+-----
+
+    * S3 authentication
+    * SSM get_parameter
+    * ELBv2 target group tagging
+    * EC2 Security group filters
+
 1.1.10
 -----
 
