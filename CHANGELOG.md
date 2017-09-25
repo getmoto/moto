@@ -3,6 +3,12 @@ Moto Changelog
 
 Latest
 ------
+1.1.1
+-----
+
+    * EC2 group-id filter
+    * EC2 list support for filters
+
 1.1.0
 -----
 
