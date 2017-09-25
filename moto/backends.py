@@ -31,6 +31,7 @@ from moto.sns import sns_backends
 from moto.sqs import sqs_backends
 from moto.ssm import ssm_backends
 from moto.sts import sts_backends
+from moto.xray import xray_backends
 
 BACKENDS = {
     'apigateway': apigateway_backends,
@@ -65,6 +66,7 @@ BACKENDS = {
     'sts': sts_backends,
     'route53': route53_backends,
     'lambda': lambda_backends,
+    'xray': xray_backends
 }
 
 

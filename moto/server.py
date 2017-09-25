@@ -139,10 +139,13 @@ def create_backend_app(service):
         else:
             endpoint = None
 
-        if endpoint in backend_app.view_functions:
+        original_endpoint = endpoint
+        index = 2
+        while endpoint in backend_app.view_functions:
             # HACK: Sometimes we map the same view to multiple url_paths. Flask
             # requries us to have different names.
-            endpoint += "2"
+            endpoint = original_endpoint + str(index)
+            index += 1
 
         backend_app.add_url_rule(
             url_path,
