@@ -56,13 +56,8 @@ class SimpleSystemManagerResponse(BaseResponse):
             return json.dumps(error), dict(status=400)
 
         response = {
-            'Parameter': {
-                'Name': name,
-                'Type': result.type,
-                'Value': result.value
-            }
+            'Parameter': result.response_object(with_decryption)
         }
-
         return json.dumps(response)
 
     def get_parameters(self):
