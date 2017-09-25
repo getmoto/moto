@@ -24,6 +24,22 @@ def test_create_layer_response():
         Name="TestLayer",
         Shortname="TestLayerShortName"
     )
+    
+    response.should.contain("LayerId")
+    
+    second_stack_id = client.create_stack(
+        Name="test_stack_2",
+        Region="us-east-1",
+        ServiceRoleArn="service_arn",
+        DefaultInstanceProfileArn="profile_arn"
+    )['StackId']
+    
+    response = client.create_layer(
+        StackId=second_stack_id,
+        Type="custom",
+        Name="TestLayer",
+        Shortname="TestLayerShortName"
+    )
 
     response.should.contain("LayerId")
 
