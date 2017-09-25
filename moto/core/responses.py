@@ -167,7 +167,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         match = re.search(self.region_regex, full_url)
         if match:
             region = match.group(1)
-        elif 'Authorization' in request.headers:
+        elif 'Authorization' in request.headers and 'AWS4' in request.headers['Authorization']:
             region = request.headers['Authorization'].split(",")[
                 0].split("/")[2]
         else:
