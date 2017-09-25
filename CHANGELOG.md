@@ -3,6 +3,14 @@ Moto Changelog
 
 Latest
 ------
+1.1.13
+-----
+
+    * Created alpine-based Dockerfile (dockerhub: motoserver/moto)
+    * SNS.SetSMSAttributes & SNS.GetSMSAttributes + Filtering
+    * S3 ACL implementation
+    * pushing to Dockerhub on `make publish`
+
 1.1.12
 -----
 
