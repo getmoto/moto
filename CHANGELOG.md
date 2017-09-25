@@ -3,6 +3,11 @@ Moto Changelog
 
 Latest
 ------
+1.1.9
+-----
+
+    * EC2 root device mapping
+
 1.1.8
 -----
 
