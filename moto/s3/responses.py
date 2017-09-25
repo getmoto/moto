@@ -780,8 +780,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
         tags = []
         # Optional if no tags are being sent:
         if parsed_xml['Tagging'].get('TagSet'):
-            for tag in parsed_xml['Tagging']['TagSet']['Tag']:
-                tags.append(FakeTag(tag['Key'], tag['Value']))
+            # If there is only 1 tag, then it's not a list:
+            if not isinstance(parsed_xml['Tagging']['TagSet']['Tag'], list):
+                tags.append(FakeTag(parsed_xml['Tagging']['TagSet']['Tag']['Key'],
+                                    parsed_xml['Tagging']['TagSet']['Tag']['Value']))
+            else:
+                for tag in parsed_xml['Tagging']['TagSet']['Tag']:
+                    tags.append(FakeTag(tag['Key'], tag['Value']))
 
         tag_set = FakeTagSet(tags)
         tagging = FakeTagging(tag_set)
