@@ -3,6 +3,12 @@ Moto Changelog
 
 Latest
 ------
+1.1.6
+-----
+
+    * Dynamo ADD and DELETE operations in update expressions
+    * Lambda tag support
+
 1.1.5
 -----
 
