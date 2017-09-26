@@ -7,7 +7,7 @@ url_bases = [
 
 url_paths = {
     '{0}/v1/voices': PollyResponse.dispatch,
-    '{0}/v1/lexicons/.+': PollyResponse.dispatch,
+    '{0}/v1/lexicons/(?P<lexicon>[^/]+)': PollyResponse.dispatch,
     '{0}/v1/lexicons': PollyResponse.dispatch,
     '{0}/v1/speech': PollyResponse.dispatch,
 }
