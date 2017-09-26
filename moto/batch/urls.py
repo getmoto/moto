@@ -6,5 +6,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': BatchResponse.dispatch,
+    '{0}/v1/createcomputeenvironment': BatchResponse.dispatch,
 }
