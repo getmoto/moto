@@ -134,9 +134,9 @@ class PollyResponse(BaseResponse):
             args['lexicon_names'] = self.json['LexiconNames']
 
         if 'OutputFormat' not in self.json:
-            return self._error('LexiconNotFoundException', 'Lexicon not found')
+            return self._error('MissingParameter', 'Missing parameter OutputFormat')
         if self.json['OutputFormat'] not in ('json', 'mp3', 'ogg_vorbis', 'pcm'):
-            return self._error('LexiconNotFoundException', 'Lexicon not found')
+            return self._error('InvalidParameterValue', 'Not one of json, mp3, ogg_vorbis, pcm')
         args['output_format'] = self.json['OutputFormat']
 
         if 'SampleRate' in self.json:
@@ -148,22 +148,22 @@ class PollyResponse(BaseResponse):
         if 'SpeechMarkTypes' in self.json:
             for value in self.json['SpeechMarkTypes']:
                 if value not in ('sentance', 'ssml', 'viseme', 'word'):
-                    return self._error('LexiconNotFoundException', 'Lexicon not found')
+                    return self._error('InvalidParameterValue', 'Not one of sentance, ssml, viseme, word')
             args['speech_marks'] = self.json['SpeechMarkTypes']
 
         if 'Text' not in self.json:
-            return self._error('LexiconNotFoundException', 'Lexicon not found')
+            return self._error('MissingParameter', 'Missing parameter Text')
         args['text'] = self.json['Text']
 
         if 'TextType' in self.json:
             if self.json['TextType'] not in ('ssml', 'text'):
-                return self._error('LexiconNotFoundException', 'Lexicon not found')
+                return self._error('InvalidParameterValue', 'Not one of ssml, text')
             args['text_type'] = self.json['TextType']
 
         if 'VoiceId' not in self.json:
-            return self._error('LexiconNotFoundException', 'Lexicon not found')
+            return self._error('MissingParameter', 'Missing parameter VoiceId')
         if self.json['VoiceId'] not in VOICE_IDS:
-            return self._error('LexiconNotFoundException', 'Lexicon not found')
+            return self._error('InvalidParameterValue', 'Not one of {0}'.format(', '.join(VOICE_IDS)))
         args['voice_id'] = self.json['VoiceId']
 
         # More validation
