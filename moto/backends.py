@@ -4,6 +4,7 @@ from moto.acm import acm_backends
 from moto.apigateway import apigateway_backends
 from moto.autoscaling import autoscaling_backends
 from moto.awslambda import lambda_backends
+from moto.batch import batch_backends
 from moto.cloudformation import cloudformation_backends
 from moto.cloudwatch import cloudwatch_backends
 from moto.core import moto_api_backends
@@ -38,6 +39,7 @@ BACKENDS = {
     'acm': acm_backends,
     'apigateway': apigateway_backends,
     'autoscaling': autoscaling_backends,
+    'batch': batch_backends,
     'cloudformation': cloudformation_backends,
     'cloudwatch': cloudwatch_backends,
     'datapipeline': datapipeline_backends,
