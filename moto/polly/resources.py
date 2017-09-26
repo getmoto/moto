@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 VOICE_DATA = [
     {'Id': 'Joanna', 'LanguageCode': 'en-US', 'LanguageName': 'US English', 'Gender': 'Female', 'Name': 'Joanna'},
     {'Id': 'Mizuki', 'LanguageCode': 'ja-JP', 'LanguageName': 'Japanese', 'Gender': 'Female', 'Name': 'Mizuki'},
