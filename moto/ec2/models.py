@@ -67,6 +67,7 @@ from .exceptions import (
     MotoNotImplementedError,
     FilterNotImplementedError
 )
+from .resources.instance_types import instance_types_data
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
     EC2_PREFIX_TO_RESOURCE,
@@ -112,7 +113,7 @@ from .utils import (
 )
 
 RESOURCES_DIR = os.path.join(os.path.dirname(__file__), 'resources')
-INSTANCE_TYPES = json.load(open(os.path.join(RESOURCES_DIR, 'instance_types.json'), 'r'))
+INSTANCE_TYPES = json.loads(instance_types_data)
 
 
 def utc_date_and_time():
