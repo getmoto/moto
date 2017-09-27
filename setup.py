@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 from __future__ import unicode_literals
+import setuptools
 from setuptools import setup, find_packages
+import sys
+
 
 install_requires = [
     "Jinja2>=2.8",
@@ -17,11 +20,20 @@ install_requires = [
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "mock",
+    "docker>=2.5.1"
 ]
 
 extras_require = {
     'server': ['flask'],
 }
+
+# https://hynek.me/articles/conditional-python-dependencies/
+if int(setuptools.__version__.split(".", 1)[0]) < 18:
+    if sys.version_info[0:2] < (3, 3):
+        install_requires.append("backports.tempfile")
+else:
+    extras_require[":python_version<'3.3'"] = ["backports.tempfile"]
+
 
 setup(
     name='moto',
@@ -47,6 +59,9 @@ setup(
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],

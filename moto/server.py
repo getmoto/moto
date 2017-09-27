@@ -1,21 +1,22 @@
 from __future__ import unicode_literals
+
+import argparse
 import json
 import re
 import sys
-import argparse
-import six
-
-from six.moves.urllib.parse import urlencode
-
 from threading import Lock
 
+import six
 from flask import Flask
 from flask.testing import FlaskClient
+
+from six.moves.urllib.parse import urlencode
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
 from moto.backends import BACKENDS
 from moto.core.utils import convert_flask_to_httpretty_response
+
 
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
 
@@ -61,7 +62,7 @@ class DomainDispatcherApplication(object):
             host = "instance_metadata"
         else:
             host = environ['HTTP_HOST'].split(':')[0]
-        if host == "localhost":
+        if host in {'localhost', 'motoserver'} or host.startswith("192.168."):
             # Fall back to parsing auth header to find service
             # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
             try:
