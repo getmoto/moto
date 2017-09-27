@@ -3,6 +3,11 @@ Moto Changelog
 
 Latest
 ------
+1.1.16
+-----
+
+    * Fixing regression from 1.1.15
+
 1.1.15
 -----
 
