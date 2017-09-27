@@ -3,6 +3,13 @@ Moto Changelog
 
 Latest
 ------
+1.1.14
+-----
+
+    * ACM implementation
+    * Added `make scaffold`
+    * X-Ray implementation
+
 1.1.13
 -----
 
