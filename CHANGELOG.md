@@ -3,6 +3,20 @@ Moto Changelog
 
 Latest
 ------
+1.1.15
+-----
+
+    * Polly implementation
+    * Added EC2 instance info
+    * SNS publish by phone number
+
+1.1.14
+-----
+
+    * ACM implementation
+    * Added `make scaffold`
+    * X-Ray implementation
+
 1.1.13
 -----
 
