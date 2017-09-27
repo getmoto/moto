@@ -22,10 +22,11 @@ from .elbv2 import mock_elbv2  # flake8: noqa
 from .emr import mock_emr, mock_emr_deprecated  # flake8: noqa
 from .events import mock_events  # flake8: noqa
 from .glacier import mock_glacier, mock_glacier_deprecated  # flake8: noqa
-from .opsworks import mock_opsworks, mock_opsworks_deprecated  # flake8: noqa
 from .iam import mock_iam, mock_iam_deprecated  # flake8: noqa
 from .kinesis import mock_kinesis, mock_kinesis_deprecated  # flake8: noqa
 from .kms import mock_kms, mock_kms_deprecated  # flake8: noqa
+from .opsworks import mock_opsworks, mock_opsworks_deprecated  # flake8: noqa
+from .polly import mock_polly  # flake8: noqa
 from .rds import mock_rds, mock_rds_deprecated  # flake8: noqa
 from .rds2 import mock_rds2, mock_rds2_deprecated  # flake8: noqa
 from .redshift import mock_redshift, mock_redshift_deprecated  # flake8: noqa

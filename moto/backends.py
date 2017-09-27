@@ -23,6 +23,7 @@ from moto.instance_metadata import instance_metadata_backends
 from moto.kinesis import kinesis_backends
 from moto.kms import kms_backends
 from moto.opsworks import opsworks_backends
+from moto.polly import polly_backends
 from moto.rds2 import rds2_backends
 from moto.redshift import redshift_backends
 from moto.route53 import route53_backends
@@ -54,9 +55,10 @@ BACKENDS = {
     'iam': iam_backends,
     'moto_api': moto_api_backends,
     'instance_metadata': instance_metadata_backends,
-    'opsworks': opsworks_backends,
     'kinesis': kinesis_backends,
     'kms': kms_backends,
+    'opsworks': opsworks_backends,
+    'polly': polly_backends,
     'redshift': redshift_backends,
     'rds': rds2_backends,
     's3': s3_backends,
