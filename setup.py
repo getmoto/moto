@@ -39,6 +39,7 @@ setup(
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
     extras_require=extras_require,
+    include_package_data=True,
     license="Apache",
     test_suite="tests",
     classifiers=[
