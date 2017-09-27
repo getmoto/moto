@@ -141,20 +141,10 @@ def main():
         result[instance_id] = instance_data
 
     root_dir = subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip()
-    dest = os.path.join(root_dir, 'moto/ec2/resources/instance_types.py')
+    dest = os.path.join(root_dir, 'moto/ec2/resources/instance_types.json')
     print("Writing data to {0}".format(dest))
     with open(dest, 'w') as open_file:
-        triple_quote = '\"\"\"'
-
-        open_file.write("# Imported via `scripts/get_instance_info.py`\n")
-        open_file.write('instance_types_data = {}\n'.format(triple_quote))
-        json.dump(result,
-                  open_file,
-                  sort_keys=True,
-                  indent=4,
-                  separators=(',', ': '))
-        open_file.write('{}\n'.format(triple_quote))
-
+        json.dump(result, open_file)
 
 if __name__ == '__main__':
     main()
