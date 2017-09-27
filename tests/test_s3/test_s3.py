@@ -16,6 +16,7 @@ import boto3
 from botocore.client import ClientError
 import botocore.exceptions
 from boto.exception import S3CreateError, S3ResponseError
+from botocore.handlers import disable_signing
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
@@ -864,6 +865,49 @@ def test_bucket_acl_switching():
                    g.permission == 'READ' for g in grants), grants
 
 
+@mock_s3
+def test_s3_object_in_public_bucket():
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('test-bucket')
+    bucket.create(ACL='public-read')
+    bucket.put_object(Body=b'ABCD', Key='file.txt')
+
+    s3_anonymous = boto3.resource('s3')
+    s3_anonymous.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
+
+    contents = s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()['Body'].read()
+    contents.should.equal(b'ABCD')
+
+    bucket.put_object(ACL='private', Body=b'ABCD', Key='file.txt')
+
+    with assert_raises(ClientError) as exc:
+        s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
+    exc.exception.response['Error']['Code'].should.equal('403')
+
+    params = {'Bucket': 'test-bucket','Key': 'file.txt'}
+    presigned_url = boto3.client('s3').generate_presigned_url('get_object', params, ExpiresIn=900)
+    response = requests.get(presigned_url)
+    assert response.status_code == 200
+
+@mock_s3
+def test_s3_object_in_private_bucket():
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('test-bucket')
+    bucket.create(ACL='private')
+    bucket.put_object(ACL='private', Body=b'ABCD', Key='file.txt')
+
+    s3_anonymous = boto3.resource('s3')
+    s3_anonymous.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
+
+    with assert_raises(ClientError) as exc:
+        s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
+    exc.exception.response['Error']['Code'].should.equal('403')
+
+    bucket.put_object(ACL='public-read', Body=b'ABCD', Key='file.txt')
+    contents = s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()['Body'].read()
+    contents.should.equal(b'ABCD')
+
+
 @mock_s3_deprecated
 def test_unicode_key():
     conn = boto.connect_s3()
@@ -1397,6 +1441,19 @@ def test_boto3_put_bucket_tagging():
     bucket_name = "mybucket"
     s3.create_bucket(Bucket=bucket_name)
 
+    # With 1 tag:
+    resp = s3.put_bucket_tagging(Bucket=bucket_name,
+                                 Tagging={
+                                     "TagSet": [
+                                         {
+                                             "Key": "TagOne",
+                                             "Value": "ValueOne"
+                                         }
+                                     ]
+                                 })
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    # With multiple tags:
     resp = s3.put_bucket_tagging(Bucket=bucket_name,
                                  Tagging={
                                      "TagSet": [

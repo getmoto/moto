@@ -251,6 +251,12 @@ def test_create_target_group_and_listeners():
         UnhealthyThresholdCount=2,
         Matcher={'HttpCode': '200'})
     target_group = response.get('TargetGroups')[0]
+    target_group_arn = target_group['TargetGroupArn']
+
+    # Add tags to the target group
+    conn.add_tags(ResourceArns=[target_group_arn], Tags=[{'Key': 'target', 'Value': 'group'}])
+    conn.describe_tags(ResourceArns=[target_group_arn])['TagDescriptions'][0]['Tags'].should.equal(
+        [{'Key': 'target', 'Value': 'group'}])
 
     # Check it's in the describe_target_groups response
     response = conn.describe_target_groups()

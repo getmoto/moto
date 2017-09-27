@@ -58,6 +58,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | Service Name          | Decorator        | Development Status                |
 |------------------------------------------------------------------------------|
+| ACM                   | @mock_acm        | all endpoints done                |
+|------------------------------------------------------------------------------|
 | API Gateway           | @mock_apigateway | core endpoints done               |
 |------------------------------------------------------------------------------|
 | Autoscaling           | @mock_autoscaling| core endpoints done               |
@@ -98,6 +100,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | KMS                   | @mock_kms        | basic endpoints done              |
 |------------------------------------------------------------------------------|
+| Polly                 | @mock_polly      | all endpoints done                |
+|------------------------------------------------------------------------------|
 | RDS                   | @mock_rds        | core endpoints done               |
 |------------------------------------------------------------------------------|
 | RDS2                  | @mock_rds2       | core endpoints done               |
@@ -110,7 +114,7 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | SES                   | @mock_ses        | core endpoints done               |
 |------------------------------------------------------------------------------|
-| SNS                   | @mock_sns        | core endpoints done               |
+| SNS                   | @mock_sns        | all endpoints done                |
 |------------------------------------------------------------------------------|
 | SQS                   | @mock_sqs        | core endpoints done               |
 |------------------------------------------------------------------------------|
@@ -119,6 +123,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | STS                   | @mock_sts        | core endpoints done               |
 |------------------------------------------------------------------------------|
 | SWF                   | @mock_swf        | basic endpoints done              |
+|------------------------------------------------------------------------------|
+| X-Ray                 | @mock_xray       | core endpoints done               |
 |------------------------------------------------------------------------------|
 ```
 

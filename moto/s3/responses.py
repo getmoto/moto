@@ -373,9 +373,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             self.backend.set_bucket_policy(bucket_name, body)
             return 'True'
         elif 'acl' in querystring:
-            acl = self._acl_from_headers(request.headers)
             # TODO: Support the XML-based ACL format
-            self.backend.set_bucket_acl(bucket_name, acl)
+            self.backend.set_bucket_acl(bucket_name, self._acl_from_headers(request.headers))
             return ""
         elif "tagging" in querystring:
             tagging = self._bucket_tagging_from_xml(body)
@@ -407,6 +406,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
                     new_bucket = self.backend.get_bucket(bucket_name)
                 else:
                     raise
+
+            if 'x-amz-acl' in request.headers:
+                # TODO: Support the XML-based ACL format
+                self.backend.set_bucket_acl(bucket_name, self._acl_from_headers(request.headers))
+
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, {}, template.render(bucket=new_bucket)
 
@@ -536,6 +540,23 @@ class ResponseObject(_TemplateEnvironmentMixin):
         key_name = self.parse_key_name(request, parsed_url.path)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
 
+        # Because we patch the requests library the boto/boto3 API
+        # requests go through this method but so do
+        # `requests.get("https://bucket-name.s3.amazonaws.com/file-name")`
+        # Here we deny public access to private files by checking the
+        # ACL and checking for the mere presence of an Authorization
+        # header.
+        if 'Authorization' not in request.headers:
+            if hasattr(request, 'url'):
+                signed_url = 'Signature=' in request.url
+            elif hasattr(request, 'requestline'):
+                signed_url = 'Signature=' in request.path
+            key = self.backend.get_key(bucket_name, key_name)
+
+            if key:
+                if not key.acl.public_read and not signed_url:
+                    return 403, {}, ""
+
         if hasattr(request, 'body'):
             # Boto
             body = request.body
@@ -621,6 +642,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         storage_class = request.headers.get('x-amz-storage-class', 'STANDARD')
         acl = self._acl_from_headers(request.headers)
+        if acl is None:
+            acl = self.backend.get_bucket(bucket_name).acl
         tagging = self._tagging_from_headers(request.headers)
 
         if 'acl' in query:
@@ -757,8 +780,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
         tags = []
         # Optional if no tags are being sent:
         if parsed_xml['Tagging'].get('TagSet'):
-            for tag in parsed_xml['Tagging']['TagSet']['Tag']:
-                tags.append(FakeTag(tag['Key'], tag['Value']))
+            # If there is only 1 tag, then it's not a list:
+            if not isinstance(parsed_xml['Tagging']['TagSet']['Tag'], list):
+                tags.append(FakeTag(parsed_xml['Tagging']['TagSet']['Tag']['Key'],
+                                    parsed_xml['Tagging']['TagSet']['Tag']['Value']))
+            else:
+                for tag in parsed_xml['Tagging']['TagSet']['Tag']:
+                    tags.append(FakeTag(tag['Key'], tag['Value']))
 
         tag_set = FakeTagSet(tags)
         tagging = FakeTagging(tag_set)

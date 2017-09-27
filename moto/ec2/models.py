@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import copy
 import itertools
+import json
+import os
 import re
 import six
 
@@ -62,6 +64,8 @@ from .exceptions import (
     InvalidVpnConnectionIdError,
     InvalidCustomerGatewayIdError,
     RulesPerSecurityGroupLimitExceededError,
+    MotoNotImplementedError,
+    FilterNotImplementedError
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -107,6 +111,9 @@ from .utils import (
     is_tag_filter,
 )
 
+RESOURCES_DIR = os.path.join(os.path.dirname(__file__), 'resources')
+INSTANCE_TYPES = json.load(open(os.path.join(RESOURCES_DIR, 'instance_types.json'), 'r'))
+
 
 def utc_date_and_time():
     return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
@@ -144,7 +151,7 @@ class TaggedEC2Resource(BaseModel):
         for key, value in tag_map.items():
             self.ec2_backend.create_tags([self.id], {key: value})
 
-    def get_filter_value(self, filter_name):
+    def get_filter_value(self, filter_name, method_name=None):
         tags = self.get_tags()
 
         if filter_name.startswith('tag:'):
@@ -154,12 +161,12 @@ class TaggedEC2Resource(BaseModel):
                     return tag['value']
 
             return ''
-
-        if filter_name == 'tag-key':
+        elif filter_name == 'tag-key':
             return [tag['key'] for tag in tags]
-
-        if filter_name == 'tag-value':
+        elif filter_name == 'tag-value':
             return [tag['value'] for tag in tags]
+        else:
+            raise FilterNotImplementedError(filter_name, method_name)
 
 
 class NetworkInterface(TaggedEC2Resource):
@@ -261,17 +268,9 @@ class NetworkInterface(TaggedEC2Resource):
             return [group.id for group in self._group_set]
         elif filter_name == 'availability-zone':
             return self.subnet.availability_zone
-
-        filter_value = super(
-            NetworkInterface, self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeNetworkInterfaces".format(
-                    filter_name)
-            )
-
-        return filter_value
+        else:
+            return super(NetworkInterface, self).get_filter_value(
+                filter_name, 'DescribeNetworkInterfaces')
 
 
 class NetworkInterfaceBackend(object):
@@ -590,10 +589,6 @@ class Instance(TaggedEC2Resource, BotoInstance):
 
             self.attach_eni(use_nic, device_index)
 
-    def set_ip(self, ip_address):
-        # Should we be creating a new ENI?
-        self.nics[0].public_ip = ip_address
-
     def attach_eni(self, eni, device_index):
         device_index = int(device_index)
         self.nics[device_index] = eni
@@ -806,6 +801,8 @@ class KeyPair(object):
             return self.name
         elif filter_name == 'fingerprint':
             return self.fingerprint
+        else:
+            raise FilterNotImplementedError(filter_name, 'DescribeKeyPairs')
 
 
 class KeyPairBackend(object):
@@ -1043,14 +1040,9 @@ class Ami(TaggedEC2Resource):
             return self.state
         elif filter_name == 'name':
             return self.name
-
-        filter_value = super(Ami, self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeImages".format(filter_name))
-
-        return filter_value
+        else:
+            return super(Ami, self).get_filter_value(
+                filter_name, 'DescribeImages')
 
 
 class AmiBackend(object):
@@ -1373,22 +1365,25 @@ class SecurityGroupBackend(object):
         return group
 
     def describe_security_groups(self, group_ids=None, groupnames=None, filters=None):
-        all_groups = itertools.chain(*[x.values()
-                                       for x in self.groups.values()])
-        groups = []
+        matches = itertools.chain(*[x.values()
+                                    for x in self.groups.values()])
+        if group_ids:
+            matches = [grp for grp in matches
+                       if grp.id in group_ids]
+            if len(group_ids) > len(matches):
+                unknown_ids = set(group_ids) - set(matches)
+                raise InvalidSecurityGroupNotFoundError(unknown_ids)
+        if groupnames:
+            matches = [grp for grp in matches
+                       if grp.name in groupnames]
+            if len(groupnames) > len(matches):
+                unknown_names = set(groupnames) - set(matches)
+                raise InvalidSecurityGroupNotFoundError(unknown_names)
+        if filters:
+            matches = [grp for grp in matches
+                       if grp.matches_filters(filters)]
 
-        if group_ids or groupnames or filters:
-            for group in all_groups:
-                if ((group_ids and group.id not in group_ids) or
-                        (groupnames and group.name not in groupnames)):
-                    continue
-                if filters and not group.matches_filters(filters):
-                    continue
-                groups.append(group)
-        else:
-            groups = all_groups
-
-        return groups
+        return matches
 
     def _delete_security_group(self, vpc_id, group_id):
         if self.groups[vpc_id][group_id].enis:
@@ -1707,43 +1702,31 @@ class Volume(TaggedEC2Resource):
             return 'available'
 
     def get_filter_value(self, filter_name):
-
         if filter_name.startswith('attachment') and not self.attachment:
             return None
-        if filter_name == 'attachment.attach-time':
+        elif filter_name == 'attachment.attach-time':
             return self.attachment.attach_time
-        if filter_name == 'attachment.device':
+        elif filter_name == 'attachment.device':
             return self.attachment.device
-        if filter_name == 'attachment.instance-id':
+        elif filter_name == 'attachment.instance-id':
             return self.attachment.instance.id
-        if filter_name == 'attachment.status':
+        elif filter_name == 'attachment.status':
             return self.attachment.status
-
-        if filter_name == 'create-time':
+        elif filter_name == 'create-time':
             return self.create_time
-
-        if filter_name == 'size':
+        elif filter_name == 'size':
             return self.size
-
-        if filter_name == 'snapshot-id':
+        elif filter_name == 'snapshot-id':
             return self.snapshot_id
-
-        if filter_name == 'status':
+        elif filter_name == 'status':
             return self.status
-
-        if filter_name == 'volume-id':
+        elif filter_name == 'volume-id':
             return self.id
-
-        if filter_name == 'encrypted':
+        elif filter_name == 'encrypted':
             return str(self.encrypted).lower()
-
-        filter_value = super(Volume, self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeVolumes".format(filter_name))
-
-        return filter_value
+        else:
+            return super(Volume, self).get_filter_value(
+                filter_name, 'DescribeVolumes')
 
 
 class Snapshot(TaggedEC2Resource):
@@ -1758,35 +1741,23 @@ class Snapshot(TaggedEC2Resource):
         self.encrypted = encrypted
 
     def get_filter_value(self, filter_name):
-
         if filter_name == 'description':
             return self.description
-
-        if filter_name == 'snapshot-id':
+        elif filter_name == 'snapshot-id':
             return self.id
-
-        if filter_name == 'start-time':
+        elif filter_name == 'start-time':
             return self.start_time
-
-        if filter_name == 'volume-id':
+        elif filter_name == 'volume-id':
             return self.volume.id
-
-        if filter_name == 'volume-size':
+        elif filter_name == 'volume-size':
             return self.volume.size
-
-        if filter_name == 'encrypted':
+        elif filter_name == 'encrypted':
             return str(self.encrypted).lower()
-
-        if filter_name == 'status':
+        elif filter_name == 'status':
             return self.status
-
-        filter_value = super(Snapshot, self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeSnapshots".format(filter_name))
-
-        return filter_value
+        else:
+            return super(Snapshot, self).get_filter_value(
+                filter_name, 'DescribeSnapshots')
 
 
 class EBSBackend(object):
@@ -1809,11 +1780,17 @@ class EBSBackend(object):
         self.volumes[volume_id] = volume
         return volume
 
-    def describe_volumes(self, filters=None):
+    def describe_volumes(self, volume_ids=None, filters=None):
+        matches = self.volumes.values()
+        if volume_ids:
+            matches = [vol for vol in matches
+                       if vol.id in volume_ids]
+            if len(volume_ids) > len(matches):
+                unknown_ids = set(volume_ids) - set(matches)
+                raise InvalidVolumeIdError(unknown_ids)
         if filters:
-            volumes = self.volumes.values()
-            return generic_filter(filters, volumes)
-        return self.volumes.values()
+            matches = generic_filter(filters, matches)
+        return matches
 
     def get_volume(self, volume_id):
         volume = self.volumes.get(volume_id, None)
@@ -1861,11 +1838,17 @@ class EBSBackend(object):
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
-    def describe_snapshots(self, filters=None):
+    def describe_snapshots(self, snapshot_ids=None, filters=None):
+        matches = self.snapshots.values()
+        if snapshot_ids:
+            matches = [snap for snap in matches
+                       if snap.id in snapshot_ids]
+            if len(snapshot_ids) > len(matches):
+                unknown_ids = set(snapshot_ids) - set(matches)
+                raise InvalidSnapshotIdError(unknown_ids)
         if filters:
-            snapshots = self.snapshots.values()
-            return generic_filter(filters, snapshots)
-        return self.snapshots.values()
+            matches = generic_filter(filters, matches)
+        return matches
 
     def get_snapshot(self, snapshot_id):
         snapshot = self.snapshots.get(snapshot_id, None)
@@ -1948,16 +1931,10 @@ class VPC(TaggedEC2Resource):
         elif filter_name in ('dhcp-options-id', 'dhcpOptionsId'):
             if not self.dhcp_options:
                 return None
-
             return self.dhcp_options.id
-
-        filter_value = super(VPC, self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeVPCs".format(filter_name))
-
-        return filter_value
+        else:
+            return super(VPC, self).get_filter_value(
+                filter_name, 'DescribeVpcs')
 
 
 class VPCBackend(object):
@@ -1990,12 +1967,16 @@ class VPCBackend(object):
         return self.vpcs.get(vpc_id)
 
     def get_all_vpcs(self, vpc_ids=None, filters=None):
+        matches = self.vpcs.values()
         if vpc_ids:
-            vpcs = [vpc for vpc in self.vpcs.values() if vpc.id in vpc_ids]
-        else:
-            vpcs = self.vpcs.values()
-
-        return generic_filter(filters, vpcs)
+            matches = [vpc for vpc in matches
+                       if vpc.id in vpc_ids]
+            if len(vpc_ids) > len(matches):
+                unknown_ids = set(vpc_ids) - set(matches)
+                raise InvalidVPCIdError(unknown_ids)
+        if filters:
+            matches = generic_filter(filters, matches)
+        return matches
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
@@ -2191,14 +2172,9 @@ class Subnet(TaggedEC2Resource):
             return self.availability_zone
         elif filter_name in ('defaultForAz', 'default-for-az'):
             return self.default_for_az
-
-        filter_value = super(Subnet, self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeSubnets".format(filter_name))
-
-        return filter_value
+        else:
+            return super(Subnet, self).get_filter_value(
+                filter_name, 'DescribeSubnets')
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -2237,16 +2213,19 @@ class SubnetBackend(object):
         return subnet
 
     def get_all_subnets(self, subnet_ids=None, filters=None):
-        subnets = []
+        # Extract a list of all subnets
+        matches = itertools.chain(*[x.values()
+                                    for x in self.subnets.values()])
         if subnet_ids:
-            for subnet_id in subnet_ids:
-                for items in self.subnets.values():
-                    if subnet_id in items:
-                        subnets.append(items[subnet_id])
-        else:
-            for items in self.subnets.values():
-                subnets.extend(items.values())
-        return generic_filter(filters, subnets)
+            matches = [sn for sn in matches
+                       if sn.id in subnet_ids]
+            if len(subnet_ids) > len(matches):
+                unknown_ids = set(subnet_ids) - set(matches)
+                raise InvalidSubnetIdError(unknown_ids)
+        if filters:
+            matches = generic_filter(filters, matches)
+
+        return matches
 
     def delete_subnet(self, subnet_id):
         for subnets in self.subnets.values():
@@ -2336,14 +2315,9 @@ class RouteTable(TaggedEC2Resource):
             return self.associations.keys()
         elif filter_name == "association.subnet-id":
             return self.associations.values()
-
-        filter_value = super(RouteTable, self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeRouteTables".format(filter_name))
-
-        return filter_value
+        else:
+            return super(RouteTable, self).get_filter_value(
+                filter_name, 'DescribeRouteTables')
 
 
 class RouteTableBackend(object):
@@ -2690,16 +2664,11 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
     def get_filter_value(self, filter_name):
         if filter_name == 'state':
             return self.state
-        if filter_name == 'spot-instance-request-id':
+        elif filter_name == 'spot-instance-request-id':
             return self.id
-        filter_value = super(SpotInstanceRequest,
-                             self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeSpotInstanceRequests".format(filter_name))
-
-        return filter_value
+        else:
+            return super(SpotInstanceRequest, self).get_filter_value(
+                filter_name, 'DescribeSpotInstanceRequests')
 
     def launch_instance(self):
         reservation = self.ec2_backend.add_instances(
@@ -2970,15 +2939,13 @@ class ElasticAddress(object):
             return self.instance.id
         elif filter_name == 'network-interface-id' and self.eni:
             return self.eni.id
-        elif filter_name == 'network-interface-owner-id':
-            msg = "The filter '{0}' for DescribeAddresses has not been" \
-                  " implemented in Moto yet. Feel free to open an issue at" \
-                  " https://github.com/spulec/moto/issues".format(filter_name)
-            raise NotImplementedError(msg)
         elif filter_name == 'private-ip-address' and self.eni:
             return self.eni.private_ip_address
         elif filter_name == 'public-ip':
             return self.public_ip
+        else:
+            # TODO: implement network-interface-owner-id
+            raise FilterNotImplementedError(filter_name, 'DescribeAddresses')
 
 
 class ElasticAddressBackend(object):
@@ -3047,8 +3014,6 @@ class ElasticAddressBackend(object):
                 eip.eni.public_ip = eip.public_ip
             if eip.domain == "vpc":
                 eip.association_id = random_eip_association_id()
-            if instance:
-                instance.set_ip(eip.public_ip)
 
             return eip
 
@@ -3082,10 +3047,9 @@ class ElasticAddressBackend(object):
         eip = eips[0]
 
         if eip.eni:
+            eip.eni.public_ip = None
             if eip.eni.instance and eip.eni.instance._state.name == "running":
                 eip.eni.check_auto_public_ip()
-            else:
-                eip.eni.public_ip = None
             eip.eni = None
 
         eip.instance = None
@@ -3141,15 +3105,9 @@ class DHCPOptionsSet(TaggedEC2Resource):
         elif filter_name == 'value':
             values = [item for item in list(self._options.values()) if item]
             return itertools.chain(*values)
-
-        filter_value = super(
-            DHCPOptionsSet, self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeDhcpOptions".format(filter_name))
-
-        return filter_value
+        else:
+            return super(DHCPOptionsSet, self).get_filter_value(
+                filter_name, 'DescribeDhcpOptions')
 
     @property
     def options(self):
@@ -3235,6 +3193,10 @@ class VPNConnection(TaggedEC2Resource):
         self.tunnels = None
         self.options = None
         self.static_routes = None
+
+    def get_filter_value(self, filter_name):
+            return super(VPNConnection, self).get_filter_value(
+                filter_name, 'DescribeVpnConnections')
 
 
 class VPNConnectionBackend(object):
@@ -3415,14 +3377,9 @@ class NetworkAcl(TaggedEC2Resource):
             return self.id
         elif filter_name == "association.subnet-id":
             return [assoc.subnet_id for assoc in self.associations.values()]
-
-        filter_value = super(NetworkAcl, self).get_filter_value(filter_name)
-
-        if filter_value is None:
-            self.ec2_backend.raise_not_implemented_error(
-                "The filter '{0}' for DescribeNetworkAcls".format(filter_name))
-
-        return filter_value
+        else:
+            return super(NetworkAcl, self).get_filter_value(
+                filter_name, 'DescribeNetworkAcls')
 
 
 class NetworkAclEntry(TaggedEC2Resource):
@@ -3450,6 +3407,10 @@ class VpnGateway(TaggedEC2Resource):
         self.type = type
         self.attachments = {}
         super(VpnGateway, self).__init__()
+
+    def get_filter_value(self, filter_name):
+            return super(VpnGateway, self).get_filter_value(
+                filter_name, 'DescribeVpnGateways')
 
 
 class VpnGatewayAttachment(object):
@@ -3511,6 +3472,10 @@ class CustomerGateway(TaggedEC2Resource):
         self.bgp_asn = bgp_asn
         self.attachments = {}
         super(CustomerGateway, self).__init__()
+
+    def get_filter_value(self, filter_name):
+            return super(CustomerGateway, self).get_filter_value(
+                filter_name, 'DescribeCustomerGateways')
 
 
 class CustomerGatewayBackend(object):
@@ -3655,10 +3620,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
         raise EC2ClientError(code, message)
 
     def raise_not_implemented_error(self, blurb):
-        msg = "{0} has not been implemented in Moto yet." \
-              " Feel free to open an issue at" \
-              " https://github.com/spulec/moto/issues".format(blurb)
-        raise NotImplementedError(msg)
+        raise MotoNotImplementedError(blurb)
 
     def do_resources_exist(self, resource_ids):
         for resource_id in resource_ids:

@@ -167,7 +167,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         match = re.search(self.region_regex, full_url)
         if match:
             region = match.group(1)
-        elif 'Authorization' in request.headers:
+        elif 'Authorization' in request.headers and 'AWS4' in request.headers['Authorization']:
             region = request.headers['Authorization'].split(",")[
                 0].split("/")[2]
         else:
@@ -178,8 +178,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.setup_class(request, full_url, headers)
         return self.call_action()
 
-    def call_action(self):
-        headers = self.response_headers
+    def _get_action(self):
         action = self.querystring.get('Action', [""])[0]
         if not action:  # Some services use a header for the action
             # Headers are case-insensitive. Probably a better way to do this.
@@ -188,7 +187,11 @@ class BaseResponse(_TemplateEnvironmentMixin):
             if match:
                 action = match.split(".")[-1]
 
-        action = camelcase_to_underscores(action)
+        return action
+
+    def call_action(self):
+        headers = self.response_headers
+        action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
         if action in method_names:
             method = getattr(self, action)
@@ -310,7 +313,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
             param_index += 1
         return results
 
-    def _get_map_prefix(self, param_prefix):
+    def _get_map_prefix(self, param_prefix, key_end='.key', value_end='.value'):
         results = {}
         param_index = 1
         while 1:
@@ -319,9 +322,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
             k, v = None, None
             for key, value in self.querystring.items():
                 if key.startswith(index_prefix):
-                    if key.endswith('.key'):
+                    if key.endswith(key_end):
                         k = value[0]
-                    elif key.endswith('.value'):
+                    elif key.endswith(value_end):
                         v = value[0]
 
             if not (k and v):

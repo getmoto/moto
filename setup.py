@@ -10,6 +10,7 @@ install_requires = [
     "boto>=2.36.0",
     "boto3>=1.2.1",
     "cookies",
+    "cryptography>=2.0.0",
     "requests>=2.5",
     "xmltodict",
     "dicttoxml",
@@ -36,7 +37,7 @@ else:
 
 setup(
     name='moto',
-    version='1.1.9',
+    version='1.1.19',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',
@@ -50,6 +51,7 @@ setup(
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
     extras_require=extras_require,
+    include_package_data=True,
     license="Apache",
     test_suite="tests",
     classifiers=[

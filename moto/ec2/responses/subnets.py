@@ -7,14 +7,11 @@ from moto.ec2.utils import filters_from_querystring
 class Subnets(BaseResponse):
 
     def create_subnet(self):
-        vpc_id = self.querystring.get('VpcId')[0]
-        cidr_block = self.querystring.get('CidrBlock')[0]
-        if 'AvailabilityZone' in self.querystring:
-            availability_zone = self.querystring['AvailabilityZone'][0]
-        else:
-            zone = random.choice(
-                self.ec2_backend.describe_availability_zones())
-            availability_zone = zone.name
+        vpc_id = self._get_param('VpcId')
+        cidr_block = self._get_param('CidrBlock')
+        availability_zone = self._get_param(
+            'AvailabilityZone', if_none=random.choice(
+                self.ec2_backend.describe_availability_zones()).name)
         subnet = self.ec2_backend.create_subnet(
             vpc_id,
             cidr_block,
@@ -24,30 +21,21 @@ class Subnets(BaseResponse):
         return template.render(subnet=subnet)
 
     def delete_subnet(self):
-        subnet_id = self.querystring.get('SubnetId')[0]
+        subnet_id = self._get_param('SubnetId')
         subnet = self.ec2_backend.delete_subnet(subnet_id)
         template = self.response_template(DELETE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
 
     def describe_subnets(self):
+        subnet_ids = self._get_multi_param('SubnetId')
         filters = filters_from_querystring(self.querystring)
-
-        subnet_ids = []
-        idx = 1
-        key = 'SubnetId.{0}'.format(idx)
-        while key in self.querystring:
-            v = self.querystring[key]
-            subnet_ids.append(v[0])
-            idx += 1
-            key = 'SubnetId.{0}'.format(idx)
-
         subnets = self.ec2_backend.get_all_subnets(subnet_ids, filters)
         template = self.response_template(DESCRIBE_SUBNETS_RESPONSE)
         return template.render(subnets=subnets)
 
     def modify_subnet_attribute(self):
-        subnet_id = self.querystring.get('SubnetId')[0]
-        map_public_ip = self.querystring.get('MapPublicIpOnLaunch.Value')[0]
+        subnet_id = self._get_param('SubnetId')
+        map_public_ip = self._get_param('MapPublicIpOnLaunch.Value')
         self.ec2_backend.modify_subnet_attribute(subnet_id, map_public_ip)
         return MODIFY_SUBNET_ATTRIBUTE_RESPONSE
 

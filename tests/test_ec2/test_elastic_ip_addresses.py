@@ -180,13 +180,31 @@ def test_eip_boto3_vpc_association():
         'SubnetId': subnet_res['Subnet']['SubnetId']
     })[0]
     allocation_id = client.allocate_address(Domain='vpc')['AllocationId']
+    address = service.VpcAddress(allocation_id)
+    address.load()
+    address.association_id.should.be.none
+    address.instance_id.should.be.empty
+    address.network_interface_id.should.be.empty
     association_id = client.associate_address(
         InstanceId=instance.id,
         AllocationId=allocation_id,
         AllowReassociation=False)
     instance.load()
+    address.reload()
+    address.association_id.should_not.be.none
     instance.public_ip_address.should_not.be.none
     instance.public_dns_name.should_not.be.none
+    address.network_interface_id.should.equal(instance.network_interfaces_attribute[0].get('NetworkInterfaceId'))
+    address.public_ip.should.equal(instance.public_ip_address)
+    address.instance_id.should.equal(instance.id)
+
+    client.disassociate_address(AssociationId=address.association_id)
+    instance.reload()
+    address.reload()
+    instance.public_ip_address.should.be.none
+    address.network_interface_id.should.be.empty
+    address.association_id.should.be.none
+    address.instance_id.should.be.empty
 
 
 @mock_ec2_deprecated

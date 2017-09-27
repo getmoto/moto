@@ -1,0 +1,7 @@
+from __future__ import unicode_literals
+from .models import {{ service }}_backends
+from ..core.models import base_decorator
+
+{{ service }}_backend = {{ service }}_backends['us-east-1']
+mock_{{ service }} = base_decorator({{ service }}_backends)
+

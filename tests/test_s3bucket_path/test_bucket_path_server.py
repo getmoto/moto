@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import sure  # noqa
 
+from flask.testing import FlaskClient
 import moto.server as server
 
 '''
@@ -8,9 +9,21 @@ Test the different server responses
 '''
 
 
-def test_s3_server_get():
+class AuthenticatedClient(FlaskClient):
+    def open(self, *args, **kwargs):
+        kwargs['headers'] = kwargs.get('headers', {})
+        kwargs['headers']['Authorization'] = "Any authorization header"
+        return super(AuthenticatedClient, self).open(*args, **kwargs)
+
+
+def authenticated_client():
     backend = server.create_backend_app("s3bucket_path")
-    test_client = backend.test_client()
+    backend.test_client_class = AuthenticatedClient
+    return backend.test_client()
+
+
+def test_s3_server_get():
+    test_client = authenticated_client()
 
     res = test_client.get('/')
 
@@ -18,8 +31,7 @@ def test_s3_server_get():
 
 
 def test_s3_server_bucket_create():
-    backend = server.create_backend_app("s3bucket_path")
-    test_client = backend.test_client()
+    test_client = authenticated_client()
 
     res = test_client.put('/foobar', 'http://localhost:5000')
     res.status_code.should.equal(200)
@@ -54,8 +66,7 @@ def test_s3_server_bucket_create():
 
 
 def test_s3_server_post_to_bucket():
-    backend = server.create_backend_app("s3bucket_path")
-    test_client = backend.test_client()
+    test_client = authenticated_client()
 
     res = test_client.put('/foobar2', 'http://localhost:5000/')
     res.status_code.should.equal(200)
@@ -71,8 +82,7 @@ def test_s3_server_post_to_bucket():
 
 
 def test_s3_server_put_ipv6():
-    backend = server.create_backend_app("s3bucket_path")
-    test_client = backend.test_client()
+    test_client = authenticated_client()
 
     res = test_client.put('/foobar2', 'http://[::]:5000/')
     res.status_code.should.equal(200)
@@ -88,8 +98,7 @@ def test_s3_server_put_ipv6():
 
 
 def test_s3_server_put_ipv4():
-    backend = server.create_backend_app("s3bucket_path")
-    test_client = backend.test_client()
+    test_client = authenticated_client()
 
     res = test_client.put('/foobar2', 'http://127.0.0.1:5000/')
     res.status_code.should.equal(200)

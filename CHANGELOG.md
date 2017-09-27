@@ -3,6 +3,111 @@ Moto Changelog
 
 Latest
 ------
+1.1.16
+-----
+
+    * Fixing regression from 1.1.15
+
+1.1.15
+-----
+
+    * Polly implementation
+    * Added EC2 instance info
+    * SNS publish by phone number
+
+1.1.14
+-----
+
+    * ACM implementation
+    * Added `make scaffold`
+    * X-Ray implementation
+
+1.1.13
+-----
+
+    * Created alpine-based Dockerfile (dockerhub: motoserver/moto)
+    * SNS.SetSMSAttributes & SNS.GetSMSAttributes + Filtering
+    * S3 ACL implementation
+    * pushing to Dockerhub on `make publish`
+
+1.1.12
+-----
+
+    * implemented all AWS managed policies in source
+    * fixing Dynamodb CapacityUnits format
+    * S3 ACL implementation
+
+1.1.11
+-----
+
+    * S3 authentication
+    * SSM get_parameter
+    * ELBv2 target group tagging
+    * EC2 Security group filters
+
+1.1.10
+-----
+
+    * EC2 vpc address filtering
+    * EC2 elastic ip dissociation
+    * ELBv2 target group tagging
+    * fixed complexity of accepting new filter implementations
+
+1.1.9
+-----
+
+    * EC2 root device mapping
+
+1.1.8
+-----
+
+    * Lambda get_function for function created with zipfile
+    * scripts/implementation_coverage.py
+
+1.1.7
+-----
+
+    * Lambda invoke_async
+    * EC2 keypair filtering
+
+1.1.6
+-----
+
+    * Dynamo ADD and DELETE operations in update expressions
+    * Lambda tag support
+
+1.1.5
+-----
+
+    * Dynamo allow ADD update_item of a string set
+    * Handle max-keys in list-objects
+    * bugfixes in pagination
+
+1.1.3
+-----
+
+    * EC2 vpc_id in responses
+
+1.1.2
+-----
+
+    * IAM account aliases
+    * SNS subscription attributes
+    * bugfixes in Dynamo, CFN, and EC2
+
+1.1.1
+-----
+
+    * EC2 group-id filter
+    * EC2 list support for filters
+
+1.1.0
+-----
+
+    * Add ELBv2
+    * IAM user policies
+    * RDS snapshots
+    * IAM policy versions
 
 1.0.1
 -----
