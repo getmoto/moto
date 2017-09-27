@@ -6,6 +6,8 @@ from collections import defaultdict
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sns_backends
+from .exceptions import SNSNotFoundError
+from .utils import is_e164
 
 
 class SNSResponse(BaseResponse):
@@ -136,6 +138,13 @@ class SNSResponse(BaseResponse):
         topic_arn = self._get_param('TopicArn')
         endpoint = self._get_param('Endpoint')
         protocol = self._get_param('Protocol')
+
+        if protocol == 'sms' and not is_e164(endpoint):
+            return self._error(
+                'InvalidParameter',
+                'Phone number does not meet the E164 format'
+            ), dict(status=400)
+
         subscription = self.backend.subscribe(topic_arn, endpoint, protocol)
 
         if self.request_json:
@@ -229,7 +238,28 @@ class SNSResponse(BaseResponse):
     def publish(self):
         target_arn = self._get_param('TargetArn')
         topic_arn = self._get_param('TopicArn')
-        arn = target_arn if target_arn else topic_arn
+        phone_number = self._get_param('PhoneNumber')
+        if phone_number is not None:
+            # Check phone is correct syntax (e164)
+            if not is_e164(phone_number):
+                return self._error(
+                    'InvalidParameter',
+                    'Phone number does not meet the E164 format'
+                ), dict(status=400)
+
+            # Look up topic arn by phone number
+            try:
+                arn = self.backend.get_topic_from_phone_number(phone_number)
+            except SNSNotFoundError:
+                return self._error(
+                    'ParameterValueInvalid',
+                    'Could not find topic associated with phone number'
+                ), dict(status=400)
+        elif target_arn is not None:
+            arn = target_arn
+        else:
+            arn = topic_arn
+
         message = self._get_param('Message')
         message_id = self.backend.publish(arn, message)
 

@@ -221,6 +221,12 @@ class SNSBackend(BaseBackend):
         except KeyError:
             raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
 
+    def get_topic_from_phone_number(self, number):
+        for subscription in self.subscriptions.values():
+            if subscription.protocol == 'sms' and subscription.endpoint == number:
+                return subscription.topic.arn
+        raise SNSNotFoundError('Could not find valid subscription')
+
     def set_topic_attribute(self, topic_arn, attribute_name, attribute_value):
         topic = self.get_topic(topic_arn)
         setattr(topic, attribute_name, attribute_value)
