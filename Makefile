@@ -21,8 +21,9 @@ aws_managed_policies:
 upload_pypi_artifact:
 	python setup.py sdist bdist_wheel upload
 
-build_dockerhub_image:
+push_dockerhub_image:
 	docker build -t motoserver/moto .
+	docker push motoserver/moto
 
 tag_github_release:
 	git tag `python setup.py --version`
