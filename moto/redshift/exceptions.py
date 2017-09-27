@@ -71,3 +71,25 @@ class ClusterSnapshotAlreadyExistsError(RedshiftClientError):
             'ClusterSnapshotAlreadyExists',
             "Cannot create the snapshot because a snapshot with the "
             "identifier {0} already exists".format(snapshot_identifier))
+
+
+class InvalidParameterValueError(RedshiftClientError):
+    def __init__(self, message):
+        super(InvalidParameterValueError, self).__init__(
+            'InvalidParameterValue',
+            message)
+
+
+class ResourceNotFoundFaultError(RedshiftClientError):
+
+    code = 404
+
+    def __init__(self, resource_type=None, resource_name=None, message=None):
+        if resource_type and not resource_name:
+            msg = "resource of type '{0}' not found.".format(resource_type)
+        else:
+            msg = "{0} ({1}) not found.".format(resource_type, resource_name)
+        if message:
+            msg = message
+        super(ResourceNotFoundFaultError, self).__init__(
+            'ResourceNotFoundFault', msg)
