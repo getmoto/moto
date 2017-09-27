@@ -1,11 +1,18 @@
 FROM alpine:3.6
 
+RUN apk add --no-cache --update \
+    gcc \
+    musl-dev \
+    python3-dev \
+    libffi-dev \
+    openssl-dev \
+    python3
+
 ADD . /moto/
 ENV PYTHONUNBUFFERED 1
 
 WORKDIR /moto/
-RUN  apk add --no-cache python3 && \
-     python3 -m ensurepip && \
+RUN  python3 -m ensurepip && \
      rm -r /usr/lib/python*/ensurepip && \
      pip3 --no-cache-dir install --upgrade pip setuptools && \
      pip3 --no-cache-dir install ".[server]"
