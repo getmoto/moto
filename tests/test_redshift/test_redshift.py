@@ -106,7 +106,7 @@ def test_create_single_node_cluster():
 
 
 @mock_redshift_deprecated
-def test_default_cluster_attibutes():
+def test_default_cluster_attributes():
     conn = boto.redshift.connect_to_region("us-east-1")
     cluster_identifier = 'my_cluster'
 
@@ -267,7 +267,7 @@ def test_create_cluster_with_parameter_group():
 
 
 @mock_redshift_deprecated
-def test_describe_non_existant_cluster():
+def test_describe_non_existent_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_clusters.when.called_with(
         "not-a-cluster").should.throw(ClusterNotFound)
@@ -391,7 +391,7 @@ def test_create_invalid_cluster_subnet_group():
 
 
 @mock_redshift_deprecated
-def test_describe_non_existant_subnet_group():
+def test_describe_non_existent_subnet_group():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_cluster_subnet_groups.when.called_with(
         "not-a-subnet-group").should.throw(ClusterSubnetGroupNotFound)
@@ -447,7 +447,7 @@ def test_create_cluster_security_group():
 
 
 @mock_redshift_deprecated
-def test_describe_non_existant_security_group():
+def test_describe_non_existent_security_group():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_cluster_security_groups.when.called_with(
         "not-a-security-group").should.throw(ClusterSecurityGroupNotFound)
@@ -498,7 +498,7 @@ def test_create_cluster_parameter_group():
 
 
 @mock_redshift_deprecated
-def test_describe_non_existant_parameter_group():
+def test_describe_non_existent_parameter_group():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_cluster_parameter_groups.when.called_with(
         "not-a-parameter-group").should.throw(ClusterParameterGroupNotFound)
@@ -530,6 +530,17 @@ def test_delete_cluster_parameter_group():
         "not-a-parameter-group").should.throw(ClusterParameterGroupNotFound)
 
 
+
+@mock_redshift
+def test_create_cluster_snapshot_of_non_existent_cluster():
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_identifier = 'non-existent-cluster-id'
+    client.create_cluster_snapshot.when.called_with(
+        SnapshotIdentifier='snapshot-id',
+        ClusterIdentifier=cluster_identifier,
+    ).should.throw(ClientError, 'Cluster {} not found.'.format(cluster_identifier))
+
+
 @mock_redshift
 def test_create_cluster_snapshot():
     client = boto3.client('redshift', region_name='us-east-1')
@@ -558,6 +569,52 @@ def test_create_cluster_snapshot():
     snapshot['NumberOfNodes'].should.equal(1)
     snapshot['NodeType'].should.equal('ds2.xlarge')
     snapshot['MasterUsername'].should.equal('username')
+
+
+@mock_redshift
+def test_describe_cluster_snapshots():
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_identifier = 'my_cluster'
+    snapshot_identifier = 'my_snapshot'
+
+    client.create_cluster(
+        DBName='test-db',
+        ClusterIdentifier=cluster_identifier,
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='username',
+        MasterUserPassword='password',
+    )
+
+    client.create_cluster_snapshot(
+        SnapshotIdentifier=snapshot_identifier,
+        ClusterIdentifier=cluster_identifier,
+    )
+
+    resp_clust = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp_snap = client.describe_cluster_snapshots(SnapshotIdentifier=snapshot_identifier)
+    resp_clust['Snapshots'][0].should.equal(resp_snap['Snapshots'][0])
+    snapshot = resp_snap['Snapshots'][0]
+    snapshot['SnapshotIdentifier'].should.equal(snapshot_identifier)
+    snapshot['ClusterIdentifier'].should.equal(cluster_identifier)
+    snapshot['NumberOfNodes'].should.equal(1)
+    snapshot['NodeType'].should.equal('ds2.xlarge')
+    snapshot['MasterUsername'].should.equal('username')
+
+
+@mock_redshift
+def test_describe_cluster_snapshots_not_found_error():
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_identifier = 'my_cluster'
+    snapshot_identifier = 'my_snapshot'
+
+    client.describe_cluster_snapshots.when.called_with(
+        ClusterIdentifier=cluster_identifier,
+    ).should.throw(ClientError, 'Cluster {} not found.'.format(cluster_identifier))
+
+    client.describe_cluster_snapshots.when.called_with(
+        SnapshotIdentifier=snapshot_identifier
+    ).should.throw(ClientError, 'Snapshot {} not found.'.format(snapshot_identifier))
 
 
 @mock_redshift
@@ -653,6 +710,15 @@ def test_create_cluster_from_snapshot():
 
 
 @mock_redshift
+def test_create_cluster_from_non_existent_snapshot():
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.restore_from_cluster_snapshot.when.called_with(
+        ClusterIdentifier='cluster-id',
+        SnapshotIdentifier='non-existent-snapshot',
+    ).should.throw(ClientError, 'Snapshot non-existent-snapshot not found.')
+
+
+@mock_redshift
 def test_create_cluster_status_update():
     client = boto3.client('redshift', region_name='us-east-1')
     cluster_identifier = 'test-cluster'
@@ -673,12 +739,126 @@ def test_create_cluster_status_update():
 
 
 @mock_redshift
-def test_describe_snapshot_tags():
+def test_describe_tags_with_resource_type():
     client = boto3.client('redshift', region_name='us-east-1')
     cluster_identifier = 'my_cluster'
+    cluster_arn = 'arn:aws:redshift:us-east-1:123456789012:' \
+                  'cluster:{}'.format(cluster_identifier)
     snapshot_identifier = 'my_snapshot'
+    snapshot_arn = 'arn:aws:redshift:us-east-1:123456789012:' \
+                   'snapshot:{}/{}'.format(cluster_identifier,
+                                           snapshot_identifier)
     tag_key = 'test-tag-key'
-    tag_value = 'teat-tag-value'
+    tag_value = 'test-tag-value'
+
+    client.create_cluster(
+        DBName='test-db',
+        ClusterIdentifier=cluster_identifier,
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='username',
+        MasterUserPassword='password',
+        Tags=[{'Key': tag_key,
+               'Value': tag_value}]
+    )
+    tags_response = client.describe_tags(ResourceType='cluster')
+    tagged_resources = tags_response['TaggedResources']
+    list(tagged_resources).should.have.length_of(1)
+    tagged_resources[0]['ResourceType'].should.equal('cluster')
+    tagged_resources[0]['ResourceName'].should.equal(cluster_arn)
+    tag = tagged_resources[0]['Tag']
+    tag['Key'].should.equal(tag_key)
+    tag['Value'].should.equal(tag_value)
+
+    client.create_cluster_snapshot(
+        SnapshotIdentifier=snapshot_identifier,
+        ClusterIdentifier=cluster_identifier,
+        Tags=[{'Key': tag_key,
+               'Value': tag_value}]
+    )
+    tags_response = client.describe_tags(ResourceType='snapshot')
+    tagged_resources = tags_response['TaggedResources']
+    list(tagged_resources).should.have.length_of(1)
+    tagged_resources[0]['ResourceType'].should.equal('snapshot')
+    tagged_resources[0]['ResourceName'].should.equal(snapshot_arn)
+    tag = tagged_resources[0]['Tag']
+    tag['Key'].should.equal(tag_key)
+    tag['Value'].should.equal(tag_value)
+
+
+@mock_redshift
+def test_describe_tags_cannot_specify_resource_type_and_resource_name():
+    client = boto3.client('redshift', region_name='us-east-1')
+    resource_name = 'arn:aws:redshift:us-east-1:123456789012:cluster:cluster-id'
+    resource_type = 'cluster'
+    client.describe_tags.when.called_with(
+        ResourceName=resource_name,
+        ResourceType=resource_type
+    ).should.throw(ClientError, 'using either an ARN or a resource type')
+
+
+@mock_redshift
+def test_describe_tags_with_resource_name():
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_identifier = 'cluster-id'
+    cluster_arn = 'arn:aws:redshift:us-east-1:123456789012:' \
+                  'cluster:{}'.format(cluster_identifier)
+    snapshot_identifier = 'snapshot-id'
+    snapshot_arn = 'arn:aws:redshift:us-east-1:123456789012:' \
+                   'snapshot:{}/{}'.format(cluster_identifier,
+                                           snapshot_identifier)
+    tag_key = 'test-tag-key'
+    tag_value = 'test-tag-value'
+
+    client.create_cluster(
+        DBName='test-db',
+        ClusterIdentifier=cluster_identifier,
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='username',
+        MasterUserPassword='password',
+        Tags=[{'Key': tag_key,
+               'Value': tag_value}]
+    )
+    tags_response = client.describe_tags(ResourceName=cluster_arn)
+    tagged_resources = tags_response['TaggedResources']
+    list(tagged_resources).should.have.length_of(1)
+    tagged_resources[0]['ResourceType'].should.equal('cluster')
+    tagged_resources[0]['ResourceName'].should.equal(cluster_arn)
+    tag = tagged_resources[0]['Tag']
+    tag['Key'].should.equal(tag_key)
+    tag['Value'].should.equal(tag_value)
+
+    client.create_cluster_snapshot(
+        SnapshotIdentifier=snapshot_identifier,
+        ClusterIdentifier=cluster_identifier,
+        Tags=[{'Key': tag_key,
+               'Value': tag_value}]
+    )
+    tags_response = client.describe_tags(ResourceName=snapshot_arn)
+    tagged_resources = tags_response['TaggedResources']
+    list(tagged_resources).should.have.length_of(1)
+    tagged_resources[0]['ResourceType'].should.equal('snapshot')
+    tagged_resources[0]['ResourceName'].should.equal(snapshot_arn)
+    tag = tagged_resources[0]['Tag']
+    tag['Key'].should.equal(tag_key)
+    tag['Value'].should.equal(tag_value)
+
+
+@mock_redshift
+def test_create_tags():
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_identifier = 'cluster-id'
+    cluster_arn = 'arn:aws:redshift:us-east-1:123456789012:' \
+                  'cluster:{}'.format(cluster_identifier)
+    tag_key = 'test-tag-key'
+    tag_value = 'test-tag-value'
+    num_tags = 5
+    tags = []
+    for i in range(0, num_tags):
+        tag = {'Key': '{}-{}'.format(tag_key, i),
+               'Value': '{}-{}'.format(tag_value, i)}
+        tags.append(tag)
 
     client.create_cluster(
         DBName='test-db',
@@ -688,17 +868,125 @@ def test_describe_snapshot_tags():
         MasterUsername='username',
         MasterUserPassword='password',
     )
-
-    client.create_cluster_snapshot(
-        SnapshotIdentifier=snapshot_identifier,
-        ClusterIdentifier=cluster_identifier,
-        Tags=[{'Key': tag_key,
-               'Value': tag_value}]
+    client.create_tags(
+        ResourceName=cluster_arn,
+        Tags=tags
     )
+    response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    cluster = response['Clusters'][0]
+    list(cluster['Tags']).should.have.length_of(num_tags)
+    response = client.describe_tags(ResourceName=cluster_arn)
+    list(response['TaggedResources']).should.have.length_of(num_tags)
 
-    tags_response = client.describe_tags(ResourceType='Snapshot')
-    tagged_resources = tags_response['TaggedResources']
-    list(tagged_resources).should.have.length_of(1)
-    tag = tagged_resources[0]['Tag']
-    tag['Key'].should.equal(tag_key)
-    tag['Value'].should.equal(tag_value)
+
+@mock_redshift
+def test_delete_tags():
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_identifier = 'cluster-id'
+    cluster_arn = 'arn:aws:redshift:us-east-1:123456789012:' \
+                  'cluster:{}'.format(cluster_identifier)
+    tag_key = 'test-tag-key'
+    tag_value = 'test-tag-value'
+    tags = []
+    for i in range(1, 2):
+        tag = {'Key': '{}-{}'.format(tag_key, i),
+               'Value': '{}-{}'.format(tag_value, i)}
+        tags.append(tag)
+
+    client.create_cluster(
+        DBName='test-db',
+        ClusterIdentifier=cluster_identifier,
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='username',
+        MasterUserPassword='password',
+        Tags=tags
+    )
+    client.delete_tags(
+        ResourceName=cluster_arn,
+        TagKeys=[tag['Key'] for tag in tags
+                 if tag['Key'] != '{}-1'.format(tag_key)]
+    )
+    response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    cluster = response['Clusters'][0]
+    list(cluster['Tags']).should.have.length_of(1)
+    response = client.describe_tags(ResourceName=cluster_arn)
+    list(response['TaggedResources']).should.have.length_of(1)
+
+
+@mock_ec2
+@mock_redshift
+def test_describe_tags_all_resource_types():
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock='10.0.0.0/24')
+    client = boto3.client('redshift', region_name='us-east-1')
+    response = client.describe_tags()
+    list(response['TaggedResources']).should.have.length_of(0)
+    client.create_cluster_subnet_group(
+        ClusterSubnetGroupName='my_subnet_group',
+        Description='This is my subnet group',
+        SubnetIds=[subnet.id],
+        Tags=[{'Key': 'tag_key',
+               'Value': 'tag_value'}]
+    )
+    client.create_cluster_security_group(
+        ClusterSecurityGroupName="security_group1",
+        Description="This is my security group",
+        Tags=[{'Key': 'tag_key',
+               'Value': 'tag_value'}]
+    )
+    client.create_cluster(
+        DBName='test',
+        ClusterIdentifier='my_cluster',
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='user',
+        MasterUserPassword='password',
+        Tags=[{'Key': 'tag_key',
+               'Value': 'tag_value'}]
+    )
+    client.create_cluster_snapshot(
+        SnapshotIdentifier='my_snapshot',
+        ClusterIdentifier='my_cluster',
+        Tags=[{'Key': 'tag_key',
+               'Value': 'tag_value'}]
+    )
+    client.create_cluster_parameter_group(
+        ParameterGroupName="my_parameter_group",
+        ParameterGroupFamily="redshift-1.0",
+        Description="This is my parameter group",
+        Tags=[{'Key': 'tag_key',
+               'Value': 'tag_value'}]
+    )
+    response = client.describe_tags()
+    expected_types = ['cluster', 'parametergroup', 'securitygroup', 'snapshot', 'subnetgroup']
+    tagged_resources = response['TaggedResources']
+    returned_types = [resource['ResourceType'] for resource in tagged_resources]
+    list(tagged_resources).should.have.length_of(len(expected_types))
+    set(returned_types).should.equal(set(expected_types))
+
+
+@mock_redshift
+def test_tagged_resource_not_found_error():
+    client = boto3.client('redshift', region_name='us-east-1')
+
+    cluster_arn = 'arn:aws:redshift:us-east-1::cluster:fake'
+    client.describe_tags.when.called_with(
+        ResourceName=cluster_arn
+    ).should.throw(ClientError, 'cluster (fake) not found.')
+
+    snapshot_arn = 'arn:aws:redshift:us-east-1::snapshot:cluster-id/snap-id'
+    client.delete_tags.when.called_with(
+        ResourceName=snapshot_arn,
+        TagKeys=['test']
+    ).should.throw(ClientError, 'snapshot (snap-id) not found.')
+
+    client.describe_tags.when.called_with(
+        ResourceType='cluster'
+    ).should.throw(ClientError, "resource of type 'cluster' not found.")
+
+    client.describe_tags.when.called_with(
+        ResourceName='bad:arn'
+    ).should.throw(ClientError, "Tagging is not supported for this type of resource")
+

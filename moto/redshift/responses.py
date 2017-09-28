@@ -57,6 +57,15 @@ class RedshiftResponse(BaseResponse):
             count += 1
         return unpacked_list
 
+    def unpack_list_params(self, label):
+        unpacked_list = list()
+        count = 1
+        while self._get_param('{0}.{1}'.format(label, count)):
+            unpacked_list.append(self._get_param(
+                '{0}.{1}'.format(label, count)))
+            count += 1
+        return unpacked_list
+
     def create_cluster(self):
         cluster_kwargs = {
             "cluster_identifier": self._get_param('ClusterIdentifier'),
@@ -78,7 +87,8 @@ class RedshiftResponse(BaseResponse):
             "number_of_nodes": self._get_int_param('NumberOfNodes'),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "encrypted": self._get_param("Encrypted"),
-            "region": self.region,
+            "region_name": self.region,
+            "tags": self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
         }
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
         cluster['ClusterStatus'] = 'creating'
@@ -94,23 +104,8 @@ class RedshiftResponse(BaseResponse):
         })
 
     def restore_from_cluster_snapshot(self):
-        snapshot_identifier = self._get_param('SnapshotIdentifier')
-        snapshots = self.redshift_backend.describe_snapshots(
-            None,
-            snapshot_identifier)
-        snapshot = snapshots[0]
-        kwargs_from_snapshot = {
-            "node_type": snapshot.cluster.node_type,
-            "master_username": snapshot.cluster.master_username,
-            "master_user_password": snapshot.cluster.master_user_password,
-            "db_name": snapshot.cluster.db_name,
-            "cluster_type": 'multi-node' if snapshot.cluster.number_of_nodes > 1 else 'single-node',
-            "availability_zone": snapshot.cluster.availability_zone,
-            "port": snapshot.cluster.port,
-            "cluster_version": snapshot.cluster.cluster_version,
-            "number_of_nodes": snapshot.cluster.number_of_nodes,
-        }
-        kwargs_from_request = {
+        restore_kwargs = {
+            "snapshot_identifier": self._get_param('SnapshotIdentifier'),
             "cluster_identifier": self._get_param('ClusterIdentifier'),
             "port": self._get_int_param('Port'),
             "availability_zone": self._get_param('AvailabilityZone'),
@@ -129,12 +124,9 @@ class RedshiftResponse(BaseResponse):
                 'PreferredMaintenanceWindow'),
             "automated_snapshot_retention_period": self._get_int_param(
                 'AutomatedSnapshotRetentionPeriod'),
-            "region": self.region,
-            "encrypted": False,
+            "region_name": self.region,
         }
-        kwargs_from_snapshot.update(kwargs_from_request)
-        cluster_kwargs = kwargs_from_snapshot
-        cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
+        cluster = self.redshift_backend.restore_from_cluster_snapshot(**restore_kwargs).to_json()
         cluster['ClusterStatus'] = 'creating'
         return self.get_response({
             "RestoreFromClusterSnapshotResponse": {
@@ -230,11 +222,14 @@ class RedshiftResponse(BaseResponse):
         # according to the AWS documentation
         if not subnet_ids:
             subnet_ids = self._get_multi_param('SubnetIds.SubnetIdentifier')
+        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
 
         subnet_group = self.redshift_backend.create_cluster_subnet_group(
             cluster_subnet_group_name=cluster_subnet_group_name,
             description=description,
             subnet_ids=subnet_ids,
+            region_name=self.region,
+            tags=tags
         )
 
         return self.get_response({
@@ -280,10 +275,13 @@ class RedshiftResponse(BaseResponse):
         cluster_security_group_name = self._get_param(
             'ClusterSecurityGroupName')
         description = self._get_param('Description')
+        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
 
         security_group = self.redshift_backend.create_cluster_security_group(
             cluster_security_group_name=cluster_security_group_name,
             description=description,
+            region_name=self.region,
+            tags=tags
         )
 
         return self.get_response({
@@ -331,11 +329,14 @@ class RedshiftResponse(BaseResponse):
         cluster_parameter_group_name = self._get_param('ParameterGroupName')
         group_family = self._get_param('ParameterGroupFamily')
         description = self._get_param('Description')
+        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
 
         parameter_group = self.redshift_backend.create_cluster_parameter_group(
             cluster_parameter_group_name,
             group_family,
             description,
+            self.region,
+            tags
         )
 
         return self.get_response({
@@ -381,11 +382,12 @@ class RedshiftResponse(BaseResponse):
     def create_cluster_snapshot(self):
         cluster_identifier = self._get_param('ClusterIdentifier')
         snapshot_identifier = self._get_param('SnapshotIdentifier')
-        tags = self.unpack_complex_list_params(
-            'Tags.Tag', ('Key', 'Value'))
-        snapshot = self.redshift_backend.create_snapshot(cluster_identifier,
-                                                         snapshot_identifier,
-                                                         tags)
+        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+
+        snapshot = self.redshift_backend.create_cluster_snapshot(cluster_identifier,
+                                                                 snapshot_identifier,
+                                                                 self.region,
+                                                                 tags)
         return self.get_response({
             'CreateClusterSnapshotResponse': {
                 "CreateClusterSnapshotResult": {
@@ -399,9 +401,9 @@ class RedshiftResponse(BaseResponse):
 
     def describe_cluster_snapshots(self):
         cluster_identifier = self._get_param('ClusterIdentifier')
-        snapshot_identifier = self._get_param('DBSnapshotIdentifier')
-        snapshots = self.redshift_backend.describe_snapshots(cluster_identifier,
-                                                             snapshot_identifier)
+        snapshot_identifier = self._get_param('SnapshotIdentifier')
+        snapshots = self.redshift_backend.describe_cluster_snapshots(cluster_identifier,
+                                                                     snapshot_identifier)
         return self.get_response({
             "DescribeClusterSnapshotsResponse": {
                 "DescribeClusterSnapshotsResult": {
@@ -415,7 +417,7 @@ class RedshiftResponse(BaseResponse):
 
     def delete_cluster_snapshot(self):
         snapshot_identifier = self._get_param('SnapshotIdentifier')
-        snapshot = self.redshift_backend.delete_snapshot(snapshot_identifier)
+        snapshot = self.redshift_backend.delete_cluster_snapshot(snapshot_identifier)
 
         return self.get_response({
             "DeleteClusterSnapshotResponse": {
@@ -428,18 +430,45 @@ class RedshiftResponse(BaseResponse):
             }
         })
 
+    def create_tags(self):
+        resource_name = self._get_param('ResourceName')
+        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+
+        self.redshift_backend.create_tags(resource_name, tags)
+
+        return self.get_response({
+            "CreateTagsResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
     def describe_tags(self):
+        resource_name = self._get_param('ResourceName')
         resource_type = self._get_param('ResourceType')
-        if resource_type != 'Snapshot':
-            raise NotImplementedError(
-                "The describe_tags action has not been fully implemented.")
-        tagged_resources = \
-            self.redshift_backend.describe_tags_for_resource_type(resource_type)
+
+        tagged_resources = self.redshift_backend.describe_tags(resource_name,
+                                                               resource_type)
         return self.get_response({
             "DescribeTagsResponse": {
                 "DescribeTagsResult": {
                     "TaggedResources": tagged_resources
                 },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def delete_tags(self):
+        resource_name = self._get_param('ResourceName')
+        tag_keys = self.unpack_list_params('TagKeys.TagKey')
+
+        self.redshift_backend.delete_tags(resource_name, tag_keys)
+
+        return self.get_response({
+            "DeleteTagsResponse": {
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
                 }
