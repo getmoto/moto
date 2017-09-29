@@ -22,10 +22,13 @@ class BatchResponse(BaseResponse):
 
     @property
     def json(self):
-        if self.body is None:
+        if self.body is None or self.body == '':
             self._json = {}
         elif not hasattr(self, '_json'):
-            self._json = json.loads(self.body)
+            try:
+                self._json = json.loads(self.body)
+            except json.JSONDecodeError:
+                print()
         return self._json
 
     def _get_param(self, param_name, if_none=None):
