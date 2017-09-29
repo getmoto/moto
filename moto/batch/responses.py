@@ -14,11 +14,17 @@ class BatchResponse(BaseResponse):
 
     @property
     def batch_backend(self):
+        """
+        :return: Batch Backend
+        :rtype: moto.batch.models.BatchBackend
+        """
         return batch_backends[self.region]
 
     @property
     def json(self):
-        if not hasattr(self, '_json'):
+        if self.body is None:
+            self._json = {}
+        elif not hasattr(self, '_json'):
             self._json = json.loads(self.body)
         return self._json
 
@@ -55,4 +61,15 @@ class BatchResponse(BaseResponse):
             'computeEnvironmentName': name
         }
 
+        return json.dumps(result)
+
+    # DescribeComputeEnvironments
+    def describecomputeenvironments(self):
+        compute_environments = self._get_param('computeEnvironments')
+        max_results = self._get_param('maxResults')  # Ignored, should be int
+        next_token = self._get_param('nextToken')  # Ignored
+
+        envs = self.batch_backend.describe_compute_environments(compute_environments, max_results=max_results, next_token=next_token)
+
+        result = {'computeEnvironments': envs}
         return json.dumps(result)
