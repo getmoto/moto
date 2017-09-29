@@ -12,6 +12,8 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.sqs import sqs_backends
+from moto.awslambda import lambda_backends
+
 from .exceptions import (
     SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter
 )
@@ -88,6 +90,11 @@ class Subscription(BaseModel):
         elif self.protocol in ['http', 'https']:
             post_data = self.get_post_data(message, message_id)
             requests.post(self.endpoint, json=post_data)
+        elif self.protocol == 'lambda':
+            # TODO: support bad function name
+            function_name = self.endpoint.split(":")[-1]
+            region = self.arn.split(':')[3]
+            lambda_backends[region].send_message(function_name, message)
 
     def get_post_data(self, message, message_id):
         return {
@@ -220,6 +227,12 @@ class SNSBackend(BaseBackend):
             return self.topics[arn]
         except KeyError:
             raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
+
+    def get_topic_from_phone_number(self, number):
+        for subscription in self.subscriptions.values():
+            if subscription.protocol == 'sms' and subscription.endpoint == number:
+                return subscription.topic.arn
+        raise SNSNotFoundError('Could not find valid subscription')
 
     def set_topic_attribute(self, topic_arn, attribute_name, attribute_value):
         topic = self.get_topic(topic_arn)

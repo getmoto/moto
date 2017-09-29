@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import copy
 import itertools
+import json
+import os
 import re
 import six
 
@@ -108,6 +110,9 @@ from .utils import (
     random_customer_gateway_id,
     is_tag_filter,
 )
+
+RESOURCES_DIR = os.path.join(os.path.dirname(__file__), 'resources')
+INSTANCE_TYPES = json.load(open(os.path.join(RESOURCES_DIR, 'instance_types.json'), 'r'))
 
 
 def utc_date_and_time():
@@ -3662,6 +3667,5 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
         return True
 
 
-ec2_backends = {}
-for region in RegionsAndZonesBackend.regions:
-    ec2_backends[region.name] = EC2Backend(region.name)
+ec2_backends = {region.name: EC2Backend(region.name)
+                for region in RegionsAndZonesBackend.regions}

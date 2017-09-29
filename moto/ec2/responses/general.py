@@ -5,7 +5,12 @@ from moto.core.responses import BaseResponse
 class General(BaseResponse):
 
     def get_console_output(self):
-        instance_id = self._get_multi_param('InstanceId')[0]
+        instance_id = self._get_param('InstanceId')
+        if not instance_id:
+            # For compatibility with boto.
+            # See: https://github.com/spulec/moto/pull/1152#issuecomment-332487599
+            instance_id = self._get_multi_param('InstanceId')[0]
+
         instance = self.ec2_backend.get_instance(instance_id)
         template = self.response_template(GET_CONSOLE_OUTPUT_RESULT)
         return template.render(instance=instance)

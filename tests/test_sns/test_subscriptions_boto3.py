@@ -12,6 +12,39 @@ from moto.sns.models import DEFAULT_PAGE_SIZE
 
 
 @mock_sns
+def test_subscribe_sms():
+    client = boto3.client('sns', region_name='us-east-1')
+    client.create_topic(Name="some-topic")
+    resp = client.create_topic(Name="some-topic")
+    arn = resp['TopicArn']
+
+    resp = client.subscribe(
+        TopicArn=arn,
+        Protocol='sms',
+        Endpoint='+15551234567'
+    )
+    resp.should.contain('SubscriptionArn')
+
+
+@mock_sns
+def test_subscribe_bad_sms():
+    client = boto3.client('sns', region_name='us-east-1')
+    client.create_topic(Name="some-topic")
+    resp = client.create_topic(Name="some-topic")
+    arn = resp['TopicArn']
+
+    try:
+        # Test invalid number
+        client.subscribe(
+            TopicArn=arn,
+            Protocol='sms',
+            Endpoint='NAA+15551234567'
+        )
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameter')
+
+
+@mock_sns
 def test_creating_subscription():
     conn = boto3.client('sns', region_name='us-east-1')
     conn.create_topic(Name="some-topic")

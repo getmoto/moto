@@ -23,10 +23,11 @@ from .elbv2 import mock_elbv2  # flake8: noqa
 from .emr import mock_emr, mock_emr_deprecated  # flake8: noqa
 from .events import mock_events  # flake8: noqa
 from .glacier import mock_glacier, mock_glacier_deprecated  # flake8: noqa
-from .opsworks import mock_opsworks, mock_opsworks_deprecated  # flake8: noqa
 from .iam import mock_iam, mock_iam_deprecated  # flake8: noqa
 from .kinesis import mock_kinesis, mock_kinesis_deprecated  # flake8: noqa
 from .kms import mock_kms, mock_kms_deprecated  # flake8: noqa
+from .opsworks import mock_opsworks, mock_opsworks_deprecated  # flake8: noqa
+from .polly import mock_polly  # flake8: noqa
 from .rds import mock_rds, mock_rds_deprecated  # flake8: noqa
 from .rds2 import mock_rds2, mock_rds2_deprecated  # flake8: noqa
 from .redshift import mock_redshift, mock_redshift_deprecated  # flake8: noqa
@@ -39,6 +40,7 @@ from .ssm import mock_ssm  # flake8: noqa
 from .route53 import mock_route53, mock_route53_deprecated  # flake8: noqa
 from .swf import mock_swf, mock_swf_deprecated  # flake8: noqa
 from .xray import mock_xray  # flake8: noqa
+from .logs import mock_logs, mock_logs_deprecated # flake8: noqa
 
 
 try:
