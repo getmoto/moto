@@ -82,6 +82,23 @@ def test_put_group_policy():
     conn.put_group_policy('my-group', 'my-policy', '{"some": "json"}')
 
 
+@mock_iam
+def test_attach_group_policies():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_group(GroupName='my-group')
+    conn.list_attached_group_policies(GroupName='my-group')['AttachedPolicies'].should.be.empty
+    policy_arn = 'arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role'
+    conn.list_attached_group_policies(GroupName='my-group')['AttachedPolicies'].should.be.empty
+    conn.attach_group_policy(GroupName='my-group', PolicyArn=policy_arn)
+    conn.list_attached_group_policies(GroupName='my-group')['AttachedPolicies'].should.equal(
+        [
+            {
+                'PolicyName': 'AmazonElasticMapReduceforEC2Role',
+                'PolicyArn': policy_arn,
+            }
+        ])
+
+
 @mock_iam_deprecated()
 def test_get_group_policy():
     conn = boto.connect_iam()
