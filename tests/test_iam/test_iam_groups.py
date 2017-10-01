@@ -98,6 +98,9 @@ def test_attach_group_policies():
             }
         ])
 
+    conn.detach_group_policy(GroupName='my-group', PolicyArn=policy_arn)
+    conn.list_attached_group_policies(GroupName='my-group')['AttachedPolicies'].should.be.empty
+
 
 @mock_iam_deprecated()
 def test_get_group_policy():

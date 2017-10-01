@@ -74,25 +74,13 @@ class ManagedPolicy(Policy):
 
     is_attachable = True
 
-    def attach_to_role(self, role):
+    def attach_to(self, obj):
         self.attachment_count += 1
-        role.managed_policies[self.name] = self
+        obj.managed_policies[self.name] = self
 
-    def detach_from_role(self, role):
+    def detach_from(self, obj):
         self.attachment_count -= 1
-        del role.managed_policies[self.name]
-
-    def attach_to_group(self, group):
-        self.attachment_count += 1
-        group.managed_policies[self.name] = self
-
-    def attach_to_user(self, user):
-        self.attachment_count += 1
-        user.managed_policies[self.name] = self
-
-    def detach_from_user(self, user):
-        self.attachment_count -= 1
-        del user.managed_policies[self.name]
+        del obj.managed_policies[self.name]
 
 
 class AWSManagedPolicy(ManagedPolicy):
@@ -428,13 +416,13 @@ class IAMBackend(BaseBackend):
     def attach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         policy = arns[policy_arn]
-        policy.attach_to_role(self.get_role(role_name))
+        policy.attach_to(self.get_role(role_name))
 
     def detach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         try:
             policy = arns[policy_arn]
-            policy.detach_from_role(self.get_role(role_name))
+            policy.detach_from(self.get_role(role_name))
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
 
@@ -444,7 +432,7 @@ class IAMBackend(BaseBackend):
             policy = arns[policy_arn]
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
-        policy.attach_to_group(self.get_group(group_name))
+        policy.attach_to(self.get_group(group_name))
 
     def detach_group_policy(self, policy_arn, group_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -452,7 +440,7 @@ class IAMBackend(BaseBackend):
             policy = arns[policy_arn]
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
-        policy.detach_from_group(self.get_group(group_name))
+        policy.detach_from(self.get_group(group_name))
 
     def attach_user_policy(self, policy_arn, user_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -460,7 +448,7 @@ class IAMBackend(BaseBackend):
             policy = arns[policy_arn]
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
-        policy.attach_to_user(self.get_user(user_name))
+        policy.attach_to(self.get_user(user_name))
 
     def detach_user_policy(self, policy_arn, user_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -468,7 +456,7 @@ class IAMBackend(BaseBackend):
             policy = arns[policy_arn]
         except KeyError:
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
-        policy.detach_from_user(self.get_user(user_name))
+        policy.detach_from(self.get_user(user_name))
 
     def create_policy(self, description, path, policy_document, policy_name):
         policy = ManagedPolicy(
