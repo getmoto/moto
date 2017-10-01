@@ -115,11 +115,14 @@ def initialize_service(service, operation, api_protocol):
 
     print_progress('Initializing service', service, 'green')
 
-    service_class = boto3.client(service).__class__.__name__
+    client = boto3.client(service)
+    service_class = client.__class__.__name__
+    endpoint_prefix = client._service_model.endpoint_prefix
 
     tmpl_context = {
         'service': service,
-        'service_class': service_class
+        'service_class': service_class,
+        'endpoint_prefix': endpoint_prefix
     }
 
     # initialize service directory
