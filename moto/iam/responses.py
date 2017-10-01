@@ -20,6 +20,20 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DetachRolePolicyResponse")
 
+    def attach_group_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        group_name = self._get_param('GroupName')
+        iam_backend.attach_group_policy(policy_arn, group_name)
+        template = self.response_template(ATTACH_GROUP_POLICY_TEMPLATE)
+        return template.render()
+
+    def detach_group_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        group_name = self._get_param('GroupName')
+        iam_backend.detach_group_policy(policy_arn, group_name)
+        template = self.response_template(DETACH_GROUP_POLICY_TEMPLATE)
+        return template.render()
+
     def attach_user_policy(self):
         policy_arn = self._get_param('PolicyArn')
         user_name = self._get_param('UserName')
@@ -52,6 +66,17 @@ class IamResponse(BaseResponse):
         policies, marker = iam_backend.list_attached_role_policies(
             role_name, marker=marker, max_items=max_items, path_prefix=path_prefix)
         template = self.response_template(LIST_ATTACHED_ROLE_POLICIES_TEMPLATE)
+        return template.render(policies=policies, marker=marker)
+
+    def list_attached_group_policies(self):
+        marker = self._get_param('Marker')
+        max_items = self._get_int_param('MaxItems', 100)
+        path_prefix = self._get_param('PathPrefix', '/')
+        group_name = self._get_param('GroupName')
+        policies, marker = iam_backend.list_attached_group_policies(
+            group_name, marker=marker, max_items=max_items,
+            path_prefix=path_prefix)
+        template = self.response_template(LIST_ATTACHED_GROUP_POLICIES_TEMPLATE)
         return template.render(policies=policies, marker=marker)
 
     def list_attached_user_policies(self):
@@ -520,6 +545,18 @@ DETACH_USER_POLICY_TEMPLATE = """<DetachUserPolicyResponse>
   </ResponseMetadata>
 </DetachUserPolicyResponse>"""
 
+ATTACH_GROUP_POLICY_TEMPLATE = """<AttachGroupPolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</AttachGroupPolicyResponse>"""
+
+DETACH_GROUP_POLICY_TEMPLATE = """<DetachGroupPolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DetachGroupPolicyResponse>"""
+
 CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
   <CreatePolicyResult>
     <Policy>
@@ -559,6 +596,28 @@ LIST_ATTACHED_ROLE_POLICIES_TEMPLATE = """<ListAttachedRolePoliciesResponse>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </ListAttachedRolePoliciesResponse>"""
+
+LIST_ATTACHED_GROUP_POLICIES_TEMPLATE = """<ListAttachedGroupPoliciesResponse>
+  <ListAttachedGroupPoliciesResult>
+    {% if marker is none %}
+    <IsTruncated>false</IsTruncated>
+    {% else %}
+    <IsTruncated>true</IsTruncated>
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <AttachedPolicies>
+      {% for policy in policies %}
+      <member>
+        <PolicyName>{{ policy.name }}</PolicyName>
+        <PolicyArn>{{ policy.arn }}</PolicyArn>
+      </member>
+      {% endfor %}
+    </AttachedPolicies>
+  </ListAttachedGroupPoliciesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListAttachedGroupPoliciesResponse>"""
 
 LIST_ATTACHED_USER_POLICIES_TEMPLATE = """<ListAttachedUserPoliciesResponse>
   <ListAttachedUserPoliciesResult>
