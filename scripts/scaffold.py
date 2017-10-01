@@ -148,13 +148,14 @@ def append_mock_dict_to_backends_py(service):
         lines = [_.replace('\n', '') for _ in f.readlines()]
 
         #     'xray': xray_backends
-    if any(_ for _ in lines if re.match(".*{}: {}_backends.*".format(service, service), _)):
+    if any(_ for _ in lines if re.match(".*'{}': {}_backends.*".format(service, service), _)):
         return
     filtered_lines = [_ for _ in lines if re.match(".*'.*':.*_backends.*", _)]
     last_elem_line_index = lines.index(filtered_lines[-1])
 
     new_line = "    '{}': {}_backends,".format(service, service)
-    if not lines[last_elem_line_index].endswith(','):
+    prev_line = lines[last_elem_line_index]
+    if not prev_line.endswith('{') and not prev_line.endswith(','):
         lines[last_elem_line_index] += ','
     lines.insert(last_elem_line_index + 1, new_line)
 
@@ -387,6 +388,41 @@ def insert_code_to_class(path, base_class, new_code):
         f.write(body)
 
 
+def insert_url(service, operation):
+    client = boto3.client(service)
+    service_class = client.__class__.__name__
+    aws_operation_name = to_upper_camel_case(operation)
+    uri = client._service_model.operation_model(aws_operation_name).http['requestUri']
+
+    path = os.path.join(os.path.dirname(__file__), '..', 'moto', service, 'urls.py')
+    with open(path) as f:
+        lines = [_.replace('\n', '') for _ in f.readlines()]
+
+    if any(_ for _ in lines if re.match(uri, _)):
+        return
+
+    url_paths_found = False
+    last_elem_line_index = -1
+    for i, line in enumerate(lines):
+        if line.startswith('url_paths'):
+            url_paths_found = True
+        if url_paths_found and line.startswith('}'):
+            last_elem_line_index = i - 1
+
+    prev_line = lines[last_elem_line_index]
+    if not prev_line.endswith('{') and not prev_line.endswith(','):
+        lines[last_elem_line_index] += ','
+
+    new_line = "    '{0}%s$': %sResponse.dispatch," % (
+        uri, service_class
+    )
+    lines.insert(last_elem_line_index + 1, new_line)
+
+    body = '\n'.join(lines) + '\n'
+    with open(path, 'w') as f:
+        f.write(body)
+
+
 def insert_query_codes(service, operation):
     func_in_responses = get_function_in_responses(service, operation, 'query')
     func_in_models = get_function_in_models(service, operation)
@@ -409,6 +445,9 @@ def insert_query_codes(service, operation):
     print_progress('inserting code', models_path, 'green')
     insert_code_to_class(models_path, BaseBackend, func_in_models)
 
+    # edit urls.py
+    insert_url(service, operation)
+
 def insert_json_codes(service, operation):
     func_in_responses = get_function_in_responses(service, operation, 'json')
     func_in_models = get_function_in_models(service, operation)
@@ -423,6 +462,9 @@ def insert_json_codes(service, operation):
     print_progress('inserting code', models_path, 'green')
     insert_code_to_class(models_path, BaseBackend, func_in_models)
 
+    # edit urls.py
+    insert_url(service, operation)
+
 def insert_restjson_codes(service, operation):
     func_in_models = get_function_in_models(service, operation)
 
@@ -431,6 +473,9 @@ def insert_restjson_codes(service, operation):
     models_path = 'moto/{}/models.py'.format(service)
     print_progress('inserting code', models_path, 'green')
     insert_code_to_class(models_path, BaseBackend, func_in_models)
+
+    # edit urls.py
+    insert_url(service, operation)
 
 @click.command()
 def main():
