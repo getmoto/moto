@@ -491,7 +491,7 @@ def main():
     else:
         print_progress('skip inserting code', 'api protocol "{}" is not supported'.format(api_protocol), 'yellow')
 
-    click.echo('You will still need to make "{0}/urls.py", add the backend into "backends.py" and add the mock into "__init__.py"'.format(service))
+    click.echo('You will still need to add the mock into "__init__.py"'.format(service))
 
 if __name__ == '__main__':
     main()
