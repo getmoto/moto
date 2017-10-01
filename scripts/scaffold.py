@@ -107,6 +107,61 @@ def render_template(tmpl_dir, tmpl_filename, context, service, alt_filename=None
             f.write(rendered)
 
 
+def append_mock_to_init_py(service):
+    path = os.path.join(os.path.dirname(__file__), '..', 'moto', '__init__.py')
+    with open(path) as f:
+        lines = [_.replace('\n', '') for _ in f.readlines()]
+
+    if any(_ for _ in lines if re.match('^from.*mock_{}.*$'.format(service), _)):
+        return
+    filtered_lines = [_ for _ in lines if re.match('^from.*mock.*$', _)]
+    last_import_line_index = lines.index(filtered_lines[-1])
+
+    new_line = 'from .{} import mock_{}  # flake8: noqa'.format(service, service)
+    lines.insert(last_import_line_index + 1, new_line)
+
+    body = '\n'.join(lines) + '\n'
+    with open(path, 'w') as f:
+        f.write(body)
+
+
+def append_mock_import_to_backends_py(service):
+    path = os.path.join(os.path.dirname(__file__), '..', 'moto', 'backends.py')
+    with open(path) as f:
+        lines = [_.replace('\n', '') for _ in f.readlines()]
+
+    if any(_ for _ in lines if re.match('^from moto\.{}.*{}_backends.*$'.format(service, service), _)):
+        return
+    filtered_lines = [_ for _ in lines if re.match('^from.*backends.*$', _)]
+    last_import_line_index = lines.index(filtered_lines[-1])
+
+    new_line = 'from moto.{} import {}_backends'.format(service, service)
+    lines.insert(last_import_line_index + 1, new_line)
+
+    body = '\n'.join(lines) + '\n'
+    with open(path, 'w') as f:
+        f.write(body)
+
+def append_mock_dict_to_backends_py(service):
+    path = os.path.join(os.path.dirname(__file__), '..', 'moto', 'backends.py')
+    with open(path) as f:
+        lines = [_.replace('\n', '') for _ in f.readlines()]
+
+        #     'xray': xray_backends
+    if any(_ for _ in lines if re.match(".*{}: {}_backends.*".format(service, service), _)):
+        return
+    filtered_lines = [_ for _ in lines if re.match(".*'.*':.*_backends.*", _)]
+    last_elem_line_index = lines.index(filtered_lines[-1])
+
+    new_line = "    '{}': {}_backends,".format(service, service)
+    if not lines[last_elem_line_index].endswith(','):
+        lines[last_elem_line_index] += ','
+    lines.insert(last_elem_line_index + 1, new_line)
+
+    body = '\n'.join(lines) + '\n'
+    with open(path, 'w') as f:
+        f.write(body)
+
 def initialize_service(service, operation, api_protocol):
     """create lib and test dirs if not exist
     """
@@ -150,6 +205,11 @@ def initialize_service(service, operation, api_protocol):
         render_template(
             tmpl_dir, tmpl_filename, tmpl_context, service, alt_filename
         )
+
+    # append mock to init files
+    append_mock_to_init_py(service)
+    append_mock_import_to_backends_py(service)
+    append_mock_dict_to_backends_py(service)
 
 def to_upper_camel_case(s):
     return ''.join([_.title() for _ in s.split('_')])
