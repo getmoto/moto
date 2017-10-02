@@ -190,16 +190,16 @@ class ServerModeMockAWS(BaseMockAWS):
 
 class Model(type):
 
-    def __new__(self, clsname, bases, namespace):
-        cls = super(Model, self).__new__(self, clsname, bases, namespace)
-        cls.__models__ = {}
+    def __new__(mcs, clsname, bases, namespace):
+        mcs = super(Model, mcs).__new__(mcs, clsname, bases, namespace)
+        mcs.__models__ = {}
         for name, value in namespace.items():
             model = getattr(value, "__returns_model__", False)
             if model is not False:
-                cls.__models__[model] = name
+                mcs.__models__[model] = name
         for base in bases:
-            cls.__models__.update(getattr(base, "__models__", {}))
-        return cls
+            mcs.__models__.update(getattr(base, "__models__", {}))
+        return mcs
 
     @staticmethod
     def prop(model_name):
@@ -214,8 +214,8 @@ model_data = defaultdict(dict)
 
 
 class InstanceTrackerMeta(type):
-    def __new__(meta, name, bases, dct):
-        cls = super(InstanceTrackerMeta, meta).__new__(meta, name, bases, dct)
+    def __new__(mcs, name, bases, dct):
+        cls = super(InstanceTrackerMeta, mcs).__new__(mcs, name, bases, dct)
         if name == 'BaseModel':
             return cls
 

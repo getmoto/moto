@@ -43,7 +43,7 @@ class Key(BaseModel):
         kms_backends[region_name].delete_key(self.id)
 
     @classmethod
-    def create_from_cloudformation_json(self, resource_name, cloudformation_json, region_name):
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         kms_backend = kms_backends[region_name]
         properties = cloudformation_json['Properties']
 

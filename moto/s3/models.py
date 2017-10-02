@@ -94,11 +94,11 @@ class FakeKey(BaseModel):
         return '"{0}"'.format(self._etag)
 
     @property
-    def last_modified_ISO8601(self):
+    def last_modified_ISO8601(self):  # noqa
         return iso_8601_datetime_with_milliseconds(self.last_modified)
 
     @property
-    def last_modified_RFC1123(self):
+    def last_modified_RFC1123(self):  # noqa
         # Different datetime formats depending on how the key is obtained
         # https://github.com/boto/boto/issues/466
         return rfc_1123_datetime(self.last_modified)

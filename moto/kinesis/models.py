@@ -1,20 +1,22 @@
 from __future__ import unicode_literals
 
 import datetime
-import time
-import boto.kinesis
-import re
-import six
 import itertools
-
-from operator import attrgetter
+import re
+import time
 from hashlib import md5
+from operator import attrgetter
+
+import boto.kinesis
+import six
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from .exceptions import StreamNotFoundError, ShardNotFoundError, ResourceInUseError, \
+from .exceptions import StreamNotFoundError, ShardNotFoundError, \
+    ResourceInUseError, \
     ResourceNotFoundError, InvalidArgumentError
-from .utils import compose_shard_iterator, compose_new_shard_iterator, decompose_shard_iterator
+from .utils import compose_shard_iterator, compose_new_shard_iterator, \
+    decompose_shard_iterator
 
 
 class Record(BaseModel):
@@ -105,9 +107,9 @@ class Stream(BaseModel):
         self.tags = {}
 
         if six.PY3:
-            izip_longest = itertools.zip_longest
+            izip_longest = itertools.zip_longest  # pylint: disable=no-member
         else:
-            izip_longest = itertools.izip_longest
+            izip_longest = itertools.izip_longest  # pylint: disable=no-member
 
         for index, start, end in izip_longest(range(shard_count),
                                               range(0, 2**128, 2 **
@@ -234,24 +236,25 @@ class DeliveryStream(BaseModel):
                     'CompressionFormat': self.s3_compression_format,
                 }
             }]
-        else:
-            return [{
-                    "DestinationId": "string",
-                    "RedshiftDestinationDescription": {
-                        "ClusterJDBCURL": self.redshift_jdbc_url,
-                        "CopyCommand": self.redshift_copy_command,
-                        "RoleARN": self.redshift_role_arn,
-                        "S3DestinationDescription": {
-                            "BucketARN": self.redshift_s3_bucket_arn,
-                            "BufferingHints": self.redshift_s3_buffering_hings,
-                            "CompressionFormat": self.redshift_s3_compression_format,
-                            "Prefix": self.redshift_s3_prefix,
-                            "RoleARN": self.redshift_s3_role_arn
-                        },
-                        "Username": self.redshift_username,
+
+        return [
+            {
+                "DestinationId": "string",
+                "RedshiftDestinationDescription": {
+                    "ClusterJDBCURL": self.redshift_jdbc_url,
+                    "CopyCommand": self.redshift_copy_command,
+                    "RoleARN": self.redshift_role_arn,
+                    "S3DestinationDescription": {
+                        "BucketARN": self.redshift_s3_bucket_arn,
+                        "BufferingHints": self.redshift_s3_buffering_hings,
+                        "CompressionFormat": self.redshift_s3_compression_format,
+                        "Prefix": self.redshift_s3_prefix,
+                        "RoleARN": self.redshift_s3_role_arn
                     },
-                    }
-                    ]
+                    "Username": self.redshift_username,
+                },
+            }
+        ]
 
     def to_dict(self):
         return {
@@ -413,8 +416,7 @@ class KinesisBackend(BaseBackend):
             shard1.put_record(record.partition_key,
                               record.data, record.explicit_hash_key)
 
-    ''' Firehose '''
-
+    # Firehose
     def create_delivery_stream(self, stream_name, **stream_kwargs):
         stream = DeliveryStream(stream_name, **stream_kwargs)
         self.delivery_streams[stream_name] = stream
@@ -470,6 +472,4 @@ class KinesisBackend(BaseBackend):
                 del stream.tags[key]
 
 
-kinesis_backends = {}
-for region in boto.kinesis.regions():
-    kinesis_backends[region.name] = KinesisBackend()
+kinesis_backends = {region.name: KinesisBackend() for region in boto.kinesis.regions()}

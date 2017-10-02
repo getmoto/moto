@@ -5,7 +5,7 @@ init:
 	@pip install -r requirements.txt
 
 lint:
-	flake8 moto
+	pylint moto
 
 test: lint
 	rm -f .coverage

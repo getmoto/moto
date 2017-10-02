@@ -136,8 +136,7 @@ class KinesisResponse(BaseResponse):
         )
         return ""
 
-    ''' Firehose '''
-
+    # Firehose
     def create_delivery_stream(self):
         stream_name = self.parameters['DeliveryStreamName']
         redshift_config = self.parameters.get(

@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import argparse
 import json
 import re
-import sys
 from threading import Lock
 
 import six
@@ -160,7 +159,7 @@ def create_backend_app(service):
     return backend_app
 
 
-def main(argv=sys.argv[1:]):
+def main(argv=None):
     parser = argparse.ArgumentParser()
 
     # Keep this for backwards compat
