@@ -56,7 +56,9 @@ class RedshiftResponse(BaseResponse):
             return json.dumps(response)
         else:
             xml = xmltodict.unparse(itemize(response), full_document=False)
-            return xml.decode("utf-8")
+            if hasattr(xml, 'decode'):
+                xml = xml.decode('utf-8')
+            return xml
 
     def call_action(self):
         status, headers, body = super(RedshiftResponse, self).call_action()
