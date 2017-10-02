@@ -3,6 +3,12 @@ Moto Changelog
 
 Latest
 ------
+1.1.21
+-----
+
+    * ELBv2 bugfixes
+    * Removing GPL'd dependency
+
 1.1.20
 -----
 
