@@ -3,7 +3,16 @@ Moto Changelog
 
 Latest
 ------
-1.1.16
+1.1.20
+-----
+
+    * Improved `make scaffold`
+    * Implemented IAM attached group policies
+    * Redshift: fixed multi-params
+    * Redshift: implement taggable resources
+    * Lambda + SNS: Major enhancements
+
+1.1.19
 -----
 
     * Fixing regression from 1.1.15
