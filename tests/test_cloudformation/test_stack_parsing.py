@@ -10,7 +10,10 @@ from moto.cloudformation.models import FakeStack
 from moto.cloudformation.parsing import resource_class_from_type, parse_condition, Export
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
+from moto.cloudformation.utils import yaml_tag_constructor
 from boto.cloudformation.stack import Output
+
+
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -380,3 +383,47 @@ def test_import():
 
     queue = import_stack.resource_map['Queue']
     queue.name.should.equal("value")
+
+
+
+def test_short_form_func_in_yaml_teamplate():
+    template = """---
+    KeyB64: !Base64 valueToEncode
+    KeyRef: !Ref foo
+    KeyAnd: !And
+      - A
+      - B
+    KeyEquals: !Equals [A, B]
+    KeyIf: !If [A, B, C]
+    KeyNot: !Not [A]
+    KeyOr: !Or [A, B]
+    KeyFindInMap: !FindInMap [A, B, C]
+    KeyGetAtt: !GetAtt A.B
+    KeyGetAZs: !GetAZs A
+    KeyImportValue: !ImportValue A
+    KeyJoin: !Join [ ":", [A, B, C] ]
+    KeySelect: !Select [A, B]
+    KeySplit: !Split [A, B]
+    KeySub: !Sub A
+    """
+    yaml.add_multi_constructor('', yaml_tag_constructor)
+    template_dict = yaml.load(template)
+    key_and_expects = [
+        ['KeyRef', {'Ref': 'foo'}],
+        ['KeyB64', {'Fn::Base64': 'valueToEncode'}],
+        ['KeyAnd', {'Fn::And': ['A', 'B']}],
+        ['KeyEquals', {'Fn::Equals': ['A', 'B']}],
+        ['KeyIf', {'Fn::If': ['A', 'B', 'C']}],
+        ['KeyNot', {'Fn::Not': ['A']}],
+        ['KeyOr', {'Fn::Or': ['A', 'B']}],
+        ['KeyFindInMap', {'Fn::FindInMap': ['A', 'B', 'C']}],
+        ['KeyGetAtt', {'Fn::GetAtt': ['A', 'B']}],
+        ['KeyGetAZs', {'Fn::GetAZs': 'A'}],
+        ['KeyImportValue', {'Fn::ImportValue': 'A'}],
+        ['KeyJoin', {'Fn::Join': [ ":", [ 'A', 'B', 'C' ] ]}],
+        ['KeySelect', {'Fn::Select': ['A', 'B']}],
+        ['KeySplit', {'Fn::Split': ['A', 'B']}],
+        ['KeySub', {'Fn::Sub': 'A'}],
+    ]
+    for k, v in key_and_expects:
+        template_dict.should.have.key(k).which.should.be.equal(v)

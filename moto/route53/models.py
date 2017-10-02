@@ -2,11 +2,20 @@ from __future__ import unicode_literals
 
 from collections import defaultdict
 
+import string
+import random
 import uuid
 from jinja2 import Template
 
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex
+
+
+ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
+
+
+def create_route53_zone_id():
+    # New ID's look like this Z1RWWTK7Y8UDDQ
+    return ''.join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
 
 
 class HealthCheck(BaseModel):
@@ -247,7 +256,7 @@ class Route53Backend(BaseBackend):
         self.resource_tags = defaultdict(dict)
 
     def create_hosted_zone(self, name, private_zone, comment=None):
-        new_id = get_random_hex()
+        new_id = create_route53_zone_id()
         new_zone = FakeZone(
             name, new_id, private_zone=private_zone, comment=comment)
         self.zones[new_id] = new_zone

@@ -1,10 +1,47 @@
 from __future__ import unicode_literals
 import boto3
+import json
 
 import sure  # noqa
 
+from botocore.exceptions import ClientError
+from nose.tools import assert_raises
+
 from moto import mock_sns
 from moto.sns.models import DEFAULT_PAGE_SIZE
+
+
+@mock_sns
+def test_subscribe_sms():
+    client = boto3.client('sns', region_name='us-east-1')
+    client.create_topic(Name="some-topic")
+    resp = client.create_topic(Name="some-topic")
+    arn = resp['TopicArn']
+
+    resp = client.subscribe(
+        TopicArn=arn,
+        Protocol='sms',
+        Endpoint='+15551234567'
+    )
+    resp.should.contain('SubscriptionArn')
+
+
+@mock_sns
+def test_subscribe_bad_sms():
+    client = boto3.client('sns', region_name='us-east-1')
+    client.create_topic(Name="some-topic")
+    resp = client.create_topic(Name="some-topic")
+    arn = resp['TopicArn']
+
+    try:
+        # Test invalid number
+        client.subscribe(
+            TopicArn=arn,
+            Protocol='sms',
+            Endpoint='NAA+15551234567'
+        )
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameter')
 
 
 @mock_sns
@@ -32,6 +69,7 @@ def test_creating_subscription():
     # And there should be zero subscriptions left
     subscriptions = conn.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(0)
+
 
 @mock_sns
 def test_deleting_subscriptions_by_deleting_topic():
@@ -63,6 +101,7 @@ def test_deleting_subscriptions_by_deleting_topic():
     # And there should be zero subscriptions left
     subscriptions = conn.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(0)
+
 
 @mock_sns
 def test_getting_subscriptions_by_topic():
@@ -124,3 +163,136 @@ def test_subscription_paging():
     topic1_subscriptions["Subscriptions"].should.have.length_of(
         int(DEFAULT_PAGE_SIZE / 3))
     topic1_subscriptions.shouldnt.have("NextToken")
+
+
+@mock_sns
+def test_set_subscription_attributes():
+    conn = boto3.client('sns', region_name='us-east-1')
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]['TopicArn']
+
+    conn.subscribe(TopicArn=topic_arn,
+                   Protocol="http",
+                   Endpoint="http://example.com/")
+
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["TopicArn"].should.equal(topic_arn)
+    subscription["Protocol"].should.equal("http")
+    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription["Endpoint"].should.equal("http://example.com/")
+
+    subscription_arn = subscription["SubscriptionArn"]
+    attrs = conn.get_subscription_attributes(
+        SubscriptionArn=subscription_arn
+    )
+    attrs.should.have.key('Attributes')
+    conn.set_subscription_attributes(
+        SubscriptionArn=subscription_arn,
+        AttributeName='RawMessageDelivery',
+        AttributeValue='true'
+    )
+    delivery_policy = json.dumps({
+        'healthyRetryPolicy': {
+            "numRetries": 10,
+            "minDelayTarget": 1,
+            "maxDelayTarget":2
+        }
+    })
+    conn.set_subscription_attributes(
+        SubscriptionArn=subscription_arn,
+        AttributeName='DeliveryPolicy',
+        AttributeValue=delivery_policy
+    )
+    attrs = conn.get_subscription_attributes(
+        SubscriptionArn=subscription_arn
+    )
+    attrs['Attributes']['RawMessageDelivery'].should.equal('true')
+    attrs['Attributes']['DeliveryPolicy'].should.equal(delivery_policy)
+
+    # not existing subscription
+    with assert_raises(ClientError):
+        conn.set_subscription_attributes(
+            SubscriptionArn='invalid',
+            AttributeName='RawMessageDelivery',
+            AttributeValue='true'
+        )
+    with assert_raises(ClientError):
+        attrs = conn.get_subscription_attributes(
+            SubscriptionArn='invalid'
+        )
+
+
+    # invalid attr name
+    with assert_raises(ClientError):
+        conn.set_subscription_attributes(
+            SubscriptionArn=subscription_arn,
+            AttributeName='InvalidName',
+            AttributeValue='true'
+        )
+
+
+@mock_sns
+def test_check_not_opted_out():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.check_if_phone_number_is_opted_out(phoneNumber='+447428545375')
+
+    response.should.contain('isOptedOut')
+    response['isOptedOut'].should.be(False)
+
+
+@mock_sns
+def test_check_opted_out():
+    # Phone number ends in 99 so is hardcoded in the endpoint to return opted
+    # out status
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.check_if_phone_number_is_opted_out(phoneNumber='+447428545399')
+
+    response.should.contain('isOptedOut')
+    response['isOptedOut'].should.be(True)
+
+
+@mock_sns
+def test_check_opted_out_invalid():
+    conn = boto3.client('sns', region_name='us-east-1')
+
+    # Invalid phone number
+    with assert_raises(ClientError):
+        conn.check_if_phone_number_is_opted_out(phoneNumber='+44742LALALA')
+
+
+@mock_sns
+def test_list_opted_out():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.list_phone_numbers_opted_out()
+
+    response.should.contain('phoneNumbers')
+    len(response['phoneNumbers']).should.be.greater_than(0)
+
+
+@mock_sns
+def test_opt_in():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.list_phone_numbers_opted_out()
+    current_len = len(response['phoneNumbers'])
+    assert current_len > 0
+
+    conn.opt_in_phone_number(phoneNumber=response['phoneNumbers'][0])
+
+    response = conn.list_phone_numbers_opted_out()
+    len(response['phoneNumbers']).should.be.greater_than(0)
+    len(response['phoneNumbers']).should.be.lower_than(current_len)
+
+
+@mock_sns
+def test_confirm_subscription():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.create_topic(Name='testconfirm')
+
+    conn.confirm_subscription(
+        TopicArn=response['TopicArn'],
+        Token='2336412f37fb687f5d51e6e241d59b68c4e583a5cee0be6f95bbf97ab8d2441cf47b99e848408adaadf4c197e65f03473d53c4ba398f6abbf38ce2e8ebf7b4ceceb2cd817959bcde1357e58a2861b05288c535822eb88cac3db04f592285249971efc6484194fc4a4586147f16916692',
+        AuthenticateOnUnsubscribe='true'
+    )

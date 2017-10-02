@@ -16,6 +16,7 @@ import boto3
 from botocore.client import ClientError
 import botocore.exceptions
 from boto.exception import S3CreateError, S3ResponseError
+from botocore.handlers import disable_signing
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
@@ -770,6 +771,14 @@ def test_list_versions():
     versions[1].version_id.should.equal('1')
     versions[1].get_contents_as_string().should.equal(b"Version 2")
 
+    key = Key(bucket, 'the2-key')
+    key.set_contents_from_string("Version 1")
+
+    keys = list(bucket.list())
+    keys.should.have.length_of(2)
+    versions = list(bucket.list_versions(prefix='the2-'))
+    versions.should.have.length_of(1)
+
 
 @mock_s3_deprecated
 def test_acl_setting():
@@ -854,6 +863,49 @@ def test_bucket_acl_switching():
     grants = bucket.get_acl().acl.grants
     assert not any(g.uri == 'http://acs.amazonaws.com/groups/global/AllUsers' and
                    g.permission == 'READ' for g in grants), grants
+
+
+@mock_s3
+def test_s3_object_in_public_bucket():
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('test-bucket')
+    bucket.create(ACL='public-read')
+    bucket.put_object(Body=b'ABCD', Key='file.txt')
+
+    s3_anonymous = boto3.resource('s3')
+    s3_anonymous.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
+
+    contents = s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()['Body'].read()
+    contents.should.equal(b'ABCD')
+
+    bucket.put_object(ACL='private', Body=b'ABCD', Key='file.txt')
+
+    with assert_raises(ClientError) as exc:
+        s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
+    exc.exception.response['Error']['Code'].should.equal('403')
+
+    params = {'Bucket': 'test-bucket','Key': 'file.txt'}
+    presigned_url = boto3.client('s3').generate_presigned_url('get_object', params, ExpiresIn=900)
+    response = requests.get(presigned_url)
+    assert response.status_code == 200
+
+@mock_s3
+def test_s3_object_in_private_bucket():
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('test-bucket')
+    bucket.create(ACL='private')
+    bucket.put_object(ACL='private', Body=b'ABCD', Key='file.txt')
+
+    s3_anonymous = boto3.resource('s3')
+    s3_anonymous.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
+
+    with assert_raises(ClientError) as exc:
+        s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
+    exc.exception.response['Error']['Code'].should.equal('403')
+
+    bucket.put_object(ACL='public-read', Body=b'ABCD', Key='file.txt')
+    contents = s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()['Body'].read()
+    contents.should.equal(b'ABCD')
 
 
 @mock_s3_deprecated
@@ -1381,6 +1433,281 @@ def test_boto3_put_object_with_tagging():
     resp = s3.get_object_tagging(Bucket=bucket_name, Key=key)
 
     resp['TagSet'].should.contain({'Key': 'foo', 'Value': 'bar'})
+
+
+@mock_s3
+def test_boto3_put_bucket_tagging():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "mybucket"
+    s3.create_bucket(Bucket=bucket_name)
+
+    # With 1 tag:
+    resp = s3.put_bucket_tagging(Bucket=bucket_name,
+                                 Tagging={
+                                     "TagSet": [
+                                         {
+                                             "Key": "TagOne",
+                                             "Value": "ValueOne"
+                                         }
+                                     ]
+                                 })
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    # With multiple tags:
+    resp = s3.put_bucket_tagging(Bucket=bucket_name,
+                                 Tagging={
+                                     "TagSet": [
+                                         {
+                                             "Key": "TagOne",
+                                             "Value": "ValueOne"
+                                         },
+                                         {
+                                             "Key": "TagTwo",
+                                             "Value": "ValueTwo"
+                                         }
+                                     ]
+                                 })
+
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    # No tags is also OK:
+    resp = s3.put_bucket_tagging(Bucket=bucket_name, Tagging={
+        "TagSet": []
+    })
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+
+@mock_s3
+def test_boto3_get_bucket_tagging():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "mybucket"
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_tagging(Bucket=bucket_name,
+                          Tagging={
+                              "TagSet": [
+                                  {
+                                      "Key": "TagOne",
+                                      "Value": "ValueOne"
+                                  },
+                                  {
+                                      "Key": "TagTwo",
+                                      "Value": "ValueTwo"
+                                  }
+                              ]
+                          })
+
+    # Get the tags for the bucket:
+    resp = s3.get_bucket_tagging(Bucket=bucket_name)
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    len(resp["TagSet"]).should.equal(2)
+
+    # With no tags:
+    s3.put_bucket_tagging(Bucket=bucket_name, Tagging={
+        "TagSet": []
+    })
+
+    with assert_raises(ClientError) as err:
+        s3.get_bucket_tagging(Bucket=bucket_name)
+
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("NoSuchTagSet")
+    e.response["Error"]["Message"].should.equal("The TagSet does not exist")
+
+
+@mock_s3
+def test_boto3_delete_bucket_tagging():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "mybucket"
+    s3.create_bucket(Bucket=bucket_name)
+
+    s3.put_bucket_tagging(Bucket=bucket_name,
+                          Tagging={
+                              "TagSet": [
+                                  {
+                                      "Key": "TagOne",
+                                      "Value": "ValueOne"
+                                  },
+                                  {
+                                      "Key": "TagTwo",
+                                      "Value": "ValueTwo"
+                                  }
+                              ]
+                          })
+
+    resp = s3.delete_bucket_tagging(Bucket=bucket_name)
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(204)
+
+    with assert_raises(ClientError) as err:
+        s3.get_bucket_tagging(Bucket=bucket_name)
+
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("NoSuchTagSet")
+    e.response["Error"]["Message"].should.equal("The TagSet does not exist")
+
+
+@mock_s3
+def test_boto3_put_bucket_cors():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "mybucket"
+    s3.create_bucket(Bucket=bucket_name)
+
+    resp = s3.put_bucket_cors(Bucket=bucket_name, CORSConfiguration={
+        "CORSRules": [
+            {
+                "AllowedOrigins": [
+                    "*"
+                ],
+                "AllowedMethods": [
+                    "GET",
+                    "POST"
+                ],
+                "AllowedHeaders": [
+                    "Authorization"
+                ],
+                "ExposeHeaders": [
+                    "x-amz-request-id"
+                ],
+                "MaxAgeSeconds": 123
+            },
+            {
+                "AllowedOrigins": [
+                    "*"
+                ],
+                "AllowedMethods": [
+                    "PUT"
+                ],
+                "AllowedHeaders": [
+                    "Authorization"
+                ],
+                "ExposeHeaders": [
+                    "x-amz-request-id"
+                ],
+                "MaxAgeSeconds": 123
+            }
+        ]
+    })
+
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_cors(Bucket=bucket_name, CORSConfiguration={
+            "CORSRules": [
+                {
+                    "AllowedOrigins": [
+                        "*"
+                    ],
+                    "AllowedMethods": [
+                        "NOTREAL",
+                        "POST"
+                    ]
+                }
+            ]
+        })
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("InvalidRequest")
+    e.response["Error"]["Message"].should.equal("Found unsupported HTTP method in CORS config. " 
+                                                "Unsupported method is NOTREAL")
+
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_cors(Bucket=bucket_name, CORSConfiguration={
+            "CORSRules": []
+        })
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("MalformedXML")
+
+    # And 101:
+    many_rules = [{"AllowedOrigins": ["*"], "AllowedMethods": ["GET"]}] * 101
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_cors(Bucket=bucket_name, CORSConfiguration={
+            "CORSRules": many_rules
+        })
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("MalformedXML")
+
+
+@mock_s3
+def test_boto3_get_bucket_cors():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "mybucket"
+    s3.create_bucket(Bucket=bucket_name)
+
+    # Without CORS:
+    with assert_raises(ClientError) as err:
+        s3.get_bucket_cors(Bucket=bucket_name)
+
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("NoSuchCORSConfiguration")
+    e.response["Error"]["Message"].should.equal("The CORS configuration does not exist")
+
+    s3.put_bucket_cors(Bucket=bucket_name, CORSConfiguration={
+        "CORSRules": [
+            {
+                "AllowedOrigins": [
+                    "*"
+                ],
+                "AllowedMethods": [
+                    "GET",
+                    "POST"
+                ],
+                "AllowedHeaders": [
+                    "Authorization"
+                ],
+                "ExposeHeaders": [
+                    "x-amz-request-id"
+                ],
+                "MaxAgeSeconds": 123
+            },
+            {
+                "AllowedOrigins": [
+                    "*"
+                ],
+                "AllowedMethods": [
+                    "PUT"
+                ],
+                "AllowedHeaders": [
+                    "Authorization"
+                ],
+                "ExposeHeaders": [
+                    "x-amz-request-id"
+                ],
+                "MaxAgeSeconds": 123
+            }
+        ]
+    })
+
+    resp = s3.get_bucket_cors(Bucket=bucket_name)
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    len(resp["CORSRules"]).should.equal(2)
+
+
+@mock_s3
+def test_boto3_delete_bucket_cors():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "mybucket"
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_cors(Bucket=bucket_name, CORSConfiguration={
+        "CORSRules": [
+            {
+                "AllowedOrigins": [
+                    "*"
+                ],
+                "AllowedMethods": [
+                    "GET"
+                ]
+            }
+        ]
+    })
+
+    resp = s3.delete_bucket_cors(Bucket=bucket_name)
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(204)
+
+    # Verify deletion:
+    with assert_raises(ClientError) as err:
+        s3.get_bucket_cors(Bucket=bucket_name)
+
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("NoSuchCORSConfiguration")
+    e.response["Error"]["Message"].should.equal("The CORS configuration does not exist")
 
 
 @mock_s3

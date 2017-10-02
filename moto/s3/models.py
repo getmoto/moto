@@ -201,9 +201,17 @@ class FakeGrantee(BaseModel):
         self.uri = uri
         self.display_name = display_name
 
+    def __eq__(self, other):
+        if not isinstance(other, FakeGrantee):
+            return False
+        return self.id == other.id and self.uri == other.uri and self.display_name == other.display_name
+
     @property
     def type(self):
         return 'Group' if self.uri else 'CanonicalUser'
+
+    def __repr__(self):
+        return "FakeGrantee(display_name: '{}', id: '{}', uri: '{}')".format(self.display_name, self.id, self.uri)
 
 
 ALL_USERS_GRANTEE = FakeGrantee(
@@ -226,11 +234,27 @@ class FakeGrant(BaseModel):
         self.grantees = grantees
         self.permissions = permissions
 
+    def __repr__(self):
+        return "FakeGrant(grantees: {}, permissions: {})".format(self.grantees, self.permissions)
+
 
 class FakeAcl(BaseModel):
 
     def __init__(self, grants=[]):
         self.grants = grants
+
+    @property
+    def public_read(self):
+        for grant in self.grants:
+            if ALL_USERS_GRANTEE in grant.grantees:
+                if PERMISSION_READ in grant.permissions:
+                    return True
+                if PERMISSION_FULL_CONTROL in grant.permissions:
+                    return True
+        return False
+
+    def __repr__(self):
+        return "FakeAcl(grants: {})".format(self.grants)
 
 
 def get_canned_acl(acl):
@@ -295,6 +319,26 @@ class LifecycleRule(BaseModel):
         self.storage_class = storage_class
 
 
+class CorsRule(BaseModel):
+
+    def __init__(self, allowed_methods, allowed_origins, allowed_headers=None, expose_headers=None,
+                 max_age_seconds=None):
+        # Python 2 and 3 have different string types for handling unicodes. Python 2 wants `basestring`,
+        # whereas Python 3 is OK with str. This causes issues with the XML parser, which returns
+        # unicode strings in Python 2. So, need to do this to make it work in both Python 2 and 3:
+        import sys
+        if sys.version_info >= (3, 0):
+            str_type = str
+        else:
+            str_type = basestring  # noqa
+
+        self.allowed_methods = [allowed_methods] if isinstance(allowed_methods, str_type) else allowed_methods
+        self.allowed_origins = [allowed_origins] if isinstance(allowed_origins, str_type) else allowed_origins
+        self.allowed_headers = [allowed_headers] if isinstance(allowed_headers, str_type) else allowed_headers
+        self.exposed_headers = [expose_headers] if isinstance(expose_headers, str_type) else expose_headers
+        self.max_age_seconds = max_age_seconds
+
+
 class FakeBucket(BaseModel):
 
     def __init__(self, name, region_name):
@@ -307,6 +351,8 @@ class FakeBucket(BaseModel):
         self.policy = None
         self.website_configuration = None
         self.acl = get_canned_acl('private')
+        self.tags = FakeTagging()
+        self.cors = []
 
     @property
     def location(self):
@@ -335,6 +381,61 @@ class FakeBucket(BaseModel):
 
     def delete_lifecycle(self):
         self.rules = []
+
+    def set_cors(self, rules):
+        from moto.s3.exceptions import InvalidRequest, MalformedXML
+        self.cors = []
+
+        if len(rules) > 100:
+            raise MalformedXML()
+
+        # Python 2 and 3 have different string types for handling unicodes. Python 2 wants `basestring`,
+        # whereas Python 3 is OK with str. This causes issues with the XML parser, which returns
+        # unicode strings in Python 2. So, need to do this to make it work in both Python 2 and 3:
+        import sys
+        if sys.version_info >= (3, 0):
+            str_type = str
+        else:
+            str_type = basestring  # noqa
+
+        for rule in rules:
+            assert isinstance(rule["AllowedMethod"], list) or isinstance(rule["AllowedMethod"], str_type)
+            assert isinstance(rule["AllowedOrigin"], list) or isinstance(rule["AllowedOrigin"], str_type)
+            assert isinstance(rule.get("AllowedHeader", []), list) or isinstance(rule.get("AllowedHeader", ""),
+                                                                                 str_type)
+            assert isinstance(rule.get("ExposedHeader", []), list) or isinstance(rule.get("ExposedHeader", ""),
+                                                                                 str_type)
+            assert isinstance(rule.get("MaxAgeSeconds", "0"), str_type)
+
+            if isinstance(rule["AllowedMethod"], str_type):
+                methods = [rule["AllowedMethod"]]
+            else:
+                methods = rule["AllowedMethod"]
+
+            for method in methods:
+                if method not in ["GET", "PUT", "HEAD", "POST", "DELETE"]:
+                    raise InvalidRequest(method)
+
+            self.cors.append(CorsRule(
+                rule["AllowedMethod"],
+                rule["AllowedOrigin"],
+                rule.get("AllowedHeader"),
+                rule.get("ExposedHeader"),
+                rule.get("MaxAgeSecond")
+            ))
+
+    def delete_cors(self):
+        self.cors = []
+
+    def set_tags(self, tagging):
+        self.tags = tagging
+
+    def delete_tags(self):
+        self.tags = FakeTagging()
+
+    @property
+    def tagging(self):
+        return self.tags
 
     def set_website_configuration(self, website_configuration):
         self.website_configuration = website_configuration
@@ -422,14 +523,15 @@ class S3Backend(BaseBackend):
                             encoding_type=None,
                             key_marker=None,
                             max_keys=None,
-                            version_id_marker=None):
+                            version_id_marker=None,
+                            prefix=''):
         bucket = self.get_bucket(bucket_name)
 
         if any((delimiter, encoding_type, key_marker, version_id_marker)):
             raise NotImplementedError(
                 "Called get_bucket_versions with some of delimiter, encoding_type, key_marker, version_id_marker")
 
-        return itertools.chain(*(l for _, l in bucket.keys.iterlists()))
+        return itertools.chain(*(l for key, l in bucket.keys.iterlists() if key.startswith(prefix)))
 
     def get_bucket_policy(self, bucket_name):
         return self.get_bucket(bucket_name).policy
@@ -508,6 +610,22 @@ class S3Backend(BaseBackend):
             raise MissingKey(key_name)
         key.set_tagging(tagging)
         return key
+
+    def put_bucket_tagging(self, bucket_name, tagging):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_tags(tagging)
+
+    def delete_bucket_tagging(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.delete_tags()
+
+    def put_bucket_cors(self, bucket_name, cors_rules):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_cors(cors_rules)
+
+    def delete_bucket_cors(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.delete_cors()
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)

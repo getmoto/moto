@@ -52,6 +52,16 @@ class SimpleSystemManagerBackend(BaseBackend):
         except KeyError:
             pass
 
+    def delete_parameters(self, names):
+        result = []
+        for name in names:
+            try:
+                del self._parameters[name]
+                result.append(name)
+            except KeyError:
+                pass
+        return result
+
     def get_all_parameters(self):
         result = []
         for k, _ in self._parameters.items():
@@ -64,6 +74,11 @@ class SimpleSystemManagerBackend(BaseBackend):
             if name in self._parameters:
                 result.append(self._parameters[name])
         return result
+
+    def get_parameter(self, name, with_decryption):
+        if name in self._parameters:
+            return self._parameters[name]
+        return None
 
     def put_parameter(self, name, description, value, type, keyid, overwrite):
         if not overwrite and name in self._parameters:

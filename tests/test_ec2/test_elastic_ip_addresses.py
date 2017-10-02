@@ -180,13 +180,31 @@ def test_eip_boto3_vpc_association():
         'SubnetId': subnet_res['Subnet']['SubnetId']
     })[0]
     allocation_id = client.allocate_address(Domain='vpc')['AllocationId']
+    address = service.VpcAddress(allocation_id)
+    address.load()
+    address.association_id.should.be.none
+    address.instance_id.should.be.empty
+    address.network_interface_id.should.be.empty
     association_id = client.associate_address(
         InstanceId=instance.id,
         AllocationId=allocation_id,
         AllowReassociation=False)
     instance.load()
+    address.reload()
+    address.association_id.should_not.be.none
     instance.public_ip_address.should_not.be.none
     instance.public_dns_name.should_not.be.none
+    address.network_interface_id.should.equal(instance.network_interfaces_attribute[0].get('NetworkInterfaceId'))
+    address.public_ip.should.equal(instance.public_ip_address)
+    address.instance_id.should.equal(instance.id)
+
+    client.disassociate_address(AssociationId=address.association_id)
+    instance.reload()
+    address.reload()
+    instance.public_ip_address.should.be.none
+    address.network_interface_id.should.be.empty
+    address.association_id.should.be.none
+    address.instance_id.should.be.empty
 
 
 @mock_ec2_deprecated
@@ -402,3 +420,84 @@ def test_eip_describe_none():
     cm.exception.code.should.equal('InvalidAddress.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_eip_filters():
+    service = boto3.resource('ec2', region_name='us-west-1')
+    client = boto3.client('ec2', region_name='us-west-1')
+    vpc_res = client.create_vpc(CidrBlock='10.0.0.0/24')
+    subnet_res = client.create_subnet(
+        VpcId=vpc_res['Vpc']['VpcId'], CidrBlock='10.0.0.0/24')
+
+    def create_inst_with_eip():
+        instance = service.create_instances(**{
+            'InstanceType': 't2.micro',
+            'ImageId': 'ami-test',
+            'MinCount': 1,
+            'MaxCount': 1,
+            'SubnetId': subnet_res['Subnet']['SubnetId']
+        })[0]
+        allocation_id = client.allocate_address(Domain='vpc')['AllocationId']
+        _ = client.associate_address(
+            InstanceId=instance.id,
+            AllocationId=allocation_id,
+            AllowReassociation=False)
+        instance.load()
+        address = service.VpcAddress(allocation_id)
+        address.load()
+        return instance, address
+
+    inst1, eip1 = create_inst_with_eip()
+    inst2, eip2 = create_inst_with_eip()
+    inst3, eip3 = create_inst_with_eip()
+
+    # Param search by AllocationId
+    addresses = list(service.vpc_addresses.filter(AllocationIds=[eip2.allocation_id]))
+    len(addresses).should.be.equal(1)
+    addresses[0].public_ip.should.equal(eip2.public_ip)
+    inst2.public_ip_address.should.equal(addresses[0].public_ip)
+
+    # Param search by PublicIp
+    addresses = list(service.vpc_addresses.filter(PublicIps=[eip3.public_ip]))
+    len(addresses).should.be.equal(1)
+    addresses[0].public_ip.should.equal(eip3.public_ip)
+    inst3.public_ip_address.should.equal(addresses[0].public_ip)
+
+    # Param search by Filter
+    def check_vpc_filter_valid(filter_name, filter_values):
+        addresses = list(service.vpc_addresses.filter(
+            Filters=[{'Name': filter_name,
+                      'Values': filter_values}]))
+        len(addresses).should.equal(2)
+        ips = [addr.public_ip for addr in addresses]
+        set(ips).should.equal(set([eip1.public_ip, eip2.public_ip]))
+        ips.should.contain(inst1.public_ip_address)
+
+    def check_vpc_filter_invalid(filter_name):
+        addresses = list(service.vpc_addresses.filter(
+            Filters=[{'Name': filter_name,
+                      'Values': ['dummy1', 'dummy2']}]))
+        len(addresses).should.equal(0)
+
+    def check_vpc_filter(filter_name, filter_values):
+        check_vpc_filter_valid(filter_name, filter_values)
+        check_vpc_filter_invalid(filter_name)
+
+    check_vpc_filter('allocation-id', [eip1.allocation_id, eip2.allocation_id])
+    check_vpc_filter('association-id', [eip1.association_id, eip2.association_id])
+    check_vpc_filter('instance-id', [inst1.id, inst2.id])
+    check_vpc_filter(
+        'network-interface-id',
+        [inst1.network_interfaces_attribute[0].get('NetworkInterfaceId'),
+         inst2.network_interfaces_attribute[0].get('NetworkInterfaceId')])
+    check_vpc_filter(
+        'private-ip-address',
+        [inst1.network_interfaces_attribute[0].get('PrivateIpAddress'),
+         inst2.network_interfaces_attribute[0].get('PrivateIpAddress')])
+    check_vpc_filter('public-ip', [inst1.public_ip_address, inst2.public_ip_address])
+
+    # all the ips are in a VPC
+    addresses = list(service.vpc_addresses.filter(
+        Filters=[{'Name': 'domain', 'Values': ['vpc']}]))
+    len(addresses).should.equal(3)

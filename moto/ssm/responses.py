@@ -26,6 +26,40 @@ class SimpleSystemManagerResponse(BaseResponse):
         self.ssm_backend.delete_parameter(name)
         return json.dumps({})
 
+    def delete_parameters(self):
+        names = self._get_param('Names')
+        result = self.ssm_backend.delete_parameters(names)
+
+        response = {
+            'DeletedParameters': [],
+            'InvalidParameters': []
+        }
+
+        for name in names:
+            if name in result:
+                response['DeletedParameters'].append(name)
+            else:
+                response['InvalidParameters'].append(name)
+        return json.dumps(response)
+
+    def get_parameter(self):
+        name = self._get_param('Name')
+        with_decryption = self._get_param('WithDecryption')
+
+        result = self.ssm_backend.get_parameter(name, with_decryption)
+
+        if result is None:
+            error = {
+                '__type': 'ParameterNotFound',
+                'message': 'Parameter {0} not found.'.format(name)
+            }
+            return json.dumps(error), dict(status=400)
+
+        response = {
+            'Parameter': result.response_object(with_decryption)
+        }
+        return json.dumps(response)
+
     def get_parameters(self):
         names = self._get_param('Names')
         with_decryption = self._get_param('WithDecryption')
@@ -41,6 +75,10 @@ class SimpleSystemManagerResponse(BaseResponse):
             param_data = parameter.response_object(with_decryption)
             response['Parameters'].append(param_data)
 
+        param_names = [param.name for param in result]
+        for name in names:
+            if name not in param_names:
+                response['InvalidParameters'].append(name)
         return json.dumps(response)
 
     def describe_parameters(self):

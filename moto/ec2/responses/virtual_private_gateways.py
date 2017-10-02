@@ -6,8 +6,8 @@ from moto.ec2.utils import filters_from_querystring
 class VirtualPrivateGateways(BaseResponse):
 
     def attach_vpn_gateway(self):
-        vpn_gateway_id = self.querystring.get('VpnGatewayId')[0]
-        vpc_id = self.querystring.get('VpcId')[0]
+        vpn_gateway_id = self._get_param('VpnGatewayId')
+        vpc_id = self._get_param('VpcId')
         attachment = self.ec2_backend.attach_vpn_gateway(
             vpn_gateway_id,
             vpc_id
@@ -16,13 +16,13 @@ class VirtualPrivateGateways(BaseResponse):
         return template.render(attachment=attachment)
 
     def create_vpn_gateway(self):
-        type = self.querystring.get('Type', None)[0]
+        type = self._get_param('Type')
         vpn_gateway = self.ec2_backend.create_vpn_gateway(type)
         template = self.response_template(CREATE_VPN_GATEWAY_RESPONSE)
         return template.render(vpn_gateway=vpn_gateway)
 
     def delete_vpn_gateway(self):
-        vpn_gateway_id = self.querystring.get('VpnGatewayId')[0]
+        vpn_gateway_id = self._get_param('VpnGatewayId')
         vpn_gateway = self.ec2_backend.delete_vpn_gateway(vpn_gateway_id)
         template = self.response_template(DELETE_VPN_GATEWAY_RESPONSE)
         return template.render(vpn_gateway=vpn_gateway)
@@ -34,8 +34,8 @@ class VirtualPrivateGateways(BaseResponse):
         return template.render(vpn_gateways=vpn_gateways)
 
     def detach_vpn_gateway(self):
-        vpn_gateway_id = self.querystring.get('VpnGatewayId')[0]
-        vpc_id = self.querystring.get('VpcId')[0]
+        vpn_gateway_id = self._get_param('VpnGatewayId')
+        vpc_id = self._get_param('VpcId')
         attachment = self.ec2_backend.detach_vpn_gateway(
             vpn_gateway_id,
             vpc_id

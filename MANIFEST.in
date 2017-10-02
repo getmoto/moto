@@ -1,3 +1,4 @@
 include README.md LICENSE AUTHORS.md
 include requirements.txt requirements-dev.txt tox.ini
+include moto/ec2/resources/instance_types.json
 recursive-include tests * 

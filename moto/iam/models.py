@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 import base64
 from datetime import datetime
+import json
 
 import pytz
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
+from .aws_managed_policies import aws_managed_policies_data
 from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
@@ -72,13 +74,31 @@ class ManagedPolicy(Policy):
 
     is_attachable = True
 
-    def attach_to_role(self, role):
+    def attach_to(self, obj):
         self.attachment_count += 1
-        role.managed_policies[self.name] = self
+        obj.managed_policies[self.name] = self
+
+    def detach_from(self, obj):
+        self.attachment_count -= 1
+        del obj.managed_policies[self.name]
 
 
 class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
+
+    @classmethod
+    def from_data(cls, name, data):
+        return cls(name,
+                   default_version_id=data.get('DefaultVersionId'),
+                   path=data.get('Path'),
+                   document=data.get('Document'))
+
+
+# AWS defines some of its own managed policies and we periodically
+# import them via `make aws_managed_policies`
+aws_managed_policies = [
+    AWSManagedPolicy.from_data(name, d) for name, d
+    in json.loads(aws_managed_policies_data).items()]
 
 
 class InlinePolicy(Policy):
@@ -119,6 +139,13 @@ class Role(BaseModel):
 
     def put_policy(self, policy_name, policy_json):
         self.policies[policy_name] = policy_json
+
+    def delete_policy(self, policy_name):
+        try:
+            del self.policies[policy_name]
+        except KeyError:
+            raise IAMNotFoundException(
+                "The role policy with name {0} cannot be found.".format(policy_name))
 
     @property
     def physical_resource_id(self):
@@ -214,6 +241,7 @@ class Group(BaseModel):
         )
 
         self.users = []
+        self.managed_policies = {}
         self.policies = {}
 
     def get_cfn_attribute(self, attribute_name):
@@ -254,6 +282,7 @@ class User(BaseModel):
         self.created = datetime.utcnow()
         self.mfa_devices = {}
         self.policies = {}
+        self.managed_policies = {}
         self.access_keys = []
         self.password = None
         self.password_reset_required = False
@@ -368,115 +397,6 @@ class User(BaseModel):
                                                                                                         )
 
 
-# predefine AWS managed policies
-aws_managed_policies = [
-    AWSManagedPolicy(
-        'AmazonElasticMapReduceRole',
-        default_version_id='v6',
-        path='/service-role/',
-        document={
-            "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Resource": "*",
-                "Action": [
-                    "ec2:AuthorizeSecurityGroupEgress",
-                    "ec2:AuthorizeSecurityGroupIngress",
-                    "ec2:CancelSpotInstanceRequests",
-                    "ec2:CreateNetworkInterface",
-                    "ec2:CreateSecurityGroup",
-                    "ec2:CreateTags",
-                    "ec2:DeleteNetworkInterface",
-                    "ec2:DeleteSecurityGroup",
-                    "ec2:DeleteTags",
-                    "ec2:DescribeAvailabilityZones",
-                    "ec2:DescribeAccountAttributes",
-                    "ec2:DescribeDhcpOptions",
-                    "ec2:DescribeInstanceStatus",
-                    "ec2:DescribeInstances",
-                    "ec2:DescribeKeyPairs",
-                    "ec2:DescribeNetworkAcls",
-                    "ec2:DescribeNetworkInterfaces",
-                    "ec2:DescribePrefixLists",
-                    "ec2:DescribeRouteTables",
-                    "ec2:DescribeSecurityGroups",
-                    "ec2:DescribeSpotInstanceRequests",
-                    "ec2:DescribeSpotPriceHistory",
-                    "ec2:DescribeSubnets",
-                    "ec2:DescribeVpcAttribute",
-                    "ec2:DescribeVpcEndpoints",
-                    "ec2:DescribeVpcEndpointServices",
-                    "ec2:DescribeVpcs",
-                    "ec2:DetachNetworkInterface",
-                    "ec2:ModifyImageAttribute",
-                    "ec2:ModifyInstanceAttribute",
-                    "ec2:RequestSpotInstances",
-                    "ec2:RevokeSecurityGroupEgress",
-                    "ec2:RunInstances",
-                    "ec2:TerminateInstances",
-                    "ec2:DeleteVolume",
-                    "ec2:DescribeVolumeStatus",
-                    "ec2:DescribeVolumes",
-                    "ec2:DetachVolume",
-                    "iam:GetRole",
-                    "iam:GetRolePolicy",
-                    "iam:ListInstanceProfiles",
-                    "iam:ListRolePolicies",
-                    "iam:PassRole",
-                    "s3:CreateBucket",
-                    "s3:Get*",
-                    "s3:List*",
-                    "sdb:BatchPutAttributes",
-                    "sdb:Select",
-                    "sqs:CreateQueue",
-                    "sqs:Delete*",
-                    "sqs:GetQueue*",
-                    "sqs:PurgeQueue",
-                    "sqs:ReceiveMessage"
-                ]
-            }]
-        }
-    ),
-    AWSManagedPolicy(
-        'AmazonElasticMapReduceforEC2Role',
-        default_version_id='v2',
-        path='/service-role/',
-        document={
-            "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Resource": "*",
-                "Action": [
-                    "cloudwatch:*",
-                    "dynamodb:*",
-                    "ec2:Describe*",
-                    "elasticmapreduce:Describe*",
-                    "elasticmapreduce:ListBootstrapActions",
-                    "elasticmapreduce:ListClusters",
-                    "elasticmapreduce:ListInstanceGroups",
-                    "elasticmapreduce:ListInstances",
-                    "elasticmapreduce:ListSteps",
-                    "kinesis:CreateStream",
-                    "kinesis:DeleteStream",
-                    "kinesis:DescribeStream",
-                    "kinesis:GetRecords",
-                    "kinesis:GetShardIterator",
-                    "kinesis:MergeShards",
-                    "kinesis:PutRecord",
-                    "kinesis:SplitShard",
-                    "rds:Describe*",
-                    "s3:*",
-                    "sdb:*",
-                    "sns:*",
-                    "sqs:*"
-                ]
-            }]
-        }
-    )
-]
-# TODO: add more predefined AWS managed policies
-
-
 class IAMBackend(BaseBackend):
 
     def __init__(self):
@@ -487,6 +407,7 @@ class IAMBackend(BaseBackend):
         self.users = {}
         self.credential_report = None
         self.managed_policies = self._init_managed_policies()
+        self.account_aliases = []
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -495,7 +416,47 @@ class IAMBackend(BaseBackend):
     def attach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         policy = arns[policy_arn]
-        policy.attach_to_role(self.get_role(role_name))
+        policy.attach_to(self.get_role(role_name))
+
+    def detach_role_policy(self, policy_arn, role_name):
+        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        try:
+            policy = arns[policy_arn]
+            policy.detach_from(self.get_role(role_name))
+        except KeyError:
+            raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
+
+    def attach_group_policy(self, policy_arn, group_name):
+        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        try:
+            policy = arns[policy_arn]
+        except KeyError:
+            raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
+        policy.attach_to(self.get_group(group_name))
+
+    def detach_group_policy(self, policy_arn, group_name):
+        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        try:
+            policy = arns[policy_arn]
+        except KeyError:
+            raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
+        policy.detach_from(self.get_group(group_name))
+
+    def attach_user_policy(self, policy_arn, user_name):
+        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        try:
+            policy = arns[policy_arn]
+        except KeyError:
+            raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
+        policy.attach_to(self.get_user(user_name))
+
+    def detach_user_policy(self, policy_arn, user_name):
+        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        try:
+            policy = arns[policy_arn]
+        except KeyError:
+            raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
+        policy.detach_from(self.get_user(user_name))
 
     def create_policy(self, description, path, policy_document, policy_name):
         policy = ManagedPolicy(
@@ -512,21 +473,15 @@ class IAMBackend(BaseBackend):
 
     def list_attached_role_policies(self, role_name, marker=None, max_items=100, path_prefix='/'):
         policies = self.get_role(role_name).managed_policies.values()
+        return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
-        if path_prefix:
-            policies = [p for p in policies if p.path.startswith(path_prefix)]
+    def list_attached_group_policies(self, group_name, marker=None, max_items=100, path_prefix='/'):
+        policies = self.get_group(group_name).managed_policies.values()
+        return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
-        policies = sorted(policies, key=lambda policy: policy.name)
-        start_idx = int(marker) if marker else 0
-
-        policies = policies[start_idx:start_idx + max_items]
-
-        if len(policies) < max_items:
-            marker = None
-        else:
-            marker = str(start_idx + max_items)
-
-        return policies, marker
+    def list_attached_user_policies(self, user_name, marker=None, max_items=100, path_prefix='/'):
+        policies = self.get_user(user_name).managed_policies.values()
+        return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
     def list_policies(self, marker, max_items, only_attached, path_prefix, scope):
         policies = self.managed_policies.values()
@@ -540,6 +495,9 @@ class IAMBackend(BaseBackend):
             policies = [p for p in policies if not isinstance(
                 p, AWSManagedPolicy)]
 
+        return self._filter_attached_policies(policies, marker, max_items, path_prefix)
+
+    def _filter_attached_policies(self, policies, marker, max_items, path_prefix):
         if path_prefix:
             policies = [p for p in policies if p.path.startswith(path_prefix)]
 
@@ -583,6 +541,10 @@ class IAMBackend(BaseBackend):
     def put_role_policy(self, role_name, policy_name, policy_json):
         role = self.get_role(role_name)
         role.put_policy(policy_name, policy_json)
+
+    def delete_role_policy(self, role_name, policy_name):
+        role = self.get_role(role_name)
+        role.delete_policy(policy_name)
 
     def get_role_policy(self, role_name, policy_name):
         role = self.get_role(role_name)
@@ -896,6 +858,16 @@ class IAMBackend(BaseBackend):
         for user in self.users:
             report += self.users[user].to_csv()
         return base64.b64encode(report.encode('ascii')).decode('ascii')
+
+    def list_account_aliases(self):
+        return self.account_aliases
+
+    def create_account_alias(self, alias):
+        # alias is force updated
+        self.account_aliases = [alias]
+
+    def delete_account_alias(self, alias):
+        self.account_aliases = []
 
 
 iam_backend = IAMBackend()

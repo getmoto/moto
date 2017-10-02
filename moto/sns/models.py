@@ -12,8 +12,10 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.sqs import sqs_backends
+from moto.awslambda import lambda_backends
+
 from .exceptions import (
-    SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled
+    SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
@@ -76,15 +78,23 @@ class Subscription(BaseModel):
         self.endpoint = endpoint
         self.protocol = protocol
         self.arn = make_arn_for_subscription(self.topic.arn)
+        self.attributes = {}
+        self.confirmed = False
 
     def publish(self, message, message_id):
         if self.protocol == 'sqs':
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
-            sqs_backends[region].send_message(queue_name, message)
+            enveloped_message = json.dumps(self.get_post_data(message, message_id), sort_keys=True, indent=2, separators=(',', ': '))
+            sqs_backends[region].send_message(queue_name, enveloped_message)
         elif self.protocol in ['http', 'https']:
             post_data = self.get_post_data(message, message_id)
             requests.post(self.endpoint, json=post_data)
+        elif self.protocol == 'lambda':
+            # TODO: support bad function name
+            function_name = self.endpoint.split(":")[-1]
+            region = self.arn.split(':')[3]
+            lambda_backends[region].send_message(function_name, message)
 
     def get_post_data(self, message, message_id):
         return {
@@ -170,11 +180,17 @@ class SNSBackend(BaseBackend):
         self.applications = {}
         self.platform_endpoints = {}
         self.region_name = region_name
+        self.sms_attributes = {}
+        self.opt_out_numbers = ['+447420500600', '+447420505401', '+447632960543', '+447632960028', '+447700900149', '+447700900550', '+447700900545', '+447700900907']
+        self.permissions = {}
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    def update_sms_attributes(self, attrs):
+        self.sms_attributes.update(attrs)
 
     def create_topic(self, name):
         topic = Topic(name, self)
@@ -211,6 +227,12 @@ class SNSBackend(BaseBackend):
             return self.topics[arn]
         except KeyError:
             raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
+
+    def get_topic_from_phone_number(self, number):
+        for subscription in self.subscriptions.values():
+            if subscription.protocol == 'sms' and subscription.endpoint == number:
+                return subscription.topic.arn
+        raise SNSNotFoundError('Could not find valid subscription')
 
     def set_topic_attribute(self, topic_arn, attribute_name, attribute_value):
         topic = self.get_topic(topic_arn)
@@ -299,6 +321,26 @@ class SNSBackend(BaseBackend):
         except KeyError:
             raise SNSNotFoundError(
                 "Endpoint with arn {0} not found".format(arn))
+
+    def get_subscription_attributes(self, arn):
+        _subscription = [_ for _ in self.subscriptions.values() if _.arn == arn]
+        if not _subscription:
+            raise SNSNotFoundError("Subscription with arn {0} not found".format(arn))
+        subscription = _subscription[0]
+
+        return subscription.attributes
+
+    def set_subscription_attributes(self, arn, name, value):
+        if name not in ['RawMessageDelivery', 'DeliveryPolicy']:
+            raise SNSInvalidParameter('AttributeName')
+
+        # TODO: should do validation
+        _subscription = [_ for _ in self.subscriptions.values() if _.arn == arn]
+        if not _subscription:
+            raise SNSNotFoundError("Subscription with arn {0} not found".format(arn))
+        subscription = _subscription[0]
+
+        subscription.attributes[name] = value
 
 
 sns_backends = {}

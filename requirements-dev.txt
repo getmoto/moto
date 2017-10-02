@@ -6,6 +6,12 @@ coverage
 flake8
 freezegun
 flask
+boto>=2.45.0
 boto3>=1.4.4
-botocore>=1.4.28
-six
+botocore>=1.5.77
+six>=1.9
+prompt-toolkit==1.0.14
+click==6.7
+inflection==0.3.1
+lxml==4.0.0
+beautifulsoup4==4.6.0

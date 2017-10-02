@@ -57,7 +57,7 @@ class DynamoType(object):
 
     @property
     def cast_value(self):
-        if self.type == 'N':
+        if self.is_number():
             try:
                 return int(self.value)
             except ValueError:
@@ -75,6 +75,15 @@ class DynamoType(object):
         range_values = [obj.cast_value for obj in range_objs]
         comparison_func = get_comparison_func(range_comparison)
         return comparison_func(self.cast_value, *range_values)
+
+    def is_number(self):
+        return self.type == 'N'
+
+    def is_set(self):
+        return self.type == 'SS' or self.type == 'NS' or self.type == 'BS'
+
+    def same_type(self, other):
+        return self.type == other.type
 
 
 class Item(BaseModel):
@@ -118,10 +127,11 @@ class Item(BaseModel):
     def update(self, update_expression, expression_attribute_names, expression_attribute_values):
         # Update subexpressions are identifiable by the operator keyword, so split on that and
         # get rid of the empty leading string.
-        parts = [p for p in re.split(r'\b(SET|REMOVE|ADD|DELETE)\b', update_expression) if p]
+        parts = [p for p in re.split(r'\b(SET|REMOVE|ADD|DELETE)\b', update_expression, flags=re.I) if p]
         # make sure that we correctly found only operator/value pairs
         assert len(parts) % 2 == 0, "Mismatched operators and values in update expression: '{}'".format(update_expression)
         for action, valstr in zip(parts[:-1:2], parts[1::2]):
+            action = action.upper()
             values = valstr.split(',')
             for value in values:
                 # A Real value
@@ -139,6 +149,55 @@ class Item(BaseModel):
                         self.attrs[key] = DynamoType(expression_attribute_values[value])
                     else:
                         self.attrs[key] = DynamoType({"S": value})
+                elif action == 'ADD':
+                    key, value = value.split(" ", 1)
+                    key = key.strip()
+                    value_str = value.strip()
+                    if value_str in expression_attribute_values:
+                        dyn_value = DynamoType(expression_attribute_values[value])
+                    else:
+                        raise TypeError
+
+                    # Handle adding numbers - value gets added to existing value,
+                    # or added to 0 if it doesn't exist yet
+                    if dyn_value.is_number():
+                        existing = self.attrs.get(key, DynamoType({"N": '0'}))
+                        if not existing.same_type(dyn_value):
+                            raise TypeError()
+                        self.attrs[key] = DynamoType({"N": str(
+                            decimal.Decimal(existing.value) +
+                            decimal.Decimal(dyn_value.value)
+                        )})
+
+                    # Handle adding sets - value is added to the set, or set is
+                    # created with only this value if it doesn't exist yet
+                    # New value must be of same set type as previous value
+                    elif dyn_value.is_set():
+                        existing = self.attrs.get(key, DynamoType({dyn_value.type: {}}))
+                        if not existing.same_type(dyn_value):
+                            raise TypeError()
+                        new_set = set(existing.value).union(dyn_value.value)
+                        self.attrs[key] = DynamoType({existing.type: list(new_set)})
+                    else:  # Number and Sets are the only supported types for ADD
+                        raise TypeError
+
+                elif action == 'DELETE':
+                    key, value = value.split(" ", 1)
+                    key = key.strip()
+                    value_str = value.strip()
+                    if value_str in expression_attribute_values:
+                        dyn_value = DynamoType(expression_attribute_values[value])
+                    else:
+                        raise TypeError
+
+                    if not dyn_value.is_set():
+                        raise TypeError
+                    existing = self.attrs.get(key, None)
+                    if existing:
+                        if not existing.same_type(dyn_value):
+                            raise TypeError
+                        new_set = set(existing.value).difference(dyn_value.value)
+                        self.attrs[key] = DynamoType({existing.type: list(new_set)})
                 else:
                     raise NotImplementedError('{} update action not yet supported'.format(action))
 
@@ -171,6 +230,12 @@ class Item(BaseModel):
                         decimal.Decimal(existing.value) +
                         decimal.Decimal(new_value)
                     )})
+                elif set(update_action['Value'].keys()) == set(['SS']):
+                    existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
+                    new_set = set(existing.value).union(set(new_value))
+                    self.attrs[attribute_name] = DynamoType({
+                        "SS": list(new_set)
+                    })
                 else:
                     # TODO: implement other data types
                     raise NotImplementedError(
@@ -347,7 +412,8 @@ class Table(BaseModel):
             return None
 
     def query(self, hash_key, range_comparison, range_objs, limit,
-              exclusive_start_key, scan_index_forward, index_name=None, **filter_kwargs):
+              exclusive_start_key, scan_index_forward, projection_expression,
+              index_name=None, **filter_kwargs):
         results = []
         if index_name:
             all_indexes = (self.global_indexes or []) + (self.indexes or [])
@@ -417,6 +483,13 @@ class Table(BaseModel):
                              if item.attrs.get(index_range_key['AttributeName']) else None)
         else:
             results.sort(key=lambda item: item.range_key)
+
+        if projection_expression:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            for result in possible_results:
+                for attr in list(result.attrs):
+                    if attr not in expressions:
+                        result.attrs.pop(attr)
 
         if scan_index_forward is False:
             results.reverse()
@@ -613,7 +686,7 @@ class DynamoDBBackend(BaseBackend):
         return table.get_item(hash_key, range_key)
 
     def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts,
-              limit, exclusive_start_key, scan_index_forward, index_name=None, **filter_kwargs):
+              limit, exclusive_start_key, scan_index_forward, projection_expression, index_name=None, **filter_kwargs):
         table = self.tables.get(table_name)
         if not table:
             return None, None
@@ -623,7 +696,7 @@ class DynamoDBBackend(BaseBackend):
                         for range_value in range_value_dicts]
 
         return table.query(hash_key, range_comparison, range_values, limit,
-                           exclusive_start_key, scan_index_forward, index_name, **filter_kwargs)
+                           exclusive_start_key, scan_index_forward, projection_expression, index_name, **filter_kwargs)
 
     def scan(self, table_name, filters, limit, exclusive_start_key):
         table = self.tables.get(table_name)

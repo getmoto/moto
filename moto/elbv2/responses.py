@@ -28,6 +28,30 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
         return template.render(load_balancer=load_balancer)
 
+    def create_rule(self):
+        lister_arn = self._get_param('ListenerArn')
+        _conditions = self._get_list_prefix('Conditions.member')
+        conditions = []
+        for _condition in _conditions:
+            condition = {}
+            condition['field'] = _condition['field']
+            values = sorted(
+                [e for e in _condition.items() if e[0].startswith('values.member')],
+                key=lambda x: x[0]
+            )
+            condition['values'] = [e[1] for e in values]
+            conditions.append(condition)
+        priority = self._get_int_param('Priority')
+        actions = self._get_list_prefix('Actions.member')
+        rules = self.elbv2_backend.create_rule(
+            listener_arn=lister_arn,
+            conditions=conditions,
+            priority=priority,
+            actions=actions
+        )
+        template = self.response_template(CREATE_RULE_TEMPLATE)
+        return template.render(rules=rules)
+
     def create_target_group(self):
         name = self._get_param('Name')
         vpc_id = self._get_param('VpcId')
@@ -100,6 +124,26 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(load_balancers=load_balancers_resp, marker=next_marker)
 
+    def describe_rules(self):
+        listener_arn = self._get_param('ListenerArn')
+        rule_arns = self._get_multi_param('RuleArns.member') if any(k for k in list(self.querystring.keys()) if k.startswith('RuleArns.member')) else None
+        all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
+        all_arns = [rule.arn for rule in all_rules]
+        page_size = self._get_int_param('PageSize', 50)  # set 50 for temporary
+
+        marker = self._get_param('Marker')
+        if marker:
+            start = all_arns.index(marker) + 1
+        else:
+            start = 0
+        rules_resp = all_rules[start:start + page_size]
+        next_marker = None
+
+        if len(all_rules) > start + page_size:
+            next_marker = rules_resp[-1].arn
+        template = self.response_template(DESCRIBE_RULES_TEMPLATE)
+        return template.render(rules=rules_resp, marker=next_marker)
+
     def describe_target_groups(self):
         load_balancer_arn = self._get_param('LoadBalancerArn')
         target_group_arns = self._get_multi_param('TargetGroupArns.member')
@@ -133,6 +177,12 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
+    def delete_rule(self):
+        arn = self._get_param('RuleArn')
+        self.elbv2_backend.delete_rule(arn)
+        template = self.response_template(DELETE_RULE_TEMPLATE)
+        return template.render()
+
     def delete_target_group(self):
         arn = self._get_param('TargetGroupArn')
         self.elbv2_backend.delete_target_group(arn)
@@ -144,6 +194,28 @@ class ELBV2Response(BaseResponse):
         self.elbv2_backend.delete_listener(arn)
         template = self.response_template(DELETE_LISTENER_TEMPLATE)
         return template.render()
+
+    def modify_rule(self):
+        rule_arn = self._get_param('RuleArn')
+        _conditions = self._get_list_prefix('Conditions.member')
+        conditions = []
+        for _condition in _conditions:
+            condition = {}
+            condition['field'] = _condition['field']
+            values = sorted(
+                [e for e in _condition.items() if e[0].startswith('values.member')],
+                key=lambda x: x[0]
+            )
+            condition['values'] = [e[1] for e in values]
+            conditions.append(condition)
+        actions = self._get_list_prefix('Actions.member')
+        rules = self.elbv2_backend.modify_rule(
+            rule_arn=rule_arn,
+            conditions=conditions,
+            actions=actions
+        )
+        template = self.response_template(MODIFY_RULE_TEMPLATE)
+        return template.render(rules=rules)
 
     def modify_target_group_attributes(self):
         target_group_arn = self._get_param('TargetGroupArn')
@@ -182,14 +254,29 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_TARGET_HEALTH_TEMPLATE)
         return template.render(target_health_descriptions=target_health_descriptions)
 
+    def set_rule_priorities(self):
+        rule_priorities = self._get_list_prefix('RulePriorities.member')
+        for rule_priority in rule_priorities:
+            rule_priority['priority'] = int(rule_priority['priority'])
+        rules = self.elbv2_backend.set_rule_priorities(rule_priorities)
+        template = self.response_template(SET_RULE_PRIORITIES_TEMPLATE)
+        return template.render(rules=rules)
+
     def add_tags(self):
         resource_arns = self._get_multi_param('ResourceArns.member')
 
         for arn in resource_arns:
-            load_balancer = self.elbv2_backend.load_balancers.get(arn)
-            if not load_balancer:
+            if ':targetgroup' in arn:
+                resource = self.elbv2_backend.target_groups.get(arn)
+                if not resource:
+                    raise TargetGroupNotFoundError()
+            elif ':loadbalancer' in arn:
+                resource = self.elbv2_backend.load_balancers.get(arn)
+                if not resource:
+                    raise LoadBalancerNotFoundError()
+            else:
                 raise LoadBalancerNotFoundError()
-            self._add_tags(load_balancer)
+            self._add_tags(resource)
 
         template = self.response_template(ADD_TAGS_TEMPLATE)
         return template.render()
@@ -199,30 +286,41 @@ class ELBV2Response(BaseResponse):
         tag_keys = self._get_multi_param('TagKeys.member')
 
         for arn in resource_arns:
-            load_balancer = self.elbv2_backend.load_balancers.get(arn)
-            if not load_balancer:
+            if ':targetgroup' in arn:
+                resource = self.elbv2_backend.target_groups.get(arn)
+                if not resource:
+                    raise TargetGroupNotFoundError()
+            elif ':loadbalancer' in arn:
+                resource = self.elbv2_backend.load_balancers.get(arn)
+                if not resource:
+                    raise LoadBalancerNotFoundError()
+            else:
                 raise LoadBalancerNotFoundError()
-            [load_balancer.remove_tag(key) for key in tag_keys]
+            [resource.remove_tag(key) for key in tag_keys]
 
         template = self.response_template(REMOVE_TAGS_TEMPLATE)
         return template.render()
 
     def describe_tags(self):
-        elbs = []
-        for key, value in self.querystring.items():
-            if "ResourceArns.member" in key:
-                number = key.split('.')[2]
-                load_balancer_arn = self._get_param(
-                    'ResourceArns.member.{0}'.format(number))
-                elb = self.elbv2_backend.load_balancers.get(load_balancer_arn)
-                if not elb:
+        resource_arns = self._get_multi_param('ResourceArns.member')
+        resources = []
+        for arn in resource_arns:
+            if ':targetgroup' in arn:
+                resource = self.elbv2_backend.target_groups.get(arn)
+                if not resource:
+                    raise TargetGroupNotFoundError()
+            elif ':loadbalancer' in arn:
+                resource = self.elbv2_backend.load_balancers.get(arn)
+                if not resource:
                     raise LoadBalancerNotFoundError()
-                elbs.append(elb)
+            else:
+                raise LoadBalancerNotFoundError()
+            resources.append(resource)
 
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
-        return template.render(load_balancers=elbs)
+        return template.render(resources=resources)
 
-    def _add_tags(self, elb):
+    def _add_tags(self, resource):
         tag_values = []
         tag_keys = []
 
@@ -244,7 +342,7 @@ class ELBV2Response(BaseResponse):
             raise DuplicateTagKeysError(counts[0])
 
         for tag_key, tag_value in zip(tag_keys, tag_values):
-            elb.add_tag(tag_key, tag_value)
+            resource.add_tag(tag_key, tag_value)
 
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
@@ -264,11 +362,11 @@ REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticloadbalancing
 DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeTagsResult>
     <TagDescriptions>
-      {% for load_balancer in load_balancers %}
+      {% for resource in resources %}
       <member>
-        <ResourceArn>{{ load_balancer.arn }}</ResourceArn>
+        <ResourceArn>{{ resource.arn }}</ResourceArn>
         <Tags>
-          {% for key, value in load_balancer.tags.items() %}
+          {% for key, value in resource.tags.items() %}
           <member>
             <Value>{{ value }}</Value>
             <Key>{{ key }}</Key>
@@ -320,6 +418,43 @@ CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://ela
     <RequestId>32d531b2-f2d0-11e5-9192-3fff33344cfa</RequestId>
   </ResponseMetadata>
 </CreateLoadBalancerResponse>"""
+
+CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <CreateRuleResult>
+    <Rules>
+      {% for rule in rules %}
+      <member>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <Conditions>
+          {% for condition in rule.conditions %}
+          <member>
+            <Field>{{ condition["field"] }}</Field>
+            <Values>
+              {% for value in condition["values"] %}
+              <member>{{ value }}</member>
+              {% endfor %}
+            </Values>
+          </member>
+          {% endfor %}
+        </Conditions>
+        <Priority>{{ rule.priority }}</Priority>
+        <Actions>
+          {% for action in rule.actions %}
+          <member>
+            <Type>{{ action["type"] }}</Type>
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+          </member>
+          {% endfor %}
+        </Actions>
+        <RuleArn>{{ rule.arn }}</RuleArn>
+      </member>
+      {% endfor %}
+    </Rules>
+  </CreateRuleResult>
+  <ResponseMetadata>
+    <RequestId>c5478c83-f397-11e5-bb98-57195a6eb84a</RequestId>
+  </ResponseMetadata>
+</CreateRuleResponse>"""
 
 CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <CreateTargetGroupResult>
@@ -387,6 +522,13 @@ DELETE_LOAD_BALANCER_TEMPLATE = """<DeleteLoadBalancerResponse xmlns="http://ela
   </ResponseMetadata>
 </DeleteLoadBalancerResponse>"""
 
+DELETE_RULE_TEMPLATE = """<DeleteRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DeleteRuleResult/>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteRuleResponse>"""
+
 DELETE_TARGET_GROUP_TEMPLATE = """<DeleteTargetGroupResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DeleteTargetGroupResult/>
   <ResponseMetadata>
@@ -442,6 +584,45 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
   </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
+DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DescribeRulesResult>
+    <Rules>
+      {% for rule in rules %}
+      <member>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <Conditions>
+          {% for condition in rule.conditions %}
+          <member>
+            <Field>{{ condition["field"] }}</Field>
+            <Values>
+              {% for value in condition["values"] %}
+              <member>{{ value }}</member>
+              {% endfor %}
+            </Values>
+          </member>
+          {% endfor %}
+        </Conditions>
+        <Priority>{{ rule.priority }}</Priority>
+        <Actions>
+          {% for action in rule.actions %}
+          <member>
+            <Type>{{ action["type"] }}</Type>
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+          </member>
+          {% endfor %}
+        </Actions>
+        <RuleArn>{{ rule.arn }}</RuleArn>
+      </member>
+      {% endfor %}
+    </Rules>
+    {% if marker %}
+    <NextMarker>{{ marker }}</NextMarker>
+    {% endif %}
+  </DescribeRulesResult>
+  <ResponseMetadata>
+    <RequestId>74926cf3-f3a3-11e5-b543-9f2c3fbb9bee</RequestId>
+  </ResponseMetadata>
+</DescribeRulesResponse>"""
 
 DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeTargetGroupsResult>
@@ -505,7 +686,7 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
         {% if listener.certificate %}
         <Certificates>
           <member>
-            <CertificateArn>{{ listener.certificate }} </CertificateArn>
+            <CertificateArn>{{ listener.certificate }}</CertificateArn>
           </member>
         </Certificates>
         {% endif %}
@@ -543,6 +724,43 @@ CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http:/
     <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
   </ResponseMetadata>
 </ConfigureHealthCheckResponse>"""
+
+MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <ModifyRuleResult>
+    <Rules>
+      {% for rule in rules %}
+      <member>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <Conditions>
+          {% for condition in rule.conditions %}
+          <member>
+            <Field>{{ condition["field"] }}</Field>
+            <Values>
+              {% for value in condition["values"] %}
+              <member>{{ value }}</member>
+              {% endfor %}
+            </Values>
+          </member>
+          {% endfor %}
+        </Conditions>
+        <Priority>{{ rule.priority }}</Priority>
+        <Actions>
+          {% for action in rule.actions %}
+          <member>
+            <Type>{{ action["type"] }}</Type>
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+          </member>
+          {% endfor %}
+        </Actions>
+        <RuleArn>{{ rule.arn }}</RuleArn>
+      </member>
+      {% endfor %}
+    </Rules>
+  </ModifyRuleResult>
+  <ResponseMetadata>
+    <RequestId>c5478c83-f397-11e5-bb98-57195a6eb84a</RequestId>
+  </ResponseMetadata>
+</ModifyRuleResponse>"""
 
 MODIFY_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<ModifyTargetGroupAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <ModifyTargetGroupAttributesResult>
@@ -703,3 +921,40 @@ DESCRIBE_TARGET_HEALTH_TEMPLATE = """<DescribeTargetHealthResponse xmlns="http:/
     <RequestId>c534f810-f389-11e5-9192-3fff33344cfa</RequestId>
   </ResponseMetadata>
 </DescribeTargetHealthResponse>"""
+
+SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <SetRulePrioritiesResult>
+    <Rules>
+      {% for rule in rules %}
+      <member>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <Conditions>
+          {% for condition in rule.conditions %}
+          <member>
+            <Field>{{ condition["field"] }}</Field>
+            <Values>
+              {% for value in condition["values"] %}
+              <member>{{ value }}</member>
+              {% endfor %}
+            </Values>
+          </member>
+          {% endfor %}
+        </Conditions>
+        <Priority>{{ rule.priority }}</Priority>
+        <Actions>
+          {% for action in rule.actions %}
+          <member>
+            <Type>{{ action["type"] }}</Type>
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+          </member>
+          {% endfor %}
+        </Actions>
+        <RuleArn>{{ rule.arn }}</RuleArn>
+      </member>
+      {% endfor %}
+    </Rules>
+  </SetRulePrioritiesResult>
+  <ResponseMetadata>
+    <RequestId>4d7a8036-f3a7-11e5-9c02-8fd20490d5a6</RequestId>
+  </ResponseMetadata>
+</SetRulePrioritiesResponse>"""

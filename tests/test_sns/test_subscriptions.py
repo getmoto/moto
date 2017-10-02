@@ -34,6 +34,7 @@ def test_creating_subscription():
         "ListSubscriptionsResult"]["Subscriptions"]
     subscriptions.should.have.length_of(0)
 
+
 @mock_sns_deprecated
 def test_deleting_subscriptions_by_deleting_topic():
     conn = boto.connect_sns()
@@ -65,6 +66,7 @@ def test_deleting_subscriptions_by_deleting_topic():
     subscriptions = conn.get_all_subscriptions()["ListSubscriptionsResponse"][
         "ListSubscriptionsResult"]["Subscriptions"]
     subscriptions.should.have.length_of(0)
+
 
 @mock_sns_deprecated
 def test_getting_subscriptions_by_topic():

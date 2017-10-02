@@ -7,16 +7,16 @@ class CustomerGateways(BaseResponse):
 
     def create_customer_gateway(self):
         # raise NotImplementedError('CustomerGateways(AmazonVPC).create_customer_gateway is not yet implemented')
-        type = self.querystring.get('Type', None)[0]
-        ip_address = self.querystring.get('IpAddress', None)[0]
-        bgp_asn = self.querystring.get('BgpAsn', None)[0]
+        type = self._get_param('Type')
+        ip_address = self._get_param('IpAddress')
+        bgp_asn = self._get_param('BgpAsn')
         customer_gateway = self.ec2_backend.create_customer_gateway(
             type, ip_address=ip_address, bgp_asn=bgp_asn)
         template = self.response_template(CREATE_CUSTOMER_GATEWAY_RESPONSE)
         return template.render(customer_gateway=customer_gateway)
 
     def delete_customer_gateway(self):
-        customer_gateway_id = self.querystring.get('CustomerGatewayId')[0]
+        customer_gateway_id = self._get_param('CustomerGatewayId')
         delete_status = self.ec2_backend.delete_customer_gateway(
             customer_gateway_id)
         template = self.response_template(DELETE_CUSTOMER_GATEWAY_RESPONSE)

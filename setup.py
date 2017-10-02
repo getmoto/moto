@@ -1,30 +1,43 @@
 #!/usr/bin/env python
 from __future__ import unicode_literals
+import setuptools
 from setuptools import setup, find_packages
+import sys
+
 
 install_requires = [
     "Jinja2>=2.8",
     "boto>=2.36.0",
     "boto3>=1.2.1",
     "cookies",
-    "requests>=2.0",
+    "cryptography>=2.0.0",
+    "requests>=2.5",
     "xmltodict",
     "dicttoxml",
-    "six",
+    "six>1.9",
     "werkzeug",
     "pyaml",
     "pytz",
-    "python-dateutil",
+    "python-dateutil<3.0.0,>=2.1",
     "mock",
+    "docker>=2.5.1"
 ]
 
 extras_require = {
     'server': ['flask'],
 }
 
+# https://hynek.me/articles/conditional-python-dependencies/
+if int(setuptools.__version__.split(".", 1)[0]) < 18:
+    if sys.version_info[0:2] < (3, 3):
+        install_requires.append("backports.tempfile")
+else:
+    extras_require[":python_version<'3.3'"] = ["backports.tempfile"]
+
+
 setup(
     name='moto',
-    version='1.0.1',
+    version='1.1.20',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',
@@ -38,6 +51,7 @@ setup(
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
     extras_require=extras_require,
+    include_package_data=True,
     license="Apache",
     test_suite="tests",
     classifiers=[
@@ -45,6 +59,9 @@ setup(
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
