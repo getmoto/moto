@@ -306,6 +306,13 @@ def test_create_target_group_and_listeners():
     response = conn.describe_listeners(ListenerArns=[http_listener_arn, https_listener_arn])
     response.get('Listeners').should.have.length_of(2)
 
+    # Try to delete the target group and it fails because there's a
+    # listener referencing it
+    with assert_raises(ClientError) as e:
+        conn.delete_target_group(TargetGroupArn=target_group.get('TargetGroupArn'))
+    e.exception.operation_name.should.equal('DeleteTargetGroup')
+    e.exception.args.should.equal(("An error occurred (ResourceInUse) when calling the DeleteTargetGroup operation: The target group 'arn:aws:elasticloadbalancing:us-east-1:1:targetgroup/a-target/50dc6c495c0c9188' is currently in use by a listener or a rule", ))  # NOQA
+
     # Delete one listener
     response = conn.describe_listeners(LoadBalancerArn=load_balancer_arn)
     response.get('Listeners').should.have.length_of(2)
