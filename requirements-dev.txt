@@ -3,7 +3,6 @@ mock
 nose
 sure==1.2.24
 coverage
-flake8
 freezegun
 flask
 boto>=2.45.0
@@ -15,3 +14,7 @@ click==6.7
 inflection==0.3.1
 lxml==4.0.0
 beautifulsoup4==4.6.0
+
+# flake8 and related plugins
+flake8
+pep8-naming
