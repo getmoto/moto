@@ -14,10 +14,17 @@ def test_create_load_balancer():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
         Name='my-lb',
@@ -29,7 +36,8 @@ def test_create_load_balancer():
     lb = response.get('LoadBalancers')[0]
 
     lb.get('DNSName').should.equal("my-lb-1.us-east-1.elb.amazonaws.com")
-    lb.get('LoadBalancerArn').should.equal('arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/my-lb/50dc6c495c0c9188')
+    lb.get('LoadBalancerArn').should.equal(
+        'arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/my-lb/50dc6c495c0c9188')
     lb.get('SecurityGroups').should.equal([security_group.id])
     lb.get('AvailabilityZones').should.equal([
         {'SubnetId': subnet1.id, 'ZoneName': 'us-east-1a'},
@@ -37,7 +45,8 @@ def test_create_load_balancer():
 
     # Ensure the tags persisted
     response = conn.describe_tags(ResourceArns=[lb.get('LoadBalancerArn')])
-    tags = {d['Key']: d['Value'] for d in response['TagDescriptions'][0]['Tags']}
+    tags = {d['Key']: d['Value']
+            for d in response['TagDescriptions'][0]['Tags']}
     tags.should.equal({'key_name': 'a_value'})
 
 
@@ -47,10 +56,17 @@ def test_describe_load_balancers():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(
         Name='my-lb',
@@ -65,11 +81,14 @@ def test_describe_load_balancers():
     lb = response.get('LoadBalancers')[0]
     lb.get('LoadBalancerName').should.equal('my-lb')
 
-    response = conn.describe_load_balancers(LoadBalancerArns=[lb.get('LoadBalancerArn')])
-    response.get('LoadBalancers')[0].get('LoadBalancerName').should.equal('my-lb')
+    response = conn.describe_load_balancers(
+        LoadBalancerArns=[lb.get('LoadBalancerArn')])
+    response.get('LoadBalancers')[0].get(
+        'LoadBalancerName').should.equal('my-lb')
 
     response = conn.describe_load_balancers(Names=['my-lb'])
-    response.get('LoadBalancers')[0].get('LoadBalancerName').should.equal('my-lb')
+    response.get('LoadBalancers')[0].get(
+        'LoadBalancerName').should.equal('my-lb')
 
     with assert_raises(ClientError):
         conn.describe_load_balancers(LoadBalancerArns=['not-a/real/arn'])
@@ -84,10 +103,17 @@ def test_add_remove_tags():
 
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(
         Name='my-lb',
@@ -197,10 +223,19 @@ def test_create_elb_in_multiple_region():
         conn = boto3.client('elbv2', region_name=region)
         ec2 = boto3.resource('ec2', region_name=region)
 
-        security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
-        vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-        subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone=region + 'a')
-        subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone=region + 'b')
+        security_group = ec2.create_security_group(
+            GroupName='a-security-group', Description='First One')
+        vpc = ec2.create_vpc(
+            CidrBlock='172.28.7.0/24',
+            InstanceTenancy='default')
+        subnet1 = ec2.create_subnet(
+            VpcId=vpc.id,
+            CidrBlock='172.28.7.192/26',
+            AvailabilityZone=region + 'a')
+        subnet2 = ec2.create_subnet(
+            VpcId=vpc.id,
+            CidrBlock='172.28.7.192/26',
+            AvailabilityZone=region + 'b')
 
         conn.create_load_balancer(
             Name='my-lb',
@@ -210,10 +245,14 @@ def test_create_elb_in_multiple_region():
             Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
 
     list(
-        boto3.client('elbv2', region_name='us-west-1').describe_load_balancers().get('LoadBalancers')
+        boto3.client(
+            'elbv2',
+            region_name='us-west-1').describe_load_balancers().get('LoadBalancers')
     ).should.have.length_of(1)
     list(
-        boto3.client('elbv2', region_name='us-west-2').describe_load_balancers().get('LoadBalancers')
+        boto3.client(
+            'elbv2',
+            region_name='us-west-2').describe_load_balancers().get('LoadBalancers')
     ).should.have.length_of(1)
 
 
@@ -223,10 +262,17 @@ def test_create_target_group_and_listeners():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
         Name='my-lb',
@@ -254,7 +300,8 @@ def test_create_target_group_and_listeners():
     target_group_arn = target_group['TargetGroupArn']
 
     # Add tags to the target group
-    conn.add_tags(ResourceArns=[target_group_arn], Tags=[{'Key': 'target', 'Value': 'group'}])
+    conn.add_tags(ResourceArns=[target_group_arn], Tags=[
+                  {'Key': 'target', 'Value': 'group'}])
     conn.describe_tags(ResourceArns=[target_group_arn])['TagDescriptions'][0]['Tags'].should.equal(
         [{'Key': 'target', 'Value': 'group'}])
 
@@ -281,7 +328,8 @@ def test_create_target_group_and_listeners():
         LoadBalancerArn=load_balancer_arn,
         Protocol='HTTPS',
         Port=443,
-        Certificates=[{'CertificateArn': 'arn:aws:iam:123456789012:server-certificate/test-cert'}],
+        Certificates=[
+            {'CertificateArn': 'arn:aws:iam:123456789012:server-certificate/test-cert'}],
         DefaultActions=[{'Type': 'forward', 'TargetGroupArn': target_group.get('TargetGroupArn')}])
     listener = response.get('Listeners')[0]
     listener.get('Port').should.equal(443)
@@ -303,13 +351,17 @@ def test_create_target_group_and_listeners():
     listener.get('Port').should.equal(443)
     listener.get('Protocol').should.equal('HTTPS')
 
-    response = conn.describe_listeners(ListenerArns=[http_listener_arn, https_listener_arn])
+    response = conn.describe_listeners(
+        ListenerArns=[
+            http_listener_arn,
+            https_listener_arn])
     response.get('Listeners').should.have.length_of(2)
 
     # Try to delete the target group and it fails because there's a
     # listener referencing it
     with assert_raises(ClientError) as e:
-        conn.delete_target_group(TargetGroupArn=target_group.get('TargetGroupArn'))
+        conn.delete_target_group(
+            TargetGroupArn=target_group.get('TargetGroupArn'))
     e.exception.operation_name.should.equal('DeleteTargetGroup')
     e.exception.args.should.equal(("An error occurred (ResourceInUse) when calling the DeleteTargetGroup operation: The target group 'arn:aws:elasticloadbalancing:us-east-1:1:targetgroup/a-target/50dc6c495c0c9188' is currently in use by a listener or a rule", ))  # NOQA
 
@@ -328,7 +380,10 @@ def test_create_target_group_and_listeners():
     response.get('LoadBalancers').should.have.length_of(0)
 
     # And it deleted the remaining listener
-    response = conn.describe_listeners(ListenerArns=[http_listener_arn, https_listener_arn])
+    response = conn.describe_listeners(
+        ListenerArns=[
+            http_listener_arn,
+            https_listener_arn])
     response.get('Listeners').should.have.length_of(0)
 
     # But not the target groups
@@ -366,7 +421,13 @@ def test_create_invalid_target_group():
             UnhealthyThresholdCount=2,
             Matcher={'HttpCode': '200'})
 
-    invalid_names = ['-name', 'name-', '-name-', 'example.com', 'test@test', 'Na--me']
+    invalid_names = [
+        '-name',
+        'name-',
+        '-name-',
+        'example.com',
+        'test@test',
+        'Na--me']
     for name in invalid_names:
         with assert_raises(ClientError):
             conn.create_target_group(
@@ -406,10 +467,17 @@ def test_describe_paginated_balancers():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     for i in range(51):
         conn.create_load_balancer(
@@ -421,7 +489,8 @@ def test_describe_paginated_balancers():
 
     resp = conn.describe_load_balancers()
     resp['LoadBalancers'].should.have.length_of(50)
-    resp['NextMarker'].should.equal(resp['LoadBalancers'][-1]['LoadBalancerName'])
+    resp['NextMarker'].should.equal(
+        resp['LoadBalancers'][-1]['LoadBalancerName'])
     resp2 = conn.describe_load_balancers(Marker=resp['NextMarker'])
     resp2['LoadBalancers'].should.have.length_of(1)
     assert 'NextToken' not in resp2.keys()
@@ -433,10 +502,17 @@ def test_delete_load_balancer():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
         Name='my-lb',
@@ -459,10 +535,17 @@ def test_register_targets():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(
         Name='my-lb',
@@ -487,7 +570,8 @@ def test_register_targets():
     target_group = response.get('TargetGroups')[0]
 
     # No targets registered yet
-    response = conn.describe_target_health(TargetGroupArn=target_group.get('TargetGroupArn'))
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get('TargetGroupArn'))
     response.get('TargetHealthDescriptions').should.have.length_of(0)
 
     response = ec2.create_instances(
@@ -508,14 +592,16 @@ def test_register_targets():
             },
         ])
 
-    response = conn.describe_target_health(TargetGroupArn=target_group.get('TargetGroupArn'))
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get('TargetGroupArn'))
     response.get('TargetHealthDescriptions').should.have.length_of(2)
 
     response = conn.deregister_targets(
         TargetGroupArn=target_group.get('TargetGroupArn'),
         Targets=[{'Id': instance_id2}])
 
-    response = conn.describe_target_health(TargetGroupArn=target_group.get('TargetGroupArn'))
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get('TargetGroupArn'))
     response.get('TargetHealthDescriptions').should.have.length_of(1)
 
 
@@ -525,10 +611,17 @@ def test_target_group_attributes():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
         Name='my-lb',
@@ -564,9 +657,11 @@ def test_target_group_attributes():
     target_group_arn = target_group['TargetGroupArn']
 
     # The attributes should start with the two defaults
-    response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
+    response = conn.describe_target_group_attributes(
+        TargetGroupArn=target_group_arn)
     response['Attributes'].should.have.length_of(2)
-    attributes = {attr['Key']: attr['Value'] for attr in response['Attributes']}
+    attributes = {attr['Key']: attr['Value']
+                  for attr in response['Attributes']}
     attributes['deregistration_delay.timeout_seconds'].should.equal('300')
     attributes['stickiness.enabled'].should.equal('false')
 
@@ -586,14 +681,17 @@ def test_target_group_attributes():
 
     # The response should have only the keys updated
     response['Attributes'].should.have.length_of(2)
-    attributes = {attr['Key']: attr['Value'] for attr in response['Attributes']}
+    attributes = {attr['Key']: attr['Value']
+                  for attr in response['Attributes']}
     attributes['stickiness.type'].should.equal('lb_cookie')
     attributes['stickiness.enabled'].should.equal('true')
 
     # These new values should be in the full attribute list
-    response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
+    response = conn.describe_target_group_attributes(
+        TargetGroupArn=target_group_arn)
     response['Attributes'].should.have.length_of(3)
-    attributes = {attr['Key']: attr['Value'] for attr in response['Attributes']}
+    attributes = {attr['Key']: attr['Value']
+                  for attr in response['Attributes']}
     attributes['stickiness.type'].should.equal('lb_cookie')
     attributes['stickiness.enabled'].should.equal('true')
 
@@ -604,10 +702,17 @@ def test_handle_listener_rules():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
         Name='my-lb',
@@ -656,11 +761,11 @@ def test_handle_listener_rules():
         Priority=priority,
         Conditions=[{
             'Field': 'host-header',
-            'Values': [ host ]
+            'Values': [host]
         },
-        {
+            {
             'Field': 'path-pattern',
-            'Values': [ path_pattern ]
+            'Values': [path_pattern]
         }],
         Actions=[{
             'TargetGroupArn': target_group.get('TargetGroupArn'),
@@ -678,11 +783,11 @@ def test_handle_listener_rules():
         Priority=priority,
         Conditions=[{
             'Field': 'host-header',
-            'Values': [ host ]
+            'Values': [host]
         },
-        {
+            {
             'Field': 'path-pattern',
-            'Values': [ path_pattern ]
+            'Values': [path_pattern]
         }],
         Actions=[{
             'TargetGroupArn': target_group.get('TargetGroupArn'),
@@ -698,18 +803,17 @@ def test_handle_listener_rules():
             Priority=priority,
             Conditions=[{
                 'Field': 'host-header',
-                'Values': [ host ]
+                'Values': [host]
             },
-            {
+                {
                 'Field': 'path-pattern',
-                'Values': [ path_pattern ]
+                'Values': [path_pattern]
             }],
             Actions=[{
                 'TargetGroupArn': target_group.get('TargetGroupArn'),
                 'Type': 'forward'
             }]
         )
-
 
     # test for describe listeners
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
@@ -723,15 +827,20 @@ def test_handle_listener_rules():
     obtained_rules['Rules'].should.equal([first_rule])
 
     # test for pagination
-    obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn, PageSize=1)
+    obtained_rules = conn.describe_rules(
+        ListenerArn=http_listener_arn, PageSize=1)
     len(obtained_rules['Rules']).should.equal(1)
     obtained_rules.should.have.key('NextMarker')
     next_marker = obtained_rules['NextMarker']
 
-    following_rules = conn.describe_rules(ListenerArn=http_listener_arn, PageSize=1, Marker=next_marker)
+    following_rules = conn.describe_rules(
+        ListenerArn=http_listener_arn,
+        PageSize=1,
+        Marker=next_marker)
     len(following_rules['Rules']).should.equal(1)
     following_rules.should.have.key('NextMarker')
-    following_rules['Rules'][0]['RuleArn'].should_not.equal(obtained_rules['Rules'][0]['RuleArn'])
+    following_rules['Rules'][0]['RuleArn'].should_not.equal(
+        obtained_rules['Rules'][0]['RuleArn'])
 
     # test for invalid describe rule request
     with assert_raises(ClientError):
@@ -750,13 +859,13 @@ def test_handle_listener_rules():
     modified_rule = conn.modify_rule(
         RuleArn=first_rule['RuleArn'],
         Conditions=[{
-                'Field': 'host-header',
-                'Values': [ new_host ]
-            },
+            'Field': 'host-header',
+            'Values': [new_host]
+        },
             {
                 'Field': 'path-pattern',
-                'Values': [ new_path_pattern ]
-            }]
+                'Values': [new_path_pattern]
+        }]
     )['Rules'][0]
 
     rules = conn.describe_rules(ListenerArn=http_listener_arn)
@@ -764,12 +873,14 @@ def test_handle_listener_rules():
     modified_rule.should.equal(obtained_rule)
     obtained_rule['Conditions'][0]['Values'][0].should.equal(new_host)
     obtained_rule['Conditions'][1]['Values'][0].should.equal(new_path_pattern)
-    obtained_rule['Actions'][0]['TargetGroupArn'].should.equal(target_group.get('TargetGroupArn'))
+    obtained_rule['Actions'][0]['TargetGroupArn'].should.equal(
+        target_group.get('TargetGroupArn'))
 
     # modify priority
     conn.set_rule_priorities(
         RulePriorities=[
-            {'RuleArn': first_rule['RuleArn'], 'Priority': int(first_rule['Priority']) - 1}
+            {'RuleArn': first_rule['RuleArn'],
+             'Priority': int(first_rule['Priority']) - 1}
         ]
     )
     with assert_raises(ClientError):
@@ -794,11 +905,11 @@ def test_handle_listener_rules():
             Priority=safe_priority,
             Conditions=[{
                 'Field': 'host-header',
-                'Values': [ host ]
+                'Values': [host]
             },
-            {
+                {
                 'Field': 'path-pattern',
-                'Values': [ path_pattern ]
+                'Values': [path_pattern]
             }],
             Actions=[{
                 'TargetGroupArn': target_group.get('TargetGroupArn'),
@@ -815,11 +926,11 @@ def test_handle_listener_rules():
             Priority=safe_priority,
             Conditions=[{
                 'Field': 'host-header',
-                'Values': [ host ]
+                'Values': [host]
             },
-            {
+                {
                 'Field': 'path-pattern',
-                'Values': [ path_pattern ]
+                'Values': [path_pattern]
             }],
             Actions=[{
                 'TargetGroupArn': invalid_target_group_arn,
@@ -835,7 +946,7 @@ def test_handle_listener_rules():
             Priority=safe_priority,
             Conditions=[{
                 'Field': 'xxxxxxx',
-                'Values': [ host ]
+                'Values': [host]
             }],
             Actions=[{
                 'TargetGroupArn': target_group.get('TargetGroupArn'),
@@ -882,10 +993,17 @@ def test_describe_invalid_target_group():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-    security_group = ec2.create_security_group(GroupName='a-security-group', Description='First One')
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
-    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1a')
-    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock='172.28.7.192/26', AvailabilityZone='us-east-1b')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
         Name='my-lb',
