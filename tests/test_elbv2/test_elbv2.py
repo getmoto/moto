@@ -796,9 +796,8 @@ def test_handle_listener_rules():
     )
 
     # test for PriorityInUse
-    host2 = 'yyy.example.com'
     with assert_raises(ClientError):
-        r = conn.create_rule(
+        conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=priority,
             Conditions=[{
@@ -900,7 +899,7 @@ def test_handle_listener_rules():
     # test for invalid action type
     safe_priority = 2
     with assert_raises(ClientError):
-        r = conn.create_rule(
+        conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
             Conditions=[{
@@ -921,7 +920,7 @@ def test_handle_listener_rules():
     safe_priority = 2
     invalid_target_group_arn = target_group.get('TargetGroupArn') + 'x'
     with assert_raises(ClientError):
-        r = conn.create_rule(
+        conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
             Conditions=[{
@@ -941,7 +940,7 @@ def test_handle_listener_rules():
     # test for invalid condition field_name
     safe_priority = 2
     with assert_raises(ClientError):
-        r = conn.create_rule(
+        conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
             Conditions=[{
@@ -957,7 +956,7 @@ def test_handle_listener_rules():
     # test for emptry condition value
     safe_priority = 2
     with assert_raises(ClientError):
-        r = conn.create_rule(
+        conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
             Conditions=[{
@@ -973,7 +972,7 @@ def test_handle_listener_rules():
     # test for multiple condition value
     safe_priority = 2
     with assert_raises(ClientError):
-        r = conn.create_rule(
+        conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
             Conditions=[{
@@ -1012,7 +1011,7 @@ def test_describe_invalid_target_group():
         Scheme='internal',
         Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
 
-    load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+    response.get('LoadBalancers')[0].get('LoadBalancerArn')
 
     response = conn.create_target_group(
         Name='a-target',
@@ -1027,7 +1026,6 @@ def test_describe_invalid_target_group():
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={'HttpCode': '200'})
-    target_group = response.get('TargetGroups')[0]
 
     # Check error raises correctly
     with assert_raises(ClientError):
