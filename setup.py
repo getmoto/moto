@@ -13,7 +13,6 @@ install_requires = [
     "cryptography>=2.0.0",
     "requests>=2.5",
     "xmltodict",
-    "dicttoxml",
     "six>1.9",
     "werkzeug",
     "pyaml",
