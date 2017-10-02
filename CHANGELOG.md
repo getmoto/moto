@@ -8,6 +8,7 @@ Latest
 
     * Improved `make scaffold`
     * Implemented IAM attached group policies
+    * Implemented skeleton of Cloudwatch Logs
     * Redshift: fixed multi-params
     * Redshift: implement taggable resources
     * Lambda + SNS: Major enhancements
