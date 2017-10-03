@@ -645,3 +645,26 @@ def test_get_function_created_with_zipfile():
             }
         },
     )
+
+@mock_lambda
+def get_function_policy():
+    conn = boto3.client('lambda', 'us-west-2')
+    zip_content = get_test_zip_file1()
+    result = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.handler',
+        Code={
+            'ZipFile': zip_content,
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.get_policy(
+        FunctionName='testFunction'
+    )
+    assert response['Policy'] == 'test_policy'

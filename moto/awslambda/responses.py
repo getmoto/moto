@@ -57,6 +57,20 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle {0} request".format(request.method))
 
+    def policy(self, request, full_url, headers):
+        if request.method == 'GET':
+            return self._get_policy(request, full_url, headers)
+
+    def _get_policy(self, request, full_url, headers):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-2]
+        if lambda_backend.has_function(function_name):
+            return 200, {}, json.dumps(dict(Policy='test_policy'))
+        else:
+            return 404, {}, "{}"
+
     def _invoke(self, request, full_url):
         response_headers = {}
         lambda_backend = self.get_lambda_backend(full_url)
