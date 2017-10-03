@@ -60,6 +60,20 @@ class LambdaResponse(BaseResponse):
     def policy(self, request, full_url, headers):
         if request.method == 'GET':
             return self._get_policy(request, full_url, headers)
+        if request.method == 'POST':
+            return self._add_policy(request, full_url, headers)
+
+    def _add_policy(self, request, full_url, headers):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-2]
+        if lambda_backend.has_function(function_name):
+            policy = request.body.decode('utf8')
+            lambda_backend.add_policy(function_name, policy)
+            return 200, {}, json.dumps(dict(Statement=policy))
+        else:
+            return 404, {}, "{}"
 
     def _get_policy(self, request, full_url, headers):
         lambda_backend = self.get_lambda_backend(full_url)
@@ -67,10 +81,8 @@ class LambdaResponse(BaseResponse):
         path = request.path if hasattr(request, 'path') else request.path_url
         function_name = path.split('/')[-2]
         if lambda_backend.has_function(function_name):
-            policy = ("{\"Statement\":[{\"Action\":[\"lambda:InvokeFunction\"],"
-                      "\"Resource\":\"arn:aws:lambda:us-west-2:account-id:function:helloworld\","
-                      "\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"account-id\"},\"Sid\":\"3\"}]}")
-            return 200, {}, json.dumps(dict(Policy=policy))
+            function = lambda_backend.get_function(function_name)
+            return 200, {}, json.dumps(dict(Policy="{\"Statement\":[" + function.policy + "]}"))
         else:
             return 404, {}, "{}"
 
