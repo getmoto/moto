@@ -67,7 +67,10 @@ class LambdaResponse(BaseResponse):
         path = request.path if hasattr(request, 'path') else request.path_url
         function_name = path.split('/')[-2]
         if lambda_backend.has_function(function_name):
-            return 200, {}, json.dumps(dict(Policy='test_policy'))
+            policy = ("{\"Statement\":[{\"Action\":[\"lambda:InvokeFunction\"],"
+                      "\"Resource\":\"arn:aws:lambda:us-west-2:account-id:function:helloworld\","
+                      "\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"account-id\"},\"Sid\":\"3\"}]}")
+            return 200, {}, json.dumps(dict(Policy=policy))
         else:
             return 404, {}, "{}"
 

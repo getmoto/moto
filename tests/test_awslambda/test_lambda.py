@@ -667,4 +667,8 @@ def get_function_policy():
     response = conn.get_policy(
         FunctionName='testFunction'
     )
-    assert response['Policy'] == 'test_policy'
+
+    assert 'Policy' in response
+    assert isinstance(response['Policy'], str)
+    res = json.loads(response['Policy'])
+    assert res['Statement'][0]['Action'] == ['lambda:InvokeFunction']
