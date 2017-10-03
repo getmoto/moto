@@ -1,9 +1,14 @@
 from __future__ import unicode_literals
 
+from .compat import SUPPORTS_LAMBDA
+
 from moto.acm import acm_backends
 from moto.apigateway import apigateway_backends
 from moto.autoscaling import autoscaling_backends
-from moto.awslambda import lambda_backends
+
+if SUPPORTS_LAMBDA:
+    from moto.awslambda import lambda_backends
+
 from moto.cloudformation import cloudformation_backends
 from moto.cloudwatch import cloudwatch_backends
 from moto.core import moto_api_backends
@@ -71,9 +76,11 @@ BACKENDS = {
     'ssm': ssm_backends,
     'sts': sts_backends,
     'route53': route53_backends,
-    'lambda': lambda_backends,
     'xray': xray_backends
 }
+
+if SUPPORTS_LAMBDA:
+    BACKENDS['lambda'] = lambda_backends
 
 
 def get_model(name, region_name):

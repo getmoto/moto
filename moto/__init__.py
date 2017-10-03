@@ -5,10 +5,15 @@ import logging
 __title__ = 'moto'
 __version__ = '1.0.1'
 
+from .compat import SUPPORTS_LAMBDA
+
 from .acm import mock_acm  # flake8: noqa
 from .apigateway import mock_apigateway, mock_apigateway_deprecated  # flake8: noqa
 from .autoscaling import mock_autoscaling, mock_autoscaling_deprecated  # flake8: noqa
-from .awslambda import mock_lambda, mock_lambda_deprecated  # flake8: noqa
+
+if SUPPORTS_LAMBDA:
+    from .awslambda import mock_lambda, mock_lambda_deprecated  # flake8: noqa
+
 from .cloudformation import mock_cloudformation, mock_cloudformation_deprecated  # flake8: noqa
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # flake8: noqa
 from .datapipeline import mock_datapipeline, mock_datapipeline_deprecated  # flake8: noqa

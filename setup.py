@@ -20,11 +20,11 @@ install_requires = [
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "mock",
-    "docker>=2.5.1"
 ]
 
 extras_require = {
     'server': ['flask'],
+    'lambda': ['docker>=2.5.1'],
 }
 
 # https://hynek.me/articles/conditional-python-dependencies/
