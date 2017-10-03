@@ -132,6 +132,7 @@ class LambdaFunction(BaseModel):
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get('Environment', {}).get('Variables', {})
         self.docker_client = docker.from_env()
+        self.policy = ""
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
@@ -526,6 +527,9 @@ class LambdaBackend(BaseBackend):
             except KeyError:
                 pass
                 # Don't care
+
+    def add_policy(self, function_name, policy):
+        self.get_function(function_name).policy = policy
 
 
 def do_validate_s3():
