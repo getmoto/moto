@@ -302,7 +302,12 @@ def test_create_job_queue():
 
     resp = batch_client.describe_job_queues()
     resp.should.contain('jobQueues')
+    len(resp['jobQueues']).should.equal(1)
     resp['jobQueues'][0]['jobQueueArn'].should.equal(queue_arn)
+
+    resp = batch_client.describe_job_queues(jobQueues=['test_invalid_queue'])
+    resp.should.contain('jobQueues')
+    len(resp['jobQueues']).should.equal(0)
 
 
 @mock_ec2
