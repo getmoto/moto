@@ -152,6 +152,13 @@ class InvalidDescribeRulesRequest(ELBClientError):
         )
 
 
+class ResourceInUseError(ELBClientError):
+
+    def __init__(self, msg="A specified resource is in use"):
+        super(ResourceInUseError, self).__init__(
+            "ResourceInUse", msg)
+
+
 class RuleNotFoundError(ELBClientError):
 
     def __init__(self):

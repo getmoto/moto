@@ -12,5 +12,6 @@ url_paths = {
     r'{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/?$': response.function,
     r'{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/invocations/?$': response.invoke,
     r'{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/invoke-async/?$': response.invoke_async,
-    r'{0}/(?P<api_version>[^/]+)/tags/(?P<resource_arn>.+)': response.tag
+    r'{0}/(?P<api_version>[^/]+)/tags/(?P<resource_arn>.+)': response.tag,
+    r'{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/policy/?$': response.policy
 }

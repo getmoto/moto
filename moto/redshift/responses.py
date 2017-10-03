@@ -2,7 +2,8 @@ from __future__ import unicode_literals
 
 import json
 
-import dicttoxml
+import xmltodict
+
 from jinja2 import Template
 from six import iteritems
 
@@ -26,6 +27,24 @@ def convert_json_error_to_xml(json_error):
     return template.render(code=code, message=message)
 
 
+def itemize(data):
+    """
+    The xmltodict.unparse requires we modify the shape of the input dictionary slightly. Instead of a dict of the form:
+        {'key': ['value1', 'value2']}
+    We must provide:
+        {'key': {'item': ['value1', 'value2']}}
+    """
+    if isinstance(data, dict):
+        ret = {}
+        for key in data:
+            ret[key] = itemize(data[key])
+        return ret
+    elif isinstance(data, list):
+        return {'item': [itemize(value) for value in data]}
+    else:
+        return data
+
+
 class RedshiftResponse(BaseResponse):
 
     @property
@@ -36,8 +55,10 @@ class RedshiftResponse(BaseResponse):
         if self.request_json:
             return json.dumps(response)
         else:
-            xml = dicttoxml.dicttoxml(response, attr_type=False, root=False)
-            return xml.decode("utf-8")
+            xml = xmltodict.unparse(itemize(response), full_document=False)
+            if hasattr(xml, 'decode'):
+                xml = xml.decode('utf-8')
+            return xml
 
     def call_action(self):
         status, headers, body = super(RedshiftResponse, self).call_action()
@@ -66,6 +87,24 @@ class RedshiftResponse(BaseResponse):
             count += 1
         return unpacked_list
 
+    def _get_cluster_security_groups(self):
+        cluster_security_groups = self._get_multi_param('ClusterSecurityGroups.member')
+        if not cluster_security_groups:
+            cluster_security_groups = self._get_multi_param('ClusterSecurityGroups.ClusterSecurityGroupName')
+        return cluster_security_groups
+
+    def _get_vpc_security_group_ids(self):
+        vpc_security_group_ids = self._get_multi_param('VpcSecurityGroupIds.member')
+        if not vpc_security_group_ids:
+            vpc_security_group_ids = self._get_multi_param('VpcSecurityGroupIds.VpcSecurityGroupId')
+        return vpc_security_group_ids
+
+    def _get_subnet_ids(self):
+        subnet_ids = self._get_multi_param('SubnetIds.member')
+        if not subnet_ids:
+            subnet_ids = self._get_multi_param('SubnetIds.SubnetIdentifier')
+        return subnet_ids
+
     def create_cluster(self):
         cluster_kwargs = {
             "cluster_identifier": self._get_param('ClusterIdentifier'),
@@ -74,8 +113,8 @@ class RedshiftResponse(BaseResponse):
             "master_user_password": self._get_param('MasterUserPassword'),
             "db_name": self._get_param('DBName'),
             "cluster_type": self._get_param('ClusterType'),
-            "cluster_security_groups": self._get_multi_param('ClusterSecurityGroups.member'),
-            "vpc_security_group_ids": self._get_multi_param('VpcSecurityGroupIds.member'),
+            "cluster_security_groups": self._get_cluster_security_groups(),
+            "vpc_security_group_ids": self._get_vpc_security_group_ids(),
             "cluster_subnet_group_name": self._get_param('ClusterSubnetGroupName'),
             "availability_zone": self._get_param('AvailabilityZone'),
             "preferred_maintenance_window": self._get_param('PreferredMaintenanceWindow'),
@@ -116,10 +155,8 @@ class RedshiftResponse(BaseResponse):
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "cluster_parameter_group_name": self._get_param(
                 'ClusterParameterGroupName'),
-            "cluster_security_groups": self._get_multi_param(
-                'ClusterSecurityGroups.member'),
-            "vpc_security_group_ids": self._get_multi_param(
-                'VpcSecurityGroupIds.member'),
+            "cluster_security_groups": self._get_cluster_security_groups(),
+            "vpc_security_group_ids": self._get_vpc_security_group_ids(),
             "preferred_maintenance_window": self._get_param(
                 'PreferredMaintenanceWindow'),
             "automated_snapshot_retention_period": self._get_int_param(
@@ -161,8 +198,8 @@ class RedshiftResponse(BaseResponse):
             "node_type": self._get_param('NodeType'),
             "master_user_password": self._get_param('MasterUserPassword'),
             "cluster_type": self._get_param('ClusterType'),
-            "cluster_security_groups": self._get_multi_param('ClusterSecurityGroups.member'),
-            "vpc_security_group_ids": self._get_multi_param('VpcSecurityGroupIds.member'),
+            "cluster_security_groups": self._get_cluster_security_groups(),
+            "vpc_security_group_ids": self._get_vpc_security_group_ids(),
             "cluster_subnet_group_name": self._get_param('ClusterSubnetGroupName'),
             "preferred_maintenance_window": self._get_param('PreferredMaintenanceWindow'),
             "cluster_parameter_group_name": self._get_param('ClusterParameterGroupName'),
@@ -173,12 +210,6 @@ class RedshiftResponse(BaseResponse):
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "encrypted": self._get_param("Encrypted"),
         }
-        # There's a bug in boto3 where the security group ids are not passed
-        # according to the AWS documentation
-        if not request_kwargs['vpc_security_group_ids']:
-            request_kwargs['vpc_security_group_ids'] = self._get_multi_param(
-                'VpcSecurityGroupIds.VpcSecurityGroupId')
-
         cluster_kwargs = {}
         # We only want parameters that were actually passed in, otherwise
         # we'll stomp all over our cluster metadata with None values.
@@ -217,11 +248,7 @@ class RedshiftResponse(BaseResponse):
     def create_cluster_subnet_group(self):
         cluster_subnet_group_name = self._get_param('ClusterSubnetGroupName')
         description = self._get_param('Description')
-        subnet_ids = self._get_multi_param('SubnetIds.member')
-        # There's a bug in boto3 where the subnet ids are not passed
-        # according to the AWS documentation
-        if not subnet_ids:
-            subnet_ids = self._get_multi_param('SubnetIds.SubnetIdentifier')
+        subnet_ids = self._get_subnet_ids()
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
 
         subnet_group = self.redshift_backend.create_cluster_subnet_group(

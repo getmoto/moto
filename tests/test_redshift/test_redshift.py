@@ -216,6 +216,33 @@ def test_create_cluster_with_security_group():
     set(group_names).should.equal(set(["security_group1", "security_group2"]))
 
 
+@mock_redshift
+def test_create_cluster_with_security_group_boto3():
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.create_cluster_security_group(
+        ClusterSecurityGroupName="security_group1",
+        Description="This is my security group",
+    )
+    client.create_cluster_security_group(
+        ClusterSecurityGroupName="security_group2",
+        Description="This is my security group",
+    )
+
+    cluster_identifier = 'my_cluster'
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        NodeType="dw.hs1.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        ClusterSecurityGroups=["security_group1", "security_group2"]
+    )
+    response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    cluster = response['Clusters'][0]
+    group_names = [group['ClusterSecurityGroupName']
+                   for group in cluster['ClusterSecurityGroups']]
+    set(group_names).should.equal({"security_group1", "security_group2"})
+
+
 @mock_redshift_deprecated
 @mock_ec2_deprecated
 def test_create_cluster_with_vpc_security_groups():
@@ -237,6 +264,31 @@ def test_create_cluster_with_vpc_security_groups():
     cluster_response = redshift_conn.describe_clusters("my_cluster")
     cluster = cluster_response['DescribeClustersResponse'][
         'DescribeClustersResult']['Clusters'][0]
+    group_ids = [group['VpcSecurityGroupId']
+                 for group in cluster['VpcSecurityGroups']]
+    list(group_ids).should.equal([security_group.id])
+
+
+@mock_redshift
+@mock_ec2
+def test_create_cluster_with_vpc_security_groups_boto3():
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_id = 'my_cluster'
+    security_group = ec2.create_security_group(
+        Description="vpc_security_group",
+        GroupName="a group",
+        VpcId=vpc.id)
+    client.create_cluster(
+        ClusterIdentifier=cluster_id,
+        NodeType="dw.hs1.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        VpcSecurityGroupIds=[security_group.id],
+    )
+    response = client.describe_clusters(ClusterIdentifier=cluster_id)
+    cluster = response['Clusters'][0]
     group_ids = [group['VpcSecurityGroupId']
                  for group in cluster['VpcSecurityGroups']]
     list(group_ids).should.equal([security_group.id])
