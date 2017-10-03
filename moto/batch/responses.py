@@ -88,6 +88,7 @@ class BatchResponse(BaseResponse):
 
         return ''
 
+    # UpdateComputeEnvironment
     def updatecomputeenvironment(self):
         compute_env_name = self._get_param('computeEnvironment')
         compute_resource = self._get_param('computeResources')
@@ -109,4 +110,39 @@ class BatchResponse(BaseResponse):
             'computeEnvironmentName': name
         }
 
+        return json.dumps(result)
+
+    # CreateJobQueue
+    def createjobqueue(self):
+        compute_env_order = self._get_param('computeEnvironmentOrder')
+        queue_name = self._get_param('jobQueueName')
+        priority = self._get_param('priority')
+        state = self._get_param('state')
+
+        try:
+            name, arn = self.batch_backend.create_job_queue(
+                queue_name=queue_name,
+                priority=priority,
+                state=state,
+                compute_env_order=compute_env_order
+            )
+        except AWSError as err:
+            return err.response()
+
+        result = {
+            'jobQueueArn': arn,
+            'jobQueueName': name
+        }
+
+        return json.dumps(result)
+
+    # DescribeJobQueues
+    def describejobqueues(self):
+        job_queues = self._get_param('jobQueues')
+        max_results = self._get_param('maxResults')  # Ignored, should be int
+        next_token = self._get_param('nextToken')  # Ignored
+
+        queues = self.batch_backend.describe_job_queues(job_queues, max_results=max_results, next_token=next_token)
+
+        result = {'jobQueues': queues}
         return json.dumps(result)

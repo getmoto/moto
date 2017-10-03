@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto3
+from botocore.exceptions import ClientError
 import sure  # noqa
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs
 
@@ -265,3 +266,73 @@ def test_update_unmanaged_compute_environment_state():
     resp = batch_client.describe_compute_environments()
     len(resp['computeEnvironments']).should.equal(1)
     resp['computeEnvironments'][0]['state'].should.equal('DISABLED')
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_create_job_queue():
+    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = 'test_compute_env'
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type='UNMANAGED',
+        state='ENABLED',
+        serviceRole=iam_arn
+    )
+    arn = resp['computeEnvironmentArn']
+
+    resp = batch_client.create_job_queue(
+        jobQueueName='test_job_queue',
+        state='ENABLED',
+        priority=123,
+        computeEnvironmentOrder=[
+            {
+                'order': 123,
+                'computeEnvironment': arn
+            },
+        ]
+    )
+    resp.should.contain('jobQueueArn')
+    resp.should.contain('jobQueueName')
+    queue_arn = resp['jobQueueArn']
+
+    resp = batch_client.describe_job_queues()
+    resp.should.contain('jobQueues')
+    resp['jobQueues'][0]['jobQueueArn'].should.equal(queue_arn)
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_job_queue_bad_arn():
+    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = 'test_compute_env'
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type='UNMANAGED',
+        state='ENABLED',
+        serviceRole=iam_arn
+    )
+    arn = resp['computeEnvironmentArn']
+
+    try:
+        batch_client.create_job_queue(
+            jobQueueName='test_job_queue',
+            state='ENABLED',
+            priority=123,
+            computeEnvironmentOrder=[
+                {
+                    'order': 123,
+                    'computeEnvironment': arn + 'LALALA'
+                },
+            ]
+        )
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('ClientException')

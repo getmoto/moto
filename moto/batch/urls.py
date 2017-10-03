@@ -10,4 +10,6 @@ url_paths = {
     '{0}/v1/describecomputeenvironments$': BatchResponse.dispatch,
     '{0}/v1/deletecomputeenvironment': BatchResponse.dispatch,
     '{0}/v1/updatecomputeenvironment': BatchResponse.dispatch,
+    '{0}/v1/createjobqueue': BatchResponse.dispatch,
+    '{0}/v1/describejobqueues': BatchResponse.dispatch,
 }

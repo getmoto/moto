@@ -10,7 +10,7 @@ from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
 
 from .exceptions import InvalidParameterValueException, InternalFailure, ClientException
-from .utils import make_arn_for_compute_env
+from .utils import make_arn_for_compute_env, make_arn_for_job_queue
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
@@ -41,12 +41,50 @@ class ComputeEnvironment(BaseModel):
         self.ecs_name = name
 
 
+class JobQueue(BaseModel):
+    def __init__(self, name, priority, state, environments, env_order_json, region_name):
+        """
+        :param name: Job queue name
+        :type name: str
+        :param priority: Job queue priority
+        :type priority: int
+        :param state: Either ENABLED or DISABLED
+        :type state: str
+        :param environments: Compute Environments
+        :type environments: list of ComputeEnvironment
+        :param env_order_json: Compute Environments JSON for use when describing
+        :type env_order_json: list of dict
+        :param region_name: Region name
+        :type region_name: str
+        """
+        self.name = name
+        self.priority = priority
+        self.state = state
+        self.environments = environments
+        self.env_order_json = env_order_json
+        self.arn = make_arn_for_job_queue(DEFAULT_ACCOUNT_ID, name, region_name)
+        self.status = 'VALID'
+
+    def describe(self):
+        result = {
+            'computeEnvironmentOrder': self.env_order_json,
+            'jobQueueArn': self.arn,
+            'jobQueueName': self.name,
+            'priority': self.priority,
+            'state': self.state,
+            'status': self.status
+        }
+
+        return result
+
+
 class BatchBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(BatchBackend, self).__init__()
         self.region_name = region_name
 
         self._compute_environments = {}
+        self._job_queues = {}
 
     @property
     def iam_backend(self):
@@ -77,7 +115,7 @@ class BatchBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def get_compute_environment_arn(self, arn):
+    def get_compute_environment_by_arn(self, arn):
         return self._compute_environments.get(arn)
 
     def get_compute_environment_by_name(self, name):
@@ -95,9 +133,32 @@ class BatchBackend(BaseBackend):
         :return: Compute Environment or None
         :rtype: ComputeEnvironment or None
         """
-        env = self.get_compute_environment_arn(identifier)
+        env = self.get_compute_environment_by_arn(identifier)
         if env is None:
             env = self.get_compute_environment_by_name(identifier)
+        return env
+
+    def get_job_queue_by_arn(self, arn):
+        return self._job_queues.get(arn)
+
+    def get_job_queue_by_name(self, name):
+        for comp_env in self._job_queues.values():
+            if comp_env.name == name:
+                return comp_env
+        return None
+
+    def get_job_queue(self, identifier):
+        """
+        Get job queue by name or ARN
+        :param identifier: Name or ARN
+        :type identifier: str
+
+        :return: Job Queue or None
+        :rtype: JobQueue or None
+        """
+        env = self.get_job_queue_by_arn(identifier)
+        if env is None:
+            env = self.get_job_queue_by_name(identifier)
         return env
 
     def describe_compute_environments(self, environments=None, max_results=None, next_token=None):
@@ -332,6 +393,66 @@ class BatchBackend(BaseBackend):
             pass
 
         return compute_env.name, compute_env.arn
+
+    def create_job_queue(self, queue_name, priority, state, compute_env_order):
+        """
+        Create a job queue
+
+        :param queue_name: Queue name
+        :type queue_name: str
+        :param priority: Queue priority
+        :type priority: int
+        :param state: Queue state
+        :type state: string
+        :param compute_env_order: Compute environment list
+        :type compute_env_order: list of dict
+        :return: Tuple of Name, ARN
+        :rtype: tuple of str
+        """
+        for variable, var_name in ((queue_name, 'jobQueueName'), (priority, 'priority'), (state, 'state'), (compute_env_order, 'computeEnvironmentOrder')):
+            if variable is None:
+                raise ClientException('{0} must be provided'.format(var_name))
+
+        if state not in ('ENABLED', 'DISABLED'):
+            raise ClientException('state {0} must be one of ENABLED | DISABLED'.format(state))
+        if self.get_job_queue_by_name(queue_name) is not None:
+            raise ClientException('Job queue {0} already exists'.format(queue_name))
+
+        if len(compute_env_order) == 0:
+            raise ClientException('At least 1 compute environment must be provided')
+        try:
+            # orders and extracts computeEnvironment names
+            ordered_compute_environments = [item['computeEnvironment'] for item in sorted(compute_env_order, key=lambda x: x['order'])]
+            env_objects = []
+            # Check each ARN exists, then make a list of compute env's
+            for arn in ordered_compute_environments:
+                env = self.get_compute_environment_by_arn(arn)
+                if env is None:
+                    raise ClientException('Compute environment {0} does not exist'.format(arn))
+                env_objects.append(env)
+        except Exception:
+            raise ClientException('computeEnvironmentOrder is malformed')
+
+        # Create new Job Queue
+        queue = JobQueue(queue_name, priority, state, env_objects, compute_env_order, self.region_name)
+        self._job_queues[queue.arn] = queue
+
+        return queue_name, queue.arn
+
+    def describe_job_queues(self, job_queues=None, max_results=None, next_token=None):
+        envs = set()
+        if job_queues is not None:
+            envs = set(job_queues)
+
+        result = []
+        for arn, job_queue in self._job_queues.items():
+            # Filter shortcut
+            if len(envs) > 0 and arn not in envs and job_queue.name not in envs:
+                continue
+
+            result.append(job_queue.describe())
+
+        return result
 
 
 available_regions = boto3.session.Session().get_available_regions("batch")
