@@ -76,3 +76,37 @@ class BatchResponse(BaseResponse):
 
         result = {'computeEnvironments': envs}
         return json.dumps(result)
+
+    # DeleteComputeEnvironment
+    def deletecomputeenvironment(self):
+        compute_environment = self._get_param('computeEnvironment')
+
+        try:
+            self.batch_backend.delete_compute_environment(compute_environment)
+        except AWSError as err:
+            return err.response()
+
+        return ''
+
+    def updatecomputeenvironment(self):
+        compute_env_name = self._get_param('computeEnvironment')
+        compute_resource = self._get_param('computeResources')
+        service_role = self._get_param('serviceRole')
+        state = self._get_param('state')
+
+        try:
+            name, arn = self.batch_backend.update_compute_environment(
+                compute_environment_name=compute_env_name,
+                compute_resources=compute_resource,
+                service_role=service_role,
+                state=state
+            )
+        except AWSError as err:
+            return err.response()
+
+        result = {
+            'computeEnvironmentArn': arn,
+            'computeEnvironmentName': name
+        }
+
+        return json.dumps(result)

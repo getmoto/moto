@@ -9,7 +9,7 @@ from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
 
-from .exceptions import InvalidParameterValueException, InternalFailure
+from .exceptions import InvalidParameterValueException, InternalFailure, ClientException
 from .utils import make_arn_for_compute_env
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
@@ -31,12 +31,14 @@ class ComputeEnvironment(BaseModel):
 
         self.instances = []
         self.ecs_arn = None
+        self.ecs_name = None
 
     def add_instance(self, instance):
         self.instances.append(instance)
 
-    def set_ecs_arn(self, arn):
+    def set_ecs(self, arn, name):
         self.ecs_arn = arn
+        self.ecs_name = name
 
 
 class BatchBackend(BaseBackend):
@@ -75,7 +77,7 @@ class BatchBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def get_compute_environment(self, arn):
+    def get_compute_environment_arn(self, arn):
         return self._compute_environments.get(arn)
 
     def get_compute_environment_by_name(self, name):
@@ -83,6 +85,20 @@ class BatchBackend(BaseBackend):
             if comp_env.name == name:
                 return comp_env
         return None
+
+    def get_compute_environment(self, identifier):
+        """
+        Get compute environment by name or ARN
+        :param identifier: Name or ARN
+        :type identifier: str
+
+        :return: Compute Environment or None
+        :rtype: ComputeEnvironment or None
+        """
+        env = self.get_compute_environment_arn(identifier)
+        if env is None:
+            env = self.get_compute_environment_by_name(identifier)
+        return env
 
     def describe_compute_environments(self, environments=None, max_results=None, next_token=None):
         envs = set()
@@ -173,7 +189,7 @@ class BatchBackend(BaseBackend):
         # Should be of format P2OnDemand_Batch_UUID
         cluster_name = 'OnDemand_Batch_' + str(uuid.uuid4())
         ecs_cluster = self.ecs_backend.create_cluster(cluster_name)
-        new_comp_env.set_ecs_arn(ecs_cluster.arn)
+        new_comp_env.set_ecs(ecs_cluster.arn, cluster_name)
 
         return compute_environment_name, new_comp_env.arn
 
@@ -270,6 +286,52 @@ class BatchBackend(BaseBackend):
                 instances.append(current_instance)
 
         return instances
+
+    def delete_compute_environment(self, compute_environment_name):
+        if compute_environment_name is None:
+            raise InvalidParameterValueException('Missing computeEnvironment parameter')
+
+        compute_env = self.get_compute_environment(compute_environment_name)
+
+        if compute_env is not None:
+            # Pop ComputeEnvironment
+            self._compute_environments.pop(compute_env.arn)
+
+            # Delete ECS cluster
+            self.ecs_backend.delete_cluster(compute_env.ecs_name)
+
+            if compute_env.type == 'MANAGED':
+                # Delete compute envrionment
+                instance_ids = [instance.id for instance in compute_env.instances]
+                self.ec2_backend.terminate_instances(instance_ids)
+
+    def update_compute_environment(self, compute_environment_name, state, compute_resources, service_role):
+        # Validate
+        compute_env = self.get_compute_environment(compute_environment_name)
+        if compute_env is None:
+            raise ClientException('Compute environment {0} does not exist')
+
+        # Look for IAM role
+        if service_role is not None:
+            try:
+                role = self.iam_backend.get_role_by_arn(service_role)
+            except IAMNotFoundException:
+                raise InvalidParameterValueException('Could not find IAM role {0}'.format(service_role))
+
+            compute_env.service_role = role
+
+        if state is not None:
+            if state not in ('ENABLED', 'DISABLED'):
+                raise InvalidParameterValueException('state {0} must be one of ENABLED | DISABLED'.format(state))
+
+            compute_env.state = state
+
+        if compute_resources is not None:
+            # TODO Implement resizing of instances based on changing vCpus
+            # compute_resources CAN contain desiredvCpus, maxvCpus, minvCpus, and can contain none of them.
+            pass
+
+        return compute_env.name, compute_env.arn
 
 
 available_regions = boto3.session.Session().get_available_regions("batch")

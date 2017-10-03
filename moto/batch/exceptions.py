@@ -30,3 +30,8 @@ class ValidationError(AWSError):
 class InternalFailure(AWSError):
     CODE = 'InternalFailure'
     STATUS = 500
+
+
+class ClientException(AWSError):
+    CODE = 'ClientException'
+    STATUS = 400
