@@ -9,7 +9,6 @@ from .acm import mock_acm  # flake8: noqa
 from .apigateway import mock_apigateway, mock_apigateway_deprecated  # flake8: noqa
 from .autoscaling import mock_autoscaling, mock_autoscaling_deprecated  # flake8: noqa
 from .awslambda import mock_lambda, mock_lambda_deprecated  # flake8: noqa
-from .batch import mock_batch  # flake8: noqa
 from .cloudformation import mock_cloudformation, mock_cloudformation_deprecated  # flake8: noqa
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # flake8: noqa
 from .datapipeline import mock_datapipeline, mock_datapipeline_deprecated  # flake8: noqa
@@ -41,6 +40,7 @@ from .route53 import mock_route53, mock_route53_deprecated  # flake8: noqa
 from .swf import mock_swf, mock_swf_deprecated  # flake8: noqa
 from .xray import mock_xray  # flake8: noqa
 from .logs import mock_logs, mock_logs_deprecated # flake8: noqa
+from .batch import mock_batch  # flake8: noqa
 
 
 try:
