@@ -243,7 +243,7 @@ class BatchBackend(BaseBackend):
     def get_job_definition_by_arn(self, arn):
         return self._job_definitions.get(arn)
 
-    def get_job_definition_by_name(self, name):#
+    def get_job_definition_by_name(self, name):
         for comp_env in self._job_definitions.values():
             if comp_env.name == name:
                 return comp_env
