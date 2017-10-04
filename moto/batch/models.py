@@ -454,6 +454,64 @@ class BatchBackend(BaseBackend):
 
         return result
 
+    def update_job_queue(self, queue_name, priority, state, compute_env_order):
+        """
+        Update a job queue
+
+        :param queue_name: Queue name
+        :type queue_name: str
+        :param priority: Queue priority
+        :type priority: int
+        :param state: Queue state
+        :type state: string
+        :param compute_env_order: Compute environment list
+        :type compute_env_order: list of dict
+        :return: Tuple of Name, ARN
+        :rtype: tuple of str
+        """
+        if queue_name is None:
+            raise ClientException('jobQueueName must be provided')
+
+        job_queue = self.get_job_queue(queue_name)
+        if job_queue is None:
+            raise ClientException('Job queue {0} does not exist'.format(queue_name))
+
+        if state is not None:
+            if state not in ('ENABLED', 'DISABLED'):
+                raise ClientException('state {0} must be one of ENABLED | DISABLED'.format(state))
+
+            job_queue.state = state
+
+        if compute_env_order is not None:
+            if len(compute_env_order) == 0:
+                raise ClientException('At least 1 compute environment must be provided')
+            try:
+                # orders and extracts computeEnvironment names
+                ordered_compute_environments = [item['computeEnvironment'] for item in sorted(compute_env_order, key=lambda x: x['order'])]
+                env_objects = []
+                # Check each ARN exists, then make a list of compute env's
+                for arn in ordered_compute_environments:
+                    env = self.get_compute_environment_by_arn(arn)
+                    if env is None:
+                        raise ClientException('Compute environment {0} does not exist'.format(arn))
+                    env_objects.append(env)
+            except Exception:
+                raise ClientException('computeEnvironmentOrder is malformed')
+
+            job_queue.env_order_json = compute_env_order
+            job_queue.environments = env_objects
+
+        if priority is not None:
+            job_queue.priority = priority
+
+        return queue_name, job_queue.arn
+
+    def delete_job_queue(self, queue_name):
+        job_queue = self.get_job_queue(queue_name)
+
+        if job_queue is not None:
+            del self._job_queues[job_queue.arn]
+
 
 available_regions = boto3.session.Session().get_available_regions("batch")
 batch_backends = {region: BatchBackend(region_name=region) for region in available_regions}

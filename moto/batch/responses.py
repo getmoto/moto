@@ -146,3 +146,35 @@ class BatchResponse(BaseResponse):
 
         result = {'jobQueues': queues}
         return json.dumps(result)
+
+    # UpdateJobQueue
+    def updatejobqueue(self):
+        compute_env_order = self._get_param('computeEnvironmentOrder')
+        queue_name = self._get_param('jobQueue')
+        priority = self._get_param('priority')
+        state = self._get_param('state')
+
+        try:
+            name, arn = self.batch_backend.update_job_queue(
+                queue_name=queue_name,
+                priority=priority,
+                state=state,
+                compute_env_order=compute_env_order
+            )
+        except AWSError as err:
+            return err.response()
+
+        result = {
+            'jobQueueArn': arn,
+            'jobQueueName': name
+        }
+
+        return json.dumps(result)
+
+    # DeleteJobQueue
+    def deletejobqueue(self):
+        queue_name = self._get_param('jobQueue')
+
+        self.batch_backend.delete_job_queue(queue_name)
+
+        return ''
