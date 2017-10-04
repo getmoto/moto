@@ -205,3 +205,24 @@ class BatchResponse(BaseResponse):
         }
 
         return json.dumps(result)
+
+    # DeregisterJobDefinition
+    def deregisterjobdefinition(self):
+        queue_name = self._get_param('jobDefinition')
+
+        self.batch_backend.deregister_job_definition(queue_name)
+
+        return ''
+
+    # DescribeJobDefinitions
+    def describejobdefinitions(self):
+        job_def_name = self._get_param('jobDefinitionName')
+        job_def_list = self._get_param('jobDefinitions')
+        max_results = self._get_param('maxResults')
+        next_token = self._get_param('nextToken')
+        status = self._get_param('status')
+
+        job_defs = self.batch_backend.describe_job_definitions(job_def_name, job_def_list, status, max_results, next_token)
+
+        result = {'jobDefinitions': [job.describe() for job in job_defs]}
+        return json.dumps(result)

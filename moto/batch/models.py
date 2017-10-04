@@ -87,29 +87,30 @@ class JobDefinition(BaseModel):
         self._region = region_name
         self.container_properties = container_properties
         self.arn = None
+        self.status = 'INACTIVE'
 
-        self.parameters = {}
-        if parameters is not None:
-            if not isinstance(parameters, dict):
-                raise ClientException('parameters must be a string to string map')
-            self.parameters = parameters
+        if parameters is None:
+            parameters = {}
+        self.parameters = parameters
 
-        if _type not in ('container',):
-            raise ClientException('type must be one of "container"')
-
+        self._validate()
         self._update_arn()
-
-        # For future use when containers arnt the only thing in batch
-        if _type != 'container':
-            raise NotImplementedError()
-
-        self._validate_container_properties()
 
     def _update_arn(self):
         self.revision += 1
         self.arn = make_arn_for_task_def(DEFAULT_ACCOUNT_ID, self.name, self.revision, self._region)
 
-    def _validate_container_properties(self):
+    def _validate(self):
+        if self.type not in ('container',):
+            raise ClientException('type must be one of "container"')
+
+        # For future use when containers arnt the only thing in batch
+        if self.type != 'container':
+            raise NotImplementedError()
+
+        if not isinstance(self.parameters, dict):
+            raise ClientException('parameters must be a string to string map')
+
         if 'image' not in self.container_properties:
             raise ClientException('containerProperties must contain image')
 
@@ -122,6 +123,37 @@ class JobDefinition(BaseModel):
             raise ClientException('containerProperties must contain vcpus')
         if self.container_properties['vcpus'] < 1:
             raise ClientException('container vcpus limit must be greater than 0')
+
+    def update(self, parameters, _type, container_properties, retry_strategy):
+        if parameters is None:
+            parameters = self.parameters
+
+        if _type is None:
+            _type = self.type
+
+        if container_properties is None:
+            container_properties = self.container_properties
+
+        if retry_strategy is None:
+            retry_strategy = self.retries
+
+        return JobDefinition(self.name, parameters, _type, container_properties, region_name=self._region, revision=self.revision, retry_strategy=retry_strategy)
+
+    def describe(self):
+        result = {
+            'jobDefinitionArn': self.arn,
+            'jobDefinitionName': self.name,
+            'parameters': self.parameters,
+            'revision': self.revision,
+            'status': self.status,
+            'type': self.type
+        }
+        if self.container_properties is not None:
+            result['containerProperties'] = self.container_properties
+        if self.retries is not None and self.retries > 0:
+            result['retryStrategy'] = {'attempts': self.retries}
+
+        return result
 
 
 class BatchBackend(BaseBackend):
@@ -211,25 +243,51 @@ class BatchBackend(BaseBackend):
     def get_job_definition_by_arn(self, arn):
         return self._job_definitions.get(arn)
 
-    def get_job_definition_by_name(self, name):
+    def get_job_definition_by_name(self, name):#
         for comp_env in self._job_definitions.values():
             if comp_env.name == name:
                 return comp_env
         return None
 
+    def get_job_definition_by_name_revision(self, name, revision):
+        for job_def in self._job_definitions.values():
+            if job_def.name == name and job_def.revision == revision:
+                return job_def
+        return None
+
     def get_job_definition(self, identifier):
         """
-        Get job queue by name or ARN
+        Get job defintiion by name or ARN
         :param identifier: Name or ARN
         :type identifier: str
 
-        :return: Job Queue or None
-        :rtype: JobQueue or None
+        :return: Job definition or None
+        :rtype: JobDefinition or None
         """
         env = self.get_job_definition_by_arn(identifier)
         if env is None:
             env = self.get_job_definition_by_name(identifier)
         return env
+
+    def get_job_definitions(self, identifier):
+        """
+        Get job defintiion by name or ARN
+        :param identifier: Name or ARN
+        :type identifier: str
+
+        :return: Job definition or None
+        :rtype: list of JobDefinition
+        """
+        result = []
+        env = self.get_job_definition_by_arn(identifier)
+        if env is not None:
+            result.append(env)
+        else:
+            for value in self._job_definitions.values():
+                if value.name == identifier:
+                    result.append(value)
+
+        return result
 
     def describe_compute_environments(self, environments=None, max_results=None, next_token=None):
         envs = set()
@@ -586,19 +644,52 @@ class BatchBackend(BaseBackend):
         if def_name is None:
             raise ClientException('jobDefinitionName must be provided')
 
-        if self.get_job_definition_by_name(def_name) is not None:
-            raise ClientException('A job definition called {0} already exists'.format(def_name))
-
+        job_def = self.get_job_definition_by_name(def_name)
         if retry_strategy is not None:
             try:
                 retry_strategy = retry_strategy['attempts']
             except Exception:
                 raise ClientException('retryStrategy is malformed')
 
-        job_def = JobDefinition(def_name, parameters, _type, container_properties, region_name=self.region_name, retry_strategy=retry_strategy)
+        if job_def is None:
+            job_def = JobDefinition(def_name, parameters, _type, container_properties, region_name=self.region_name, retry_strategy=retry_strategy)
+        else:
+            # Make new jobdef
+            job_def = job_def.update(parameters, _type, container_properties, retry_strategy)
+
         self._job_definitions[job_def.arn] = job_def
 
         return def_name, job_def.arn, job_def.revision
+
+    def deregister_job_definition(self, def_name):
+        job_def = self.get_job_definition_by_arn(def_name)
+        if job_def is None and ':' in def_name:
+            name, revision = def_name.split(':', 1)
+            job_def = self.get_job_definition_by_name_revision(name, revision)
+
+        if job_def is not None:
+            del self._job_definitions[job_def.arn]
+
+    def describe_job_definitions(self, job_def_name=None, job_def_list=None, status=None, max_results=None, next_token=None):
+        jobs = []
+
+        # As a job name can reference multiple revisions, we get a list of them
+        if job_def_name is not None:
+            job_def = self.get_job_definitions(job_def_name)
+            if job_def is not None:
+                jobs.extend(job_def)
+        elif job_def_list is not None:
+            for job in job_def_list:
+                job_def = self.get_job_definitions(job)
+                if job_def is not None:
+                    jobs.extend(job_def)
+        else:
+            jobs.extend(self._job_definitions.values())
+
+        # Got all the job defs were after, filter then by status
+        if status is not None:
+            return [job for job in jobs if job.status == status]
+        return jobs
 
 
 available_regions = boto3.session.Session().get_available_regions("batch")
