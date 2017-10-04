@@ -178,3 +178,30 @@ class BatchResponse(BaseResponse):
         self.batch_backend.delete_job_queue(queue_name)
 
         return ''
+
+    # RegisterJobDefinition
+    def registerjobdefinition(self):
+        container_properties = self._get_param('containerProperties')
+        def_name = self._get_param('jobDefinitionName')
+        parameters = self._get_param('parameters')
+        retry_strategy = self._get_param('retryStrategy')
+        _type = self._get_param('type')
+
+        try:
+            name, arn, revision = self.batch_backend.register_job_definition(
+                def_name=def_name,
+                parameters=parameters,
+                _type=_type,
+                retry_strategy=retry_strategy,
+                container_properties=container_properties
+            )
+        except AWSError as err:
+            return err.response()
+
+        result = {
+            'jobDefinitionArn': arn,
+            'jobDefinitionName': name,
+            'revision': revision
+        }
+
+        return json.dumps(result)

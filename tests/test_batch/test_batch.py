@@ -421,3 +421,29 @@ def test_update_job_queue():
     resp = batch_client.describe_job_queues()
     resp.should.contain('jobQueues')
     len(resp['jobQueues']).should.equal(0)
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_register_task_definition():
+    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    resp = batch_client.register_job_definition(
+        jobDefinitionName='sleep10',
+        type='container',
+        containerProperties={
+            'image': 'busybox',
+            'vcpus': 1,
+            'memory': 128,
+            'command': ['sleep', '10']
+        }
+    )
+
+    resp.should.contain('jobDefinitionArn')
+    resp.should.contain('jobDefinitionName')
+    resp.should.contain('revision')
+
+    assert resp['jobDefinitionArn'].endswith('{0}:{1}'.format(resp['jobDefinitionName'], resp['revision']))
