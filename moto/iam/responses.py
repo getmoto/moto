@@ -177,6 +177,13 @@ class IamResponse(BaseResponse):
         policy_version = iam_backend.get_policy_version(policy_arn, version_id)
         template = self.response_template(GET_POLICY_VERSION_TEMPLATE)
         return template.render(policy_version=policy_version)
+  
+    def get_policy(self):
+        policyarn = self._get_param('PolicyArn')
+        policyarn = iam_backend.get_policy(
+            policyarn)
+        template = self.response_template(GET_POLICY_TEMPLATE)
+        return template.render(policyarn = policyarn)
 
     def list_policy_versions(self):
         policy_arn = self._get_param('PolicyArn')
@@ -835,6 +842,20 @@ GET_POLICY_VERSION_TEMPLATE = """<GetPolicyVersionResponse xmlns="https://iam.am
     <RequestId>20f7279f-99ee-11e1-a4c3-27EXAMPLE804</RequestId>
   </ResponseMetadata>
 </GetPolicyVersionResponse>"""
+
+GET_POLICY_TEMPLATE = """<GetPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetPolicyResult>
+      <Policy>
+      <Document>{{ policyarn.document }}</Document>
+      <VersionId>{{ policyarn.version_id }}</VersionId>
+      <DefaultVersionId>{{ policyarn.default_version_id }}</DefaultVersionId>
+      <CreateDate>2017-10-04T15:45:35Z</CreateDate>
+      </Policy>
+  </GetPolicyResult>
+  <ResponseMetadata>
+    <RequestId>20f7279f-99ee-11e1-a4c3-27EXAMPLE805</RequestId>
+  </ResponseMetadata>
+</GetPolicyResponse>"""
 
 LIST_POLICY_VERSIONS_TEMPLATE = """<ListPolicyVersionsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ListPolicyVersionsResult>
