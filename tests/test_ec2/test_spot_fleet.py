@@ -187,7 +187,7 @@ def test_modify_spot_fleet_request_up():
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
     spot_fleet_config['TargetCapacity'].should.equal(20)
-    spot_fleet_config['FulfilledCapacity'].should.equal(20)
+    spot_fleet_config['FulfilledCapacity'].should.equal(20.0)
 
 
 @mock_ec2
@@ -236,7 +236,7 @@ def test_modify_spot_fleet_request_down_no_terminate():
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
     spot_fleet_config['TargetCapacity'].should.equal(1)
-    spot_fleet_config['FulfilledCapacity'].should.equal(6)
+    spot_fleet_config['FulfilledCapacity'].should.equal(6.0)
 
 
 @mock_ec2
@@ -262,7 +262,7 @@ def test_modify_spot_fleet_request_down_odd():
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
     spot_fleet_config['TargetCapacity'].should.equal(5)
-    spot_fleet_config['FulfilledCapacity'].should.equal(6)
+    spot_fleet_config['FulfilledCapacity'].should.equal(6.0)
 
 
 @mock_ec2
@@ -286,7 +286,7 @@ def test_modify_spot_fleet_request_down():
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
     spot_fleet_config['TargetCapacity'].should.equal(1)
-    spot_fleet_config['FulfilledCapacity'].should.equal(2)
+    spot_fleet_config['FulfilledCapacity'].should.equal(2.0)
 
 
 @mock_ec2
@@ -315,4 +315,4 @@ def test_modify_spot_fleet_request_down_no_terminate_after_custom_terminate():
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
     spot_fleet_config['TargetCapacity'].should.equal(1)
-    spot_fleet_config['FulfilledCapacity'].should.equal(2)
+    spot_fleet_config['FulfilledCapacity'].should.equal(2.0)
