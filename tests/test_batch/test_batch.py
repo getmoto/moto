@@ -1,10 +1,23 @@
 from __future__ import unicode_literals
 
+import time
+import datetime
 import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa
-from moto import mock_batch, mock_iam, mock_ec2, mock_ecs
+from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
+import functools
+import nose
 
+
+def expected_failure(test):
+    @functools.wraps(test)
+    def inner(*args, **kwargs):
+        try:
+            test(*args, **kwargs)
+        except Exception as err:
+            raise nose.SkipTest
+    return inner
 
 DEFAULT_REGION = 'eu-central-1'
 
@@ -13,6 +26,7 @@ def _get_clients():
     return boto3.client('ec2', region_name=DEFAULT_REGION), \
            boto3.client('iam', region_name=DEFAULT_REGION), \
            boto3.client('ecs', region_name=DEFAULT_REGION), \
+           boto3.client('logs', region_name=DEFAULT_REGION), \
            boto3.client('batch', region_name=DEFAULT_REGION)
 
 
@@ -52,7 +66,7 @@ def _setup(ec2_client, iam_client):
 @mock_iam
 @mock_batch
 def test_create_managed_compute_environment():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -105,7 +119,7 @@ def test_create_managed_compute_environment():
 @mock_iam
 @mock_batch
 def test_create_unmanaged_compute_environment():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -136,7 +150,7 @@ def test_create_unmanaged_compute_environment():
 @mock_iam
 @mock_batch
 def test_describe_compute_environment():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -163,7 +177,7 @@ def test_describe_compute_environment():
 @mock_iam
 @mock_batch
 def test_delete_unmanaged_compute_environment():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -190,7 +204,7 @@ def test_delete_unmanaged_compute_environment():
 @mock_iam
 @mock_batch
 def test_delete_managed_compute_environment():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -247,7 +261,7 @@ def test_delete_managed_compute_environment():
 @mock_iam
 @mock_batch
 def test_update_unmanaged_compute_environment_state():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -273,7 +287,7 @@ def test_update_unmanaged_compute_environment_state():
 @mock_iam
 @mock_batch
 def test_create_job_queue():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -315,7 +329,7 @@ def test_create_job_queue():
 @mock_iam
 @mock_batch
 def test_job_queue_bad_arn():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -348,7 +362,7 @@ def test_job_queue_bad_arn():
 @mock_iam
 @mock_batch
 def test_update_job_queue():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -389,7 +403,7 @@ def test_update_job_queue():
 @mock_iam
 @mock_batch
 def test_update_job_queue():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = 'test_compute_env'
@@ -428,7 +442,7 @@ def test_update_job_queue():
 @mock_iam
 @mock_batch
 def test_register_task_definition():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     resp = batch_client.register_job_definition(
@@ -455,7 +469,7 @@ def test_register_task_definition():
 @mock_batch
 def test_reregister_task_definition():
     # Reregistering task with the same name bumps the revision number
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     resp1 = batch_client.register_job_definition(
@@ -496,7 +510,7 @@ def test_reregister_task_definition():
 @mock_iam
 @mock_batch
 def test_delete_task_definition():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     resp = batch_client.register_job_definition(
@@ -521,10 +535,10 @@ def test_delete_task_definition():
 @mock_iam
 @mock_batch
 def test_describe_task_definition():
-    ec2_client, iam_client, ecs_client, batch_client = _get_clients()
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
-    resp = batch_client.register_job_definition(
+    batch_client.register_job_definition(
         jobDefinitionName='sleep10',
         type='container',
         containerProperties={
@@ -534,8 +548,7 @@ def test_describe_task_definition():
             'command': ['sleep', '10']
         }
     )
-    arn1 = resp['jobDefinitionArn']
-    resp = batch_client.register_job_definition(
+    batch_client.register_job_definition(
         jobDefinitionName='sleep10',
         type='container',
         containerProperties={
@@ -545,8 +558,7 @@ def test_describe_task_definition():
             'command': ['sleep', '10']
         }
     )
-    arn2 = resp['jobDefinitionArn']
-    resp = batch_client.register_job_definition(
+    batch_client.register_job_definition(
         jobDefinitionName='test1',
         type='container',
         containerProperties={
@@ -556,7 +568,6 @@ def test_describe_task_definition():
             'command': ['sleep', '10']
         }
     )
-    arn3 = resp['jobDefinitionArn']
 
     resp = batch_client.describe_job_definitions(
         jobDefinitionName='sleep10'
@@ -571,3 +582,76 @@ def test_describe_task_definition():
     )
     len(resp['jobDefinitions']).should.equal(3)
 
+
+# SLOW TEST
+@expected_failure
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_submit_job():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = 'test_compute_env'
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type='UNMANAGED',
+        state='ENABLED',
+        serviceRole=iam_arn
+    )
+    arn = resp['computeEnvironmentArn']
+
+    resp = batch_client.create_job_queue(
+        jobQueueName='test_job_queue',
+        state='ENABLED',
+        priority=123,
+        computeEnvironmentOrder=[
+            {
+                'order': 123,
+                'computeEnvironment': arn
+            },
+        ]
+    )
+    queue_arn = resp['jobQueueArn']
+
+    resp = batch_client.register_job_definition(
+        jobDefinitionName='sleep10',
+        type='container',
+        containerProperties={
+            'image': 'busybox',
+            'vcpus': 1,
+            'memory': 128,
+            'command': ['sleep', '10']
+        }
+    )
+    job_def_arn = resp['jobDefinitionArn']
+
+    resp = batch_client.submit_job(
+        jobName='test1',
+        jobQueue=queue_arn,
+        jobDefinition=job_def_arn
+    )
+    job_id = resp['jobId']
+
+    future = datetime.datetime.now() + datetime.timedelta(seconds=30)
+
+    while datetime.datetime.now() < future:
+        resp = batch_client.describe_jobs(jobs=[job_id])
+        print("{0}:{1} {2}".format(resp['jobs'][0]['jobName'], resp['jobs'][0]['jobId'], resp['jobs'][0]['status']))
+
+        if resp['jobs'][0]['status'] == 'FAILED':
+            raise RuntimeError('Batch job failed')
+        if resp['jobs'][0]['status'] == 'SUCCEEDED':
+            break
+        time.sleep(0.5)
+    else:
+        raise RuntimeError('Batch job timed out')
+
+    resp = logs_client.describe_log_streams(logGroupName='/aws/batch/job')
+    len(resp['logStreams']).should.equal(1)
+    ls_name = resp['logStreams'][0]['logStreamName']
+
+    resp = logs_client.get_log_events(logGroupName='/aws/batch/job', logStreamName=ls_name)
+    len(resp['events']).should.be.greater_than(5)

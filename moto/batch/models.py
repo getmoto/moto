@@ -1,13 +1,22 @@
 from __future__ import unicode_literals
 import boto3
 import re
+import requests.adapters
 from itertools import cycle
 import six
+import datetime
+import time
 import uuid
+import logging
+import docker
+import functools
+import threading
+import dateutil.parser
 from moto.core import BaseBackend, BaseModel
 from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
+from moto.logs import logs_backends
 
 from .exceptions import InvalidParameterValueException, InternalFailure, ClientException
 from .utils import make_arn_for_compute_env, make_arn_for_job_queue, make_arn_for_task_def
@@ -16,8 +25,14 @@ from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 
 
+_orig_adapter_send = requests.adapters.HTTPAdapter.send
+logger = logging.getLogger(__name__)
 DEFAULT_ACCOUNT_ID = 123456789012
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(r'^[A-Za-z0-9_]{1,128}$')
+
+
+def datetime2int(date):
+    return int(time.mktime(date.timetuple()))
 
 
 class ComputeEnvironment(BaseModel):
@@ -64,6 +79,8 @@ class JobQueue(BaseModel):
         self.env_order_json = env_order_json
         self.arn = make_arn_for_job_queue(DEFAULT_ACCOUNT_ID, name, region_name)
         self.status = 'VALID'
+
+        self.jobs = []
 
     def describe(self):
         result = {
@@ -156,6 +173,162 @@ class JobDefinition(BaseModel):
         return result
 
 
+class Job(threading.Thread, BaseModel):
+    def __init__(self, name, job_def, job_queue, log_backend):
+        """
+        Docker Job
+
+        :param name: Job Name
+        :param job_def: Job definition
+        :type: job_def: JobDefinition
+        :param job_queue: Job Queue
+        :param log_backend: Log backend
+        :type log_backend: moto.logs.models.LogsBackend
+        """
+        threading.Thread.__init__(self)
+
+        self.job_name = name
+        self.job_id = str(uuid.uuid4())
+        self.job_definition = job_def
+        self.job_queue = job_queue
+        self.job_state = 'SUBMITTED'  # One of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED
+        self.job_queue.jobs.append(self)
+        self.job_started_at = datetime.datetime(1970, 1, 1)
+        self.job_stopped_at = datetime.datetime(1970, 1, 1)
+        self.job_stopped = False
+
+        self.stop = False
+
+        self.daemon = True
+        self.name = 'MOTO-BATCH-' + self.job_id
+
+        self.docker_client = docker.from_env()
+        self._log_backend = log_backend
+
+        # Unfortunately mocking replaces this method w/o fallback enabled, so we
+        # need to replace it if we detect it's been mocked
+        if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
+            _orig_get_adapter = self.docker_client.api.get_adapter
+
+            def replace_adapter_send(*args, **kwargs):
+                adapter = _orig_get_adapter(*args, **kwargs)
+
+                if isinstance(adapter, requests.adapters.HTTPAdapter):
+                    adapter.send = functools.partial(_orig_adapter_send, adapter)
+                return adapter
+            self.docker_client.api.get_adapter = replace_adapter_send
+
+    def describe(self):
+        result = {
+            'jobDefinition': self.job_definition.arn,
+            'jobId': self.job_id,
+            'jobName': self.job_name,
+            'jobQueue': self.job_queue.arn,
+            'startedAt': datetime2int(self.job_started_at),
+            'status': self.job_state,
+            'dependsOn': []
+        }
+        if self.job_stopped:
+            result['stoppedAt'] = datetime2int(self.job_stopped_at)
+        return result
+
+    def run(self):
+        """
+        Run the container.
+
+        Logic is as follows:
+        Generate container info (eventually from task definition)
+        Start container
+        Loop whilst not asked to stop and the container is running.
+          Get all logs from container between the last time I checked and now.
+        Convert logs into cloudwatch format
+        Put logs into cloudwatch
+
+        :return:
+        """
+        try:
+            self.job_state = 'PENDING'
+            time.sleep(1)
+
+            image = 'alpine:latest'
+            cmd = '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"'
+            name = '{0}-{1}'.format(self.job_name, self.job_id)
+
+            self.job_state = 'RUNNABLE'
+            # TODO setup ecs container instance
+            time.sleep(1)
+
+            self.job_state = 'STARTING'
+            container = self.docker_client.containers.run(
+                image, cmd,
+                detach=True,
+                name=name
+            )
+            self.job_state = 'RUNNING'
+            self.job_started_at = datetime.datetime.now()
+            try:
+                # Log collection
+                logs_stdout = []
+                logs_stderr = []
+                container.reload()
+
+                # Dodgy hack, we can only check docker logs once a second, but we want to loop more
+                # so we can stop if asked to in a quick manner, should all go away if we go async
+                # There also be some dodgyness when sending an integer to docker logs and some
+                # events seem to be duplicated.
+                now = datetime.datetime.now()
+                i = 1
+                while container.status == 'running' and not self.stop:
+                    time.sleep(0.15)
+                    if i % 10 == 0:
+                        logs_stderr.extend(container.logs(stdout=False, stderr=True, timestamps=True, since=datetime2int(now)).decode().split('\n'))
+                        logs_stdout.extend(container.logs(stdout=True, stderr=False, timestamps=True, since=datetime2int(now)).decode().split('\n'))
+                        now = datetime.datetime.now()
+                        container.reload()
+                    i += 1
+
+                # Container should be stopped by this point... unless asked to stop
+                if container.status == 'running':
+                    container.kill()
+
+                self.job_stopped_at = datetime.datetime.now()
+                # Get final logs
+                logs_stderr.extend(container.logs(stdout=False, stderr=True, timestamps=True, since=datetime2int(now)).decode().split('\n'))
+                logs_stdout.extend(container.logs(stdout=True, stderr=False, timestamps=True, since=datetime2int(now)).decode().split('\n'))
+
+                self.job_state = 'SUCCEEDED' if not self.stop else 'FAILED'
+
+                # Process logs
+                logs_stdout = [x for x in logs_stdout if len(x) > 0]
+                logs_stderr = [x for x in logs_stderr if len(x) > 0]
+                logs = []
+                for line in logs_stdout + logs_stderr:
+                    date, line = line.split(' ', 1)
+                    date = dateutil.parser.parse(date)
+                    date = int(date.timestamp())
+                    logs.append({'timestamp': date, 'message': line.strip()})
+
+                # Send to cloudwatch
+                log_group = '/aws/batch/job'
+                stream_name = '{0}/default/{1}'.format(self.job_definition.name, self.job_id)
+                self._log_backend.ensure_log_group(log_group, None)
+                self._log_backend.create_log_stream(log_group, stream_name)
+                self._log_backend.put_log_events(log_group, stream_name, logs, None)
+
+            except Exception as err:
+                logger.error('Failed to run AWS Batch container {0}. Error {1}'.format(self.name, err))
+                self.job_state = 'FAILED'
+                container.kill()
+            finally:
+                container.remove()
+        except Exception as err:
+            logger.error('Failed to run AWS Batch container {0}. Error {1}'.format(self.name, err))
+            self.job_state = 'FAILED'
+
+        self.job_stopped = True
+        self.job_stopped_at = datetime.datetime.now()
+
+
 class BatchBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(BatchBackend, self).__init__()
@@ -164,6 +337,7 @@ class BatchBackend(BaseBackend):
         self._compute_environments = {}
         self._job_queues = {}
         self._job_definitions = {}
+        self._jobs = {}
 
     @property
     def iam_backend(self):
@@ -189,8 +363,23 @@ class BatchBackend(BaseBackend):
         """
         return ecs_backends[self.region_name]
 
+    @property
+    def logs_backend(self):
+        """
+        :return: ECS Backend
+        :rtype: moto.logs.models.LogsBackend
+        """
+        return logs_backends[self.region_name]
+
     def reset(self):
         region_name = self.region_name
+
+        for job in self._jobs.values():
+            if job.job_state not in ('FAILED', 'SUCCEEDED'):
+                job.stop = True
+                # Try to join
+                job.join(0.2)
+
         self.__dict__ = {}
         self.__init__(region_name)
 
@@ -690,6 +879,42 @@ class BatchBackend(BaseBackend):
         if status is not None:
             return [job for job in jobs if job.status == status]
         return jobs
+
+    def submit_job(self, job_name, job_def_id, job_queue, parameters=None, retries=None, depends_on=None, container_overrides=None):
+        # TODO parameters, retries (which is a dict raw from request), job dependancies and container overrides are ignored for now
+
+        # Look for job definition
+        job_def = self.get_job_definition_by_arn(job_def_id)
+        if job_def is None and ':' in job_def_id:
+            job_def = self.get_job_definition_by_name_revision(*job_def_id.split(':', 1))
+        if job_def is None:
+            raise ClientException('Job definition {0} does not exist'.format(job_def_id))
+
+        queue = self.get_job_queue(job_queue)
+        if queue is None:
+            raise ClientException('Job queue {0} does not exist'.format(job_queue))
+
+        job = Job(job_name, job_def, queue, log_backend=self.logs_backend)
+        self._jobs[job.job_id] = job
+
+        # Here comes the fun
+        job.start()
+
+        return job_name, job.job_id
+
+    def describe_jobs(self, jobs):
+        job_filter = set()
+        if jobs is not None:
+            job_filter = set(jobs)
+
+        result = []
+        for key, job in self._jobs.items():
+            if len(job_filter) > 0 and key not in job_filter:
+                continue
+
+            result.append(job.describe())
+
+        return result
 
 
 available_regions = boto3.session.Session().get_available_regions("batch")

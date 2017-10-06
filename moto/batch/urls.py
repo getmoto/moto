@@ -16,5 +16,7 @@ url_paths = {
     '{0}/v1/deletejobqueue': BatchResponse.dispatch,
     '{0}/v1/registerjobdefinition': BatchResponse.dispatch,
     '{0}/v1/deregisterjobdefinition': BatchResponse.dispatch,
-    '{0}/v1/describejobdefinitions': BatchResponse.dispatch
+    '{0}/v1/describejobdefinitions': BatchResponse.dispatch,
+    '{0}/v1/submitjob': BatchResponse.dispatch,
+    '{0}/v1/describejobs': BatchResponse.dispatch
 }

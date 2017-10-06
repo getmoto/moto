@@ -226,3 +226,40 @@ class BatchResponse(BaseResponse):
 
         result = {'jobDefinitions': [job.describe() for job in job_defs]}
         return json.dumps(result)
+
+    # SubmitJob
+    def submitjob(self):
+        container_overrides = self._get_param('containerOverrides')
+        depends_on = self._get_param('dependsOn')
+        job_def = self._get_param('jobDefinition')
+        job_name = self._get_param('jobName')
+        job_queue = self._get_param('jobQueue')
+        parameters = self._get_param('parameters')
+        retries = self._get_param('retryStrategy')
+
+        try:
+            name, job_id = self.batch_backend.submit_job(
+                job_name, job_def, job_queue,
+                parameters=parameters,
+                retries=retries,
+                depends_on=depends_on,
+                container_overrides=container_overrides
+            )
+        except AWSError as err:
+            return err.response()
+
+        result = {
+            'jobId': job_id,
+            'jobName': name,
+        }
+
+        return json.dumps(result)
+
+    # DescribeJobs
+    def describejobs(self):
+        jobs = self._get_param('jobs')
+
+        try:
+            return json.dumps({'jobs': self.batch_backend.describe_jobs(jobs)})
+        except AWSError as err:
+            return err.response()
