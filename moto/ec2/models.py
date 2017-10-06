@@ -374,6 +374,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.source_dest_check = "true"
         self.launch_time = utc_date_and_time()
         self.disable_api_termination = kwargs.get("disable_api_termination", False)
+        self._spot_fleet_id = kwargs.get("spot_fleet_id", None)
         associate_public_ip = kwargs.get("associate_public_ip", False)
         if in_ec2_classic:
             # If we are in EC2-Classic, autoassign a public IP
@@ -510,6 +511,14 @@ class Instance(TaggedEC2Resource, BotoInstance):
             nic.stop()
 
         self.teardown_defaults()
+
+        if self._spot_fleet_id:
+            spot_fleet = self.ec2_backend.get_spot_fleet_request(self._spot_fleet_id)
+            for spec in spot_fleet.launch_specs:
+                if spec.instance_type == self.instance_type and spec.subnet_id == self.subnet_id:
+                    break
+            spot_fleet.fulfilled_capacity -= spec.weighted_capacity
+            spot_fleet.spot_requests = [req for req in spot_fleet.spot_requests if req.instance != self]
 
         self._state.name = "terminated"
         self._state.code = 48
@@ -2623,7 +2632,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
     def __init__(self, ec2_backend, spot_request_id, price, image_id, type,
                  valid_from, valid_until, launch_group, availability_zone_group,
                  key_name, security_groups, user_data, instance_type, placement,
-                 kernel_id, ramdisk_id, monitoring_enabled, subnet_id,
+                 kernel_id, ramdisk_id, monitoring_enabled, subnet_id, spot_fleet_id,
                  **kwargs):
         super(SpotInstanceRequest, self).__init__(**kwargs)
         ls = LaunchSpecification()
@@ -2646,6 +2655,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         ls.placement = placement
         ls.monitored = monitoring_enabled
         ls.subnet_id = subnet_id
+        self.spot_fleet_id = spot_fleet_id
 
         if security_groups:
             for group_name in security_groups:
@@ -2678,6 +2688,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             key_name=self.launch_specification.key_name,
             security_group_names=[],
             security_group_ids=self.launch_specification.groups,
+            spot_fleet_id=self.spot_fleet_id,
         )
         instance = reservation.instances[0]
         return instance
@@ -2693,7 +2704,7 @@ class SpotRequestBackend(object):
                                valid_until, launch_group, availability_zone_group,
                                key_name, security_groups, user_data,
                                instance_type, placement, kernel_id, ramdisk_id,
-                               monitoring_enabled, subnet_id):
+                               monitoring_enabled, subnet_id, spot_fleet_id=None):
         requests = []
         for _ in range(count):
             spot_request_id = random_spot_request_id()
@@ -2701,7 +2712,7 @@ class SpotRequestBackend(object):
                                           spot_request_id, price, image_id, type, valid_from, valid_until,
                                           launch_group, availability_zone_group, key_name, security_groups,
                                           user_data, instance_type, placement, kernel_id, ramdisk_id,
-                                          monitoring_enabled, subnet_id)
+                                          monitoring_enabled, subnet_id, spot_fleet_id)
             self.spot_instance_requests[spot_request_id] = request
             requests.append(request)
         return requests
@@ -2747,7 +2758,7 @@ class SpotFleetRequest(TaggedEC2Resource):
         self.iam_fleet_role = iam_fleet_role
         self.allocation_strategy = allocation_strategy
         self.state = "active"
-        self.fulfilled_capacity = self.target_capacity
+        self.fulfilled_capacity = 0.0
 
         self.launch_specs = []
         for spec in launch_specs:
@@ -2768,7 +2779,7 @@ class SpotFleetRequest(TaggedEC2Resource):
             )
 
         self.spot_requests = []
-        self.create_spot_requests()
+        self.create_spot_requests(self.target_capacity)
 
     @property
     def physical_resource_id(self):
@@ -2798,31 +2809,32 @@ class SpotFleetRequest(TaggedEC2Resource):
 
         return spot_fleet_request
 
-    def get_launch_spec_counts(self):
+    def get_launch_spec_counts(self, weight_to_add):
         weight_map = defaultdict(int)
 
+        weight_so_far = 0
         if self.allocation_strategy == 'diversified':
-            weight_so_far = 0
             launch_spec_index = 0
             while True:
                 launch_spec = self.launch_specs[
                     launch_spec_index % len(self.launch_specs)]
                 weight_map[launch_spec] += 1
                 weight_so_far += launch_spec.weighted_capacity
-                if weight_so_far >= self.target_capacity:
+                if weight_so_far >= weight_to_add:
                     break
                 launch_spec_index += 1
         else:  # lowestPrice
             cheapest_spec = sorted(
                 self.launch_specs, key=lambda spec: float(spec.spot_price))[0]
-            extra = 1 if self.target_capacity % cheapest_spec.weighted_capacity else 0
+            weight_so_far = weight_to_add + (weight_to_add % cheapest_spec.weighted_capacity)
             weight_map[cheapest_spec] = int(
-                self.target_capacity // cheapest_spec.weighted_capacity) + extra
+                weight_so_far // cheapest_spec.weighted_capacity)
 
-        return weight_map.items()
+        return weight_map, weight_so_far
 
-    def create_spot_requests(self):
-        for launch_spec, count in self.get_launch_spec_counts():
+    def create_spot_requests(self, weight_to_add):
+        weight_map, added_weight = self.get_launch_spec_counts(weight_to_add)
+        for launch_spec, count in weight_map.items():
             requests = self.ec2_backend.request_spot_instances(
                 price=launch_spec.spot_price,
                 image_id=launch_spec.image_id,
@@ -2841,12 +2853,28 @@ class SpotFleetRequest(TaggedEC2Resource):
                 ramdisk_id=None,
                 monitoring_enabled=launch_spec.monitoring,
                 subnet_id=launch_spec.subnet_id,
+                spot_fleet_id=self.id,
             )
             self.spot_requests.extend(requests)
+        self.fulfilled_capacity += added_weight
         return self.spot_requests
 
     def terminate_instances(self):
-        pass
+        instance_ids = []
+        new_fulfilled_capacity = self.fulfilled_capacity
+        for req in self.spot_requests:
+            instance = req.instance
+            for spec in self.launch_specs:
+                if spec.instance_type == instance.instance_type and spec.subnet_id == instance.subnet_id:
+                    break
+
+            if new_fulfilled_capacity - spec.weighted_capacity < self.target_capacity:
+                continue
+            new_fulfilled_capacity -= spec.weighted_capacity
+            instance_ids.append(instance.id)
+
+        self.spot_requests = [req for req in self.spot_requests if req.instance.id not in instance_ids]
+        self.ec2_backend.terminate_instances(instance_ids)
 
 
 class SpotFleetBackend(object):
@@ -2882,11 +2910,25 @@ class SpotFleetBackend(object):
     def cancel_spot_fleet_requests(self, spot_fleet_request_ids, terminate_instances):
         spot_requests = []
         for spot_fleet_request_id in spot_fleet_request_ids:
-            spot_fleet = self.spot_fleet_requests.pop(spot_fleet_request_id)
+            spot_fleet = self.spot_fleet_requests[spot_fleet_request_id]
             if terminate_instances:
+                spot_fleet.target_capacity = 0
                 spot_fleet.terminate_instances()
             spot_requests.append(spot_fleet)
+            del self.spot_fleet_requests[spot_fleet_request_id]
         return spot_requests
+
+    def modify_spot_fleet_request(self, spot_fleet_request_id, target_capacity, terminate_instances):
+        if target_capacity < 0:
+            raise ValueError('Cannot reduce spot fleet capacity below 0')
+        spot_fleet_request = self.spot_fleet_requests[spot_fleet_request_id]
+        delta = target_capacity - spot_fleet_request.fulfilled_capacity
+        spot_fleet_request.target_capacity = target_capacity
+        if delta > 0:
+            spot_fleet_request.create_spot_requests(delta)
+        elif delta < 0 and terminate_instances == 'Default':
+            spot_fleet_request.terminate_instances()
+        return True
 
 
 class ElasticAddress(object):
