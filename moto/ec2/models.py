@@ -2919,12 +2919,14 @@ class SpotFleetBackend(object):
         return spot_requests
 
     def modify_spot_fleet_request(self, spot_fleet_request_id, target_capacity, terminate_instances):
+        if target_capacity < 0:
+            raise ValueError('Cannot reduce spot fleet capacity below 0')
         spot_fleet_request = self.spot_fleet_requests[spot_fleet_request_id]
-        delta = target_capacity - spot_fleet_request.target_capacity
+        delta = target_capacity - spot_fleet_request.fulfilled_capacity
         spot_fleet_request.target_capacity = target_capacity
         if delta > 0:
             spot_fleet_request.create_spot_requests(delta)
-        elif delta < 0 and terminate_instances == 'default':
+        elif delta < 0 and terminate_instances == 'Default':
             spot_fleet_request.terminate_instances()
         return True
 

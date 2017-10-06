@@ -240,6 +240,32 @@ def test_modify_spot_fleet_request_down_no_terminate():
 
 
 @mock_ec2
+def test_modify_spot_fleet_request_down_odd():
+    conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
+
+    spot_fleet_res = conn.request_spot_fleet(
+        SpotFleetRequestConfig=spot_config(subnet_id),
+    )
+    spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
+
+    conn.modify_spot_fleet_request(
+        SpotFleetRequestId=spot_fleet_id, TargetCapacity=7)
+    conn.modify_spot_fleet_request(
+        SpotFleetRequestId=spot_fleet_id, TargetCapacity=5)
+
+    instance_res = conn.describe_spot_fleet_instances(
+        SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res['ActiveInstances']
+    len(instances).should.equal(3)
+
+    spot_fleet_config = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
+    spot_fleet_config['TargetCapacity'].should.equal(5)
+    spot_fleet_config['FulfilledCapacity'].should.equal(6)
+
+
+@mock_ec2
 def test_modify_spot_fleet_request_down():
     conn = boto3.client("ec2", region_name='us-west-2')
     subnet_id = get_subnet_id(conn)

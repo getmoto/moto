@@ -32,7 +32,7 @@ class SpotFleets(BaseResponse):
     def modify_spot_fleet_request(self):
         spot_fleet_request_id = self._get_param("SpotFleetRequestId")
         target_capacity = self._get_int_param("TargetCapacity")
-        terminate_instances = self._get_param("ExcessCapacityTerminationPolicy", if_none="default")
+        terminate_instances = self._get_param("ExcessCapacityTerminationPolicy", if_none="Default")
         successful = self.ec2_backend.modify_spot_fleet_request(
             spot_fleet_request_id, target_capacity, terminate_instances)
         template = self.response_template(MODIFY_SPOT_FLEET_REQUEST_TEMPLATE)
@@ -65,10 +65,10 @@ REQUEST_SPOT_FLEET_TEMPLATE = """<RequestSpotFleetResponse xmlns="http://ec2.ama
     <spotFleetRequestId>{{ request.id }}</spotFleetRequestId>
 </RequestSpotFleetResponse>"""
 
-MODIFY_SPOT_FLEET_REQUEST_TEMPLATE = """<RequestSpotFleetResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">
+MODIFY_SPOT_FLEET_REQUEST_TEMPLATE = """<ModifySpotFleetRequestResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">
     <requestId>21681fea-9987-aef3-2121-example</requestId>
-    <return>{{ successful }}</return>
-</RequestSpotFleetResponse>"""
+    <return>{{ 'true' if successful else 'false' }}</return>
+</ModifySpotFleetRequestResponse>"""
 
 DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">
     <requestId>4d68a6cc-8f2e-4be1-b425-example</requestId>
