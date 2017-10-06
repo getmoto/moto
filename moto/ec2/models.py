@@ -109,6 +109,7 @@ from .utils import (
     random_vpn_connection_id,
     random_customer_gateway_id,
     is_tag_filter,
+    tag_filter_matches,
 )
 
 RESOURCES_DIR = os.path.join(os.path.dirname(__file__), 'resources')
@@ -1309,7 +1310,7 @@ class SecurityGroup(TaggedEC2Resource):
         elif is_tag_filter(key):
             tag_value = self.get_filter_value(key)
             if isinstance(filter_value, list):
-                return any(v in tag_value for v in filter_value)
+                return tag_filter_matches(self, key, filter_value)
             return tag_value in filter_value
         else:
             attr_name = to_attr(key)
