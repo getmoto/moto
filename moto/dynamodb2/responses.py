@@ -432,12 +432,19 @@ class DynamoHandler(BaseResponse):
             comparison_values = scan_filter.get("AttributeValueList", [])
             filters[attribute_name] = (comparison_operator, comparison_values)
 
+        filter_expression = self.body.get('FilterExpression')
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
 
         items, scanned_count, last_evaluated_key = dynamodb_backend2.scan(name, filters,
                                                                           limit,
-                                                                          exclusive_start_key)
+                                                                          exclusive_start_key,
+                                                                          filter_expression,
+                                                                          expression_attribute_names,
+                                                                          expression_attribute_values)
 
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
