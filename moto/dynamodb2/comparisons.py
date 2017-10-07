@@ -237,7 +237,7 @@ class Op(object):
         lhs = self.lhs
         if isinstance(self.lhs, (Op, Func)):
             lhs = self.lhs.expr(item)
-        elif isinstance(self.lhs, str):
+        elif isinstance(self.lhs, six.string_types):
             try:
                 lhs = item.attrs[self.lhs].cast_value
             except Exception:
@@ -249,7 +249,7 @@ class Op(object):
         rhs = self.rhs
         if isinstance(self.rhs, (Op, Func)):
             rhs = self.rhs.expr(item)
-        elif isinstance(self.lhs, str):
+        elif isinstance(self.lhs, six.string_types):
             try:
                 rhs = item.attrs[self.rhs].cast_value
             except Exception:
