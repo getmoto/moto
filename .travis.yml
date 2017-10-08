@@ -25,8 +25,7 @@ install:
     travis_retry pip install boto==2.45.0
     travis_retry pip install boto3
     travis_retry pip install dist/moto*.gz
-    travis_retry pip install coveralls
-    travis_retry pip install codecov
+    travis_retry pip install coveralls==1.1
     travis_retry pip install -r requirements-dev.txt
 
     if [ "$TEST_SERVER_MODE" = "true" ]; then
@@ -36,4 +35,3 @@ script:
   - make test
 after_success:
   - coveralls
-  - codecov
