@@ -439,13 +439,22 @@ class DynamoHandler(BaseResponse):
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
 
-        items, scanned_count, last_evaluated_key = dynamodb_backend2.scan(name, filters,
-                                                                          limit,
-                                                                          exclusive_start_key,
-                                                                          filter_expression,
-                                                                          expression_attribute_names,
-                                                                          expression_attribute_values)
+        try:
+            items, scanned_count, last_evaluated_key = dynamodb_backend2.scan(name, filters,
+                                                                              limit,
+                                                                              exclusive_start_key,
+                                                                              filter_expression,
+                                                                              expression_attribute_names,
+                                                                              expression_attribute_values)
+        except ValueError as err:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationError'
+            return self.error(er, 'Bad Filter Expression: {0}'.format(err))
+        except Exception as err:
+            er = 'com.amazonaws.dynamodb.v20111205#InternalFailure'
+            return self.error(er, 'Internal error. {0}'.format(err))
 
+        # Items should be a list, at least an empty one. Is None if table does not exist.
+        # Should really check this at the beginning
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er, 'Requested resource not found')

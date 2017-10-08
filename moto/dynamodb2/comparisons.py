@@ -69,7 +69,8 @@ def get_filter_expression(expr, names, values):
 
     # Remove all spaces, tbf we could just skip them in the next step.
     # The number of known options is really small so we can do a fair bit of cheating
-    expr = list(re.sub('\s', '', expr))  # 'Id>5ANDattribute_exists(test)ORNOTlength<6'
+    #expr = list(re.sub('\s', '', expr))  # 'Id>5ANDattribute_exists(test)ORNOTlength<6'
+    expr = list(expr)
 
     # DodgyTokenisation stage 1
     def is_value(val):
@@ -90,7 +91,11 @@ def get_filter_expression(expr, names, values):
     while len(expr) > 0:
         current_char = expr.pop(0)
 
-        if current_char == ',':  # Split params ,
+        if current_char == ' ':
+            if len(stack) > 0:
+                tokens.append(stack)
+            stack = ''
+        elif current_char == ',':  # Split params ,
             if len(stack) > 0:
                 tokens.append(stack)
             stack = ''
@@ -113,6 +118,9 @@ def get_filter_expression(expr, names, values):
     if len(stack) > 0:
         tokens.append(stack)
 
+    def is_op(val):
+        return val in ('<', '>', '=', '>=', '<=', '<>', 'BETWEEN', 'IN', 'AND', 'OR', 'NOT')
+
     # DodgyTokenisation stage 2, it groups together some elements to make RPN'ing it later easier.
     tokens2 = []
     token_iterator = iter(tokens)
@@ -122,17 +130,30 @@ def get_filter_expression(expr, names, values):
 
             next_token = six.next(token_iterator)
             while next_token != ')':
+                try:
+                    next_token = int(next_token)
+                except ValueError:
+                    try:
+                        next_token = float(next_token)
+                    except ValueError:
+                        pass
                 tuple_list.append(next_token)
                 next_token = six.next(token_iterator)
 
-            tokens2.append(tuple(tuple_list))
+            # Sigh, we only want to group a tuple if it doesnt contain operators
+            if any([is_op(item) for item in tuple_list]):
+                tokens2.append('(')
+                tokens2.extend(tuple_list)
+                tokens2.append(')')
+            else:
+                tokens2.append(tuple(tuple_list))
         elif token == 'BETWEEN':
-            op1 = six.next(token_iterator)
+            field = tokens2.pop()
+            op1 = int(six.next(token_iterator))
             and_op = six.next(token_iterator)
             assert and_op == 'AND'
-            op2 = six.next(token_iterator)
-            tokens2.append('BETWEEN')
-            tokens2.append((op1, op2))
+            op2 = int(six.next(token_iterator))
+            tokens2.append(['between', field, op1, op2])
 
         elif is_function(token):
             function_list = [token]
@@ -161,39 +182,38 @@ def get_filter_expression(expr, names, values):
     def is_number(val):
         return val not in ('<', '>', '=', '>=', '<=', '<>', 'BETWEEN', 'IN', 'AND', 'OR', 'NOT')
 
-    def is_op(val):
-        return val in ('<', '>', '=', '>=', '<=', '<>', 'BETWEEN', 'IN', 'AND', 'OR', 'NOT')
+    OPS = {'<': 5, '>': 5, '=': 5, '>=': 5, '<=': 5, '<>': 5, 'IN': 8, 'AND': 11, 'OR': 12, 'NOT': 10, 'BETWEEN': 9, '(': 100, ')': 100}
 
-    OPS = {'<': 5, '>': 5, '=': 5, '>=': 5, '<=': 5, '<>': 5, 'IN': 8, 'AND': 11, 'OR': 12, 'NOT': 10, 'BETWEEN': 9, '(': 1, ')': 1}
+    def shunting_yard(token_list):
+        output = []
+        op_stack = []
 
-    output = []
-    op_stack = []
-    # Basically takes in an infix notation calculation, converts it to a reverse polish notation where there is no
-    # ambiguaty on which order operators are applied.
-    while len(tokens2) > 0:
-        token = tokens2.pop(0)
+        # Basically takes in an infix notation calculation, converts it to a reverse polish notation where there is no
+        # ambiguaty on which order operators are applied.
+        while len(token_list) > 0:
+            token = token_list.pop(0)
 
-        if token == '(':
-            op_stack.append(token)
-        elif token == ')':
-            while len(op_stack) > 0 and op_stack[-1] != '(':
-                output.append(op_stack.pop())
-            if len(op_stack) == 0:
-                # No left paren on the stack, error
-                raise Exception('Missing left paren')
+            if token == '(':
+                op_stack.append(token)
+            elif token == ')':
+                while len(op_stack) > 0 and op_stack[-1] != '(':
+                    output.append(op_stack.pop())
+                lbracket = op_stack.pop()
+                assert lbracket == '('
 
-            # Pop off the left paren
-            op_stack.pop()
+            elif is_number(token):
+                output.append(token)
+            else:
+                # Must be operator kw
+                while len(op_stack) > 0 and OPS[op_stack[-1]] <= OPS[token]:
+                    output.append(op_stack.pop())
+                op_stack.append(token)
+        while len(op_stack) > 0:
+            output.append(op_stack.pop())
 
-        elif is_number(token):
-            output.append(token)
-        else:
-            # Must be operator kw
-            while len(op_stack) > 0 and OPS[op_stack[-1]] <= OPS[token]:
-                output.append(op_stack.pop())
-            op_stack.append(token)
-    while len(op_stack) > 0:
-        output.append(op_stack.pop())
+        return output
+
+    output = shunting_yard(tokens2)
 
     # Hacky funcition to convert dynamo functions (which are represented as lists) to their Class equivelent
     def to_func(val):
@@ -217,7 +237,11 @@ def get_filter_expression(expr, names, values):
         else:
             stack.append(to_func(token))
 
-    return stack[0]
+    result = stack.pop(0)
+    if len(stack) > 0:
+        raise ValueError('Malformed filter expression')
+
+    return result
 
 
 class Op(object):
@@ -249,7 +273,7 @@ class Op(object):
         rhs = self.rhs
         if isinstance(self.rhs, (Op, Func)):
             rhs = self.rhs.expr(item)
-        elif isinstance(self.lhs, six.string_types):
+        elif isinstance(self.rhs, six.string_types):
             try:
                 rhs = item.attrs[self.rhs].cast_value
             except Exception:
@@ -357,15 +381,6 @@ class OpIn(Op):
         return lhs in rhs
 
 
-class OpBetween(Op):
-    OP = 'BETWEEN'
-
-    def expr(self, item):
-        lhs = self._lhs(item)
-        rhs = self._rhs(item)
-        return rhs[0] <= lhs <= rhs[1]
-
-
 class FuncAttrExists(Func):
     FUNC = 'attribute_exists'
 
@@ -432,18 +447,32 @@ class FuncSize(Func):
 
     def expr(self, item):
         if self.attr not in item.attrs:
-            raise ValueError('Invalid option')
+            raise ValueError('Invalid attribute name {0}'.format(self.attr))
 
         if item.attrs[self.attr].type in ('S', 'SS', 'NS', 'B', 'BS', 'L', 'M'):
             return len(item.attrs[self.attr].value)
-        raise ValueError('Invalid option')
+        raise ValueError('Invalid filter expression')
+
+
+class FuncBetween(Func):
+    FUNC = 'between'
+
+    def __init__(self, attribute, start, end):
+        self.attr = attribute
+        self.start = start
+        self.end = end
+
+    def expr(self, item):
+        if self.attr not in item.attrs:
+            raise ValueError('Invalid attribute name {0}'.format(self.attr))
+
+        return self.start <= item.attrs[self.attr].cast_value <= self.end
 
 
 OP_CLASS = {
     'AND': OpAnd,
     'OR': OpOr,
     'IN': OpIn,
-    'BETWEEN': OpBetween,
     '<': OpLessThan,
     '>': OpGreaterThan,
     '<=': OpLessThanOrEqual,
@@ -458,5 +487,6 @@ FUNC_CLASS = {
     'attribute_type': FuncAttrType,
     'begins_with': FuncBeginsWith,
     'contains': FuncContains,
-    'size': FuncSize
+    'size': FuncSize,
+    'between': FuncBetween
 }
