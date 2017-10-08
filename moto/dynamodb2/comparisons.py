@@ -189,7 +189,7 @@ def get_filter_expression(expr, names, values):
         op_stack = []
 
         # Basically takes in an infix notation calculation, converts it to a reverse polish notation where there is no
-        # ambiguaty on which order operators are applied.
+        # ambiguity on which order operators are applied.
         while len(token_list) > 0:
             token = token_list.pop(0)
 
@@ -215,7 +215,7 @@ def get_filter_expression(expr, names, values):
 
     output = shunting_yard(tokens2)
 
-    # Hacky funcition to convert dynamo functions (which are represented as lists) to their Class equivelent
+    # Hacky function to convert dynamo functions (which are represented as lists) to their Class equivalent
     def to_func(val):
         if isinstance(val, list):
             func_name = val.pop(0)
