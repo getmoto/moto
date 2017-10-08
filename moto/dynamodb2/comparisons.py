@@ -178,7 +178,7 @@ def get_filter_expression(expr, names, values):
                     pass
             tokens2.append(token)
 
-    # Start of the Shunting-Yard algorigth. <-- Proper beast algorithm!
+    # Start of the Shunting-Yard algorithm. <-- Proper beast algorithm!
     def is_number(val):
         return val not in ('<', '>', '=', '>=', '<=', '<>', 'BETWEEN', 'IN', 'AND', 'OR', 'NOT')
 
