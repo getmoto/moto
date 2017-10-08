@@ -3,6 +3,7 @@ from __future__ import unicode_literals, print_function
 import six
 import boto
 import boto3
+from boto3.dynamodb.conditions import Attr
 import sure  # noqa
 import requests
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
@@ -12,6 +13,10 @@ from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises
+
+import moto.dynamodb2.comparisons
+import moto.dynamodb2.models
+
 from nose.tools import assert_raises
 try:
     import boto.dynamodb2
@@ -230,6 +235,7 @@ def test_scan_returns_consumed_capacity():
     assert 'CapacityUnits' in response['ConsumedCapacity']
     assert response['ConsumedCapacity']['TableName'] == name
 
+
 @requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_query_returns_consumed_capacity():
@@ -279,6 +285,7 @@ def test_query_returns_consumed_capacity():
     assert 'ConsumedCapacity' in results
     assert 'CapacityUnits' in results['ConsumedCapacity']
     assert results['ConsumedCapacity']['CapacityUnits'] == 1
+
 
 @mock_dynamodb2
 def test_basic_projection_expressions():
@@ -353,6 +360,7 @@ def test_basic_projection_expressions():
     assert 'body' in results['Items'][1]
     assert results['Items'][1]['body'] == 'yet another test message'
 
+
 @mock_dynamodb2
 def test_basic_projection_expressions_with_attr_expression_names():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -419,6 +427,7 @@ def test_basic_projection_expressions_with_attr_expression_names():
     assert 'attachment' in results['Items'][0]
     assert results['Items'][0]['attachment'] == 'something'
 
+
 @mock_dynamodb2
 def test_put_item_returns_consumed_capacity():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -460,6 +469,7 @@ def test_put_item_returns_consumed_capacity():
     })
 
     assert 'ConsumedCapacity' in response
+
 
 @mock_dynamodb2
 def test_update_item_returns_consumed_capacity():
@@ -514,6 +524,7 @@ def test_update_item_returns_consumed_capacity():
     assert 'CapacityUnits' in response['ConsumedCapacity']
     assert 'TableName' in response['ConsumedCapacity']
 
+
 @mock_dynamodb2
 def test_get_item_returns_consumed_capacity():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -562,3 +573,61 @@ def test_get_item_returns_consumed_capacity():
     assert 'ConsumedCapacity' in response
     assert 'CapacityUnits' in response['ConsumedCapacity']
     assert 'TableName' in response['ConsumedCapacity']
+
+
+def test_filter_expression():
+    row1 = moto.dynamodb2.models.Item(None, None, None, None, {'Id': {'N': '8'}, 'Subs': {'N': '5'}, 'Desc': {'S': 'Some description'}, 'KV': {'SS': ['test1', 'test2']}})
+    row2 = moto.dynamodb2.models.Item(None, None, None, None, {'Id': {'N': '8'}, 'Subs': {'N': '10'}, 'Desc': {'S': 'A description'}, 'KV': {'SS': ['test3', 'test4']}})
+
+    filter1 = moto.dynamodb2.comparisons.get_filter_expression('Id > 5 AND Subs < 7', {}, {})
+    filter1.expr(row1).should.be(True)
+    filter1.expr(row2).should.be(False)
+
+    filter2 = moto.dynamodb2.comparisons.get_filter_expression('attribute_exists(Id) AND attribute_not_exists(User)', {}, {})
+    filter2.expr(row1).should.be(True)
+
+    filter3 = moto.dynamodb2.comparisons.get_filter_expression('attribute_type(Id, N)', {}, {})
+    filter3.expr(row1).should.be(True)
+
+    filter4 = moto.dynamodb2.comparisons.get_filter_expression('begins_with(Desc, Some)', {}, {})
+    filter4.expr(row1).should.be(True)
+    filter4.expr(row2).should.be(False)
+
+    filter5 = moto.dynamodb2.comparisons.get_filter_expression('contains(KV, test1)', {}, {})
+    filter5.expr(row1).should.be(True)
+    filter5.expr(row2).should.be(False)
+
+    filter6 = moto.dynamodb2.comparisons.get_filter_expression('size(Desc) > size(KV)', {}, {})
+    filter6.expr(row1).should.be(True)
+
+
+@mock_dynamodb2
+def test_scan_filter():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'}
+        }
+    )
+
+    table = dynamodb.Table('test1')
+    response = table.scan(
+        FilterExpression=Attr('app').eq('app2')
+    )
+    assert response['Count'] == 0
+
+    response = table.scan(
+        FilterExpression=Attr('app').eq('app1')
+    )
+    assert response['Count'] == 1
