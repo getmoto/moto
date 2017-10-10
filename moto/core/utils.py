@@ -236,9 +236,9 @@ def amz_crc32(f):
         else:
             if len(response) == 2:
                 body, new_headers = response
+                status = new_headers.get('status', 200)
             else:
                 status, new_headers, body = response
-            status = new_headers.get('status', 200)
             headers.update(new_headers)
             # Cast status to string
             if "status" in headers:
@@ -264,9 +264,9 @@ def amzn_request_id(f):
         else:
             if len(response) == 2:
                 body, new_headers = response
+                status = new_headers.get('status', 200)
             else:
                 status, new_headers, body = response
-            status = new_headers.get('status', 200)
             headers.update(new_headers)
             # Cast status to string
             if "status" in headers:
@@ -275,7 +275,7 @@ def amzn_request_id(f):
         request_id = gen_amzn_requestid_long(headers)
 
         # Update request ID in XML
-        body = body.format(requestid=request_id)
+        body = body.replace('{{ requestid }}', request_id)
 
         return status, headers, body
 

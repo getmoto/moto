@@ -284,7 +284,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
         <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
     </CreateQueueResult>
     <ResponseMetadata>
-        <RequestId>{requestid}</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </CreateQueueResponse>"""
 

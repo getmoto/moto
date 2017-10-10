@@ -24,7 +24,7 @@ class DynamoHandler(BaseResponse):
     def error(self, type_, message, status=400):
         return status, self.response_headers, dynamo_json_dump({'__type': type_, 'message': message})
 
-    @amz_crc32
+    #@amz_crc32
     @amzn_request_id
     def call_action(self):
         self.body = json.loads(self.body or '{}')
