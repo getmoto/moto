@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import boto
 import boto3
 import botocore.exceptions
+from botocore.exceptions import ClientError
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage, Message
 
@@ -33,6 +34,7 @@ def test_create_fifo_queue_fail():
     else:
         raise RuntimeError('Should of raised InvalidParameterValue Exception')
 
+
 @mock_sqs
 def test_create_fifo_queue():
     sqs = boto3.client('sqs', region_name='us-east-1')
@@ -49,10 +51,10 @@ def test_create_fifo_queue():
     response['Attributes']['FifoQueue'].should.equal('true')
 
 
-
 @mock_sqs
 def test_create_queue():
     sqs = boto3.resource('sqs', region_name='us-east-1')
+
     new_queue = sqs.create_queue(QueueName='test-queue')
     new_queue.should_not.be.none
     new_queue.should.have.property('url').should.contain('test-queue')
@@ -66,10 +68,19 @@ def test_create_queue():
 
 
 @mock_sqs
-def test_get_inexistent_queue():
+def test_get_nonexistent_queue():
     sqs = boto3.resource('sqs', region_name='us-east-1')
-    sqs.get_queue_by_name.when.called_with(
-        QueueName='nonexisting-queue').should.throw(botocore.exceptions.ClientError)
+    with assert_raises(ClientError) as err:
+        sqs.get_queue_by_name(QueueName='nonexisting-queue')
+    ex = err.exception
+    ex.operation_name.should.equal('GetQueueUrl')
+    ex.response['Error']['Code'].should.equal('QueueDoesNotExist')
+
+    with assert_raises(ClientError) as err:
+        sqs.Queue('http://whatever-incorrect-queue-address').load()
+    ex = err.exception
+    ex.operation_name.should.equal('GetQueueAttributes')
+    ex.response['Error']['Code'].should.equal('QueueDoesNotExist')
 
 
 @mock_sqs

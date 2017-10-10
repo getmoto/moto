@@ -2,7 +2,8 @@ from __future__ import unicode_literals
 
 import json
 
-import dicttoxml
+import xmltodict
+
 from jinja2 import Template
 from six import iteritems
 
@@ -26,6 +27,24 @@ def convert_json_error_to_xml(json_error):
     return template.render(code=code, message=message)
 
 
+def itemize(data):
+    """
+    The xmltodict.unparse requires we modify the shape of the input dictionary slightly. Instead of a dict of the form:
+        {'key': ['value1', 'value2']}
+    We must provide:
+        {'key': {'item': ['value1', 'value2']}}
+    """
+    if isinstance(data, dict):
+        ret = {}
+        for key in data:
+            ret[key] = itemize(data[key])
+        return ret
+    elif isinstance(data, list):
+        return {'item': [itemize(value) for value in data]}
+    else:
+        return data
+
+
 class RedshiftResponse(BaseResponse):
 
     @property
@@ -36,8 +55,10 @@ class RedshiftResponse(BaseResponse):
         if self.request_json:
             return json.dumps(response)
         else:
-            xml = dicttoxml.dicttoxml(response, attr_type=False, root=False)
-            return xml.decode("utf-8")
+            xml = xmltodict.unparse(itemize(response), full_document=False)
+            if hasattr(xml, 'decode'):
+                xml = xml.decode('utf-8')
+            return xml
 
     def call_action(self):
         status, headers, body = super(RedshiftResponse, self).call_action()
