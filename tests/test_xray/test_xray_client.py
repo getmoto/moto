@@ -5,13 +5,16 @@ import boto3
 
 from aws_xray_sdk.core import patch_all
 
-# Simulate that an imported module will already have ran this
-patch_all()
+import botocore.client
+import botocore.endpoint
+original_make_api_call = botocore.client.BaseClient._make_api_call
+original_encode_headers = botocore.endpoint.Endpoint._encode_headers
 
 
 @mock_xray_client
 @mock_dynamodb2
 def test_xray_dynamo():
+    patch_all()
 
     client = boto3.client('dynamodb', region_name='us-east-1')
 
@@ -24,3 +27,6 @@ def test_xray_dynamo():
 
 
     print()
+
+    setattr(botocore.client.BaseClient, '_make_api_call', original_make_api_call)
+    setattr(botocore.endpoint.Endpoint, '_encode_headers', original_encode_headers)
