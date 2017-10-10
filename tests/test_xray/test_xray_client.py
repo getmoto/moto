@@ -13,7 +13,7 @@ patch_all()
 @mock_dynamodb2
 def test_xray_dynamo():
 
-    client = boto3.client('dynamodb')
+    client = boto3.client('dynamodb', region_name='us-east-1')
 
     with XRaySegment():
         resp = client.list_tables()

@@ -244,7 +244,11 @@ def amz_crc32(f):
             if "status" in headers:
                 headers['status'] = str(headers['status'])
 
-        gen_amz_crc32(body, headers)
+        try:
+            # Doesnt work on python2 for some odd unicode strings
+            gen_amz_crc32(body, headers)
+        except Exception:
+            pass
 
         return status, headers, body
 
