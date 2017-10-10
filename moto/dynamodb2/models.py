@@ -8,7 +8,7 @@ import re
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
-from .comparisons import get_comparison_func
+from .comparisons import get_comparison_func, get_filter_expression, Op
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -508,15 +508,15 @@ class Table(BaseModel):
             else:
                 yield hash_set
 
-    def scan(self, filters, limit, exclusive_start_key):
+    def scan(self, filters, limit, exclusive_start_key, filter_expression=None):
         results = []
         scanned_count = 0
 
-        for result in self.all_items():
+        for item in self.all_items():
             scanned_count += 1
             passes_all_conditions = True
             for attribute_name, (comparison_operator, comparison_objs) in filters.items():
-                attribute = result.attrs.get(attribute_name)
+                attribute = item.attrs.get(attribute_name)
 
                 if attribute:
                     # Attribute found
@@ -532,8 +532,11 @@ class Table(BaseModel):
                     passes_all_conditions = False
                     break
 
+            if filter_expression is not None:
+                passes_all_conditions &= filter_expression.expr(item)
+
             if passes_all_conditions:
-                results.append(result)
+                results.append(item)
 
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key)
@@ -698,7 +701,7 @@ class DynamoDBBackend(BaseBackend):
         return table.query(hash_key, range_comparison, range_values, limit,
                            exclusive_start_key, scan_index_forward, projection_expression, index_name, **filter_kwargs)
 
-    def scan(self, table_name, filters, limit, exclusive_start_key):
+    def scan(self, table_name, filters, limit, exclusive_start_key, filter_expression, expr_names, expr_values):
         table = self.tables.get(table_name)
         if not table:
             return None, None, None
@@ -708,7 +711,12 @@ class DynamoDBBackend(BaseBackend):
             dynamo_types = [DynamoType(value) for value in comparison_values]
             scan_filters[key] = (comparison_operator, dynamo_types)
 
-        return table.scan(scan_filters, limit, exclusive_start_key)
+        if filter_expression is not None:
+            filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
+        else:
+            filter_expression = Op(None, None)  # Will always eval to true
+
+        return table.scan(scan_filters, limit, exclusive_start_key, filter_expression)
 
     def update_item(self, table_name, key, update_expression, attribute_updates, expression_attribute_names,
                     expression_attribute_values, expected=None):
