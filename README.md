@@ -94,7 +94,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | IAM                   | @mock_iam        | core endpoints done               |
 |------------------------------------------------------------------------------|
-| Lambda                | @mock_lambda     | basic endpoints done              |
+| Lambda                | @mock_lambda     | basic endpoints done, requires    |
+|                       |                  | docker                            |
 |------------------------------------------------------------------------------|
 | Logs                  | @mock_logs       | basic endpoints done              |
 |------------------------------------------------------------------------------|

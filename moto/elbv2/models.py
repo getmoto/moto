@@ -21,6 +21,7 @@ from .exceptions import (
     InvalidActionTypeError,
     ActionTargetGroupNotFoundError,
     InvalidDescribeRulesRequest,
+    ResourceInUseError,
     RuleNotFoundError,
     DuplicatePriorityError,
     InvalidTargetGroupNameError,
@@ -426,10 +427,17 @@ class ELBv2Backend(BaseBackend):
         # however, boto3 does't raise error even if rule is not found
 
     def delete_target_group(self, target_group_arn):
-        target_group = self.target_groups.pop(target_group_arn, None)
+        if target_group_arn not in self.target_groups:
+            raise TargetGroupNotFoundError()
+
+        target_group = self.target_groups[target_group_arn]
         if target_group:
+            if self._any_listener_using(target_group_arn):
+                raise ResourceInUseError(
+                    "The target group '{}' is currently in use by a listener or a rule".format(
+                        target_group_arn))
+            del self.target_groups[target_group_arn]
             return target_group
-        raise TargetGroupNotFoundError()
 
     def delete_listener(self, listener_arn):
         for load_balancer in self.load_balancers.values():
@@ -538,6 +546,15 @@ class ELBv2Backend(BaseBackend):
             given_rule.priority = priority
             modified_rules.append(given_rule)
         return modified_rules
+
+    def _any_listener_using(self, target_group_arn):
+        for load_balancer in self.load_balancers.values():
+            for listener in load_balancer.listeners.values():
+                for rule in listener.rules:
+                    for action in rule.actions:
+                        if action.get('target_group_arn') == target_group_arn:
+                            return True
+        return False
 
 
 elbv2_backends = {}

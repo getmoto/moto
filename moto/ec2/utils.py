@@ -51,7 +51,7 @@ def random_ami_id():
 
 
 def random_instance_id():
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['instance'])
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['instance'], size=17)
 
 
 def random_reservation_id():

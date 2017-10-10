@@ -614,6 +614,20 @@ def test_security_group_tagging_boto3():
 
 
 @mock_ec2
+def test_security_group_wildcard_tag_filter_boto3():
+    conn = boto3.client('ec2', region_name='us-east-1')
+    sg = conn.create_security_group(GroupName="test-sg", Description="Test SG")
+    conn.create_tags(Resources=[sg['GroupId']], Tags=[
+                     {'Key': 'Test', 'Value': 'Tag'}])
+    describe = conn.describe_security_groups(
+        Filters=[{'Name': 'tag-value', 'Values': ['*']}])
+
+    tag = describe["SecurityGroups"][0]['Tags'][0]
+    tag['Value'].should.equal("Tag")
+    tag['Key'].should.equal("Test")
+
+
+@mock_ec2
 def test_authorize_and_revoke_in_bulk():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
 
