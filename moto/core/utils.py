@@ -279,7 +279,10 @@ def amzn_request_id(f):
         request_id = gen_amzn_requestid_long(headers)
 
         # Update request ID in XML
-        body = body.replace('{{ requestid }}', request_id)
+        try:
+            body = body.replace('{{ requestid }}', request_id)
+        except Exception:  # Will just ignore if it cant work on bytes (which are str's on python2)
+            pass
 
         return status, headers, body
 
