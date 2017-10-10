@@ -4,7 +4,7 @@ import six
 import re
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
+from moto.core.utils import camelcase_to_underscores, amzn_request_id
 from .models import dynamodb_backend2, dynamo_json_dump
 
 
@@ -24,7 +24,6 @@ class DynamoHandler(BaseResponse):
     def error(self, type_, message, status=400):
         return status, self.response_headers, dynamo_json_dump({'__type': type_, 'message': message})
 
-    #@amz_crc32
     @amzn_request_id
     def call_action(self):
         self.body = json.loads(self.body or '{}')

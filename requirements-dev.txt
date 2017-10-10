@@ -15,4 +15,3 @@ click==6.7
 inflection==0.3.1
 lxml==4.0.0
 beautifulsoup4==4.6.0
-aws-xray-sdk==0.92.2
