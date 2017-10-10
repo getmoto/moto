@@ -19,10 +19,11 @@ class MockEmitter(UDPEmitter):
 
     def send_entity(self, entity):
         # Hack to get region
-        region = entity.subsegments[0].aws['region']
-        xray = self._xray_backend(region)
+        # region = entity.subsegments[0].aws['region']
+        # xray = self._xray_backend(region)
 
         # TODO store X-Ray data, pretty sure X-Ray needs refactor for this
+        pass
 
     def _send_data(self, data):
         raise RuntimeError('Should not be running this')
