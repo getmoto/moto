@@ -12,7 +12,12 @@ import boto.sqs
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import camelcase_to_underscores, get_random_message_id, unix_time, unix_time_millis
 from .utils import generate_receipt_handle
-from .exceptions import ReceiptHandleIsInvalid, MessageNotInflight, MessageAttributesInvalid
+from .exceptions import (
+    MessageAttributesInvalid,
+    MessageNotInflight,
+    QueueDoesNotExist,
+    ReceiptHandleIsInvalid,
+)
 
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
@@ -304,7 +309,10 @@ class SQSBackend(BaseBackend):
         return qs
 
     def get_queue(self, queue_name):
-        return self.queues.get(queue_name, None)
+        queue = self.queues.get(queue_name)
+        if queue is None:
+            raise QueueDoesNotExist()
+        return queue
 
     def delete_queue(self, queue_name):
         if queue_name in self.queues:
