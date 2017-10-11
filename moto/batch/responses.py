@@ -263,3 +263,42 @@ class BatchResponse(BaseResponse):
             return json.dumps({'jobs': self.batch_backend.describe_jobs(jobs)})
         except AWSError as err:
             return err.response()
+
+    # ListJobs
+    def listjobs(self):
+        job_queue = self._get_param('jobQueue')
+        job_status = self._get_param('jobStatus')
+        max_results = self._get_param('maxResults')
+        next_token = self._get_param('nextToken')
+
+        try:
+            jobs = self.batch_backend.list_jobs(job_queue, job_status, max_results, next_token)
+        except AWSError as err:
+            return err.response()
+
+        result = {'jobSummaryList': [{'jobId': job.job_id, 'jobName': job.job_name} for job in jobs]}
+        return json.dumps(result)
+
+    # TerminateJob
+    def terminatejob(self):
+        job_id = self._get_param('jobId')
+        reason = self._get_param('reason')
+
+        try:
+            self.batch_backend.terminate_job(job_id, reason)
+        except AWSError as err:
+            return err.response()
+
+        return ''
+
+    # CancelJob
+    def canceljob(self):  # Theres some AWS semantics on the differences but for us they're identical ;-)
+        job_id = self._get_param('jobId')
+        reason = self._get_param('reason')
+
+        try:
+            self.batch_backend.terminate_job(job_id, reason)
+        except AWSError as err:
+            return err.response()
+
+        return ''

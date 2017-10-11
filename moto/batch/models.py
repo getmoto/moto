@@ -196,6 +196,7 @@ class Job(threading.Thread, BaseModel):
         self.job_started_at = datetime.datetime(1970, 1, 1)
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
+        self.job_stopped_reason = None
 
         self.stop = False
 
@@ -230,6 +231,8 @@ class Job(threading.Thread, BaseModel):
         }
         if self.job_stopped:
             result['stoppedAt'] = datetime2int(self.job_stopped_at)
+        if self.job_stopped_reason is not None:
+            result['statusReason'] = self.job_stopped_reason
         return result
 
     def run(self):
@@ -327,6 +330,11 @@ class Job(threading.Thread, BaseModel):
 
         self.job_stopped = True
         self.job_stopped_at = datetime.datetime.now()
+
+    def terminate(self, reason):
+        if not self.stop:
+            self.stop = True
+            self.job_stopped_reason = reason
 
 
 class BatchBackend(BaseBackend):
@@ -477,6 +485,20 @@ class BatchBackend(BaseBackend):
                     result.append(value)
 
         return result
+
+    def get_job_by_id(self, identifier):
+        """
+        Get job by id
+        :param identifier: Job ID
+        :type identifier: str
+
+        :return: Job
+        :rtype: Job
+        """
+        try:
+            return self._jobs[identifier]
+        except KeyError:
+            return None
 
     def describe_compute_environments(self, environments=None, max_results=None, next_token=None):
         envs = set()
@@ -915,6 +937,36 @@ class BatchBackend(BaseBackend):
             result.append(job.describe())
 
         return result
+
+    def list_jobs(self, job_queue, job_status=None, max_results=None, next_token=None):
+        jobs = []
+
+        job_queue = self.get_job_queue(job_queue)
+        if job_queue is None:
+            raise ClientException('Job queue {0} does not exist'.format(job_queue))
+
+        if job_status is not None and job_status not in ('SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING', 'RUNNING', 'SUCCEEDED', 'FAILED'):
+            raise ClientException('Job status is not one of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED')
+
+        for job in job_queue.jobs:
+            if job_status is not None and job.job_state != job_status:
+                continue
+
+            jobs.append(job)
+
+        return jobs
+
+    def terminate_job(self, job_id, reason):
+        if job_id is None:
+            raise ClientException('Job ID does not exist')
+        if reason is None:
+            raise ClientException('Reason does not exist')
+
+        job = self.get_job_by_id(job_id)
+        if job is None:
+            raise ClientException('Job not found')
+
+        job.terminate(reason)
 
 
 available_regions = boto3.session.Session().get_available_regions("batch")
