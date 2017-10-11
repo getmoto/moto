@@ -16,3 +16,8 @@ class MessageAttributesInvalid(Exception):
 
     def __init__(self, description):
         self.description = description
+
+
+class QueueDoesNotExist(Exception):
+    status_code = 404
+    description = "The specified queue does not exist for this wsdl version."

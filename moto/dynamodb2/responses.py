@@ -432,13 +432,29 @@ class DynamoHandler(BaseResponse):
             comparison_values = scan_filter.get("AttributeValueList", [])
             filters[attribute_name] = (comparison_operator, comparison_values)
 
+        filter_expression = self.body.get('FilterExpression')
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
 
-        items, scanned_count, last_evaluated_key = dynamodb_backend2.scan(name, filters,
-                                                                          limit,
-                                                                          exclusive_start_key)
+        try:
+            items, scanned_count, last_evaluated_key = dynamodb_backend2.scan(name, filters,
+                                                                              limit,
+                                                                              exclusive_start_key,
+                                                                              filter_expression,
+                                                                              expression_attribute_names,
+                                                                              expression_attribute_values)
+        except ValueError as err:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationError'
+            return self.error(er, 'Bad Filter Expression: {0}'.format(err))
+        except Exception as err:
+            er = 'com.amazonaws.dynamodb.v20111205#InternalFailure'
+            return self.error(er, 'Internal error. {0}'.format(err))
 
+        # Items should be a list, at least an empty one. Is None if table does not exist.
+        # Should really check this at the beginning
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
             return self.error(er, 'Requested resource not found')

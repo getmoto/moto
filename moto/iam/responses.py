@@ -1159,9 +1159,7 @@ CREATE_ACCESS_KEY_TEMPLATE = """<CreateAccessKeyResponse>
          <UserName>{{ key.user_name }}</UserName>
          <AccessKeyId>{{ key.access_key_id }}</AccessKeyId>
          <Status>{{ key.status }}</Status>
-         <SecretAccessKey>
-         {{ key.secret_access_key }}
-         </SecretAccessKey>
+         <SecretAccessKey>{{ key.secret_access_key }}</SecretAccessKey>
       </AccessKey>
    </CreateAccessKeyResult>
    <ResponseMetadata>

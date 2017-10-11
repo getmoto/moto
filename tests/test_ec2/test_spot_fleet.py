@@ -164,3 +164,155 @@ def test_cancel_spot_fleet_request():
     spot_fleet_requests = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs']
     len(spot_fleet_requests).should.equal(0)
+
+
+@mock_ec2
+def test_modify_spot_fleet_request_up():
+    conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
+
+    spot_fleet_res = conn.request_spot_fleet(
+        SpotFleetRequestConfig=spot_config(subnet_id),
+    )
+    spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
+
+    conn.modify_spot_fleet_request(
+        SpotFleetRequestId=spot_fleet_id, TargetCapacity=20)
+
+    instance_res = conn.describe_spot_fleet_instances(
+        SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res['ActiveInstances']
+    len(instances).should.equal(10)
+
+    spot_fleet_config = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
+    spot_fleet_config['TargetCapacity'].should.equal(20)
+    spot_fleet_config['FulfilledCapacity'].should.equal(20.0)
+
+
+@mock_ec2
+def test_modify_spot_fleet_request_up_diversified():
+    conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
+
+    spot_fleet_res = conn.request_spot_fleet(
+        SpotFleetRequestConfig=spot_config(
+            subnet_id, allocation_strategy='diversified'),
+    )
+    spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
+
+    conn.modify_spot_fleet_request(
+        SpotFleetRequestId=spot_fleet_id, TargetCapacity=19)
+
+    instance_res = conn.describe_spot_fleet_instances(
+        SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res['ActiveInstances']
+    len(instances).should.equal(7)
+
+    spot_fleet_config = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
+    spot_fleet_config['TargetCapacity'].should.equal(19)
+    spot_fleet_config['FulfilledCapacity'].should.equal(20.0)
+
+
+@mock_ec2
+def test_modify_spot_fleet_request_down_no_terminate():
+    conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
+
+    spot_fleet_res = conn.request_spot_fleet(
+        SpotFleetRequestConfig=spot_config(subnet_id),
+    )
+    spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
+
+    conn.modify_spot_fleet_request(
+        SpotFleetRequestId=spot_fleet_id, TargetCapacity=1, ExcessCapacityTerminationPolicy="noTermination")
+
+    instance_res = conn.describe_spot_fleet_instances(
+        SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res['ActiveInstances']
+    len(instances).should.equal(3)
+
+    spot_fleet_config = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
+    spot_fleet_config['TargetCapacity'].should.equal(1)
+    spot_fleet_config['FulfilledCapacity'].should.equal(6.0)
+
+
+@mock_ec2
+def test_modify_spot_fleet_request_down_odd():
+    conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
+
+    spot_fleet_res = conn.request_spot_fleet(
+        SpotFleetRequestConfig=spot_config(subnet_id),
+    )
+    spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
+
+    conn.modify_spot_fleet_request(
+        SpotFleetRequestId=spot_fleet_id, TargetCapacity=7)
+    conn.modify_spot_fleet_request(
+        SpotFleetRequestId=spot_fleet_id, TargetCapacity=5)
+
+    instance_res = conn.describe_spot_fleet_instances(
+        SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res['ActiveInstances']
+    len(instances).should.equal(3)
+
+    spot_fleet_config = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
+    spot_fleet_config['TargetCapacity'].should.equal(5)
+    spot_fleet_config['FulfilledCapacity'].should.equal(6.0)
+
+
+@mock_ec2
+def test_modify_spot_fleet_request_down():
+    conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
+
+    spot_fleet_res = conn.request_spot_fleet(
+        SpotFleetRequestConfig=spot_config(subnet_id),
+    )
+    spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
+
+    conn.modify_spot_fleet_request(
+        SpotFleetRequestId=spot_fleet_id, TargetCapacity=1)
+
+    instance_res = conn.describe_spot_fleet_instances(
+        SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res['ActiveInstances']
+    len(instances).should.equal(1)
+
+    spot_fleet_config = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
+    spot_fleet_config['TargetCapacity'].should.equal(1)
+    spot_fleet_config['FulfilledCapacity'].should.equal(2.0)
+
+
+@mock_ec2
+def test_modify_spot_fleet_request_down_no_terminate_after_custom_terminate():
+    conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
+
+    spot_fleet_res = conn.request_spot_fleet(
+        SpotFleetRequestConfig=spot_config(subnet_id),
+    )
+    spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
+
+    instance_res = conn.describe_spot_fleet_instances(
+        SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res['ActiveInstances']
+    conn.terminate_instances(InstanceIds=[i['InstanceId'] for i in instances[1:]])
+
+    conn.modify_spot_fleet_request(
+        SpotFleetRequestId=spot_fleet_id, TargetCapacity=1, ExcessCapacityTerminationPolicy="noTermination")
+
+    instance_res = conn.describe_spot_fleet_instances(
+        SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res['ActiveInstances']
+    len(instances).should.equal(1)
+
+    spot_fleet_config = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
+    spot_fleet_config['TargetCapacity'].should.equal(1)
+    spot_fleet_config['FulfilledCapacity'].should.equal(2.0)

@@ -8,7 +8,8 @@ from .models import sqs_backends
 from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
-    ReceiptHandleIsInvalid
+    QueueDoesNotExist,
+    ReceiptHandleIsInvalid,
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
@@ -76,7 +77,12 @@ class SQSResponse(BaseResponse):
     def get_queue_url(self):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
-        queue = self.sqs_backend.get_queue(queue_name)
+
+        try:
+            queue = self.sqs_backend.get_queue(queue_name)
+        except QueueDoesNotExist as e:
+            return self._error('QueueDoesNotExist', e.description)
+
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
             return template.render(queue=queue, request_url=request_url)
@@ -113,7 +119,11 @@ class SQSResponse(BaseResponse):
 
     def get_queue_attributes(self):
         queue_name = self._get_queue_name()
-        queue = self.sqs_backend.get_queue(queue_name)
+        try:
+            queue = self.sqs_backend.get_queue(queue_name)
+        except QueueDoesNotExist as e:
+            return self._error('QueueDoesNotExist', e.description)
+
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
 
@@ -250,7 +260,11 @@ class SQSResponse(BaseResponse):
 
     def receive_message(self):
         queue_name = self._get_queue_name()
-        queue = self.sqs_backend.get_queue(queue_name)
+
+        try:
+            queue = self.sqs_backend.get_queue(queue_name)
+        except QueueDoesNotExist as e:
+            return self._error('QueueDoesNotExist', e.description)
 
         try:
             message_count = int(self.querystring.get("MaxNumberOfMessages")[0])

@@ -3,6 +3,13 @@ Moto Changelog
 
 Latest
 ------
+1.1.22
+-----
+
+    * Lambda policies
+    * Dynamodb filter expressions
+    * EC2 Spot fleet improvements
+
 1.1.21
 -----
 
