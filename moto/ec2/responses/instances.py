@@ -30,7 +30,7 @@ class InstanceResponse(BaseResponse):
         if max_results and len(reservations) > (start + max_results):
             next_token = reservations_resp[-1].id
         template = self.response_template(EC2_DESCRIBE_INSTANCES)
-        return template.render(reservations=reservations_resp, next_token=next_token)
+        return template.render(reservations=reservations_resp, next_token=next_token).replace('True', 'true').replace('False', 'false')
 
     def run_instances(self):
         min_count = int(self._get_param('MinCount', if_none='1'))

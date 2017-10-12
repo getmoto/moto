@@ -1113,3 +1113,20 @@ def test_get_instance_by_security_group():
 
     assert len(security_group_instances) == 1
     assert security_group_instances[0].id == instance.id
+
+
+@mock_ec2
+def test_modify_delete_on_termination():
+    ec2_client = boto3.resource('ec2', region_name='us-west-1')
+    result = ec2_client.create_instances(ImageId='ami-12345678', MinCount=1, MaxCount=1)
+    instance = result[0]
+    instance.load()
+    instance.block_device_mappings[0]['Ebs']['DeleteOnTermination'].should.be(False)
+    instance.modify_attribute(
+        BlockDeviceMappings=[{
+            'DeviceName': '/dev/sda1',
+            'Ebs': {'DeleteOnTermination': True, 'VolumeId': instance.block_device_mappings[0]['Ebs']['VolumeId']}
+        }]
+    )
+    instance.load()
+    instance.block_device_mappings[0]['Ebs']['DeleteOnTermination'].should.be(True)
