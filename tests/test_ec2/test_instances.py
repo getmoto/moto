@@ -1125,7 +1125,7 @@ def test_modify_delete_on_termination():
     instance.modify_attribute(
         BlockDeviceMappings=[{
             'DeviceName': '/dev/sda1',
-            'Ebs': {'DeleteOnTermination': True, 'VolumeId': instance.block_device_mappings[0]['Ebs']['VolumeId']}
+            'Ebs': {'DeleteOnTermination': True}
         }]
     )
     instance.load()
