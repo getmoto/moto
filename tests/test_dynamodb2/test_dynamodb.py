@@ -656,6 +656,36 @@ def test_scan_filter():
 
 
 @mock_dynamodb2
+def test_scan_filter2():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'N'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'N': '1'}
+        }
+    )
+
+    response = client.scan(
+        TableName='test1',
+        Select='ALL_ATTRIBUTES',
+        FilterExpression='#tb >= :dt',
+        ExpressionAttributeNames={"#tb": "app"},
+        ExpressionAttributeValues={":dt": {"N": str(1)}}
+    )
+    assert response['Count'] == 1
+
+
+
+@mock_dynamodb2
 def test_bad_scan_filter():
     client = boto3.client('dynamodb', region_name='us-east-1')
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -678,7 +708,6 @@ def test_bad_scan_filter():
         err.response['Error']['Code'].should.equal('ValidationError')
     else:
         raise RuntimeError('Should of raised ResourceInUseException')
-
 
 
 @mock_dynamodb2

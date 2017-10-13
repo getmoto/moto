@@ -63,7 +63,7 @@ def get_filter_expression(expr, names, values):
         expr = expr.replace(key, value)
     for key, value in values.items():
         if 'N' in value:
-            expr.replace(key, float(value['N']))
+            expr = expr.replace(key, value['N'])
         else:
             expr = expr.replace(key, value['S'])
 
@@ -176,7 +176,12 @@ def get_filter_expression(expr, names, values):
                     token = float(token)
                 except ValueError:
                     pass
-            tokens2.append(token)
+
+            # Need to join >= <= <>
+            if len(tokens2) > 0 and ((tokens2[-1] == '>' and token == '=') or (tokens2[-1] == '<' and token == '=') or (tokens2[-1] == '<' and token == '>')):
+                tokens2.append(tokens2.pop() + token)
+            else:
+                tokens2.append(token)
 
     # Start of the Shunting-Yard algorithm. <-- Proper beast algorithm!
     def is_number(val):
