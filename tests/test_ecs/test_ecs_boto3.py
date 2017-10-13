@@ -714,6 +714,9 @@ def test_describe_container_instances():
                      for ci in response['containerInstances']]
     for arn in test_instance_arns:
         response_arns.should.contain(arn)
+    for instance in response['containerInstances']:
+        instance.keys().should.contain('runningTasksCount')
+        instance.keys().should.contain('pendingTasksCount')
 
 
 @mock_ec2
