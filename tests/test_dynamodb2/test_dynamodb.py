@@ -581,24 +581,24 @@ def test_filter_expression():
     row2 = moto.dynamodb2.models.Item(None, None, None, None, {'Id': {'N': '8'}, 'Subs': {'N': '10'}, 'Desc': {'S': 'A description'}, 'KV': {'SS': ['test3', 'test4']}})
 
     # AND test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id > 5 AND Subs < 7', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id > :v0 AND Subs < :v1', {}, {':v0': {'N': 5}, ':v1': {'N': 7}})
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
 
     # OR test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = 5 OR Id=8', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 OR Id=:v1', {}, {':v0': {'N': 5}, ':v1': {'N': 8}})
     filter_expr.expr(row1).should.be(True)
 
     # BETWEEN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id BETWEEN 5 AND 10', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id BETWEEN :v0 AND :v1', {}, {':v0': {'N': 5}, ':v1': {'N': 10}})
     filter_expr.expr(row1).should.be(True)
 
     # PAREN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = 8 AND (Subs = 8 OR Subs = 5)', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 AND (Subs = :v0 OR Subs = :v1)', {}, {':v0': {'N': 8}, ':v1': {'N': 5}})
     filter_expr.expr(row1).should.be(True)
 
     # IN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN (7,8, 9)', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN :v0', {}, {':v0': {'NS': [7, 8, 9]}})
     filter_expr.expr(row1).should.be(True)
 
     # attribute function tests
