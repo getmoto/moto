@@ -656,7 +656,7 @@ def test_autoscaling_describe_policies_boto3():
 
 @mock_autoscaling
 @mock_ec2
-def test_detach_one_instance():
+def test_detach_one_instance_decrement():
     client = boto3.client('autoscaling', region_name='us-east-1')
     _ = client.create_launch_configuration(
         LaunchConfigurationName='test_launch_configuration'
@@ -709,7 +709,7 @@ def test_detach_one_instance():
 
 @mock_autoscaling
 @mock_ec2
-def test_detach_one_instance_decrement():
+def test_detach_one_instance():
     client = boto3.client('autoscaling', region_name='us-east-1')
     _ = client.create_launch_configuration(
         LaunchConfigurationName='test_launch_configuration'

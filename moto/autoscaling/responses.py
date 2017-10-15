@@ -95,10 +95,10 @@ class AutoScalingResponse(BaseResponse):
             should_decrement = True
         else:
             should_decrement = False
-        self.autoscaling_backend.detach_instances(
+        detached_instances = self.autoscaling_backend.detach_instances(
             group_name, instance_ids, should_decrement)
         template = self.response_template(DETACH_INSTANCES_TEMPLATE)
-        return template.render()
+        return template.render(detached_instances=detached_instances)
 
     def describe_auto_scaling_groups(self):
         names = self._get_multi_param("AutoScalingGroupNames.member")
@@ -299,6 +299,24 @@ CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="ht
 
 DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DetachInstancesResult>
+  <Activities>
+    {% for instance in detached_instances %}
+    <member>
+      <ActivityId>5091cb52-547a-47ce-a236-c9ccbc2cb2c9EXAMPLE</ActivityId>
+      <AutoScalingGroupName>{{ group_name }}</AutoScalingGroupName>
+      <Cause>
+      At 2017-10-15T15:55:21Z instance {{ instance.instance.id }} was detached in response to a user request.
+      </Cause>
+      <Description>Detaching EC2 instance: {{ instance.instance.id }}</Description>
+      <StartTime>2017-10-15T15:55:21Z</StartTime>
+      <EndTime>2017-10-15T15:55:21Z</EndTime>
+      <StatusCode>InProgress</StatusCode>
+      <StatusMessage>InProgress</StatusMessage>
+      <Progress>50</Progress>
+      <Details>details</Details>
+    </member>
+    {% endfor %}
+  </Activities>
 </DetachInstancesResult>
 <ResponseMetadata>
 <RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>

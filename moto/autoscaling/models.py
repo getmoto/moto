@@ -415,19 +415,17 @@ class AutoScalingBackend(BaseBackend):
     def detach_instances(self, group_name, instance_ids, should_decrement):
         group = self.autoscaling_groups[group_name]
 
-        original_instances = [x.instance for x in group.instance_states]
-        original_instance_count = len(original_instances)
+        original_instances = [x for x in group.instance_states]
 
-        new_instance_state = [InstanceState(x) for x in original_instances if x.id not in instance_ids]
+        new_instance_state = [x for x in original_instances if x.instance.id not in instance_ids]
         group.update_instance_states(new_instance_state)
 
-        detached_instances = [InstanceState(x) for x in original_instances if x.id in instance_ids]
-
+        detached_instances = [x for x in original_instances if x.instance.id in instance_ids]
         for instance in detached_instances:
             self.ec2_backend.delete_tags([instance.instance.id], [ASG_NAME_TAG])
 
         if should_decrement:
-            group.set_desired_capacity = original_instance_count - len(instance_ids)
+            group.set_desired_capacity = len(original_instances) - len(instance_ids)
         else:
             count_needed = len(instance_ids)
             propagated_tags = {}
@@ -445,6 +443,7 @@ class AutoScalingBackend(BaseBackend):
                 group.instance_states.append(InstanceState(instance))
 
         self.update_attached_elbs(group_name)
+        return detached_instances
 
     def set_desired_capacity(self, group_name, desired_capacity):
         group = self.autoscaling_groups[group_name]
