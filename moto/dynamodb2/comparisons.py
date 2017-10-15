@@ -61,15 +61,21 @@ def get_filter_expression(expr, names, values):
     # Do substitutions
     for key, value in names.items():
         expr = expr.replace(key, value)
+
+    # Store correct types of values for use later
+    values_map = {}
     for key, value in values.items():
         if 'N' in value:
-            expr = expr.replace(key, value['N'])
+            values_map[key] = float(value['N'])
+        elif 'BOOL' in value:
+            values_map[key] = value['BOOL']
+        elif 'S' in value:
+            values_map[key] = value['S']
         else:
-            expr = expr.replace(key, value['S'])
+            raise NotImplementedError()
 
     # Remove all spaces, tbf we could just skip them in the next step.
     # The number of known options is really small so we can do a fair bit of cheating
-    #expr = list(re.sub('\s', '', expr))  # 'Id>5ANDattribute_exists(test)ORNOTlength<6'
     expr = list(expr)
 
     # DodgyTokenisation stage 1
@@ -169,13 +175,9 @@ def get_filter_expression(expr, names, values):
             tokens2.append(function_list)
 
         else:
-            try:
-                token = int(token)
-            except ValueError:
-                try:
-                    token = float(token)
-                except ValueError:
-                    pass
+            # Convert tokens back to real types
+            if token in values_map:
+                token = values_map[token]
 
             # Need to join >= <= <>
             if len(tokens2) > 0 and ((tokens2[-1] == '>' and token == '=') or (tokens2[-1] == '<' and token == '=') or (tokens2[-1] == '<' and token == '>')):

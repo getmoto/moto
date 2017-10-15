@@ -684,6 +684,33 @@ def test_scan_filter2():
     assert response['Count'] == 1
 
 
+@mock_dynamodb2
+def test_scan_filter3():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'N'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'N': '1'},
+            'active': {'BOOL': True}
+        }
+    )
+
+    table = dynamodb.Table('test1')
+    response = table.scan(
+        FilterExpression=Attr('active').eq(True)
+    )
+    assert response['Count'] == 1
+
 
 @mock_dynamodb2
 def test_bad_scan_filter():
