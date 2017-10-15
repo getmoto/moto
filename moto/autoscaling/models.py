@@ -424,7 +424,7 @@ class AutoScalingBackend(BaseBackend):
         detached_instances = [InstanceState(x) for x in original_instances if x.id in instance_ids]
 
         for instance in detached_instances:
-            self.ec2_backend.delete_tags([instance.instance.id], ['aws:autoscaling:groupName'])
+            self.ec2_backend.delete_tags([instance.instance.id], [ASG_NAME_TAG])
 
         if should_decrement:
             group.set_desired_capacity = original_instance_count - len(instance_ids)
