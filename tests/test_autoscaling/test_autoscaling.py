@@ -8,7 +8,7 @@ from boto.ec2.autoscale import Tag
 import boto.ec2.elb
 import sure  # noqa
 
-from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_autoscaling_deprecated, mock_ec2
+from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_elb, mock_autoscaling_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
 
@@ -482,6 +482,131 @@ def test_autoscaling_group_with_elb():
 '''
 Boto3
 '''
+
+
+@mock_autoscaling
+@mock_elb
+def test_describe_load_balancers():
+    INSTANCE_COUNT = 2
+
+    elb_client = boto3.client('elb', region_name='us-east-1')
+    elb_client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        LoadBalancerNames=['my-lb'],
+        MinSize=0,
+        MaxSize=INSTANCE_COUNT,
+        DesiredCapacity=INSTANCE_COUNT,
+        Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'test_value',
+            "PropagateAtLaunch": True
+        }]
+    )
+
+    response = client.describe_load_balancers(AutoScalingGroupName='test_asg')
+    list(response['LoadBalancers']).should.have.length_of(1)
+    response['LoadBalancers'][0]['LoadBalancerName'].should.equal('my-lb')
+
+
+@mock_autoscaling
+@mock_elb
+def test_attach_load_balancer():
+    INSTANCE_COUNT = 2
+
+    elb_client = boto3.client('elb', region_name='us-east-1')
+    elb_client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=INSTANCE_COUNT,
+        DesiredCapacity=INSTANCE_COUNT,
+        Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'test_value',
+            "PropagateAtLaunch": True
+        }]
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName='test_asg',
+        LoadBalancerNames=['my-lb'])
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = elb_client.describe_load_balancers(
+        LoadBalancerNames=['my-lb']
+    )
+    list(response['LoadBalancerDescriptions'][0]['Instances']).should.have.length_of(INSTANCE_COUNT)
+
+
+@mock_autoscaling
+@mock_elb
+def test_detach_load_balancer():
+    INSTANCE_COUNT = 2
+
+    elb_client = boto3.client('elb', region_name='us-east-1')
+    elb_client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        LoadBalancerNames=['my-lb'],
+        MinSize=0,
+        MaxSize=INSTANCE_COUNT,
+        DesiredCapacity=INSTANCE_COUNT,
+        Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'test_value',
+            "PropagateAtLaunch": True
+        }]
+    )
+
+    response = client.detach_load_balancers(
+        AutoScalingGroupName='test_asg',
+        LoadBalancerNames=['my-lb'])
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = elb_client.describe_load_balancers(
+        LoadBalancerNames=['my-lb']
+    )
+    list(response['LoadBalancerDescriptions'][0]['Instances']).should.have.length_of(0)
+
+    response = client.describe_load_balancers(AutoScalingGroupName='test_asg')
+    list(response['LoadBalancers']).should.have.length_of(0)
 
 
 @mock_autoscaling

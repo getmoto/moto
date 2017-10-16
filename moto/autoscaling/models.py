@@ -539,6 +539,24 @@ class AutoScalingBackend(BaseBackend):
 
             group.tags = new_tags
 
+    def attach_load_balancers(self, group_name, load_balancer_names):
+        group = self.autoscaling_groups[group_name]
+        group.load_balancers.extend(load_balancer_names)
+        self.update_attached_elbs(group_name)
+
+    def describe_load_balancers(self, group_name):
+        return self.autoscaling_groups[group_name].load_balancers
+
+    def detach_load_balancers(self, group_name, load_balancer_names):
+        group = self.autoscaling_groups[group_name]
+        group_instance_ids = set(
+            state.instance.id for state in group.instance_states)
+        elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
+        for elb in elbs:
+            self.elb_backend.deregister_instances(
+                elb.name, group_instance_ids)
+        group.load_balancers = [x for x in group.load_balancers if x not in load_balancer_names]
+
 
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():

@@ -207,6 +207,28 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
+    def attach_load_balancers(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
+        self.autoscaling_backend.attach_load_balancers(
+            group_name, load_balancer_names)
+        template = self.response_template(ATTACH_LOAD_BALANCERS_TEMPLATE)
+        return template.render()
+
+    def describe_load_balancers(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        load_balancers = self.autoscaling_backend.describe_load_balancers(group_name)
+        template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
+        return template.render(load_balancers=load_balancers)
+
+    def detach_load_balancers(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
+        self.autoscaling_backend.detach_load_balancers(
+            group_name, load_balancer_names)
+        template = self.response_template(DETACH_LOAD_BALANCERS_TEMPLATE)
+        return template.render()
+
 
 CREATE_LAUNCH_CONFIGURATION_TEMPLATE = """<CreateLaunchConfigurationResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <ResponseMetadata>
@@ -505,3 +527,33 @@ DELETE_POLICY_TEMPLATE = """<DeleteScalingPolicyResponse xmlns="http://autoscali
     <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteScalingPolicyResponse>"""
+
+ATTACH_LOAD_BALANCERS_TEMPLATE = """<AttachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<AttachLoadBalancersResult></AttachLoadBalancersResult>
+<ResponseMetadata>
+<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+</ResponseMetadata>
+</AttachLoadBalancersResponse>"""
+
+DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<DescribeLoadBalancersResult>
+  <LoadBalancers>
+    {% for load_balancer in load_balancers %}
+      <member>
+        <LoadBalancerName>{{ load_balancer }}</LoadBalancerName>
+        <State>Added</State>
+      </member>
+    {% endfor %}
+  </LoadBalancers>
+</DescribeLoadBalancersResult>
+<ResponseMetadata>
+<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+</ResponseMetadata>
+</DescribeLoadBalancersResponse>"""
+
+DETACH_LOAD_BALANCERS_TEMPLATE = """<DetachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<DetachLoadBalancersResult></DetachLoadBalancersResult>
+<ResponseMetadata>
+<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+</ResponseMetadata>
+</DetachLoadBalancersResponse>"""
