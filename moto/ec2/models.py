@@ -871,7 +871,10 @@ class TagBackend(object):
         for resource_id in resource_ids:
             for tag in tags:
                 if tag in self.tags[resource_id]:
-                    self.tags[resource_id].pop(tag)
+                    if tags[tag] is None:
+                        self.tags[resource_id].pop(tag)
+                    elif tags[tag] == self.tags[resource_id][tag]:
+                        self.tags[resource_id].pop(tag)
         return True
 
     def describe_tags(self, filters=None):

@@ -87,6 +87,14 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
+    def attach_instances(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        instance_ids = self._get_multi_param("InstanceIds.member")
+        self.autoscaling_backend.attach_instances(
+            group_name, instance_ids)
+        template = self.response_template(ATTACH_INSTANCES_TEMPLATE)
+        return template.render()
+
     def detach_instances(self):
         group_name = self._get_param('AutoScalingGroupName')
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -296,6 +304,14 @@ CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="ht
 <RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
 </ResponseMetadata>
 </CreateAutoScalingGroupResponse>"""
+
+ATTACH_INSTANCES_TEMPLATE = """<AttachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<AttachInstancesResult>
+</AttachInstancesResult>
+<ResponseMetadata>
+<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+</ResponseMetadata>
+</AttachInstancesResponse>"""
 
 DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DetachInstancesResult>

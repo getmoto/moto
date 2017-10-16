@@ -758,3 +758,42 @@ def test_detach_one_instance():
     response = ec2_client.describe_instances(InstanceIds=[instance_to_keep])
     tags = response['Reservations'][0]['Instances'][0]['Tags']
     tags.should.have.length_of(2)
+
+@mock_autoscaling
+@mock_ec2
+def test_attach_one_instance():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=4,
+        DesiredCapacity=2,
+        Tags=[
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'propogated-tag-key',
+             'Value': 'propogate-tag-value',
+             'PropagateAtLaunch': True
+             }]
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+
+    ec2 = boto3.resource('ec2', 'us-east-1')
+    instances_to_add = [x.id for x in ec2.create_instances(ImageId='', MinCount=1, MaxCount=1)]
+
+    response = client.attach_instances(
+        AutoScalingGroupName='test_asg',
+        InstanceIds=instances_to_add
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    response['AutoScalingGroups'][0]['Instances'].should.have.length_of(3)
