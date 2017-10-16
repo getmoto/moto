@@ -581,24 +581,24 @@ def test_filter_expression():
     row2 = moto.dynamodb2.models.Item(None, None, None, None, {'Id': {'N': '8'}, 'Subs': {'N': '10'}, 'Desc': {'S': 'A description'}, 'KV': {'SS': ['test3', 'test4']}})
 
     # AND test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id > 5 AND Subs < 7', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id > :v0 AND Subs < :v1', {}, {':v0': {'N': 5}, ':v1': {'N': 7}})
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
 
     # OR test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = 5 OR Id=8', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 OR Id=:v1', {}, {':v0': {'N': 5}, ':v1': {'N': 8}})
     filter_expr.expr(row1).should.be(True)
 
     # BETWEEN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id BETWEEN 5 AND 10', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id BETWEEN :v0 AND :v1', {}, {':v0': {'N': 5}, ':v1': {'N': 10}})
     filter_expr.expr(row1).should.be(True)
 
     # PAREN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = 8 AND (Subs = 8 OR Subs = 5)', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 AND (Subs = :v0 OR Subs = :v1)', {}, {':v0': {'N': 8}, ':v1': {'N': 5}})
     filter_expr.expr(row1).should.be(True)
 
     # IN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN (7,8, 9)', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN :v0', {}, {':v0': {'NS': [7, 8, 9]}})
     filter_expr.expr(row1).should.be(True)
 
     # attribute function tests
@@ -656,6 +656,63 @@ def test_scan_filter():
 
 
 @mock_dynamodb2
+def test_scan_filter2():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'N'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'N': '1'}
+        }
+    )
+
+    response = client.scan(
+        TableName='test1',
+        Select='ALL_ATTRIBUTES',
+        FilterExpression='#tb >= :dt',
+        ExpressionAttributeNames={"#tb": "app"},
+        ExpressionAttributeValues={":dt": {"N": str(1)}}
+    )
+    assert response['Count'] == 1
+
+
+@mock_dynamodb2
+def test_scan_filter3():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'N'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'N': '1'},
+            'active': {'BOOL': True}
+        }
+    )
+
+    table = dynamodb.Table('test1')
+    response = table.scan(
+        FilterExpression=Attr('active').eq(True)
+    )
+    assert response['Count'] == 1
+
+
+@mock_dynamodb2
 def test_bad_scan_filter():
     client = boto3.client('dynamodb', region_name='us-east-1')
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -678,7 +735,6 @@ def test_bad_scan_filter():
         err.response['Error']['Code'].should.equal('ValidationError')
     else:
         raise RuntimeError('Should of raised ResourceInUseException')
-
 
 
 @mock_dynamodb2
