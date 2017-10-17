@@ -506,20 +506,21 @@ class AutoScalingBackend(BaseBackend):
 
         # skip this if group.load_balancers is empty
         # otherwise elb_backend.describe_load_balancers returns all available load balancers
-        if group.load_balancers:
-            try:
-                elbs = self.elb_backend.describe_load_balancers(
-                    names=group.load_balancers)
-            except LoadBalancerNotFoundError:
-                # ELBs can be deleted before their autoscaling group
-                return
+        if not group.load_balancers:
+            return
+        try:
+            elbs = self.elb_backend.describe_load_balancers(
+                names=group.load_balancers)
+        except LoadBalancerNotFoundError:
+            # ELBs can be deleted before their autoscaling group
+            return
 
-            for elb in elbs:
-                elb_instace_ids = set(elb.instance_ids)
-                self.elb_backend.register_instances(
-                    elb.name, group_instance_ids - elb_instace_ids)
-                self.elb_backend.deregister_instances(
-                    elb.name, elb_instace_ids - group_instance_ids)
+        for elb in elbs:
+            elb_instace_ids = set(elb.instance_ids)
+            self.elb_backend.register_instances(
+                elb.name, group_instance_ids - elb_instace_ids)
+            self.elb_backend.deregister_instances(
+                elb.name, elb_instace_ids - group_instance_ids)
 
     def create_or_update_tags(self, tags):
 

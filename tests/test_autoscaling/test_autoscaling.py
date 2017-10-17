@@ -498,10 +498,10 @@ def test_describe_load_balancers():
     )
 
     client = boto3.client('autoscaling', region_name='us-east-1')
-    _ = client.create_launch_configuration(
+    client.create_launch_configuration(
         LaunchConfigurationName='test_launch_configuration'
     )
-    _ = client.create_auto_scaling_group(
+    client.create_auto_scaling_group(
         AutoScalingGroupName='test_asg',
         LaunchConfigurationName='test_launch_configuration',
         LoadBalancerNames=['my-lb'],
@@ -527,7 +527,7 @@ def test_create_elb_and_autoscaling_group_no_relationship():
     ELB_NAME = 'my-elb'
 
     elb_client = boto3.client('elb', region_name='us-east-1')
-    _ = elb_client.create_load_balancer(
+    elb_client.create_load_balancer(
         LoadBalancerName=ELB_NAME,
         Listeners=[
             {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
@@ -535,11 +535,11 @@ def test_create_elb_and_autoscaling_group_no_relationship():
     )
 
     client = boto3.client('autoscaling', region_name='us-east-1')
-    _ = client.create_launch_configuration(
+    client.create_launch_configuration(
         LaunchConfigurationName='test_launch_configuration'
     )
 
-    _ = client.create_auto_scaling_group(
+    client.create_auto_scaling_group(
         AutoScalingGroupName='test_asg',
         LaunchConfigurationName='test_launch_configuration',
         MinSize=0,
@@ -572,10 +572,10 @@ def test_attach_load_balancer():
     )
 
     client = boto3.client('autoscaling', region_name='us-east-1')
-    _ = client.create_launch_configuration(
+    client.create_launch_configuration(
         LaunchConfigurationName='test_launch_configuration'
     )
-    _ = client.create_auto_scaling_group(
+    client.create_auto_scaling_group(
         AutoScalingGroupName='test_asg',
         LaunchConfigurationName='test_launch_configuration',
         MinSize=0,
@@ -614,10 +614,10 @@ def test_detach_load_balancer():
     )
 
     client = boto3.client('autoscaling', region_name='us-east-1')
-    _ = client.create_launch_configuration(
+    client.create_launch_configuration(
         LaunchConfigurationName='test_launch_configuration'
     )
-    _ = client.create_auto_scaling_group(
+    client.create_auto_scaling_group(
         AutoScalingGroupName='test_asg',
         LaunchConfigurationName='test_launch_configuration',
         LoadBalancerNames=['my-lb'],
