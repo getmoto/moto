@@ -9,6 +9,7 @@ try:
 except:
     from urllib.parse import unquote, urlparse, parse_qs
 
+from moto.core.utils import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse
 
 
@@ -32,6 +33,8 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    @amz_crc32
+    @amzn_request_id
     def invoke(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == 'POST':
@@ -39,6 +42,8 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    @amz_crc32
+    @amzn_request_id
     def invoke_async(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == 'POST':
