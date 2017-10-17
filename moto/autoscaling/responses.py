@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
+from moto.core.utils import amz_crc32, amzn_request_id
 from .models import autoscaling_backends
 
 
@@ -87,6 +88,8 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
+    @amz_crc32
+    @amzn_request_id
     def attach_instances(self):
         group_name = self._get_param('AutoScalingGroupName')
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -95,6 +98,8 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(ATTACH_INSTANCES_TEMPLATE)
         return template.render()
 
+    @amz_crc32
+    @amzn_request_id
     def detach_instances(self):
         group_name = self._get_param('AutoScalingGroupName')
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -207,6 +212,8 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
+    @amz_crc32
+    @amzn_request_id
     def attach_load_balancers(self):
         group_name = self._get_param('AutoScalingGroupName')
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
@@ -215,12 +222,16 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(ATTACH_LOAD_BALANCERS_TEMPLATE)
         return template.render()
 
+    @amz_crc32
+    @amzn_request_id
     def describe_load_balancers(self):
         group_name = self._get_param('AutoScalingGroupName')
         load_balancers = self.autoscaling_backend.describe_load_balancers(group_name)
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(load_balancers=load_balancers)
 
+    @amz_crc32
+    @amzn_request_id
     def detach_load_balancers(self):
         group_name = self._get_param('AutoScalingGroupName')
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
@@ -331,7 +342,7 @@ ATTACH_INSTANCES_TEMPLATE = """<AttachInstancesResponse xmlns="http://autoscalin
 <AttachInstancesResult>
 </AttachInstancesResult>
 <ResponseMetadata>
-<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+<RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </AttachInstancesResponse>"""
 
@@ -357,7 +368,7 @@ DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscalin
   </Activities>
 </DetachInstancesResult>
 <ResponseMetadata>
-<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+<RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </DetachInstancesResponse>"""
 
@@ -531,7 +542,7 @@ DELETE_POLICY_TEMPLATE = """<DeleteScalingPolicyResponse xmlns="http://autoscali
 ATTACH_LOAD_BALANCERS_TEMPLATE = """<AttachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachLoadBalancersResult></AttachLoadBalancersResult>
 <ResponseMetadata>
-<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+<RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </AttachLoadBalancersResponse>"""
 
@@ -547,13 +558,13 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
   </LoadBalancers>
 </DescribeLoadBalancersResult>
 <ResponseMetadata>
-<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+<RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
 DETACH_LOAD_BALANCERS_TEMPLATE = """<DetachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DetachLoadBalancersResult></DetachLoadBalancersResult>
 <ResponseMetadata>
-<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+<RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </DetachLoadBalancersResponse>"""
