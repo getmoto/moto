@@ -9,6 +9,7 @@ install_requires = [
     "Jinja2>=2.8",
     "boto>=2.36.0",
     "boto3>=1.2.1",
+    "botocore>=1.7.12",
     "cookies",
     "cryptography>=2.0.0",
     "requests>=2.5",
