@@ -80,6 +80,7 @@ class AutoScalingResponse(BaseResponse):
             health_check_period=self._get_int_param('HealthCheckGracePeriod'),
             health_check_type=self._get_param('HealthCheckType'),
             load_balancers=self._get_multi_param('LoadBalancerNames.member'),
+            target_group_arns=self._get_multi_param('TargetGroupARNs.member'),
             placement_group=self._get_param('PlacementGroup'),
             termination_policies=self._get_multi_param(
                 'TerminationPolicies.member'),
@@ -92,7 +93,7 @@ class AutoScalingResponse(BaseResponse):
     @amzn_request_id
     def attach_instances(self):
         group_name = self._get_param('AutoScalingGroupName')
-        instance_ids = self._get_multi_param("InstanceIds.member")
+        instance_ids = self._get_multi_param('InstanceIds.member')
         self.autoscaling_backend.attach_instances(
             group_name, instance_ids)
         template = self.response_template(ATTACH_INSTANCES_TEMPLATE)
@@ -102,7 +103,7 @@ class AutoScalingResponse(BaseResponse):
     @amzn_request_id
     def detach_instances(self):
         group_name = self._get_param('AutoScalingGroupName')
-        instance_ids = self._get_multi_param("InstanceIds.member")
+        instance_ids = self._get_multi_param('InstanceIds.member')
         should_decrement_string = self._get_param('ShouldDecrementDesiredCapacity')
         if should_decrement_string == 'true':
             should_decrement = True
@@ -112,6 +113,37 @@ class AutoScalingResponse(BaseResponse):
             group_name, instance_ids, should_decrement)
         template = self.response_template(DETACH_INSTANCES_TEMPLATE)
         return template.render(detached_instances=detached_instances)
+
+    @amz_crc32
+    @amzn_request_id
+    def attach_load_balancer_target_groups(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        target_group_arns = self._get_multi_param('TargetGroupARNs.member')
+
+        self.autoscaling_backend.attach_load_balancer_target_groups(
+            group_name, target_group_arns)
+        template = self.response_template(ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE)
+        return template.render()
+
+    @amz_crc32
+    @amzn_request_id
+    def describe_load_balancer_target_groups(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        target_group_arns = self.autoscaling_backend.describe_load_balancer_target_groups(
+            group_name)
+        template = self.response_template(DESCRIBE_LOAD_BALANCER_TARGET_GROUPS)
+        return template.render(target_group_arns=target_group_arns)
+
+    @amz_crc32
+    @amzn_request_id
+    def detach_load_balancer_target_groups(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        target_group_arns = self._get_multi_param('TargetGroupARNs.member')
+
+        self.autoscaling_backend.detach_load_balancer_target_groups(
+            group_name, target_group_arns)
+        template = self.response_template(DETACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE)
+        return template.render()
 
     def describe_auto_scaling_groups(self):
         names = self._get_multi_param("AutoScalingGroupNames.member")
@@ -338,6 +370,14 @@ CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="ht
 </ResponseMetadata>
 </CreateAutoScalingGroupResponse>"""
 
+ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<AttachLoadBalancerTargetGroupsResult>
+</AttachLoadBalancerTargetGroupsResult>
+<ResponseMetadata>
+<RequestId>{{ requestid }}</RequestId>
+</ResponseMetadata>
+</AttachLoadBalancerTargetGroupsResponse>"""
+
 ATTACH_INSTANCES_TEMPLATE = """<AttachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachInstancesResult>
 </AttachInstancesResult>
@@ -345,6 +385,22 @@ ATTACH_INSTANCES_TEMPLATE = """<AttachInstancesResponse xmlns="http://autoscalin
 <RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </AttachInstancesResponse>"""
+
+DESCRIBE_LOAD_BALANCER_TARGET_GROUPS = """<DescribeLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<DescribeLoadBalancerTargetGroupsResult>
+  <LoadBalancerTargetGroups>
+  {% for arn in target_group_arns %}
+    <member>
+      <LoadBalancerTargetGroupARN>{{ arn }}</LoadBalancerTargetGroupARN>
+      <State>Added</State>
+    </member>
+  {% endfor %}
+  </LoadBalancerTargetGroups>
+</DescribeLoadBalancerTargetGroupsResult>
+<ResponseMetadata>
+<RequestId>{{ requestid }}</RequestId>
+</ResponseMetadata>
+</DescribeLoadBalancerTargetGroupsResponse>"""
 
 DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DetachInstancesResult>
@@ -371,6 +427,14 @@ DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscalin
 <RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </DetachInstancesResponse>"""
+
+DETACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<DetachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<DetachLoadBalancerTargetGroupsResult>
+</DetachLoadBalancerTargetGroupsResult>
+<ResponseMetadata>
+<RequestId>{{ requestid }}</RequestId>
+</ResponseMetadata>
+</DetachLoadBalancerTargetGroupsResponse>"""
 
 DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DescribeAutoScalingGroupsResult>

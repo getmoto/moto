@@ -4,6 +4,7 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
+from moto.elbv2 import elbv2_backends
 from moto.elb.exceptions import LoadBalancerNotFoundError
 from .exceptions import (
     ResourceContentionError,
@@ -149,7 +150,7 @@ class FakeAutoScalingGroup(BaseModel):
     def __init__(self, name, availability_zones, desired_capacity, max_size,
                  min_size, launch_config_name, vpc_zone_identifier,
                  default_cooldown, health_check_period, health_check_type,
-                 load_balancers, placement_group, termination_policies,
+                 load_balancers, target_group_arns, placement_group, termination_policies,
                  autoscaling_backend, tags):
         self.autoscaling_backend = autoscaling_backend
         self.name = name
@@ -166,6 +167,7 @@ class FakeAutoScalingGroup(BaseModel):
         self.health_check_period = health_check_period
         self.health_check_type = health_check_type if health_check_type else "EC2"
         self.load_balancers = load_balancers
+        self.target_group_arns = target_group_arns
         self.placement_group = placement_group
         self.termination_policies = termination_policies
 
@@ -179,6 +181,7 @@ class FakeAutoScalingGroup(BaseModel):
 
         launch_config_name = properties.get("LaunchConfigurationName")
         load_balancer_names = properties.get("LoadBalancerNames", [])
+        target_group_arns = properties.get("TargetGroupARNs", [])
 
         backend = autoscaling_backends[region_name]
         group = backend.create_autoscaling_group(
@@ -194,6 +197,7 @@ class FakeAutoScalingGroup(BaseModel):
             health_check_period=properties.get("HealthCheckGracePeriod"),
             health_check_type=properties.get("HealthCheckType"),
             load_balancers=load_balancer_names,
+            target_group_arns=target_group_arns,
             placement_group=None,
             termination_policies=properties.get("TerminationPolicies", []),
             tags=properties.get("Tags", []),
@@ -299,20 +303,26 @@ class FakeAutoScalingGroup(BaseModel):
             instance.autoscaling_group = self
             self.instance_states.append(InstanceState(instance))
 
+    def append_target_groups(self, target_group_arns):
+        append = [x for x in target_group_arns if x not in self.target_group_arns]
+        self.target_group_arns.extend(append)
+
 
 class AutoScalingBackend(BaseBackend):
-    def __init__(self, ec2_backend, elb_backend):
+    def __init__(self, ec2_backend, elb_backend, elbv2_backend):
         self.autoscaling_groups = OrderedDict()
         self.launch_configurations = OrderedDict()
         self.policies = {}
         self.ec2_backend = ec2_backend
         self.elb_backend = elb_backend
+        self.elbv2_backend = elbv2_backend
 
     def reset(self):
         ec2_backend = self.ec2_backend
         elb_backend = self.elb_backend
+        elbv2_backend = self.elbv2_backend
         self.__dict__ = {}
-        self.__init__(ec2_backend, elb_backend)
+        self.__init__(ec2_backend, elb_backend, elbv2_backend)
 
     def create_launch_configuration(self, name, image_id, key_name, kernel_id, ramdisk_id,
                                     security_groups, user_data, instance_type,
@@ -352,7 +362,8 @@ class AutoScalingBackend(BaseBackend):
                                  launch_config_name, vpc_zone_identifier,
                                  default_cooldown, health_check_period,
                                  health_check_type, load_balancers,
-                                 placement_group, termination_policies, tags):
+                                 target_group_arns, placement_group,
+                                 termination_policies, tags):
 
         def make_int(value):
             return int(value) if value is not None else value
@@ -378,6 +389,7 @@ class AutoScalingBackend(BaseBackend):
             health_check_period=health_check_period,
             health_check_type=health_check_type,
             load_balancers=load_balancers,
+            target_group_arns=target_group_arns,
             placement_group=placement_group,
             termination_policies=termination_policies,
             autoscaling_backend=self,
@@ -386,6 +398,7 @@ class AutoScalingBackend(BaseBackend):
 
         self.autoscaling_groups[name] = group
         self.update_attached_elbs(group.name)
+        self.update_attached_target_groups(group.name)
         return group
 
     def update_autoscaling_group(self, name, availability_zones,
@@ -522,8 +535,25 @@ class AutoScalingBackend(BaseBackend):
             self.elb_backend.deregister_instances(
                 elb.name, elb_instace_ids - group_instance_ids)
 
-    def create_or_update_tags(self, tags):
+    def update_attached_target_groups(self, group_name):
+        group = self.autoscaling_groups[group_name]
+        group_instance_ids = set(
+            state.instance.id for state in group.instance_states)
 
+        # no action necessary if target_group_arns is empty
+        if not group.target_group_arns:
+            return
+
+        target_groups = self.elbv2_backend.describe_target_groups(
+            target_group_arns=group.target_group_arns,
+            load_balancer_arn=None,
+            names=None)
+
+        for target_group in target_groups:
+            asg_targets = [{'id': x, 'port': target_group.port} for x in group_instance_ids]
+            self.elbv2_backend.register_targets(target_group.arn, (asg_targets))
+
+    def create_or_update_tags(self, tags):
         for tag in tags:
             group_name = tag["resource_id"]
             group = self.autoscaling_groups[group_name]
@@ -562,8 +592,23 @@ class AutoScalingBackend(BaseBackend):
                 elb.name, group_instance_ids)
         group.load_balancers = [x for x in group.load_balancers if x not in load_balancer_names]
 
+    def attach_load_balancer_target_groups(self, group_name, target_group_arns):
+        group = self.autoscaling_groups[group_name]
+        group.append_target_groups(target_group_arns)
+        self.update_attached_target_groups(group_name)
+
+    def describe_load_balancer_target_groups(self, group_name):
+        return self.autoscaling_groups[group_name].target_group_arns
+
+    def detach_load_balancer_target_groups(self, group_name, target_group_arns):
+        group = self.autoscaling_groups[group_name]
+        group.target_group_arns = [x for x in group.target_group_arns if x not in target_group_arns]
+        for target_group in target_group_arns:
+            asg_targets = [{'id': x.instance.id} for x in group.instance_states]
+            self.elbv2_backend.deregister_targets(target_group, (asg_targets))
+
 
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():
     autoscaling_backends[region] = AutoScalingBackend(
-        ec2_backend, elb_backends[region])
+        ec2_backend, elb_backends[region], elbv2_backends[region])
