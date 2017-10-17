@@ -504,6 +504,10 @@ class AutoScalingBackend(BaseBackend):
         group_instance_ids = set(
             state.instance.id for state in group.instance_states)
 
+        # skip this if group.load_balancers is empty
+        # otherwise elb_backend.describe_load_balancers returns all available load balancers
+        if not group.load_balancers:
+            return
         try:
             elbs = self.elb_backend.describe_load_balancers(
                 names=group.load_balancers)
