@@ -81,6 +81,9 @@ class FakeKey(BaseModel):
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
 
+    def increment_version(self):
+        self._version_id += 1
+
     @property
     def etag(self):
         if self._etag is None:
@@ -323,19 +326,10 @@ class CorsRule(BaseModel):
 
     def __init__(self, allowed_methods, allowed_origins, allowed_headers=None, expose_headers=None,
                  max_age_seconds=None):
-        # Python 2 and 3 have different string types for handling unicodes. Python 2 wants `basestring`,
-        # whereas Python 3 is OK with str. This causes issues with the XML parser, which returns
-        # unicode strings in Python 2. So, need to do this to make it work in both Python 2 and 3:
-        import sys
-        if sys.version_info >= (3, 0):
-            str_type = str
-        else:
-            str_type = basestring  # noqa
-
-        self.allowed_methods = [allowed_methods] if isinstance(allowed_methods, str_type) else allowed_methods
-        self.allowed_origins = [allowed_origins] if isinstance(allowed_origins, str_type) else allowed_origins
-        self.allowed_headers = [allowed_headers] if isinstance(allowed_headers, str_type) else allowed_headers
-        self.exposed_headers = [expose_headers] if isinstance(expose_headers, str_type) else expose_headers
+        self.allowed_methods = [allowed_methods] if isinstance(allowed_methods, six.string_types) else allowed_methods
+        self.allowed_origins = [allowed_origins] if isinstance(allowed_origins, six.string_types) else allowed_origins
+        self.allowed_headers = [allowed_headers] if isinstance(allowed_headers, six.string_types) else allowed_headers
+        self.exposed_headers = [expose_headers] if isinstance(expose_headers, six.string_types) else expose_headers
         self.max_age_seconds = max_age_seconds
 
 
@@ -389,25 +383,16 @@ class FakeBucket(BaseModel):
         if len(rules) > 100:
             raise MalformedXML()
 
-        # Python 2 and 3 have different string types for handling unicodes. Python 2 wants `basestring`,
-        # whereas Python 3 is OK with str. This causes issues with the XML parser, which returns
-        # unicode strings in Python 2. So, need to do this to make it work in both Python 2 and 3:
-        import sys
-        if sys.version_info >= (3, 0):
-            str_type = str
-        else:
-            str_type = basestring  # noqa
-
         for rule in rules:
-            assert isinstance(rule["AllowedMethod"], list) or isinstance(rule["AllowedMethod"], str_type)
-            assert isinstance(rule["AllowedOrigin"], list) or isinstance(rule["AllowedOrigin"], str_type)
+            assert isinstance(rule["AllowedMethod"], list) or isinstance(rule["AllowedMethod"], six.string_types)
+            assert isinstance(rule["AllowedOrigin"], list) or isinstance(rule["AllowedOrigin"], six.string_types)
             assert isinstance(rule.get("AllowedHeader", []), list) or isinstance(rule.get("AllowedHeader", ""),
-                                                                                 str_type)
+                                                                                 six.string_types)
             assert isinstance(rule.get("ExposedHeader", []), list) or isinstance(rule.get("ExposedHeader", ""),
-                                                                                 str_type)
-            assert isinstance(rule.get("MaxAgeSeconds", "0"), str_type)
+                                                                                 six.string_types)
+            assert isinstance(rule.get("MaxAgeSeconds", "0"), six.string_types)
 
-            if isinstance(rule["AllowedMethod"], str_type):
+            if isinstance(rule["AllowedMethod"], six.string_types):
                 methods = [rule["AllowedMethod"]]
             else:
                 methods = rule["AllowedMethod"]
@@ -745,6 +730,10 @@ class S3Backend(BaseBackend):
         if dest_key_name != src_key_name:
             key = key.copy(dest_key_name)
         dest_bucket.keys[dest_key_name] = key
+
+        # By this point, the destination key must exist, or KeyError
+        if dest_bucket.is_versioned:
+            dest_bucket.keys[dest_key_name].increment_version()
         if storage is not None:
             key.set_storage_class(storage)
         if acl is not None:

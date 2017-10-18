@@ -1365,6 +1365,31 @@ def test_boto3_head_object_with_versioning():
 
 
 @mock_s3
+def test_boto3_copy_object_with_versioning():
+    client = boto3.client('s3', region_name='us-east-1')
+
+    client.create_bucket(Bucket='blah', CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+    client.put_bucket_versioning(Bucket='blah', VersioningConfiguration={'Status': 'Enabled'})
+
+    client.put_object(Bucket='blah', Key='test1', Body=b'test1')
+    client.put_object(Bucket='blah', Key='test2', Body=b'test2')
+
+    obj1_version = client.get_object(Bucket='blah', Key='test1')['VersionId']
+    obj2_version = client.get_object(Bucket='blah', Key='test2')['VersionId']
+
+    # Versions should be the same
+    obj1_version.should.equal(obj2_version)
+
+    client.copy_object(CopySource={'Bucket': 'blah', 'Key': 'test1'}, Bucket='blah', Key='test2')
+    obj2_version_new = client.get_object(Bucket='blah', Key='test2')['VersionId']
+
+    # Version should be different to previous version
+    obj2_version_new.should_not.equal(obj2_version)
+
+
+
+
+@mock_s3
 def test_boto3_head_object_if_modified_since():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = "blah"
