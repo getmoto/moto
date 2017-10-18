@@ -545,7 +545,8 @@ class AutoScalingBackend(BaseBackend):
 
     def attach_load_balancers(self, group_name, load_balancer_names):
         group = self.autoscaling_groups[group_name]
-        group.load_balancers.extend(load_balancer_names)
+        group.load_balancers.extend(
+            [x for x in load_balancer_names if x not in group.load_balancers])
         self.update_attached_elbs(group_name)
 
     def describe_load_balancers(self, group_name):
