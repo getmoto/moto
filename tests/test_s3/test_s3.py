@@ -1387,8 +1387,6 @@ def test_boto3_copy_object_with_versioning():
     obj2_version_new.should_not.equal(obj2_version)
 
 
-
-
 @mock_s3
 def test_boto3_head_object_if_modified_since():
     s3 = boto3.client('s3', region_name='us-east-1')
