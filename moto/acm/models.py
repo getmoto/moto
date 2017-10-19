@@ -170,7 +170,7 @@ class CertBundle(BaseModel):
         try:
             self._cert = cryptography.x509.load_pem_x509_certificate(self.cert, default_backend())
 
-            now = datetime.datetime.now()
+            now = datetime.datetime.utcnow()
             if self._cert.not_valid_after < now:
                 raise AWSValidationException('The certificate has expired, is not valid.')
 
