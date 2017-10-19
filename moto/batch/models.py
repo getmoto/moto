@@ -28,7 +28,7 @@ from moto.iam.exceptions import IAMNotFoundException
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 logger = logging.getLogger(__name__)
 DEFAULT_ACCOUNT_ID = 123456789012
-COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(r'^[A-Za-z0-9_]{1,128}$')
+COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{1,126}[A-Za-z0-9]$')
 
 
 def datetime2int(date):
@@ -38,7 +38,7 @@ def datetime2int(date):
 class ComputeEnvironment(BaseModel):
     def __init__(self, compute_environment_name, _type, state, compute_resources, service_role, region_name):
         self.name = compute_environment_name
-        self.type = _type
+        self.env_type = _type
         self.state = state
         self.compute_resources = compute_resources
         self.service_role = service_role
@@ -54,6 +54,33 @@ class ComputeEnvironment(BaseModel):
     def set_ecs(self, arn, name):
         self.ecs_arn = arn
         self.ecs_name = name
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        backend = batch_backends[region_name]
+        properties = cloudformation_json['Properties']
+
+        # Need to deal with difference case from cloudformation compute_resources, e.g. instanceRole vs InstanceRole
+        # Hacky fix to normalise keys
+        new_comp_res = {}
+        for key, value in properties['ComputeResources'].items():
+            new_key = key[0].lower() + key[1:]
+            new_comp_res[new_key] = value
+
+        env = backend.create_compute_environment(
+            resource_name,
+            properties['Type'],
+            properties.get('State', 'ENABLED'),
+            new_comp_res,
+            properties['ServiceRole']
+        )
+        arn = env[1]
+
+        return backend.get_compute_environment_by_arn(arn)
 
 
 class JobQueue(BaseModel):
@@ -517,10 +544,10 @@ class BatchBackend(BaseBackend):
                 'ecsClusterArn': environment.ecs_arn,
                 'serviceRole': environment.service_role,
                 'state': environment.state,
-                'type': environment.type,
+                'type': environment.env_type,
                 'status': 'VALID'
             }
-            if environment.type == 'MANAGED':
+            if environment.env_type == 'MANAGED':
                 json_part['computeResources'] = environment.compute_resources
 
             result.append(json_part)
@@ -530,7 +557,7 @@ class BatchBackend(BaseBackend):
     def create_compute_environment(self, compute_environment_name, _type, state, compute_resources, service_role):
         # Validate
         if COMPUTE_ENVIRONMENT_NAME_REGEX.match(compute_environment_name) is None:
-            raise InvalidParameterValueException('Compute environment name does not match ^[A-Za-z0-9_]{1,128}$')
+            raise InvalidParameterValueException('Compute environment name does not match ^[A-Za-z0-9][A-Za-z0-9_-]{1,126}[A-Za-z0-9]$')
 
         if self.get_compute_environment_by_name(compute_environment_name) is not None:
             raise InvalidParameterValueException('A compute environment already exists with the name {0}'.format(compute_environment_name))
@@ -617,7 +644,9 @@ class BatchBackend(BaseBackend):
         if len(cr['instanceTypes']) == 0:
             raise InvalidParameterValueException('At least 1 instance type must be provided')
         for instance_type in cr['instanceTypes']:
-            if instance_type not in EC2_INSTANCE_TYPES:
+            if instance_type == 'optimal':
+                pass  # Optimal should pick from latest of current gen
+            elif instance_type not in EC2_INSTANCE_TYPES:
                 raise InvalidParameterValueException('Instance type {0} does not exist'.format(instance_type))
 
         for sec_id in cr['securityGroupIds']:
@@ -657,6 +686,9 @@ class BatchBackend(BaseBackend):
         instances = []
 
         for instance_type in instance_types:
+            if instance_type == 'optimal':
+                instance_type = 'm4.4xlarge'
+
             instance_vcpus.append(
                 (EC2_INSTANCE_TYPES[instance_type]['vcpus'], instance_type)
             )
@@ -700,7 +732,7 @@ class BatchBackend(BaseBackend):
             # Delete ECS cluster
             self.ecs_backend.delete_cluster(compute_env.ecs_name)
 
-            if compute_env.type == 'MANAGED':
+            if compute_env.env_type == 'MANAGED':
                 # Delete compute envrionment
                 instance_ids = [instance.id for instance in compute_env.instances]
                 self.ec2_backend.terminate_instances(instance_ids)

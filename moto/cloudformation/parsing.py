@@ -8,6 +8,7 @@ import re
 
 from moto.autoscaling import models as autoscaling_models
 from moto.awslambda import models as lambda_models
+from moto.batch import models as batch_models
 from moto.cloudwatch import models as cloudwatch_models
 from moto.datapipeline import models as datapipeline_models
 from moto.dynamodb import models as dynamodb_models
@@ -31,6 +32,9 @@ from boto.cloudformation.stack import Output
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
     "AWS::AutoScaling::LaunchConfiguration": autoscaling_models.FakeLaunchConfiguration,
+    "AWS::Batch::JobDefinition": batch_models.JobDefinition,
+    "AWS::Batch::JobQueue": batch_models.JobQueue,
+    "AWS::Batch::ComputeEnvironment": batch_models.ComputeEnvironment,
     "AWS::DynamoDB::Table": dynamodb_models.Table,
     "AWS::Kinesis::Stream": kinesis_models.Stream,
     "AWS::Lambda::EventSourceMapping": lambda_models.EventSourceMapping,
