@@ -5,6 +5,9 @@ from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
 from moto.elb.exceptions import LoadBalancerNotFoundError
+from .exceptions import (
+    ResourceContentionError,
+)
 
 # http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AS_Concepts.html#Cooldown
 DEFAULT_COOLDOWN = 300
@@ -259,27 +262,8 @@ class FakeAutoScalingGroup(BaseModel):
             # Need more instances
             count_needed = int(self.desired_capacity) - int(curr_instance_count)
 
-            propagated_tags = {}
-            for tag in self.tags:
-                # boto uses 'propagate_at_launch
-                # boto3 and cloudformation use PropagateAtLaunch
-                if 'propagate_at_launch' in tag and tag['propagate_at_launch'] == 'true':
-                    propagated_tags[tag['key']] = tag['value']
-                if 'PropagateAtLaunch' in tag and tag['PropagateAtLaunch']:
-                    propagated_tags[tag['Key']] = tag['Value']
-
-            propagated_tags[ASG_NAME_TAG] = self.name
-            reservation = self.autoscaling_backend.ec2_backend.add_instances(
-                self.launch_config.image_id,
-                count_needed,
-                self.launch_config.user_data,
-                self.launch_config.security_groups,
-                instance_type=self.launch_config.instance_type,
-                tags={'instance': propagated_tags}
-            )
-            for instance in reservation.instances:
-                instance.autoscaling_group = self
-                self.instance_states.append(InstanceState(instance))
+            propagated_tags = self.get_propagated_tags()
+            self.replace_autoscaling_group_instances(count_needed, propagated_tags)
         else:
             # Need to remove some instances
             count_to_remove = curr_instance_count - self.desired_capacity
@@ -289,6 +273,31 @@ class FakeAutoScalingGroup(BaseModel):
             self.autoscaling_backend.ec2_backend.terminate_instances(
                 instance_ids_to_remove)
             self.instance_states = self.instance_states[count_to_remove:]
+
+    def get_propagated_tags(self):
+        propagated_tags = {}
+        for tag in self.tags:
+            # boto uses 'propagate_at_launch
+            # boto3 and cloudformation use PropagateAtLaunch
+            if 'propagate_at_launch' in tag and tag['propagate_at_launch'] == 'true':
+                propagated_tags[tag['key']] = tag['value']
+            if 'PropagateAtLaunch' in tag and tag['PropagateAtLaunch']:
+                propagated_tags[tag['Key']] = tag['Value']
+        return propagated_tags
+
+    def replace_autoscaling_group_instances(self, count_needed, propagated_tags):
+        propagated_tags[ASG_NAME_TAG] = self.name
+        reservation = self.autoscaling_backend.ec2_backend.add_instances(
+            self.launch_config.image_id,
+            count_needed,
+            self.launch_config.user_data,
+            self.launch_config.security_groups,
+            instance_type=self.launch_config.instance_type,
+            tags={'instance': propagated_tags}
+        )
+        for instance in reservation.instances:
+            instance.autoscaling_group = self
+            self.instance_states.append(InstanceState(instance))
 
 
 class AutoScalingBackend(BaseBackend):
@@ -409,6 +418,40 @@ class AutoScalingBackend(BaseBackend):
             instance_states.extend(group.instance_states)
         return instance_states
 
+    def attach_instances(self, group_name, instance_ids):
+        group = self.autoscaling_groups[group_name]
+        original_size = len(group.instance_states)
+
+        if (original_size + len(instance_ids)) > group.max_size:
+            raise ResourceContentionError
+        else:
+            group.desired_capacity = original_size + len(instance_ids)
+            new_instances = [InstanceState(self.ec2_backend.get_instance(x)) for x in instance_ids]
+            for instance in new_instances:
+                self.ec2_backend.create_tags([instance.instance.id], {ASG_NAME_TAG: group.name})
+            group.instance_states.extend(new_instances)
+            self.update_attached_elbs(group.name)
+
+    def detach_instances(self, group_name, instance_ids, should_decrement):
+        group = self.autoscaling_groups[group_name]
+        original_size = len(group.instance_states)
+
+        detached_instances = [x for x in group.instance_states if x.instance.id in instance_ids]
+        for instance in detached_instances:
+            self.ec2_backend.delete_tags([instance.instance.id], {ASG_NAME_TAG: group.name})
+
+        new_instance_state = [x for x in group.instance_states if x.instance.id not in instance_ids]
+        group.instance_states = new_instance_state
+
+        if should_decrement:
+            group.desired_capacity = original_size - len(instance_ids)
+        else:
+            count_needed = len(instance_ids)
+            group.replace_autoscaling_group_instances(count_needed, group.get_propagated_tags())
+
+        self.update_attached_elbs(group_name)
+        return detached_instances
+
     def set_desired_capacity(self, group_name, desired_capacity):
         group = self.autoscaling_groups[group_name]
         group.set_desired_capacity(desired_capacity)
@@ -461,6 +504,10 @@ class AutoScalingBackend(BaseBackend):
         group_instance_ids = set(
             state.instance.id for state in group.instance_states)
 
+        # skip this if group.load_balancers is empty
+        # otherwise elb_backend.describe_load_balancers returns all available load balancers
+        if not group.load_balancers:
+            return
         try:
             elbs = self.elb_backend.describe_load_balancers(
                 names=group.load_balancers)
@@ -495,6 +542,25 @@ class AutoScalingBackend(BaseBackend):
                 new_tags.append(tag)
 
             group.tags = new_tags
+
+    def attach_load_balancers(self, group_name, load_balancer_names):
+        group = self.autoscaling_groups[group_name]
+        group.load_balancers.extend(
+            [x for x in load_balancer_names if x not in group.load_balancers])
+        self.update_attached_elbs(group_name)
+
+    def describe_load_balancers(self, group_name):
+        return self.autoscaling_groups[group_name].load_balancers
+
+    def detach_load_balancers(self, group_name, load_balancer_names):
+        group = self.autoscaling_groups[group_name]
+        group_instance_ids = set(
+            state.instance.id for state in group.instance_states)
+        elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
+        for elb in elbs:
+            self.elb_backend.deregister_instances(
+                elb.name, group_instance_ids)
+        group.load_balancers = [x for x in group.load_balancers if x not in load_balancer_names]
 
 
 autoscaling_backends = {}

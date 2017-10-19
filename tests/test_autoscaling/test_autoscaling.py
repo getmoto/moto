@@ -8,7 +8,7 @@ from boto.ec2.autoscale import Tag
 import boto.ec2.elb
 import sure  # noqa
 
-from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_autoscaling_deprecated, mock_ec2
+from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_elb, mock_autoscaling_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
 
@@ -485,6 +485,168 @@ Boto3
 
 
 @mock_autoscaling
+@mock_elb
+def test_describe_load_balancers():
+    INSTANCE_COUNT = 2
+
+    elb_client = boto3.client('elb', region_name='us-east-1')
+    elb_client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        LoadBalancerNames=['my-lb'],
+        MinSize=0,
+        MaxSize=INSTANCE_COUNT,
+        DesiredCapacity=INSTANCE_COUNT,
+        Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'test_value',
+            "PropagateAtLaunch": True
+        }]
+    )
+
+    response = client.describe_load_balancers(AutoScalingGroupName='test_asg')
+    list(response['LoadBalancers']).should.have.length_of(1)
+    response['LoadBalancers'][0]['LoadBalancerName'].should.equal('my-lb')
+
+@mock_autoscaling
+@mock_elb
+def test_create_elb_and_autoscaling_group_no_relationship():
+    INSTANCE_COUNT = 2
+    ELB_NAME = 'my-elb'
+
+    elb_client = boto3.client('elb', region_name='us-east-1')
+    elb_client.create_load_balancer(
+        LoadBalancerName=ELB_NAME,
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=INSTANCE_COUNT,
+        DesiredCapacity=INSTANCE_COUNT,
+    )
+
+    # autoscaling group and elb should have no relationship
+    response = client.describe_load_balancers(
+        AutoScalingGroupName='test_asg'
+    )
+    list(response['LoadBalancers']).should.have.length_of(0)
+    response = elb_client.describe_load_balancers(
+        LoadBalancerNames=[ELB_NAME]
+    )
+    list(response['LoadBalancerDescriptions'][0]['Instances']).should.have.length_of(0)
+
+
+@mock_autoscaling
+@mock_elb
+def test_attach_load_balancer():
+    INSTANCE_COUNT = 2
+
+    elb_client = boto3.client('elb', region_name='us-east-1')
+    elb_client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=INSTANCE_COUNT,
+        DesiredCapacity=INSTANCE_COUNT,
+        Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'test_value',
+            "PropagateAtLaunch": True
+        }]
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName='test_asg',
+        LoadBalancerNames=['my-lb'])
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = elb_client.describe_load_balancers(
+        LoadBalancerNames=['my-lb']
+    )
+    list(response['LoadBalancerDescriptions'][0]['Instances']).should.have.length_of(INSTANCE_COUNT)
+
+
+@mock_autoscaling
+@mock_elb
+def test_detach_load_balancer():
+    INSTANCE_COUNT = 2
+
+    elb_client = boto3.client('elb', region_name='us-east-1')
+    elb_client.create_load_balancer(
+        LoadBalancerName='my-lb',
+        Listeners=[
+            {'Protocol': 'tcp', 'LoadBalancerPort': 80, 'InstancePort': 8080}],
+        AvailabilityZones=['us-east-1a', 'us-east-1b']
+    )
+
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        LoadBalancerNames=['my-lb'],
+        MinSize=0,
+        MaxSize=INSTANCE_COUNT,
+        DesiredCapacity=INSTANCE_COUNT,
+        Tags=[{
+            "ResourceId": 'test_asg',
+            "Key": 'test_key',
+            "Value": 'test_value',
+            "PropagateAtLaunch": True
+        }]
+    )
+
+    response = client.detach_load_balancers(
+        AutoScalingGroupName='test_asg',
+        LoadBalancerNames=['my-lb'])
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = elb_client.describe_load_balancers(
+        LoadBalancerNames=['my-lb']
+    )
+    list(response['LoadBalancerDescriptions'][0]['Instances']).should.have.length_of(0)
+
+    response = client.describe_load_balancers(AutoScalingGroupName='test_asg')
+    list(response['LoadBalancers']).should.have.length_of(0)
+
+
+@mock_autoscaling
 def test_create_autoscaling_group_boto3():
     client = boto3.client('autoscaling', region_name='us-east-1')
     _ = client.create_launch_configuration(
@@ -653,3 +815,147 @@ def test_autoscaling_describe_policies_boto3():
     response['ScalingPolicies'].should.have.length_of(1)
     response['ScalingPolicies'][0][
         'PolicyName'].should.equal('test_policy_down')
+
+@mock_autoscaling
+@mock_ec2
+def test_detach_one_instance_decrement():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=2,
+        DesiredCapacity=2,
+        Tags=[
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'propogated-tag-key',
+             'Value': 'propogate-tag-value',
+             'PropagateAtLaunch': True
+             }]
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    instance_to_detach = response['AutoScalingGroups'][0]['Instances'][0]['InstanceId']
+    instance_to_keep = response['AutoScalingGroups'][0]['Instances'][1]['InstanceId']
+
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
+
+    response = client.detach_instances(
+        AutoScalingGroupName='test_asg',
+        InstanceIds=[instance_to_detach],
+        ShouldDecrementDesiredCapacity=True
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    response['AutoScalingGroups'][0]['Instances'].should.have.length_of(1)
+
+    # test to ensure tag has been removed
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
+    tags = response['Reservations'][0]['Instances'][0]['Tags']
+    tags.should.have.length_of(1)
+
+    # test to ensure tag is present on other instance
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_keep])
+    tags = response['Reservations'][0]['Instances'][0]['Tags']
+    tags.should.have.length_of(2)
+
+@mock_autoscaling
+@mock_ec2
+def test_detach_one_instance():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=2,
+        DesiredCapacity=2,
+        Tags=[
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'propogated-tag-key',
+             'Value': 'propogate-tag-value',
+             'PropagateAtLaunch': True
+             }]
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    instance_to_detach = response['AutoScalingGroups'][0]['Instances'][0]['InstanceId']
+    instance_to_keep = response['AutoScalingGroups'][0]['Instances'][1]['InstanceId']
+
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
+
+    response = client.detach_instances(
+        AutoScalingGroupName='test_asg',
+        InstanceIds=[instance_to_detach],
+        ShouldDecrementDesiredCapacity=False
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    # test to ensure instance was replaced
+    response['AutoScalingGroups'][0]['Instances'].should.have.length_of(2)
+
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
+    tags = response['Reservations'][0]['Instances'][0]['Tags']
+    tags.should.have.length_of(1)
+
+    response = ec2_client.describe_instances(InstanceIds=[instance_to_keep])
+    tags = response['Reservations'][0]['Instances'][0]['Tags']
+    tags.should.have.length_of(2)
+
+@mock_autoscaling
+@mock_ec2
+def test_attach_one_instance():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=4,
+        DesiredCapacity=2,
+        Tags=[
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'propogated-tag-key',
+             'Value': 'propogate-tag-value',
+             'PropagateAtLaunch': True
+             }]
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+
+    ec2 = boto3.resource('ec2', 'us-east-1')
+    instances_to_add = [x.id for x in ec2.create_instances(ImageId='', MinCount=1, MaxCount=1)]
+
+    response = client.attach_instances(
+        AutoScalingGroupName='test_asg',
+        InstanceIds=instances_to_add
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+    response['AutoScalingGroups'][0]['Instances'].should.have.length_of(3)

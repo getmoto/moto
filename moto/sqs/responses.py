@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
 from .utils import parse_message_attributes
 from .models import sqs_backends
 from .exceptions import (
@@ -52,6 +52,8 @@ class SQSResponse(BaseResponse):
 
         return visibility_timeout
 
+    @amz_crc32  # crc last as request_id can edit XML
+    @amzn_request_id
     def call_action(self):
         status_code, headers, body = super(SQSResponse, self).call_action()
         if status_code == 404:
@@ -296,7 +298,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
         <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
     </CreateQueueResult>
     <ResponseMetadata>
-        <RequestId>7a62c49f-347e-4fc4-9331-6e8e7a96aa73</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </CreateQueueResponse>"""
 

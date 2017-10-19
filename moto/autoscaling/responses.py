@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
+from moto.core.utils import amz_crc32, amzn_request_id
 from .models import autoscaling_backends
 
 
@@ -86,6 +87,31 @@ class AutoScalingResponse(BaseResponse):
         )
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
+
+    @amz_crc32
+    @amzn_request_id
+    def attach_instances(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        instance_ids = self._get_multi_param("InstanceIds.member")
+        self.autoscaling_backend.attach_instances(
+            group_name, instance_ids)
+        template = self.response_template(ATTACH_INSTANCES_TEMPLATE)
+        return template.render()
+
+    @amz_crc32
+    @amzn_request_id
+    def detach_instances(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        instance_ids = self._get_multi_param("InstanceIds.member")
+        should_decrement_string = self._get_param('ShouldDecrementDesiredCapacity')
+        if should_decrement_string == 'true':
+            should_decrement = True
+        else:
+            should_decrement = False
+        detached_instances = self.autoscaling_backend.detach_instances(
+            group_name, instance_ids, should_decrement)
+        template = self.response_template(DETACH_INSTANCES_TEMPLATE)
+        return template.render(detached_instances=detached_instances)
 
     def describe_auto_scaling_groups(self):
         names = self._get_multi_param("AutoScalingGroupNames.member")
@@ -186,6 +212,34 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
+    @amz_crc32
+    @amzn_request_id
+    def attach_load_balancers(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
+        self.autoscaling_backend.attach_load_balancers(
+            group_name, load_balancer_names)
+        template = self.response_template(ATTACH_LOAD_BALANCERS_TEMPLATE)
+        return template.render()
+
+    @amz_crc32
+    @amzn_request_id
+    def describe_load_balancers(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        load_balancers = self.autoscaling_backend.describe_load_balancers(group_name)
+        template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
+        return template.render(load_balancers=load_balancers)
+
+    @amz_crc32
+    @amzn_request_id
+    def detach_load_balancers(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
+        self.autoscaling_backend.detach_load_balancers(
+            group_name, load_balancer_names)
+        template = self.response_template(DETACH_LOAD_BALANCERS_TEMPLATE)
+        return template.render()
+
 
 CREATE_LAUNCH_CONFIGURATION_TEMPLATE = """<CreateLaunchConfigurationResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <ResponseMetadata>
@@ -283,6 +337,40 @@ CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="ht
 <RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
 </ResponseMetadata>
 </CreateAutoScalingGroupResponse>"""
+
+ATTACH_INSTANCES_TEMPLATE = """<AttachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<AttachInstancesResult>
+</AttachInstancesResult>
+<ResponseMetadata>
+<RequestId>{{ requestid }}</RequestId>
+</ResponseMetadata>
+</AttachInstancesResponse>"""
+
+DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<DetachInstancesResult>
+  <Activities>
+    {% for instance in detached_instances %}
+    <member>
+      <ActivityId>5091cb52-547a-47ce-a236-c9ccbc2cb2c9EXAMPLE</ActivityId>
+      <AutoScalingGroupName>{{ group_name }}</AutoScalingGroupName>
+      <Cause>
+      At 2017-10-15T15:55:21Z instance {{ instance.instance.id }} was detached in response to a user request.
+      </Cause>
+      <Description>Detaching EC2 instance: {{ instance.instance.id }}</Description>
+      <StartTime>2017-10-15T15:55:21Z</StartTime>
+      <EndTime>2017-10-15T15:55:21Z</EndTime>
+      <StatusCode>InProgress</StatusCode>
+      <StatusMessage>InProgress</StatusMessage>
+      <Progress>50</Progress>
+      <Details>details</Details>
+    </member>
+    {% endfor %}
+  </Activities>
+</DetachInstancesResult>
+<ResponseMetadata>
+<RequestId>{{ requestid }}</RequestId>
+</ResponseMetadata>
+</DetachInstancesResponse>"""
 
 DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DescribeAutoScalingGroupsResult>
@@ -450,3 +538,33 @@ DELETE_POLICY_TEMPLATE = """<DeleteScalingPolicyResponse xmlns="http://autoscali
     <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteScalingPolicyResponse>"""
+
+ATTACH_LOAD_BALANCERS_TEMPLATE = """<AttachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<AttachLoadBalancersResult></AttachLoadBalancersResult>
+<ResponseMetadata>
+<RequestId>{{ requestid }}</RequestId>
+</ResponseMetadata>
+</AttachLoadBalancersResponse>"""
+
+DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<DescribeLoadBalancersResult>
+  <LoadBalancers>
+    {% for load_balancer in load_balancers %}
+      <member>
+        <LoadBalancerName>{{ load_balancer }}</LoadBalancerName>
+        <State>Added</State>
+      </member>
+    {% endfor %}
+  </LoadBalancers>
+</DescribeLoadBalancersResult>
+<ResponseMetadata>
+<RequestId>{{ requestid }}</RequestId>
+</ResponseMetadata>
+</DescribeLoadBalancersResponse>"""
+
+DETACH_LOAD_BALANCERS_TEMPLATE = """<DetachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<DetachLoadBalancersResult></DetachLoadBalancersResult>
+<ResponseMetadata>
+<RequestId>{{ requestid }}</RequestId>
+</ResponseMetadata>
+</DetachLoadBalancersResponse>"""

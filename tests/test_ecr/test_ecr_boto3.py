@@ -414,7 +414,8 @@ def test_get_authorization_token_assume_region():
     client = boto3.client('ecr', region_name='us-east-1')
     auth_token_response = client.get_authorization_token()
 
-    list(auth_token_response.keys()).should.equal(['authorizationData', 'ResponseMetadata'])
+    auth_token_response.should.contain('authorizationData')
+    auth_token_response.should.contain('ResponseMetadata')
     auth_token_response['authorizationData'].should.equal([
         {
             'authorizationToken': 'QVdTOnVzLWVhc3QtMS1hdXRoLXRva2Vu',
@@ -429,7 +430,8 @@ def test_get_authorization_token_explicit_regions():
     client = boto3.client('ecr', region_name='us-east-1')
     auth_token_response = client.get_authorization_token(registryIds=['us-east-1', 'us-west-1'])
 
-    list(auth_token_response.keys()).should.equal(['authorizationData', 'ResponseMetadata'])
+    auth_token_response.should.contain('authorizationData')
+    auth_token_response.should.contain('ResponseMetadata')
     auth_token_response['authorizationData'].should.equal([
         {
             'authorizationToken': 'QVdTOnVzLWVhc3QtMS1hdXRoLXRva2Vu',

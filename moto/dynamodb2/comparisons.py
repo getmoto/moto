@@ -61,15 +61,27 @@ def get_filter_expression(expr, names, values):
     # Do substitutions
     for key, value in names.items():
         expr = expr.replace(key, value)
+
+    # Store correct types of values for use later
+    values_map = {}
     for key, value in values.items():
         if 'N' in value:
-            expr.replace(key, float(value['N']))
+            values_map[key] = float(value['N'])
+        elif 'BOOL' in value:
+            values_map[key] = value['BOOL']
+        elif 'S' in value:
+            values_map[key] = value['S']
+        elif 'NS' in value:
+            values_map[key] = tuple(value['NS'])
+        elif 'SS' in value:
+            values_map[key] = tuple(value['SS'])
+        elif 'L' in value:
+            values_map[key] = tuple(value['L'])
         else:
-            expr = expr.replace(key, value['S'])
+            raise NotImplementedError()
 
     # Remove all spaces, tbf we could just skip them in the next step.
     # The number of known options is really small so we can do a fair bit of cheating
-    #expr = list(re.sub('\s', '', expr))  # 'Id>5ANDattribute_exists(test)ORNOTlength<6'
     expr = list(expr)
 
     # DodgyTokenisation stage 1
@@ -130,13 +142,9 @@ def get_filter_expression(expr, names, values):
 
             next_token = six.next(token_iterator)
             while next_token != ')':
-                try:
-                    next_token = int(next_token)
-                except ValueError:
-                    try:
-                        next_token = float(next_token)
-                    except ValueError:
-                        pass
+                if next_token in values_map:
+                    next_token = values_map[next_token]
+
                 tuple_list.append(next_token)
                 next_token = six.next(token_iterator)
 
@@ -149,10 +157,14 @@ def get_filter_expression(expr, names, values):
                 tokens2.append(tuple(tuple_list))
         elif token == 'BETWEEN':
             field = tokens2.pop()
-            op1 = int(six.next(token_iterator))
+            # if values map contains a number, it would be a float
+            # so we need to int() it anyway
+            op1 = six.next(token_iterator)
+            op1 = int(values_map.get(op1, op1))
             and_op = six.next(token_iterator)
             assert and_op == 'AND'
-            op2 = int(six.next(token_iterator))
+            op2 = six.next(token_iterator)
+            op2 = int(values_map.get(op2, op2))
             tokens2.append(['between', field, op1, op2])
 
         elif is_function(token):
@@ -169,14 +181,15 @@ def get_filter_expression(expr, names, values):
             tokens2.append(function_list)
 
         else:
-            try:
-                token = int(token)
-            except ValueError:
-                try:
-                    token = float(token)
-                except ValueError:
-                    pass
-            tokens2.append(token)
+            # Convert tokens back to real types
+            if token in values_map:
+                token = values_map[token]
+
+            # Need to join >= <= <>
+            if len(tokens2) > 0 and ((tokens2[-1] == '>' and token == '=') or (tokens2[-1] == '<' and token == '=') or (tokens2[-1] == '<' and token == '>')):
+                tokens2.append(tokens2.pop() + token)
+            else:
+                tokens2.append(token)
 
     # Start of the Shunting-Yard algorithm. <-- Proper beast algorithm!
     def is_number(val):

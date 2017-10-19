@@ -199,10 +199,14 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 response = method()
             except HTTPException as http_error:
                 response = http_error.description, dict(status=http_error.code)
+
             if isinstance(response, six.string_types):
                 return 200, headers, response
             else:
-                body, new_headers = response
+                if len(response) == 2:
+                    body, new_headers = response
+                else:
+                    status, new_headers, body = response
                 status = new_headers.get('status', 200)
                 headers.update(new_headers)
                 # Cast status to string
