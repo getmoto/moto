@@ -16,9 +16,10 @@ ASG_NAME_TAG = "aws:autoscaling:groupName"
 
 
 class InstanceState(object):
-    def __init__(self, instance, lifecycle_state="InService"):
+    def __init__(self, instance, lifecycle_state="InService", health_status="Healthy"):
         self.instance = instance
         self.lifecycle_state = lifecycle_state
+        self.health_status = health_status
 
 
 class FakeScalingPolicy(BaseModel):
