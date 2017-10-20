@@ -89,7 +89,7 @@ class LogsResponse(BaseResponse):
             self.logs_backend.get_log_events(log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head)
 
         return json.dumps({
-            "events": events,
+            "events": [ob.__dict__ for ob in events],
             "nextBackwardToken": next_backward_token,
             "nextForwardToken": next_foward_token
         })
