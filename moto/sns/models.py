@@ -257,7 +257,7 @@ class SNSBackend(BaseBackend):
             return self._get_values_nexttoken(self.subscriptions, next_token)
 
     def publish(self, arn, message, subject=None):
-        if subject is not None and len(subject) > 100:
+        if subject is not None and len(subject) >= 100:
             raise ValueError('Subject must be less than 100 characters')
 
         try:

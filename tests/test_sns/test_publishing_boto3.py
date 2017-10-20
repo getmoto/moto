@@ -197,13 +197,13 @@ def test_publish_subject():
     subject1 = 'test subject'
     subject2 = 'test subject' * 20
     with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(TopicArn=topic_arn, Message=message, Subject=subject1)
+        conn.publish(TopicArn=topic_arn, Message=message, Subject=subject1)
 
     # Just that it doesnt error is a pass
     try:
         with freeze_time("2015-01-01 12:00:00"):
-            published_message = conn.publish(TopicArn=topic_arn, Message=message, Subject=subject2)
+            conn.publish(TopicArn=topic_arn, Message=message, Subject=subject2)
     except ClientError as err:
         err.response['Error']['Code'].should.equal('InvalidParameter')
     else:
-        raise RuntimeError('Should of raised an InvalidParameter exception')
+        raise RuntimeError('Should have raised an InvalidParameter exception')
