@@ -121,6 +121,35 @@ class JobQueue(BaseModel):
 
         return result
 
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        backend = batch_backends[region_name]
+        properties = cloudformation_json['Properties']
+
+        # Need to deal with difference case from cloudformation compute_resources, e.g. instanceRole vs InstanceRole
+        # Hacky fix to normalise keys, is making me think I want to start spamming cAsEiNsEnSiTiVe dictionaries
+        compute_envs = []
+        for compute_env in properties['ComputeEnvironmentOrder']:
+            tmp_compute_env_order = {}
+            for key, value in compute_env.items():
+                new_key = key[0].lower() + key[1:]
+                tmp_compute_env_order[new_key] = value
+            compute_envs.append(tmp_compute_env_order)
+
+        queue = backend.create_job_queue(
+            queue_name=resource_name,
+            priority=properties['Priority'],
+            state=properties.get('State', 'ENABLED'),
+            compute_env_order=compute_envs
+        )
+        arn = queue[1]
+
+        return backend.get_job_queue_by_arn(arn)
+
 
 class JobDefinition(BaseModel):
     def __init__(self, name, parameters, _type, container_properties, region_name, revision=0, retry_strategy=0):

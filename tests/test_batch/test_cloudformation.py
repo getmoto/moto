@@ -94,5 +94,71 @@ def test_create_env_cf():
     stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
 
     stack_resources['StackResourceSummaries'][0]['ResourceStatus'].should.equal('CREATE_COMPLETE')
+    # Spot checks on the ARN
     stack_resources['StackResourceSummaries'][0]['PhysicalResourceId'].startswith('arn:aws:batch:')
     stack_resources['StackResourceSummaries'][0]['PhysicalResourceId'].should.contain('test_stack')
+
+
+@mock_cloudformation()
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_create_job_queue_cf():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    create_environment_template = {
+        'Resources': {
+            "ComputeEnvironment": {
+                "Type": "AWS::Batch::ComputeEnvironment",
+                "Properties": {
+                    "Type": "MANAGED",
+                    "ComputeResources": {
+                        "Type": "EC2",
+                        "MinvCpus": 0,
+                        "DesiredvCpus": 0,
+                        "MaxvCpus": 64,
+                        "InstanceTypes": [
+                            "optimal"
+                        ],
+                        "Subnets": [subnet_id],
+                        "SecurityGroupIds": [sg_id],
+                        "InstanceRole": iam_arn
+                    },
+                    "ServiceRole": iam_arn
+                }
+            },
+
+            "JobQueue": {
+                "Type": "AWS::Batch::JobQueue",
+                "Properties": {
+                    "Priority": 1,
+                    "ComputeEnvironmentOrder": [
+                        {
+                            "Order": 1,
+                            "ComputeEnvironment": {"Ref": "ComputeEnvironment"}
+                        }
+                    ]
+                }
+            },
+        }
+    }
+    cf_json = json.dumps(create_environment_template)
+
+    cf_conn = boto3.client('cloudformation', DEFAULT_REGION)
+    stack_id = cf_conn.create_stack(
+        StackName='test_stack',
+        TemplateBody=cf_json,
+    )['StackId']
+
+    stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
+    len(stack_resources['StackResourceSummaries']).should.equal(2)
+
+    job_queue_resource = list(filter(lambda item: item['ResourceType'] == 'AWS::Batch::JobQueue', stack_resources['StackResourceSummaries']))[0]
+
+    job_queue_resource['ResourceStatus'].should.equal('CREATE_COMPLETE')
+    # Spot checks on the ARN
+    job_queue_resource['PhysicalResourceId'].startswith('arn:aws:batch:')
+    job_queue_resource['PhysicalResourceId'].should.contain('test_stack')
+    job_queue_resource['PhysicalResourceId'].should.contain('job-queue/')
