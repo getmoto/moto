@@ -19,7 +19,7 @@ from moto.ecs import ecs_backends
 from moto.logs import logs_backends
 
 from .exceptions import InvalidParameterValueException, InternalFailure, ClientException
-from .utils import make_arn_for_compute_env, make_arn_for_job_queue, make_arn_for_task_def
+from .utils import make_arn_for_compute_env, make_arn_for_job_queue, make_arn_for_task_def, lowercase_first_key
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
@@ -64,18 +64,11 @@ class ComputeEnvironment(BaseModel):
         backend = batch_backends[region_name]
         properties = cloudformation_json['Properties']
 
-        # Need to deal with difference case from cloudformation compute_resources, e.g. instanceRole vs InstanceRole
-        # Hacky fix to normalise keys
-        new_comp_res = {}
-        for key, value in properties['ComputeResources'].items():
-            new_key = key[0].lower() + key[1:]
-            new_comp_res[new_key] = value
-
         env = backend.create_compute_environment(
             resource_name,
             properties['Type'],
             properties.get('State', 'ENABLED'),
-            new_comp_res,
+            lowercase_first_key(properties['ComputeResources']),
             properties['ServiceRole']
         )
         arn = env[1]
@@ -132,13 +125,7 @@ class JobQueue(BaseModel):
 
         # Need to deal with difference case from cloudformation compute_resources, e.g. instanceRole vs InstanceRole
         # Hacky fix to normalise keys, is making me think I want to start spamming cAsEiNsEnSiTiVe dictionaries
-        compute_envs = []
-        for compute_env in properties['ComputeEnvironmentOrder']:
-            tmp_compute_env_order = {}
-            for key, value in compute_env.items():
-                new_key = key[0].lower() + key[1:]
-                tmp_compute_env_order[new_key] = value
-            compute_envs.append(tmp_compute_env_order)
+        compute_envs = [lowercase_first_key(dict_item) for dict_item in properties['ComputeEnvironmentOrder']]
 
         queue = backend.create_job_queue(
             queue_name=resource_name,
@@ -227,6 +214,27 @@ class JobDefinition(BaseModel):
             result['retryStrategy'] = {'attempts': self.retries}
 
         return result
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        backend = batch_backends[region_name]
+        properties = cloudformation_json['Properties']
+
+        res = backend.register_job_definition(
+            def_name=resource_name,
+            parameters=lowercase_first_key(properties.get('Parameters', {})),
+            _type='container',
+            retry_strategy=lowercase_first_key(properties['RetryStrategy']),
+            container_properties=lowercase_first_key(properties['ContainerProperties'])
+        )
+
+        arn = res[1]
+
+        return backend.get_job_definition_by_arn(arn)
 
 
 class Job(threading.Thread, BaseModel):
