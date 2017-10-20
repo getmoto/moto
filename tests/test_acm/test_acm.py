@@ -287,6 +287,19 @@ def test_request_certificate():
     )
     resp.should.contain('CertificateArn')
 
+@mock_acm
+def test_request_certificate_no_san():
+    client = boto3.client('acm', region_name='eu-central-1')
+
+    resp = client.request_certificate(
+        DomainName='google.com'
+    )
+    resp.should.contain('CertificateArn')
+
+    resp2 = client.describe_certificate(
+        CertificateArn=resp['CertificateArn']
+    )
+    resp2.should.contain('Certificate')
 
 # # Also tests the SAN code
 # # requires Pull: https://github.com/spulec/freezegun/pull/210
