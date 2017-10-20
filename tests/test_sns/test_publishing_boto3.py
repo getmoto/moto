@@ -177,3 +177,33 @@ def test_publish_to_http():
     response = conn.publish(
         TopicArn=topic_arn, Message="my message", Subject="my subject")
     message_id = response['MessageId']
+
+
+@mock_sqs
+@mock_sns
+def test_publish_subject():
+    conn = boto3.client('sns', region_name='us-east-1')
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]['TopicArn']
+
+    sqs_conn = boto3.resource('sqs', region_name='us-east-1')
+    sqs_conn.create_queue(QueueName="test-queue")
+
+    conn.subscribe(TopicArn=topic_arn,
+                   Protocol="sqs",
+                   Endpoint="arn:aws:sqs:us-east-1:123456789012:test-queue")
+    message = 'my message'
+    subject1 = 'test subject'
+    subject2 = 'test subject' * 20
+    with freeze_time("2015-01-01 12:00:00"):
+        published_message = conn.publish(TopicArn=topic_arn, Message=message, Subject=subject1)
+
+    # Just that it doesnt error is a pass
+    try:
+        with freeze_time("2015-01-01 12:00:00"):
+            published_message = conn.publish(TopicArn=topic_arn, Message=message, Subject=subject2)
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameter')
+    else:
+        raise RuntimeError('Should of raised an InvalidParameter exception')
