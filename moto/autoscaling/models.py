@@ -433,6 +433,12 @@ class AutoScalingBackend(BaseBackend):
             group.instance_states.extend(new_instances)
             self.update_attached_elbs(group.name)
 
+    def set_instance_health(self, instance_id, health_status, should_respect_grace_period):
+        instance = self.ec2_backend.get_instance(instance_id)
+        instance_state = next(instance_state for group in self.autoscaling_groups.values()
+                              for instance_state in group.instance_states if instance_state.instance.id == instance.id)
+        instance_state.health_status = health_status
+
     def detach_instances(self, group_name, instance_ids, should_decrement):
         group = self.autoscaling_groups[group_name]
         original_size = len(group.instance_states)

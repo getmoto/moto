@@ -100,6 +100,18 @@ class AutoScalingResponse(BaseResponse):
 
     @amz_crc32
     @amzn_request_id
+    def set_instance_health(self):
+        instance_id = self._get_param('InstanceId')
+        health_status = self._get_param("HealthStatus")
+        if health_status not in ['Healthy', 'Unhealthy']:
+            raise ValueError('Valid instance health states are: [Healthy, Unhealthy]')
+        should_respect_grace_period = self._get_param("ShouldRespectGracePeriod")
+        self.autoscaling_backend.set_instance_health(instance_id, health_status, should_respect_grace_period)
+        template = self.response_template(SET_INSTANCE_HEALTH_TEMPLATE)
+        return template.render()
+
+    @amz_crc32
+    @amzn_request_id
     def detach_instances(self):
         group_name = self._get_param('AutoScalingGroupName')
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -568,3 +580,10 @@ DETACH_LOAD_BALANCERS_TEMPLATE = """<DetachLoadBalancersResponse xmlns="http://a
 <RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </DetachLoadBalancersResponse>"""
+
+SET_INSTANCE_HEALTH_TEMPLATE = """<SetInstanceHealthResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<SetInstanceHealthResponse></SetInstanceHealthResponse>
+<ResponseMetadata>
+<RequestId>{{ requestid }}</RequestId>
+</ResponseMetadata>
+</SetInstanceHealthResponse>"""
