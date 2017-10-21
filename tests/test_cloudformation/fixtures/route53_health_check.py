@@ -26,7 +26,7 @@ template = {
         "myDNSRecord": {
             "Type": "AWS::Route53::RecordSet",
             "Properties": {
-                "HostedZoneName": {"Ref": "HostedZone"},
+                "HostedZoneId": {"Ref": "HostedZone"},
                 "Comment": "DNS name for my instance.",
                 "Name": "my_record_set",
                 "Type": "A",
