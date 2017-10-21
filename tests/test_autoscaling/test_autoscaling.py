@@ -311,6 +311,7 @@ def test_autoscaling_group_describe_instances():
     instances = list(conn.get_all_autoscaling_instances())
     instances.should.have.length_of(2)
     instances[0].launch_config_name.should.equal('tester')
+    instances[0].health_status.should.equal('Healthy')
     autoscale_instance_ids = [instance.instance_id for instance in instances]
 
     ec2_conn = boto.connect_ec2()
@@ -959,3 +960,56 @@ def test_attach_one_instance():
         AutoScalingGroupNames=['test_asg']
     )
     response['AutoScalingGroups'][0]['Instances'].should.have.length_of(3)
+
+@mock_autoscaling
+@mock_ec2
+def test_describe_instance_health():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=2,
+        MaxSize=4,
+        DesiredCapacity=2,
+    )
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+
+    instance1 = response['AutoScalingGroups'][0]['Instances'][0]
+    instance1['HealthStatus'].should.equal('Healthy')
+
+@mock_autoscaling
+@mock_ec2
+def test_set_instance_health():
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=2,
+        MaxSize=4,
+        DesiredCapacity=2,
+    )
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+
+    instance1 = response['AutoScalingGroups'][0]['Instances'][0]
+    instance1['HealthStatus'].should.equal('Healthy')
+
+    client.set_instance_health(InstanceId=instance1['InstanceId'], HealthStatus='Unhealthy')
+
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg']
+    )
+
+    instance1 = response['AutoScalingGroups'][0]['Instances'][0]
+    instance1['HealthStatus'].should.equal('Unhealthy')

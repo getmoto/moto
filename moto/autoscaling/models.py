@@ -16,9 +16,10 @@ ASG_NAME_TAG = "aws:autoscaling:groupName"
 
 
 class InstanceState(object):
-    def __init__(self, instance, lifecycle_state="InService"):
+    def __init__(self, instance, lifecycle_state="InService", health_status="Healthy"):
         self.instance = instance
         self.lifecycle_state = lifecycle_state
+        self.health_status = health_status
 
 
 class FakeScalingPolicy(BaseModel):
@@ -431,6 +432,12 @@ class AutoScalingBackend(BaseBackend):
                 self.ec2_backend.create_tags([instance.instance.id], {ASG_NAME_TAG: group.name})
             group.instance_states.extend(new_instances)
             self.update_attached_elbs(group.name)
+
+    def set_instance_health(self, instance_id, health_status, should_respect_grace_period):
+        instance = self.ec2_backend.get_instance(instance_id)
+        instance_state = next(instance_state for group in self.autoscaling_groups.values()
+                              for instance_state in group.instance_states if instance_state.instance.id == instance.id)
+        instance_state.health_status = health_status
 
     def detach_instances(self, group_name, instance_ids, should_decrement):
         group = self.autoscaling_groups[group_name]
