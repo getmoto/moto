@@ -576,9 +576,16 @@ def test_get_item_returns_consumed_capacity():
 
 
 def test_filter_expression():
-    # TODO NOT not yet supported
     row1 = moto.dynamodb2.models.Item(None, None, None, None, {'Id': {'N': '8'}, 'Subs': {'N': '5'}, 'Desc': {'S': 'Some description'}, 'KV': {'SS': ['test1', 'test2']}})
     row2 = moto.dynamodb2.models.Item(None, None, None, None, {'Id': {'N': '8'}, 'Subs': {'N': '10'}, 'Desc': {'S': 'A description'}, 'KV': {'SS': ['test3', 'test4']}})
+
+    # NOT test 1
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('NOT attribute_not_exists(Id)', {}, {})
+    filter_expr.expr(row1).should.be(True)
+
+    # NOT test 2
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('NOT (Id = :v0)', {}, {':v0': {'N': 8}})
+    filter_expr.expr(row1).should.be(False)  # Id = 8 so should be false
 
     # AND test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id > :v0 AND Subs < :v1', {}, {':v0': {'N': 5}, ':v1': {'N': 7}})
@@ -620,6 +627,14 @@ def test_filter_expression():
 
     # size function test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('size(Desc) > size(KV)', {}, {})
+    filter_expr.expr(row1).should.be(True)
+
+    # Expression from @batkuip
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
+        '(#n0 < :v0 AND attribute_not_exists(#n1))',
+        {'#n0': 'Subs', '#n1': 'fanout_ts'},
+        {':v0': {'N': '7'}}
+    )
     filter_expr.expr(row1).should.be(True)
 
 
@@ -710,6 +725,27 @@ def test_scan_filter3():
         FilterExpression=Attr('active').eq(True)
     )
     assert response['Count'] == 1
+
+
+@mock_dynamodb2
+def test_scan_filter4():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'N'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+
+    table = dynamodb.Table('test1')
+    response = table.scan(
+        FilterExpression=Attr('epoch_ts').lt(7) & Attr('fanout_ts').not_exists()
+    )
+    # Just testing
+    assert response['Count'] == 0
 
 
 @mock_dynamodb2
