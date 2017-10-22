@@ -293,12 +293,4 @@ class BatchResponse(BaseResponse):
 
     # CancelJob
     def canceljob(self):  # Theres some AWS semantics on the differences but for us they're identical ;-)
-        job_id = self._get_param('jobId')
-        reason = self._get_param('reason')
-
-        try:
-            self.batch_backend.terminate_job(job_id, reason)
-        except AWSError as err:
-            return err.response()
-
-        return ''
+        return self.terminatejob()
