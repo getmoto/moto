@@ -209,7 +209,7 @@ class FakeZone(BaseModel):
 
     @property
     def physical_resource_id(self):
-        return self.name
+        return self.id
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
