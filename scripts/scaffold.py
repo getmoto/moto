@@ -81,12 +81,14 @@ def select_service_and_operation():
         raise click.Abort()
     return service_name, operation_name
 
+def get_escaped_service(service):
+    return service.replace('-', '')
 
 def get_lib_dir(service):
-    return os.path.join('moto', service)
+    return os.path.join('moto', get_escaped_service(service))
 
 def get_test_dir(service):
-    return os.path.join('tests', 'test_{}'.format(service))
+    return os.path.join('tests', 'test_{}'.format(get_escaped_service(service)))
 
 
 def render_template(tmpl_dir, tmpl_filename, context, service, alt_filename=None):
@@ -117,7 +119,7 @@ def append_mock_to_init_py(service):
     filtered_lines = [_ for _ in lines if re.match('^from.*mock.*$', _)]
     last_import_line_index = lines.index(filtered_lines[-1])
 
-    new_line = 'from .{} import mock_{}  # flake8: noqa'.format(service, service)
+    new_line = 'from .{} import mock_{}  # flake8: noqa'.format(get_escaped_service(service), get_escaped_service(service))
     lines.insert(last_import_line_index + 1, new_line)
 
     body = '\n'.join(lines) + '\n'
@@ -135,7 +137,7 @@ def append_mock_import_to_backends_py(service):
     filtered_lines = [_ for _ in lines if re.match('^from.*backends.*$', _)]
     last_import_line_index = lines.index(filtered_lines[-1])
 
-    new_line = 'from moto.{} import {}_backends'.format(service, service)
+    new_line = 'from moto.{} import {}_backends'.format(get_escaped_service(service), get_escaped_service(service))
     lines.insert(last_import_line_index + 1, new_line)
 
     body = '\n'.join(lines) + '\n'
@@ -152,7 +154,7 @@ def append_mock_dict_to_backends_py(service):
     filtered_lines = [_ for _ in lines if re.match(".*'.*':.*_backends.*", _)]
     last_elem_line_index = lines.index(filtered_lines[-1])
 
-    new_line = "    '{}': {}_backends,".format(service, service)
+    new_line = "    '{}': {}_backends,".format(service, get_escaped_service(service))
     prev_line = lines[last_elem_line_index]
     if not prev_line.endswith('{') and not prev_line.endswith(','):
         lines[last_elem_line_index] += ','
@@ -165,8 +167,8 @@ def append_mock_dict_to_backends_py(service):
 def initialize_service(service, operation, api_protocol):
     """create lib and test dirs if not exist
     """
-    lib_dir = os.path.join('moto', service)
-    test_dir = os.path.join('tests', 'test_{}'.format(service))
+    lib_dir = get_lib_dir(service)
+    test_dir = get_test_dir(service)
 
     print_progress('Initializing service', service, 'green')
 
@@ -178,7 +180,8 @@ def initialize_service(service, operation, api_protocol):
         'service': service,
         'service_class': service_class,
         'endpoint_prefix': endpoint_prefix,
-        'api_protocol': api_protocol
+        'api_protocol': api_protocol,
+        'escaped_service': get_escaped_service(service)
     }
 
     # initialize service directory
@@ -202,7 +205,7 @@ def initialize_service(service, operation, api_protocol):
         os.makedirs(test_dir)
     tmpl_dir = os.path.join(TEMPLATE_DIR, 'test')
     for tmpl_filename in os.listdir(tmpl_dir):
-        alt_filename = 'test_{}.py'.format(service) if tmpl_filename == 'test_service.py.j2' else None
+        alt_filename = 'test_{}.py'.format(get_escaped_service(service)) if tmpl_filename == 'test_service.py.j2' else None
         render_template(
             tmpl_dir, tmpl_filename, tmpl_context, service, alt_filename
         )
@@ -407,7 +410,7 @@ def insert_url(service, operation, api_protocol):
     aws_operation_name = to_upper_camel_case(operation)
     uri = client._service_model.operation_model(aws_operation_name).http['requestUri']
 
-    path = os.path.join(os.path.dirname(__file__), '..', 'moto', service, 'urls.py')
+    path = os.path.join(os.path.dirname(__file__), '..', 'moto', get_escaped_service(service), 'urls.py')
     with open(path) as f:
         lines = [_.replace('\n', '') for _ in f.readlines()]
 
@@ -445,7 +448,7 @@ def insert_codes(service, operation, api_protocol):
     func_in_responses = get_function_in_responses(service, operation, api_protocol)
     func_in_models = get_function_in_models(service, operation)
     # edit responses.py
-    responses_path = 'moto/{}/responses.py'.format(service)
+    responses_path = 'moto/{}/responses.py'.format(get_escaped_service(service))
     print_progress('inserting code', responses_path, 'green')
     insert_code_to_class(responses_path, BaseResponse, func_in_responses)
 
@@ -459,7 +462,7 @@ def insert_codes(service, operation, api_protocol):
             f.write('\n'.join(lines))
 
     # edit models.py
-    models_path = 'moto/{}/models.py'.format(service)
+    models_path = 'moto/{}/models.py'.format(get_escaped_service(service))
     print_progress('inserting code', models_path, 'green')
     insert_code_to_class(models_path, BaseBackend, func_in_models)
 
