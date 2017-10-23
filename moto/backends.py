@@ -77,7 +77,6 @@ BACKENDS = {
     'route53': route53_backends,
     'lambda': lambda_backends,
     'xray': xray_backends,
-    'iot': iot_backends,
 }
 
 
