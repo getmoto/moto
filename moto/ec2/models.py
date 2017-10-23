@@ -45,6 +45,7 @@ from .exceptions import (
     InvalidAMIAttributeItemValueError,
     InvalidSnapshotIdError,
     InvalidVolumeIdError,
+    VolumeInUseError,
     InvalidVolumeAttachmentError,
     InvalidDomainError,
     InvalidAddressError,
@@ -1813,6 +1814,10 @@ class EBSBackend(object):
 
     def delete_volume(self, volume_id):
         if volume_id in self.volumes:
+            volume = self.volumes[volume_id]
+            instance_id = volume.attachment.instance.id
+            if volume.attachment is not None:
+                raise VolumeInUseError(volume_id, instance_id)
             return self.volumes.pop(volume_id)
         raise InvalidVolumeIdError(volume_id)
 
