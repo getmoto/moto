@@ -178,7 +178,8 @@ def initialize_service(service, operation, api_protocol):
     tmpl_context = {
         'service': service,
         'service_class': service_class,
-        'endpoint_prefix': endpoint_prefix
+        'endpoint_prefix': endpoint_prefix,
+        'api_protocol': api_protocol
     }
 
     # initialize service directory
@@ -212,8 +213,10 @@ def initialize_service(service, operation, api_protocol):
     append_mock_import_to_backends_py(service)
     append_mock_dict_to_backends_py(service)
 
+
 def to_upper_camel_case(s):
     return ''.join([_.title() for _ in s.split('_')])
+
 
 def to_snake_case(s):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s)
@@ -258,7 +261,7 @@ def get_function_in_responses(service, operation, protocol):
             ','.join(['{}={}'.format(_, _) for _ in output_names])
         )
     elif protocol == 'json':
-        body += '    # TODO: adjust reponse\n'
+        body += '    # TODO: adjust response\n'
         body += '    return json.dumps({})\n'.format(','.join(['{}={}'.format(_, _) for _ in output_names]))
     return body
 
@@ -388,7 +391,7 @@ def insert_code_to_class(path, base_class, new_code):
         f.write(body)
 
 
-def insert_url(service, operation):
+def insert_url(service, operation, api_protocol):
     client = boto3.client(service)
     service_class = client.__class__.__name__
     aws_operation_name = to_upper_camel_case(operation)
@@ -413,9 +416,31 @@ def insert_url(service, operation):
     if not prev_line.endswith('{') and not prev_line.endswith(','):
         lines[last_elem_line_index] += ','
 
-    new_line = "    '{0}%s$': %sResponse.dispatch," % (
-        uri, service_class
-    )
+    # generate url pattern
+    if api_protocol == 'rest-json':
+        elems = uri.split('/')
+
+        def _convert(resource):
+            if not re.match('^{.*}$', resource):
+                return resource
+            formatted_name = resource.replace('{', '').replace('}', '').replace('-', '_')
+            return '(?P<%s>[\w_-]+)' % formatted_name
+        if uri == '/':
+            func_name = 'root'
+        else:
+            func_name = [
+                to_snake_case(_.replace('{', '').replace('}', '').replace('-', '_')) for _ in elems
+            ][-1]
+        new_uri = '/'.join([_convert(_) for _ in elems])
+        new_line = "    '{0}%s/?$': response.%s," % (
+            new_uri, func_name
+        )
+    else:
+        new_line = "    '{0}%s$': %sResponse.dispatch," % (
+            uri, service_class
+        )
+    if new_line in lines:
+        return
     lines.insert(last_elem_line_index + 1, new_line)
 
     body = '\n'.join(lines) + '\n'
@@ -423,7 +448,7 @@ def insert_url(service, operation):
         f.write(body)
 
 
-def insert_query_codes(service, operation):
+def insert_query_codes(service, operation, api_protocol):
     func_in_responses = get_function_in_responses(service, operation, 'query')
     func_in_models = get_function_in_models(service, operation)
     template = get_response_query_template(service, operation)
@@ -446,9 +471,9 @@ def insert_query_codes(service, operation):
     insert_code_to_class(models_path, BaseBackend, func_in_models)
 
     # edit urls.py
-    insert_url(service, operation)
+    insert_url(service, operation, api_protocol)
 
-def insert_json_codes(service, operation):
+def insert_json_codes(service, operation, api_protocol):
     func_in_responses = get_function_in_responses(service, operation, 'json')
     func_in_models = get_function_in_models(service, operation)
 
@@ -463,11 +488,12 @@ def insert_json_codes(service, operation):
     insert_code_to_class(models_path, BaseBackend, func_in_models)
 
     # edit urls.py
-    insert_url(service, operation)
+    insert_url(service, operation, api_protocol)
 
-def insert_restjson_codes(service, operation):
+def insert_restjson_codes(service, operation, api_protocol):
     func_in_models = get_function_in_models(service, operation)
 
+    # TODO: Now we know how to handle it
     print_progress('skipping inserting code to responses.py', "dont't know how to implement", 'yellow')
     # edit models.py
     models_path = 'moto/{}/models.py'.format(service)
@@ -475,7 +501,7 @@ def insert_restjson_codes(service, operation):
     insert_code_to_class(models_path, BaseBackend, func_in_models)
 
     # edit urls.py
-    insert_url(service, operation)
+    insert_url(service, operation, api_protocol)
 
 @click.command()
 def main():
@@ -483,11 +509,11 @@ def main():
     api_protocol = boto3.client(service)._service_model.metadata['protocol']
     initialize_service(service, operation, api_protocol)
     if api_protocol == 'query':
-        insert_query_codes(service, operation)
+        insert_query_codes(service, operation, api_protocol)
     elif api_protocol == 'json':
-        insert_json_codes(service, operation)
+        insert_json_codes(service, operation, api_protocol)
     elif api_protocol == 'rest-json':
-        insert_restjson_codes(service, operation)
+        insert_restjson_codes(service, operation, api_protocol)
     else:
         print_progress('skip inserting code', 'api protocol "{}" is not supported'.format(api_protocol), 'yellow')
 
