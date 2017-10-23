@@ -95,3 +95,30 @@ def test_certs():
     client.delete_certificate(certificateId=cert_id)
     certs = client.list_certificates()
     certs.should.have.key('certificates').which.should.have.length_of(0)
+
+@mock_iot
+def test_policy():
+    client = boto3.client('iot')
+    name = 'my-policy'
+    doc = '{}'
+    policy = client.create_policy(policyName=name, policyDocument=doc)
+    policy.should.have.key('policyName').which.should.equal(name)
+    policy.should.have.key('policyArn').which.should_not.be.none
+    policy.should.have.key('policyDocument').which.should.equal(doc)
+    policy.should.have.key('policyVersionId').which.should.equal('1')
+
+    policy = client.get_policy(policyName=name)
+    policy.should.have.key('policyName').which.should.equal(name)
+    policy.should.have.key('policyArn').which.should_not.be.none
+    policy.should.have.key('policyDocument').which.should.equal(doc)
+    policy.should.have.key('defaultVersionId').which.should.equal('1')
+
+    res = client.list_policies()
+    res.should.have.key('policies').which.should.have.length_of(1)
+    for policy in res['policies']:
+        policy.should.have.key('policyName').which.should_not.be.none
+        policy.should.have.key('policyArn').which.should_not.be.none
+
+    client.delete_policy(policyName=name)
+    policies = client.list_policies()
+    policies.should.have.key('policies').which.should.have.length_of(0)
