@@ -38,7 +38,6 @@ from moto.xray import xray_backends
 from moto.batch import batch_backends
 from moto.iot import iot_backends
 
-
 BACKENDS = {
     'acm': acm_backends,
     'apigateway': apigateway_backends,
@@ -77,6 +76,7 @@ BACKENDS = {
     'route53': route53_backends,
     'lambda': lambda_backends,
     'xray': xray_backends,
+    'iot': iot_backends,
 }
 
 
