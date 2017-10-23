@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
 import time
 import boto3
+import string
+import random
+import hashlib
 from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
 from .exceptions import (
@@ -51,12 +54,56 @@ class FakeThingType(BaseModel):
         }
 
 
+class FakeCertificate(BaseModel):
+    def __init__(self, certificate_pem, status, region_name):
+        m = hashlib.sha256()
+        m.update(certificate_pem)
+        self.certificate_id = m.hexdigest()
+        self.arn = 'arn:aws:iot:%s:1:cert/%s' % (region_name, self.certificate_id)
+        self.certificate_pem = certificate_pem
+        self.status = status
+
+        # TODO: must adjust
+        self.owner = '1'
+        self.transfer_data = {}
+        self.creation_date = time.time()
+        self.last_modified_date = self.creation_date
+        self.ca_certificate_id = None
+
+    def to_json(self):
+        return {
+            'certificateArn': self.arn,
+            'certificateId': self.certificate_id,
+            'status': self.status,
+            'creationDate': self.creation_date
+        }
+
+    def to_description_json(self):
+        """
+        You might need keys below in some situation
+          - caCertificateId
+          - previousOwnedBy
+        """
+        return {
+            'certificateArn': self.arn,
+            'certificateId': self.certificate_id,
+            'status': self.status,
+            'certificatePem': self.certificate_pem,
+            'ownedBy': self.owner,
+            'creationDate': self.creation_date,
+            'lastModifiedDate': self.last_modified_date,
+            'transferData': self.transfer_data
+        }
+
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
         self.region_name = region_name
         self.things = OrderedDict()
         self.thing_types = OrderedDict()
+        self.certificates = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
@@ -150,6 +197,41 @@ class IoTBackend(BaseBackend):
                 thing.attributes = attributes
             else:
                 thing.attributes.update(attributes)
+    def _random_string(self):
+        n = 20
+        random_str = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(n)])
+        return random_str
+
+    def create_keys_and_certificate(self, set_as_active):
+        # implement here
+        # caCertificate can be blank
+        key_pair = {
+            'PublicKey': self._random_string(),
+            'PrivateKey': self._random_string()
+        }
+        certificate_pem = self._random_string()
+        status = 'ACTIVE' if set_as_active else 'INACTIVE'
+        certificate = FakeCertificate(certificate_pem, status, self.region_name)
+        self.certificates[certificate.certificate_id] = certificate
+        return certificate, key_pair
+
+    def delete_certificate(self, certificate_id):
+        cert = self.describe_certificate(certificate_id)
+        del self.certificates[certificate_id]
+
+    def describe_certificate(self, certificate_id):
+        certs = [_ for _ in self.certificates.values() if _.certificate_id == certificate_id]
+        if len(certs) == 0:
+            raise ResourceNotFoundException()
+        return certs[0]
+
+    def list_certificates(self):
+        return self.certificates.values()
+
+    def update_certificate(self, certificate_id, new_status):
+        cert = self.describe_certificate(certificate_id)
+        # TODO: validate new_status
+        cert.status = new_status
 
 available_regions = boto3.session.Session().get_available_regions("iot")
 iot_backends = {region: IoTBackend(region) for region in available_regions}
