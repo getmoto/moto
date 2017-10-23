@@ -217,6 +217,11 @@ def to_upper_camel_case(s):
     return ''.join([_.title() for _ in s.split('_')])
 
 
+def to_lower_camel_case(s):
+    words = s.split('_')
+    return ''.join(words[:1] + [_.title() for _ in words[1:]])
+
+
 def to_snake_case(s):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
@@ -247,7 +252,7 @@ def get_function_in_responses(service, operation, protocol):
             arg_line_tmpl = '    {} = self._get_param("{}")\n'
         body += arg_line_tmpl.format(to_snake_case(input_name), input_name)
     if output_names:
-        body += '    {} = self.{}_backend.{}(\n'.format(','.join(output_names), service, operation)
+        body += '    {} = self.{}_backend.{}(\n'.format(', '.join(output_names), service, operation)
     else:
         body += '    self.{}_backend.{}(\n'.format(service, operation)
     for input_name in input_names:
@@ -257,11 +262,11 @@ def get_function_in_responses(service, operation, protocol):
     if protocol == 'query':
         body += '    template = self.response_template({}_TEMPLATE)\n'.format(operation.upper())
         body += '    return template.render({})\n'.format(
-            ','.join(['{}={}'.format(_, _) for _ in output_names])
+            ', '.join(['{}={}'.format(_, _) for _ in output_names])
         )
     elif protocol in ['json', 'rest-json']:
         body += '    # TODO: adjust response\n'
-        body += '    return json.dumps({})\n'.format(','.join(['{}={}'.format(_, _) for _ in output_names]))
+        body += '    return json.dumps(dict({}))\n'.format(', '.join(['{}={}'.format(to_lower_camel_case(_), _) for _ in output_names]))
     return body
 
 
