@@ -4,6 +4,7 @@ from .models import {{ service }}_backends
 
 
 class {{ service_class }}Response(BaseResponse):
+    SERVICE_NAME = '{{ service }}'
     @property
     def {{ service }}_backend(self):
         return {{ service }}_backends[self.region]

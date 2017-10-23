@@ -147,7 +147,6 @@ def append_mock_dict_to_backends_py(service):
     with open(path) as f:
         lines = [_.replace('\n', '') for _ in f.readlines()]
 
-        #     'xray': xray_backends
     if any(_ for _ in lines if re.match(".*'{}': {}_backends.*".format(service, service), _)):
         return
     filtered_lines = [_ for _ in lines if re.match(".*'.*':.*_backends.*", _)]
@@ -418,22 +417,8 @@ def insert_url(service, operation, api_protocol):
 
     # generate url pattern
     if api_protocol == 'rest-json':
-        elems = uri.split('/')
-
-        def _convert(resource):
-            if not re.match('^{.*}$', resource):
-                return resource
-            formatted_name = resource.replace('{', '').replace('}', '').replace('-', '_')
-            return '(?P<%s>[\w_-]+)' % formatted_name
-        if uri == '/':
-            func_name = 'root'
-        else:
-            func_name = [
-                to_snake_case(_.replace('{', '').replace('}', '').replace('-', '_')) for _ in elems
-            ][-1]
-        new_uri = '/'.join([_convert(_) for _ in elems])
-        new_line = "    '{0}%s/?$': response.%s," % (
-            new_uri, func_name
+        new_line = "    '{0}%s/.*?$': response.%s," % (
+            new_uri
         )
     else:
         new_line = "    '{0}%s$': %sResponse.dispatch," % (

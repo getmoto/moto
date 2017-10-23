@@ -17,6 +17,8 @@ from six.moves.urllib.parse import parse_qs, urlparse
 import xmltodict
 from pkg_resources import resource_filename
 from werkzeug.exceptions import HTTPException
+
+import boto3
 from moto.compat import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 
@@ -151,7 +153,6 @@ class BaseResponse(_TemplateEnvironmentMixin):
             querystring.update(headers)
 
         querystring = _decode_dict(querystring)
-
         self.uri = full_url
         self.path = urlparse(full_url).path
         self.querystring = querystring
@@ -178,6 +179,31 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.setup_class(request, full_url, headers)
         return self.call_action()
 
+    def _get_action_from_method_and_request_uri(self, method, request_uri):
+        """basically used for `rest-json` APIs
+        You can refer to example from link below
+        https://github.com/boto/botocore/blob/develop/botocore/data/iot/2015-05-28/service-2.json
+        """
+
+        # service response class should have 'SERVICE_NAME' class member,
+        # if want to get action from method and url
+        if not hasattr(self, 'SERVICE_NAME'):
+            return None
+        service = self.SERVICE_NAME
+        conn = boto3.client(service)
+
+        # make cache if it has not exist yet
+        if not hasattr(self, 'method_urls'):
+            self.method_urls = {}
+            op_names = conn._service_model.operation_names
+            for op_name in op_names:
+                op_model = conn._service_model.operation_model(op_name)
+                k = '{}_{}'.format(op_model.http['method'], op_model.http['requestUri'])
+                self.method_urls[k] = op_model.name
+
+        given_key = '{}_{}'.format(method, request_uri)
+        return self.method_urls.get(given_key)
+
     def _get_action(self):
         action = self.querystring.get('Action', [""])[0]
         if not action:  # Some services use a header for the action
@@ -187,6 +213,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
             if match:
                 action = match.split(".")[-1]
 
+        # get action from method and uri
+        if not action:
+            return self._get_action_from_method_and_request_uri(self.method, self.path)
         return action
 
     def call_action(self):
