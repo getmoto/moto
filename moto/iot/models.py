@@ -22,7 +22,7 @@ class FakeThing(BaseModel):
         self.version = 1
         # TODO: we need to handle 'version'?
 
-    def to_json(self, include_default_client_id=False):
+    def to_dict(self, include_default_client_id=False):
         obj = {
             'thingName': self.thing_name,
             'thingTypeName': self.thing_type.thing_type_name,
@@ -46,7 +46,7 @@ class FakeThingType(BaseModel):
         }
         self.arn = 'arn:aws:iot:%s:1:thingtype/%s' % (self.region_name, thing_type_name)
 
-    def to_json(self):
+    def to_dict(self):
         return {
             'thingTypeName': self.thing_type_name,
             'thingTypeProperties': self.thing_type_properties,
@@ -70,7 +70,7 @@ class FakeCertificate(BaseModel):
         self.last_modified_date = self.creation_date
         self.ca_certificate_id = None
 
-    def to_json(self):
+    def to_dict(self):
         return {
             'certificateArn': self.arn,
             'certificateId': self.certificate_id,
@@ -78,7 +78,7 @@ class FakeCertificate(BaseModel):
             'creationDate': self.creation_date
         }
 
-    def to_description_json(self):
+    def to_description_dict(self):
         """
         You might need keys below in some situation
           - caCertificateId
