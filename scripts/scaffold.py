@@ -243,7 +243,7 @@ def get_function_in_responses(service, operation, protocol):
     inputs = op_model.input_shape.members
     input_names = [to_snake_case(_) for _ in inputs.keys() if _ not in INPUT_IGNORED_IN_BACKEND]
     output_names = [to_snake_case(_) for _ in outputs.keys() if _ not in OUTPUT_IGNORED_IN_BACKEND]
-    body = 'def {}(self):\n'.format(operation)
+    body = '\ndef {}(self):\n'.format(operation)
 
     for input_name, input_type in inputs.items():
         type_name = input_type.type_name
@@ -293,7 +293,7 @@ def get_function_in_models(service, operation):
     else:
         body = 'def {}(self)\n'
     body += '    # implement here\n'
-    body += '    return {}\n'.format(', '.join(output_names))
+    body += '    return {}\n\n'.format(', '.join(output_names))
 
     return body
 
