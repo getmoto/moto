@@ -258,7 +258,7 @@ def get_function_in_responses(service, operation, protocol):
             arg_line_tmpl = '    {} = self._get_param("{}")\n'
         body += arg_line_tmpl.format(to_snake_case(input_name), input_name)
     if output_names:
-        body += '    {} = self.{}_backend.{}(\n'.format(', '.join(output_names), service, operation)
+        body += '    {} = self.{}_backend.{}(\n'.format(', '.join(output_names), get_escaped_service(service), operation)
     else:
         body += '    self.{}_backend.{}(\n'.format(service, operation)
     for input_name in input_names:
