@@ -259,7 +259,7 @@ def get_function_in_responses(service, operation, protocol):
         body += '    return template.render({})\n'.format(
             ','.join(['{}={}'.format(_, _) for _ in output_names])
         )
-    elif protocol == 'json':
+    elif protocol in ['json', 'rest-json']:
         body += '    # TODO: adjust response\n'
         body += '    return json.dumps({})\n'.format(','.join(['{}={}'.format(_, _) for _ in output_names]))
     return body
@@ -417,9 +417,7 @@ def insert_url(service, operation, api_protocol):
 
     # generate url pattern
     if api_protocol == 'rest-json':
-        new_line = "    '{0}%s/.*?$': response.%s," % (
-            new_uri
-        )
+        new_line = "    '{0}/.*$': response.dispatch,"
     else:
         new_line = "    '{0}%s$': %sResponse.dispatch," % (
             uri, service_class
@@ -432,23 +430,22 @@ def insert_url(service, operation, api_protocol):
     with open(path, 'w') as f:
         f.write(body)
 
-
-def insert_query_codes(service, operation, api_protocol):
-    func_in_responses = get_function_in_responses(service, operation, 'query')
+def insert_codes(service, operation, api_protocol):
+    func_in_responses = get_function_in_responses(service, operation, api_protocol)
     func_in_models = get_function_in_models(service, operation)
-    template = get_response_query_template(service, operation)
-
     # edit responses.py
     responses_path = 'moto/{}/responses.py'.format(service)
     print_progress('inserting code', responses_path, 'green')
     insert_code_to_class(responses_path, BaseResponse, func_in_responses)
 
     # insert template
-    with open(responses_path) as f:
-        lines = [_[:-1] for _ in f.readlines()]
-    lines += template.splitlines()
-    with open(responses_path, 'w') as f:
-        f.write('\n'.join(lines))
+    if api_protocol == 'query':
+        template = get_response_query_template(service, operation)
+        with open(responses_path) as f:
+            lines = [_[:-1] for _ in f.readlines()]
+        lines += template.splitlines()
+        with open(responses_path, 'w') as f:
+            f.write('\n'.join(lines))
 
     # edit models.py
     models_path = 'moto/{}/models.py'.format(service)
@@ -458,47 +455,15 @@ def insert_query_codes(service, operation, api_protocol):
     # edit urls.py
     insert_url(service, operation, api_protocol)
 
-def insert_json_codes(service, operation, api_protocol):
-    func_in_responses = get_function_in_responses(service, operation, 'json')
-    func_in_models = get_function_in_models(service, operation)
-
-    # edit responses.py
-    responses_path = 'moto/{}/responses.py'.format(service)
-    print_progress('inserting code', responses_path, 'green')
-    insert_code_to_class(responses_path, BaseResponse, func_in_responses)
-
-    # edit models.py
-    models_path = 'moto/{}/models.py'.format(service)
-    print_progress('inserting code', models_path, 'green')
-    insert_code_to_class(models_path, BaseBackend, func_in_models)
-
-    # edit urls.py
-    insert_url(service, operation, api_protocol)
-
-def insert_restjson_codes(service, operation, api_protocol):
-    func_in_models = get_function_in_models(service, operation)
-
-    # TODO: Now we know how to handle it
-    print_progress('skipping inserting code to responses.py', "dont't know how to implement", 'yellow')
-    # edit models.py
-    models_path = 'moto/{}/models.py'.format(service)
-    print_progress('inserting code', models_path, 'green')
-    insert_code_to_class(models_path, BaseBackend, func_in_models)
-
-    # edit urls.py
-    insert_url(service, operation, api_protocol)
 
 @click.command()
 def main():
     service, operation = select_service_and_operation()
     api_protocol = boto3.client(service)._service_model.metadata['protocol']
     initialize_service(service, operation, api_protocol)
-    if api_protocol == 'query':
-        insert_query_codes(service, operation, api_protocol)
-    elif api_protocol == 'json':
-        insert_json_codes(service, operation, api_protocol)
-    elif api_protocol == 'rest-json':
-        insert_restjson_codes(service, operation, api_protocol)
+
+    if api_protocol in ['query', 'json', 'rest-json']:
+        insert_codes(service, operation, api_protocol)
     else:
         print_progress('skip inserting code', 'api protocol "{}" is not supported'.format(api_protocol), 'yellow')
 
