@@ -229,7 +229,7 @@ class FakeAutoScalingGroup(BaseModel):
 
     def update(self, availability_zones, desired_capacity, max_size, min_size,
                launch_config_name, vpc_zone_identifier, default_cooldown,
-               health_check_period, health_check_type, load_balancers,
+               health_check_period, health_check_type,
                placement_group, termination_policies):
         if availability_zones:
             self.availability_zones = availability_zones
@@ -406,13 +406,13 @@ class AutoScalingBackend(BaseBackend):
                                  desired_capacity, max_size, min_size,
                                  launch_config_name, vpc_zone_identifier,
                                  default_cooldown, health_check_period,
-                                 health_check_type, load_balancers,
-                                 placement_group, termination_policies):
+                                 health_check_type, placement_group,
+                                 termination_policies):
         group = self.autoscaling_groups[name]
         group.update(availability_zones, desired_capacity, max_size,
                      min_size, launch_config_name, vpc_zone_identifier,
                      default_cooldown, health_check_period, health_check_type,
-                     load_balancers, placement_group, termination_policies)
+                     placement_group, termination_policies)
         return group
 
     def describe_autoscaling_groups(self, names):

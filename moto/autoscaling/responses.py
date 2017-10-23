@@ -189,7 +189,6 @@ class AutoScalingResponse(BaseResponse):
             default_cooldown=self._get_int_param('DefaultCooldown'),
             health_check_period=self._get_int_param('HealthCheckGracePeriod'),
             health_check_type=self._get_param('HealthCheckType'),
-            load_balancers=self._get_multi_param('LoadBalancerNames.member'),
             placement_group=self._get_param('PlacementGroup'),
             termination_policies=self._get_multi_param(
                 'TerminationPolicies.member'),
