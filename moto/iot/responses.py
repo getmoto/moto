@@ -144,3 +144,35 @@ class IoTResponse(BaseResponse):
             new_status=new_status,
         )
         return json.dumps(dict())
+
+    def create_policy(self):
+        policy_name = self._get_param("policyName")
+        policy_document = self._get_param("policyDocument")
+        policy = self.iot_backend.create_policy(
+            policy_name=policy_name,
+            policy_document=policy_document,
+        )
+        return json.dumps(policy.to_dict_at_creation())
+
+    def list_policies(self):
+        marker = self._get_param("marker")
+        page_size = self._get_int_param("pageSize")
+        ascending_order = self._get_param("ascendingOrder")
+        policies = self.iot_backend.list_policies()
+
+        # TODO: handle pagination
+        return json.dumps(dict(policies=[_.to_dict() for _ in policies]))
+
+    def get_policy(self):
+        policy_name = self._get_param("policyName")
+        policy = self.iot_backend.get_policy(
+            policy_name=policy_name,
+        )
+        return json.dumps(policy.to_get_dict())
+
+    def delete_policy(self):
+        policy_name = self._get_param("policyName")
+        self.iot_backend.delete_policy(
+            policy_name=policy_name,
+        )
+        return json.dumps(dict())

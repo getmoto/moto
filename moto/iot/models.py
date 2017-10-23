@@ -96,6 +96,34 @@ class FakeCertificate(BaseModel):
         }
 
 
+class FakePolicy(BaseModel):
+    def __init__(self, name, document, region_name):
+        self.name = name
+        self.document = document
+        self.arn = 'arn:aws:iot:%s:1:policy/%s' % (region_name, name)
+        self.version = '1' # TODO: handle version
+
+    def to_get_dict(self):
+        return {
+            'policyName': self.name,
+            'policyArn': self.arn,
+            'policyDocument': self.document,
+            'defaultVersionId': self.version
+        }
+
+    def to_dict_at_creation(self):
+        return {
+            'policyName': self.name,
+            'policyArn': self.arn,
+            'policyDocument': self.document,
+            'policyVersionId': self.version
+        }
+
+    def to_dict(self):
+        return {
+            'policyName': self.name,
+            'policyArn': self.arn,
+        }
 
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
@@ -104,6 +132,7 @@ class IoTBackend(BaseBackend):
         self.things = OrderedDict()
         self.thing_types = OrderedDict()
         self.certificates = OrderedDict()
+        self.policies = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
@@ -232,6 +261,25 @@ class IoTBackend(BaseBackend):
         cert = self.describe_certificate(certificate_id)
         # TODO: validate new_status
         cert.status = new_status
+
+    def create_policy(self, policy_name, policy_document):
+        policy = FakePolicy(policy_name, policy_document, self.region_name)
+        self.policies[policy.name] = policy
+        return policy
+
+    def list_policies(self):
+        policies = self.policies.values()
+        return policies
+
+    def get_policy(self, policy_name):
+        policies = [_ for _ in self.policies.values() if _.name == policy_name]
+        if len(policies) == 0:
+            raise ResourceNotFoundException()
+        return policies[0]
+
+    def delete_policy(self, policy_name):
+        policy = self.get_policy(policy_name)
+        del self.policies[policy.name]
 
 available_regions = boto3.session.Session().get_available_regions("iot")
 iot_backends = {region: IoTBackend(region) for region in available_regions}
