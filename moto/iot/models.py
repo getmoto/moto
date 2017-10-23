@@ -22,6 +22,9 @@ class FakeThing(BaseModel):
         self.version = 1
         # TODO: we need to handle 'version'?
 
+        # for iot-data
+        self.thing_shadow = None
+
     def to_dict(self, include_default_client_id=False):
         obj = {
             'thingName': self.thing_name,
