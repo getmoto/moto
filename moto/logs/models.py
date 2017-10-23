@@ -22,6 +22,13 @@ class LogEvent:
             "timestamp": self.timestamp
         }
 
+    def to_response_dict(self):
+        return {
+            "ingestionTime": self.ingestionTime,
+            "message": self.message,
+            "timestamp": self.timestamp
+        }
+
 
 class LogStream:
     _log_ids = 0
@@ -41,7 +48,14 @@ class LogStream:
 
         self.__class__._log_ids += 1
 
+    def _update(self):
+        self.firstEventTimestamp = min([x.timestamp for x in self.events])
+        self.lastEventTimestamp = max([x.timestamp for x in self.events])
+
     def to_describe_dict(self):
+        # Compute start and end times
+        self._update()
+
         return {
             "arn": self.arn,
             "creationTime": self.creationTime,
@@ -79,7 +93,7 @@ class LogStream:
         if next_token is None:
             next_token = 0
 
-        events_page = events[next_token: next_token + limit]
+        events_page = [event.to_response_dict() for event in events[next_token: next_token + limit]]
         next_token += limit
         if next_token >= len(self.events):
             next_token = None
@@ -120,17 +134,17 @@ class LogGroup:
         del self.streams[log_stream_name]
 
     def describe_log_streams(self, descending, limit, log_group_name, log_stream_name_prefix, next_token, order_by):
-        log_streams = [stream.to_describe_dict() for name, stream in self.streams.items() if name.startswith(log_stream_name_prefix)]
+        log_streams = [(name, stream.to_describe_dict()) for name, stream in self.streams.items() if name.startswith(log_stream_name_prefix)]
 
-        def sorter(stream):
-            return stream.name if order_by == 'logStreamName' else stream.lastEventTimestamp
+        def sorter(item):
+            return item[0] if order_by == 'logStreamName' else item[1]['lastEventTimestamp']
 
         if next_token is None:
             next_token = 0
 
         log_streams = sorted(log_streams, key=sorter, reverse=descending)
         new_token = next_token + limit
-        log_streams_page = log_streams[next_token: new_token]
+        log_streams_page = [x[1] for x in log_streams[next_token: new_token]]
         if new_token >= len(log_streams):
             new_token = None
 

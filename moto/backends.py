@@ -35,11 +35,13 @@ from moto.sqs import sqs_backends
 from moto.ssm import ssm_backends
 from moto.sts import sts_backends
 from moto.xray import xray_backends
+from moto.batch import batch_backends
 
 BACKENDS = {
     'acm': acm_backends,
     'apigateway': apigateway_backends,
     'autoscaling': autoscaling_backends,
+    'batch': batch_backends,
     'cloudformation': cloudformation_backends,
     'cloudwatch': cloudwatch_backends,
     'datapipeline': datapipeline_backends,
