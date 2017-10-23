@@ -21,7 +21,7 @@ install_requires = [
     "python-dateutil<3.0.0,>=2.1",
     "mock",
     "docker>=2.5.1",
-    "aws-xray-sdk==0.92.2"
+    "aws-xray-sdk>=0.93"
 ]
 
 extras_require = {
