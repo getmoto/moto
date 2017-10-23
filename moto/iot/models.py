@@ -134,6 +134,7 @@ class IoTBackend(BaseBackend):
         self.certificates = OrderedDict()
         self.policies = OrderedDict()
         self.principal_policies = OrderedDict()
+        self.principal_things = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
@@ -142,10 +143,12 @@ class IoTBackend(BaseBackend):
 
     def create_thing(self, thing_name, thing_type_name, attribute_payload):
         thing_types = self.list_thing_types()
-        filtered_thing_types = [_ for _ in thing_types if _.thing_type_name == thing_type_name]
-        if len(filtered_thing_types) == 0:
-            raise ResourceNotFoundException()
-        thing_type = filtered_thing_types[0]
+        thing_type = None
+        if thing_type_name:
+            filtered_thing_types = [_ for _ in thing_types if _.thing_type_name == thing_type_name]
+            if len(filtered_thing_types) == 0:
+                raise ResourceNotFoundException()
+            thing_type = filtered_thing_types[0]
         if attribute_payload is None:
             attributes = {}
         elif 'attributes' not in attribute_payload:
@@ -315,12 +318,35 @@ class IoTBackend(BaseBackend):
         del self.principal_policies[k]
 
     def list_principal_policies(self, principal_arn):
-        print(self.principal_policies)
         policies = [v[1] for k, v in self.principal_policies.items() if k[0] == principal_arn]
         return policies
 
     def list_policy_principals(self, policy_name):
         principals = [k[0] for k, v in self.principal_policies.items() if k[1] == policy_name]
+        return principals
+
+    def attach_thing_principal(self, thing_name, principal_arn):
+        principal = self._get_principal(principal_arn)
+        thing = self.describe_thing(thing_name)
+        k = (principal_arn, thing_name)
+        if k in self.principal_things:
+            return
+        self.principal_things[k] = (principal, thing)
+
+    def detach_thing_principal(self, thing_name, principal_arn):
+        principal = self._get_principal(principal_arn)
+        thing = self.describe_thing(thing_name)
+        k = (principal_arn, thing_name)
+        if k not in self.principal_things:
+            raise ResourceNotFoundException()
+        del self.principal_things[k]
+
+    def list_principal_things(self, principal_arn):
+        thing_names = [k[0] for k, v in self.principal_things.items() if k[0] == principal_arn]
+        return thing_names
+
+    def list_thing_principals(self, thing_name):
+        principals = [k[0] for k, v in self.principal_things.items() if k[1] == thing_name]
         return principals
 
 available_regions = boto3.session.Session().get_available_regions("iot")
