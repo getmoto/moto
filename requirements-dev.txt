@@ -3,7 +3,7 @@ mock
 nose
 sure==1.2.24
 coverage
-flake8
+flake8==3.4.1
 freezegun
 flask
 boto>=2.45.0
