@@ -236,7 +236,10 @@ def get_function_in_responses(service, operation, protocol):
 
     aws_operation_name = to_upper_camel_case(operation)
     op_model = client._service_model.operation_model(aws_operation_name)
-    outputs = op_model.output_shape.members
+    if not hasattr(op_model.output_shape, 'members'):
+        outputs = {}
+    else:
+        outputs = op_model.output_shape.members
     inputs = op_model.input_shape.members
     input_names = [to_snake_case(_) for _ in inputs.keys() if _ not in INPUT_IGNORED_IN_BACKEND]
     output_names = [to_snake_case(_) for _ in outputs.keys() if _ not in OUTPUT_IGNORED_IN_BACKEND]
@@ -279,7 +282,10 @@ def get_function_in_models(service, operation):
     aws_operation_name = to_upper_camel_case(operation)
     op_model = client._service_model.operation_model(aws_operation_name)
     inputs = op_model.input_shape.members
-    outputs = op_model.output_shape.members
+    if not hasattr(op_model.output_shape, 'members'):
+        outputs = {}
+    else:
+        outputs = op_model.output_shape.members
     input_names = [to_snake_case(_) for _ in inputs.keys() if _ not in INPUT_IGNORED_IN_BACKEND]
     output_names = [to_snake_case(_) for _ in outputs.keys() if _ not in OUTPUT_IGNORED_IN_BACKEND]
     if input_names:
