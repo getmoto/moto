@@ -221,3 +221,39 @@ class IoTResponse(BaseResponse):
         # TODO: handle pagination
         next_marker = None
         return json.dumps(dict(principals=principals, nextMarker=next_marker))
+
+    def attach_thing_principal(self):
+        thing_name = self._get_param("thingName")
+        principal = self.headers.get('x-amzn-principal')
+        self.iot_backend.attach_thing_principal(
+            thing_name=thing_name,
+            principal_arn=principal,
+        )
+        return json.dumps(dict())
+
+    def detach_thing_principal(self):
+        thing_name = self._get_param("thingName")
+        principal = self.headers.get('x-amzn-principal')
+        self.iot_backend.detach_thing_principal(
+            thing_name=thing_name,
+            principal_arn=principal,
+        )
+        return json.dumps(dict())
+
+    def list_principal_things(self):
+        next_token = self._get_param("nextToken")
+        max_results = self._get_int_param("maxResults")
+        principal = self.headers.get('x-amzn-principal')
+        things = self.iot_backend.list_principal_things(
+            principal_arn=principal,
+        )
+        # TODO: handle pagination
+        next_marker = None
+        return json.dumps(dict(things=things, nextToken=next_token))
+
+    def list_thing_principals(self):
+        thing_name = self._get_param("thingName")
+        principals = self.iot_backend.list_thing_principals(
+            thing_name=thing_name,
+        )
+        return json.dumps(dict(principals=principals))

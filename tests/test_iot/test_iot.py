@@ -151,3 +151,29 @@ def test_principal_policy():
     res.should.have.key('policies').which.should.have.length_of(0)
     res = client.list_policy_principals(policyName=policy_name)
     res.should.have.key('principals').which.should.have.length_of(0)
+
+
+@mock_iot
+def test_principal_thing():
+    client = boto3.client('iot')
+    thing_name = 'my-thing'
+    thing = client.create_thing(thingName=thing_name)
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert['certificateArn']
+
+    client.attach_thing_principal(thingName=thing_name, principal=cert_arn)
+
+    res = client.list_principal_things(principal=cert_arn)
+    res.should.have.key('things').which.should.have.length_of(1)
+    for thing in res['things']:
+        thing.should_not.be.none
+    res = client.list_thing_principals(thingName=thing_name)
+    res.should.have.key('principals').which.should.have.length_of(1)
+    for principal in res['principals']:
+        principal.should_not.be.none
+
+    client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
+    res = client.list_principal_things(principal=cert_arn)
+    res.should.have.key('things').which.should.have.length_of(0)
+    res = client.list_thing_principals(thingName=thing_name)
+    res.should.have.key('principals').which.should.have.length_of(0)
