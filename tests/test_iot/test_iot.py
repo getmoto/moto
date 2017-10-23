@@ -16,9 +16,9 @@ def test_things():
     thing_type.should.have.key('thingTypeName').which.should.equal(type_name)
     thing_type.should.have.key('thingTypeArn')
 
-    thing_types = client.list_thing_types()
-    thing_types.should.have.key('thingTypes').which.should.have.length_of(1)
-    for thing_type in thing_types['thingTypes']:
+    res = client.list_thing_types()
+    res.should.have.key('thingTypes').which.should.have.length_of(1)
+    for thing_type in res['thingTypes']:
         thing_type.should.have.key('thingTypeName').which.should_not.be.none
 
     thing_type = client.describe_thing_type(thingTypeName=type_name)
@@ -30,17 +30,17 @@ def test_things():
     thing = client.create_thing(thingName=name, thingTypeName=type_name)
     thing.should.have.key('thingName').which.should.equal(name)
     thing.should.have.key('thingArn')
-    things = client.list_things()
-    things.should.have.key('things').which.should.have.length_of(1)
-    for thing in things['things']:
+    res = client.list_things()
+    res.should.have.key('things').which.should.have.length_of(1)
+    for thing in res['things']:
         thing.should.have.key('thingName').which.should_not.be.none
 
     thing = client.update_thing(thingName=name, attributePayload={'attributes': {'k1': 'v1'}})
-    things = client.list_things()
-    things.should.have.key('things').which.should.have.length_of(1)
-    for thing in things['things']:
+    res = client.list_things()
+    res.should.have.key('things').which.should.have.length_of(1)
+    for thing in res['things']:
         thing.should.have.key('thingName').which.should_not.be.none
-    things['things'][0]['attributes'].should.have.key('k1').which.should.equal('v1')
+    res['things'][0]['attributes'].should.have.key('k1').which.should.equal('v1')
 
     thing = client.describe_thing(thingName=name)
     thing.should.have.key('thingName').which.should.equal(name)
@@ -51,13 +51,13 @@ def test_things():
 
     # delete thing
     client.delete_thing(thingName=name)
-    things = client.list_things()
-    things.should.have.key('things').which.should.have.length_of(0)
+    res = client.list_things()
+    res.should.have.key('things').which.should.have.length_of(0)
 
     # delete thing type
     client.delete_thing_type(thingTypeName=type_name)
-    thing_types = client.list_thing_types()
-    thing_types.should.have.key('thingTypes').which.should.have.length_of(0)
+    res = client.list_thing_types()
+    res.should.have.key('thingTypes').which.should.have.length_of(0)
 
 
 @mock_iot
@@ -80,9 +80,9 @@ def test_certs():
     cert_desc.should.have.key('certificatePem').which.should_not.be.none
     cert_desc.should.have.key('status').which.should.equal('ACTIVE')
 
-    certs = client.list_certificates()
-    certs.should.have.key('certificates').which.should.have.length_of(1)
-    for cert in certs['certificates']:
+    res = client.list_certificates()
+    res.should.have.key('certificates').which.should.have.length_of(1)
+    for cert in res['certificates']:
         cert.should.have.key('certificateArn').which.should_not.be.none
         cert.should.have.key('certificateId').which.should_not.be.none
         cert.should.have.key('status').which.should_not.be.none
@@ -93,8 +93,8 @@ def test_certs():
     cert_desc.should.have.key('status').which.should.equal('ACTIVE')
 
     client.delete_certificate(certificateId=cert_id)
-    certs = client.list_certificates()
-    certs.should.have.key('certificates').which.should.have.length_of(0)
+    res = client.list_certificates()
+    res.should.have.key('certificates').which.should.have.length_of(0)
 
 @mock_iot
 def test_policy():
@@ -120,5 +120,5 @@ def test_policy():
         policy.should.have.key('policyArn').which.should_not.be.none
 
     client.delete_policy(policyName=name)
-    policies = client.list_policies()
-    policies.should.have.key('policies').which.should.have.length_of(0)
+    res = client.list_policies()
+    res.should.have.key('policies').which.should.have.length_of(0)

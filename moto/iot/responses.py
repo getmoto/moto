@@ -40,7 +40,7 @@ class IoTResponse(BaseResponse):
 
         # TODO: support next_token and max_results
         next_token = None
-        return json.dumps(dict(thingTypes=[_.to_json() for _ in thing_types], nextToken=next_token))
+        return json.dumps(dict(thingTypes=[_.to_dict() for _ in thing_types], nextToken=next_token))
 
     def list_things(self):
         previous_next_token = self._get_param("nextToken")
@@ -55,22 +55,22 @@ class IoTResponse(BaseResponse):
         )
         # TODO: support next_token and max_results
         next_token = None
-        return json.dumps(dict(things=[_.to_json() for _ in things], nextToken=next_token))
+        return json.dumps(dict(things=[_.to_dict() for _ in things], nextToken=next_token))
 
     def describe_thing(self):
         thing_name = self._get_param("thingName")
         thing = self.iot_backend.describe_thing(
             thing_name=thing_name,
         )
-        print(thing.to_json(include_default_client_id=True))
-        return json.dumps(thing.to_json(include_default_client_id=True))
+        print(thing.to_dict(include_default_client_id=True))
+        return json.dumps(thing.to_dict(include_default_client_id=True))
 
     def describe_thing_type(self):
         thing_type_name = self._get_param("thingTypeName")
         thing_type = self.iot_backend.describe_thing_type(
             thing_type_name=thing_type_name,
         )
-        return json.dumps(thing_type.to_json())
+        return json.dumps(thing_type.to_dict())
 
     def delete_thing(self):
         thing_name = self._get_param("thingName")
@@ -114,6 +114,7 @@ class IoTResponse(BaseResponse):
             certificatePem=cert.certificate_pem,
             keyPair=key_pair
         ))
+
     def delete_certificate(self):
         certificate_id = self._get_param("certificateId")
         self.iot_backend.delete_certificate(
@@ -126,7 +127,7 @@ class IoTResponse(BaseResponse):
         certificate = self.iot_backend.describe_certificate(
             certificate_id=certificate_id,
         )
-        return json.dumps(dict(certificateDescription=certificate.to_description_json()))
+        return json.dumps(dict(certificateDescription=certificate.to_description_dict()))
 
     def list_certificates(self):
         page_size = self._get_int_param("pageSize")
@@ -134,7 +135,7 @@ class IoTResponse(BaseResponse):
         ascending_order = self._get_param("ascendingOrder")
         certificates = self.iot_backend.list_certificates()
         # TODO: handle pagination
-        return json.dumps(dict(certificates=[_.to_json() for _ in certificates]))
+        return json.dumps(dict(certificates=[_.to_dict() for _ in certificates]))
 
     def update_certificate(self):
         certificate_id = self._get_param("certificateId")
