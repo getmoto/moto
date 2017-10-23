@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 
 import copy
+import datetime
+import os
 
 from collections import defaultdict
 import boto.rds2
@@ -10,12 +12,18 @@ from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from .exceptions import (RDSClientError,
                          DBInstanceNotFoundError,
+                         DBSnapshotNotFoundError,
                          DBSecurityGroupNotFoundError,
                          DBSubnetGroupNotFoundError,
-                         DBParameterGroupNotFoundError)
+                         DBParameterGroupNotFoundError,
+                         InvalidDBClusterStateFaultError,
+                         InvalidDBInstanceStateError,
+                         SnapshotQuotaExceededError,
+                         DBSnapshotAlreadyExistsError)
 
 
 class Database(BaseModel):
@@ -86,8 +94,7 @@ class Database(BaseModel):
 
         self.preferred_backup_window = kwargs.get(
             'preferred_backup_window', '13:14-13:44')
-        self.license_model = kwargs.get(
-            'license_model', 'general-public-license')
+        self.license_model = kwargs.get('license_model', 'general-public-license')
         self.option_group_name = kwargs.get('option_group_name', None)
         self.default_option_groups = {"MySQL": "default.mysql5.6",
                                       "mysql": "default.mysql5.6",
@@ -131,6 +138,7 @@ class Database(BaseModel):
         template = Template("""<DBInstance>
               <BackupRetentionPeriod>{{ database.backup_retention_period }}</BackupRetentionPeriod>
               <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
+              {% if database.db_name %}<DBName>{{ database.db_name }}</DBName>{% endif %}
               <MultiAZ>{{ database.multi_az }}</MultiAZ>
               <VpcSecurityGroups/>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
@@ -155,7 +163,7 @@ class Database(BaseModel):
               <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
               {% endif %}
               <Engine>{{ database.engine }}</Engine>
-              <LicenseModel>general-public-license</LicenseModel>
+              <LicenseModel>{{ database.license_model }}</LicenseModel>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
               <OptionGroupMemberships>
               </OptionGroupMemberships>
@@ -398,6 +406,53 @@ class Database(BaseModel):
         backend.delete_database(self.db_instance_identifier)
 
 
+class Snapshot(BaseModel):
+    def __init__(self, database, snapshot_id, tags=None):
+        self.database = database
+        self.snapshot_id = snapshot_id
+        self.tags = tags or []
+        self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+
+    @property
+    def snapshot_arn(self):
+        return "arn:aws:rds:{0}:1234567890:snapshot:{1}".format(self.database.region, self.snapshot_id)
+
+    def to_xml(self):
+        template = Template("""<DBSnapshot>
+              <DBSnapshotIdentifier>{{ snapshot.snapshot_id }}</DBSnapshotIdentifier>
+              <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
+              <SnapshotCreateTime>{{ snapshot.created_at }}</SnapshotCreateTime>
+              <Engine>{{ database.engine }}</Engine>
+              <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
+              <Status>available</Status>
+              <Port>{{ database.port }}</Port>
+              <AvailabilityZone>{{ database.availability_zone }}</AvailabilityZone>
+              <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
+              <InstanceCreateTime>{{ snapshot.created_at }}</InstanceCreateTime>
+              <MasterUsername>{{ database.master_username }}</MasterUsername>
+              <EngineVersion>{{ database.engine_version }}</EngineVersion>
+              <LicenseModel>{{ database.license_model }}</LicenseModel>
+              <SnapshotType>manual</SnapshotType>
+              {% if database.iops %}
+              <Iops>{{ database.iops }}</Iops>
+              <StorageType>io1</StorageType>
+              {% else %}
+              <StorageType>{{ database.storage_type }}</StorageType>
+              {% endif %}
+              <OptionGroupName>{{ database.option_group_name }}</OptionGroupName>
+              <PercentProgress>{{ 100 }}</PercentProgress>
+              <SourceRegion>{{ database.region }}</SourceRegion>
+              <SourceDBSnapshotIdentifier></SourceDBSnapshotIdentifier>
+              <TdeCredentialArn></TdeCredentialArn>
+              <Encrypted>{{ database.storage_encrypted }}</Encrypted>
+              <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
+              <DBSnapshotArn>{{ snapshot.snapshot_arn }}</DBSnapshotArn>
+              <Timezone></Timezone>
+              <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
+            </DBSnapshot>""")
+        return template.render(snapshot=self, database=self.database)
+
+
 class SecurityGroup(BaseModel):
 
     def __init__(self, group_name, description, tags):
@@ -606,6 +661,7 @@ class RDS2Backend(BaseBackend):
         self.arn_regex = re_compile(
             r'^arn:aws:rds:.*:[0-9]*:(db|es|og|pg|ri|secgrp|snapshot|subgrp):.*$')
         self.databases = OrderedDict()
+        self.snapshots = OrderedDict()
         self.db_parameter_groups = {}
         self.option_groups = {}
         self.security_groups = {}
@@ -622,6 +678,24 @@ class RDS2Backend(BaseBackend):
         database = Database(**db_kwargs)
         self.databases[database_id] = database
         return database
+
+    def create_snapshot(self, db_instance_identifier, db_snapshot_identifier, tags=None):
+        database = self.databases.get(db_instance_identifier)
+        if not database:
+            raise DBInstanceNotFoundError(db_instance_identifier)
+        if db_snapshot_identifier in self.snapshots:
+            raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
+        if len(self.snapshots) >= int(os.environ.get('MOTO_RDS_SNAPSHOT_LIMIT', '100')):
+            raise SnapshotQuotaExceededError()
+        snapshot = Snapshot(database, db_snapshot_identifier, tags)
+        self.snapshots[db_snapshot_identifier] = snapshot
+        return snapshot
+
+    def delete_snapshot(self, db_snapshot_identifier):
+        if db_snapshot_identifier not in self.snapshots:
+            raise DBSnapshotNotFoundError()
+
+        return self.snapshots.pop(db_snapshot_identifier)
 
     def create_database_replica(self, db_kwargs):
         database_id = db_kwargs['db_instance_identifier']
@@ -645,6 +719,20 @@ class RDS2Backend(BaseBackend):
                 raise DBInstanceNotFoundError(db_instance_identifier)
         return self.databases.values()
 
+    def describe_snapshots(self, db_instance_identifier, db_snapshot_identifier):
+        if db_instance_identifier:
+            for snapshot in self.snapshots.values():
+                if snapshot.database.db_instance_identifier == db_instance_identifier:
+                    return [snapshot]
+            raise DBSnapshotNotFoundError()
+
+        if db_snapshot_identifier:
+            if db_snapshot_identifier in self.snapshots:
+                return [self.snapshots[db_snapshot_identifier]]
+            raise DBSnapshotNotFoundError()
+
+        return self.snapshots.values()
+
     def modify_database(self, db_instance_identifier, db_kwargs):
         database = self.describe_databases(db_instance_identifier)[0]
         database.update(db_kwargs)
@@ -652,6 +740,27 @@ class RDS2Backend(BaseBackend):
 
     def reboot_db_instance(self, db_instance_identifier):
         database = self.describe_databases(db_instance_identifier)[0]
+        return database
+
+    def stop_database(self, db_instance_identifier, db_snapshot_identifier=None):
+        database = self.describe_databases(db_instance_identifier)[0]
+        # todo: certain rds types not allowed to be stopped at this time.
+        if database.is_replica or database.multi_az:
+                # todo: more db types not supported by stop/start instance api
+                raise InvalidDBClusterStateFaultError(db_instance_identifier)
+        if database.status != 'available':
+            raise InvalidDBInstanceStateError(db_instance_identifier, 'stop')
+        if db_snapshot_identifier:
+            self.create_snapshot(db_instance_identifier, db_snapshot_identifier)
+        database.status = 'shutdown'
+        return database
+
+    def start_database(self, db_instance_identifier):
+        database = self.describe_databases(db_instance_identifier)[0]
+        # todo: bunch of different error messages to be generated from this api call
+        if database.status != 'shutdown':
+            raise InvalidDBInstanceStateError(db_instance_identifier, 'start')
+        database.status = 'available'
         return database
 
     def find_db_from_id(self, db_id):
@@ -666,13 +775,15 @@ class RDS2Backend(BaseBackend):
 
         return backend.describe_databases(db_name)[0]
 
-    def delete_database(self, db_instance_identifier):
+    def delete_database(self, db_instance_identifier, db_snapshot_name=None):
         if db_instance_identifier in self.databases:
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)
                 primary.remove_replica(database)
             database.status = 'deleting'
+            if db_snapshot_name:
+                self.snapshots[db_snapshot_name] = Snapshot(database, db_snapshot_name)
             return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)

@@ -3,6 +3,13 @@ from __future__ import unicode_literals
 import json
 import re
 
+try:
+    from urllib import unquote
+    from urlparse import urlparse, parse_qs
+except:
+    from urllib.parse import unquote, urlparse, parse_qs
+
+from moto.core.utils import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse
 
 
@@ -26,12 +33,63 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    @amz_crc32
+    @amzn_request_id
     def invoke(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == 'POST':
             return self._invoke(request, full_url)
         else:
             raise ValueError("Cannot handle request")
+
+    @amz_crc32
+    @amzn_request_id
+    def invoke_async(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == 'POST':
+            return self._invoke_async(request, full_url)
+        else:
+            raise ValueError("Cannot handle request")
+
+    def tag(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == 'GET':
+            return self._list_tags(request, full_url)
+        elif request.method == 'POST':
+            return self._tag_resource(request, full_url)
+        elif request.method == 'DELETE':
+            return self._untag_resource(request, full_url)
+        else:
+            raise ValueError("Cannot handle {0} request".format(request.method))
+
+    def policy(self, request, full_url, headers):
+        if request.method == 'GET':
+            return self._get_policy(request, full_url, headers)
+        if request.method == 'POST':
+            return self._add_policy(request, full_url, headers)
+
+    def _add_policy(self, request, full_url, headers):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-2]
+        if lambda_backend.has_function(function_name):
+            policy = request.body.decode('utf8')
+            lambda_backend.add_policy(function_name, policy)
+            return 200, {}, json.dumps(dict(Statement=policy))
+        else:
+            return 404, {}, "{}"
+
+    def _get_policy(self, request, full_url, headers):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-2]
+        if lambda_backend.has_function(function_name):
+            function = lambda_backend.get_function(function_name)
+            return 200, {}, json.dumps(dict(Policy="{\"Statement\":[" + function.policy + "]}"))
+        else:
+            return 404, {}, "{}"
 
     def _invoke(self, request, full_url):
         response_headers = {}
@@ -45,6 +103,20 @@ class LambdaResponse(BaseResponse):
             payload = fn.invoke(self.body, self.headers, response_headers)
             response_headers['Content-Length'] = str(len(payload))
             return 202, response_headers, payload
+        else:
+            return 404, response_headers, "{}"
+
+    def _invoke_async(self, request, full_url):
+        response_headers = {}
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_name = path.split('/')[-3]
+        if lambda_backend.has_function(function_name):
+            fn = lambda_backend.get_function(function_name)
+            fn.invoke(self.body, self.headers, response_headers)
+            response_headers['Content-Length'] = str(0)
+            return 202, response_headers, ""
         else:
             return 404, response_headers, "{}"
 
@@ -102,3 +174,43 @@ class LambdaResponse(BaseResponse):
             return region.group(1)
         else:
             return self.default_region
+
+    def _list_tags(self, request, full_url):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_arn = unquote(path.split('/')[-1])
+
+        if lambda_backend.has_function_arn(function_arn):
+            function = lambda_backend.get_function_by_arn(function_arn)
+            return 200, {}, json.dumps(dict(Tags=function.tags))
+        else:
+            return 404, {}, "{}"
+
+    def _tag_resource(self, request, full_url):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_arn = unquote(path.split('/')[-1])
+
+        spec = json.loads(self.body)
+
+        if lambda_backend.has_function_arn(function_arn):
+            lambda_backend.tag_resource(function_arn, spec['Tags'])
+            return 200, {}, "{}"
+        else:
+            return 404, {}, "{}"
+
+    def _untag_resource(self, request, full_url):
+        lambda_backend = self.get_lambda_backend(full_url)
+
+        path = request.path if hasattr(request, 'path') else request.path_url
+        function_arn = unquote(path.split('/')[-1].split('?')[0])
+
+        tag_keys = parse_qs(urlparse(full_url).query)['tagKeys']
+
+        if lambda_backend.has_function_arn(function_arn):
+            lambda_backend.untag_resource(function_arn, tag_keys)
+            return 204, {}, "{}"
+        else:
+            return 404, {}, "{}"

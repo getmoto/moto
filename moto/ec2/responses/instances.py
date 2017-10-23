@@ -2,15 +2,15 @@ from __future__ import unicode_literals
 from boto.ec2.instancetype import InstanceType
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import instance_ids_from_querystring, filters_from_querystring, \
-    dict_from_querystring, optional_from_querystring
+from moto.ec2.utils import filters_from_querystring, \
+    dict_from_querystring
 
 
 class InstanceResponse(BaseResponse):
 
     def describe_instances(self):
         filter_dict = filters_from_querystring(self.querystring)
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         token = self._get_param("NextToken")
         if instance_ids:
             reservations = self.ec2_backend.get_reservations_by_instance_ids(
@@ -30,29 +30,28 @@ class InstanceResponse(BaseResponse):
         if max_results and len(reservations) > (start + max_results):
             next_token = reservations_resp[-1].id
         template = self.response_template(EC2_DESCRIBE_INSTANCES)
-        return template.render(reservations=reservations_resp, next_token=next_token)
+        return template.render(reservations=reservations_resp, next_token=next_token).replace('True', 'true').replace('False', 'false')
 
     def run_instances(self):
-        min_count = int(self.querystring.get('MinCount', ['1'])[0])
-        image_id = self.querystring.get('ImageId')[0]
-        user_data = self.querystring.get('UserData')
+        min_count = int(self._get_param('MinCount', if_none='1'))
+        image_id = self._get_param('ImageId')
+        user_data = self._get_param('UserData')
         security_group_names = self._get_multi_param('SecurityGroup')
         security_group_ids = self._get_multi_param('SecurityGroupId')
         nics = dict_from_querystring("NetworkInterface", self.querystring)
-        instance_type = self.querystring.get("InstanceType", ["m1.small"])[0]
-        placement = self.querystring.get(
-            "Placement.AvailabilityZone", [None])[0]
-        subnet_id = self.querystring.get("SubnetId", [None])[0]
-        private_ip = self.querystring.get("PrivateIpAddress", [None])[0]
-        associate_public_ip = self.querystring.get(
-            "AssociatePublicIpAddress", [None])[0]
-        key_name = self.querystring.get("KeyName", [None])[0]
+        instance_type = self._get_param('InstanceType', if_none='m1.small')
+        placement = self._get_param('Placement.AvailabilityZone')
+        subnet_id = self._get_param('SubnetId')
+        private_ip = self._get_param('PrivateIpAddress')
+        associate_public_ip = self._get_param('AssociatePublicIpAddress')
+        key_name = self._get_param('KeyName')
         tags = self._parse_tag_specification("TagSpecification")
+        region_name = self.region
 
         if self.is_not_dryrun('RunInstance'):
             new_reservation = self.ec2_backend.add_instances(
                 image_id, min_count, user_data, security_group_names,
-                instance_type=instance_type, placement=placement, subnet_id=subnet_id,
+                instance_type=instance_type, placement=placement, region_name=region_name, subnet_id=subnet_id,
                 key_name=key_name, security_group_ids=security_group_ids,
                 nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip,
                 tags=tags)
@@ -61,37 +60,36 @@ class InstanceResponse(BaseResponse):
             return template.render(reservation=new_reservation)
 
     def terminate_instances(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('TerminateInstance'):
             instances = self.ec2_backend.terminate_instances(instance_ids)
             template = self.response_template(EC2_TERMINATE_INSTANCES)
             return template.render(instances=instances)
 
     def reboot_instances(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('RebootInstance'):
             instances = self.ec2_backend.reboot_instances(instance_ids)
             template = self.response_template(EC2_REBOOT_INSTANCES)
             return template.render(instances=instances)
 
     def stop_instances(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('StopInstance'):
             instances = self.ec2_backend.stop_instances(instance_ids)
             template = self.response_template(EC2_STOP_INSTANCES)
             return template.render(instances=instances)
 
     def start_instances(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
+        instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('StartInstance'):
             instances = self.ec2_backend.start_instances(instance_ids)
             template = self.response_template(EC2_START_INSTANCES)
             return template.render(instances=instances)
 
     def describe_instance_status(self):
-        instance_ids = instance_ids_from_querystring(self.querystring)
-        include_all_instances = optional_from_querystring('IncludeAllInstances',
-                                                          self.querystring) == 'true'
+        instance_ids = self._get_multi_param('InstanceId')
+        include_all_instances = self._get_param('IncludeAllInstances') == 'true'
 
         if instance_ids:
             instances = self.ec2_backend.get_multi_instances_by_id(
@@ -113,10 +111,9 @@ class InstanceResponse(BaseResponse):
     def describe_instance_attribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if
         # instance not in stopped state
-        attribute = self.querystring.get("Attribute")[0]
+        attribute = self._get_param('Attribute')
         key = camelcase_to_underscores(attribute)
-        instance_ids = instance_ids_from_querystring(self.querystring)
-        instance_id = instance_ids[0]
+        instance_id = self._get_param('InstanceId')
         instance, value = self.ec2_backend.describe_instance_attribute(
             instance_id, key)
 
@@ -147,7 +144,12 @@ class InstanceResponse(BaseResponse):
         """
         Handles requests which are generated by code similar to:
 
-            instance.modify_attribute('blockDeviceMapping', {'/dev/sda1': True})
+            instance.modify_attribute(
+                BlockDeviceMappings=[{
+                    'DeviceName': '/dev/sda1',
+                    'Ebs': {'DeleteOnTermination': True}
+                }]
+            )
 
         The querystring contains information similar to:
 
@@ -170,8 +172,7 @@ class InstanceResponse(BaseResponse):
             del_on_term_value = True if 'true' == del_on_term_value_str else False
             device_name_value = self.querystring[mapping_device_name][0]
 
-            instance_ids = instance_ids_from_querystring(self.querystring)
-            instance_id = instance_ids[0]
+            instance_id = self._get_param('InstanceId')
             instance = self.ec2_backend.get_instance(instance_id)
 
             if self.is_not_dryrun('ModifyInstanceAttribute'):
@@ -199,8 +200,7 @@ class InstanceResponse(BaseResponse):
             value = self.querystring.get(attribute_key)[0]
             normalized_attribute = camelcase_to_underscores(
                 attribute_key.split(".")[0])
-            instance_ids = instance_ids_from_querystring(self.querystring)
-            instance_id = instance_ids[0]
+            instance_id = self._get_param('InstanceId')
             self.ec2_backend.modify_instance_attribute(
                 instance_id, normalized_attribute, value)
             return EC2_MODIFY_INSTANCE_ATTRIBUTE
@@ -211,8 +211,7 @@ class InstanceResponse(BaseResponse):
             if 'GroupId.' in key:
                 new_security_grp_list.append(self.querystring.get(key)[0])
 
-        instance_ids = instance_ids_from_querystring(self.querystring)
-        instance_id = instance_ids[0]
+        instance_id = self._get_param('InstanceId')
         if self.is_not_dryrun('ModifyInstanceSecurityGroups'):
             self.ec2_backend.modify_instance_security_groups(
                 instance_id, new_security_grp_list)
@@ -254,17 +253,19 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <monitoring>
             <state>enabled</state>
           </monitoring>
-          {% if instance.nics %}
-            {% if instance.nics[0].subnet %}
-              <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
-              <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
-            {% endif %}
-            <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
-            {% if instance.public_ip %}
-                <ipAddress>{{ instance.public_ip }}</ipAddress>
-            {% endif %}
-          {% else %}
+          {% if instance.subnet_id %}
             <subnetId>{{ instance.subnet_id }}</subnetId>
+          {% elif instance.nics[0].subnet.id %}
+            <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
+          {% endif %}
+          {% if instance.vpc_id %}
+            <vpcId>{{ instance.vpc_id }}</vpcId>
+          {% elif instance.nics[0].subnet.vpc_id %}
+            <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
+          {% endif %}
+          <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
+          {% if instance.nics[0].public_ip %}
+              <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
           {% endif %}
           <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
           <groupSet>
@@ -395,26 +396,30 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <monitoring>
                       <state>disabled</state>
                     </monitoring>
-                    {% if instance.nics %}
-                      {% if instance.nics[0].subnet %}
-                        <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
-                        <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
-                      {% endif %}
-                      <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
-                      {% if instance.nics[0].public_ip %}
-                          <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
-                      {% endif %}
+                    {% if instance.subnet_id %}
+                      <subnetId>{{ instance.subnet_id }}</subnetId>
+                    {% elif instance.nics[0].subnet.id %}
+                      <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
+                    {% endif %}
+                    {% if instance.vpc_id %}
+                      <vpcId>{{ instance.vpc_id }}</vpcId>
+                    {% elif instance.nics[0].subnet.vpc_id %}
+                      <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
+                    {% endif %}
+                    <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
+                    {% if instance.nics[0].public_ip %}
+                        <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
                     {% endif %}
                     <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
                     <groupSet>
                       {% for group in instance.dynamic_group_list %}
                       <item>
-              {% if group.id %}
-              <groupId>{{ group.id }}</groupId>
-              <groupName>{{ group.name }}</groupName>
-              {% else %}
-              <groupId>{{ group }}</groupId>
-              {% endif %}
+                      {% if group.id %}
+                      <groupId>{{ group.id }}</groupId>
+                      <groupName>{{ group.name }}</groupName>
+                      {% else %}
+                      <groupId>{{ group }}</groupId>
+                      {% endif %}
                       </item>
                       {% endfor %}
                     </groupSet>

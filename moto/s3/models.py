@@ -11,7 +11,7 @@ import six
 from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket, MissingKey, InvalidPart, EntityTooSmall
+from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -43,6 +43,7 @@ class FakeKey(BaseModel):
         self._etag = etag
         self._version_id = version_id
         self._is_versioned = is_versioned
+        self._tagging = FakeTagging()
 
     @property
     def version_id(self):
@@ -58,6 +59,9 @@ class FakeKey(BaseModel):
         if replace:
             self._metadata = {}
         self._metadata.update(metadata)
+
+    def set_tagging(self, tagging):
+        self._tagging = tagging
 
     def set_storage_class(self, storage_class):
         self._storage_class = storage_class
@@ -76,6 +80,9 @@ class FakeKey(BaseModel):
 
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
+
+    def increment_version(self):
+        self._version_id += 1
 
     @property
     def etag(self):
@@ -102,6 +109,10 @@ class FakeKey(BaseModel):
     @property
     def metadata(self):
         return self._metadata
+
+    @property
+    def tagging(self):
+        return self._tagging
 
     @property
     def response_dict(self):
@@ -193,9 +204,17 @@ class FakeGrantee(BaseModel):
         self.uri = uri
         self.display_name = display_name
 
+    def __eq__(self, other):
+        if not isinstance(other, FakeGrantee):
+            return False
+        return self.id == other.id and self.uri == other.uri and self.display_name == other.display_name
+
     @property
     def type(self):
         return 'Group' if self.uri else 'CanonicalUser'
+
+    def __repr__(self):
+        return "FakeGrantee(display_name: '{}', id: '{}', uri: '{}')".format(self.display_name, self.id, self.uri)
 
 
 ALL_USERS_GRANTEE = FakeGrantee(
@@ -218,11 +237,27 @@ class FakeGrant(BaseModel):
         self.grantees = grantees
         self.permissions = permissions
 
+    def __repr__(self):
+        return "FakeGrant(grantees: {}, permissions: {})".format(self.grantees, self.permissions)
+
 
 class FakeAcl(BaseModel):
 
     def __init__(self, grants=[]):
         self.grants = grants
+
+    @property
+    def public_read(self):
+        for grant in self.grants:
+            if ALL_USERS_GRANTEE in grant.grantees:
+                if PERMISSION_READ in grant.permissions:
+                    return True
+                if PERMISSION_FULL_CONTROL in grant.permissions:
+                    return True
+        return False
+
+    def __repr__(self):
+        return "FakeAcl(grants: {})".format(self.grants)
 
 
 def get_canned_acl(acl):
@@ -253,6 +288,25 @@ def get_canned_acl(acl):
     return FakeAcl(grants=grants)
 
 
+class FakeTagging(BaseModel):
+
+    def __init__(self, tag_set=None):
+        self.tag_set = tag_set or FakeTagSet()
+
+
+class FakeTagSet(BaseModel):
+
+    def __init__(self, tags=None):
+        self.tags = tags or []
+
+
+class FakeTag(BaseModel):
+
+    def __init__(self, key, value=None):
+        self.key = key
+        self.value = value
+
+
 class LifecycleRule(BaseModel):
 
     def __init__(self, id=None, prefix=None, status=None, expiration_days=None,
@@ -268,6 +322,17 @@ class LifecycleRule(BaseModel):
         self.storage_class = storage_class
 
 
+class CorsRule(BaseModel):
+
+    def __init__(self, allowed_methods, allowed_origins, allowed_headers=None, expose_headers=None,
+                 max_age_seconds=None):
+        self.allowed_methods = [allowed_methods] if isinstance(allowed_methods, six.string_types) else allowed_methods
+        self.allowed_origins = [allowed_origins] if isinstance(allowed_origins, six.string_types) else allowed_origins
+        self.allowed_headers = [allowed_headers] if isinstance(allowed_headers, six.string_types) else allowed_headers
+        self.exposed_headers = [expose_headers] if isinstance(expose_headers, six.string_types) else expose_headers
+        self.max_age_seconds = max_age_seconds
+
+
 class FakeBucket(BaseModel):
 
     def __init__(self, name, region_name):
@@ -280,6 +345,8 @@ class FakeBucket(BaseModel):
         self.policy = None
         self.website_configuration = None
         self.acl = get_canned_acl('private')
+        self.tags = FakeTagging()
+        self.cors = []
 
     @property
     def location(self):
@@ -308,6 +375,52 @@ class FakeBucket(BaseModel):
 
     def delete_lifecycle(self):
         self.rules = []
+
+    def set_cors(self, rules):
+        from moto.s3.exceptions import InvalidRequest, MalformedXML
+        self.cors = []
+
+        if len(rules) > 100:
+            raise MalformedXML()
+
+        for rule in rules:
+            assert isinstance(rule["AllowedMethod"], list) or isinstance(rule["AllowedMethod"], six.string_types)
+            assert isinstance(rule["AllowedOrigin"], list) or isinstance(rule["AllowedOrigin"], six.string_types)
+            assert isinstance(rule.get("AllowedHeader", []), list) or isinstance(rule.get("AllowedHeader", ""),
+                                                                                 six.string_types)
+            assert isinstance(rule.get("ExposedHeader", []), list) or isinstance(rule.get("ExposedHeader", ""),
+                                                                                 six.string_types)
+            assert isinstance(rule.get("MaxAgeSeconds", "0"), six.string_types)
+
+            if isinstance(rule["AllowedMethod"], six.string_types):
+                methods = [rule["AllowedMethod"]]
+            else:
+                methods = rule["AllowedMethod"]
+
+            for method in methods:
+                if method not in ["GET", "PUT", "HEAD", "POST", "DELETE"]:
+                    raise InvalidRequest(method)
+
+            self.cors.append(CorsRule(
+                rule["AllowedMethod"],
+                rule["AllowedOrigin"],
+                rule.get("AllowedHeader"),
+                rule.get("ExposedHeader"),
+                rule.get("MaxAgeSecond")
+            ))
+
+    def delete_cors(self):
+        self.cors = []
+
+    def set_tags(self, tagging):
+        self.tags = tagging
+
+    def delete_tags(self):
+        self.tags = FakeTagging()
+
+    @property
+    def tagging(self):
+        return self.tags
 
     def set_website_configuration(self, website_configuration):
         self.website_configuration = website_configuration
@@ -395,14 +508,15 @@ class S3Backend(BaseBackend):
                             encoding_type=None,
                             key_marker=None,
                             max_keys=None,
-                            version_id_marker=None):
+                            version_id_marker=None,
+                            prefix=''):
         bucket = self.get_bucket(bucket_name)
 
         if any((delimiter, encoding_type, key_marker, version_id_marker)):
             raise NotImplementedError(
                 "Called get_bucket_versions with some of delimiter, encoding_type, key_marker, version_id_marker")
 
-        return itertools.chain(*(l for _, l in bucket.keys.iterlists()))
+        return itertools.chain(*(l for key, l in bucket.keys.iterlists() if key.startswith(prefix)))
 
     def get_bucket_policy(self, bucket_name):
         return self.get_bucket(bucket_name).policy
@@ -473,7 +587,30 @@ class S3Backend(BaseBackend):
         if isinstance(key, FakeKey):
             return key
         else:
-            raise MissingKey(key_name=key_name)
+            return None
+
+    def set_key_tagging(self, bucket_name, key_name, tagging):
+        key = self.get_key(bucket_name, key_name)
+        if key is None:
+            raise MissingKey(key_name)
+        key.set_tagging(tagging)
+        return key
+
+    def put_bucket_tagging(self, bucket_name, tagging):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_tags(tagging)
+
+    def delete_bucket_tagging(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.delete_tags()
+
+    def put_bucket_cors(self, bucket_name, cors_rules):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_cors(cors_rules)
+
+    def delete_bucket_cors(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.delete_cors()
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)
@@ -593,6 +730,10 @@ class S3Backend(BaseBackend):
         if dest_key_name != src_key_name:
             key = key.copy(dest_key_name)
         dest_bucket.keys[dest_key_name] = key
+
+        # By this point, the destination key must exist, or KeyError
+        if dest_bucket.is_versioned:
+            dest_bucket.keys[dest_key_name].increment_version()
         if storage is not None:
             key.set_storage_class(storage)
         if acl is not None:

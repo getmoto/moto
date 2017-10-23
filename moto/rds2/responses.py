@@ -23,9 +23,11 @@ class RDS2Response(BaseResponse):
             "db_instance_identifier": self._get_param('DBInstanceIdentifier'),
             "db_name": self._get_param("DBName"),
             "db_parameter_group_name": self._get_param("DBParameterGroupName"),
+            "db_snapshot_identifier": self._get_param('DBSnapshotIdentifier'),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
+            "license_model": self._get_param("LicenseModel"),
             "iops": self._get_int_param("Iops"),
             "kms_key_id": self._get_param("KmsKeyId"),
             "master_user_password": self._get_param('MasterUserPassword'),
@@ -39,7 +41,7 @@ class RDS2Response(BaseResponse):
             "region": self.region,
             "security_groups": self._get_multi_param('DBSecurityGroups.DBSecurityGroupName'),
             "storage_encrypted": self._get_param("StorageEncrypted"),
-            "storage_type": self._get_param("StorageType"),
+            "storage_type": self._get_param("StorageType", 'standard'),
             # VpcSecurityGroupIds.member.N
             "tags": list(),
         }
@@ -140,7 +142,8 @@ class RDS2Response(BaseResponse):
 
     def delete_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
-        database = self.backend.delete_database(db_instance_identifier)
+        db_snapshot_name = self._get_param('FinalDBSnapshotIdentifier')
+        database = self.backend.delete_database(db_instance_identifier, db_snapshot_name)
         template = self.response_template(DELETE_DATABASE_TEMPLATE)
         return template.render(database=database)
 
@@ -149,6 +152,27 @@ class RDS2Response(BaseResponse):
         database = self.backend.reboot_db_instance(db_instance_identifier)
         template = self.response_template(REBOOT_DATABASE_TEMPLATE)
         return template.render(database=database)
+
+    def create_db_snapshot(self):
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
+        tags = self._get_param('Tags', [])
+        snapshot = self.backend.create_snapshot(db_instance_identifier, db_snapshot_identifier, tags)
+        template = self.response_template(CREATE_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
+
+    def describe_db_snapshots(self):
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
+        snapshots = self.backend.describe_snapshots(db_instance_identifier, db_snapshot_identifier)
+        template = self.response_template(DESCRIBE_SNAPSHOTS_TEMPLATE)
+        return template.render(snapshots=snapshots)
+
+    def delete_db_snapshot(self):
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
+        snapshot = self.backend.delete_snapshot(db_snapshot_identifier)
+        template = self.response_template(DELETE_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
 
     def list_tags_for_resource(self):
         arn = self._get_param('ResourceName')
@@ -169,6 +193,19 @@ class RDS2Response(BaseResponse):
         self.backend.remove_tags_from_resource(arn, tag_keys)
         template = self.response_template(REMOVE_TAGS_FROM_RESOURCE_TEMPLATE)
         return template.render()
+
+    def stop_db_instance(self):
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
+        database = self.backend.stop_database(db_instance_identifier, db_snapshot_identifier)
+        template = self.response_template(STOP_DATABASE_TEMPLATE)
+        return template.render(database=database)
+
+    def start_db_instance(self):
+        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        database = self.backend.start_database(db_instance_identifier)
+        template = self.response_template(START_DATABASE_TEMPLATE)
+        return template.render(database=database)
 
     def create_db_security_group(self):
         group_name = self._get_param('DBSecurityGroupName')
@@ -387,6 +424,23 @@ REBOOT_DATABASE_TEMPLATE = """<RebootDBInstanceResponse xmlns="http://rds.amazon
   </ResponseMetadata>
 </RebootDBInstanceResponse>"""
 
+START_DATABASE_TEMPLATE = """<StartDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <StartDBInstanceResult>
+  {{ database.to_xml() }}
+  </StartDBInstanceResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab9</RequestId>
+  </ResponseMetadata>
+</StartDBInstanceResponse>"""
+
+STOP_DATABASE_TEMPLATE = """<StopDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <StopDBInstanceResult>
+  {{ database.to_xml() }}
+  </StopDBInstanceResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab8</RequestId>
+  </ResponseMetadata>
+</StopDBInstanceResponse>"""
 
 DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <DeleteDBInstanceResult>
@@ -396,6 +450,42 @@ DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazon
     <RequestId>7369556f-b70d-11c3-faca-6ba18376ea1b</RequestId>
   </ResponseMetadata>
 </DeleteDBInstanceResponse>"""
+
+CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CreateDBSnapshotResult>
+  {{ snapshot.to_xml() }}
+  </CreateDBSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</CreateDBSnapshotResponse>
+"""
+
+DESCRIBE_SNAPSHOTS_TEMPLATE = """<DescribeDBSnapshotsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeDBSnapshotsResult>
+    <DBSnapshots>
+    {%- for snapshot in snapshots -%}
+      {{ snapshot.to_xml() }}
+    {%- endfor -%}
+    </DBSnapshots>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+  </DescribeDBSnapshotsResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DescribeDBSnapshotsResponse>"""
+
+DELETE_SNAPSHOT_TEMPLATE = """<DeleteDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DeleteDBSnapshotResult>
+  {{ snapshot.to_xml() }}
+  </DeleteDBSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DeleteDBSnapshotResponse>
+"""
 
 CREATE_SECURITY_GROUP_TEMPLATE = """<CreateDBSecurityGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBSecurityGroupResult>

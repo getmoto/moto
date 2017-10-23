@@ -5,13 +5,14 @@ import boto
 import boto.s3
 import boto.s3.key
 from botocore.exceptions import ClientError
-from moto import mock_cloudformation, mock_s3
+from moto import mock_cloudformation, mock_s3, mock_sqs
 
 import json
 import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
+import random
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -38,6 +39,68 @@ dummy_template = {
     }
 }
 
+
+dummy_template_yaml = """---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack1 with yaml template
+Resources:
+  EC2Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-d3adb33f
+      KeyName: dummy
+      InstanceType: t2.micro
+      Tags:
+        - Key: Description
+          Value: Test tag
+        - Key: Name
+          Value: Name tag for tests
+"""
+
+
+dummy_template_yaml_with_short_form_func = """---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack1 with yaml template
+Resources:
+  EC2Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-d3adb33f
+      KeyName: !Join [ ":", [ du, m, my ] ]
+      InstanceType: t2.micro
+      Tags:
+        - Key: Description
+          Value: Test tag
+        - Key: Name
+          Value: Name tag for tests
+"""
+
+
+dummy_template_yaml_with_ref = """---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack1 with yaml template
+Parameters:
+  TagDescription:
+    Type: String
+  TagName:
+    Type: String
+
+Resources:
+  EC2Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-d3adb33f
+      KeyName: dummy
+      InstanceType: t2.micro
+      Tags:
+        - Key: Description
+          Value:
+            Ref: TagDescription
+        - Key: Name
+          Value: !Ref TagName
+"""
+
+
 dummy_update_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Parameters": {
@@ -57,8 +120,45 @@ dummy_update_template = {
     }
 }
 
+dummy_output_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Stack 1",
+    "Resources": {
+        "Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-08111162"
+            }
+        }
+    },
+    "Outputs" : {
+        "StackVPC" : {
+            "Description" : "The ID of the VPC",
+            "Value" : "VPCID",
+            "Export" : {
+                "Name" : "My VPC ID"
+            }
+        }
+    }
+}
+
+dummy_import_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::ImportValue": 'My VPC ID'},
+                "VisibilityTimeout": 60,
+            }
+        }
+    }
+}
+
 dummy_template_json = json.dumps(dummy_template)
 dummy_update_template_json = json.dumps(dummy_template)
+dummy_output_template_json = json.dumps(dummy_output_template)
+dummy_import_template_json = json.dumps(dummy_import_template)
 
 
 @mock_cloudformation
@@ -71,6 +171,46 @@ def test_boto3_create_stack():
 
     cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
         dummy_template)
+
+@mock_cloudformation
+def test_boto3_create_stack_with_yaml():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_yaml,
+    )
+
+    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
+        dummy_template_yaml)
+
+
+@mock_cloudformation
+def test_boto3_create_stack_with_short_form_func_yaml():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_yaml_with_short_form_func,
+    )
+
+    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
+        dummy_template_yaml_with_short_form_func)
+
+
+@mock_cloudformation
+def test_boto3_create_stack_with_ref_yaml():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    params = [
+        {'ParameterKey': 'TagDescription', 'ParameterValue': 'desc_ref'},
+        {'ParameterKey': 'TagName', 'ParameterValue': 'name_ref'},
+    ]
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=params
+    )
+
+    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
+        dummy_template_yaml_with_ref)
 
 
 @mock_cloudformation
@@ -112,7 +252,6 @@ def test_create_stack_with_role_arn():
         TemplateBody=dummy_template_json,
         RoleARN='arn:aws:iam::123456789012:role/moto',
     )
-
     stack = list(cf.stacks.all())[0]
     stack.role_arn.should.equal('arn:aws:iam::123456789012:role/moto')
 
@@ -408,3 +547,92 @@ def test_stack_events():
         assert False, "Too many stack events"
 
     list(stack_events_to_look_for).should.be.empty
+
+
+@mock_cloudformation
+def test_list_exports():
+    cf_client = boto3.client('cloudformation', region_name='us-east-1')
+    cf_resource = boto3.resource('cloudformation', region_name='us-east-1')
+    stack = cf_resource.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_output_template_json,
+    )
+    output_value = 'VPCID'
+    exports = cf_client.list_exports()['Exports']
+
+    stack.outputs.should.have.length_of(1)
+    stack.outputs[0]['OutputValue'].should.equal(output_value)
+
+    exports.should.have.length_of(1)
+    exports[0]['ExportingStackId'].should.equal(stack.stack_id)
+    exports[0]['Name'].should.equal('My VPC ID')
+    exports[0]['Value'].should.equal(output_value)
+
+
+@mock_cloudformation
+def test_list_exports_with_token():
+    cf = boto3.client('cloudformation', region_name='us-east-1')
+    for i in range(101):
+        # Add index to ensure name is unique
+        dummy_output_template['Outputs']['StackVPC']['Export']['Name'] += str(i)
+        cf.create_stack(
+            StackName="test_stack",
+            TemplateBody=json.dumps(dummy_output_template),
+        )
+    exports = cf.list_exports()
+    exports['Exports'].should.have.length_of(100)
+    exports.get('NextToken').should_not.be.none
+
+    more_exports = cf.list_exports(NextToken=exports['NextToken'])
+    more_exports['Exports'].should.have.length_of(1)
+    more_exports.get('NextToken').should.be.none
+
+
+@mock_cloudformation
+def test_delete_stack_with_export():
+    cf = boto3.client('cloudformation', region_name='us-east-1')
+    stack = cf.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_output_template_json,
+    )
+
+    stack_id = stack['StackId']
+    exports = cf.list_exports()['Exports']
+    exports.should.have.length_of(1)
+
+    cf.delete_stack(StackName=stack_id)
+    cf.list_exports()['Exports'].should.have.length_of(0)
+
+
+@mock_cloudformation
+def test_export_names_must_be_unique():
+    cf = boto3.resource('cloudformation', region_name='us-east-1')
+    first_stack = cf.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_output_template_json,
+    )
+    with assert_raises(ClientError):
+        cf.create_stack(
+            StackName="test_stack",
+            TemplateBody=dummy_output_template_json,
+        )
+
+@mock_sqs
+@mock_cloudformation
+def test_stack_with_imports():
+    cf = boto3.resource('cloudformation', region_name='us-east-1')
+    ec2_resource = boto3.resource('sqs', region_name='us-east-1')
+
+    output_stack = cf.create_stack(
+        StackName="test_stack1",
+        TemplateBody=dummy_output_template_json,
+    )
+    import_stack = cf.create_stack(
+        StackName="test_stack2",
+        TemplateBody=dummy_import_template_json
+    )
+
+    output_stack.outputs.should.have.length_of(1)
+    output = output_stack.outputs[0]['OutputValue']
+    queue = ec2_resource.get_queue_by_name(QueueName=output)
+    queue.should_not.be.none

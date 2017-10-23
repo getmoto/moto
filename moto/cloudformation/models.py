@@ -9,13 +9,13 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 
 from .parsing import ResourceMap, OutputMap
-from .utils import generate_stack_id
+from .utils import generate_stack_id, yaml_tag_constructor
 from .exceptions import ValidationError
 
 
 class FakeStack(BaseModel):
 
-    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
+    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, cross_stack_resources=None):
         self.stack_id = stack_id
         self.name = name
         self.template = template
@@ -30,6 +30,7 @@ class FakeStack(BaseModel):
                               resource_status_reason="User Initiated")
 
         self.description = self.template_dict.get('Description')
+        self.cross_stack_resources = cross_stack_resources or []
         self.resource_map = self._create_resource_map()
         self.output_map = self._create_output_map()
         self._add_stack_event("CREATE_COMPLETE")
@@ -37,12 +38,12 @@ class FakeStack(BaseModel):
 
     def _create_resource_map(self):
         resource_map = ResourceMap(
-            self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict)
+            self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict, self.cross_stack_resources)
         resource_map.create()
         return resource_map
 
     def _create_output_map(self):
-        output_map = OutputMap(self.resource_map, self.template_dict)
+        output_map = OutputMap(self.resource_map, self.template_dict, self.stack_id)
         output_map.create()
         return output_map
 
@@ -73,6 +74,7 @@ class FakeStack(BaseModel):
         ))
 
     def _parse_template(self):
+        yaml.add_multi_constructor('', yaml_tag_constructor)
         try:
             self.template_dict = yaml.load(self.template)
         except yaml.parser.ParserError:
@@ -89,6 +91,10 @@ class FakeStack(BaseModel):
     @property
     def stack_outputs(self):
         return self.output_map.values()
+
+    @property
+    def exports(self):
+        return self.output_map.exports
 
     def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
@@ -131,6 +137,7 @@ class CloudFormationBackend(BaseBackend):
     def __init__(self):
         self.stacks = OrderedDict()
         self.deleted_stacks = {}
+        self.exports = OrderedDict()
 
     def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
         stack_id = generate_stack_id(name)
@@ -143,8 +150,12 @@ class CloudFormationBackend(BaseBackend):
             notification_arns=notification_arns,
             tags=tags,
             role_arn=role_arn,
+            cross_stack_resources=self.exports,
         )
         self.stacks[stack_id] = new_stack
+        self._validate_export_uniqueness(new_stack)
+        for export in new_stack.exports:
+            self.exports[export.name] = export
         return new_stack
 
     def describe_stacks(self, name_or_stack_id):
@@ -191,12 +202,30 @@ class CloudFormationBackend(BaseBackend):
             stack = self.stacks.pop(name_or_stack_id, None)
             stack.delete()
             self.deleted_stacks[stack.stack_id] = stack
+            [self.exports.pop(export.name) for export in stack.exports]
             return self.stacks.pop(name_or_stack_id, None)
         else:
             # Delete by stack name
             for stack in list(self.stacks.values()):
                 if stack.name == name_or_stack_id:
                     self.delete_stack(stack.stack_id)
+
+    def list_exports(self, token):
+        all_exports = list(self.exports.values())
+        if token is None:
+            exports = all_exports[0:100]
+            next_token = '100' if len(all_exports) > 100 else None
+        else:
+            token = int(token)
+            exports = all_exports[token:token + 100]
+            next_token = str(token + 100) if len(all_exports) > token + 100 else None
+        return exports, next_token
+
+    def _validate_export_uniqueness(self, stack):
+        new_stack_export_names = [x.name for x in stack.exports]
+        export_names = self.exports.keys()
+        if not set(export_names).isdisjoint(new_stack_export_names):
+            raise ValidationError(stack.stack_id, message='Export names must be unique across a given region')
 
 
 cloudformation_backends = {}

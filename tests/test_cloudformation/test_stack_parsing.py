@@ -7,10 +7,13 @@ import sure  # noqa
 
 from moto.cloudformation.exceptions import ValidationError
 from moto.cloudformation.models import FakeStack
-from moto.cloudformation.parsing import resource_class_from_type, parse_condition
+from moto.cloudformation.parsing import resource_class_from_type, parse_condition, Export
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
+from moto.cloudformation.utils import yaml_tag_constructor
 from boto.cloudformation.stack import Output
+
+
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -72,6 +75,71 @@ get_attribute_output = {
     }
 }
 
+split_select_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::Select": [ "1", {"Fn::Split": [ "-", "123-myqueue" ] } ] },
+                "VisibilityTimeout": 60,
+            }
+        }
+    }
+}
+
+sub_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue1": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::Sub": '${AWS::StackName}-queue-${!Literal}'},
+                "VisibilityTimeout": 60,
+            }
+        },
+        "Queue2": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::Sub": '${Queue1.QueueName}'},
+                "VisibilityTimeout": 60,
+            }
+        },
+    }
+}
+
+export_value_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::Sub": '${AWS::StackName}-queue'},
+                "VisibilityTimeout": 60,
+            }
+        }
+    },
+    "Outputs": {
+        "Output1": {
+            "Value": "value",
+            "Export": {"Name": 'queue-us-west-1'}
+        }
+    }
+}
+
+import_value_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": {"Fn::ImportValue": 'queue-us-west-1'},
+                "VisibilityTimeout": 60,
+            }
+        }
+    }
+}
+
 outputs_template = dict(list(dummy_template.items()) +
                         list(output_dict.items()))
 bad_outputs_template = dict(
@@ -85,6 +153,10 @@ output_type_template_json = json.dumps(outputs_template)
 bad_output_template_json = json.dumps(bad_outputs_template)
 get_attribute_outputs_template_json = json.dumps(
     get_attribute_outputs_template)
+split_select_template_json = json.dumps(split_select_template)
+sub_template_json = json.dumps(sub_template)
+export_value_template_json = json.dumps(export_value_template)
+import_value_template_json = json.dumps(import_value_template)
 
 
 def test_parse_stack_resources():
@@ -266,3 +338,92 @@ def test_reference_other_conditions():
         resources_map={},
         condition_map={"OtherCondition": True},
     ).should.equal(False)
+
+
+def test_parse_split_and_select():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=split_select_template_json,
+        parameters={},
+        region_name='us-west-1')
+
+    stack.resource_map.should.have.length_of(1)
+    queue = stack.resource_map['Queue']
+    queue.name.should.equal("myqueue")
+
+
+def test_sub():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=sub_template_json,
+        parameters={},
+        region_name='us-west-1')
+
+    queue1 = stack.resource_map['Queue1']
+    queue2 = stack.resource_map['Queue2']
+    queue2.name.should.equal(queue1.name)
+
+
+def test_import():
+    export_stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=export_value_template_json,
+        parameters={},
+        region_name='us-west-1')
+    import_stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=import_value_template_json,
+        parameters={},
+        region_name='us-west-1',
+        cross_stack_resources={export_stack.exports[0].value: export_stack.exports[0]})
+
+    queue = import_stack.resource_map['Queue']
+    queue.name.should.equal("value")
+
+
+
+def test_short_form_func_in_yaml_teamplate():
+    template = """---
+    KeyB64: !Base64 valueToEncode
+    KeyRef: !Ref foo
+    KeyAnd: !And
+      - A
+      - B
+    KeyEquals: !Equals [A, B]
+    KeyIf: !If [A, B, C]
+    KeyNot: !Not [A]
+    KeyOr: !Or [A, B]
+    KeyFindInMap: !FindInMap [A, B, C]
+    KeyGetAtt: !GetAtt A.B
+    KeyGetAZs: !GetAZs A
+    KeyImportValue: !ImportValue A
+    KeyJoin: !Join [ ":", [A, B, C] ]
+    KeySelect: !Select [A, B]
+    KeySplit: !Split [A, B]
+    KeySub: !Sub A
+    """
+    yaml.add_multi_constructor('', yaml_tag_constructor)
+    template_dict = yaml.load(template)
+    key_and_expects = [
+        ['KeyRef', {'Ref': 'foo'}],
+        ['KeyB64', {'Fn::Base64': 'valueToEncode'}],
+        ['KeyAnd', {'Fn::And': ['A', 'B']}],
+        ['KeyEquals', {'Fn::Equals': ['A', 'B']}],
+        ['KeyIf', {'Fn::If': ['A', 'B', 'C']}],
+        ['KeyNot', {'Fn::Not': ['A']}],
+        ['KeyOr', {'Fn::Or': ['A', 'B']}],
+        ['KeyFindInMap', {'Fn::FindInMap': ['A', 'B', 'C']}],
+        ['KeyGetAtt', {'Fn::GetAtt': ['A', 'B']}],
+        ['KeyGetAZs', {'Fn::GetAZs': 'A'}],
+        ['KeyImportValue', {'Fn::ImportValue': 'A'}],
+        ['KeyJoin', {'Fn::Join': [ ":", [ 'A', 'B', 'C' ] ]}],
+        ['KeySelect', {'Fn::Select': ['A', 'B']}],
+        ['KeySplit', {'Fn::Split': ['A', 'B']}],
+        ['KeySub', {'Fn::Sub': 'A'}],
+    ]
+    for k, v in key_and_expects:
+        template_dict.should.have.key(k).which.should.be.equal(v)

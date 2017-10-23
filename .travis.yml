@@ -1,22 +1,35 @@
 language: python
 sudo: false
+services:
+  - docker
 python:
   - 2.7
   - 3.6
 env:
     - TEST_SERVER_MODE=false
     - TEST_SERVER_MODE=true
+before_install:
+  - export BOTO_CONFIG=/dev/null
 install:
-  - travis_retry pip install boto==2.45.0
-  - travis_retry pip install boto3
-  - travis_retry pip install .
-  - travis_retry pip install -r requirements-dev.txt
-  - travis_retry pip install coveralls
+  # We build moto first so the docker container doesn't try to compile it as well, also note we don't use
+  # -d for docker run so the logs show up in travis
+  # Python images come from here: https://hub.docker.com/_/python/
   - |
+    python setup.py sdist
+
     if [ "$TEST_SERVER_MODE" = "true" ]; then
-      AWS_SECRET_ACCESS_KEY=server_secret AWS_ACCESS_KEY_ID=server_key moto_server -p 5000&
+      docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:${TRAVIS_PYTHON_VERSION}-stretch /moto/travis_moto_server.sh &
       export AWS_SECRET_ACCESS_KEY=foobar_secret
       export AWS_ACCESS_KEY_ID=foobar_key
+    fi
+    travis_retry pip install boto==2.45.0
+    travis_retry pip install boto3
+    travis_retry pip install dist/moto*.gz
+    travis_retry pip install coveralls==1.1
+    travis_retry pip install -r requirements-dev.txt
+
+    if [ "$TEST_SERVER_MODE" = "true" ]; then
+      python wait_for.py
     fi
 script:
   - make test

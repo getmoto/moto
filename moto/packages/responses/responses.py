@@ -10,6 +10,7 @@ import six
 from collections import namedtuple, Sequence, Sized
 from functools import update_wrapper
 from cookies import Cookies
+from requests.adapters import HTTPAdapter
 from requests.utils import cookiejar_from_dict
 from requests.exceptions import ConnectionError
 from requests.sessions import REDIRECT_STATI
@@ -120,10 +121,12 @@ class RequestsMock(object):
     POST = 'POST'
     PUT = 'PUT'
 
-    def __init__(self, assert_all_requests_are_fired=True):
+    def __init__(self, assert_all_requests_are_fired=True, pass_through=True):
         self._calls = CallList()
         self.reset()
         self.assert_all_requests_are_fired = assert_all_requests_are_fired
+        self.pass_through = pass_through
+        self.original_send = HTTPAdapter.send
 
     def reset(self):
         self._urls = []
@@ -235,6 +238,9 @@ class RequestsMock(object):
         match = self._find_match(request)
         # TODO(dcramer): find the correct class for this
         if match is None:
+            if self.pass_through:
+                return self.original_send(adapter, request, **kwargs)
+
             error_msg = 'Connection refused: {0} {1}'.format(request.method,
                                                              request.url)
             response = ConnectionError(error_msg)
@@ -270,6 +276,8 @@ class RequestsMock(object):
             body=body,
             headers=headers,
             preload_content=False,
+            # Need to not decode_content to mimic requests
+            decode_content=False,
         )
 
         response = adapter.build_response(request, response)
@@ -315,7 +323,7 @@ class RequestsMock(object):
 
 
 # expose default mock namespace
-mock = _default_mock = RequestsMock(assert_all_requests_are_fired=False)
+mock = _default_mock = RequestsMock(assert_all_requests_are_fired=False, pass_through=False)
 __all__ = []
 for __attr in (a for a in dir(_default_mock) if not a.startswith('_')):
     __all__.append(__attr)

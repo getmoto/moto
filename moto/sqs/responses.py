@@ -2,13 +2,14 @@ from __future__ import unicode_literals
 from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
 from .utils import parse_message_attributes
 from .models import sqs_backends
 from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
-    ReceiptHandleIsInvalid
+    QueueDoesNotExist,
+    ReceiptHandleIsInvalid,
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
@@ -28,8 +29,7 @@ class SQSResponse(BaseResponse):
     @property
     def attribute(self):
         if not hasattr(self, '_attribute'):
-            self._attribute = dict([(a['name'], a['value'])
-                                    for a in self._get_list_prefix('Attribute')])
+            self._attribute = self._get_map_prefix('Attribute', key_end='Name', value_end='Value')
         return self._attribute
 
     def _get_queue_name(self):
@@ -52,24 +52,39 @@ class SQSResponse(BaseResponse):
 
         return visibility_timeout
 
+    @amz_crc32  # crc last as request_id can edit XML
+    @amzn_request_id
     def call_action(self):
         status_code, headers, body = super(SQSResponse, self).call_action()
         if status_code == 404:
             return 404, headers, ERROR_INEXISTENT_QUEUE
         return status_code, headers, body
 
+    def _error(self, code, message, status=400):
+        template = self.response_template(ERROR_TEMPLATE)
+        return template.render(code=code, message=message), dict(status=status)
+
     def create_queue(self):
         request_url = urlparse(self.uri)
-        queue_name = self.querystring.get("QueueName")[0]
-        queue = self.sqs_backend.create_queue(queue_name, visibility_timeout=self.attribute.get('VisibilityTimeout'),
-                                              wait_time_seconds=self.attribute.get('WaitTimeSeconds'))
+        queue_name = self._get_param("QueueName")
+
+        try:
+            queue = self.sqs_backend.create_queue(queue_name, **self.attribute)
+        except MessageAttributesInvalid as e:
+            return self._error('InvalidParameterValue', e.description)
+
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue=queue, request_url=request_url)
 
     def get_queue_url(self):
         request_url = urlparse(self.uri)
-        queue_name = self.querystring.get("QueueName")[0]
-        queue = self.sqs_backend.get_queue(queue_name)
+        queue_name = self._get_param("QueueName")
+
+        try:
+            queue = self.sqs_backend.get_queue(queue_name)
+        except QueueDoesNotExist as e:
+            return self._error('QueueDoesNotExist', e.description)
+
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
             return template.render(queue=queue, request_url=request_url)
@@ -78,14 +93,14 @@ class SQSResponse(BaseResponse):
 
     def list_queues(self):
         request_url = urlparse(self.uri)
-        queue_name_prefix = self.querystring.get("QueueNamePrefix", [None])[0]
+        queue_name_prefix = self._get_param('QueueNamePrefix')
         queues = self.sqs_backend.list_queues(queue_name_prefix)
         template = self.response_template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues, request_url=request_url)
 
     def change_message_visibility(self):
         queue_name = self._get_queue_name()
-        receipt_handle = self.querystring.get("ReceiptHandle")[0]
+        receipt_handle = self._get_param('ReceiptHandle')
 
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
@@ -106,24 +121,24 @@ class SQSResponse(BaseResponse):
 
     def get_queue_attributes(self):
         queue_name = self._get_queue_name()
-        queue = self.sqs_backend.get_queue(queue_name)
+        try:
+            queue = self.sqs_backend.get_queue(queue_name)
+        except QueueDoesNotExist as e:
+            return self._error('QueueDoesNotExist', e.description)
+
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
 
     def set_queue_attributes(self):
+        # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
-        if "Attribute.Name" in self.querystring:
-            key = camelcase_to_underscores(
-                self.querystring.get("Attribute.Name")[0])
-            value = self.querystring.get("Attribute.Value")[0]
-            self.sqs_backend.set_queue_attribute(queue_name, key, value)
-        for a in self._get_list_prefix("Attribute"):
-            key = camelcase_to_underscores(a["name"])
-            value = a["value"]
+        for key, value in self.attribute.items():
+            key = camelcase_to_underscores(key)
             self.sqs_backend.set_queue_attribute(queue_name, key, value)
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
+        # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
         queue = self.sqs_backend.delete_queue(queue_name)
         if not queue:
@@ -133,16 +148,11 @@ class SQSResponse(BaseResponse):
         return template.render(queue=queue)
 
     def send_message(self):
-        message = self.querystring.get("MessageBody")[0]
-        delay_seconds = self.querystring.get('DelaySeconds')
+        message = self._get_param('MessageBody')
+        delay_seconds = int(self._get_param('DelaySeconds', 0))
 
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             return ERROR_TOO_LONG_RESPONSE, dict(status=400)
-
-        if delay_seconds:
-            delay_seconds = int(delay_seconds[0])
-        else:
-            delay_seconds = 0
 
         try:
             message_attributes = parse_message_attributes(self.querystring)
@@ -252,7 +262,11 @@ class SQSResponse(BaseResponse):
 
     def receive_message(self):
         queue_name = self._get_queue_name()
-        queue = self.sqs_backend.get_queue(queue_name)
+
+        try:
+            queue = self.sqs_backend.get_queue(queue_name)
+        except QueueDoesNotExist as e:
+            return self._error('QueueDoesNotExist', e.description)
 
         try:
             message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
@@ -284,7 +298,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
         <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
     </CreateQueueResult>
     <ResponseMetadata>
-        <RequestId>7a62c49f-347e-4fc4-9331-6e8e7a96aa73</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </CreateQueueResponse>"""
 
@@ -337,10 +351,10 @@ SET_QUEUE_ATTRIBUTE_RESPONSE = """<SetQueueAttributesResponse>
 SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
     <SendMessageResult>
         <MD5OfMessageBody>
-            {{- message.md5 -}}
+            {{- message.body_md5 -}}
         </MD5OfMessageBody>
         {% if message.message_attributes.items()|count > 0 %}
-          <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+        <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
         {% endif %}
         <MessageId>
             {{- message.id -}}
@@ -357,7 +371,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
         <Message>
           <MessageId>{{ message.id }}</MessageId>
           <ReceiptHandle>{{ message.receipt_handle }}</ReceiptHandle>
-          <MD5OfBody>{{ message.md5 }}</MD5OfBody>
+          <MD5OfBody>{{ message.body_md5 }}</MD5OfBody>
           <Body>{{ message.body }}</Body>
           <Attribute>
             <Name>SenderId</Name>
@@ -376,7 +390,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
           {% if message.message_attributes.items()|count > 0 %}
-            <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+          <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
           {% endif %}
           {% for name, value in message.message_attributes.items() %}
             <MessageAttribute>
@@ -405,9 +419,9 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
         <SendMessageBatchResultEntry>
             <Id>{{ message.user_id }}</Id>
             <MessageId>{{ message.id }}</MessageId>
-            <MD5OfMessageBody>{{ message.md5 }}</MD5OfMessageBody>
+            <MD5OfMessageBody>{{ message.body_md5 }}</MD5OfMessageBody>
             {% if message.message_attributes.items()|count > 0 %}
-              <MD5OfMessageAttributes>324758f82d026ac6ec5b31a3b192d1e3</MD5OfMessageAttributes>
+            <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
             {% endif %}
         </SendMessageBatchResultEntry>
     {% endfor %}
@@ -469,4 +483,14 @@ ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc
         <Detail/>
     </Error>
     <RequestId>b8bc806b-fa6b-53b5-8be8-cfa2f9836bc3</RequestId>
+</ErrorResponse>"""
+
+ERROR_TEMPLATE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
+    <Error>
+        <Type>Sender</Type>
+        <Code>{{ code }}</Code>
+        <Message>{{ message }}</Message>
+        <Detail/>
+    </Error>
+    <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
 </ErrorResponse>"""

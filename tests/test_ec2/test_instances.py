@@ -378,11 +378,15 @@ def test_get_instances_filtering_by_vpc_id():
     reservations1.should.have.length_of(1)
     reservations1[0].instances.should.have.length_of(1)
     reservations1[0].instances[0].id.should.equal(instance1.id)
+    reservations1[0].instances[0].vpc_id.should.equal(vpc1.id)
+    reservations1[0].instances[0].subnet_id.should.equal(subnet1.id)
 
     reservations2 = conn.get_all_instances(filters={'vpc-id': vpc2.id})
     reservations2.should.have.length_of(1)
     reservations2[0].instances.should.have.length_of(1)
     reservations2[0].instances[0].id.should.equal(instance2.id)
+    reservations2[0].instances[0].vpc_id.should.equal(vpc2.id)
+    reservations2[0].instances[0].subnet_id.should.equal(subnet2.id)
 
 
 @mock_ec2_deprecated
@@ -409,6 +413,68 @@ def test_get_instances_filtering_by_image_id():
                                                        'Values': [image_id]}])['Reservations']
     reservations[0]['Instances'].should.have.length_of(1)
 
+@mock_ec2
+def test_get_instances_filtering_by_private_dns():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-east-1')
+    conn = boto3.resource('ec2', 'us-east-1')
+    conn.create_instances(ImageId=image_id,
+                          MinCount=1,
+                          MaxCount=1,
+                          PrivateIpAddress='10.0.0.1')
+    reservations = client.describe_instances(Filters=[
+        {'Name': 'private-dns-name', 'Values': ['ip-10-0-0-1.ec2.internal']}
+    ])['Reservations']
+    reservations[0]['Instances'].should.have.length_of(1)
+
+@mock_ec2
+def test_get_instances_filtering_by_ni_private_dns():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-west-2')
+    conn = boto3.resource('ec2', 'us-west-2')
+    conn.create_instances(ImageId=image_id,
+                          MinCount=1,
+                          MaxCount=1,
+                          PrivateIpAddress='10.0.0.1')
+    reservations = client.describe_instances(Filters=[
+        {'Name': 'network-interface.private-dns-name', 'Values': ['ip-10-0-0-1.us-west-2.compute.internal']}
+    ])['Reservations']
+    reservations[0]['Instances'].should.have.length_of(1)
+
+@mock_ec2
+def test_get_instances_filtering_by_instance_group_name():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-east-1')
+    client.create_security_group(
+        Description='test',
+        GroupName='test_sg'
+    )
+    client.run_instances(ImageId=image_id,
+                          MinCount=1,
+                          MaxCount=1,
+                          SecurityGroups=['test_sg'])
+    reservations = client.describe_instances(Filters=[
+        {'Name': 'instance.group-name', 'Values': ['test_sg']}
+    ])['Reservations']
+    reservations[0]['Instances'].should.have.length_of(1)
+
+@mock_ec2
+def test_get_instances_filtering_by_instance_group_id():
+    image_id = 'ami-1234abcd'
+    client = boto3.client('ec2', region_name='us-east-1')
+    create_sg = client.create_security_group(
+        Description='test',
+        GroupName='test_sg'
+    )
+    group_id = create_sg['GroupId']
+    client.run_instances(ImageId=image_id,
+                          MinCount=1,
+                          MaxCount=1,
+                          SecurityGroups=['test_sg'])
+    reservations = client.describe_instances(Filters=[
+        {'Name': 'instance.group-id', 'Values': [group_id]}
+    ])['Reservations']
+    reservations[0]['Instances'].should.have.length_of(1)
 
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_tag():
@@ -814,7 +880,6 @@ def test_run_instance_with_nic_autocreated():
     eni.private_ip_addresses.should.have.length_of(1)
     eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
 
-
 @mock_ec2_deprecated
 def test_run_instance_with_nic_preexisting():
     conn = boto.connect_vpc('the_key', 'the_secret')
@@ -943,11 +1008,9 @@ def test_ec2_classic_has_public_ip_address():
     reservation = conn.run_instances('ami-1234abcd', key_name="keypair_name")
     instance = reservation.instances[0]
     instance.ip_address.should_not.equal(None)
-    instance.public_dns_name.should.contain(instance.ip_address)
-
+    instance.public_dns_name.should.contain(instance.ip_address.replace('.', '-'))
     instance.private_ip_address.should_not.equal(None)
-    instance.private_dns_name.should.contain(instance.private_ip_address)
-
+    instance.private_dns_name.should.contain(instance.private_ip_address.replace('.', '-'))
 
 @mock_ec2_deprecated
 def test_run_instance_with_keypair():
@@ -1050,3 +1113,20 @@ def test_get_instance_by_security_group():
 
     assert len(security_group_instances) == 1
     assert security_group_instances[0].id == instance.id
+
+
+@mock_ec2
+def test_modify_delete_on_termination():
+    ec2_client = boto3.resource('ec2', region_name='us-west-1')
+    result = ec2_client.create_instances(ImageId='ami-12345678', MinCount=1, MaxCount=1)
+    instance = result[0]
+    instance.load()
+    instance.block_device_mappings[0]['Ebs']['DeleteOnTermination'].should.be(False)
+    instance.modify_attribute(
+        BlockDeviceMappings=[{
+            'DeviceName': '/dev/sda1',
+            'Ebs': {'DeleteOnTermination': True}
+        }]
+    )
+    instance.load()
+    instance.block_device_mappings[0]['Ebs']['DeleteOnTermination'].should.be(True)

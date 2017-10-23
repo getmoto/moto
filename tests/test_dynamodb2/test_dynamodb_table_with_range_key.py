@@ -5,6 +5,7 @@ from decimal import Decimal
 import boto
 import boto3
 from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
 import sure  # noqa
 from freezegun import freeze_time
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
@@ -1190,6 +1191,14 @@ def _create_table_with_range_key():
                 'AttributeName': 'subject',
                 'AttributeType': 'S'
             },
+            {
+                'AttributeName': 'username',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'created',
+                'AttributeType': 'N'
+            }
         ],
         ProvisionedThroughput={
             'ReadCapacityUnits': 5,
@@ -1307,6 +1316,36 @@ def test_update_item_add_value():
 
 
 @mock_dynamodb2
+def test_update_item_add_value_string_set():
+    table = _create_table_with_range_key()
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'string_set': set(['str1', 'str2']),
+    })
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    table.update_item(
+        Key=item_key,
+        AttributeUpdates={
+            'string_set': {
+                'Action': u'ADD',
+                'Value': set(['str3']),
+            },
+        },
+    )
+
+    returned_item = dict((k, str(v) if isinstance(v, Decimal) else v)
+                         for k, v in table.get_item(Key=item_key)['Item'].items())
+    dict(returned_item).should.equal({
+        'string_set': set(['str1', 'str2', 'str3']),
+        'forum_name': 'the-key',
+        'subject': '123',
+    })
+
+
+@mock_dynamodb2
 def test_update_item_add_value_does_not_exist_is_created():
     table = _create_table_with_range_key()
 
@@ -1361,6 +1400,155 @@ def test_update_item_with_expression():
         'forum_name': 'the-key',
         'subject': '123',
     })
+
+@mock_dynamodb2
+def test_update_item_add_with_expression():
+    table = _create_table_with_range_key()
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    current_item = {
+        'forum_name': 'the-key',
+        'subject': '123',
+        'str_set': {'item1', 'item2', 'item3'},
+        'num_set': {1, 2, 3},
+        'num_val': 6
+    }
+
+    # Put an entry in the DB to play with
+    table.put_item(Item=current_item)
+
+    # Update item to add a string value to a string set
+    table.update_item(
+        Key=item_key,
+        UpdateExpression='ADD str_set :v',
+        ExpressionAttributeValues={
+            ':v': {'item4'}
+        }
+    )
+    current_item['str_set'] = current_item['str_set'].union({'item4'})
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Update item to add a num value to a num set
+    table.update_item(
+        Key=item_key,
+        UpdateExpression='ADD num_set :v',
+        ExpressionAttributeValues={
+            ':v': {6}
+        }
+    )
+    current_item['num_set'] = current_item['num_set'].union({6})
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Update item to add a value to a number value
+    table.update_item(
+        Key=item_key,
+        UpdateExpression='ADD num_val :v',
+        ExpressionAttributeValues={
+            ':v': 20
+        }
+    )
+    current_item['num_val'] = current_item['num_val'] + 20
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Attempt to add a number value to a string set, should raise Client Error
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='ADD str_set :v',
+        ExpressionAttributeValues={
+            ':v': 20
+        }
+    ).should.have.raised(ClientError)
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Attempt to add a number set to the string set, should raise a ClientError
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='ADD str_set :v',
+        ExpressionAttributeValues={
+            ':v': { 20 }
+        }
+    ).should.have.raised(ClientError)
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Attempt to update with a bad expression
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='ADD str_set bad_value'
+    ).should.have.raised(ClientError)
+
+    # Attempt to add a string value instead of a string set
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='ADD str_set :v',
+        ExpressionAttributeValues={
+            ':v': 'new_string'
+        }
+    ).should.have.raised(ClientError)
+
+
+@mock_dynamodb2
+def test_update_item_delete_with_expression():
+    table = _create_table_with_range_key()
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    current_item = {
+        'forum_name': 'the-key',
+        'subject': '123',
+        'str_set': {'item1', 'item2', 'item3'},
+        'num_set': {1, 2, 3},
+        'num_val': 6
+    }
+
+    # Put an entry in the DB to play with
+    table.put_item(Item=current_item)
+
+    # Update item to delete a string value from a string set
+    table.update_item(
+        Key=item_key,
+        UpdateExpression='DELETE str_set :v',
+        ExpressionAttributeValues={
+            ':v': {'item2'}
+        }
+    )
+    current_item['str_set'] = current_item['str_set'].difference({'item2'})
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Update item to delete  a num value from a num set
+    table.update_item(
+        Key=item_key,
+        UpdateExpression='DELETE num_set :v',
+        ExpressionAttributeValues={
+            ':v': {2}
+        }
+    )
+    current_item['num_set'] = current_item['num_set'].difference({2})
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Try to delete on a number, this should fail
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='DELETE num_val :v',
+        ExpressionAttributeValues={
+            ':v': 20
+        }
+    ).should.have.raised(ClientError)
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Try to delete a string set from a number set
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='DELETE num_set :v',
+        ExpressionAttributeValues={
+            ':v': {'del_str'}
+        }
+    ).should.have.raised(ClientError)
+    dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)
+
+    # Attempt to update with a bad expression
+    table.update_item.when.called_with(
+        Key=item_key,
+        UpdateExpression='DELETE num_val badvalue'
+    ).should.have.raised(ClientError)
 
 
 @mock_dynamodb2

@@ -130,3 +130,22 @@ def test_key_pairs_import_exist():
     cm.exception.code.should.equal('InvalidKeyPair.Duplicate')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2_deprecated
+def test_key_pair_filters():
+    conn = boto.connect_ec2('the_key', 'the_secret')
+
+    _ = conn.create_key_pair('kpfltr1')
+    kp2 = conn.create_key_pair('kpfltr2')
+    kp3 = conn.create_key_pair('kpfltr3')
+
+    kp_by_name = conn.get_all_key_pairs(
+        filters={'key-name': 'kpfltr2'})
+    set([kp.name for kp in kp_by_name]
+        ).should.equal(set([kp2.name]))
+
+    kp_by_name = conn.get_all_key_pairs(
+        filters={'fingerprint': kp3.fingerprint})
+    set([kp.name for kp in kp_by_name]
+        ).should.equal(set([kp3.name]))

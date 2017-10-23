@@ -13,6 +13,41 @@ class IamResponse(BaseResponse):
         template = self.response_template(ATTACH_ROLE_POLICY_TEMPLATE)
         return template.render()
 
+    def detach_role_policy(self):
+        role_name = self._get_param('RoleName')
+        policy_arn = self._get_param('PolicyArn')
+        iam_backend.detach_role_policy(policy_arn, role_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DetachRolePolicyResponse")
+
+    def attach_group_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        group_name = self._get_param('GroupName')
+        iam_backend.attach_group_policy(policy_arn, group_name)
+        template = self.response_template(ATTACH_GROUP_POLICY_TEMPLATE)
+        return template.render()
+
+    def detach_group_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        group_name = self._get_param('GroupName')
+        iam_backend.detach_group_policy(policy_arn, group_name)
+        template = self.response_template(DETACH_GROUP_POLICY_TEMPLATE)
+        return template.render()
+
+    def attach_user_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        user_name = self._get_param('UserName')
+        iam_backend.attach_user_policy(policy_arn, user_name)
+        template = self.response_template(ATTACH_USER_POLICY_TEMPLATE)
+        return template.render()
+
+    def detach_user_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        user_name = self._get_param('UserName')
+        iam_backend.detach_user_policy(policy_arn, user_name)
+        template = self.response_template(DETACH_USER_POLICY_TEMPLATE)
+        return template.render()
+
     def create_policy(self):
         description = self._get_param('Description')
         path = self._get_param('Path')
@@ -31,6 +66,28 @@ class IamResponse(BaseResponse):
         policies, marker = iam_backend.list_attached_role_policies(
             role_name, marker=marker, max_items=max_items, path_prefix=path_prefix)
         template = self.response_template(LIST_ATTACHED_ROLE_POLICIES_TEMPLATE)
+        return template.render(policies=policies, marker=marker)
+
+    def list_attached_group_policies(self):
+        marker = self._get_param('Marker')
+        max_items = self._get_int_param('MaxItems', 100)
+        path_prefix = self._get_param('PathPrefix', '/')
+        group_name = self._get_param('GroupName')
+        policies, marker = iam_backend.list_attached_group_policies(
+            group_name, marker=marker, max_items=max_items,
+            path_prefix=path_prefix)
+        template = self.response_template(LIST_ATTACHED_GROUP_POLICIES_TEMPLATE)
+        return template.render(policies=policies, marker=marker)
+
+    def list_attached_user_policies(self):
+        marker = self._get_param('Marker')
+        max_items = self._get_int_param('MaxItems', 100)
+        path_prefix = self._get_param('PathPrefix', '/')
+        user_name = self._get_param('UserName')
+        policies, marker = iam_backend.list_attached_user_policies(
+            user_name, marker=marker, max_items=max_items,
+            path_prefix=path_prefix)
+        template = self.response_template(LIST_ATTACHED_USER_POLICIES_TEMPLATE)
         return template.render(policies=policies, marker=marker)
 
     def list_policies(self):
@@ -81,6 +138,13 @@ class IamResponse(BaseResponse):
         iam_backend.put_role_policy(role_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="PutRolePolicyResponse")
+
+    def delete_role_policy(self):
+        role_name = self._get_param('RoleName')
+        policy_name = self._get_param('PolicyName')
+        iam_backend.delete_role_policy(role_name, policy_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteRolePolicyResponse")
 
     def get_role_policy(self):
         role_name = self._get_param('RoleName')
@@ -290,10 +354,27 @@ class IamResponse(BaseResponse):
     def create_login_profile(self):
         user_name = self._get_param('UserName')
         password = self._get_param('Password')
-        iam_backend.create_login_profile(user_name, password)
+        password = self._get_param('Password')
+        user = iam_backend.create_login_profile(user_name, password)
 
         template = self.response_template(CREATE_LOGIN_PROFILE_TEMPLATE)
-        return template.render(user_name=user_name)
+        return template.render(user=user)
+
+    def get_login_profile(self):
+        user_name = self._get_param('UserName')
+        user = iam_backend.get_login_profile(user_name)
+
+        template = self.response_template(GET_LOGIN_PROFILE_TEMPLATE)
+        return template.render(user=user)
+
+    def update_login_profile(self):
+        user_name = self._get_param('UserName')
+        password = self._get_param('Password')
+        password_reset_required = self._get_param('PasswordResetRequired')
+        user = iam_backend.update_login_profile(user_name, password, password_reset_required)
+
+        template = self.response_template(UPDATE_LOGIN_PROFILE_TEMPLATE)
+        return template.render(user=user)
 
     def add_user_to_group(self):
         group_name = self._get_param('GroupName')
@@ -422,12 +503,59 @@ class IamResponse(BaseResponse):
         template = self.response_template(CREDENTIAL_REPORT)
         return template.render(report=report)
 
+    def list_account_aliases(self):
+        aliases = iam_backend.list_account_aliases()
+        template = self.response_template(LIST_ACCOUNT_ALIASES_TEMPLATE)
+        return template.render(aliases=aliases)
+
+    def create_account_alias(self):
+        alias = self._get_param('AccountAlias')
+        iam_backend.create_account_alias(alias)
+        template = self.response_template(CREATE_ACCOUNT_ALIAS_TEMPLATE)
+        return template.render()
+
+    def delete_account_alias(self):
+        alias = self._get_param('AccountAlias')
+        iam_backend.delete_account_alias(alias)
+        template = self.response_template(DELETE_ACCOUNT_ALIAS_TEMPLATE)
+        return template.render()
+
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
   <ResponseMetadata>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </AttachRolePolicyResponse>"""
+
+DETACH_ROLE_POLICY_TEMPLATE = """<DetachRolePolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DetachRolePolicyResponse>"""
+
+ATTACH_USER_POLICY_TEMPLATE = """<AttachUserPolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</AttachUserPolicyResponse>"""
+
+DETACH_USER_POLICY_TEMPLATE = """<DetachUserPolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DetachUserPolicyResponse>"""
+
+ATTACH_GROUP_POLICY_TEMPLATE = """<AttachGroupPolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</AttachGroupPolicyResponse>"""
+
+DETACH_GROUP_POLICY_TEMPLATE = """<DetachGroupPolicyResponse>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DetachGroupPolicyResponse>"""
 
 CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
   <CreatePolicyResult>
@@ -468,6 +596,50 @@ LIST_ATTACHED_ROLE_POLICIES_TEMPLATE = """<ListAttachedRolePoliciesResponse>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </ListAttachedRolePoliciesResponse>"""
+
+LIST_ATTACHED_GROUP_POLICIES_TEMPLATE = """<ListAttachedGroupPoliciesResponse>
+  <ListAttachedGroupPoliciesResult>
+    {% if marker is none %}
+    <IsTruncated>false</IsTruncated>
+    {% else %}
+    <IsTruncated>true</IsTruncated>
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <AttachedPolicies>
+      {% for policy in policies %}
+      <member>
+        <PolicyName>{{ policy.name }}</PolicyName>
+        <PolicyArn>{{ policy.arn }}</PolicyArn>
+      </member>
+      {% endfor %}
+    </AttachedPolicies>
+  </ListAttachedGroupPoliciesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListAttachedGroupPoliciesResponse>"""
+
+LIST_ATTACHED_USER_POLICIES_TEMPLATE = """<ListAttachedUserPoliciesResponse>
+  <ListAttachedUserPoliciesResult>
+    {% if marker is none %}
+    <IsTruncated>false</IsTruncated>
+    {% else %}
+    <IsTruncated>true</IsTruncated>
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <AttachedPolicies>
+      {% for policy in policies %}
+      <member>
+        <PolicyName>{{ policy.name }}</PolicyName>
+        <PolicyArn>{{ policy.arn }}</PolicyArn>
+      </member>
+      {% endfor %}
+    </AttachedPolicies>
+  </ListAttachedUserPoliciesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListAttachedUserPoliciesResponse>"""
 
 LIST_POLICIES_TEMPLATE = """<ListPoliciesResponse>
   <ListPoliciesResult>
@@ -918,18 +1090,40 @@ LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
    </ResponseMetadata>
 </{{ action }}UsersResponse>"""
 
-CREATE_LOGIN_PROFILE_TEMPLATE = """
-<CreateLoginProfileResponse>
+CREATE_LOGIN_PROFILE_TEMPLATE = """<CreateLoginProfileResponse>
    <CreateLoginProfileResult>
       <LoginProfile>
-         <UserName>{{ user_name }}</UserName>
-         <CreateDate>2011-09-19T23:00:56Z</CreateDate>
+         <UserName>{{ user.name }}</UserName>
+         <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
       </LoginProfile>
    </CreateLoginProfileResult>
    <ResponseMetadata>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </CreateLoginProfileResponse>
+"""
+
+GET_LOGIN_PROFILE_TEMPLATE = """<GetLoginProfileResponse>
+   <GetLoginProfileResult>
+      <LoginProfile>
+         <UserName>{{ user.name }}</UserName>
+         <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
+         {% if user.password_reset_required %}
+         <PasswordResetRequired>true</PasswordResetRequired>
+         {% endif %}
+      </LoginProfile>
+   </GetLoginProfileResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetLoginProfileResponse>
+"""
+
+UPDATE_LOGIN_PROFILE_TEMPLATE = """<UpdateLoginProfileResponse>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</UpdateLoginProfileResponse>
 """
 
 GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>
@@ -965,9 +1159,7 @@ CREATE_ACCESS_KEY_TEMPLATE = """<CreateAccessKeyResponse>
          <UserName>{{ key.user_name }}</UserName>
          <AccessKeyId>{{ key.access_key_id }}</AccessKeyId>
          <Status>{{ key.status }}</Status>
-         <SecretAccessKey>
-         {{ key.secret_access_key }}
-         </SecretAccessKey>
+         <SecretAccessKey>{{ key.secret_access_key }}</SecretAccessKey>
       </AccessKey>
    </CreateAccessKeyResult>
    <ResponseMetadata>
@@ -1074,3 +1266,32 @@ LIST_MFA_DEVICES_TEMPLATE = """<ListMFADevicesResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </ListMFADevicesResponse>"""
+
+
+LIST_ACCOUNT_ALIASES_TEMPLATE = """<ListAccountAliasesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<ListAccountAliasesResult>
+  <IsTruncated>false</IsTruncated>
+  <AccountAliases>
+    {% for alias in aliases %}
+    <member>{{ alias }}</member>
+    {% endfor %}
+  </AccountAliases>
+</ListAccountAliasesResult>
+<ResponseMetadata>
+  <RequestId>c5a076e9-f1b0-11df-8fbe-45274EXAMPLE</RequestId>
+</ResponseMetadata>
+</ListAccountAliasesResponse>"""
+
+
+CREATE_ACCOUNT_ALIAS_TEMPLATE = """<CreateAccountAliasResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>36b5db08-f1b0-11df-8fbe-45274EXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateAccountAliasResponse>"""
+
+
+DELETE_ACCOUNT_ALIAS_TEMPLATE = """<DeleteAccountAliasResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteAccountAliasResponse>"""

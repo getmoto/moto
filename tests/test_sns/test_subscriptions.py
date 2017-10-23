@@ -36,6 +36,39 @@ def test_creating_subscription():
 
 
 @mock_sns_deprecated
+def test_deleting_subscriptions_by_deleting_topic():
+    conn = boto.connect_sns()
+    conn.create_topic("some-topic")
+    topics_json = conn.get_all_topics()
+    topic_arn = topics_json["ListTopicsResponse"][
+        "ListTopicsResult"]["Topics"][0]['TopicArn']
+
+    conn.subscribe(topic_arn, "http", "http://example.com/")
+
+    subscriptions = conn.get_all_subscriptions()["ListSubscriptionsResponse"][
+        "ListSubscriptionsResult"]["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["TopicArn"].should.equal(topic_arn)
+    subscription["Protocol"].should.equal("http")
+    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription["Endpoint"].should.equal("http://example.com/")
+
+    # Now delete the topic
+    conn.delete_topic(topic_arn)
+
+    # And there should now be 0 topics
+    topics_json = conn.get_all_topics()
+    topics = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
+    topics.should.have.length_of(0)
+
+    # And there should be zero subscriptions left
+    subscriptions = conn.get_all_subscriptions()["ListSubscriptionsResponse"][
+        "ListSubscriptionsResult"]["Subscriptions"]
+    subscriptions.should.have.length_of(0)
+
+
+@mock_sns_deprecated
 def test_getting_subscriptions_by_topic():
     conn = boto.connect_sns()
     conn.create_topic("topic1")

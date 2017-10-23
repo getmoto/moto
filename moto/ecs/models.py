@@ -114,7 +114,7 @@ class TaskDefinition(BaseObject):
         family = properties.get(
             'Family', 'task-definition-{0}'.format(int(random() * 10 ** 6)))
         container_definitions = properties['ContainerDefinitions']
-        volumes = properties['Volumes']
+        volumes = properties.get('Volumes')
 
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.register_task_definition(
@@ -127,7 +127,7 @@ class TaskDefinition(BaseObject):
         family = properties.get(
             'Family', 'task-definition-{0}'.format(int(random() * 10 ** 6)))
         container_definitions = properties['ContainerDefinitions']
-        volumes = properties['Volumes']
+        volumes = properties.get('Volumes')
         if (original_resource.family != family or
                 original_resource.container_definitions != container_definitions or
                 original_resource.volumes != volumes):
@@ -289,7 +289,7 @@ class ContainerInstance(BaseObject):
              'type': 'STRINGSET'}]
         self.container_instance_arn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(
             str(uuid.uuid1()))
-        self.pending_task_count = 0
+        self.pending_tasks_count = 0
         self.remaining_resources = [
             {'doubleValue': 0.0,
              'integerValue': 4096,
@@ -314,7 +314,7 @@ class ContainerInstance(BaseObject):
              'stringSetValue': [],
              'type': 'STRINGSET'}
         ]
-        self.running_task_count = 0
+        self.running_tasks_count = 0
         self.version_info = {
             'agentVersion': "1.0.0",
             'agentHash': '4023248',
@@ -737,7 +737,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         resource["stringSetValue"].remove(str(port))
                     else:
                         resource["stringSetValue"].append(str(port))
-        container_instance.running_task_count += resource_multiplier * 1
+        container_instance.running_tasks_count += resource_multiplier * 1
 
     def deregister_container_instance(self, cluster_str, container_instance_str, force):
         failures = []
@@ -748,11 +748,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instance = self.container_instances[cluster_name].get(container_instance_id)
         if container_instance is None:
             raise Exception("{0} is not a container id in the cluster")
-        if not force and container_instance.running_task_count > 0:
+        if not force and container_instance.running_tasks_count > 0:
             raise Exception("Found running tasks on the instance.")
         # Currently assume that people might want to do something based around deregistered instances
         # with tasks left running on them - but nothing if no tasks were running already
-        elif force and container_instance.running_task_count > 0:
+        elif force and container_instance.running_tasks_count > 0:
             if not self.container_instances.get('orphaned'):
                 self.container_instances['orphaned'] = {}
             self.container_instances['orphaned'][container_instance_id] = container_instance

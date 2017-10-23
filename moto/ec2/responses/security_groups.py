@@ -11,69 +11,66 @@ def try_parse_int(value, default=None):
         return default
 
 
-def process_rules_from_querystring(querystring):
-    try:
-        group_name_or_id = querystring.get('GroupName')[0]
-    except:
-        group_name_or_id = querystring.get('GroupId')[0]
-
-    querytree = {}
-    for key, value in querystring.items():
-        key_splitted = key.split('.')
-        key_splitted = [try_parse_int(e, e) for e in key_splitted]
-
-        d = querytree
-        for subkey in key_splitted[:-1]:
-            if subkey not in d:
-                d[subkey] = {}
-            d = d[subkey]
-        d[key_splitted[-1]] = value
-
-    ip_permissions = querytree.get('IpPermissions') or {}
-    for ip_permission_idx in sorted(ip_permissions.keys()):
-        ip_permission = ip_permissions[ip_permission_idx]
-
-        ip_protocol = ip_permission.get('IpProtocol', [None])[0]
-        from_port = ip_permission.get('FromPort', [None])[0]
-        to_port = ip_permission.get('ToPort', [None])[0]
-
-        ip_ranges = []
-        ip_ranges_tree = ip_permission.get('IpRanges') or {}
-        for ip_range_idx in sorted(ip_ranges_tree.keys()):
-            ip_ranges.append(ip_ranges_tree[ip_range_idx]['CidrIp'][0])
-
-        source_groups = []
-        source_group_ids = []
-        groups_tree = ip_permission.get('Groups') or {}
-        for group_idx in sorted(groups_tree.keys()):
-            group_dict = groups_tree[group_idx]
-            if 'GroupId' in group_dict:
-                source_group_ids.append(group_dict['GroupId'][0])
-            elif 'GroupName' in group_dict:
-                source_groups.append(group_dict['GroupName'][0])
-
-        yield (group_name_or_id, ip_protocol, from_port, to_port, ip_ranges,
-               source_groups, source_group_ids)
-
-
 class SecurityGroups(BaseResponse):
+
+    def _process_rules_from_querystring(self):
+        group_name_or_id = (self._get_param('GroupName') or
+                            self._get_param('GroupId'))
+
+        querytree = {}
+        for key, value in self.querystring.items():
+            key_splitted = key.split('.')
+            key_splitted = [try_parse_int(e, e) for e in key_splitted]
+
+            d = querytree
+            for subkey in key_splitted[:-1]:
+                if subkey not in d:
+                    d[subkey] = {}
+                d = d[subkey]
+            d[key_splitted[-1]] = value
+
+        ip_permissions = querytree.get('IpPermissions') or {}
+        for ip_permission_idx in sorted(ip_permissions.keys()):
+            ip_permission = ip_permissions[ip_permission_idx]
+
+            ip_protocol = ip_permission.get('IpProtocol', [None])[0]
+            from_port = ip_permission.get('FromPort', [None])[0]
+            to_port = ip_permission.get('ToPort', [None])[0]
+
+            ip_ranges = []
+            ip_ranges_tree = ip_permission.get('IpRanges') or {}
+            for ip_range_idx in sorted(ip_ranges_tree.keys()):
+                ip_ranges.append(ip_ranges_tree[ip_range_idx]['CidrIp'][0])
+
+            source_groups = []
+            source_group_ids = []
+            groups_tree = ip_permission.get('Groups') or {}
+            for group_idx in sorted(groups_tree.keys()):
+                group_dict = groups_tree[group_idx]
+                if 'GroupId' in group_dict:
+                    source_group_ids.append(group_dict['GroupId'][0])
+                elif 'GroupName' in group_dict:
+                    source_groups.append(group_dict['GroupName'][0])
+
+            yield (group_name_or_id, ip_protocol, from_port, to_port, ip_ranges,
+                   source_groups, source_group_ids)
 
     def authorize_security_group_egress(self):
         if self.is_not_dryrun('GrantSecurityGroupEgress'):
-            for args in process_rules_from_querystring(self.querystring):
+            for args in self._process_rules_from_querystring():
                 self.ec2_backend.authorize_security_group_egress(*args)
             return AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE
 
     def authorize_security_group_ingress(self):
         if self.is_not_dryrun('GrantSecurityGroupIngress'):
-            for args in process_rules_from_querystring(self.querystring):
+            for args in self._process_rules_from_querystring():
                 self.ec2_backend.authorize_security_group_ingress(*args)
             return AUTHORIZE_SECURITY_GROUP_INGRESS_REPONSE
 
     def create_security_group(self):
-        name = self.querystring.get('GroupName')[0]
-        description = self.querystring.get('GroupDescription', [None])[0]
-        vpc_id = self.querystring.get("VpcId", [None])[0]
+        name = self._get_param('GroupName')
+        description = self._get_param('GroupDescription')
+        vpc_id = self._get_param('VpcId')
 
         if self.is_not_dryrun('CreateSecurityGroup'):
             group = self.ec2_backend.create_security_group(
@@ -86,14 +83,14 @@ class SecurityGroups(BaseResponse):
         # See
         # http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DeleteSecurityGroup.html
 
-        name = self.querystring.get('GroupName')
-        sg_id = self.querystring.get('GroupId')
+        name = self._get_param('GroupName')
+        sg_id = self._get_param('GroupId')
 
         if self.is_not_dryrun('DeleteSecurityGroup'):
             if name:
-                self.ec2_backend.delete_security_group(name[0])
+                self.ec2_backend.delete_security_group(name)
             elif sg_id:
-                self.ec2_backend.delete_security_group(group_id=sg_id[0])
+                self.ec2_backend.delete_security_group(group_id=sg_id)
 
             return DELETE_GROUP_RESPONSE
 
@@ -113,7 +110,7 @@ class SecurityGroups(BaseResponse):
 
     def revoke_security_group_egress(self):
         if self.is_not_dryrun('RevokeSecurityGroupEgress'):
-            for args in process_rules_from_querystring(self.querystring):
+            for args in self._process_rules_from_querystring():
                 success = self.ec2_backend.revoke_security_group_egress(*args)
                 if not success:
                     return "Could not find a matching egress rule", dict(status=404)
@@ -121,7 +118,7 @@ class SecurityGroups(BaseResponse):
 
     def revoke_security_group_ingress(self):
         if self.is_not_dryrun('RevokeSecurityGroupIngress'):
-            for args in process_rules_from_querystring(self.querystring):
+            for args in self._process_rules_from_querystring():
                 self.ec2_backend.revoke_security_group_ingress(*args)
             return REVOKE_SECURITY_GROUP_INGRESS_REPONSE
 

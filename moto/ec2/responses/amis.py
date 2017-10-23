@@ -1,19 +1,14 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import instance_ids_from_querystring, image_ids_from_querystring, \
-    filters_from_querystring, sequence_from_querystring, executable_users_from_querystring
+from moto.ec2.utils import filters_from_querystring
 
 
 class AmisResponse(BaseResponse):
 
     def create_image(self):
         name = self.querystring.get('Name')[0]
-        if "Description" in self.querystring:
-            description = self.querystring.get('Description')[0]
-        else:
-            description = ""
-        instance_ids = instance_ids_from_querystring(self.querystring)
-        instance_id = instance_ids[0]
+        description = self._get_param('Description', if_none='')
+        instance_id = self._get_param('InstanceId')
         if self.is_not_dryrun('CreateImage'):
             image = self.ec2_backend.create_image(
                 instance_id, name, description)
@@ -21,12 +16,10 @@ class AmisResponse(BaseResponse):
             return template.render(image=image)
 
     def copy_image(self):
-        source_image_id = self.querystring.get('SourceImageId')[0]
-        source_region = self.querystring.get('SourceRegion')[0]
-        name = self.querystring.get(
-            'Name')[0] if self.querystring.get('Name') else None
-        description = self.querystring.get(
-            'Description')[0] if self.querystring.get('Description') else None
+        source_image_id = self._get_param('SourceImageId')
+        source_region = self._get_param('SourceRegion')
+        name = self._get_param('Name')
+        description = self._get_param('Description')
         if self.is_not_dryrun('CopyImage'):
             image = self.ec2_backend.copy_image(
                 source_image_id, source_region, name, description)
@@ -34,33 +27,33 @@ class AmisResponse(BaseResponse):
             return template.render(image=image)
 
     def deregister_image(self):
-        ami_id = self.querystring.get('ImageId')[0]
+        ami_id = self._get_param('ImageId')
         if self.is_not_dryrun('DeregisterImage'):
             success = self.ec2_backend.deregister_image(ami_id)
             template = self.response_template(DEREGISTER_IMAGE_RESPONSE)
             return template.render(success=str(success).lower())
 
     def describe_images(self):
-        ami_ids = image_ids_from_querystring(self.querystring)
+        ami_ids = self._get_multi_param('ImageId')
         filters = filters_from_querystring(self.querystring)
-        exec_users = executable_users_from_querystring(self.querystring)
+        exec_users = self._get_multi_param('ExecutableBy')
         images = self.ec2_backend.describe_images(
             ami_ids=ami_ids, filters=filters, exec_users=exec_users)
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 
     def describe_image_attribute(self):
-        ami_id = self.querystring.get('ImageId')[0]
+        ami_id = self._get_param('ImageId')
         groups = self.ec2_backend.get_launch_permission_groups(ami_id)
         users = self.ec2_backend.get_launch_permission_users(ami_id)
         template = self.response_template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
         return template.render(ami_id=ami_id, groups=groups, users=users)
 
     def modify_image_attribute(self):
-        ami_id = self.querystring.get('ImageId')[0]
-        operation_type = self.querystring.get('OperationType')[0]
-        group = self.querystring.get('UserGroup.1', [None])[0]
-        user_ids = sequence_from_querystring('UserId', self.querystring)
+        ami_id = self._get_param('ImageId')
+        operation_type = self._get_param('OperationType')
+        group = self._get_param('UserGroup.1')
+        user_ids = self._get_multi_param('UserId')
         if self.is_not_dryrun('ModifyImageAttribute'):
             if (operation_type == 'add'):
                 self.ec2_backend.add_launch_permission(
@@ -115,7 +108,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
           {% endif %}
           <description>{{ image.description }}</description>
           <rootDeviceType>ebs</rootDeviceType>
-          <rootDeviceName>/dev/sda</rootDeviceName>
+          <rootDeviceName>/dev/sda1</rootDeviceName>
           <blockDeviceMapping>
             <item>
               <deviceName>/dev/sda1</deviceName>

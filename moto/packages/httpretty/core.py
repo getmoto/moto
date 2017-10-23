@@ -72,6 +72,10 @@ from datetime import datetime
 from datetime import timedelta
 from errno import EAGAIN
 
+# Some versions of python internally shadowed the
+# SocketType variable incorrectly https://bugs.python.org/issue20386
+BAD_SOCKET_SHADOW = socket.socket != socket.SocketType
+
 old_socket = socket.socket
 old_create_connection = socket.create_connection
 old_gethostbyname = socket.gethostbyname
@@ -98,6 +102,12 @@ try:  # pragma: no cover
     old_sslsocket = ssl.SSLSocket
 except ImportError:  # pragma: no cover
     ssl = None
+
+try:  # pragma: no cover
+    from requests.packages.urllib3.contrib.pyopenssl import inject_into_urllib3, extract_from_urllib3
+    pyopenssl_override = True
+except:
+    pyopenssl_override = False
 
 
 DEFAULT_HTTP_PORTS = frozenset([80])
@@ -976,7 +986,8 @@ class httpretty(HttpBaseClass):
     def disable(cls):
         cls._is_enabled = False
         socket.socket = old_socket
-        socket.SocketType = old_socket
+        if not BAD_SOCKET_SHADOW:
+            socket.SocketType = old_socket
         socket._socketobject = old_socket
 
         socket.create_connection = old_create_connection
@@ -986,7 +997,8 @@ class httpretty(HttpBaseClass):
 
         socket.__dict__['socket'] = old_socket
         socket.__dict__['_socketobject'] = old_socket
-        socket.__dict__['SocketType'] = old_socket
+        if not BAD_SOCKET_SHADOW:
+            socket.__dict__['SocketType'] = old_socket
 
         socket.__dict__['create_connection'] = old_create_connection
         socket.__dict__['gethostname'] = old_gethostname
@@ -1007,6 +1019,9 @@ class httpretty(HttpBaseClass):
                 ssl.sslwrap_simple = old_sslwrap_simple
                 ssl.__dict__['sslwrap_simple'] = old_sslwrap_simple
 
+        if pyopenssl_override:
+            inject_into_urllib3()
+
     @classmethod
     def is_enabled(cls):
         return cls._is_enabled
@@ -1014,13 +1029,10 @@ class httpretty(HttpBaseClass):
     @classmethod
     def enable(cls):
         cls._is_enabled = True
-        # Some versions of python internally shadowed the
-        # SocketType variable incorrectly https://bugs.python.org/issue20386
-        bad_socket_shadow = (socket.socket != socket.SocketType)
 
         socket.socket = fakesock.socket
         socket._socketobject = fakesock.socket
-        if not bad_socket_shadow:
+        if not BAD_SOCKET_SHADOW:
             socket.SocketType = fakesock.socket
 
         socket.create_connection = create_fake_connection
@@ -1030,7 +1042,7 @@ class httpretty(HttpBaseClass):
 
         socket.__dict__['socket'] = fakesock.socket
         socket.__dict__['_socketobject'] = fakesock.socket
-        if not bad_socket_shadow:
+        if not BAD_SOCKET_SHADOW:
             socket.__dict__['SocketType'] = fakesock.socket
 
         socket.__dict__['create_connection'] = create_fake_connection
@@ -1052,6 +1064,9 @@ class httpretty(HttpBaseClass):
             if not PY3:
                 ssl.sslwrap_simple = fake_wrap_socket
                 ssl.__dict__['sslwrap_simple'] = fake_wrap_socket
+
+        if pyopenssl_override:
+            extract_from_urllib3()
 
 
 def httprettified(test):
