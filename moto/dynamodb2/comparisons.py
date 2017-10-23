@@ -43,16 +43,14 @@ def get_comparison_func(range_comparison):
     return COMPARISON_FUNCS.get(range_comparison)
 
 
-#
+class RecursionStopIteration(StopIteration):
+    pass
+
+
 def get_filter_expression(expr, names, values):
     # Examples
     # expr = 'Id > 5 AND attribute_exists(test) AND Id BETWEEN 5 AND 6 OR length < 6 AND contains(test, 1) AND 5 IN (4,5, 6) OR (Id < 5 AND 5 > Id)'
     # expr = 'Id > 5 AND Subs < 7'
-
-    # Need to do some dodgyness for NOT i think.
-    if 'NOT' in expr:
-        raise NotImplementedError('NOT not supported yet')
-
     if names is None:
         names = {}
     if values is None:
@@ -82,7 +80,7 @@ def get_filter_expression(expr, names, values):
 
     # Remove all spaces, tbf we could just skip them in the next step.
     # The number of known options is really small so we can do a fair bit of cheating
-    expr = list(expr)
+    expr = list(expr.strip())
 
     # DodgyTokenisation stage 1
     def is_value(val):
@@ -134,27 +132,31 @@ def get_filter_expression(expr, names, values):
         return val in ('<', '>', '=', '>=', '<=', '<>', 'BETWEEN', 'IN', 'AND', 'OR', 'NOT')
 
     # DodgyTokenisation stage 2, it groups together some elements to make RPN'ing it later easier.
-    tokens2 = []
-    token_iterator = iter(tokens)
-    for token in token_iterator:
-        if token == '(':
-            tuple_list = []
+    def handle_token(token, tokens2, token_iterator):
+        # ok so this essentially groups up some tokens to make later parsing easier,
+        # when it encounters brackets it will recurse and then unrecurse when RecursionStopIteration is raised.
+        if token == ')':
+            raise RecursionStopIteration()  # Should be recursive so this should work
+        elif token == '(':
+            temp_list = []
 
-            next_token = six.next(token_iterator)
-            while next_token != ')':
-                if next_token in values_map:
-                    next_token = values_map[next_token]
-
-                tuple_list.append(next_token)
-                next_token = six.next(token_iterator)
+            try:
+                while True:
+                    next_token = six.next(token_iterator)
+                    handle_token(next_token, temp_list, token_iterator)
+            except RecursionStopIteration:
+                pass  # Continue
+            except StopIteration:
+                ValueError('Malformed filter expression, type1')
 
             # Sigh, we only want to group a tuple if it doesnt contain operators
-            if any([is_op(item) for item in tuple_list]):
+            if any([is_op(item) for item in temp_list]):
+                # Its an expression
                 tokens2.append('(')
-                tokens2.extend(tuple_list)
+                tokens2.extend(temp_list)
                 tokens2.append(')')
             else:
-                tokens2.append(tuple(tuple_list))
+                tokens2.append(tuple(temp_list))
         elif token == 'BETWEEN':
             field = tokens2.pop()
             # if values map contains a number, it would be a float
@@ -166,7 +168,6 @@ def get_filter_expression(expr, names, values):
             op2 = six.next(token_iterator)
             op2 = int(values_map.get(op2, op2))
             tokens2.append(['between', field, op1, op2])
-
         elif is_function(token):
             function_list = [token]
 
@@ -179,7 +180,6 @@ def get_filter_expression(expr, names, values):
                 next_token = six.next(token_iterator)
 
             tokens2.append(function_list)
-
         else:
             # Convert tokens back to real types
             if token in values_map:
@@ -190,6 +190,11 @@ def get_filter_expression(expr, names, values):
                 tokens2.append(tokens2.pop() + token)
             else:
                 tokens2.append(token)
+
+    tokens2 = []
+    token_iterator = iter(tokens)
+    for token in token_iterator:
+        handle_token(token, tokens2, token_iterator)
 
     # Start of the Shunting-Yard algorithm. <-- Proper beast algorithm!
     def is_number(val):
@@ -218,7 +223,9 @@ def get_filter_expression(expr, names, values):
                 output.append(token)
             else:
                 # Must be operator kw
-                while len(op_stack) > 0 and OPS[op_stack[-1]] <= OPS[token]:
+
+                # Cheat, NOT is our only RIGHT associative operator, should really have dict of operator associativity
+                while len(op_stack) > 0 and OPS[op_stack[-1]] <= OPS[token] and op_stack[-1] != 'NOT':
                     output.append(op_stack.pop())
                 op_stack.append(token)
         while len(op_stack) > 0:
@@ -242,17 +249,22 @@ def get_filter_expression(expr, names, values):
     stack = []
     for token in output:
         if is_op(token):
-            op2 = stack.pop()
-            op1 = stack.pop()
-
             op_cls = OP_CLASS[token]
+
+            if token == 'NOT':
+                op1 = stack.pop()
+                op2 = True
+            else:
+                op2 = stack.pop()
+                op1 = stack.pop()
+
             stack.append(op_cls(op1, op2))
         else:
             stack.append(to_func(token))
 
     result = stack.pop(0)
     if len(stack) > 0:
-        raise ValueError('Malformed filter expression')
+        raise ValueError('Malformed filter expression, type2')
 
     return result
 
@@ -311,6 +323,18 @@ class Func(object):
 
     def __repr__(self):
         return 'Func(...)'.format(self.FUNC)
+
+
+class OpNot(Op):
+    OP = 'NOT'
+
+    def expr(self, item):
+        lhs = self._lhs(item)
+
+        return not lhs
+
+    def __str__(self):
+        return '({0} {1})'.format(self.OP, self.lhs)
 
 
 class OpAnd(Op):
@@ -483,6 +507,7 @@ class FuncBetween(Func):
 
 
 OP_CLASS = {
+    'NOT': OpNot,
     'AND': OpAnd,
     'OR': OpOr,
     'IN': OpIn,
