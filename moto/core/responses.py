@@ -179,6 +179,27 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.setup_class(request, full_url, headers)
         return self.call_action()
 
+    def uri_to_regexp(self, uri):
+        """converts uri w/ placeholder to regexp
+          '/cars/{carName}/drivers/{DriverName}'
+        -> '^/cars/.*/drivers/[^/]*$'
+
+          '/cars/{carName}/drivers/{DriverName}/drive'
+        -> '^/cars/.*/drivers/.*/drive$'
+
+        """
+        def _convert(elem, is_last):
+            if not re.match('^{.*}$', elem):
+                return elem
+            if is_last:
+                return '[^/]*'
+            return '.*'
+
+        elems = uri.split('/')
+        num_elems = len(elems)
+        regexp = '^{}$'.format('/'.join([_convert(elem, (i == num_elems - 1)) for i, elem in enumerate(elems)]))
+        return regexp
+
     def _get_action_from_method_and_request_uri(self, method, request_uri):
         """basically used for `rest-json` APIs
         You can refer to example from link below
@@ -194,15 +215,18 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         # make cache if it has not exist yet
         if not hasattr(self, 'method_urls'):
-            self.method_urls = {}
+            self.method_urls = defaultdict(lambda: defaultdict(str))
             op_names = conn._service_model.operation_names
             for op_name in op_names:
                 op_model = conn._service_model.operation_model(op_name)
-                k = '{}_{}'.format(op_model.http['method'], op_model.http['requestUri'])
-                self.method_urls[k] = op_model.name
-
-        given_key = '{}_{}'.format(method, request_uri)
-        return self.method_urls.get(given_key)
+                _method = op_model.http['method']
+                uri_regexp = self.uri_to_regexp(op_model.http['requestUri'])
+                self.method_urls[_method][uri_regexp] = op_model.name
+        regexp_and_names = self.method_urls[method]
+        for regexp, name in regexp_and_names.items():
+            if re.match(regexp, request_uri):
+                return name
+        return None
 
     def _get_action(self):
         action = self.querystring.get('Action', [""])[0]
@@ -212,7 +236,6 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 'x-amz-target') or self.headers.get('X-Amz-Target')
             if match:
                 action = match.split(".")[-1]
-
         # get action from method and uri
         if not action:
             return self._get_action_from_method_and_request_uri(self.method, self.path)
