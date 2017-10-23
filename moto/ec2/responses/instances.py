@@ -16,8 +16,7 @@ class InstanceResponse(BaseResponse):
             reservations = self.ec2_backend.get_reservations_by_instance_ids(
                 instance_ids, filters=filter_dict)
         else:
-            reservations = self.ec2_backend.all_reservations(
-                make_copy=True, filters=filter_dict)
+            reservations = self.ec2_backend.all_reservations(filters=filter_dict)
 
         reservation_ids = [reservation.id for reservation in reservations]
         if token:
