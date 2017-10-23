@@ -177,3 +177,47 @@ class IoTResponse(BaseResponse):
             policy_name=policy_name,
         )
         return json.dumps(dict())
+
+    def attach_principal_policy(self):
+        policy_name = self._get_param("policyName")
+        principal = self.headers.get('x-amzn-iot-principal')
+        self.iot_backend.attach_principal_policy(
+            policy_name=policy_name,
+            principal_arn=principal,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
+
+    def detach_principal_policy(self):
+        policy_name = self._get_param("policyName")
+        principal = self.headers.get('x-amzn-iot-principal')
+        self.iot_backend.detach_principal_policy(
+            policy_name=policy_name,
+            principal_arn=principal,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
+
+    def list_principal_policies(self):
+        principal = self.headers.get('x-amzn-iot-principal')
+        marker = self._get_param("marker")
+        page_size = self._get_int_param("pageSize")
+        ascending_order = self._get_param("ascendingOrder")
+        policies = self.iot_backend.list_principal_policies(
+            principal_arn=principal
+        )
+        # TODO: handle pagination
+        next_marker = None
+        return json.dumps(dict(policies=[_.to_dict() for _ in policies], nextMarker=next_marker))
+
+    def list_policy_principals(self):
+        policy_name = self.headers.get('x-amzn-iot-policy')
+        marker = self._get_param("marker")
+        page_size = self._get_int_param("pageSize")
+        ascending_order = self._get_param("ascendingOrder")
+        principals = self.iot_backend.list_policy_principals(
+            policy_name=policy_name,
+        )
+        # TODO: handle pagination
+        next_marker = None
+        return json.dumps(dict(principals=principals, nextMarker=next_marker))

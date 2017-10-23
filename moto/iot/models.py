@@ -133,6 +133,7 @@ class IoTBackend(BaseBackend):
         self.thing_types = OrderedDict()
         self.certificates = OrderedDict()
         self.policies = OrderedDict()
+        self.principal_policies = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
@@ -280,6 +281,47 @@ class IoTBackend(BaseBackend):
     def delete_policy(self, policy_name):
         policy = self.get_policy(policy_name)
         del self.policies[policy.name]
+
+    def _get_principal(self, principal_arn):
+        """
+        raise ResourceNotFoundException
+        """
+        if ':cert/' in principal_arn:
+            certs = [_ for _ in self.certificates.values() if _.arn == principal_arn]
+            if len(certs) == 0:
+                raise ResourceNotFoundException()
+            principal = certs[0]
+            return principal
+        else:
+            # TODO: search for cognito_ids
+            pass
+        raise ResourceNotFoundException()
+
+    def attach_principal_policy(self, policy_name, principal_arn):
+        principal = self._get_principal(principal_arn)
+        policy = self.get_policy(policy_name)
+        k = (principal_arn, policy_name)
+        if k in self.principal_policies:
+            return
+        self.principal_policies[k] = (principal, policy)
+
+    def detach_principal_policy(self, policy_name, principal_arn):
+        principal = self._get_principal(principal_arn)
+        policy = self.get_policy(policy_name)
+
+        k = (principal_arn, policy_name)
+        if k not in self.principal_policies:
+            raise ResourceNotFoundException()
+        del self.principal_policies[k]
+
+    def list_principal_policies(self, principal_arn):
+        print(self.principal_policies)
+        policies = [v[1] for k, v in self.principal_policies.items() if k[0] == principal_arn]
+        return policies
+
+    def list_policy_principals(self, policy_name):
+        principals = [k[0] for k, v in self.principal_policies.items() if k[1] == policy_name]
+        return principals
 
 available_regions = boto3.session.Session().get_available_regions("iot")
 iot_backends = {region: IoTBackend(region) for region in available_regions}
