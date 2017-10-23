@@ -245,7 +245,7 @@ def get_function_in_responses(service, operation, protocol):
     for input_name, input_type in inputs.items():
         type_name = input_type.type_name
         if type_name == 'integer':
-            arg_line_tmpl = '    {} = _get_int_param("{}")\n'
+            arg_line_tmpl = '    {} = self._get_int_param("{}")\n'
         elif type_name == 'list':
             arg_line_tmpl = '    {} = self._get_list_prefix("{}.member")\n'
         else:
