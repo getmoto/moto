@@ -158,6 +158,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.querystring = querystring
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
+        self.uri_match = None
 
         self.headers = request.headers
         if 'host' not in self.headers:
@@ -191,9 +192,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
         def _convert(elem, is_last):
             if not re.match('^{.*}$', elem):
                 return elem
+            name = elem.replace('{', '').replace('}', '')
             if is_last:
-                return '[^/]*'
-            return '.*'
+                return '(?P<%s>[^/]*)' % name
+            return '(?P<%s>.*)' % name
 
         elems = uri.split('/')
         num_elems = len(elems)
@@ -224,7 +226,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 self.method_urls[_method][uri_regexp] = op_model.name
         regexp_and_names = self.method_urls[method]
         for regexp, name in regexp_and_names.items():
-            if re.match(regexp, request_uri):
+            match = re.match(regexp, request_uri)
+            self.uri_match = match
+            if match:
                 return name
         return None
 
@@ -273,6 +277,22 @@ class BaseResponse(_TemplateEnvironmentMixin):
         val = self.querystring.get(param_name)
         if val is not None:
             return val[0]
+
+        # try to get json body parameter
+        try:
+            j = json.loads(self.body)
+            # raise key error if key really does not exist
+            return j[param_name]
+        except:
+            # do nothing if param is not found
+            pass
+        # try to get path parameter
+        if self.uri_match:
+            try:
+                return self.uri_match.group(param_name)
+            except:
+                # do nothing if param is not found
+                pass
         return if_none
 
     def _get_int_param(self, param_name, if_none=None):
