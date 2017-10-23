@@ -86,8 +86,8 @@ class IoTResponse(BaseResponse):
         self.iot_backend.delete_thing_type(
             thing_type_name=thing_type_name,
         )
-        # TODO: adjust response
         return json.dumps(dict())
+
     def update_thing(self):
         thing_name = self._get_param("thingName")
         thing_type_name = self._get_param("thingTypeName")
@@ -101,5 +101,46 @@ class IoTResponse(BaseResponse):
             expected_version=expected_version,
             remove_thing_type=remove_thing_type,
         )
-        # TODO: adjust response
+        return json.dumps(dict())
+
+    def create_keys_and_certificate(self):
+        set_as_active = self._get_param("setAsActive")
+        cert, key_pair = self.iot_backend.create_keys_and_certificate(
+            set_as_active=set_as_active,
+        )
+        return json.dumps(dict(
+            certificateArn=cert.arn,
+            certificateId=cert.certificate_id,
+            certificatePem=cert.certificate_pem,
+            keyPair=key_pair
+        ))
+    def delete_certificate(self):
+        certificate_id = self._get_param("certificateId")
+        self.iot_backend.delete_certificate(
+            certificate_id=certificate_id,
+        )
+        return json.dumps(dict())
+
+    def describe_certificate(self):
+        certificate_id = self._get_param("certificateId")
+        certificate = self.iot_backend.describe_certificate(
+            certificate_id=certificate_id,
+        )
+        return json.dumps(dict(certificateDescription=certificate.to_description_json()))
+
+    def list_certificates(self):
+        page_size = self._get_int_param("pageSize")
+        marker = self._get_param("marker")
+        ascending_order = self._get_param("ascendingOrder")
+        certificates = self.iot_backend.list_certificates()
+        # TODO: handle pagination
+        return json.dumps(dict(certificates=[_.to_json() for _ in certificates]))
+
+    def update_certificate(self):
+        certificate_id = self._get_param("certificateId")
+        new_status = self._get_param("newStatus")
+        self.iot_backend.update_certificate(
+            certificate_id=certificate_id,
+            new_status=new_status,
+        )
         return json.dumps(dict())

@@ -6,7 +6,7 @@ from moto import mock_iot
 
 
 @mock_iot
-def test_list():
+def test_things():
     client = boto3.client('iot')
     name = 'my-thing'
     type_name = 'my-type-name'
@@ -58,3 +58,40 @@ def test_list():
     client.delete_thing_type(thingTypeName=type_name)
     thing_types = client.list_thing_types()
     thing_types.should.have.key('thingTypes').which.should.have.length_of(0)
+
+
+@mock_iot
+def test_certs():
+    client = boto3.client('iot')
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert.should.have.key('certificateArn').which.should_not.be.none
+    cert.should.have.key('certificateId').which.should_not.be.none
+    cert.should.have.key('certificatePem').which.should_not.be.none
+    cert.should.have.key('keyPair')
+    cert['keyPair'].should.have.key('PublicKey').which.should_not.be.none
+    cert['keyPair'].should.have.key('PrivateKey').which.should_not.be.none
+    cert_id = cert['certificateId']
+
+    cert = client.describe_certificate(certificateId=cert_id)
+    cert.should.have.key('certificateDescription')
+    cert_desc = cert['certificateDescription']
+    cert_desc.should.have.key('certificateArn').which.should_not.be.none
+    cert_desc.should.have.key('certificateId').which.should_not.be.none
+    cert_desc.should.have.key('certificatePem').which.should_not.be.none
+    cert_desc.should.have.key('status').which.should.equal('ACTIVE')
+
+    certs = client.list_certificates()
+    certs.should.have.key('certificates').which.should.have.length_of(1)
+    for cert in certs['certificates']:
+        cert.should.have.key('certificateArn').which.should_not.be.none
+        cert.should.have.key('certificateId').which.should_not.be.none
+        cert.should.have.key('status').which.should_not.be.none
+        cert.should.have.key('creationDate').which.should_not.be.none
+
+    client.update_certificate(certificateId=cert_id, newStatus='REVOKED')
+    cert = client.describe_certificate(certificateId=cert_id)
+    cert_desc.should.have.key('status').which.should.equal('ACTIVE')
+
+    client.delete_certificate(certificateId=cert_id)
+    certs = client.list_certificates()
+    certs.should.have.key('certificates').which.should.have.length_of(0)
