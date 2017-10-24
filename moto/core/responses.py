@@ -210,13 +210,13 @@ class BaseResponse(_TemplateEnvironmentMixin):
         """
 
         # service response class should have 'SERVICE_NAME' class member,
-        # if want to get action from method and url
+        # if you want to get action from method and url
         if not hasattr(self, 'SERVICE_NAME'):
             return None
         service = self.SERVICE_NAME
         conn = boto3.client(service)
 
-        # make cache if it has not exist yet
+        # make cache if it does not exist yet
         if not hasattr(self, 'method_urls'):
             self.method_urls = defaultdict(lambda: defaultdict(str))
             op_names = conn._service_model.operation_names
@@ -284,14 +284,16 @@ class BaseResponse(_TemplateEnvironmentMixin):
             j = json.loads(self.body)
             # raise key error if key really does not exist
             return j[param_name]
-        except:
-            # do nothing if param is not found
+        except ValueError:
             pass
+        except KeyError:
+            pass
+
         # try to get path parameter
         if self.uri_match:
             try:
                 return self.uri_match.group(param_name)
-            except:
+            except IndexError:
                 # do nothing if param is not found
                 pass
         return if_none
