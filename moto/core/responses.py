@@ -105,7 +105,8 @@ class _TemplateEnvironmentMixin(object):
 class BaseResponse(_TemplateEnvironmentMixin):
 
     default_region = 'us-east-1'
-    region_regex = r'\.(.+?)\.amazonaws\.com'
+    # to extract region, use [^.]
+    region_regex = r'\.([^.]+?)\.amazonaws\.com'
     aws_service_spec = None
 
     @classmethod
