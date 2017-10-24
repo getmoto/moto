@@ -7,10 +7,10 @@ Latest
 -----
 
     * Implemented Batch
-    * Fixed regression with moto\_server dashboard
+    * Fixed regression with moto_server dashboard
     * Fixed and closed many outstanding bugs
     * Fixed serious performance problem with EC2 reservation listing
-    * Fixed Route53 list\_resource\_record\_sets
+    * Fixed Route53 list_resource_record_sets
 
 1.1.23
 -----
