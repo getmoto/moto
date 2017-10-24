@@ -5,6 +5,7 @@ from nose.tools import assert_raises
 
 import base64
 import datetime
+import ipaddress
 
 import boto
 import boto3
@@ -830,18 +831,113 @@ def test_run_instance_with_placement():
     instance.placement.should.equal("us-east-1b")
 
 
-@mock_ec2_deprecated
+@mock_ec2
 def test_run_instance_with_subnet():
-    conn = boto.connect_vpc('the_key', 'the_secret')
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-    reservation = conn.run_instances('ami-1234abcd', subnet_id=subnet.id)
-    instance = reservation.instances[0]
+    client = boto3.client('ec2', region_name='eu-central-1')
 
-    instance.subnet_id.should.equal(subnet.id)
+    ip_networks = [
+        (ipaddress.ip_network('10.0.0.0/16'), ipaddress.ip_network('10.0.99.0/24')),
+        (ipaddress.ip_network('192.168.42.0/24'), ipaddress.ip_network('192.168.42.0/25'))
+    ]
 
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(1)
+    # Tests instances are created with the correct IPs
+    for vpc_cidr, subnet_cidr in ip_networks:
+        resp = client.create_vpc(
+            CidrBlock=str(vpc_cidr),
+            AmazonProvidedIpv6CidrBlock=False,
+            DryRun=False,
+            InstanceTenancy='default'
+        )
+        vpc_id = resp['Vpc']['VpcId']
+
+        resp = client.create_subnet(
+            CidrBlock=str(subnet_cidr),
+            VpcId=vpc_id
+        )
+        subnet_id = resp['Subnet']['SubnetId']
+
+        resp = client.run_instances(
+            ImageId='ami-1234abcd',
+            MaxCount=1,
+            MinCount=1,
+            SubnetId=subnet_id
+        )
+        instance = resp['Instances'][0]
+        instance['SubnetId'].should.equal(subnet_id)
+
+        priv_ipv4 = ipaddress.ip_address(instance['PrivateIpAddress'])
+        subnet_cidr.should.contain(priv_ipv4)
+
+
+@mock_ec2
+def test_run_instance_with_specified_private_ipv4():
+    client = boto3.client('ec2', region_name='eu-central-1')
+
+    vpc_cidr = ipaddress.ip_network('192.168.42.0/24')
+    subnet_cidr = ipaddress.ip_network('192.168.42.0/25')
+
+    resp = client.create_vpc(
+        CidrBlock=str(vpc_cidr),
+        AmazonProvidedIpv6CidrBlock=False,
+        DryRun=False,
+        InstanceTenancy='default'
+    )
+    vpc_id = resp['Vpc']['VpcId']
+
+    resp = client.create_subnet(
+        CidrBlock=str(subnet_cidr),
+        VpcId=vpc_id
+    )
+    subnet_id = resp['Subnet']['SubnetId']
+
+    resp = client.run_instances(
+        ImageId='ami-1234abcd',
+        MaxCount=1,
+        MinCount=1,
+        SubnetId=subnet_id,
+        PrivateIpAddress='192.168.42.5'
+    )
+    instance = resp['Instances'][0]
+    instance['SubnetId'].should.equal(subnet_id)
+    instance['PrivateIpAddress'].shoud.equal('192.168.42.5')
+
+
+@mock_ec2
+def test_run_instance_mapped_public_ipv4():
+    client = boto3.client('ec2', region_name='eu-central-1')
+
+    vpc_cidr = ipaddress.ip_network('192.168.42.0/24')
+    subnet_cidr = ipaddress.ip_network('192.168.42.0/25')
+
+    resp = client.create_vpc(
+        CidrBlock=str(vpc_cidr),
+        AmazonProvidedIpv6CidrBlock=False,
+        DryRun=False,
+        InstanceTenancy='default'
+    )
+    vpc_id = resp['Vpc']['VpcId']
+
+    resp = client.create_subnet(
+        CidrBlock=str(subnet_cidr),
+        VpcId=vpc_id
+    )
+    subnet_id = resp['Subnet']['SubnetId']
+    client.modify_subnet_attribute(
+        SubnetId=subnet_id,
+        MapPublicIpOnLaunch={'Value': True}
+    )
+
+    resp = client.run_instances(
+        ImageId='ami-1234abcd',
+        MaxCount=1,
+        MinCount=1,
+        SubnetId=subnet_id
+    )
+    instance = resp['Instances'][0]
+    instance.should.contain('PublicDnsName')
+    instance.should.contain('PublicIpAddress')
+    len(instance['PublicDnsName']).should.be.greater_than(0)
+    len(instance['PublicIpAddress']).should.be.greater_than(0)
 
 
 @mock_ec2_deprecated
@@ -879,6 +975,7 @@ def test_run_instance_with_nic_autocreated():
         set([security_group1.id, security_group2.id]))
     eni.private_ip_addresses.should.have.length_of(1)
     eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
+
 
 @mock_ec2_deprecated
 def test_run_instance_with_nic_preexisting():
@@ -1011,6 +1108,7 @@ def test_ec2_classic_has_public_ip_address():
     instance.public_dns_name.should.contain(instance.ip_address.replace('.', '-'))
     instance.private_ip_address.should_not.equal(None)
     instance.private_dns_name.should.contain(instance.private_ip_address.replace('.', '-'))
+
 
 @mock_ec2_deprecated
 def test_run_instance_with_keypair():
