@@ -280,15 +280,13 @@ class BaseResponse(_TemplateEnvironmentMixin):
             return val[0]
 
         # try to get json body parameter
-        try:
-            j = json.loads(self.body)
-            # raise key error if key really does not exist
-            return j[param_name]
-        except ValueError:
-            pass
-        except KeyError:
-            pass
-
+        if self.body is not None:
+            try:
+                return json.loads(self.body)[param_name]
+            except ValueError:
+                pass
+            except KeyError:
+                pass
         # try to get path parameter
         if self.uri_match:
             try:
