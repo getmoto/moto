@@ -260,7 +260,7 @@ def get_function_in_responses(service, operation, protocol):
     if output_names:
         body += '    {} = self.{}_backend.{}(\n'.format(', '.join(output_names), get_escaped_service(service), operation)
     else:
-        body += '    self.{}_backend.{}(\n'.format(service, operation)
+        body += '    self.{}_backend.{}(\n'.format(get_escaped_service(service), operation)
     for input_name in input_names:
         body += '        {}={},\n'.format(input_name, input_name)
 
