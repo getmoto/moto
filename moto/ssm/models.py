@@ -78,10 +78,13 @@ class SimpleSystemManagerBackend(BaseBackend):
     def get_parameters_by_path(self, path, with_decryption, recursive):
         """Implement the get-parameters-by-path-API in the backend."""
         result = []
+        # path could be with or without a trailing /. we handle this
+        # difference here.
+        path = path.rstrip('/') + '/'
         for param in self._parameters:
             if not param.startswith(path):
                 continue
-            if '/' in param[len(path)+1:] and not recursive:
+            if '/' in param[len(path) + 1:] and not recursive:
                 continue
             result.append(self._parameters[param])
 
