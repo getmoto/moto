@@ -3,6 +3,23 @@ Moto Changelog
 
 Latest
 ------
+1.1.24
+-----
+
+    * Implemented Batch
+    * Fixed regression with moto\_server dashboard
+    * Fixed and closed many outstanding bugs
+    * Fixed serious performance problem with EC2 reservation listing
+    * Fixed Route53 list\_resource\_record\_sets
+
+1.1.23
+-----
+
+    * Implemented X-Ray
+    * Implemented Autoscaling EC2 attachment
+    * Implemented Autoscaling Load Balancer methods
+    * Improved DynamoDB filter expressions
+
 1.1.22
 -----
 
