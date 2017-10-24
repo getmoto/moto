@@ -17,6 +17,8 @@ from six.moves.urllib.parse import parse_qs, urlparse
 import xmltodict
 from pkg_resources import resource_filename
 from werkzeug.exceptions import HTTPException
+
+import boto3
 from moto.compat import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 
@@ -151,12 +153,12 @@ class BaseResponse(_TemplateEnvironmentMixin):
             querystring.update(headers)
 
         querystring = _decode_dict(querystring)
-
         self.uri = full_url
         self.path = urlparse(full_url).path
         self.querystring = querystring
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
+        self.uri_match = None
 
         self.headers = request.headers
         if 'host' not in self.headers:
@@ -178,6 +180,58 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.setup_class(request, full_url, headers)
         return self.call_action()
 
+    def uri_to_regexp(self, uri):
+        """converts uri w/ placeholder to regexp
+          '/cars/{carName}/drivers/{DriverName}'
+        -> '^/cars/.*/drivers/[^/]*$'
+
+          '/cars/{carName}/drivers/{DriverName}/drive'
+        -> '^/cars/.*/drivers/.*/drive$'
+
+        """
+        def _convert(elem, is_last):
+            if not re.match('^{.*}$', elem):
+                return elem
+            name = elem.replace('{', '').replace('}', '')
+            if is_last:
+                return '(?P<%s>[^/]*)' % name
+            return '(?P<%s>.*)' % name
+
+        elems = uri.split('/')
+        num_elems = len(elems)
+        regexp = '^{}$'.format('/'.join([_convert(elem, (i == num_elems - 1)) for i, elem in enumerate(elems)]))
+        return regexp
+
+    def _get_action_from_method_and_request_uri(self, method, request_uri):
+        """basically used for `rest-json` APIs
+        You can refer to example from link below
+        https://github.com/boto/botocore/blob/develop/botocore/data/iot/2015-05-28/service-2.json
+        """
+
+        # service response class should have 'SERVICE_NAME' class member,
+        # if want to get action from method and url
+        if not hasattr(self, 'SERVICE_NAME'):
+            return None
+        service = self.SERVICE_NAME
+        conn = boto3.client(service)
+
+        # make cache if it has not exist yet
+        if not hasattr(self, 'method_urls'):
+            self.method_urls = defaultdict(lambda: defaultdict(str))
+            op_names = conn._service_model.operation_names
+            for op_name in op_names:
+                op_model = conn._service_model.operation_model(op_name)
+                _method = op_model.http['method']
+                uri_regexp = self.uri_to_regexp(op_model.http['requestUri'])
+                self.method_urls[_method][uri_regexp] = op_model.name
+        regexp_and_names = self.method_urls[method]
+        for regexp, name in regexp_and_names.items():
+            match = re.match(regexp, request_uri)
+            self.uri_match = match
+            if match:
+                return name
+        return None
+
     def _get_action(self):
         action = self.querystring.get('Action', [""])[0]
         if not action:  # Some services use a header for the action
@@ -186,7 +240,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 'x-amz-target') or self.headers.get('X-Amz-Target')
             if match:
                 action = match.split(".")[-1]
-
+        # get action from method and uri
+        if not action:
+            return self._get_action_from_method_and_request_uri(self.method, self.path)
         return action
 
     def call_action(self):
@@ -221,6 +277,22 @@ class BaseResponse(_TemplateEnvironmentMixin):
         val = self.querystring.get(param_name)
         if val is not None:
             return val[0]
+
+        # try to get json body parameter
+        try:
+            j = json.loads(self.body)
+            # raise key error if key really does not exist
+            return j[param_name]
+        except:
+            # do nothing if param is not found
+            pass
+        # try to get path parameter
+        if self.uri_match:
+            try:
+                return self.uri_match.group(param_name)
+            except:
+                # do nothing if param is not found
+                pass
         return if_none
 
     def _get_int_param(self, param_name, if_none=None):

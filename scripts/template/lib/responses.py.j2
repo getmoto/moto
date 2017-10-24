@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import {{ service }}_backends
+import json
 
 
 class {{ service_class }}Response(BaseResponse):
+    SERVICE_NAME = '{{ service }}'
     @property
     def {{ service }}_backend(self):
         return {{ service }}_backends[self.region]
