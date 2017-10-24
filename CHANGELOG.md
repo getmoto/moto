@@ -3,6 +3,14 @@ Moto Changelog
 
 Latest
 ------
+1.1.23
+-----
+
+    * Implemented X-Ray
+    * Implemented Autoscaling EC2 attachment
+    * Implemented Autoscaling Load Balancer methods
+    * Improved DynamoDB filter expressions
+
 1.1.22
 -----
 
