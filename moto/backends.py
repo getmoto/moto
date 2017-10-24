@@ -36,7 +36,6 @@ from moto.ssm import ssm_backends
 from moto.sts import sts_backends
 from moto.xray import xray_backends
 from moto.batch import batch_backends
-from moto.iot import iot_backends
 
 
 BACKENDS = {
