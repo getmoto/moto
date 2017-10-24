@@ -72,17 +72,24 @@ def test_get_parameters_by_path():
     client.put_parameter(
         Name='/bar/name3/name4',
         Description='A test parameter',
-        Value='value3',
+        Value='value4',
         Type='String')
 
     response = client.get_parameters_by_path(Path='/foo')
     len(response['Parameters']).should.equal(2)
+    {p['Value'] for p in response['Parameters']}.should.equal(
+        set(['value1', 'value2'])
+    )
 
     response = client.get_parameters_by_path(Path='/bar', Recursive=False)
     len(response['Parameters']).should.equal(1)
+    response['Parameters'][0]['Value'].should.equal('value3')
 
     response = client.get_parameters_by_path(Path='/bar', Recursive=True)
     len(response['Parameters']).should.equal(2)
+    {p['Value'] for p in response['Parameters']}.should.equal(
+        set(['value3', 'value4'])
+    )
 
 
 @mock_ssm
