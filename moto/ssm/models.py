@@ -75,6 +75,18 @@ class SimpleSystemManagerBackend(BaseBackend):
                 result.append(self._parameters[name])
         return result
 
+    def get_parameters_by_path(self, path, with_decryption, recursive):
+        """Implement the get-parameters-by-path-API in the backend."""
+        result = []
+        for param in self._parameters:
+            if not param.startswith(path):
+                continue
+            if '/' in param[len(path)+1:] and not recursive:
+                continue
+            result.append(self._parameters[param])
+
+        return result
+
     def get_parameter(self, name, with_decryption):
         if name in self._parameters:
             return self._parameters[name]
