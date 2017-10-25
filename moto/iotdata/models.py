@@ -10,6 +10,7 @@ from .exceptions import (
     InvalidRequestException
 )
 
+
 class FakeShadow(BaseModel):
     """See the specification:
     http://docs.aws.amazon.com/iot/latest/developerguide/thing-shadow-document-syntax.html
@@ -30,7 +31,7 @@ class FakeShadow(BaseModel):
         """
         set None to payload when you want to delete shadow
         """
-        version, previous_payload =  (previous_shadow.version + 1, previous_shadow.to_dict(include_delta=False)) if previous_shadow else (1, {})
+        version, previous_payload = (previous_shadow.version + 1, previous_shadow.to_dict(include_delta=False)) if previous_shadow else (1, {})
 
         if payload is None:
             # if given payload is None, delete existing payload
@@ -67,9 +68,9 @@ class FakeShadow(BaseModel):
         """
         if state is None:
             return None
+
         def _f(elem, ts):
             if isinstance(elem, dict):
-                new_elem = {}
                 return {_: _f(elem[_], ts) for _ in elem.keys()}
             if isinstance(elem, list):
                 return [_f(_, ts) for _ in elem]
@@ -182,6 +183,7 @@ class IoTDataPlaneBackend(BaseBackend):
         new_shadow = FakeShadow.create_from_previous_version(thing.thing_shadow, payload)
         thing.thing_shadow = new_shadow
         return thing.thing_shadow
+
 
 available_regions = boto3.session.Session().get_available_regions("iot-data")
 iotdata_backends = {region: IoTDataPlaneBackend(region) for region in available_regions}

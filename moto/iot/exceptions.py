@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
+
 class IoTClientError(RESTError):
     code = 400
 
@@ -12,6 +13,7 @@ class ResourceNotFoundException(IoTClientError):
             "ResourceNotFoundException",
             "The specified resource does not exist"
         )
+
 
 class InvalidRequestException(IoTClientError):
     def __init__(self):

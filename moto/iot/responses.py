@@ -6,6 +6,7 @@ import json
 
 class IoTResponse(BaseResponse):
     SERVICE_NAME = 'iot'
+
     @property
     def iot_backend(self):
         return iot_backends[self.region]
@@ -31,8 +32,8 @@ class IoTResponse(BaseResponse):
         return json.dumps(dict(thingTypeName=thing_type_name, thingTypeArn=thing_type_arn))
 
     def list_thing_types(self):
-        previous_next_token = self._get_param("nextToken")
-        max_results = self._get_int_param("maxResults")
+        # previous_next_token = self._get_param("nextToken")
+        # max_results = self._get_int_param("maxResults")
         thing_type_name = self._get_param("thingTypeName")
         thing_types = self.iot_backend.list_thing_types(
             thing_type_name=thing_type_name
@@ -43,8 +44,8 @@ class IoTResponse(BaseResponse):
         return json.dumps(dict(thingTypes=[_.to_dict() for _ in thing_types], nextToken=next_token))
 
     def list_things(self):
-        previous_next_token = self._get_param("nextToken")
-        max_results = self._get_int_param("maxResults")
+        # previous_next_token = self._get_param("nextToken")
+        # max_results = self._get_int_param("maxResults")
         attribute_name = self._get_param("attributeName")
         attribute_value = self._get_param("attributeValue")
         thing_type_name = self._get_param("thingTypeName")
@@ -130,9 +131,9 @@ class IoTResponse(BaseResponse):
         return json.dumps(dict(certificateDescription=certificate.to_description_dict()))
 
     def list_certificates(self):
-        page_size = self._get_int_param("pageSize")
-        marker = self._get_param("marker")
-        ascending_order = self._get_param("ascendingOrder")
+        # page_size = self._get_int_param("pageSize")
+        # marker = self._get_param("marker")
+        # ascending_order = self._get_param("ascendingOrder")
         certificates = self.iot_backend.list_certificates()
         # TODO: handle pagination
         return json.dumps(dict(certificates=[_.to_dict() for _ in certificates]))
@@ -156,9 +157,9 @@ class IoTResponse(BaseResponse):
         return json.dumps(policy.to_dict_at_creation())
 
     def list_policies(self):
-        marker = self._get_param("marker")
-        page_size = self._get_int_param("pageSize")
-        ascending_order = self._get_param("ascendingOrder")
+        # marker = self._get_param("marker")
+        # page_size = self._get_int_param("pageSize")
+        # ascending_order = self._get_param("ascendingOrder")
         policies = self.iot_backend.list_policies()
 
         # TODO: handle pagination
@@ -198,9 +199,9 @@ class IoTResponse(BaseResponse):
 
     def list_principal_policies(self):
         principal = self.headers.get('x-amzn-iot-principal')
-        marker = self._get_param("marker")
-        page_size = self._get_int_param("pageSize")
-        ascending_order = self._get_param("ascendingOrder")
+        # marker = self._get_param("marker")
+        # page_size = self._get_int_param("pageSize")
+        # ascending_order = self._get_param("ascendingOrder")
         policies = self.iot_backend.list_principal_policies(
             principal_arn=principal
         )
@@ -210,9 +211,9 @@ class IoTResponse(BaseResponse):
 
     def list_policy_principals(self):
         policy_name = self.headers.get('x-amzn-iot-policy')
-        marker = self._get_param("marker")
-        page_size = self._get_int_param("pageSize")
-        ascending_order = self._get_param("ascendingOrder")
+        # marker = self._get_param("marker")
+        # page_size = self._get_int_param("pageSize")
+        # ascending_order = self._get_param("ascendingOrder")
         principals = self.iot_backend.list_policy_principals(
             policy_name=policy_name,
         )
@@ -240,13 +241,13 @@ class IoTResponse(BaseResponse):
 
     def list_principal_things(self):
         next_token = self._get_param("nextToken")
-        max_results = self._get_int_param("maxResults")
+        # max_results = self._get_int_param("maxResults")
         principal = self.headers.get('x-amzn-principal')
         things = self.iot_backend.list_principal_things(
             principal_arn=principal,
         )
         # TODO: handle pagination
-        next_marker = None
+        next_token = None
         return json.dumps(dict(things=things, nextToken=next_token))
 
     def list_thing_principals(self):

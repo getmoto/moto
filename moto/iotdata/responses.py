@@ -6,6 +6,7 @@ import json
 
 class IoTDataPlaneResponse(BaseResponse):
     SERVICE_NAME = 'iot-data'
+
     @property
     def iotdata_backend(self):
         return iotdata_backends[self.region]

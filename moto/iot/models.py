@@ -104,7 +104,7 @@ class FakePolicy(BaseModel):
         self.name = name
         self.document = document
         self.arn = 'arn:aws:iot:%s:1:policy/%s' % (region_name, name)
-        self.version = '1' # TODO: handle version
+        self.version = '1'  # TODO: handle version
 
     def to_get_dict(self):
         return {
@@ -127,6 +127,7 @@ class FakePolicy(BaseModel):
             'policyName': self.name,
             'policyArn': self.arn,
         }
+
 
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
@@ -233,6 +234,7 @@ class IoTBackend(BaseBackend):
                 thing.attributes = attributes
             else:
                 thing.attributes.update(attributes)
+
     def _random_string(self):
         n = 20
         random_str = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(n)])
@@ -252,7 +254,7 @@ class IoTBackend(BaseBackend):
         return certificate, key_pair
 
     def delete_certificate(self, certificate_id):
-        cert = self.describe_certificate(certificate_id)
+        self.describe_certificate(certificate_id)
         del self.certificates[certificate_id]
 
     def describe_certificate(self, certificate_id):
@@ -312,8 +314,9 @@ class IoTBackend(BaseBackend):
         self.principal_policies[k] = (principal, policy)
 
     def detach_principal_policy(self, policy_name, principal_arn):
-        principal = self._get_principal(principal_arn)
-        policy = self.get_policy(policy_name)
+        # this may raises ResourceNotFoundException
+        self._get_principal(principal_arn)
+        self.get_policy(policy_name)
 
         k = (principal_arn, policy_name)
         if k not in self.principal_policies:
@@ -337,8 +340,10 @@ class IoTBackend(BaseBackend):
         self.principal_things[k] = (principal, thing)
 
     def detach_thing_principal(self, thing_name, principal_arn):
-        principal = self._get_principal(principal_arn)
-        thing = self.describe_thing(thing_name)
+        # this may raises ResourceNotFoundException
+        self._get_principal(principal_arn)
+        self.describe_thing(thing_name)
+
         k = (principal_arn, thing_name)
         if k not in self.principal_things:
             raise ResourceNotFoundException()
@@ -351,6 +356,7 @@ class IoTBackend(BaseBackend):
     def list_thing_principals(self, thing_name):
         principals = [k[0] for k, v in self.principal_things.items() if k[1] == thing_name]
         return principals
+
 
 available_regions = boto3.session.Session().get_available_regions("iot")
 iot_backends = {region: IoTBackend(region) for region in available_regions}
