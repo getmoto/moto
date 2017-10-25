@@ -185,7 +185,6 @@ class IoTResponse(BaseResponse):
             policy_name=policy_name,
             principal_arn=principal,
         )
-        # TODO: adjust response
         return json.dumps(dict())
 
     def detach_principal_policy(self):
@@ -195,7 +194,6 @@ class IoTResponse(BaseResponse):
             policy_name=policy_name,
             principal_arn=principal,
         )
-        # TODO: adjust response
         return json.dumps(dict())
 
     def list_principal_policies(self):
