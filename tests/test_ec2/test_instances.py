@@ -7,6 +7,7 @@ import base64
 import datetime
 import ipaddress
 
+import six
 import boto
 import boto3
 from boto.ec2.instance import Reservation, InstanceAttribute
@@ -414,6 +415,7 @@ def test_get_instances_filtering_by_image_id():
                                                        'Values': [image_id]}])['Reservations']
     reservations[0]['Instances'].should.have.length_of(1)
 
+
 @mock_ec2
 def test_get_instances_filtering_by_private_dns():
     image_id = 'ami-1234abcd'
@@ -428,6 +430,7 @@ def test_get_instances_filtering_by_private_dns():
     ])['Reservations']
     reservations[0]['Instances'].should.have.length_of(1)
 
+
 @mock_ec2
 def test_get_instances_filtering_by_ni_private_dns():
     image_id = 'ami-1234abcd'
@@ -441,6 +444,7 @@ def test_get_instances_filtering_by_ni_private_dns():
         {'Name': 'network-interface.private-dns-name', 'Values': ['ip-10-0-0-1.us-west-2.compute.internal']}
     ])['Reservations']
     reservations[0]['Instances'].should.have.length_of(1)
+
 
 @mock_ec2
 def test_get_instances_filtering_by_instance_group_name():
@@ -459,6 +463,7 @@ def test_get_instances_filtering_by_instance_group_name():
     ])['Reservations']
     reservations[0]['Instances'].should.have.length_of(1)
 
+
 @mock_ec2
 def test_get_instances_filtering_by_instance_group_id():
     image_id = 'ami-1234abcd'
@@ -476,6 +481,7 @@ def test_get_instances_filtering_by_instance_group_id():
         {'Name': 'instance.group-id', 'Values': [group_id]}
     ])['Reservations']
     reservations[0]['Instances'].should.have.length_of(1)
+
 
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_tag():
@@ -832,7 +838,7 @@ def test_run_instance_with_placement():
 
 
 @mock_ec2
-def test_run_instance_with_subnet():
+def test_run_instance_with_subnet_boto3():
     client = boto3.client('ec2', region_name='eu-central-1')
 
     ip_networks = [
@@ -865,7 +871,7 @@ def test_run_instance_with_subnet():
         instance = resp['Instances'][0]
         instance['SubnetId'].should.equal(subnet_id)
 
-        priv_ipv4 = ipaddress.ip_address(instance['PrivateIpAddress'])
+        priv_ipv4 = ipaddress.ip_address(six.text_type(instance['PrivateIpAddress']))
         subnet_cidr.should.contain(priv_ipv4)
 
 
@@ -899,7 +905,7 @@ def test_run_instance_with_specified_private_ipv4():
     )
     instance = resp['Instances'][0]
     instance['SubnetId'].should.equal(subnet_id)
-    instance['PrivateIpAddress'].shoud.equal('192.168.42.5')
+    instance['PrivateIpAddress'].should.equal('192.168.42.5')
 
 
 @mock_ec2
@@ -949,7 +955,7 @@ def test_run_instance_with_nic_autocreated():
         'test security group #1', 'this is a test security group')
     security_group2 = conn.create_security_group(
         'test security group #2', 'this is a test security group')
-    private_ip = "54.0.0.1"
+    private_ip = "10.0.0.1"
 
     reservation = conn.run_instances('ami-1234abcd', subnet_id=subnet.id,
                                      security_groups=[security_group1.name],

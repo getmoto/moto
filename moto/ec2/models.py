@@ -567,13 +567,17 @@ class Instance(TaggedEC2Resource, BotoInstance):
     def prep_nics(self, nic_spec, private_ip=None, associate_public_ip=None):
         self.nics = {}
 
-        subnet = self.ec2_backend.get_subnet(self.subnet_id)
-        if not private_ip:
-            private_ip = subnet.get_available_subnet_ip(instance=self)
-        else:
-            subnet.request_ip(private_ip, instance=self)
+        if self.subnet_id:
+            subnet = self.ec2_backend.get_subnet(self.subnet_id)
+            if not private_ip:
+                private_ip = subnet.get_available_subnet_ip(instance=self)
+            else:
+                subnet.request_ip(private_ip, instance=self)
 
-        self._private_ips.add(private_ip)
+            self._private_ips.add(private_ip)
+        elif private_ip is None:
+            # Preserve old behaviour if in EC2-Classic mode
+            private_ip = random_private_ip()
 
         # Primary NIC defaults
         primary_nic = {'SubnetId': self.subnet_id,
@@ -2136,7 +2140,7 @@ class Subnet(TaggedEC2Resource):
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
-        self.cidr = ipaddress.ip_network(self.cidr_block)
+        self.cidr = ipaddress.ip_network(six.text_type(self.cidr_block))
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
