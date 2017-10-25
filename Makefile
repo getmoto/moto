@@ -29,7 +29,7 @@ tag_github_release:
 	git tag `python setup.py --version`
 	git push origin `python setup.py --version`
 
-publish: upload_pypi_artifact push_dockerhub_image tag_github_release
+publish: upload_pypi_artifact tag_github_release push_dockerhub_image
 
 scaffold:
 	@pip install -r requirements-dev.txt > /dev/null
