@@ -31,6 +31,10 @@ tag_github_release:
 
 publish: upload_pypi_artifact tag_github_release push_dockerhub_image
 
+implementation_coverage:
+	./scripts/implementation_coverage.py > IMPLEMENTATION_COVERAGE.md
+	git commit IMPLEMENTATION_COVERAGE.md -m "Updating implementation coverage"
+
 scaffold:
 	@pip install -r requirements-dev.txt > /dev/null
 	exec python scripts/scaffold.py
