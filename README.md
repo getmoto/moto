@@ -298,5 +298,6 @@ boto3.resource(
 ## Install
 
 ```console
+
 $ pip install moto
 ```
