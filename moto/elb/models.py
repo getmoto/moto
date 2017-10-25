@@ -91,7 +91,8 @@ class FakeLoadBalancer(BaseModel):
                     port.get('load_balancer_port') or port['LoadBalancerPort']),
                 instance_port=(
                     port.get('instance_port') or port['InstancePort']),
-                ssl_certificate_id=port.get('ssl_certificate_id', port.get('SSLCertificateId')),
+                ssl_certificate_id=port.get(
+                    'ssl_certificate_id', port.get('SSLCertificateId')),
             )
             if listener.ssl_certificate_id:
                 acm_backend.set_certificate_in_use_by(listener.ssl_certificate_id, self.dns_name)
@@ -340,7 +341,8 @@ class ELBBackend(BaseBackend):
         if balancer:
             for idx, listener in enumerate(balancer.listeners):
                 if lb_port == listener.load_balancer_port:
-                    balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
+                    balancer.listeners[
+                        idx].ssl_certificate_id = ssl_certificate_id
                     if ssl_certificate_id:
                         acm_backend.set_certificate_in_use_by(ssl_certificate_id, balancer.dns_name)
         return balancer

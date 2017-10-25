@@ -304,7 +304,6 @@ def test_request_certificate_no_san():
 @mock_acm
 @mock_elb
 def test_elb_acm_in_use_by():
-    print('HI')
     acm_client = boto3.client('acm', region_name="us-west-2")
     elb_client = boto3.client('elb', region_name="us-west-2")
 
@@ -337,9 +336,8 @@ def test_elb_acm_in_use_by():
         CertificateArn = certificate_arn
     )
 
-    response['Certificate']['InUseBy'].should.equal([create_load_balancer_request['DNSName']])
-
-
+    response['Certificate']['InUseBy']
+        .should.equal([create_load_balancer_request['DNSName']])
 
 # # Also tests the SAN code
 # # requires Pull: https://github.com/spulec/freezegun/pull/210
