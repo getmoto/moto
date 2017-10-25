@@ -7,7 +7,7 @@ from moto import mock_iot
 
 @mock_iot
 def test_things():
-    client = boto3.client('iot')
+    client = boto3.client('iot', region_name='ap-northeast-1')
     name = 'my-thing'
     type_name = 'my-type-name'
 
@@ -62,7 +62,7 @@ def test_things():
 
 @mock_iot
 def test_certs():
-    client = boto3.client('iot')
+    client = boto3.client('iot', region_name='ap-northeast-1')
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert.should.have.key('certificateArn').which.should_not.be.none
     cert.should.have.key('certificateId').which.should_not.be.none
@@ -98,7 +98,7 @@ def test_certs():
 
 @mock_iot
 def test_policy():
-    client = boto3.client('iot')
+    client = boto3.client('iot', region_name='ap-northeast-1')
     name = 'my-policy'
     doc = '{}'
     policy = client.create_policy(policyName=name, policyDocument=doc)
@@ -126,7 +126,7 @@ def test_policy():
 
 @mock_iot
 def test_principal_policy():
-    client = boto3.client('iot')
+    client = boto3.client('iot', region_name='ap-northeast-1')
     policy_name = 'my-policy'
     doc = '{}'
     policy = client.create_policy(policyName=policy_name, policyDocument=doc)
@@ -155,7 +155,7 @@ def test_principal_policy():
 
 @mock_iot
 def test_principal_thing():
-    client = boto3.client('iot')
+    client = boto3.client('iot', region_name='ap-northeast-1')
     thing_name = 'my-thing'
     thing = client.create_thing(thingName=thing_name)
     cert = client.create_keys_and_certificate(setAsActive=True)

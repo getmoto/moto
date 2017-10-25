@@ -484,4 +484,5 @@ def main():
     click.echo('You will still need to add the mock into "__init__.py"'.format(service))
 
 if __name__ == '__main__':
+
     main()

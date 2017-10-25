@@ -11,7 +11,7 @@ from moto import mock_iotdata, mock_iot
 @mock_iot
 @mock_iotdata
 def test_basic():
-    iot_client = boto3.client('iot')
+    iot_client = boto3.client('iot', region_name='ap-northeast-1')
     client = boto3.client('iot-data')
     name = 'my-thing'
     raw_payload = b'{"state": {"desired": {"led": "on"}}}'
@@ -45,7 +45,7 @@ def test_basic():
 @mock_iot
 @mock_iotdata
 def test_update():
-    iot_client = boto3.client('iot')
+    iot_client = boto3.client('iot', region_name='ap-northeast-1')
     client = boto3.client('iot-data')
     name = 'my-thing'
     raw_payload = b'{"state": {"desired": {"led": "on"}}}'
