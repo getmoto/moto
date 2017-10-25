@@ -528,6 +528,12 @@ class IAMBackend(BaseBackend):
                 return role
         raise IAMNotFoundException("Role {0} not found".format(role_name))
 
+    def get_role_by_arn(self, arn):
+        for role in self.get_roles():
+            if role.arn == arn:
+                return role
+        raise IAMNotFoundException("Role {0} not found".format(arn))
+
     def delete_role(self, role_name):
         for role in self.get_roles():
             if role.name == role_name:

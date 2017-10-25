@@ -765,14 +765,12 @@ class InstanceBackend(object):
         associated with the given instance_ids.
         """
         reservations = []
-        for reservation in self.all_reservations(make_copy=True):
+        for reservation in self.all_reservations():
             reservation_instance_ids = [
                 instance.id for instance in reservation.instances]
             matching_reservation = any(
                 instance_id in reservation_instance_ids for instance_id in instance_ids)
             if matching_reservation:
-                # We need to make a copy of the reservation because we have to modify the
-                # instances to limit to those requested
                 reservation.instances = [
                     instance for instance in reservation.instances if instance.id in instance_ids]
                 reservations.append(reservation)
@@ -786,15 +784,8 @@ class InstanceBackend(object):
             reservations = filter_reservations(reservations, filters)
         return reservations
 
-    def all_reservations(self, make_copy=False, filters=None):
-        if make_copy:
-            # Return copies so that other functions can modify them with changing
-            # the originals
-            reservations = [copy.deepcopy(reservation)
-                            for reservation in self.reservations.values()]
-        else:
-            reservations = [
-                reservation for reservation in self.reservations.values()]
+    def all_reservations(self, filters=None):
+        reservations = [copy.copy(reservation) for reservation in self.reservations.values()]
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
         return reservations

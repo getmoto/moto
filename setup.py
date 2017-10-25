@@ -21,8 +21,8 @@ install_requires = [
     "python-dateutil<3.0.0,>=2.1",
     "mock",
     "docker>=2.5.1",
-    "aws-xray-sdk==0.92.2",
-    "jsondiff==1.1.1"
+    "jsondiff==1.1.1",
+    "aws-xray-sdk>=0.93",
 ]
 
 extras_require = {
@@ -39,7 +39,7 @@ else:
 
 setup(
     name='moto',
-    version='1.1.23',
+    version='1.1.24',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',

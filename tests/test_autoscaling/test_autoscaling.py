@@ -600,6 +600,11 @@ def test_attach_load_balancer():
     )
     list(response['LoadBalancerDescriptions'][0]['Instances']).should.have.length_of(INSTANCE_COUNT)
 
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=["test_asg"]
+    )
+    list(response['AutoScalingGroups'][0]['LoadBalancerNames']).should.have.length_of(1)
+
 
 @mock_autoscaling
 @mock_elb

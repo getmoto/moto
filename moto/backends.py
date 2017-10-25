@@ -37,11 +37,14 @@ from moto.sts import sts_backends
 from moto.xray import xray_backends
 from moto.iot import iot_backends
 from moto.iotdata import iotdata_backends
+from moto.batch import batch_backends
+
 
 BACKENDS = {
     'acm': acm_backends,
     'apigateway': apigateway_backends,
     'autoscaling': autoscaling_backends,
+    'batch': batch_backends,
     'cloudformation': cloudformation_backends,
     'cloudwatch': cloudwatch_backends,
     'datapipeline': datapipeline_backends,

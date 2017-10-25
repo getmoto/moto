@@ -714,6 +714,9 @@ def test_describe_container_instances():
                      for ci in response['containerInstances']]
     for arn in test_instance_arns:
         response_arns.should.contain(arn)
+    for instance in response['containerInstances']:
+        instance.keys().should.contain('runningTasksCount')
+        instance.keys().should.contain('pendingTasksCount')
 
 
 @mock_ec2
@@ -1210,6 +1213,7 @@ def test_resource_reservation_and_release():
     remaining_resources['MEMORY'].should.equal(registered_resources['MEMORY'] - 400)
     registered_resources['PORTS'].append('80')
     remaining_resources['PORTS'].should.equal(registered_resources['PORTS'])
+    container_instance_description['runningTasksCount'].should.equal(1)
     client.stop_task(
         cluster='test_ecs_cluster',
         task=run_response['tasks'][0].get('taskArn'),
@@ -1223,6 +1227,7 @@ def test_resource_reservation_and_release():
     remaining_resources['CPU'].should.equal(registered_resources['CPU'])
     remaining_resources['MEMORY'].should.equal(registered_resources['MEMORY'])
     remaining_resources['PORTS'].should.equal(registered_resources['PORTS'])
+    container_instance_description['runningTasksCount'].should.equal(0)
 
 
 @mock_ecs
