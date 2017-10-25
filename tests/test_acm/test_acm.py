@@ -7,7 +7,7 @@ import sure  # noqa
 
 from botocore.exceptions import ClientError
 
-from moto import mock_acm
+from moto import mock_acm, mock_elb
 
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), 'resources')
@@ -300,6 +300,46 @@ def test_request_certificate_no_san():
         CertificateArn=resp['CertificateArn']
     )
     resp2.should.contain('Certificate')
+
+@mock_acm
+@mock_elb
+def test_elb_acm_in_use_by():
+    print('HI')
+    acm_client = boto3.client('acm', region_name="us-west-2")
+    elb_client = boto3.client('elb', region_name="us-west-2")
+
+    acm_request_response = acm_client.request_certificate(
+        DomainName='fake.domain.com',
+        DomainValidationOptions=[
+            {
+                'DomainName': 'fake.domain.com',
+                'ValidationDomain': 'domain.com'
+            }
+        ]
+    )
+
+    certificate_arn = acm_request_response['CertificateArn']
+
+    create_load_balancer_request = elb_client.create_load_balancer(
+        LoadBalancerName='test',
+        Listeners=[
+            {
+                'Protocol': 'https',
+                'LoadBalancerPort': 443,
+                'InstanceProtocol': 'http',
+                'InstancePort': 80,
+                'SSLCertificateId': certificate_arn
+            }
+        ]
+    )
+
+    response = acm_client.describe_certificate(
+        CertificateArn = certificate_arn
+    )
+
+    response['Certificate']['InUseBy'].should.equal([create_load_balancer_request['DNSName']])
+
+
 
 # # Also tests the SAN code
 # # requires Pull: https://github.com/spulec/freezegun/pull/210

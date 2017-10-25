@@ -82,6 +82,7 @@ class CertBundle(BaseModel):
         self._chain = None
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum
+        self.in_use_by = []
 
         # AWS always returns your chain + root CA
         if self.chain is None:
@@ -238,7 +239,7 @@ class CertBundle(BaseModel):
             'Certificate': {
                 'CertificateArn': self.arn,
                 'DomainName': self.common_name,
-                'InUseBy': [],
+                'InUseBy': self.in_use_by,
                 'Issuer': self._cert.issuer.get_attributes_for_oid(cryptography.x509.OID_COMMON_NAME)[0].value,
                 'KeyAlgorithm': key_algo,
                 'NotAfter': datetime_to_epoch(self._cert.not_valid_after),
@@ -283,6 +284,13 @@ class AWSCertificateManagerBackend(BaseBackend):
     def _arn_not_found(arn):
         msg = 'Certificate with arn {0} not found in account {1}'.format(arn, DEFAULT_ACCOUNT_ID)
         return AWSResourceNotFoundException(msg)
+
+    def set_certificate_in_use_by(self, arn, load_balancer_name):
+        if arn not in self._certificates:
+            raise self._arn_not_found(arn)
+
+        cert_bundle = self._certificates[arn]
+        cert_bundle.in_use_by.append(load_balancer_name)
 
     def _get_arn_from_idempotency_token(self, token):
         """

@@ -15,6 +15,7 @@ from boto.ec2.elb.policies import (
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2.models import ec2_backends
+from moto.acm.models import acm_backends
 from .exceptions import (
     BadHealthCheckDefinition,
     DuplicateLoadBalancerName,
@@ -24,7 +25,6 @@ from .exceptions import (
     LoadBalancerNotFoundError,
     TooManyTagsError,
 )
-
 
 class FakeHealthCheck(BaseModel):
 
@@ -91,9 +91,10 @@ class FakeLoadBalancer(BaseModel):
                     port.get('load_balancer_port') or port['LoadBalancerPort']),
                 instance_port=(
                     port.get('instance_port') or port['InstancePort']),
-                ssl_certificate_id=port.get(
-                    'ssl_certificate_id', port.get('SSLCertificateId')),
+                ssl_certificate_id=port.get('ssl_certificate_id', port.get('SSLCertificateId')),
             )
+            if listener.ssl_certificate_id:
+                acm_backend.set_certificate_in_use_by(listener.ssl_certificate_id, self.dns_name)
             self.listeners.append(listener)
 
             # it is unclear per the AWS documentation as to when or how backend
@@ -279,6 +280,8 @@ class ELBBackend(BaseBackend):
                             raise DuplicateListenerError(name, lb_port)
                         break
                 else:
+                    if ssl_certificate_id:
+                        acm_backend.set_certificate_in_use_by(ssl_certificate_id, balancer.dns_name)
                     balancer.listeners.append(FakeListener(
                         lb_port, instance_port, protocol, ssl_certificate_id))
 
@@ -337,9 +340,9 @@ class ELBBackend(BaseBackend):
         if balancer:
             for idx, listener in enumerate(balancer.listeners):
                 if lb_port == listener.load_balancer_port:
-                    balancer.listeners[
-                        idx].ssl_certificate_id = ssl_certificate_id
-
+                    balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
+                    if ssl_certificate_id:
+                        acm_backend.set_certificate_in_use_by(ssl_certificate_id, balancer.dns_name)
         return balancer
 
     def register_instances(self, load_balancer_name, instance_ids):
@@ -409,6 +412,7 @@ class ELBBackend(BaseBackend):
         load_balancer.listeners[listener_idx] = listener
         return load_balancer
 
+acm_backend = acm_backends['us-west-2']
 
 elb_backends = {}
 for region in ec2_backends.keys():
