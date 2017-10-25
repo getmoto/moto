@@ -12,24 +12,6 @@ except:
 from moto.core.utils import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse
 
-import signal
-import contextlib
-
-
-@contextlib.contextmanager
-def timeout(seconds=5):
-    def handle_error(signum, frame):
-        raise RuntimeError()
-
-    try:
-        signal.signal(signal.SIGALRM, handle_error)
-        signal.alarm(seconds)
-        yield None
-    except RuntimeError:
-        pass
-    finally:
-        signal.alarm(0)
-
 
 class LambdaResponse(BaseResponse):
 
@@ -118,8 +100,7 @@ class LambdaResponse(BaseResponse):
 
         if lambda_backend.has_function(function_name):
             fn = lambda_backend.get_function(function_name)
-            with timeout(seconds=360):
-                payload = fn.invoke(self.body, self.headers, response_headers)
+            payload = fn.invoke(self.body, self.headers, response_headers)
             response_headers['Content-Length'] = str(len(payload))
             return 202, response_headers, payload
         else:
@@ -133,8 +114,7 @@ class LambdaResponse(BaseResponse):
         function_name = path.split('/')[-3]
         if lambda_backend.has_function(function_name):
             fn = lambda_backend.get_function(function_name)
-            with timeout(seconds=360):
-                fn.invoke(self.body, self.headers, response_headers)
+            fn.invoke(self.body, self.headers, response_headers)
             response_headers['Content-Length'] = str(0)
             return 202, response_headers, ""
         else:
