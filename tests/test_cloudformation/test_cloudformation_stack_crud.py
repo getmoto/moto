@@ -2,11 +2,15 @@ from __future__ import unicode_literals
 
 import os
 import json
+import datetime
 
 import boto
 import boto.s3
 import boto.s3.key
 import boto.cloudformation
+
+from mock import Mock, patch
+
 from boto.exception import BotoServerError
 import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
@@ -178,15 +182,18 @@ def test_create_stack_from_s3_url():
 
 @mock_cloudformation_deprecated
 def test_describe_stack_by_name():
+    fixed_timestamp = datetime.datetime(2017, 10, 20, 13, 13, 13)
     conn = boto.connect_cloudformation()
-    conn.create_stack(
-        "test_stack",
-        template_body=dummy_template_json,
-    )
+    with patch.object(datetime, 'datetime', Mock(wraps=datetime.datetime)) as patched:
+        patched.utcnow.return_value = fixed_timestamp
+        conn.create_stack(
+            "test_stack",
+            template_body=dummy_template_json,
+        )
 
     stack = conn.describe_stacks("test_stack")[0]
     stack.stack_name.should.equal('test_stack')
-
+    stack.creation_time.should.equal(fixed_timestamp)
 
 @mock_cloudformation_deprecated
 def test_describe_stack_by_stack_id():
@@ -243,19 +250,22 @@ def test_get_template_by_name():
 
 @mock_cloudformation_deprecated
 def test_list_stacks():
+    fixed_timestamp = datetime.datetime(2017, 10, 20, 13, 13, 13)
     conn = boto.connect_cloudformation()
-    conn.create_stack(
-        "test_stack",
-        template_body=dummy_template_json,
-    )
-    conn.create_stack(
-        "test_stack2",
-        template_body=dummy_template_json,
-    )
-
+    with patch.object(datetime, 'datetime', Mock(wraps=datetime.datetime)) as patched:
+        patched.utcnow.return_value = fixed_timestamp
+        conn.create_stack(
+            "test_stack",
+            template_body=dummy_template_json,
+        )
+        conn.create_stack(
+            "test_stack2",
+            template_body=dummy_template_json,
+        )
     stacks = conn.list_stacks()
     stacks.should.have.length_of(2)
     stacks[0].template_description.should.equal("Stack 1")
+    stacks[0].creation_time.should.equal(fixed_timestamp)
 
 
 @mock_cloudformation_deprecated

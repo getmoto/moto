@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from datetime import datetime
+import datetime
 import json
 import yaml
 import uuid
@@ -7,6 +7,7 @@ import uuid
 import boto.cloudformation
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 
 from .parsing import ResourceMap, OutputMap
 from .utils import generate_stack_id, yaml_tag_constructor
@@ -35,6 +36,7 @@ class FakeStack(BaseModel):
         self.output_map = self._create_output_map()
         self._add_stack_event("CREATE_COMPLETE")
         self.status = 'CREATE_COMPLETE'
+        self.creation_time = datetime.datetime.utcnow()
 
     def _create_resource_map(self):
         resource_map = ResourceMap(
@@ -96,6 +98,10 @@ class FakeStack(BaseModel):
     def exports(self):
         return self.output_map.exports
 
+    @property
+    def creation_time_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.creation_time)
+
     def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.template = template
@@ -128,7 +134,7 @@ class FakeEvent(BaseModel):
         self.resource_status = resource_status
         self.resource_status_reason = resource_status_reason
         self.resource_properties = resource_properties
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.datetime.utcnow()
         self.event_id = uuid.uuid4()
 
 

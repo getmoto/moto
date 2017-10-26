@@ -5,9 +5,13 @@ import boto
 import boto.s3
 import boto.s3.key
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
+
 from moto import mock_cloudformation, mock_s3, mock_sqs
+from mock import Mock, patch
 
 import json
+import datetime
 import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
@@ -323,14 +327,18 @@ def test_describe_stack_resources():
 
 @mock_cloudformation
 def test_describe_stack_by_name():
+    fixed_timestamp = datetime.datetime(2017, 10, 20, 13, 13, 13, tzinfo=tzutc())
     cf_conn = boto3.client('cloudformation', region_name='us-east-1')
-    cf_conn.create_stack(
-        StackName="test_stack",
-        TemplateBody=dummy_template_json,
-    )
+    with patch.object(datetime, 'datetime', Mock(wraps=datetime.datetime)) as patched:
+        patched.utcnow.return_value = fixed_timestamp
+        cf_conn.create_stack(
+            StackName="test_stack",
+            TemplateBody=dummy_template_json,
+        )
 
     stack = cf_conn.describe_stacks(StackName="test_stack")['Stacks'][0]
     stack['StackName'].should.equal('test_stack')
+    stack['CreationTime'].should.equal(fixed_timestamp)
 
 
 @mock_cloudformation
@@ -351,21 +359,24 @@ def test_describe_stack_by_stack_id():
 
 @mock_cloudformation
 def test_list_stacks():
+    fixed_timestamp = datetime.datetime(2017, 10, 20, 13, 13, 13, tzinfo=tzutc())
     cf = boto3.resource('cloudformation', region_name='us-east-1')
-    cf.create_stack(
-        StackName="test_stack",
-        TemplateBody=dummy_template_json,
-    )
-    cf.create_stack(
-        StackName="test_stack2",
-        TemplateBody=dummy_template_json,
-    )
+    with patch.object(datetime, 'datetime', Mock(wraps=datetime.datetime)) as patched:
+        patched.utcnow.return_value = fixed_timestamp
+        cf.create_stack(
+            StackName="test_stack",
+            TemplateBody=dummy_template_json,
+        )
+        cf.create_stack(
+            StackName="test_stack2",
+            TemplateBody=dummy_template_json,
+        )
 
     stacks = list(cf.stacks.all())
     stacks.should.have.length_of(2)
-    stack_names = [stack.stack_name for stack in stacks]
-    stack_names.should.contain("test_stack")
-    stack_names.should.contain("test_stack2")
+    stack_names_with_creation_time = [(stack.stack_name,stack.creation_time) for stack in stacks]
+    stack_names_with_creation_time.should.contain(("test_stack", fixed_timestamp))
+    stack_names_with_creation_time.should.contain(("test_stack2", fixed_timestamp))
 
 
 @mock_cloudformation
