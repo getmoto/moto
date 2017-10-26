@@ -4,6 +4,7 @@ import boto3
 import string
 import random
 import hashlib
+import uuid
 from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
 from .exceptions import (
@@ -60,7 +61,7 @@ class FakeThingType(BaseModel):
 class FakeCertificate(BaseModel):
     def __init__(self, certificate_pem, status, region_name):
         m = hashlib.sha256()
-        m.update(certificate_pem)
+        m.update(str(uuid.uuid4()).encode('utf-8'))
         self.certificate_id = m.hexdigest()
         self.arn = 'arn:aws:iot:%s:1:cert/%s' % (region_name, self.certificate_id)
         self.certificate_pem = certificate_pem
