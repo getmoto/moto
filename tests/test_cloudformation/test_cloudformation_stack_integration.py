@@ -38,7 +38,7 @@ from moto import (
     mock_sns_deprecated,
     mock_sqs,
     mock_sqs_deprecated,
-)
+    mock_elbv2)
 
 from .fixtures import (
     ec2_classic_eip,
@@ -2111,3 +2111,113 @@ def test_stack_spot_fleet():
     launch_spec['SubnetId'].should.equal(subnet_id)
     launch_spec['SpotPrice'].should.equal("0.13")
     launch_spec['WeightedCapacity'].should.equal(2.0)
+
+
+@mock_ec2
+@mock_elbv2
+@mock_cloudformation
+def test_stack_elbv2_resources_integration():
+    alb_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "alb": {
+                  "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                  "Properties": {
+                        "Name": "myelbv2",
+                        "Scheme": "internet-facing",
+                        "Subnets": [{
+                            "Ref": "mysubnet",
+                        }],
+                        "SecurityGroups": [{
+                            "Ref": "mysg",
+                        }],
+                        "Type": "application",
+                        "IpAddressType": "ipv4",
+                  }
+            },
+            "mytargetgroup": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "HealthCheckIntervalSeconds": 30,
+                    "HealthCheckPath": "/status",
+                    "HealthCheckPort": 80,
+                    "HealthCheckProtocol": "HTTP",
+                    "HealthCheckTimeoutSeconds": 5,
+                    "HealthyThresholdCount": 30,
+                    "UnhealthyThresholdCount": 5,
+                    "Matcher": {
+                        "HttpCode": "200,201"
+                    },
+                    "Name": "mytargetgroup",
+                    "Port": 80,
+                    "Protocol": "HTTP",
+                    "TargetType": "instance",
+                    "Targets": [{
+                      "Id": {
+                          "Ref": "ec2instance",
+                          "Port": 80,
+                      },
+                    }],
+                    "VpcId": {
+                        "Ref": "myvpc",
+                    }
+                }
+            },
+            "listener": {
+                "Type": "AWS::ElasticLoadBalancingV2::Listener",
+                "Properties": {
+                    "DefaultActions": [{
+                        "Type": "forward",
+                        "TargetGroupArn": {"Ref": "mytargetgroup"}
+                    }],
+                    "LoadBalancerArn": {"Ref": "alb"},
+                    "Port": "80",
+                    "Protocol": "HTTP"
+                }
+            },
+            "myvpc": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16",
+                }
+            },
+            "mysubnet": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/27",
+                    "VpcId": {"Ref": "myvpc"},
+                }
+            },
+            "mysg": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupName": "mysg",
+                    "GroupDescription": "test security group",
+                    "VpcId": {"Ref": "myvpc"}
+                }
+            },
+            "ec2instance": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": "ami-1234abcd",
+                    "UserData": "some user data",
+                }
+            },
+        },
+    }
+    alb_template_json = json.dumps(alb_template)
+
+    conn = boto3.client("cloudformation", "us-west-1")
+    conn.create_stack(
+        StackName="elb_stack",
+        TemplateBody=alb_template_json,
+    )
+
+    elbv2_conn = boto3.client("elbv2", "us-west-1")
+
+    load_balancers = elbv2_conn.describe_load_balancers()['LoadBalancers']
+    assert len(load_balancers) == 1
+    assert load_balancers[0]['LoadBalancerName'] == 'myelbv2'
+    assert load_balancers[0]['Scheme'] == 'internet-facing'
+    assert load_balancers[0]['Type'] == 'application'
+    assert load_balancers[0]['IpAddressType'] == 'ipv4'

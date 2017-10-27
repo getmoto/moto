@@ -186,6 +186,20 @@ class FakeLoadBalancer(BaseModel):
         ''' Not exposed as part of the ELB API - used for CloudFormation. '''
         elbv2_backends[region].delete_load_balancer(self.arn)
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        elbv2_backend = elbv2_backends[region_name]
+
+        name = properties.get('Name')
+        security_groups = properties.get("SecurityGroups")
+        subnet_ids = properties.get('Subnets')
+        scheme = properties.get('Scheme', 'internet-facing')
+
+        load_balancer = elbv2_backend.create_load_balancer(name, security_groups, subnet_ids, scheme=scheme)
+        return load_balancer
+
 
 class ELBv2Backend(BaseBackend):
 
