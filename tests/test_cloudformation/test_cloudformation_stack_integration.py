@@ -2119,6 +2119,16 @@ def test_stack_spot_fleet():
 def test_stack_elbv2_resources_integration():
     alb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
+        "Outputs": {
+            "albdns": {
+                "Description": "Load balanacer DNS",
+                "Value": {"Fn::GetAtt": ["alb", "DNSName"]},
+            },
+            "albname": {
+                "Description": "Load balancer name",
+                "Value": {"Fn::GetAtt": ["alb", "LoadBalancerName"]},
+            },
+        },
         "Resources": {
             "alb": {
                   "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
@@ -2207,8 +2217,8 @@ def test_stack_elbv2_resources_integration():
     }
     alb_template_json = json.dumps(alb_template)
 
-    conn = boto3.client("cloudformation", "us-west-1")
-    conn.create_stack(
+    cfn_conn = boto3.client("cloudformation", "us-west-1")
+    cfn_conn.create_stack(
         StackName="elb_stack",
         TemplateBody=alb_template_json,
     )
@@ -2246,3 +2256,11 @@ def test_stack_elbv2_resources_integration():
         "Type": "forward",
         "TargetGroupArn": target_groups[0]['TargetGroupArn']
     }])
+
+    # test outputs
+    stacks = cfn_conn.describe_stacks(StackName='elb_stack')['Stacks']
+    len(stacks).should.equal(1)
+    stacks[0]['Outputs'].should.equal([
+        {'OutputKey': 'albdns', 'OutputValue': load_balancers[0]['DNSName']},
+        {'OutputKey': 'albname', 'OutputValue': load_balancers[0]['LoadBalancerName']},
+    ])

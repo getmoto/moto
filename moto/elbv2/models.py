@@ -274,6 +274,12 @@ class FakeLoadBalancer(BaseModel):
         load_balancer = elbv2_backend.create_load_balancer(name, security_groups, subnet_ids, scheme=scheme)
         return load_balancer
 
+    def get_cfn_attribute(self, attribute_name):
+        attributes = {
+            'DNSName': self.dns_name,
+            'LoadBalancerName': self.name,
+        }
+        return attributes[attribute_name]
 
 class ELBv2Backend(BaseBackend):
 
