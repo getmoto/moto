@@ -113,7 +113,10 @@ class FakeTargetGroup(BaseModel):
 
         elbv2_backend = elbv2_backends[region_name]
 
-        name = properties.get('Name')
+        # per cloudformation docs:
+        # The target group name should be shorter than 22 characters because
+        # AWS CloudFormation uses the target group name to create the name of the load balancer.
+        name = properties.get('Name', resource_name[:22])
         vpc_id = properties.get("VpcId")
         protocol = properties.get('Protocol')
         port = properties.get("Port")
@@ -364,7 +367,7 @@ class ELBv2Backend(BaseBackend):
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:
             raise InvalidTargetGroupNameError(
-                "Target group name '%s' cannot be longer than '32' characters" % name
+                "Target group name '%s' cannot be longer than '22' characters" % name
             )
         if not re.match('^[a-zA-Z0-9\-]+$', name):
             raise InvalidTargetGroupNameError(
