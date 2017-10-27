@@ -272,9 +272,6 @@ def amzn_request_id(f):
             else:
                 status, new_headers, body = response
             headers.update(new_headers)
-            # Cast status to string
-            if "status" in headers:
-                headers['status'] = str(headers['status'])
 
         request_id = gen_amzn_requestid_long(headers)
 

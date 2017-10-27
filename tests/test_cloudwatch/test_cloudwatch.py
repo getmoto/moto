@@ -118,12 +118,3 @@ def test_describe_alarms():
 
     alarms = conn.describe_alarms()
     alarms.should.have.length_of(0)
-
-
-@mock_cloudwatch_deprecated
-def test_describe_state_value_unimplemented():
-    conn = boto.connect_cloudwatch()
-
-    conn.describe_alarms()
-    conn.describe_alarms.when.called_with(
-        state_value="foo").should.throw(NotImplementedError)
