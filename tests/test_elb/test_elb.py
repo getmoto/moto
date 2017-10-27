@@ -14,7 +14,7 @@ from boto.exception import BotoServerError
 import pytest
 import sure  # noqa
 
-from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
+from moto import mock_acm, mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
 from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
@@ -203,8 +203,21 @@ def test_create_elb_in_multiple_region_boto3():
 
 # Has boto3 equivalent
 @mock_elb_deprecated
+@mock_acm
 def test_create_load_balancer_with_certificate():
     conn = boto.connect_elb()
+
+    acm_client = boto3.client('acm', region_name='us-east-1')
+    acm_request_response = acm_client.request_certificate(
+        DomainName='fake.domain.com',
+        DomainValidationOptions=[
+            {
+                'DomainName': 'fake.domain.com',
+                'ValidationDomain': 'domain.com'
+            },
+        ]
+    )
+    certificate_arn = acm_request_response['CertificateArn']
 
     zones = ["us-east-1a"]
     ports = [
@@ -226,9 +239,7 @@ def test_create_load_balancer_with_certificate():
     listener.load_balancer_port.should.equal(443)
     listener.instance_port.should.equal(8443)
     listener.protocol.should.equal("HTTPS")
-    listener.ssl_certificate_id.should.equal(
-        "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID)
-    )
+    listener.ssl_certificate_id.should.equal(certificate_arn)
 
 
 @mock_elb
@@ -435,20 +446,35 @@ def test_create_and_delete_listener_boto3_support():
 
 # Has boto3 equivalent
 @mock_elb_deprecated
+@mock_acm
 def test_set_sslcertificate():
     conn = boto.connect_elb()
 
     zones = ["us-east-1a", "us-east-1b"]
     ports = [(443, 8443, "tcp")]
     conn.create_load_balancer("my-lb", zones, ports)
-    conn.set_lb_listener_SSL_certificate("my-lb", "443", "arn:certificate")
+
+    acm_client = boto3.client('acm', region_name='us-east-1')
+    acm_request_response = acm_client.request_certificate(
+        DomainName='fake.domain.com',
+        DomainValidationOptions=[
+            {
+                'DomainName': 'fake.domain.com',
+                'ValidationDomain': 'domain.com'
+            },
+        ]
+    )
+    certificate_arn = acm_request_response['CertificateArn']
+    print(certificate_arn)
+
+    conn.set_lb_listener_SSL_certificate('my-lb', '443', certificate_arn)
     balancers = conn.get_all_load_balancers()
     balancer = balancers[0]
     listener1 = balancer.listeners[0]
     listener1.load_balancer_port.should.equal(443)
     listener1.instance_port.should.equal(8443)
     listener1.protocol.should.equal("TCP")
-    listener1.ssl_certificate_id.should.equal("arn:certificate")
+    listener1.ssl_certificate_id.should.equal(certificate_arn)
 
 
 @mock_elb
