@@ -29,7 +29,10 @@ tag_github_release:
 	git tag `python setup.py --version`
 	git push origin `python setup.py --version`
 
-publish: upload_pypi_artifact tag_github_release push_dockerhub_image
+publish: implementation_coverage \
+	upload_pypi_artifact \
+	tag_github_release \
+	push_dockerhub_image
 
 implementation_coverage:
 	./scripts/implementation_coverage.py > IMPLEMENTATION_COVERAGE.md
