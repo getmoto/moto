@@ -4,7 +4,6 @@ from moto.core.responses import BaseResponse
 from .models import cloudwatch_backends
 
 
-
 class CloudWatchResponse(BaseResponse):
 
     @property
