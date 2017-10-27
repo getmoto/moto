@@ -330,7 +330,7 @@ def parse_output(output_logical_id, output_json, resources_map):
     output_json = clean_json(output_json, resources_map)
     output = Output()
     output.key = output_logical_id
-    output.value = output_json['Value']
+    output.value = clean_json(output_json['Value'], resources_map)
     output.description = output_json.get('Description')
     return output
 
