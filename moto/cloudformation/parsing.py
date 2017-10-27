@@ -15,6 +15,7 @@ from moto.dynamodb import models as dynamodb_models
 from moto.ec2 import models as ec2_models
 from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
+from moto.elbv2 import models as elbv2_models
 from moto.iam import models as iam_models
 from moto.kinesis import models as kinesis_models
 from moto.kms import models as kms_models
@@ -61,6 +62,9 @@ MODEL_MAP = {
     "AWS::ECS::TaskDefinition": ecs_models.TaskDefinition,
     "AWS::ECS::Service": ecs_models.Service,
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
+    "AWS::ElasticLoadBalancingV2::LoadBalancer": elbv2_models.FakeLoadBalancer,
+    "AWS::ElasticLoadBalancingV2::TargetGroup": elbv2_models.FakeTargetGroup,
+    "AWS::ElasticLoadBalancingV2::Listener": elbv2_models.FakeListener,
     "AWS::DataPipeline::Pipeline": datapipeline_models.Pipeline,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,
@@ -326,7 +330,7 @@ def parse_output(output_logical_id, output_json, resources_map):
     output_json = clean_json(output_json, resources_map)
     output = Output()
     output.key = output_logical_id
-    output.value = output_json['Value']
+    output.value = clean_json(output_json['Value'], resources_map)
     output.description = output_json.get('Description')
     return output
 
