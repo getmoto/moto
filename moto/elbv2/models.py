@@ -79,6 +79,10 @@ class FakeTargetGroup(BaseModel):
 
         self.targets = OrderedDict()
 
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
     def register(self, targets):
         for target in targets:
             self.targets[target['id']] = {
@@ -161,6 +165,10 @@ class FakeListener(BaseModel):
         )
 
     @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @property
     def rules(self):
         return self._non_default_rules + [self._default_rule]
 
@@ -170,6 +178,28 @@ class FakeListener(BaseModel):
     def register(self, rule):
         self._non_default_rules.append(rule)
         self._non_default_rules = sorted(self._non_default_rules, key=lambda x: x.priority)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        elbv2_backend = elbv2_backends[region_name]
+        load_balancer_arn = properties.get("LoadBalancerArn")
+        protocol = properties.get("Protocol")
+        port = properties.get("Port")
+        ssl_policy = properties.get("SslPolicy")
+        certificates = properties.get("Certificates")
+        # transform default actions to confirm with the rest of the code and XML templates
+        if "DefaultActions" in properties:
+            default_actions = []
+            for action in properties['DefaultActions']:
+                default_actions.append({'type': action['Type'], 'target_group_arn': action['TargetGroupArn']})
+        else:
+            default_actions = None
+
+        listener = elbv2_backend.create_listener(
+            load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions)
+        return listener
 
 
 class FakeRule(BaseModel):
@@ -209,7 +239,7 @@ class FakeLoadBalancer(BaseModel):
 
     @property
     def physical_resource_id(self):
-        return self.name
+        return self.arn
 
     def add_tag(self, key, value):
         if len(self.tags) >= 10 and key not in self.tags:

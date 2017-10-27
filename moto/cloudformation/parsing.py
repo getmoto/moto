@@ -64,6 +64,7 @@ MODEL_MAP = {
     "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
     "AWS::ElasticLoadBalancingV2::LoadBalancer": elbv2_models.FakeLoadBalancer,
     "AWS::ElasticLoadBalancingV2::TargetGroup": elbv2_models.FakeTargetGroup,
+    "AWS::ElasticLoadBalancingV2::Listener": elbv2_models.FakeListener,
     "AWS::DataPipeline::Pipeline": datapipeline_models.Pipeline,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,

@@ -2236,3 +2236,13 @@ def test_stack_elbv2_resources_integration():
     target_groups[0]['Port'].should.equal(80)
     target_groups[0]['Protocol'].should.equal('HTTP')
     target_groups[0]['TargetType'].should.equal('instance')
+
+    listeners = elbv2_conn.describe_listeners(LoadBalancerArn=load_balancers[0]['LoadBalancerArn'])['Listeners']
+    len(listeners).should.equal(1)
+    listeners[0]['LoadBalancerArn'].should.equal(load_balancers[0]['LoadBalancerArn'])
+    listeners[0]['Port'].should.equal(80)
+    listeners[0]['Protocol'].should.equal('HTTP')
+    listeners[0]['DefaultActions'].should.equal([{
+        "Type": "forward",
+        "TargetGroupArn": target_groups[0]['TargetGroupArn']
+    }])
