@@ -300,6 +300,16 @@ class ELBv2Backend(BaseBackend):
             if target_group.name == name:
                 raise DuplicateTargetGroupName()
 
+        valid_protocols = ['HTTPS', 'HTTP', 'TCP']
+        if kwargs['healthcheck_protocol'] not in valid_protocols:
+            raise InvalidConditionValueError(
+                "Value {} at 'healthCheckProtocol' failed to satisfy constraint: "
+                "Member must satisfy enum value set: {}".format(kwargs['healthcheck_protocol'], valid_protocols))
+        if kwargs['protocol'] not in valid_protocols:
+            raise InvalidConditionValueError(
+                "Value {} at 'protocol' failed to satisfy constraint: "
+                "Member must satisfy enum value set: {}".format(kwargs['protocol'], valid_protocols))
+
         arn = "arn:aws:elasticloadbalancing:%s:1:targetgroup/%s/50dc6c495c0c9188" % (self.region_name, name)
         target_group = FakeTargetGroup(name, arn, **kwargs)
         self.target_groups[target_group.arn] = target_group
