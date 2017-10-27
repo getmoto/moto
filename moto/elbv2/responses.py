@@ -572,6 +572,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           <Code>provisioning</Code>
         </State>
         <Type>application</Type>
+        <IpAddressType>ipv4</IpAddressType>
       </member>
       {% endfor %}
     </LoadBalancers>
