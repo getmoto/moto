@@ -266,7 +266,7 @@ class FakeLoadBalancer(BaseModel):
 
         elbv2_backend = elbv2_backends[region_name]
 
-        name = properties.get('Name')
+        name = properties.get('Name', resource_name)
         security_groups = properties.get("SecurityGroups")
         subnet_ids = properties.get('Subnets')
         scheme = properties.get('Scheme', 'internet-facing')
