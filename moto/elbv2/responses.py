@@ -472,9 +472,14 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
+        {% if target_group.matcher %}
         <Matcher>
-          <HttpCode>200</HttpCode>
+          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
         </Matcher>
+        {% endif %}
+        {% if target_group.target_type %}
+        <TargetType>{{ target_group.target_type }}</TargetType>
+        {% endif %}
       </member>
     </TargetGroups>
   </CreateTargetGroupResult>
@@ -635,16 +640,21 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
         <Protocol>{{ target_group.protocol }}</Protocol>
         <Port>{{ target_group.port }}</Port>
         <VpcId>{{ target_group.vpc_id }}</VpcId>
-        <HealthCheckProtocol>{{ target_group.health_check_protocol }}</HealthCheckProtocol>
+        <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path }}</HealthCheckPath>
         <HealthCheckIntervalSeconds>{{ target_group.healthcheck_interval_seconds }}</HealthCheckIntervalSeconds>
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
+        {% if target_group.matcher %}
         <Matcher>
-          <HttpCode>200</HttpCode>
+          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
         </Matcher>
+        {% endif %}
+        {% if target_group.target_type %}
+        <TargetType>{{ target_group.target_type }}</TargetType>
+        {% endif %}
         <LoadBalancerArns>
           {% for load_balancer_arn in target_group.load_balancer_arns %}
           <member>{{ load_balancer_arn }}</member>

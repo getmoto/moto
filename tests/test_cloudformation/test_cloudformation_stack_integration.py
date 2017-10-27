@@ -2216,8 +2216,23 @@ def test_stack_elbv2_resources_integration():
     elbv2_conn = boto3.client("elbv2", "us-west-1")
 
     load_balancers = elbv2_conn.describe_load_balancers()['LoadBalancers']
-    assert len(load_balancers) == 1
-    assert load_balancers[0]['LoadBalancerName'] == 'myelbv2'
-    assert load_balancers[0]['Scheme'] == 'internet-facing'
-    assert load_balancers[0]['Type'] == 'application'
-    assert load_balancers[0]['IpAddressType'] == 'ipv4'
+    len(load_balancers).should.equal(1)
+    load_balancers[0]['LoadBalancerName'].should.equal('myelbv2')
+    load_balancers[0]['Scheme'].should.equal('internet-facing')
+    load_balancers[0]['Type'].should.equal('application')
+    load_balancers[0]['IpAddressType'].should.equal('ipv4')
+
+    target_groups = elbv2_conn.describe_target_groups()['TargetGroups']
+    len(target_groups).should.equal(1)
+    target_groups[0]['HealthCheckIntervalSeconds'].should.equal(30)
+    target_groups[0]['HealthCheckPath'].should.equal('/status')
+    target_groups[0]['HealthCheckPort'].should.equal('80')
+    target_groups[0]['HealthCheckProtocol'].should.equal('HTTP')
+    target_groups[0]['HealthCheckTimeoutSeconds'].should.equal(5)
+    target_groups[0]['HealthyThresholdCount'].should.equal(30)
+    target_groups[0]['UnhealthyThresholdCount'].should.equal(5)
+    target_groups[0]['Matcher'].should.equal({'HttpCode': '200,201'})
+    target_groups[0]['TargetGroupName'].should.equal('mytargetgroup')
+    target_groups[0]['Port'].should.equal(80)
+    target_groups[0]['Protocol'].should.equal('HTTP')
+    target_groups[0]['TargetType'].should.equal('instance')

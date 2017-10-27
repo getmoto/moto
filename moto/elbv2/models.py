@@ -52,7 +52,9 @@ class FakeTargetGroup(BaseModel):
                  healthcheck_interval_seconds,
                  healthcheck_timeout_seconds,
                  healthy_threshold_count,
-                 unhealthy_threshold_count):
+                 unhealthy_threshold_count,
+                 matcher=None,
+                 target_type=None):
         self.name = name
         self.arn = arn
         self.vpc_id = vpc_id
@@ -67,6 +69,8 @@ class FakeTargetGroup(BaseModel):
         self.unhealthy_threshold_count = unhealthy_threshold_count
         self.load_balancer_arns = []
         self.tags = {}
+        self.matcher = matcher
+        self.target_type = target_type
 
         self.attributes = {
             'deregistration_delay.timeout_seconds': 300,
@@ -98,6 +102,43 @@ class FakeTargetGroup(BaseModel):
         if t is None:
             raise InvalidTargetError()
         return FakeHealthStatus(t['id'], t['port'], self.healthcheck_port, 'healthy')
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        elbv2_backend = elbv2_backends[region_name]
+
+        name = properties.get('Name')
+        vpc_id = properties.get("VpcId")
+        protocol = properties.get('Protocol')
+        port = properties.get("Port")
+        healthcheck_protocol = properties.get("HealthCheckProtocol")
+        healthcheck_port = properties.get("HealthCheckPort")
+        healthcheck_path = properties.get("HealthCheckPath")
+        healthcheck_interval_seconds = properties.get("HealthCheckIntervalSeconds")
+        healthcheck_timeout_seconds = properties.get("HealthCheckTimeoutSeconds")
+        healthy_threshold_count = properties.get("HealthyThresholdCount")
+        unhealthy_threshold_count = properties.get("UnhealthyThresholdCount")
+        matcher = properties.get("Matcher")
+        target_type = properties.get("TargetType")
+
+        target_group = elbv2_backend.create_target_group(
+            name=name,
+            vpc_id=vpc_id,
+            protocol=protocol,
+            port=port,
+            healthcheck_protocol=healthcheck_protocol,
+            healthcheck_port=healthcheck_port,
+            healthcheck_path=healthcheck_path,
+            healthcheck_interval_seconds=healthcheck_interval_seconds,
+            healthcheck_timeout_seconds=healthcheck_timeout_seconds,
+            healthy_threshold_count=healthy_threshold_count,
+            unhealthy_threshold_count=unhealthy_threshold_count,
+            matcher=matcher,
+            target_type=target_type,
+        )
+        return target_group
 
 
 class FakeListener(BaseModel):
