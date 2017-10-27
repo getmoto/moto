@@ -416,7 +416,7 @@ class ELBBackend(BaseBackend):
         return load_balancer
 
 
-acm_backend = acm_backends['us-west-2']
+acm_backend = acm_backends['us-east-1']
 
 elb_backends = {}
 for region in ec2_backends.keys():

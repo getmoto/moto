@@ -336,8 +336,9 @@ def test_elb_acm_in_use_by():
         CertificateArn = certificate_arn
     )
 
-    response['Certificate']['InUseBy']
-        .should.equal([create_load_balancer_request['DNSName']])
+    response['Certificate']['InUseBy'].should.equal(
+        [create_load_balancer_request['DNSName']]
+    )
 
 # # Also tests the SAN code
 # # requires Pull: https://github.com/spulec/freezegun/pull/210
