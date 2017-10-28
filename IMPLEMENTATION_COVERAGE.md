@@ -1699,17 +1699,17 @@
 - [ ] start_db_instance
 - [ ] stop_db_instance
 
-## acm - 50% implemented
-- [X] add_tags_to_certificate
-- [X] delete_certificate
-- [ ] describe_certificate
-- [X] get_certificate
-- [ ] import_certificate
-- [ ] list_certificates
-- [ ] list_tags_for_certificate
-- [X] remove_tags_from_certificate
-- [X] request_certificate
-- [ ] resend_validation_email
+## acm - 100% implemented
+- [x] add_tags_to_certificate
+- [x] delete_certificate
+- [x] describe_certificate
+- [x] get_certificate
+- [x] import_certificate
+- [x] list_certificates
+- [x] list_tags_for_certificate
+- [x] remove_tags_from_certificate
+- [x] request_certificate
+- [x] resend_validation_email
 
 ## elasticache - 0% implemented
 - [ ] add_tags_to_resource
