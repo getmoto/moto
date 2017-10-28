@@ -917,13 +917,13 @@
 - [ ] unpeer_vpc
 - [ ] update_domain_entry
 
-## xray - 0% implemented
-- [ ] batch_get_traces
-- [ ] get_service_graph
-- [ ] get_trace_graph
-- [ ] get_trace_summaries
-- [ ] put_telemetry_records
-- [ ] put_trace_segments
+## xray - 100% implemented
+- [X] batch_get_traces
+- [X] get_service_graph
+- [X] get_trace_graph
+- [X] get_trace_summaries
+- [X] put_telemetry_records
+- [X] put_trace_segments
 
 ## ec2 - 41% implemented
 - [ ] accept_reserved_instances_exchange_quote
@@ -1700,16 +1700,16 @@
 - [ ] stop_db_instance
 
 ## acm - 100% implemented
-- [x] add_tags_to_certificate
-- [x] delete_certificate
-- [x] describe_certificate
-- [x] get_certificate
-- [x] import_certificate
-- [x] list_certificates
-- [x] list_tags_for_certificate
-- [x] remove_tags_from_certificate
-- [x] request_certificate
-- [x] resend_validation_email
+- [X] add_tags_to_certificate
+- [X] delete_certificate
+- [X] describe_certificate
+- [X] get_certificate
+- [X] import_certificate
+- [X] list_certificates
+- [X] list_tags_for_certificate
+- [X] remove_tags_from_certificate
+- [X] request_certificate
+- [X] resend_validation_email
 
 ## elasticache - 0% implemented
 - [ ] add_tags_to_resource
@@ -3089,20 +3089,20 @@
 - [ ] start_configuration_recorder
 - [ ] stop_configuration_recorder
 
-## events - 73% implemented
+## events - 100% implemented
 - [X] delete_rule
-- [ ] describe_event_bus
+- [X] describe_event_bus
 - [X] describe_rule
 - [X] disable_rule
 - [X] enable_rule
 - [X] list_rule_names_by_target
 - [X] list_rules
 - [X] list_targets_by_rule
-- [ ] put_events
-- [ ] put_permission
+- [X] put_events
+- [X] put_permission
 - [X] put_rule
 - [X] put_targets
-- [ ] remove_permission
+- [X] remove_permission
 - [X] remove_targets
 - [X] test_event_pattern
 
