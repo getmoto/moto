@@ -1483,10 +1483,10 @@
 - [ ] post_content
 - [ ] post_text
 
-## ecs - 74% implemented
+## ecs - 90% implemented
 - [X] create_cluster
 - [X] create_service
-- [ ] delete_attributes
+- [X] delete_attributes
 - [X] delete_cluster
 - [X] delete_service
 - [X] deregister_container_instance
@@ -1496,15 +1496,15 @@
 - [X] describe_services
 - [X] describe_task_definition
 - [X] describe_tasks
-- [ ] discover_poll_endpoint
-- [ ] list_attributes
+- [X] discover_poll_endpoint
+- [X] list_attributes
 - [X] list_clusters
 - [X] list_container_instances
 - [X] list_services
-- [ ] list_task_definition_families
+- [X] list_task_definition_families
 - [X] list_task_definitions
 - [X] list_tasks
-- [ ] put_attributes
+- [X] put_attributes
 - [X] register_container_instance
 - [X] register_task_definition
 - [X] run_task
