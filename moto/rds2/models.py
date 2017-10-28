@@ -704,7 +704,8 @@ class RDS2Backend(BaseBackend):
         if self.arn_regex.match(source_database_id):
             db_kwargs['region'] = self.region
 
-        replica = copy.deepcopy(primary)
+        # Shouldn't really copy here as the instance is duplicated. RDS replicas have different instances.
+        replica = copy.copy(primary)
         replica.update(db_kwargs)
         replica.set_as_replica()
         self.databases[database_id] = replica
