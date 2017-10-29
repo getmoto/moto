@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import os
 
 import boto
 import boto3
@@ -19,6 +20,7 @@ from moto import settings, mock_sqs, mock_sqs_deprecated
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
+from nose import SkipTest
 
 
 @mock_sqs
@@ -754,10 +756,11 @@ def test_delete_message_after_visibility_timeout():
     assert new_queue.count() == 0
 
 
-
-
 @mock_sqs
-def test_change_message_visibility():
+def test_batch_change_message_visibility():
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+        raise SkipTest('Cant manipulate time in server mode')
+
     with freeze_time("2015-01-01 12:00:00"):
         sqs = boto3.client('sqs', region_name='us-east-1')
         resp = sqs.create_queue(
@@ -885,6 +888,9 @@ def test_create_fifo_queue_with_dlq():
 
 @mock_sqs
 def test_queue_with_dlq():
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+        raise SkipTest('Cant manipulate time in server mode')
+    
     sqs = boto3.client('sqs', region_name='us-east-1')
 
     with freeze_time("2015-01-01 12:00:00"):
