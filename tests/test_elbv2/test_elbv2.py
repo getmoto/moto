@@ -5,7 +5,8 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 import sure  # noqa
 
-from moto import mock_elbv2, mock_ec2
+from moto import mock_elbv2, mock_ec2, mock_acm
+from moto.elbv2 import elbv2_backends
 
 
 @mock_elbv2
@@ -1030,3 +1031,372 @@ def test_describe_invalid_target_group():
     # Check error raises correctly
     with assert_raises(ClientError):
         conn.describe_target_groups(Names=['invalid'])
+
+
+@mock_elbv2
+def test_describe_account_limits():
+    client = boto3.client('elbv2', region_name='eu-central-1')
+
+    resp = client.describe_account_limits()
+    resp['Limits'][0].should.contain('Name')
+    resp['Limits'][0].should.contain('Max')
+
+
+@mock_elbv2
+def test_describe_ssl_policies():
+    client = boto3.client('elbv2', region_name='eu-central-1')
+
+    resp = client.describe_ssl_policies()
+    len(resp['SslPolicies']).should.equal(5)
+
+    resp = client.describe_ssl_policies(Names=['ELBSecurityPolicy-TLS-1-2-2017-01', 'ELBSecurityPolicy-2016-08'])
+    len(resp['SslPolicies']).should.equal(2)
+
+
+@mock_elbv2
+@mock_ec2
+def test_set_ip_address_type():
+    client = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
+
+    response = client.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+    arn = response['LoadBalancers'][0]['LoadBalancerArn']
+
+    # Internal LBs cant be dualstack yet
+    with assert_raises(ClientError):
+        client.set_ip_address_type(
+            LoadBalancerArn=arn,
+            IpAddressType='dualstack'
+        )
+
+    # Create internet facing one
+    response = client.create_load_balancer(
+        Name='my-lb2',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internet-facing',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+    arn = response['LoadBalancers'][0]['LoadBalancerArn']
+
+    client.set_ip_address_type(
+        LoadBalancerArn=arn,
+        IpAddressType='dualstack'
+    )
+
+
+@mock_elbv2
+@mock_ec2
+def test_set_security_groups():
+    client = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    security_group2 = ec2.create_security_group(
+        GroupName='b-security-group', Description='Second One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
+
+    response = client.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+    arn = response['LoadBalancers'][0]['LoadBalancerArn']
+
+    client.set_security_groups(
+        LoadBalancerArn=arn,
+        SecurityGroups=[security_group.id, security_group2.id]
+    )
+
+    resp = client.describe_load_balancers(LoadBalancerArns=[arn])
+    len(resp['LoadBalancers'][0]['SecurityGroups']).should.equal(2)
+
+    with assert_raises(ClientError):
+        client.set_security_groups(
+            LoadBalancerArn=arn,
+            SecurityGroups=['non_existant']
+        )
+
+
+@mock_elbv2
+@mock_ec2
+def test_set_subnets():
+    client = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
+    subnet3 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1c')
+
+    response = client.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+    arn = response['LoadBalancers'][0]['LoadBalancerArn']
+
+    client.set_subnets(
+        LoadBalancerArn=arn,
+        Subnets=[subnet1.id, subnet2.id, subnet3.id]
+    )
+
+    resp = client.describe_load_balancers(LoadBalancerArns=[arn])
+    len(resp['LoadBalancers'][0]['AvailabilityZones']).should.equal(3)
+
+    # Only 1 AZ
+    with assert_raises(ClientError):
+        client.set_subnets(
+            LoadBalancerArn=arn,
+            Subnets=[subnet1.id]
+        )
+
+    # Multiple subnets in same AZ
+    with assert_raises(ClientError):
+        client.set_subnets(
+            LoadBalancerArn=arn,
+            Subnets=[subnet1.id, subnet2.id, subnet2.id]
+        )
+
+
+@mock_elbv2
+@mock_ec2
+def test_set_subnets():
+    client = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
+
+    response = client.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+    arn = response['LoadBalancers'][0]['LoadBalancerArn']
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[{'Key': 'idle_timeout.timeout_seconds', 'Value': '600'}]
+    )
+
+    # Check its 600 not 60
+    response = client.describe_load_balancer_attributes(
+        LoadBalancerArn=arn
+    )
+    idle_timeout = list(filter(lambda item: item['Key'] == 'idle_timeout.timeout_seconds', response['Attributes']))[0]
+    idle_timeout['Value'].should.equal('600')
+
+
+@mock_elbv2
+@mock_ec2
+def test_modify_target_group():
+    client = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+
+    response = client.create_target_group(
+        Name='a-target',
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPort='8080',
+        HealthCheckPath='/',
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={'HttpCode': '200'})
+    arn = response.get('TargetGroups')[0]['TargetGroupArn']
+
+    client.modify_target_group(
+        TargetGroupArn=arn,
+        HealthCheckProtocol='HTTPS',
+        HealthCheckPort='8081',
+        HealthCheckPath='/status',
+        HealthCheckIntervalSeconds=10,
+        HealthCheckTimeoutSeconds=10,
+        HealthyThresholdCount=10,
+        UnhealthyThresholdCount=4,
+        Matcher={'HttpCode': '200-399'}
+    )
+
+    response = client.describe_target_groups(
+        TargetGroupArns=[arn]
+    )
+    response['TargetGroups'][0]['Matcher']['HttpCode'].should.equal('200-399')
+    response['TargetGroups'][0]['HealthCheckIntervalSeconds'].should.equal(10)
+    response['TargetGroups'][0]['HealthCheckPath'].should.equal('/status')
+    response['TargetGroups'][0]['HealthCheckPort'].should.equal('8081')
+    response['TargetGroups'][0]['HealthCheckProtocol'].should.equal('HTTPS')
+    response['TargetGroups'][0]['HealthCheckTimeoutSeconds'].should.equal(10)
+    response['TargetGroups'][0]['HealthyThresholdCount'].should.equal(10)
+    response['TargetGroups'][0]['UnhealthyThresholdCount'].should.equal(4)
+
+
+@mock_elbv2
+@mock_ec2
+@mock_acm
+def test_modify_listener_http_to_https():
+    client = boto3.client('elbv2', region_name='eu-central-1')
+    acm = boto3.client('acm', region_name='eu-central-1')
+    ec2 = boto3.resource('ec2', region_name='eu-central-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='eu-central-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='eu-central-1b')
+
+    response = client.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    response = client.create_target_group(
+        Name='a-target',
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPort='8080',
+        HealthCheckPath='/',
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={'HttpCode': '200'})
+    target_group = response.get('TargetGroups')[0]
+    target_group_arn = target_group['TargetGroupArn']
+
+    # Plain HTTP listener
+    response = client.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol='HTTP',
+        Port=80,
+        DefaultActions=[{'Type': 'forward', 'TargetGroupArn': target_group_arn}]
+    )
+    listener_arn = response['Listeners'][0]['ListenerArn']
+
+    response = acm.request_certificate(
+        DomainName='google.com',
+        SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
+    )
+    google_arn = response['CertificateArn']
+    response = acm.request_certificate(
+        DomainName='yahoo.com',
+        SubjectAlternativeNames=['yahoo.com', 'www.yahoo.com', 'mail.yahoo.com'],
+    )
+    yahoo_arn = response['CertificateArn']
+
+    response = client.modify_listener(
+        ListenerArn=listener_arn,
+        Port=443,
+        Protocol='HTTPS',
+        SslPolicy='ELBSecurityPolicy-TLS-1-2-2017-01',
+        Certificates=[
+            {'CertificateArn': google_arn, 'IsDefault': False},
+            {'CertificateArn': yahoo_arn, 'IsDefault': True}
+        ],
+        DefaultActions=[
+            {'Type': 'forward', 'TargetGroupArn': target_group_arn}
+        ]
+    )
+    response['Listeners'][0]['Port'].should.equal(443)
+    response['Listeners'][0]['Protocol'].should.equal('HTTPS')
+    response['Listeners'][0]['SslPolicy'].should.equal('ELBSecurityPolicy-TLS-1-2-2017-01')
+    len(response['Listeners'][0]['Certificates']).should.equal(2)
+
+    # Check default cert
+    listener = elbv2_backends['eu-central-1'].load_balancers[load_balancer_arn].listeners[listener_arn]
+    listener.certificate.should.equal(yahoo_arn)
+
+    # No default cert
+    with assert_raises(ClientError):
+        client.modify_listener(
+            ListenerArn=listener_arn,
+            Port=443,
+            Protocol='HTTPS',
+            SslPolicy='ELBSecurityPolicy-TLS-1-2-2017-01',
+            Certificates=[
+                {'CertificateArn': google_arn, 'IsDefault': False}
+            ],
+            DefaultActions=[
+                {'Type': 'forward', 'TargetGroupArn': target_group_arn}
+            ]
+        )
+
+    # Bad cert
+    with assert_raises(ClientError):
+        client.modify_listener(
+            ListenerArn=listener_arn,
+            Port=443,
+            Protocol='HTTPS',
+            SslPolicy='ELBSecurityPolicy-TLS-1-2-2017-01',
+            Certificates=[
+                {'CertificateArn': 'lalala', 'IsDefault': True}
+            ],
+            DefaultActions=[
+                {'Type': 'forward', 'TargetGroupArn': target_group_arn}
+            ]
+        )
