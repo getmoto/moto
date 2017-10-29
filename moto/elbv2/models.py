@@ -430,7 +430,7 @@ class ELBv2Backend(BaseBackend):
             if target_group.name == name:
                 raise DuplicateTargetGroupName()
 
-        if FakeTargetGroup.HTTP_CODE_REGEX.match(kwargs['http_codes']) is None:
+        if FakeTargetGroup.HTTP_CODE_REGEX.match(kwargs['matcher']['HttpCode']) is None:
             raise RESTError('InvalidParameterValue', 'HttpCode must be like 200 | 200-399 | 200,201 ...')
 
         arn = "arn:aws:elasticloadbalancing:%s:1:targetgroup/%s/50dc6c495c0c9188" % (self.region_name, name)
@@ -760,7 +760,7 @@ class ELBv2Backend(BaseBackend):
             raise RESTError('InvalidParameterValue', 'HttpCode must be like 200 | 200-399 | 200,201 ...')
 
         if http_codes is not None:
-            target_group.http_status_codes = http_codes
+            target_group.matcher['HttpCode'] = http_codes
         if health_check_interval is not None:
             target_group.healthcheck_interval_seconds = health_check_interval
         if health_check_path is not None:

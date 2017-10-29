@@ -201,7 +201,7 @@ class ELBV2Response(BaseResponse):
             healthcheck_timeout_seconds=healthcheck_timeout_seconds,
             healthy_threshold_count=healthy_threshold_count,
             unhealthy_threshold_count=unhealthy_threshold_count,
-            http_codes=http_codes
+            matcher={'HttpCode': http_codes}
         )
 
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)
