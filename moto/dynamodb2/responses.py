@@ -593,4 +593,3 @@ class DynamoHandler(BaseResponse):
         ttl_spec = self.dynamodb_backend.describe_ttl(name)
 
         return json.dumps({'TimeToLiveDescription': ttl_spec})
-
