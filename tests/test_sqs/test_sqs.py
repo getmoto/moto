@@ -8,9 +8,12 @@ from botocore.exceptions import ClientError
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage, Message
 
+from freezegun import freeze_time
 import base64
+import json
 import sure  # noqa
 import time
+import uuid
 
 from moto import settings, mock_sqs, mock_sqs_deprecated
 from tests.helpers import requires_boto_gte
@@ -93,8 +96,6 @@ def test_message_send_without_attributes():
     msg.get('MD5OfMessageBody').should.equal(
         '58fd9edd83341c29f1aebba81c31e257')
     msg.shouldnt.have.key('MD5OfMessageAttributes')
-    msg.get('ResponseMetadata', {}).get('RequestId').should.equal(
-        '27daac76-34dd-47df-bd01-1f6e873584a0')
     msg.get('MessageId').should_not.contain(' \n')
 
     messages = queue.receive_messages()
@@ -118,8 +119,6 @@ def test_message_send_with_attributes():
         '58fd9edd83341c29f1aebba81c31e257')
     msg.get('MD5OfMessageAttributes').should.equal(
         '235c5c510d26fb653d073faed50ae77c')
-    msg.get('ResponseMetadata', {}).get('RequestId').should.equal(
-        '27daac76-34dd-47df-bd01-1f6e873584a0')
     msg.get('MessageId').should_not.contain(' \n')
 
     messages = queue.receive_messages()
@@ -143,8 +142,6 @@ def test_message_with_complex_attributes():
         '58fd9edd83341c29f1aebba81c31e257')
     msg.get('MD5OfMessageAttributes').should.equal(
         '8ae21a7957029ef04146b42aeaa18a22')
-    msg.get('ResponseMetadata', {}).get('RequestId').should.equal(
-        '27daac76-34dd-47df-bd01-1f6e873584a0')
     msg.get('MessageId').should_not.contain(' \n')
 
     messages = queue.receive_messages()
@@ -755,3 +752,177 @@ def test_delete_message_after_visibility_timeout():
     m1_retrieved.delete()
 
     assert new_queue.count() == 0
+
+
+
+
+@mock_sqs
+def test_change_message_visibility():
+    with freeze_time("2015-01-01 12:00:00"):
+        sqs = boto3.client('sqs', region_name='us-east-1')
+        resp = sqs.create_queue(
+            QueueName='test-dlr-queue.fifo',
+            Attributes={'FifoQueue': 'true'}
+        )
+        queue_url = resp['QueueUrl']
+
+        sqs.send_message(QueueUrl=queue_url, MessageBody='msg1')
+        sqs.send_message(QueueUrl=queue_url, MessageBody='msg2')
+        sqs.send_message(QueueUrl=queue_url, MessageBody='msg3')
+
+    with freeze_time("2015-01-01 12:01:00"):
+        receive_resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=2)
+        len(receive_resp['Messages']).should.equal(2)
+
+        handles = [item['ReceiptHandle'] for item in receive_resp['Messages']]
+        entries = [{'Id': str(uuid.uuid4()), 'ReceiptHandle': handle, 'VisibilityTimeout': 43200} for handle in handles]
+
+        resp = sqs.change_message_visibility_batch(QueueUrl=queue_url, Entries=entries)
+        len(resp['Successful']).should.equal(2)
+
+    with freeze_time("2015-01-01 14:00:00"):
+        resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=3)
+        len(resp['Messages']).should.equal(1)
+
+    with freeze_time("2015-01-01 16:00:00"):
+        resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=3)
+        len(resp['Messages']).should.equal(1)
+
+    with freeze_time("2015-01-02 12:00:00"):
+        resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=3)
+        len(resp['Messages']).should.equal(3)
+
+
+@mock_sqs
+def test_permissions():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    resp = client.create_queue(
+        QueueName='test-dlr-queue.fifo',
+        Attributes={'FifoQueue': 'true'}
+    )
+    queue_url = resp['QueueUrl']
+
+    client.add_permission(QueueUrl=queue_url, Label='account1', AWSAccountIds=['111111111111'], Actions=['*'])
+    client.add_permission(QueueUrl=queue_url, Label='account2', AWSAccountIds=['222211111111'], Actions=['SendMessage'])
+
+    with assert_raises(ClientError):
+        client.add_permission(QueueUrl=queue_url, Label='account2', AWSAccountIds=['222211111111'], Actions=['SomeRubbish'])
+
+    client.remove_permission(QueueUrl=queue_url, Label='account2')
+
+    with assert_raises(ClientError):
+        client.remove_permission(QueueUrl=queue_url, Label='non_existant')
+
+
+@mock_sqs
+def test_tags():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    resp = client.create_queue(
+        QueueName='test-dlr-queue.fifo',
+        Attributes={'FifoQueue': 'true'}
+    )
+    queue_url = resp['QueueUrl']
+
+    client.tag_queue(
+        QueueUrl=queue_url,
+        Tags={
+            'test1': 'value1',
+            'test2': 'value2',
+        }
+    )
+
+    resp = client.list_queue_tags(QueueUrl=queue_url)
+    resp['Tags'].should.contain('test1')
+    resp['Tags'].should.contain('test2')
+
+    client.untag_queue(
+        QueueUrl=queue_url,
+        TagKeys=['test2']
+    )
+
+    resp = client.list_queue_tags(QueueUrl=queue_url)
+    resp['Tags'].should.contain('test1')
+    resp['Tags'].should_not.contain('test2')
+
+
+@mock_sqs
+def test_create_fifo_queue_with_dlq():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+    resp = sqs.create_queue(
+        QueueName='test-dlr-queue.fifo',
+        Attributes={'FifoQueue': 'true'}
+    )
+    queue_url1 = resp['QueueUrl']
+    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)['Attributes']['QueueArn']
+
+    resp = sqs.create_queue(
+        QueueName='test-dlr-queue',
+        Attributes={'FifoQueue': 'false'}
+    )
+    queue_url2 = resp['QueueUrl']
+    queue_arn2 = sqs.get_queue_attributes(QueueUrl=queue_url2)['Attributes']['QueueArn']
+
+    sqs.create_queue(
+        QueueName='test-queue.fifo',
+        Attributes={
+            'FifoQueue': 'true',
+            'RedrivePolicy': json.dumps({'deadLetterTargetArn': queue_arn1, 'maxReceiveCount': 2})
+        }
+    )
+
+    # Cant have fifo queue with non fifo DLQ
+    with assert_raises(ClientError):
+        sqs.create_queue(
+            QueueName='test-queue2.fifo',
+            Attributes={
+                'FifoQueue': 'true',
+                'RedrivePolicy': json.dumps({'deadLetterTargetArn': queue_arn2, 'maxReceiveCount': 2})
+            }
+        )
+
+
+@mock_sqs
+def test_queue_with_dlq():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+
+    with freeze_time("2015-01-01 12:00:00"):
+        resp = sqs.create_queue(
+            QueueName='test-dlr-queue.fifo',
+            Attributes={'FifoQueue': 'true'}
+        )
+        queue_url1 = resp['QueueUrl']
+        queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)['Attributes']['QueueArn']
+
+        resp = sqs.create_queue(
+            QueueName='test-queue.fifo',
+            Attributes={
+                'FifoQueue': 'true',
+                'RedrivePolicy': json.dumps({'deadLetterTargetArn': queue_arn1, 'maxReceiveCount': 2})
+            }
+        )
+        queue_url2 = resp['QueueUrl']
+
+        sqs.send_message(QueueUrl=queue_url2, MessageBody='msg1')
+        sqs.send_message(QueueUrl=queue_url2, MessageBody='msg2')
+
+    with freeze_time("2015-01-01 13:00:00"):
+        resp = sqs.receive_message(QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0)
+        resp['Messages'][0]['Body'].should.equal('msg1')
+
+    with freeze_time("2015-01-01 13:01:00"):
+        resp = sqs.receive_message(QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0)
+        resp['Messages'][0]['Body'].should.equal('msg1')
+
+    with freeze_time("2015-01-01 13:02:00"):
+        resp = sqs.receive_message(QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0)
+        len(resp['Messages']).should.equal(1)
+
+    resp = sqs.receive_message(QueueUrl=queue_url1, VisibilityTimeout=30, WaitTimeSeconds=0)
+    resp['Messages'][0]['Body'].should.equal('msg1')
+
+    # Might as well test list source queues
+
+    resp = sqs.list_dead_letter_source_queues(QueueUrl=queue_url1)
+    resp['queueUrls'][0].should.equal(queue_url2)

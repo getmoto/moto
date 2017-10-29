@@ -3149,24 +3149,27 @@
 - [ ] put_scaling_policy
 - [ ] register_scalable_target
 
-## sqs - 41% implemented
-- [ ] add_permission
+## sqs - 100% implemented
+- [X] add_permission
 - [X] change_message_visibility
-- [ ] change_message_visibility_batch
+- [X] change_message_visibility_batch
 - [X] create_queue
 - [X] delete_message
-- [ ] delete_message_batch
+- [X] delete_message_batch
 - [X] delete_queue
-- [ ] get_queue_attributes
-- [ ] get_queue_url
-- [ ] list_dead_letter_source_queues
+- [X] get_queue_attributes
+- [X] get_queue_url
+- [X] list_dead_letter_source_queues
 - [X] list_queues
 - [X] purge_queue
-- [ ] receive_message
-- [ ] remove_permission
+- [X] receive_message
+- [X] remove_permission
 - [X] send_message
-- [ ] send_message_batch
-- [ ] set_queue_attributes
+- [X] send_message_batch
+- [X] set_queue_attributes
+- [X] tag_queue
+- [X] untag_queue
+- [X] list_queue_tags
 
 ## iot - 0% implemented
 - [ ] accept_certificate_transfer
