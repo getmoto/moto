@@ -57,7 +57,8 @@ class FakeTargetGroup(BaseModel):
                  healthcheck_timeout_seconds,
                  healthy_threshold_count,
                  unhealthy_threshold_count,
-                 http_codes):
+                 matcher=None,
+                 target_type=None):
         self.name = name
         self.arn = arn
         self.vpc_id = vpc_id
@@ -72,7 +73,8 @@ class FakeTargetGroup(BaseModel):
         self.unhealthy_threshold_count = unhealthy_threshold_count
         self.load_balancer_arns = []
         self.tags = {}
-        self.http_status_codes = http_codes
+        self.matcher = matcher
+        self.target_type = target_type
 
         self.attributes = {
             'deregistration_delay.timeout_seconds': 300,
@@ -80,6 +82,10 @@ class FakeTargetGroup(BaseModel):
         }
 
         self.targets = OrderedDict()
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
 
     def register(self, targets):
         for target in targets:
@@ -105,6 +111,46 @@ class FakeTargetGroup(BaseModel):
             raise InvalidTargetError()
         return FakeHealthStatus(t['id'], t['port'], self.healthcheck_port, 'healthy')
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        elbv2_backend = elbv2_backends[region_name]
+
+        # per cloudformation docs:
+        # The target group name should be shorter than 22 characters because
+        # AWS CloudFormation uses the target group name to create the name of the load balancer.
+        name = properties.get('Name', resource_name[:22])
+        vpc_id = properties.get("VpcId")
+        protocol = properties.get('Protocol')
+        port = properties.get("Port")
+        healthcheck_protocol = properties.get("HealthCheckProtocol")
+        healthcheck_port = properties.get("HealthCheckPort")
+        healthcheck_path = properties.get("HealthCheckPath")
+        healthcheck_interval_seconds = properties.get("HealthCheckIntervalSeconds")
+        healthcheck_timeout_seconds = properties.get("HealthCheckTimeoutSeconds")
+        healthy_threshold_count = properties.get("HealthyThresholdCount")
+        unhealthy_threshold_count = properties.get("UnhealthyThresholdCount")
+        matcher = properties.get("Matcher")
+        target_type = properties.get("TargetType")
+
+        target_group = elbv2_backend.create_target_group(
+            name=name,
+            vpc_id=vpc_id,
+            protocol=protocol,
+            port=port,
+            healthcheck_protocol=healthcheck_protocol,
+            healthcheck_port=healthcheck_port,
+            healthcheck_path=healthcheck_path,
+            healthcheck_interval_seconds=healthcheck_interval_seconds,
+            healthcheck_timeout_seconds=healthcheck_timeout_seconds,
+            healthy_threshold_count=healthy_threshold_count,
+            unhealthy_threshold_count=unhealthy_threshold_count,
+            matcher=matcher,
+            target_type=target_type,
+        )
+        return target_group
+
 
 class FakeListener(BaseModel):
 
@@ -127,6 +173,10 @@ class FakeListener(BaseModel):
         )
 
     @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @property
     def rules(self):
         return self._non_default_rules + [self._default_rule]
 
@@ -136,6 +186,28 @@ class FakeListener(BaseModel):
     def register(self, rule):
         self._non_default_rules.append(rule)
         self._non_default_rules = sorted(self._non_default_rules, key=lambda x: x.priority)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        elbv2_backend = elbv2_backends[region_name]
+        load_balancer_arn = properties.get("LoadBalancerArn")
+        protocol = properties.get("Protocol")
+        port = properties.get("Port")
+        ssl_policy = properties.get("SslPolicy")
+        certificates = properties.get("Certificates")
+        # transform default actions to confirm with the rest of the code and XML templates
+        if "DefaultActions" in properties:
+            default_actions = []
+            for action in properties['DefaultActions']:
+                default_actions.append({'type': action['Type'], 'target_group_arn': action['TargetGroupArn']})
+        else:
+            default_actions = None
+
+        listener = elbv2_backend.create_listener(
+            load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions)
+        return listener
 
 
 class FakeRule(BaseModel):
@@ -186,7 +258,7 @@ class FakeLoadBalancer(BaseModel):
 
     @property
     def physical_resource_id(self):
-        return self.name
+        return self.arn
 
     def add_tag(self, key, value):
         if len(self.tags) >= 10 and key not in self.tags:
@@ -203,6 +275,27 @@ class FakeLoadBalancer(BaseModel):
     def delete(self, region):
         ''' Not exposed as part of the ELB API - used for CloudFormation. '''
         elbv2_backends[region].delete_load_balancer(self.arn)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        elbv2_backend = elbv2_backends[region_name]
+
+        name = properties.get('Name', resource_name)
+        security_groups = properties.get("SecurityGroups")
+        subnet_ids = properties.get('Subnets')
+        scheme = properties.get('Scheme', 'internet-facing')
+
+        load_balancer = elbv2_backend.create_load_balancer(name, security_groups, subnet_ids, scheme=scheme)
+        return load_balancer
+
+    def get_cfn_attribute(self, attribute_name):
+        attributes = {
+            'DNSName': self.dns_name,
+            'LoadBalancerName': self.name,
+        }
+        return attributes[attribute_name]
 
 
 class ELBv2Backend(BaseBackend):
@@ -316,7 +409,7 @@ class ELBv2Backend(BaseBackend):
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:
             raise InvalidTargetGroupNameError(
-                "Target group name '%s' cannot be longer than '32' characters" % name
+                "Target group name '%s' cannot be longer than '22' characters" % name
             )
         if not re.match('^[a-zA-Z0-9\-]+$', name):
             raise InvalidTargetGroupNameError(

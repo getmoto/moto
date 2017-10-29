@@ -734,9 +734,14 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
+        {% if target_group.matcher %}
         <Matcher>
-          <HttpCode>200</HttpCode>
+          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
         </Matcher>
+        {% endif %}
+        {% if target_group.target_type %}
+        <TargetType>{{ target_group.target_type }}</TargetType>
+        {% endif %}
       </member>
     </TargetGroups>
   </CreateTargetGroupResult>
@@ -836,6 +841,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           <Code>provisioning</Code>
         </State>
         <Type>application</Type>
+        <IpAddressType>ipv4</IpAddressType>
       </member>
       {% endfor %}
     </LoadBalancers>
@@ -905,9 +911,14 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
+        {% if target_group.matcher %}
         <Matcher>
-          <HttpCode>{{ target_group.http_status_codes }}</HttpCode>
+          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
         </Matcher>
+        {% endif %}
+        {% if target_group.target_type %}
+        <TargetType>{{ target_group.target_type }}</TargetType>
+        {% endif %}
         <LoadBalancerArns>
           {% for load_balancer_arn in target_group.load_balancer_arns %}
           <member>{{ load_balancer_arn }}</member>
@@ -1351,7 +1362,7 @@ MODIFY_TARGET_GROUP_TEMPLATE = """<ModifyTargetGroupResponse xmlns="http://elast
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
         <Matcher>
-          <HttpCode>{{ target_group.http_status_codes }}</HttpCode>
+          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
         </Matcher>
         <LoadBalancerArns>
           {% for load_balancer_arn in target_group.load_balancer_arns %}
