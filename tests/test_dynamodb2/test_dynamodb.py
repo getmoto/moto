@@ -88,11 +88,21 @@ def test_list_table_tags():
                       ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
     table_description = conn.describe_table(TableName=name)
     arn = table_description['Table']['TableArn']
-    tags = [{'Key':'TestTag', 'Value': 'TestValue'}]
-    conn.tag_resource(ResourceArn=arn,
-                      Tags=tags)
+
+    # Tag table
+    tags = [{'Key': 'TestTag', 'Value': 'TestValue'}, {'Key': 'TestTag2', 'Value': 'TestValue2'}]
+    conn.tag_resource(ResourceArn=arn, Tags=tags)
+
+    # Check tags
     resp = conn.list_tags_of_resource(ResourceArn=arn)
     assert resp["Tags"] == tags
+
+    # Remove 1 tag
+    conn.untag_resource(ResourceArn=arn, TagKeys=['TestTag'])
+
+    # Check tags
+    resp = conn.list_tags_of_resource(ResourceArn=arn)
+    assert resp["Tags"] == [{'Key': 'TestTag2', 'Value': 'TestValue2'}]
 
 
 @requires_boto_gte("2.9")
@@ -868,3 +878,49 @@ def test_delete_item():
 
     response = table.scan()
     assert response['Count'] == 0
+
+
+@mock_dynamodb2
+def test_describe_limits():
+    client = boto3.client('dynamodb', region_name='eu-central-1')
+    resp = client.describe_limits()
+
+    resp['AccountMaxReadCapacityUnits'].should.equal(20000)
+    resp['AccountMaxWriteCapacityUnits'].should.equal(20000)
+    resp['TableMaxWriteCapacityUnits'].should.equal(10000)
+    resp['TableMaxReadCapacityUnits'].should.equal(10000)
+
+
+@mock_dynamodb2
+def test_set_ttl():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+
+    client.update_time_to_live(
+        TableName='test1',
+        TimeToLiveSpecification={
+            'Enabled': True,
+            'AttributeName': 'expire'
+        }
+    )
+
+    resp = client.describe_time_to_live(TableName='test1')
+    resp['TimeToLiveDescription']['TimeToLiveStatus'].should.equal('ENABLED')
+    resp['TimeToLiveDescription']['AttributeName'].should.equal('expire')
+
+    client.update_time_to_live(
+        TableName='test1',
+        TimeToLiveSpecification={
+            'Enabled': False,
+            'AttributeName': 'expire'
+        }
+    )
+
+    resp['TimeToLiveDescription']['TimeToLiveStatus'].should.equal('DISABLED')

@@ -203,26 +203,26 @@
 - [ ] set_load_balancer_policies_for_backend_server
 - [X] set_load_balancer_policies_of_listener
 
-## dynamodb - 36% implemented
-- [ ] batch_get_item
-- [ ] batch_write_item
+## dynamodb - 100% implemented (is dynamodbv2)
+- [X] batch_get_item
+- [X] batch_write_item
 - [X] create_table
 - [X] delete_item
 - [X] delete_table
-- [ ] describe_limits
-- [ ] describe_table
-- [ ] describe_time_to_live
+- [X] describe_limits
+- [X] describe_table
+- [X] describe_time_to_live
 - [X] get_item
-- [ ] list_tables
-- [ ] list_tags_of_resource
+- [X] list_tables
+- [X] list_tags_of_resource
 - [X] put_item
 - [X] query
 - [X] scan
-- [ ] tag_resource
-- [ ] untag_resource
-- [ ] update_item
-- [ ] update_table
-- [ ] update_time_to_live
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_item
+- [X] update_table
+- [X] update_time_to_live
 
 ## cloudhsmv2 - 0% implemented
 - [ ] create_cluster
@@ -1853,31 +1853,31 @@
 - [ ] refresh_trusted_advisor_check
 - [ ] resolve_case
 
-## lambda - 0% implemented
+## lambda - 32% implemented
 - [ ] add_permission
 - [ ] create_alias
 - [ ] create_event_source_mapping
-- [ ] create_function
+- [X] create_function
 - [ ] delete_alias
 - [ ] delete_event_source_mapping
-- [ ] delete_function
+- [X] delete_function
 - [ ] get_account_settings
 - [ ] get_alias
 - [ ] get_event_source_mapping
-- [ ] get_function
+- [X] get_function
 - [ ] get_function_configuration
-- [ ] get_policy
-- [ ] invoke
+- [X] get_policy
+- [X] invoke
 - [ ] invoke_async
 - [ ] list_aliases
 - [ ] list_event_source_mappings
-- [ ] list_functions
-- [ ] list_tags
+- [X] list_functions
+- [X] list_tags
 - [ ] list_versions_by_function
 - [ ] publish_version
 - [ ] remove_permission
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_alias
 - [ ] update_event_source_mapping
 - [ ] update_function_code
