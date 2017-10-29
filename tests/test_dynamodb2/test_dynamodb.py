@@ -28,13 +28,13 @@ except ImportError:
 @mock_dynamodb2_deprecated
 def test_list_tables():
     name = 'TestTable'
-    #{'schema': }
+    # Should make tables properly with boto
     dynamodb_backend2.create_table(name, schema=[
         {u'KeyType': u'HASH', u'AttributeName': u'forum_name'},
         {u'KeyType': u'RANGE', u'AttributeName': u'subject'}
     ])
     conn = boto.dynamodb2.connect_to_region(
-        'us-west-2',
+        'us-east-1',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
     assert conn.list_tables()["TableNames"] == [name]
@@ -43,6 +43,7 @@ def test_list_tables():
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 def test_list_tables_layer_1():
+    # Should make tables properly with boto
     dynamodb_backend2.create_table("test_1", schema=[
         {u'KeyType': u'HASH', u'AttributeName': u'name'}
     ])
@@ -50,7 +51,7 @@ def test_list_tables_layer_1():
         {u'KeyType': u'HASH', u'AttributeName': u'name'}
     ])
     conn = boto.dynamodb2.connect_to_region(
-        'us-west-2',
+        'us-east-1',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
 
@@ -923,4 +924,5 @@ def test_set_ttl():
         }
     )
 
+    resp = client.describe_time_to_live(TableName='test1')
     resp['TimeToLiveDescription']['TimeToLiveStatus'].should.equal('DISABLED')
