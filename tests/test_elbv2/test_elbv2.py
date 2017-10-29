@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import os
 import boto3
 import botocore
 from botocore.exceptions import ClientError
@@ -1367,9 +1368,10 @@ def test_modify_listener_http_to_https():
     response['Listeners'][0]['SslPolicy'].should.equal('ELBSecurityPolicy-TLS-1-2-2017-01')
     len(response['Listeners'][0]['Certificates']).should.equal(2)
 
-    # Check default cert
-    listener = elbv2_backends['eu-central-1'].load_balancers[load_balancer_arn].listeners[listener_arn]
-    listener.certificate.should.equal(yahoo_arn)
+    # Check default cert, can't do this in server mode
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'false':
+        listener = elbv2_backends['eu-central-1'].load_balancers[load_balancer_arn].listeners[listener_arn]
+        listener.certificate.should.equal(yahoo_arn)
 
     # No default cert
     with assert_raises(ClientError):
