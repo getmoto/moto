@@ -54,8 +54,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if not host:
             host = urlparse(request.url).netloc
 
-        if not host or host.startswith("localhost") or re.match(r"^[^.]+$", host):
-            # For localhost or local domain names, default to path-based buckets
+        if (not host or host.startswith('localhost') or
+                re.match(r'^[^.]+$', host) or re.match(r'^.*\.svc\.cluster\.local$', host)):
+            # Default to path-based buckets for (1) localhost, (2) local host names that do not
+            # contain a "." (e.g., Docker container host names), or (3) kubernetes host names
             return False
 
         match = re.match(r'^([^\[\]:]+)(:\d+)?$', host)
