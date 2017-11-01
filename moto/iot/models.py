@@ -29,10 +29,11 @@ class FakeThing(BaseModel):
     def to_dict(self, include_default_client_id=False):
         obj = {
             'thingName': self.thing_name,
-            'thingTypeName': self.thing_type.thing_type_name,
             'attributes': self.attributes,
             'version': self.version
         }
+        if self.thing_type:
+            obj['thingTypeName'] = self.thing_type.thing_type_name
         if include_default_client_id:
             obj['defaultClientId'] = self.thing_name
         return obj
