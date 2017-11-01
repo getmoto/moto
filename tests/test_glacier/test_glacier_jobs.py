@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import json
+import time
 
 from boto.glacier.layer1 import Layer1
 import sure  # noqa
@@ -56,6 +57,7 @@ def test_describe_job():
         'CreationDate': '2013-03-20T17:03:43.221Z',
         'StatusMessage': None,
         'StatusCode': 'Succeeded',
+        'Tier': 'Standard'
     })
 
 
@@ -96,5 +98,7 @@ def test_get_job_output():
     })
     job_id = job_response['JobId']
 
+    time.sleep(62)
+    
     output = conn.get_job_output(vault_name, job_id)
     output.read().decode("utf-8").should.equal("some stuff")
