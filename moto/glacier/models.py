@@ -3,26 +3,27 @@ from __future__ import unicode_literals
 import hashlib
 
 import datetime
-from time import gmtime, strftime
+
 
 import boto.glacier
 from moto.core import BaseBackend, BaseModel
 
 from .utils import get_job_id
 
+
 class Job(BaseModel):
     def __init__(self, tier):
         self.st = datetime.datetime.now()
-        
+
         if tier.lower() == "expedited":
-            self.et = self.st + datetime.timedelta(minutes = 1)
+            self.et = self.st + datetime.timedelta(minutes=1)
         elif tier.lower() == "bulk":
-            self.et = self.st + datetime.timedelta(minutes = 1)
+            self.et = self.st + datetime.timedelta(minutes=1)
         else:
             # Standard
-            self.et = self.st + datetime.timedelta(minutes = 1)
+            self.et = self.st + datetime.timedelta(minutes=1)
 
-        
+
 class ArchiveJob(Job):
 
     def __init__(self, job_id, tier, arn, archive_id):
@@ -31,7 +32,7 @@ class ArchiveJob(Job):
         self.arn = arn
         self.archive_id = archive_id
         Job.__init__(self, tier)
-            
+
     def to_dict(self):
         d = {
             "Action": "ArchiveRetrieval",
@@ -131,7 +132,7 @@ class Vault(BaseModel):
 
     def get_archive_body(self, archive_id):
         return self.archives[archive_id]["body"]
-        
+
     def get_archive_list(self):
         archive_list = []
         for a in self.archives:
@@ -151,12 +152,12 @@ class Vault(BaseModel):
 
     def initiate_job(self, job_type, tier, archive_id):
         job_id = get_job_id()
-        
+
         if job_type == "inventory-retrieval":
             job = InventoryJob(job_id, tier, self.arn)
         elif job_type == "archive-retrieval":
             job = ArchiveJob(job_id, tier, self.arn, archive_id)
-        
+
         self.jobs[job_id] = job
         return job_id
 
@@ -170,17 +171,17 @@ class Vault(BaseModel):
         job = self.describe_job(job_id)
         jobj = job.to_dict()
         return jobj["Completed"]
-        
+
     def get_job_output(self, job_id):
         job = self.describe_job(job_id)
         jobj = job.to_dict()
         if jobj["Action"] == "InventoryRetrieval":
             archives = self.get_archive_list()
             return {
-                    "VaultARN": self.arn,
-                    "InventoryDate": jobj["CompletionDate"],
-                    "ArchiveList": archives
-                }
+                "VaultARN": self.arn,
+                "InventoryDate": jobj["CompletionDate"],
+                "ArchiveList": archives
+            }
         else:
             archive_body = self.get_archive_body(job.archive_id)
             return archive_body
