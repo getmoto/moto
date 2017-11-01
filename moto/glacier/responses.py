@@ -72,7 +72,10 @@ class GlacierResponse(_TemplateEnvironmentMixin):
 
     def _vault_archive_response(self, request, full_url, headers):
         method = request.method
-        body = request.data
+        if hasattr(request, 'body'):
+            body = request.body
+        else:
+            body = request.data
         description = ""
         if 'x-amz-archive-description' in request.headers:
             description = request.headers['x-amz-archive-description']
@@ -115,7 +118,10 @@ class GlacierResponse(_TemplateEnvironmentMixin):
 
     def _vault_jobs_response(self, request, full_url, headers):
         method = request.method
-        body = request.data
+        if hasattr(request, 'body'):
+            body = request.body
+        else:
+            body = request.data
         account_id = full_url.split("/")[1]
         vault_name = full_url.split("/")[-2]
 
