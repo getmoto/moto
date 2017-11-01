@@ -1,5 +1,13 @@
 SHELL := /bin/bash
 
+ifeq ($(TEST_SERVER_MODE), true)
+	# exclude test_iot and test_iotdata for now
+	# because authentication of iot is very complicated
+	TEST_EXCLUDE :=  --exclude='test_iot.*'
+else
+	TEST_EXCLUDE :=
+endif
+
 init:
 	@python setup.py develop
 	@pip install -r requirements.txt
@@ -10,8 +18,7 @@ lint:
 test: lint
 	rm -f .coverage
 	rm -rf cover
-	@nosetests -sv --with-coverage --cover-html ./tests/
-
+	@nosetests -sv --with-coverage --cover-html ./tests/ $(TEST_EXCLUDE)
 test_server:
 	@TEST_SERVER_MODE=true nosetests -sv --with-coverage --cover-html ./tests/
 
