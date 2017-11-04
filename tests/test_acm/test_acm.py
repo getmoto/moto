@@ -4,6 +4,7 @@ import os
 import boto3
 from freezegun import freeze_time
 import sure  # noqa
+import uuid
 
 from botocore.exceptions import ClientError
 
@@ -281,11 +282,23 @@ def test_resend_validation_email_invalid():
 def test_request_certificate():
     client = boto3.client('acm', region_name='eu-central-1')
 
+    token = str(uuid.uuid4())
+
     resp = client.request_certificate(
         DomainName='google.com',
+        IdempotencyToken=token,
         SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
     )
     resp.should.contain('CertificateArn')
+    arn = resp['CertificateArn']
+
+    resp = client.request_certificate(
+        DomainName='google.com',
+        IdempotencyToken=token,
+        SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
+    )
+    resp['CertificateArn'].should.equal(arn)
+
 
 @mock_acm
 def test_request_certificate_no_san():

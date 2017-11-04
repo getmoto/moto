@@ -203,26 +203,26 @@
 - [ ] set_load_balancer_policies_for_backend_server
 - [X] set_load_balancer_policies_of_listener
 
-## dynamodb - 36% implemented
-- [ ] batch_get_item
-- [ ] batch_write_item
+## dynamodb - 100% implemented (is dynamodbv2)
+- [X] batch_get_item
+- [X] batch_write_item
 - [X] create_table
 - [X] delete_item
 - [X] delete_table
-- [ ] describe_limits
-- [ ] describe_table
-- [ ] describe_time_to_live
+- [X] describe_limits
+- [X] describe_table
+- [X] describe_time_to_live
 - [X] get_item
-- [ ] list_tables
-- [ ] list_tags_of_resource
+- [X] list_tables
+- [X] list_tags_of_resource
 - [X] put_item
 - [X] query
 - [X] scan
-- [ ] tag_resource
-- [ ] untag_resource
-- [ ] update_item
-- [ ] update_table
-- [ ] update_time_to_live
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_item
+- [X] update_table
+- [X] update_time_to_live
 
 ## cloudhsmv2 - 0% implemented
 - [ ] create_cluster
@@ -917,13 +917,13 @@
 - [ ] unpeer_vpc
 - [ ] update_domain_entry
 
-## xray - 0% implemented
-- [ ] batch_get_traces
-- [ ] get_service_graph
-- [ ] get_trace_graph
-- [ ] get_trace_summaries
-- [ ] put_telemetry_records
-- [ ] put_trace_segments
+## xray - 100% implemented
+- [X] batch_get_traces
+- [X] get_service_graph
+- [X] get_trace_graph
+- [X] get_trace_summaries
+- [X] put_telemetry_records
+- [X] put_trace_segments
 
 ## ec2 - 41% implemented
 - [ ] accept_reserved_instances_exchange_quote
@@ -1483,10 +1483,10 @@
 - [ ] post_content
 - [ ] post_text
 
-## ecs - 74% implemented
+## ecs - 90% implemented
 - [X] create_cluster
 - [X] create_service
-- [ ] delete_attributes
+- [X] delete_attributes
 - [X] delete_cluster
 - [X] delete_service
 - [X] deregister_container_instance
@@ -1496,15 +1496,15 @@
 - [X] describe_services
 - [X] describe_task_definition
 - [X] describe_tasks
-- [ ] discover_poll_endpoint
-- [ ] list_attributes
+- [X] discover_poll_endpoint
+- [X] list_attributes
 - [X] list_clusters
 - [X] list_container_instances
 - [X] list_services
-- [ ] list_task_definition_families
+- [X] list_task_definition_families
 - [X] list_task_definitions
 - [X] list_tasks
-- [ ] put_attributes
+- [X] put_attributes
 - [X] register_container_instance
 - [X] register_task_definition
 - [X] run_task
@@ -1699,17 +1699,17 @@
 - [ ] start_db_instance
 - [ ] stop_db_instance
 
-## acm - 50% implemented
+## acm - 100% implemented
 - [X] add_tags_to_certificate
 - [X] delete_certificate
-- [ ] describe_certificate
+- [X] describe_certificate
 - [X] get_certificate
-- [ ] import_certificate
-- [ ] list_certificates
-- [ ] list_tags_for_certificate
+- [X] import_certificate
+- [X] list_certificates
+- [X] list_tags_for_certificate
 - [X] remove_tags_from_certificate
 - [X] request_certificate
-- [ ] resend_validation_email
+- [X] resend_validation_email
 
 ## elasticache - 0% implemented
 - [ ] add_tags_to_resource
@@ -1853,31 +1853,31 @@
 - [ ] refresh_trusted_advisor_check
 - [ ] resolve_case
 
-## lambda - 0% implemented
+## lambda - 32% implemented
 - [ ] add_permission
 - [ ] create_alias
 - [ ] create_event_source_mapping
-- [ ] create_function
+- [X] create_function
 - [ ] delete_alias
 - [ ] delete_event_source_mapping
-- [ ] delete_function
+- [X] delete_function
 - [ ] get_account_settings
 - [ ] get_alias
 - [ ] get_event_source_mapping
-- [ ] get_function
+- [X] get_function
 - [ ] get_function_configuration
-- [ ] get_policy
-- [ ] invoke
+- [X] get_policy
+- [X] invoke
 - [ ] invoke_async
 - [ ] list_aliases
 - [ ] list_event_source_mappings
-- [ ] list_functions
-- [ ] list_tags
+- [X] list_functions
+- [X] list_tags
 - [ ] list_versions_by_function
 - [ ] publish_version
 - [ ] remove_permission
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_alias
 - [ ] update_event_source_mapping
 - [ ] update_function_code
@@ -2456,8 +2456,8 @@
 - [ ] update_distribution
 - [ ] update_streaming_distribution
 
-## elbv2 - 54% implemented
-- [ ] add_tags
+## elbv2 - 100% implemented
+- [X] add_tags
 - [X] create_listener
 - [X] create_load_balancer
 - [X] create_rule
@@ -2467,27 +2467,27 @@
 - [X] delete_rule
 - [X] delete_target_group
 - [X] deregister_targets
-- [ ] describe_account_limits
+- [X] describe_account_limits
 - [X] describe_listeners
-- [ ] describe_load_balancer_attributes
+- [X] describe_load_balancer_attributes
 - [X] describe_load_balancers
 - [X] describe_rules
-- [ ] describe_ssl_policies
-- [ ] describe_tags
-- [ ] describe_target_group_attributes
+- [X] describe_ssl_policies
+- [X] describe_tags
+- [X] describe_target_group_attributes
 - [X] describe_target_groups
 - [X] describe_target_health
-- [ ] modify_listener
-- [ ] modify_load_balancer_attributes
+- [X] modify_listener
+- [X] modify_load_balancer_attributes
 - [X] modify_rule
-- [ ] modify_target_group
-- [ ] modify_target_group_attributes
+- [X] modify_target_group
+- [X] modify_target_group_attributes
 - [X] register_targets
-- [ ] remove_tags
-- [ ] set_ip_address_type
+- [X] remove_tags
+- [X] set_ip_address_type
 - [X] set_rule_priorities
-- [ ] set_security_groups
-- [ ] set_subnets
+- [X] set_security_groups
+- [X] set_subnets
 
 ## sdb - 0% implemented
 - [ ] batch_delete_attributes
@@ -3089,20 +3089,20 @@
 - [ ] start_configuration_recorder
 - [ ] stop_configuration_recorder
 
-## events - 73% implemented
+## events - 100% implemented
 - [X] delete_rule
-- [ ] describe_event_bus
+- [X] describe_event_bus
 - [X] describe_rule
 - [X] disable_rule
 - [X] enable_rule
 - [X] list_rule_names_by_target
 - [X] list_rules
 - [X] list_targets_by_rule
-- [ ] put_events
-- [ ] put_permission
+- [X] put_events
+- [X] put_permission
 - [X] put_rule
 - [X] put_targets
-- [ ] remove_permission
+- [X] remove_permission
 - [X] remove_targets
 - [X] test_event_pattern
 
@@ -3149,24 +3149,27 @@
 - [ ] put_scaling_policy
 - [ ] register_scalable_target
 
-## sqs - 41% implemented
-- [ ] add_permission
+## sqs - 100% implemented
+- [X] add_permission
 - [X] change_message_visibility
-- [ ] change_message_visibility_batch
+- [X] change_message_visibility_batch
 - [X] create_queue
 - [X] delete_message
-- [ ] delete_message_batch
+- [X] delete_message_batch
 - [X] delete_queue
-- [ ] get_queue_attributes
-- [ ] get_queue_url
-- [ ] list_dead_letter_source_queues
+- [X] get_queue_attributes
+- [X] get_queue_url
+- [X] list_dead_letter_source_queues
 - [X] list_queues
 - [X] purge_queue
-- [ ] receive_message
-- [ ] remove_permission
+- [X] receive_message
+- [X] remove_permission
 - [X] send_message
-- [ ] send_message_batch
-- [ ] set_queue_attributes
+- [X] send_message_batch
+- [X] set_queue_attributes
+- [X] tag_queue
+- [X] untag_queue
+- [X] list_queue_tags
 
 ## iot - 0% implemented
 - [ ] accept_certificate_transfer

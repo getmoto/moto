@@ -1611,6 +1611,152 @@ def test_update_service_through_cloudformation_should_trigger_replacement():
     len(resp['serviceArns']).should.equal(1)
 
 
+@mock_ec2
+@mock_ecs
+def test_attributes():
+    # Combined put, list delete attributes into the same test due to the amount of setup
+    ecs_client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+
+    _ = ecs_client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = ecs_client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+
+    response['containerInstance'][
+        'ec2InstanceId'].should.equal(test_instance.id)
+    full_arn1 = response['containerInstance']['containerInstanceArn']
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = ecs_client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+
+    response['containerInstance'][
+        'ec2InstanceId'].should.equal(test_instance.id)
+    full_arn2 = response['containerInstance']['containerInstanceArn']
+    partial_arn2 = full_arn2.rsplit('/', 1)[-1]
+
+    full_arn2.should_not.equal(full_arn1)  # uuid1 isnt unique enough when the pc is fast ;-)
+
+    # Ok set instance 1 with 1 attribute, instance 2 with another, and all of them with a 3rd.
+    ecs_client.put_attributes(
+        cluster=test_cluster_name,
+        attributes=[
+            {'name': 'env', 'value': 'prod'},
+            {'name': 'attr1', 'value': 'instance1', 'targetId': full_arn1},
+            {'name': 'attr1', 'value': 'instance2', 'targetId': partial_arn2, 'targetType': 'container-instance'}
+        ]
+    )
+
+    resp = ecs_client.list_attributes(
+        cluster=test_cluster_name,
+        targetType='container-instance'
+    )
+    attrs = resp['attributes']
+    len(attrs).should.equal(4)
+
+    # Tests that the attrs have been set properly
+    len(list(filter(lambda item: item['name'] == 'env', attrs))).should.equal(2)
+    len(list(filter(lambda item: item['name'] == 'attr1' and item['value'] == 'instance1', attrs))).should.equal(1)
+
+    ecs_client.delete_attributes(
+        cluster=test_cluster_name,
+        attributes=[
+            {'name': 'attr1', 'value': 'instance2', 'targetId': partial_arn2, 'targetType': 'container-instance'}
+        ]
+    )
+
+    resp = ecs_client.list_attributes(
+        cluster=test_cluster_name,
+        targetType='container-instance'
+    )
+    attrs = resp['attributes']
+    len(attrs).should.equal(3)
+
+
+@mock_ecs
+def test_poll_endpoint():
+    # Combined put, list delete attributes into the same test due to the amount of setup
+    ecs_client = boto3.client('ecs', region_name='us-east-1')
+
+    # Just a placeholder until someone actually wants useless data, just testing it doesnt raise an exception
+    resp = ecs_client.discover_poll_endpoint(cluster='blah', containerInstance='blah')
+    resp.should.contain('endpoint')
+    resp.should.contain('telemetryEndpoint')
+
+
+@mock_ecs
+def test_list_task_definition_families():
+    client = boto3.client('ecs', region_name='us-east-1')
+    client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    client.register_task_definition(
+        family='alt_test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+
+    resp1 = client.list_task_definition_families()
+    resp2 = client.list_task_definition_families(familyPrefix='alt')
+
+    len(resp1['families']).should.equal(2)
+    len(resp2['families']).should.equal(1)
+
+
 def _fetch_container_instance_resources(container_instance_description):
     remaining_resources = {}
     registered_resources = {}

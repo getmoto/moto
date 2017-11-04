@@ -1,6 +1,7 @@
 import os
 import re
 
+from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
 
 
@@ -50,6 +51,8 @@ class Rule(BaseModel):
 
 
 class EventsBackend(BaseBackend):
+    ACCOUNT_ID = re.compile(r'^(\d{1,12}|\*)$')
+    STATEMENT_ID = re.compile(r'^[a-zA-Z0-9-_]{1,64}$')
 
     def __init__(self):
         self.rules = {}
@@ -57,6 +60,8 @@ class EventsBackend(BaseBackend):
         # 2.6 doesn't have OrderedDicts.
         self.rules_order = []
         self.next_tokens = {}
+
+        self.permissions = {}
 
     def _get_rule_by_index(self, i):
         return self.rules.get(self.rules_order[i])
@@ -181,6 +186,17 @@ class EventsBackend(BaseBackend):
 
         return False
 
+    def put_events(self, events):
+        num_events = len(events)
+
+        if num_events < 1:
+            raise JsonRESTError('ValidationError', 'Need at least 1 event')
+        elif num_events > 10:
+            raise JsonRESTError('ValidationError', 'Can only submit 10 events at once')
+
+        # We dont really need to store the events yet
+        return []
+
     def remove_targets(self, name, ids):
         rule = self.rules.get(name)
 
@@ -192,6 +208,41 @@ class EventsBackend(BaseBackend):
 
     def test_event_pattern(self):
         raise NotImplementedError()
+
+    def put_permission(self, action, principal, statement_id):
+        if action is None or action != 'PutEvents':
+            raise JsonRESTError('InvalidParameterValue', 'Action must be PutEvents')
+
+        if principal is None or self.ACCOUNT_ID.match(principal) is None:
+            raise JsonRESTError('InvalidParameterValue', 'Principal must match ^(\d{1,12}|\*)$')
+
+        if statement_id is None or self.STATEMENT_ID.match(statement_id) is None:
+            raise JsonRESTError('InvalidParameterValue', 'StatementId must match ^[a-zA-Z0-9-_]{1,64}$')
+
+        self.permissions[statement_id] = {'action': action, 'principal': principal}
+
+    def remove_permission(self, statement_id):
+        try:
+            del self.permissions[statement_id]
+        except KeyError:
+            raise JsonRESTError('ResourceNotFoundException', 'StatementId not found')
+
+    def describe_event_bus(self):
+        arn = "arn:aws:events:us-east-1:000000000000:event-bus/default"
+        statements = []
+        for statement_id, data in self.permissions.items():
+            statements.append({
+                'Sid': statement_id,
+                'Effect': 'Allow',
+                'Principal': {'AWS': 'arn:aws:iam::{0}:root'.format(data['principal'])},
+                'Action': 'events:{0}'.format(data['action']),
+                'Resource': arn
+            })
+        return {
+            'Policy': {'Version': '2012-10-17', 'Statement': statements},
+            'Name': 'default',
+            'Arn': arn
+        }
 
 
 events_backend = EventsBackend()
