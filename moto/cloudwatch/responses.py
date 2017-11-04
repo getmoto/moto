@@ -1,4 +1,5 @@
 import json
+from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
 from .models import cloudwatch_backends
 
@@ -13,6 +14,7 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(ERROR_RESPONSE_TEMPLATE)
         return template.render(code=code, message=message), dict(status=status)
 
+    @amzn_request_id
     def put_metric_alarm(self):
         name = self._get_param('AlarmName')
         namespace = self._get_param('Namespace')
@@ -40,6 +42,7 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
 
+    @amzn_request_id
     def describe_alarms(self):
         action_prefix = self._get_param('ActionPrefix')
         alarm_name_prefix = self._get_param('AlarmNamePrefix')
@@ -62,12 +65,14 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(DESCRIBE_ALARMS_TEMPLATE)
         return template.render(alarms=alarms)
 
+    @amzn_request_id
     def delete_alarms(self):
         alarm_names = self._get_multi_param('AlarmNames.member')
         self.cloudwatch_backend.delete_alarms(alarm_names)
         template = self.response_template(DELETE_METRIC_ALARMS_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def put_metric_data(self):
         namespace = self._get_param('Namespace')
         metric_data = []
@@ -99,11 +104,13 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def list_metrics(self):
         metrics = self.cloudwatch_backend.get_all_metrics()
         template = self.response_template(LIST_METRICS_TEMPLATE)
         return template.render(metrics=metrics)
 
+    @amzn_request_id
     def delete_dashboards(self):
         dashboards = self._get_multi_param('DashboardNames.member')
         if dashboards is None:
@@ -116,18 +123,23 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(DELETE_DASHBOARD_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def describe_alarm_history(self):
         raise NotImplementedError()
 
+    @amzn_request_id
     def describe_alarms_for_metric(self):
         raise NotImplementedError()
 
+    @amzn_request_id
     def disable_alarm_actions(self):
         raise NotImplementedError()
 
+    @amzn_request_id
     def enable_alarm_actions(self):
         raise NotImplementedError()
 
+    @amzn_request_id
     def get_dashboard(self):
         dashboard_name = self._get_param('DashboardName')
 
@@ -138,9 +150,11 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(GET_DASHBOARD_TEMPLATE)
         return template.render(dashboard=dashboard)
 
+    @amzn_request_id
     def get_metric_statistics(self):
         raise NotImplementedError()
 
+    @amzn_request_id
     def list_dashboards(self):
         prefix = self._get_param('DashboardNamePrefix', '')
 
@@ -149,6 +163,7 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(LIST_DASHBOARD_RESPONSE)
         return template.render(dashboards=dashboards)
 
+    @amzn_request_id
     def put_dashboard(self):
         name = self._get_param('DashboardName')
         body = self._get_param('DashboardBody')
@@ -163,14 +178,23 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(PUT_DASHBOARD_RESPONSE)
         return template.render()
 
+    @amzn_request_id
     def set_alarm_state(self):
-        raise NotImplementedError()
+        alarm_name = self._get_param('AlarmName')
+        reason = self._get_param('StateReason')
+        reason_data = self._get_param('StateReasonData')
+        state_value = self._get_param('StateValue')
+
+        self.cloudwatch_backend.set_alarm_state(alarm_name, reason, reason_data, state_value)
+
+        template = self.response_template(SET_ALARM_STATE_TEMPLATE)
+        return template.render()
 
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
       <RequestId>
-         2690d7eb-ed86-11dd-9877-6fad448a8419
+         {{ request_id }}
       </RequestId>
    </ResponseMetadata>
 </PutMetricAlarmResponse>"""
@@ -229,7 +253,7 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
 DELETE_METRIC_ALARMS_TEMPLATE = """<DeleteMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
       <RequestId>
-         2690d7eb-ed86-11dd-9877-6fad448a8419
+         {{ request_id }}
       </RequestId>
    </ResponseMetadata>
 </DeleteMetricAlarmResponse>"""
@@ -237,7 +261,7 @@ DELETE_METRIC_ALARMS_TEMPLATE = """<DeleteMetricAlarmResponse xmlns="http://moni
 PUT_METRIC_DATA_TEMPLATE = """<PutMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
       <RequestId>
-         2690d7eb-ed86-11dd-9877-6fad448a8419
+         {{ request_id }}
       </RequestId>
    </ResponseMetadata>
 </PutMetricDataResponse>"""
@@ -271,7 +295,7 @@ PUT_DASHBOARD_RESPONSE = """<PutDashboardResponse xmlns="http://monitoring.amazo
     <DashboardValidationMessages/>
   </PutDashboardResult>
   <ResponseMetadata>
-    <RequestId>44b1d4d8-9fa3-11e7-8ad3-41b86ac5e49e</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </PutDashboardResponse>"""
 
@@ -289,14 +313,14 @@ LIST_DASHBOARD_RESPONSE = """<ListDashboardsResponse xmlns="http://monitoring.am
     </DashboardEntries>
   </ListDashboardsResult>
   <ResponseMetadata>
-    <RequestId>c3773873-9fa5-11e7-b315-31fcc9275d62</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </ListDashboardsResponse>"""
 
 DELETE_DASHBOARD_TEMPLATE = """<DeleteDashboardsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
   <DeleteDashboardsResult/>
   <ResponseMetadata>
-    <RequestId>68d1dc8c-9faa-11e7-a694-df2715690df2</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DeleteDashboardsResponse>"""
 
@@ -307,10 +331,16 @@ GET_DASHBOARD_TEMPLATE = """<GetDashboardResponse xmlns="http://monitoring.amazo
     <DashboardName>{{ dashboard.name }}</DashboardName>
   </GetDashboardResult>
   <ResponseMetadata>
-    <RequestId>e3c16bb0-9faa-11e7-b315-31fcc9275d62</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </GetDashboardResponse>
 """
+
+SET_ALARM_STATE_TEMPLATE = """<SetAlarmStateResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</SetAlarmStateResponse>"""
 
 ERROR_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
   <Error>
@@ -318,5 +348,5 @@ ERROR_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://monitoring.amazonaws.c
     <Code>{{ code }}</Code>
     <Message>{{ message }}</Message>
   </Error>
-  <RequestId>5e45fd1e-9fa3-11e7-b720-89e8821d38c4</RequestId>
+  <RequestId>{{ request_id }}</RequestId>
 </ErrorResponse>"""
