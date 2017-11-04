@@ -139,6 +139,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             body = b''
         if isinstance(body, six.binary_type):
             body = body.decode('utf-8')
+        body = u'{0}'.format(body).encode('utf-8')
 
         if method == 'HEAD':
             return self._bucket_response_head(bucket_name, headers)

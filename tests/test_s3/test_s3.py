@@ -1865,7 +1865,7 @@ def test_boto3_list_object_versions():
 def test_boto3_delete_markers():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = 'mybucket'
-    key = 'key-with-versions'
+    key = 'key-with-versions-and-unicode-ó'
     s3.create_bucket(Bucket=bucket_name)
     s3.put_bucket_versioning(
         Bucket=bucket_name,
@@ -1880,10 +1880,9 @@ def test_boto3_delete_markers():
             Key=key,
             Body=body
         )
-    s3.delete_object(
-        Bucket=bucket_name,
-        Key=key
-    )
+
+    s3.delete_objects(Bucket=bucket_name, Delete={'Objects': [{'Key': key}]})
+
     with assert_raises(ClientError) as e:
         s3.get_object(
             Bucket=bucket_name,
@@ -1909,7 +1908,8 @@ def test_boto3_delete_markers():
     response['Versions'][0]['IsLatest'].should.be.false
     [(key_metadata['Key'], key_metadata['VersionId'])
      for key_metadata in response['Versions']].should.equal(
-        [('key-with-versions', '0'), ('key-with-versions', '1')]
+        [('key-with-versions-and-unicode-ó', '0'),
+         ('key-with-versions-and-unicode-ó', '1')]
     )
 
 
