@@ -356,7 +356,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if not request.headers.get('Content-Length'):
             return 411, {}, "Content-Length required"
         if 'versioning' in querystring:
-            ver = re.search('<Status>([A-Za-z]+)</Status>', body)
+            ver = re.search('<Status>([A-Za-z]+)</Status>', body.decode())
             if ver:
                 self.backend.set_bucket_versioning(bucket_name, ver.group(1))
                 template = self.response_template(S3_BUCKET_VERSIONING)

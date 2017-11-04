@@ -1904,13 +1904,18 @@ def test_boto3_delete_markers():
         Bucket=bucket_name
     )
     response['Versions'].should.have.length_of(2)
-    response['Versions'][-1]['IsLatest'].should.be.true
-    response['Versions'][0]['IsLatest'].should.be.false
-    [(key_metadata['Key'], key_metadata['VersionId'])
-     for key_metadata in response['Versions']].should.equal(
-        [('key-with-versions-and-unicode-ó', '0'),
-         ('key-with-versions-and-unicode-ó', '1')]
-    )
+
+    # We've asserted there is only 2 records so one is newest, one is oldest
+    latest = list(filter(lambda item: item['IsLatest'], response['Versions']))[0]
+    oldest = list(filter(lambda item: not item['IsLatest'], response['Versions']))[0]
+
+    # Double check ordering of version ID's
+    latest['VersionId'].should.equal('1')
+    oldest['VersionId'].should.equal('0')
+
+    # Double check the name is still unicode
+    latest['Key'].should.equal('key-with-versions-and-unicode-ó')
+    oldest['Key'].should.equal('key-with-versions-and-unicode-ó')
 
 
 @mock_s3
