@@ -28,13 +28,13 @@ except ImportError:
 @mock_dynamodb2_deprecated
 def test_list_tables():
     name = 'TestTable'
-    #{'schema': }
+    # Should make tables properly with boto
     dynamodb_backend2.create_table(name, schema=[
         {u'KeyType': u'HASH', u'AttributeName': u'forum_name'},
         {u'KeyType': u'RANGE', u'AttributeName': u'subject'}
     ])
     conn = boto.dynamodb2.connect_to_region(
-        'us-west-2',
+        'us-east-1',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
     assert conn.list_tables()["TableNames"] == [name]
@@ -43,6 +43,7 @@ def test_list_tables():
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 def test_list_tables_layer_1():
+    # Should make tables properly with boto
     dynamodb_backend2.create_table("test_1", schema=[
         {u'KeyType': u'HASH', u'AttributeName': u'name'}
     ])
@@ -50,7 +51,7 @@ def test_list_tables_layer_1():
         {u'KeyType': u'HASH', u'AttributeName': u'name'}
     ])
     conn = boto.dynamodb2.connect_to_region(
-        'us-west-2',
+        'us-east-1',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
 
@@ -88,11 +89,21 @@ def test_list_table_tags():
                       ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
     table_description = conn.describe_table(TableName=name)
     arn = table_description['Table']['TableArn']
-    tags = [{'Key':'TestTag', 'Value': 'TestValue'}]
-    conn.tag_resource(ResourceArn=arn,
-                      Tags=tags)
+
+    # Tag table
+    tags = [{'Key': 'TestTag', 'Value': 'TestValue'}, {'Key': 'TestTag2', 'Value': 'TestValue2'}]
+    conn.tag_resource(ResourceArn=arn, Tags=tags)
+
+    # Check tags
     resp = conn.list_tags_of_resource(ResourceArn=arn)
     assert resp["Tags"] == tags
+
+    # Remove 1 tag
+    conn.untag_resource(ResourceArn=arn, TagKeys=['TestTag'])
+
+    # Check tags
+    resp = conn.list_tags_of_resource(ResourceArn=arn)
+    assert resp["Tags"] == [{'Key': 'TestTag2', 'Value': 'TestValue2'}]
 
 
 @requires_boto_gte("2.9")
@@ -868,3 +879,50 @@ def test_delete_item():
 
     response = table.scan()
     assert response['Count'] == 0
+
+
+@mock_dynamodb2
+def test_describe_limits():
+    client = boto3.client('dynamodb', region_name='eu-central-1')
+    resp = client.describe_limits()
+
+    resp['AccountMaxReadCapacityUnits'].should.equal(20000)
+    resp['AccountMaxWriteCapacityUnits'].should.equal(20000)
+    resp['TableMaxWriteCapacityUnits'].should.equal(10000)
+    resp['TableMaxReadCapacityUnits'].should.equal(10000)
+
+
+@mock_dynamodb2
+def test_set_ttl():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+
+    client.update_time_to_live(
+        TableName='test1',
+        TimeToLiveSpecification={
+            'Enabled': True,
+            'AttributeName': 'expire'
+        }
+    )
+
+    resp = client.describe_time_to_live(TableName='test1')
+    resp['TimeToLiveDescription']['TimeToLiveStatus'].should.equal('ENABLED')
+    resp['TimeToLiveDescription']['AttributeName'].should.equal('expire')
+
+    client.update_time_to_live(
+        TableName='test1',
+        TimeToLiveSpecification={
+            'Enabled': False,
+            'AttributeName': 'expire'
+        }
+    )
+
+    resp = client.describe_time_to_live(TableName='test1')
+    resp['TimeToLiveDescription']['TimeToLiveStatus'].should.equal('DISABLED')

@@ -37,6 +37,7 @@ from moto.sts import sts_backends
 from moto.xray import xray_backends
 from moto.batch import batch_backends
 
+
 BACKENDS = {
     'acm': acm_backends,
     'apigateway': apigateway_backends,
@@ -74,7 +75,7 @@ BACKENDS = {
     'sts': sts_backends,
     'route53': route53_backends,
     'lambda': lambda_backends,
-    'xray': xray_backends
+    'xray': xray_backends,
 }
 
 

@@ -18,9 +18,17 @@ class EventsHandler(BaseResponse):
             'RoleArn': rule.role_arn
         }
 
-    def load_body(self):
-        decoded_body = self.body
-        return json.loads(decoded_body or '{}')
+    @property
+    def request_params(self):
+        if not hasattr(self, '_json_body'):
+            try:
+                self._json_body = json.loads(self.body)
+            except ValueError:
+                self._json_body = {}
+        return self._json_body
+
+    def _get_param(self, param, if_none=None):
+        return self.request_params.get(param, if_none)
 
     def error(self, type_, message='', status=400):
         headers = self.response_headers
@@ -28,8 +36,7 @@ class EventsHandler(BaseResponse):
         return json.dumps({'__type': type_, 'message': message}), headers,
 
     def delete_rule(self):
-        body = self.load_body()
-        name = body.get('Name')
+        name = self._get_param('Name')
 
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
@@ -38,8 +45,7 @@ class EventsHandler(BaseResponse):
         return '', self.response_headers
 
     def describe_rule(self):
-        body = self.load_body()
-        name = body.get('Name')
+        name = self._get_param('Name')
 
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
@@ -53,8 +59,7 @@ class EventsHandler(BaseResponse):
         return json.dumps(rule_dict), self.response_headers
 
     def disable_rule(self):
-        body = self.load_body()
-        name = body.get('Name')
+        name = self._get_param('Name')
 
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
@@ -65,8 +70,7 @@ class EventsHandler(BaseResponse):
         return '', self.response_headers
 
     def enable_rule(self):
-        body = self.load_body()
-        name = body.get('Name')
+        name = self._get_param('Name')
 
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
@@ -80,10 +84,9 @@ class EventsHandler(BaseResponse):
         pass
 
     def list_rule_names_by_target(self):
-        body = self.load_body()
-        target_arn = body.get('TargetArn')
-        next_token = body.get('NextToken')
-        limit = body.get('Limit')
+        target_arn = self._get_param('TargetArn')
+        next_token = self._get_param('NextToken')
+        limit = self._get_param('Limit')
 
         if not target_arn:
             return self.error('ValidationException', 'Parameter TargetArn is required.')
@@ -94,10 +97,9 @@ class EventsHandler(BaseResponse):
         return json.dumps(rule_names), self.response_headers
 
     def list_rules(self):
-        body = self.load_body()
-        prefix = body.get('NamePrefix')
-        next_token = body.get('NextToken')
-        limit = body.get('Limit')
+        prefix = self._get_param('NamePrefix')
+        next_token = self._get_param('NextToken')
+        limit = self._get_param('Limit')
 
         rules = events_backend.list_rules(prefix, next_token, limit)
         rules_obj = {'Rules': []}
@@ -111,10 +113,9 @@ class EventsHandler(BaseResponse):
         return json.dumps(rules_obj), self.response_headers
 
     def list_targets_by_rule(self):
-        body = self.load_body()
-        rule_name = body.get('Rule')
-        next_token = body.get('NextToken')
-        limit = body.get('Limit')
+        rule_name = self._get_param('Rule')
+        next_token = self._get_param('NextToken')
+        limit = self._get_param('Limit')
 
         if not rule_name:
             return self.error('ValidationException', 'Parameter Rule is required.')
@@ -128,13 +129,25 @@ class EventsHandler(BaseResponse):
         return json.dumps(targets), self.response_headers
 
     def put_events(self):
+        events = self._get_param('Entries')
+
+        failed_entries = events_backend.put_events(events)
+
+        if failed_entries:
+            return json.dumps({
+                'FailedEntryCount': len(failed_entries),
+                'Entries': failed_entries
+            })
+
         return '', self.response_headers
 
     def put_rule(self):
-        body = self.load_body()
-        name = body.get('Name')
-        event_pattern = body.get('EventPattern')
-        sched_exp = body.get('ScheduleExpression')
+        name = self._get_param('Name')
+        event_pattern = self._get_param('EventPattern')
+        sched_exp = self._get_param('ScheduleExpression')
+        state = self._get_param('State')
+        desc = self._get_param('Description')
+        role_arn = self._get_param('RoleArn')
 
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
@@ -156,17 +169,16 @@ class EventsHandler(BaseResponse):
             name,
             ScheduleExpression=sched_exp,
             EventPattern=event_pattern,
-            State=body.get('State'),
-            Description=body.get('Description'),
-            RoleArn=body.get('RoleArn')
+            State=state,
+            Description=desc,
+            RoleArn=role_arn
         )
 
         return json.dumps({'RuleArn': rule_arn}), self.response_headers
 
     def put_targets(self):
-        body = self.load_body()
-        rule_name = body.get('Rule')
-        targets = body.get('Targets')
+        rule_name = self._get_param('Rule')
+        targets = self._get_param('Targets')
 
         if not rule_name:
             return self.error('ValidationException', 'Parameter Rule is required.')
@@ -180,9 +192,8 @@ class EventsHandler(BaseResponse):
         return '', self.response_headers
 
     def remove_targets(self):
-        body = self.load_body()
-        rule_name = body.get('Rule')
-        ids = body.get('Ids')
+        rule_name = self._get_param('Rule')
+        ids = self._get_param('Ids')
 
         if not rule_name:
             return self.error('ValidationException', 'Parameter Rule is required.')
@@ -197,3 +208,22 @@ class EventsHandler(BaseResponse):
 
     def test_event_pattern(self):
         pass
+
+    def put_permission(self):
+        action = self._get_param('Action')
+        principal = self._get_param('Principal')
+        statement_id = self._get_param('StatementId')
+
+        events_backend.put_permission(action, principal, statement_id)
+
+        return ''
+
+    def remove_permission(self):
+        statement_id = self._get_param('StatementId')
+
+        events_backend.remove_permission(statement_id)
+
+        return ''
+
+    def describe_event_bus(self):
+        return json.dumps(events_backend.describe_event_bus())

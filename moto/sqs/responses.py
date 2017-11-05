@@ -40,12 +40,15 @@ class SQSResponse(BaseResponse):
             queue_name = self.path.split("/")[-1]
         return queue_name
 
-    def _get_validated_visibility_timeout(self):
+    def _get_validated_visibility_timeout(self, timeout=None):
         """
         :raises ValueError: If specified visibility timeout exceeds MAXIMUM_VISIBILTY_TIMEOUT
         :raises TypeError: If visibility timeout was not specified
         """
-        visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
+        if timeout is not None:
+            visibility_timeout = int(timeout)
+        else:
+            visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])
 
         if visibility_timeout > MAXIMUM_VISIBILTY_TIMEOUT:
             raise ValueError
@@ -118,6 +121,49 @@ class SQSResponse(BaseResponse):
 
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()
+
+    def change_message_visibility_batch(self):
+        queue_name = self._get_queue_name()
+        entries = self._get_list_prefix('ChangeMessageVisibilityBatchRequestEntry')
+
+        success = []
+        error = []
+        for entry in entries:
+            try:
+                visibility_timeout = self._get_validated_visibility_timeout(entry['visibility_timeout'])
+            except ValueError:
+                error.append({
+                    'Id': entry['id'],
+                    'SenderFault': 'true',
+                    'Code': 'InvalidParameterValue',
+                    'Message': 'Visibility timeout invalid'
+                })
+                continue
+
+            try:
+                self.sqs_backend.change_message_visibility(
+                    queue_name=queue_name,
+                    receipt_handle=entry['receipt_handle'],
+                    visibility_timeout=visibility_timeout
+                )
+                success.append(entry['id'])
+            except ReceiptHandleIsInvalid as e:
+                error.append({
+                    'Id': entry['id'],
+                    'SenderFault': 'true',
+                    'Code': 'ReceiptHandleIsInvalid',
+                    'Message': e.description
+                })
+            except MessageNotInflight as e:
+                error.append({
+                    'Id': entry['id'],
+                    'SenderFault': 'false',
+                    'Code': 'AWS.SimpleQueueService.MessageNotInflight',
+                    'Message': e.description
+                })
+
+        template = self.response_template(CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE)
+        return template.render(success=success, errors=error)
 
     def get_queue_attributes(self):
         queue_name = self._get_queue_name()
@@ -288,8 +334,62 @@ class SQSResponse(BaseResponse):
         messages = self.sqs_backend.receive_messages(
             queue_name, message_count, wait_time, visibility_timeout)
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
-        output = template.render(messages=messages)
-        return output
+        return template.render(messages=messages)
+
+    def list_dead_letter_source_queues(self):
+        request_url = urlparse(self.uri)
+        queue_name = self._get_queue_name()
+
+        source_queue_urls = self.sqs_backend.list_dead_letter_source_queues(queue_name)
+
+        template = self.response_template(LIST_DEAD_LETTER_SOURCE_QUEUES_RESPONSE)
+        return template.render(queues=source_queue_urls, request_url=request_url)
+
+    def add_permission(self):
+        queue_name = self._get_queue_name()
+        actions = self._get_multi_param('ActionName')
+        account_ids = self._get_multi_param('AWSAccountId')
+        label = self._get_param('Label')
+
+        self.sqs_backend.add_permission(queue_name, actions, account_ids, label)
+
+        template = self.response_template(ADD_PERMISSION_RESPONSE)
+        return template.render()
+
+    def remove_permission(self):
+        queue_name = self._get_queue_name()
+        label = self._get_param('Label')
+
+        self.sqs_backend.remove_permission(queue_name, label)
+
+        template = self.response_template(REMOVE_PERMISSION_RESPONSE)
+        return template.render()
+
+    def tag_queue(self):
+        queue_name = self._get_queue_name()
+        tags = self._get_map_prefix('Tag', key_end='.Key', value_end='.Value')
+
+        self.sqs_backend.tag_queue(queue_name, tags)
+
+        template = self.response_template(TAG_QUEUE_RESPONSE)
+        return template.render()
+
+    def untag_queue(self):
+        queue_name = self._get_queue_name()
+        tag_keys = self._get_multi_param('TagKey')
+
+        self.sqs_backend.untag_queue(queue_name, tag_keys)
+
+        template = self.response_template(UNTAG_QUEUE_RESPONSE)
+        return template.render()
+
+    def list_queue_tags(self):
+        queue_name = self._get_queue_name()
+
+        queue = self.sqs_backend.get_queue(queue_name)
+
+        template = self.response_template(LIST_QUEUE_TAGS_RESPONSE)
+        return template.render(tags=queue.tags)
 
 
 CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
@@ -307,7 +407,7 @@ GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
         <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
     </GetQueueUrlResult>
     <ResponseMetadata>
-        <RequestId>470a6f13-2ed9-4181-ad8a-2fdea142988e</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </GetQueueUrlResponse>"""
 
@@ -318,13 +418,13 @@ LIST_QUEUES_RESPONSE = """<ListQueuesResponse>
         {% endfor %}
     </ListQueuesResult>
     <ResponseMetadata>
-        <RequestId>725275ae-0b9b-4762-b238-436d7c65a1ac</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </ListQueuesResponse>"""
 
 DELETE_QUEUE_RESPONSE = """<DeleteQueueResponse>
     <ResponseMetadata>
-        <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </DeleteQueueResponse>"""
 
@@ -338,13 +438,13 @@ GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
     {% endfor %}
   </GetQueueAttributesResult>
   <ResponseMetadata>
-    <RequestId>1ea71be5-b5a2-4f9d-b85a-945d8d08cd0b</RequestId>
+    <RequestId>{{ requestid }}</RequestId>
   </ResponseMetadata>
 </GetQueueAttributesResponse>"""
 
 SET_QUEUE_ATTRIBUTE_RESPONSE = """<SetQueueAttributesResponse>
     <ResponseMetadata>
-        <RequestId>e5cca473-4fc0-4198-a451-8abb94d02c75</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </SetQueueAttributesResponse>"""
 
@@ -361,7 +461,7 @@ SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
         </MessageId>
     </SendMessageResult>
     <ResponseMetadata>
-        <RequestId>27daac76-34dd-47df-bd01-1f6e873584a0</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </SendMessageResponse>"""
 
@@ -409,7 +509,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
     {% endfor %}
   </ReceiveMessageResult>
   <ResponseMetadata>
-    <RequestId>b6633655-283d-45b4-aee4-4e84e0ae6afa</RequestId>
+    <RequestId>{{ requestid }}</RequestId>
   </ResponseMetadata>
 </ReceiveMessageResponse>"""
 
@@ -427,13 +527,13 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
     {% endfor %}
 </SendMessageBatchResult>
 <ResponseMetadata>
-    <RequestId>ca1ad5d0-8271-408b-8d0f-1351bf547e74</RequestId>
+    <RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </SendMessageBatchResponse>"""
 
 DELETE_MESSAGE_RESPONSE = """<DeleteMessageResponse>
     <ResponseMetadata>
-        <RequestId>b5293cb5-d306-4a17-9048-b263635abe42</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </DeleteMessageResponse>"""
 
@@ -446,21 +546,91 @@ DELETE_MESSAGE_BATCH_RESPONSE = """<DeleteMessageBatchResponse>
         {% endfor %}
     </DeleteMessageBatchResult>
     <ResponseMetadata>
-        <RequestId>d6f86b7a-74d1-4439-b43f-196a1e29cd85</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </DeleteMessageBatchResponse>"""
 
 CHANGE_MESSAGE_VISIBILITY_RESPONSE = """<ChangeMessageVisibilityResponse>
     <ResponseMetadata>
-        <RequestId>6a7a282a-d013-4a59-aba9-335b0fa48bed</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </ChangeMessageVisibilityResponse>"""
 
+CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE = """<ChangeMessageVisibilityBatchResponse>
+    <ChangeMessageVisibilityBatchResult>
+        {% for success_id in success %}
+        <ChangeMessageVisibilityBatchResultEntry>
+            <Id>{{ success_id }}</Id>
+        </ChangeMessageVisibilityBatchResultEntry>
+        {% endfor %}
+        {% for error_dict in errors %}
+        <BatchResultErrorEntry>
+            <Id>{{ error_dict['Id'] }}</Id>
+            <Code>{{ error_dict['Code'] }}</Code>
+            <Message>{{ error_dict['Message'] }}</Message>
+            <SenderFault>{{ error_dict['SenderFault'] }}</SenderFault>
+        </BatchResultErrorEntry>
+        {% endfor %}
+    </ChangeMessageVisibilityBatchResult>
+    <ResponseMetadata>
+        <RequestId>{{ request_id }}</RequestId>
+    </ResponseMetadata>
+</ChangeMessageVisibilityBatchResponse>"""
+
 PURGE_QUEUE_RESPONSE = """<PurgeQueueResponse>
     <ResponseMetadata>
-        <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
+        <RequestId>{{ requestid }}</RequestId>
     </ResponseMetadata>
 </PurgeQueueResponse>"""
+
+LIST_DEAD_LETTER_SOURCE_QUEUES_RESPONSE = """<ListDeadLetterSourceQueuesResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
+    <ListDeadLetterSourceQueuesResult>
+        {% for queue in queues %}
+        <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
+        {% endfor %}
+    </ListDeadLetterSourceQueuesResult>
+    <ResponseMetadata>
+        <RequestId>8ffb921f-b85e-53d9-abcf-d8d0057f38fc</RequestId>
+    </ResponseMetadata>
+</ListDeadLetterSourceQueuesResponse>"""
+
+ADD_PERMISSION_RESPONSE = """<AddPermissionResponse>
+    <ResponseMetadata>
+        <RequestId>{{ request_id }}</RequestId>
+    </ResponseMetadata>
+</AddPermissionResponse>"""
+
+REMOVE_PERMISSION_RESPONSE = """<RemovePermissionResponse>
+    <ResponseMetadata>
+        <RequestId>{{ request_id }}</RequestId>
+    </ResponseMetadata>
+</RemovePermissionResponse>"""
+
+TAG_QUEUE_RESPONSE = """<TagQueueResponse>
+   <ResponseMetadata>
+      <RequestId>{{ request_id }}</RequestId>
+   </ResponseMetadata>
+</TagQueueResponse>"""
+
+UNTAG_QUEUE_RESPONSE = """<UntagQueueResponse>
+   <ResponseMetadata>
+      <RequestId>{{ request_id }}</RequestId>
+   </ResponseMetadata>
+</UntagQueueResponse>"""
+
+LIST_QUEUE_TAGS_RESPONSE = """<ListQueueTagsResponse>
+   <ListQueueTagsResult>
+      {% for key, value in tags.items() %}
+      <Tag>
+         <Key>{{ key }}</Key>
+         <Value>{{ value }}</Value>
+      </Tag>
+      {% endfor %}
+   </ListQueueTagsResult>
+   <ResponseMetadata>
+      <RequestId>{{ request_id }}</RequestId>
+   </ResponseMetadata>
+</ListQueueTagsResponse>"""
 
 ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
     <Error>

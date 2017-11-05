@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import copy
 import itertools
+import ipaddress
 import json
 import os
 import re
@@ -402,6 +403,10 @@ class Instance(TaggedEC2Resource, BotoInstance):
             subnet = ec2_backend.get_subnet(self.subnet_id)
             self.vpc_id = subnet.vpc_id
             self._placement.zone = subnet.availability_zone
+
+            if associate_public_ip is None:
+                # Mapping public ip hasnt been explicitly enabled or disabled
+                associate_public_ip = subnet.map_public_ip_on_launch == 'true'
         elif placement:
             self._placement.zone = placement
         else:
@@ -409,10 +414,22 @@ class Instance(TaggedEC2Resource, BotoInstance):
 
         self.block_device_mapping = BlockDeviceMapping()
 
-        self.prep_nics(kwargs.get("nics", {}),
-                       subnet_id=self.subnet_id,
-                       private_ip=kwargs.get("private_ip"),
-                       associate_public_ip=associate_public_ip)
+        self._private_ips = set()
+        self.prep_nics(
+            kwargs.get("nics", {}),
+            private_ip=kwargs.get("private_ip"),
+            associate_public_ip=associate_public_ip
+        )
+
+    def __del__(self):
+        try:
+            subnet = self.ec2_backend.get_subnet(self.subnet_id)
+            for ip in self._private_ips:
+                subnet.del_subnet_ip(ip)
+        except Exception:
+            # Its not "super" critical we clean this up, as reset will do this
+            # worst case we'll get IP address exaustion... rarely
+            pass
 
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
@@ -547,14 +564,23 @@ class Instance(TaggedEC2Resource, BotoInstance):
         else:
             return self.security_groups
 
-    def prep_nics(self, nic_spec, subnet_id=None, private_ip=None, associate_public_ip=None):
+    def prep_nics(self, nic_spec, private_ip=None, associate_public_ip=None):
         self.nics = {}
 
-        if not private_ip:
+        if self.subnet_id:
+            subnet = self.ec2_backend.get_subnet(self.subnet_id)
+            if not private_ip:
+                private_ip = subnet.get_available_subnet_ip(instance=self)
+            else:
+                subnet.request_ip(private_ip, instance=self)
+
+            self._private_ips.add(private_ip)
+        elif private_ip is None:
+            # Preserve old behaviour if in EC2-Classic mode
             private_ip = random_private_ip()
 
         # Primary NIC defaults
-        primary_nic = {'SubnetId': subnet_id,
+        primary_nic = {'SubnetId': self.subnet_id,
                        'PrivateIpAddress': private_ip,
                        'AssociatePublicIpAddress': associate_public_ip}
         primary_nic = dict((k, v) for k, v in primary_nic.items() if v)
@@ -2114,9 +2140,16 @@ class Subnet(TaggedEC2Resource):
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
+        self.cidr = ipaddress.ip_network(six.text_type(self.cidr_block))
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
+
+        # Theory is we assign ip's as we go (as 16,777,214 usable IPs in a /8)
+        self._subnet_ip_generator = self.cidr.hosts()
+        self.reserved_ips = [six.next(self._subnet_ip_generator) for _ in range(0, 3)]  # Reserved by AWS
+        self._unused_ips = set()  # if instance is destroyed hold IP here for reuse
+        self._subnet_ips = {}  # has IP: instance
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -2183,6 +2216,46 @@ class Subnet(TaggedEC2Resource):
             raise NotImplementedError(
                 '"Fn::GetAtt" : [ "{0}" , "AvailabilityZone" ]"')
         raise UnformattedGetAttTemplateException()
+
+    def get_available_subnet_ip(self, instance):
+        try:
+            new_ip = self._unused_ips.pop()
+        except KeyError:
+            new_ip = six.next(self._subnet_ip_generator)
+
+            # Skips any IP's if they've been manually specified
+            while str(new_ip) in self._subnet_ips:
+                new_ip = six.next(self._subnet_ip_generator)
+
+            if new_ip == self.cidr.broadcast_address:
+                raise StopIteration()  # Broadcast address cant be used obviously
+        # TODO StopIteration will be raised if no ip's available, not sure how aws handles this.
+
+        new_ip = str(new_ip)
+        self._subnet_ips[new_ip] = instance
+
+        return new_ip
+
+    def request_ip(self, ip, instance):
+        if ipaddress.ip_address(ip) not in self.cidr:
+            raise Exception('IP does not fall in the subnet CIDR of {0}'.format(self.cidr))
+
+        if ip in self._subnet_ips:
+            raise Exception('IP already in use')
+        try:
+            self._unused_ips.remove(ip)
+        except KeyError:
+            pass
+
+        self._subnet_ips[ip] = instance
+        return ip
+
+    def del_subnet_ip(self, ip):
+        try:
+            del self._subnet_ips[ip]
+            self._unused_ips.add(ip)
+        except KeyError:
+            pass  # Unknown IP
 
 
 class SubnetBackend(object):

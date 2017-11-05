@@ -54,7 +54,7 @@ def test_create_table():
         }
     }
     conn = boto.dynamodb2.connect_to_region(
-        'us-west-2',
+        'us-east-1',
         aws_access_key_id="ak",
         aws_secret_access_key="sk"
     )
@@ -425,7 +425,7 @@ def test_get_special_item():
 
 @mock_dynamodb2_deprecated
 def test_update_item_remove():
-    conn = boto.dynamodb2.connect_to_region("us-west-2")
+    conn = boto.dynamodb2.connect_to_region("us-east-1")
     table = Table.create('messages', schema=[
         HashKey('username')
     ])
@@ -452,7 +452,7 @@ def test_update_item_remove():
 
 @mock_dynamodb2_deprecated
 def test_update_item_set():
-    conn = boto.dynamodb2.connect_to_region("us-west-2")
+    conn = boto.dynamodb2.connect_to_region("us-east-1")
     table = Table.create('messages', schema=[
         HashKey('username')
     ])
