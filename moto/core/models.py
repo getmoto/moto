@@ -166,7 +166,6 @@ class ServerModeMockAWS(BaseMockAWS):
             self.reset()
 
         from boto3 import client as real_boto3_client, resource as real_boto3_resource
-        import select
         import mock
 
         def fake_boto3_client(*args, **kwargs):
