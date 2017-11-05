@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
 
 import datetime
@@ -1865,7 +1863,7 @@ def test_boto3_list_object_versions():
 def test_boto3_delete_markers():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = 'mybucket'
-    key = 'key-with-versions-and-unicode-ó'
+    key = u'key-with-versions-and-unicode-ó'
     s3.create_bucket(Bucket=bucket_name)
     s3.put_bucket_versioning(
         Bucket=bucket_name,
