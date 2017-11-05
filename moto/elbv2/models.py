@@ -3,8 +3,10 @@ from __future__ import unicode_literals
 import datetime
 import re
 from moto.compat import OrderedDict
+from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
 from moto.ec2.models import ec2_backends
+from moto.acm.models import acm_backends
 from .exceptions import (
     DuplicateLoadBalancerName,
     DuplicateListenerError,
@@ -40,6 +42,8 @@ class FakeHealthStatus(BaseModel):
 
 
 class FakeTargetGroup(BaseModel):
+    HTTP_CODE_REGEX = re.compile(r'(?:(?:\d+-\d+|\d+),?)+')
+
     def __init__(self,
                  name,
                  arn,
@@ -52,7 +56,9 @@ class FakeTargetGroup(BaseModel):
                  healthcheck_interval_seconds,
                  healthcheck_timeout_seconds,
                  healthy_threshold_count,
-                 unhealthy_threshold_count):
+                 unhealthy_threshold_count,
+                 matcher=None,
+                 target_type=None):
         self.name = name
         self.arn = arn
         self.vpc_id = vpc_id
@@ -67,6 +73,8 @@ class FakeTargetGroup(BaseModel):
         self.unhealthy_threshold_count = unhealthy_threshold_count
         self.load_balancer_arns = []
         self.tags = {}
+        self.matcher = matcher
+        self.target_type = target_type
 
         self.attributes = {
             'deregistration_delay.timeout_seconds': 300,
@@ -74,6 +82,10 @@ class FakeTargetGroup(BaseModel):
         }
 
         self.targets = OrderedDict()
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
 
     def register(self, targets):
         for target in targets:
@@ -99,6 +111,46 @@ class FakeTargetGroup(BaseModel):
             raise InvalidTargetError()
         return FakeHealthStatus(t['id'], t['port'], self.healthcheck_port, 'healthy')
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        elbv2_backend = elbv2_backends[region_name]
+
+        # per cloudformation docs:
+        # The target group name should be shorter than 22 characters because
+        # AWS CloudFormation uses the target group name to create the name of the load balancer.
+        name = properties.get('Name', resource_name[:22])
+        vpc_id = properties.get("VpcId")
+        protocol = properties.get('Protocol')
+        port = properties.get("Port")
+        healthcheck_protocol = properties.get("HealthCheckProtocol")
+        healthcheck_port = properties.get("HealthCheckPort")
+        healthcheck_path = properties.get("HealthCheckPath")
+        healthcheck_interval_seconds = properties.get("HealthCheckIntervalSeconds")
+        healthcheck_timeout_seconds = properties.get("HealthCheckTimeoutSeconds")
+        healthy_threshold_count = properties.get("HealthyThresholdCount")
+        unhealthy_threshold_count = properties.get("UnhealthyThresholdCount")
+        matcher = properties.get("Matcher")
+        target_type = properties.get("TargetType")
+
+        target_group = elbv2_backend.create_target_group(
+            name=name,
+            vpc_id=vpc_id,
+            protocol=protocol,
+            port=port,
+            healthcheck_protocol=healthcheck_protocol,
+            healthcheck_port=healthcheck_port,
+            healthcheck_path=healthcheck_path,
+            healthcheck_interval_seconds=healthcheck_interval_seconds,
+            healthcheck_timeout_seconds=healthcheck_timeout_seconds,
+            healthy_threshold_count=healthy_threshold_count,
+            unhealthy_threshold_count=unhealthy_threshold_count,
+            matcher=matcher,
+            target_type=target_type,
+        )
+        return target_group
+
 
 class FakeListener(BaseModel):
 
@@ -109,6 +161,7 @@ class FakeListener(BaseModel):
         self.port = port
         self.ssl_policy = ssl_policy
         self.certificate = certificate
+        self.certificates = [certificate] if certificate is not None else []
         self.default_actions = default_actions
         self._non_default_rules = []
         self._default_rule = FakeRule(
@@ -120,6 +173,10 @@ class FakeListener(BaseModel):
         )
 
     @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @property
     def rules(self):
         return self._non_default_rules + [self._default_rule]
 
@@ -129,6 +186,28 @@ class FakeListener(BaseModel):
     def register(self, rule):
         self._non_default_rules.append(rule)
         self._non_default_rules = sorted(self._non_default_rules, key=lambda x: x.priority)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        elbv2_backend = elbv2_backends[region_name]
+        load_balancer_arn = properties.get("LoadBalancerArn")
+        protocol = properties.get("Protocol")
+        port = properties.get("Port")
+        ssl_policy = properties.get("SslPolicy")
+        certificates = properties.get("Certificates")
+        # transform default actions to confirm with the rest of the code and XML templates
+        if "DefaultActions" in properties:
+            default_actions = []
+            for action in properties['DefaultActions']:
+                default_actions.append({'type': action['Type'], 'target_group_arn': action['TargetGroupArn']})
+        else:
+            default_actions = None
+
+        listener = elbv2_backend.create_listener(
+            load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions)
+        return listener
 
 
 class FakeRule(BaseModel):
@@ -153,6 +232,8 @@ class FakeBackend(BaseModel):
 
 
 class FakeLoadBalancer(BaseModel):
+    VALID_ATTRS = {'access_logs.s3.enabled', 'access_logs.s3.bucket', 'access_logs.s3.prefix',
+                   'deletion_protection.enabled', 'idle_timeout.timeout_seconds'}
 
     def __init__(self, name, security_groups, subnets, vpc_id, arn, dns_name, scheme='internet-facing'):
         self.name = name
@@ -166,9 +247,18 @@ class FakeLoadBalancer(BaseModel):
         self.arn = arn
         self.dns_name = dns_name
 
+        self.stack = 'ipv4'
+        self.attrs = {
+            'access_logs.s3.enabled': 'false',
+            'access_logs.s3.bucket': None,
+            'access_logs.s3.prefix': None,
+            'deletion_protection.enabled': 'false',
+            'idle_timeout.timeout_seconds': '60'
+        }
+
     @property
     def physical_resource_id(self):
-        return self.name
+        return self.arn
 
     def add_tag(self, key, value):
         if len(self.tags) >= 10 and key not in self.tags:
@@ -186,6 +276,27 @@ class FakeLoadBalancer(BaseModel):
         ''' Not exposed as part of the ELB API - used for CloudFormation. '''
         elbv2_backends[region].delete_load_balancer(self.arn)
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+
+        elbv2_backend = elbv2_backends[region_name]
+
+        name = properties.get('Name', resource_name)
+        security_groups = properties.get("SecurityGroups")
+        subnet_ids = properties.get('Subnets')
+        scheme = properties.get('Scheme', 'internet-facing')
+
+        load_balancer = elbv2_backend.create_load_balancer(name, security_groups, subnet_ids, scheme=scheme)
+        return load_balancer
+
+    def get_cfn_attribute(self, attribute_name):
+        attributes = {
+            'DNSName': self.dns_name,
+            'LoadBalancerName': self.name,
+        }
+        return attributes[attribute_name]
+
 
 class ELBv2Backend(BaseBackend):
 
@@ -194,6 +305,26 @@ class ELBv2Backend(BaseBackend):
         self.target_groups = OrderedDict()
         self.load_balancers = OrderedDict()
 
+    @property
+    def ec2_backend(self):
+        """
+        EC2 backend
+
+        :return: EC2 Backend
+        :rtype: moto.ec2.models.EC2Backend
+        """
+        return ec2_backends[self.region_name]
+
+    @property
+    def acm_backend(self):
+        """
+        ACM backend
+
+        :return: ACM Backend
+        :rtype: moto.acm.models.AWSCertificateManagerBackend
+        """
+        return acm_backends[self.region_name]
+
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
@@ -201,12 +332,11 @@ class ELBv2Backend(BaseBackend):
 
     def create_load_balancer(self, name, security_groups, subnet_ids, scheme='internet-facing'):
         vpc_id = None
-        ec2_backend = ec2_backends[self.region_name]
         subnets = []
         if not subnet_ids:
             raise SubnetNotFoundError()
         for subnet_id in subnet_ids:
-            subnet = ec2_backend.get_subnet(subnet_id)
+            subnet = self.ec2_backend.get_subnet(subnet_id)
             if subnet is None:
                 raise SubnetNotFoundError()
             subnets.append(subnet)
@@ -279,7 +409,7 @@ class ELBv2Backend(BaseBackend):
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:
             raise InvalidTargetGroupNameError(
-                "Target group name '%s' cannot be longer than '32' characters" % name
+                "Target group name '%s' cannot be longer than '22' characters" % name
             )
         if not re.match('^[a-zA-Z0-9\-]+$', name):
             raise InvalidTargetGroupNameError(
@@ -299,6 +429,9 @@ class ELBv2Backend(BaseBackend):
         for target_group in self.target_groups.values():
             if target_group.name == name:
                 raise DuplicateTargetGroupName()
+
+        if FakeTargetGroup.HTTP_CODE_REGEX.match(kwargs['matcher']['HttpCode']) is None:
+            raise RESTError('InvalidParameterValue', 'HttpCode must be like 200 | 200-399 | 200,201 ...')
 
         arn = "arn:aws:elasticloadbalancing:%s:1:targetgroup/%s/50dc6c495c0c9188" % (self.region_name, name)
         target_group = FakeTargetGroup(name, arn, **kwargs)
@@ -546,6 +679,166 @@ class ELBv2Backend(BaseBackend):
             given_rule.priority = priority
             modified_rules.append(given_rule)
         return modified_rules
+
+    def set_ip_address_type(self, arn, ip_type):
+        if ip_type not in ('internal', 'dualstack'):
+            raise RESTError('InvalidParameterValue', 'IpAddressType must be either internal | dualstack')
+
+        balancer = self.load_balancers.get(arn)
+        if balancer is None:
+            raise LoadBalancerNotFoundError()
+
+        if ip_type == 'dualstack' and balancer.scheme == 'internal':
+            raise RESTError('InvalidConfigurationRequest', 'Internal load balancers cannot be dualstack')
+
+        balancer.stack = ip_type
+
+    def set_security_groups(self, arn, sec_groups):
+        balancer = self.load_balancers.get(arn)
+        if balancer is None:
+            raise LoadBalancerNotFoundError()
+
+        # Check all security groups exist
+        for sec_group_id in sec_groups:
+            if self.ec2_backend.get_security_group_from_id(sec_group_id) is None:
+                raise RESTError('InvalidSecurityGroup', 'Security group {0} does not exist'.format(sec_group_id))
+
+        balancer.security_groups = sec_groups
+
+    def set_subnets(self, arn, subnets):
+        balancer = self.load_balancers.get(arn)
+        if balancer is None:
+            raise LoadBalancerNotFoundError()
+
+        subnet_objects = []
+        sub_zone_list = {}
+        for subnet in subnets:
+            try:
+                subnet = self.ec2_backend.get_subnet(subnet)
+
+                if subnet.availability_zone in sub_zone_list:
+                    raise RESTError('InvalidConfigurationRequest', 'More than 1 subnet cannot be specified for 1 availability zone')
+
+                sub_zone_list[subnet.availability_zone] = subnet.id
+                subnet_objects.append(subnet)
+            except Exception:
+                raise SubnetNotFoundError()
+
+        if len(sub_zone_list) < 2:
+            raise RESTError('InvalidConfigurationRequest', 'More than 1 availability zone must be specified')
+
+        balancer.subnets = subnet_objects
+
+        return sub_zone_list.items()
+
+    def modify_load_balancer_attributes(self, arn, attrs):
+        balancer = self.load_balancers.get(arn)
+        if balancer is None:
+            raise LoadBalancerNotFoundError()
+
+        for key in attrs:
+            if key not in FakeLoadBalancer.VALID_ATTRS:
+                raise RESTError('InvalidConfigurationRequest', 'Key {0} not valid'.format(key))
+
+        balancer.attrs.update(attrs)
+        return balancer.attrs
+
+    def describe_load_balancer_attributes(self, arn):
+        balancer = self.load_balancers.get(arn)
+        if balancer is None:
+            raise LoadBalancerNotFoundError()
+
+        return balancer.attrs
+
+    def modify_target_group(self, arn, health_check_proto=None, health_check_port=None, health_check_path=None, health_check_interval=None,
+                            health_check_timeout=None, healthy_threshold_count=None, unhealthy_threshold_count=None, http_codes=None):
+        target_group = self.target_groups.get(arn)
+        if target_group is None:
+            raise TargetGroupNotFoundError()
+
+        if http_codes is not None and FakeTargetGroup.HTTP_CODE_REGEX.match(http_codes) is None:
+            raise RESTError('InvalidParameterValue', 'HttpCode must be like 200 | 200-399 | 200,201 ...')
+
+        if http_codes is not None:
+            target_group.matcher['HttpCode'] = http_codes
+        if health_check_interval is not None:
+            target_group.healthcheck_interval_seconds = health_check_interval
+        if health_check_path is not None:
+            target_group.healthcheck_path = health_check_path
+        if health_check_port is not None:
+            target_group.healthcheck_port = health_check_port
+        if health_check_proto is not None:
+            target_group.healthcheck_protocol = health_check_proto
+        if health_check_timeout is not None:
+            target_group.healthcheck_timeout_seconds = health_check_timeout
+        if healthy_threshold_count is not None:
+            target_group.healthy_threshold_count = healthy_threshold_count
+        if unhealthy_threshold_count is not None:
+            target_group.unhealthy_threshold_count = unhealthy_threshold_count
+
+        return target_group
+
+    def modify_listener(self, arn, port=None, protocol=None, ssl_policy=None, certificates=None, default_actions=None):
+        for load_balancer in self.load_balancers.values():
+            if arn in load_balancer.listeners:
+                break
+        else:
+            raise ListenerNotFoundError()
+
+        listener = load_balancer.listeners[arn]
+
+        if port is not None:
+            for listener_arn, current_listener in load_balancer.listeners.items():
+                if listener_arn == arn:
+                    continue
+                if listener.port == port:
+                    raise DuplicateListenerError()
+
+            listener.port = port
+
+        if protocol is not None:
+            if protocol not in ('HTTP', 'HTTPS', 'TCP'):
+                raise RESTError('UnsupportedProtocol', 'Protocol {0} is not supported'.format(protocol))
+
+            # HTTPS checks
+            if protocol == 'HTTPS':
+                # HTTPS
+
+                # Might already be HTTPS so may not provide certs
+                if certificates is None and listener.protocol != 'HTTPS':
+                    raise RESTError('InvalidConfigurationRequest', 'Certificates must be provided for HTTPS')
+
+                # Check certificates exist
+                if certificates is not None:
+                    default_cert = None
+                    all_certs = set()  # for SNI
+                    for cert in certificates:
+                        if cert['is_default'] == 'true':
+                            default_cert = cert['certificate_arn']
+                        try:
+                            self.acm_backend.get_certificate(cert['certificate_arn'])
+                        except Exception:
+                            raise RESTError('CertificateNotFound', 'Certificate {0} not found'.format(cert['certificate_arn']))
+
+                        all_certs.add(cert['certificate_arn'])
+
+                    if default_cert is None:
+                        raise RESTError('InvalidConfigurationRequest', 'No default certificate')
+
+                    listener.certificate = default_cert
+                    listener.certificates = list(all_certs)
+
+            listener.protocol = protocol
+
+        if ssl_policy is not None:
+            # Its already validated in responses.py
+            listener.ssl_policy = ssl_policy
+
+        if default_actions is not None:
+            # Is currently not validated
+            listener.default_actions = default_actions
+
+        return listener
 
     def _any_listener_using(self, target_group_arn):
         for load_balancer in self.load_balancers.values():

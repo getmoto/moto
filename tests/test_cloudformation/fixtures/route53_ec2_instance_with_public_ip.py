@@ -1,6 +1,13 @@
 from __future__ import unicode_literals
 
 template = {
+    "Parameters": {
+        "R53ZoneName": {
+            "Type": "String",
+            "Default": "my_zone"
+        }
+    },
+
     "Resources": {
         "Ec2Instance": {
             "Type": "AWS::EC2::Instance",
@@ -13,20 +20,20 @@ template = {
         "HostedZone": {
             "Type": "AWS::Route53::HostedZone",
             "Properties": {
-                "Name": "my_zone"
+                "Name": {"Ref": "R53ZoneName"}
             }
         },
 
         "myDNSRecord": {
             "Type": "AWS::Route53::RecordSet",
             "Properties": {
-                "HostedZoneName": {"Ref": "HostedZone"},
+                "HostedZoneId": {"Ref": "HostedZone"},
                 "Comment": "DNS name for my instance.",
                 "Name": {
                     "Fn::Join": ["", [
                         {"Ref": "Ec2Instance"}, ".",
                         {"Ref": "AWS::Region"}, ".",
-                        {"Ref": "HostedZone"}, "."
+                        {"Ref": "R53ZoneName"}, "."
                     ]]
                 },
                 "Type": "A",

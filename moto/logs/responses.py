@@ -47,7 +47,7 @@ class LogsResponse(BaseResponse):
 
     def describe_log_streams(self):
         log_group_name = self._get_param('logGroupName')
-        log_stream_name_prefix = self._get_param('logStreamNamePrefix')
+        log_stream_name_prefix = self._get_param('logStreamNamePrefix', '')
         descending = self._get_param('descending', False)
         limit = self._get_param('limit', 50)
         assert limit <= 50
@@ -83,13 +83,13 @@ class LogsResponse(BaseResponse):
         limit = self._get_param('limit', 10000)
         assert limit <= 10000
         next_token = self._get_param('nextToken')
-        start_from_head = self._get_param('startFromHead')
+        start_from_head = self._get_param('startFromHead', False)
 
         events, next_backward_token, next_foward_token = \
             self.logs_backend.get_log_events(log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head)
 
         return json.dumps({
-            "events": events,
+            "events": [ob.__dict__ for ob in events],
             "nextBackwardToken": next_backward_token,
             "nextForwardToken": next_foward_token
         })

@@ -87,6 +87,54 @@ def test_get_dashboard_fail():
         raise RuntimeError('Should of raised error')
 
 
+@mock_cloudwatch
+def test_alarm_state():
+    client = boto3.client('cloudwatch', region_name='eu-central-1')
+
+    client.put_metric_alarm(
+        AlarmName='testalarm1',
+        MetricName='cpu',
+        Namespace='blah',
+        Period=10,
+        EvaluationPeriods=5,
+        Statistic='Average',
+        Threshold=2,
+        ComparisonOperator='GreaterThanThreshold',
+    )
+    client.put_metric_alarm(
+        AlarmName='testalarm2',
+        MetricName='cpu',
+        Namespace='blah',
+        Period=10,
+        EvaluationPeriods=5,
+        Statistic='Average',
+        Threshold=2,
+        ComparisonOperator='GreaterThanThreshold',
+    )
+
+    # This is tested implicitly as if it doesnt work the rest will die
+    client.set_alarm_state(
+        AlarmName='testalarm1',
+        StateValue='ALARM',
+        StateReason='testreason',
+        StateReasonData='{"some": "json_data"}'
+    )
+
+    resp = client.describe_alarms(
+        StateValue='ALARM'
+    )
+    len(resp['MetricAlarms']).should.equal(1)
+    resp['MetricAlarms'][0]['AlarmName'].should.equal('testalarm1')
+
+    resp = client.describe_alarms(
+        StateValue='OK'
+    )
+    len(resp['MetricAlarms']).should.equal(1)
+    resp['MetricAlarms'][0]['AlarmName'].should.equal('testalarm2')
+
+    # Just for sanity
+    resp = client.describe_alarms()
+    len(resp['MetricAlarms']).should.equal(2)
 
 
 

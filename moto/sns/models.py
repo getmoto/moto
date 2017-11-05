@@ -146,7 +146,7 @@ class PlatformEndpoint(BaseModel):
         if 'Token' not in self.attributes:
             self.attributes['Token'] = self.token
         if 'Enabled' not in self.attributes:
-            self.attributes['Enabled'] = True
+            self.attributes['Enabled'] = 'True'
 
     @property
     def enabled(self):
@@ -256,7 +256,10 @@ class SNSBackend(BaseBackend):
         else:
             return self._get_values_nexttoken(self.subscriptions, next_token)
 
-    def publish(self, arn, message):
+    def publish(self, arn, message, subject=None):
+        if subject is not None and len(subject) >= 100:
+            raise ValueError('Subject must be less than 100 characters')
+
         try:
             topic = self.get_topic(arn)
             message_id = topic.publish(message)

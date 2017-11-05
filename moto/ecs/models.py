@@ -4,6 +4,7 @@ from datetime import datetime
 from random import random, randint
 
 import pytz
+from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from copy import copy
@@ -148,7 +149,7 @@ class Task(BaseObject):
                  resource_requirements, overrides={}, started_by=''):
         self.cluster_arn = cluster.arn
         self.task_arn = 'arn:aws:ecs:us-east-1:012345678910:task/{0}'.format(
-            str(uuid.uuid1()))
+            str(uuid.uuid4()))
         self.container_instance_arn = container_instance_arn
         self.last_status = 'RUNNING'
         self.desired_status = 'RUNNING'
@@ -288,8 +289,8 @@ class ContainerInstance(BaseObject):
              'stringSetValue': [],
              'type': 'STRINGSET'}]
         self.container_instance_arn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(
-            str(uuid.uuid1()))
-        self.pending_task_count = 0
+            str(uuid.uuid4()))
+        self.pending_tasks_count = 0
         self.remaining_resources = [
             {'doubleValue': 0.0,
              'integerValue': 4096,
@@ -314,12 +315,14 @@ class ContainerInstance(BaseObject):
              'stringSetValue': [],
              'type': 'STRINGSET'}
         ]
-        self.running_task_count = 0
+        self.running_tasks_count = 0
         self.version_info = {
             'agentVersion': "1.0.0",
             'agentHash': '4023248',
             'dockerVersion': 'DockerVersion: 1.5.0'
         }
+
+        self.attributes = {}
 
     @property
     def response_object(self):
@@ -737,7 +740,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         resource["stringSetValue"].remove(str(port))
                     else:
                         resource["stringSetValue"].append(str(port))
-        container_instance.running_task_count += resource_multiplier * 1
+        container_instance.running_tasks_count += resource_multiplier * 1
 
     def deregister_container_instance(self, cluster_str, container_instance_str, force):
         failures = []
@@ -748,11 +751,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instance = self.container_instances[cluster_name].get(container_instance_id)
         if container_instance is None:
             raise Exception("{0} is not a container id in the cluster")
-        if not force and container_instance.running_task_count > 0:
+        if not force and container_instance.running_tasks_count > 0:
             raise Exception("Found running tasks on the instance.")
         # Currently assume that people might want to do something based around deregistered instances
         # with tasks left running on them - but nothing if no tasks were running already
-        elif force and container_instance.running_task_count > 0:
+        elif force and container_instance.running_tasks_count > 0:
             if not self.container_instances.get('orphaned'):
                 self.container_instances['orphaned'] = {}
             self.container_instances['orphaned'][container_instance_id] = container_instance
@@ -765,6 +768,102 @@ class EC2ContainerServiceBackend(BaseBackend):
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
         pass
+
+    def put_attributes(self, cluster_name, attributes=None):
+        if cluster_name is None or cluster_name not in self.clusters:
+            raise JsonRESTError('ClusterNotFoundException', 'Cluster not found', status=400)
+
+        if attributes is None:
+            raise JsonRESTError('InvalidParameterException', 'attributes value is required')
+
+        for attr in attributes:
+            self._put_attribute(cluster_name, attr['name'], attr.get('value'), attr.get('targetId'), attr.get('targetType'))
+
+    def _put_attribute(self, cluster_name, name, value=None, target_id=None, target_type=None):
+        if target_id is None and target_type is None:
+            for instance in self.container_instances[cluster_name].values():
+                instance.attributes[name] = value
+        elif target_type is None:
+            # targetId is full container instance arn
+            try:
+                arn = target_id.rsplit('/', 1)[-1]
+                self.container_instances[cluster_name][arn].attributes[name] = value
+            except KeyError:
+                raise JsonRESTError('TargetNotFoundException', 'Could not find {0}'.format(target_id))
+        else:
+            # targetId is container uuid, targetType must be container-instance
+            try:
+                if target_type != 'container-instance':
+                    raise JsonRESTError('TargetNotFoundException', 'Could not find {0}'.format(target_id))
+
+                self.container_instances[cluster_name][target_id].attributes[name] = value
+            except KeyError:
+                raise JsonRESTError('TargetNotFoundException', 'Could not find {0}'.format(target_id))
+
+    def list_attributes(self, target_type, cluster_name=None, attr_name=None, attr_value=None, max_results=None, next_token=None):
+        if target_type != 'container-instance':
+            raise JsonRESTError('InvalidParameterException', 'targetType must be container-instance')
+
+        filters = [lambda x: True]
+
+        # item will be {0 cluster_name, 1 arn, 2 name, 3 value}
+        if cluster_name is not None:
+            filters.append(lambda item: item[0] == cluster_name)
+        if attr_name:
+            filters.append(lambda item: item[2] == attr_name)
+        if attr_name:
+            filters.append(lambda item: item[3] == attr_value)
+
+        all_attrs = []
+        for cluster_name, cobj in self.container_instances.items():
+            for container_instance in cobj.values():
+                for key, value in container_instance.attributes.items():
+                    all_attrs.append((cluster_name, container_instance.container_instance_arn, key, value))
+
+        return filter(lambda x: all(f(x) for f in filters), all_attrs)
+
+    def delete_attributes(self, cluster_name, attributes=None):
+        if cluster_name is None or cluster_name not in self.clusters:
+            raise JsonRESTError('ClusterNotFoundException', 'Cluster not found', status=400)
+
+        if attributes is None:
+            raise JsonRESTError('InvalidParameterException', 'attributes value is required')
+
+        for attr in attributes:
+            self._delete_attribute(cluster_name, attr['name'], attr.get('value'), attr.get('targetId'), attr.get('targetType'))
+
+    def _delete_attribute(self, cluster_name, name, value=None, target_id=None, target_type=None):
+        if target_id is None and target_type is None:
+            for instance in self.container_instances[cluster_name].values():
+                if name in instance.attributes and instance.attributes[name] == value:
+                    del instance.attributes[name]
+        elif target_type is None:
+            # targetId is full container instance arn
+            try:
+                arn = target_id.rsplit('/', 1)[-1]
+                instance = self.container_instances[cluster_name][arn]
+                if name in instance.attributes and instance.attributes[name] == value:
+                    del instance.attributes[name]
+            except KeyError:
+                raise JsonRESTError('TargetNotFoundException', 'Could not find {0}'.format(target_id))
+        else:
+            # targetId is container uuid, targetType must be container-instance
+            try:
+                if target_type != 'container-instance':
+                    raise JsonRESTError('TargetNotFoundException', 'Could not find {0}'.format(target_id))
+
+                instance = self.container_instances[cluster_name][target_id]
+                if name in instance.attributes and instance.attributes[name] == value:
+                    del instance.attributes[name]
+            except KeyError:
+                raise JsonRESTError('TargetNotFoundException', 'Could not find {0}'.format(target_id))
+
+    def list_task_definition_families(self, family_prefix=None, status=None, max_results=None, next_token=None):
+        for task_fam in self.task_definitions:
+            if family_prefix is not None and not task_fam.startswith(family_prefix):
+                continue
+
+            yield task_fam
 
 
 ecs_backends = {}

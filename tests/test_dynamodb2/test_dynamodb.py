@@ -28,13 +28,13 @@ except ImportError:
 @mock_dynamodb2_deprecated
 def test_list_tables():
     name = 'TestTable'
-    #{'schema': }
+    # Should make tables properly with boto
     dynamodb_backend2.create_table(name, schema=[
         {u'KeyType': u'HASH', u'AttributeName': u'forum_name'},
         {u'KeyType': u'RANGE', u'AttributeName': u'subject'}
     ])
     conn = boto.dynamodb2.connect_to_region(
-        'us-west-2',
+        'us-east-1',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
     assert conn.list_tables()["TableNames"] == [name]
@@ -43,6 +43,7 @@ def test_list_tables():
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 def test_list_tables_layer_1():
+    # Should make tables properly with boto
     dynamodb_backend2.create_table("test_1", schema=[
         {u'KeyType': u'HASH', u'AttributeName': u'name'}
     ])
@@ -50,7 +51,7 @@ def test_list_tables_layer_1():
         {u'KeyType': u'HASH', u'AttributeName': u'name'}
     ])
     conn = boto.dynamodb2.connect_to_region(
-        'us-west-2',
+        'us-east-1',
         aws_access_key_id="ak",
         aws_secret_access_key="sk")
 
@@ -88,11 +89,21 @@ def test_list_table_tags():
                       ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
     table_description = conn.describe_table(TableName=name)
     arn = table_description['Table']['TableArn']
-    tags = [{'Key':'TestTag', 'Value': 'TestValue'}]
-    conn.tag_resource(ResourceArn=arn,
-                      Tags=tags)
+
+    # Tag table
+    tags = [{'Key': 'TestTag', 'Value': 'TestValue'}, {'Key': 'TestTag2', 'Value': 'TestValue2'}]
+    conn.tag_resource(ResourceArn=arn, Tags=tags)
+
+    # Check tags
     resp = conn.list_tags_of_resource(ResourceArn=arn)
     assert resp["Tags"] == tags
+
+    # Remove 1 tag
+    conn.untag_resource(ResourceArn=arn, TagKeys=['TestTag'])
+
+    # Check tags
+    resp = conn.list_tags_of_resource(ResourceArn=arn)
+    assert resp["Tags"] == [{'Key': 'TestTag2', 'Value': 'TestValue2'}]
 
 
 @requires_boto_gte("2.9")
@@ -576,29 +587,36 @@ def test_get_item_returns_consumed_capacity():
 
 
 def test_filter_expression():
-    # TODO NOT not yet supported
     row1 = moto.dynamodb2.models.Item(None, None, None, None, {'Id': {'N': '8'}, 'Subs': {'N': '5'}, 'Desc': {'S': 'Some description'}, 'KV': {'SS': ['test1', 'test2']}})
     row2 = moto.dynamodb2.models.Item(None, None, None, None, {'Id': {'N': '8'}, 'Subs': {'N': '10'}, 'Desc': {'S': 'A description'}, 'KV': {'SS': ['test3', 'test4']}})
 
+    # NOT test 1
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('NOT attribute_not_exists(Id)', {}, {})
+    filter_expr.expr(row1).should.be(True)
+
+    # NOT test 2
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('NOT (Id = :v0)', {}, {':v0': {'N': 8}})
+    filter_expr.expr(row1).should.be(False)  # Id = 8 so should be false
+
     # AND test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id > 5 AND Subs < 7', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id > :v0 AND Subs < :v1', {}, {':v0': {'N': 5}, ':v1': {'N': 7}})
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
 
     # OR test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = 5 OR Id=8', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 OR Id=:v1', {}, {':v0': {'N': 5}, ':v1': {'N': 8}})
     filter_expr.expr(row1).should.be(True)
 
     # BETWEEN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id BETWEEN 5 AND 10', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id BETWEEN :v0 AND :v1', {}, {':v0': {'N': 5}, ':v1': {'N': 10}})
     filter_expr.expr(row1).should.be(True)
 
     # PAREN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = 8 AND (Subs = 8 OR Subs = 5)', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 AND (Subs = :v0 OR Subs = :v1)', {}, {':v0': {'N': 8}, ':v1': {'N': 5}})
     filter_expr.expr(row1).should.be(True)
 
     # IN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN (7,8, 9)', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN :v0', {}, {':v0': {'NS': [7, 8, 9]}})
     filter_expr.expr(row1).should.be(True)
 
     # attribute function tests
@@ -620,6 +638,14 @@ def test_filter_expression():
 
     # size function test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('size(Desc) > size(KV)', {}, {})
+    filter_expr.expr(row1).should.be(True)
+
+    # Expression from @batkuip
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
+        '(#n0 < :v0 AND attribute_not_exists(#n1))',
+        {'#n0': 'Subs', '#n1': 'fanout_ts'},
+        {':v0': {'N': '7'}}
+    )
     filter_expr.expr(row1).should.be(True)
 
 
@@ -656,6 +682,84 @@ def test_scan_filter():
 
 
 @mock_dynamodb2
+def test_scan_filter2():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'N'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'N': '1'}
+        }
+    )
+
+    response = client.scan(
+        TableName='test1',
+        Select='ALL_ATTRIBUTES',
+        FilterExpression='#tb >= :dt',
+        ExpressionAttributeNames={"#tb": "app"},
+        ExpressionAttributeValues={":dt": {"N": str(1)}}
+    )
+    assert response['Count'] == 1
+
+
+@mock_dynamodb2
+def test_scan_filter3():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'N'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'N': '1'},
+            'active': {'BOOL': True}
+        }
+    )
+
+    table = dynamodb.Table('test1')
+    response = table.scan(
+        FilterExpression=Attr('active').eq(True)
+    )
+    assert response['Count'] == 1
+
+
+@mock_dynamodb2
+def test_scan_filter4():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'N'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+
+    table = dynamodb.Table('test1')
+    response = table.scan(
+        FilterExpression=Attr('epoch_ts').lt(7) & Attr('fanout_ts').not_exists()
+    )
+    # Just testing
+    assert response['Count'] == 0
+
+
+@mock_dynamodb2
 def test_bad_scan_filter():
     client = boto3.client('dynamodb', region_name='us-east-1')
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -678,7 +782,6 @@ def test_bad_scan_filter():
         err.response['Error']['Code'].should.equal('ValidationError')
     else:
         raise RuntimeError('Should of raised ResourceInUseException')
-
 
 
 @mock_dynamodb2
@@ -776,3 +879,50 @@ def test_delete_item():
 
     response = table.scan()
     assert response['Count'] == 0
+
+
+@mock_dynamodb2
+def test_describe_limits():
+    client = boto3.client('dynamodb', region_name='eu-central-1')
+    resp = client.describe_limits()
+
+    resp['AccountMaxReadCapacityUnits'].should.equal(20000)
+    resp['AccountMaxWriteCapacityUnits'].should.equal(20000)
+    resp['TableMaxWriteCapacityUnits'].should.equal(10000)
+    resp['TableMaxReadCapacityUnits'].should.equal(10000)
+
+
+@mock_dynamodb2
+def test_set_ttl():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+
+    client.update_time_to_live(
+        TableName='test1',
+        TimeToLiveSpecification={
+            'Enabled': True,
+            'AttributeName': 'expire'
+        }
+    )
+
+    resp = client.describe_time_to_live(TableName='test1')
+    resp['TimeToLiveDescription']['TimeToLiveStatus'].should.equal('ENABLED')
+    resp['TimeToLiveDescription']['AttributeName'].should.equal('expire')
+
+    client.update_time_to_live(
+        TableName='test1',
+        TimeToLiveSpecification={
+            'Enabled': False,
+            'AttributeName': 'expire'
+        }
+    )
+
+    resp = client.describe_time_to_live(TableName='test1')
+    resp['TimeToLiveDescription']['TimeToLiveStatus'].should.equal('DISABLED')

@@ -488,6 +488,7 @@ def lambda_handler(event, context):
     assert 'FunctionError' in result
     assert result['FunctionError'] == 'Handled'
 
+
 @mock_lambda
 @mock_s3
 def test_tags():
@@ -554,6 +555,7 @@ def test_tags():
         TagKeys=['spam']
     )['ResponseMetadata']['HTTPStatusCode'].should.equal(204)
 
+
 @mock_lambda
 def test_tags_not_found():
     """
@@ -574,6 +576,7 @@ def test_tags_not_found():
         TagKeys=['spam']
     ).should.throw(botocore.client.ClientError)
 
+
 @mock_lambda
 def test_invoke_async_function():
     conn = boto3.client('lambda', 'us-west-2')
@@ -581,10 +584,8 @@ def test_invoke_async_function():
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
-        Handler='lambda_function.handler',
-        Code={
-            'ZipFile': get_test_zip_file1(),
-        },
+        Handler='lambda_function.lambda_handler',
+        Code={'ZipFile': get_test_zip_file1()},
         Description='test lambda function',
         Timeout=3,
         MemorySize=128,
@@ -593,10 +594,11 @@ def test_invoke_async_function():
 
     success_result = conn.invoke_async(
         FunctionName='testFunction', 
-        InvokeArgs=json.dumps({ 'test': 'event' })
+        InvokeArgs=json.dumps({'test': 'event'})
         )
 
     success_result['Status'].should.equal(202)
+
 
 @mock_lambda
 @freeze_time('2015-01-01 00:00:00')
@@ -645,6 +647,7 @@ def test_get_function_created_with_zipfile():
             }
         },
     )
+
 
 @mock_lambda
 def add_function_permission():

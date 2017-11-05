@@ -119,8 +119,10 @@ def test_rrset():
 
     rrsets = conn.get_all_rrsets(
         zoneid, name="bar.foo.testdns.aws.com", type="A")
-    rrsets.should.have.length_of(1)
-    rrsets[0].resource_records[0].should.equal('5.6.7.8')
+    rrsets.should.have.length_of(2)
+    resource_records = [rr for rr_set in rrsets for rr in rr_set.resource_records]
+    resource_records.should.contain('1.2.3.4')
+    resource_records.should.contain('5.6.7.8')
 
     rrsets = conn.get_all_rrsets(
         zoneid, name="foo.foo.testdns.aws.com", type="A")
@@ -160,7 +162,10 @@ def test_alias_rrset():
     changes.commit()
 
     rrsets = conn.get_all_rrsets(zoneid, type="A")
-    rrsets.should.have.length_of(1)
+    rrset_records = [(rr_set.name, rr) for rr_set in rrsets for rr in rr_set.resource_records]
+    rrset_records.should.have.length_of(2)
+    rrset_records.should.contain(('foo.alias.testdns.aws.com', 'foo.testdns.aws.com'))
+    rrset_records.should.contain(('bar.alias.testdns.aws.com', 'bar.testdns.aws.com'))
     rrsets[0].resource_records[0].should.equal('foo.testdns.aws.com')
     rrsets = conn.get_all_rrsets(zoneid, type="CNAME")
     rrsets.should.have.length_of(1)
@@ -647,3 +652,60 @@ def test_change_resource_record_invalid():
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
     len(response['ResourceRecordSets']).should.equal(0)
+
+
+@mock_route53
+def test_list_resource_record_sets_name_type_filters():
+    conn = boto3.client('route53', region_name='us-east-1')
+    create_hosted_zone_response = conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash('foo')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="db",
+        )
+    )
+    hosted_zone_id = create_hosted_zone_response['HostedZone']['Id']
+
+    def create_resource_record_set(rec_type, rec_name):
+        payload = {
+            'Comment': 'create {} record {}'.format(rec_type, rec_name),
+            'Changes': [
+                {
+                    'Action': 'CREATE',
+                    'ResourceRecordSet': {
+                        'Name': rec_name,
+                        'Type': rec_type,
+                        'TTL': 10,
+                        'ResourceRecords': [{
+                            'Value': '127.0.0.1'
+                        }]
+                    }
+                }
+            ]
+        }
+        conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=payload)
+
+    # record_type, record_name
+    all_records = [
+        ('A', 'a.a.db'),
+        ('A', 'a.b.db'),
+        ('A', 'b.b.db'),
+        ('CNAME', 'b.b.db'),
+        ('CNAME', 'b.c.db'),
+        ('CNAME', 'c.c.db')
+    ]
+    for record_type, record_name in all_records:
+        create_resource_record_set(record_type, record_name)
+
+    start_with = 2
+    response = conn.list_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        StartRecordType=all_records[start_with][0],
+        StartRecordName=all_records[start_with][1]
+    )
+
+    returned_records = [(record['Type'], record['Name']) for record in response['ResourceRecordSets']]
+    len(returned_records).should.equal(len(all_records) - start_with)
+    for desired_record in all_records[start_with:]:
+        returned_records.should.contain(desired_record)

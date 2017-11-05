@@ -9,6 +9,7 @@ install_requires = [
     "Jinja2>=2.8",
     "boto>=2.36.0",
     "boto3>=1.2.1",
+    "botocore>=1.7.12",
     "cookies",
     "cryptography>=2.0.0",
     "requests>=2.5",
@@ -19,6 +20,7 @@ install_requires = [
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "mock",
+    "aws-xray-sdk>=0.93"
 ]
 
 extras_require = {
@@ -36,7 +38,7 @@ else:
 
 setup(
     name='moto',
-    version='1.1.22',
+    version='1.1.24',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',

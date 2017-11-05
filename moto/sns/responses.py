@@ -239,6 +239,8 @@ class SNSResponse(BaseResponse):
         target_arn = self._get_param('TargetArn')
         topic_arn = self._get_param('TopicArn')
         phone_number = self._get_param('PhoneNumber')
+        subject = self._get_param('Subject')
+
         if phone_number is not None:
             # Check phone is correct syntax (e164)
             if not is_e164(phone_number):
@@ -261,7 +263,12 @@ class SNSResponse(BaseResponse):
             arn = topic_arn
 
         message = self._get_param('Message')
-        message_id = self.backend.publish(arn, message)
+
+        try:
+            message_id = self.backend.publish(arn, message, subject=subject)
+        except ValueError as err:
+            error_response = self._error('InvalidParameter', str(err))
+            return error_response, dict(status=400)
 
         if self.request_json:
             return json.dumps({
