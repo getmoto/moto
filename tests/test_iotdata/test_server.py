@@ -13,4 +13,8 @@ Test the different server responses
 def test_iotdata_list():
     backend = server.create_backend_app("iot-data")
     test_client = backend.test_client()
-    # do test
+
+    # just making sure that server is up
+    thing_name = 'nothing'
+    res = test_client.get('/things/{}/shadow'.format(thing_name))
+    res.status_code.should.equal(404)
