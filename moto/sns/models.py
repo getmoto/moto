@@ -194,7 +194,7 @@ class SNSBackend(BaseBackend):
 
     def create_topic(self, name):
         candidate_topic = Topic(name, self)
-        if self.topics.has_key(candidate_topic.arn):
+        if candidate_topic.arn in self.topics:
             return self.topics[candidate_topic.arn]
         else:
             self.topics[candidate_topic.arn] = candidate_topic
