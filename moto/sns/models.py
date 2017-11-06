@@ -193,9 +193,12 @@ class SNSBackend(BaseBackend):
         self.sms_attributes.update(attrs)
 
     def create_topic(self, name):
-        topic = Topic(name, self)
-        self.topics[topic.arn] = topic
-        return topic
+        candidate_topic = Topic(name, self)
+        if self.topics.has_key(candidate_topic.arn):
+            return self.topics[candidate_topic.arn]
+        else:
+            self.topics[candidate_topic.arn] = candidate_topic
+            return candidate_topic
 
     def _get_values_nexttoken(self, values_map, next_token=None):
         if next_token is None:
