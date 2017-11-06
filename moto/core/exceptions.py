@@ -34,6 +34,8 @@ ERROR_JSON_RESPONSE = u"""{
 
 
 class RESTError(HTTPException):
+    code = 400
+
     templates = {
         'single_error': SINGLE_ERROR_RESPONSE,
         'error': ERROR_RESPONSE,
@@ -54,7 +56,6 @@ class DryRunClientError(RESTError):
 
 
 class JsonRESTError(RESTError):
-
     def __init__(self, error_type, message, template='error_json', **kwargs):
         super(JsonRESTError, self).__init__(
             error_type, message, template, **kwargs)

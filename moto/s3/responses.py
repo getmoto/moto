@@ -764,7 +764,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return FakeTagging()
 
     def _tagging_from_xml(self, xml):
-        parsed_xml = xmltodict.parse(xml)
+        parsed_xml = xmltodict.parse(xml, force_list={'Tag': True})
 
         tags = []
         for tag in parsed_xml['Tagging']['TagSet']['Tag']:
