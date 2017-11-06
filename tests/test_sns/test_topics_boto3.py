@@ -31,6 +31,29 @@ def test_create_and_delete_topic():
     topics = topics_json["Topics"]
     topics.should.have.length_of(0)
 
+@mock_sns
+def test_create_topic_should_be_indempodent():
+    conn = boto3.client("sns", region_name="us-east-1")
+    topic_arn = conn.create_topic(Name="some-topic")['TopicArn']
+    conn.set_topic_attributes(
+        TopicArn=topic_arn,
+        AttributeName="DisplayName",
+        AttributeValue="should_be_set"
+    )
+    topic_display_name = conn.get_topic_attributes(
+        TopicArn=topic_arn
+    )['Attributes']['DisplayName']
+    topic_display_name.should.be.equal("should_be_set")
+
+    #recreate topic to prove indempodentcy
+    topic_arn = conn.create_topic(Name="some-topic")['TopicArn']
+    topic_display_name = conn.get_topic_attributes(
+        TopicArn=topic_arn
+    )['Attributes']['DisplayName']
+    
+    topic_display_name.should.be.equal("should_be_set")
+
+
 
 @mock_sns
 def test_get_missing_topic():
