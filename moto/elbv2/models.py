@@ -7,6 +7,8 @@ from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
+from .utils import make_arn_for_target_group
+from .utils import make_arn_for_load_balancer
 from .exceptions import (
     DuplicateLoadBalancerName,
     DuplicateListenerError,
@@ -342,7 +344,7 @@ class ELBv2Backend(BaseBackend):
             subnets.append(subnet)
 
         vpc_id = subnets[0].vpc_id
-        arn = "arn:aws:elasticloadbalancing:%s:1:loadbalancer/%s/50dc6c495c0c9188" % (self.region_name, name)
+        arn = make_arn_for_load_balancer(account_id=1, name=name, region_name=self.region_name)
         dns_name = "%s-1.%s.elb.amazonaws.com" % (name, self.region_name)
 
         if arn in self.load_balancers:
@@ -453,7 +455,7 @@ class ELBv2Backend(BaseBackend):
                 "Value {} at 'protocol' failed to satisfy constraint: "
                 "Member must satisfy enum value set: {}".format(kwargs['protocol'], valid_protocols))
 
-        arn = "arn:aws:elasticloadbalancing:%s:1:targetgroup/%s/50dc6c495c0c9188" % (self.region_name, name)
+        arn = make_arn_for_target_group(account_id=1, name=name, region_name=self.region_name)
         target_group = FakeTargetGroup(name, arn, **kwargs)
         self.target_groups[target_group.arn] = target_group
         return target_group
