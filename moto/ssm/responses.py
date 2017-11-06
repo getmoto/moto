@@ -81,6 +81,25 @@ class SimpleSystemManagerResponse(BaseResponse):
                 response['InvalidParameters'].append(name)
         return json.dumps(response)
 
+    def get_parameters_by_path(self):
+        path = self._get_param('Path')
+        with_decryption = self._get_param('WithDecryption')
+        recursive = self._get_param('Recursive', False)
+
+        result = self.ssm_backend.get_parameters_by_path(
+            path, with_decryption, recursive
+        )
+
+        response = {
+            'Parameters': [],
+        }
+
+        for parameter in result:
+            param_data = parameter.response_object(with_decryption)
+            response['Parameters'].append(param_data)
+
+        return json.dumps(response)
+
     def describe_parameters(self):
         page_size = 10
         filters = self._get_param('Filters')
