@@ -298,7 +298,9 @@ class DynamoHandler(BaseResponse):
         # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
         key_condition_expression = self.body.get('KeyConditionExpression')
         projection_expression = self.body.get('ProjectionExpression')
-        expression_attribute_names = self.body.get('ExpressionAttributeNames')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+        filter_expression = self.body.get('FilterExpression')
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
 
         if projection_expression and expression_attribute_names:
             expressions = [x.strip() for x in projection_expression.split(',')]
@@ -307,6 +309,8 @@ class DynamoHandler(BaseResponse):
                     projection_expression = projection_expression.replace(expression, expression_attribute_names[expression])
 
         filter_kwargs = {}
+
+
         if key_condition_expression:
             value_alias_map = self.body['ExpressionAttributeValues']
 
@@ -413,7 +417,9 @@ class DynamoHandler(BaseResponse):
         scan_index_forward = self.body.get("ScanIndexForward")
         items, scanned_count, last_evaluated_key = self.dynamodb_backend.query(
             name, hash_key, range_comparison, range_values, limit,
-            exclusive_start_key, scan_index_forward, projection_expression, index_name=index_name, **filter_kwargs
+            exclusive_start_key, scan_index_forward, projection_expression, index_name=index_name,
+            expr_names=expression_attribute_names, expr_values=expression_attribute_values,
+            filter_expression=filter_expression, **filter_kwargs
         )
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'

@@ -650,6 +650,47 @@ def test_filter_expression():
 
 
 @mock_dynamodb2
+def test_query_filter():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'}
+        }
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app2'}
+        }
+    )
+
+    table = dynamodb.Table('test1')
+    response = table.query(
+        KeyConditionExpression=Key('client').eq('client1')
+    )
+    assert response['Count'] == 2
+
+    response = table.query(
+        KeyConditionExpression=Key('client').eq('client1'),
+        FilterExpression=Attr('app').eq('app2')
+    )
+    assert response['Count'] == 1
+    assert response['Items'][0]['app'] == 'app2'
+
+
+@mock_dynamodb2
 def test_scan_filter():
     client = boto3.client('dynamodb', region_name='us-east-1')
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
