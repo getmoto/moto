@@ -1067,6 +1067,8 @@ class Ami(TaggedEC2Resource):
             return self.state
         elif filter_name == 'name':
             return self.name
+        elif filter_name == 'owner-id':
+            return self.owner_id
         else:
             return super(Ami, self).get_filter_value(
                 filter_name, 'DescribeImages')
@@ -1077,12 +1079,12 @@ class AmiBackend(object):
         self.amis = {}
         super(AmiBackend, self).__init__()
 
-    def create_image(self, instance_id, name=None, description=None):
+    def create_image(self, instance_id, name=None, description=None, owner_id=None):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
         ami = Ami(self, ami_id, instance=instance, source_ami=None,
-                  name=name, description=description)
+                  name=name, description=description, owner_id=owner_id)
         self.amis[ami_id] = ami
         return ami
 
