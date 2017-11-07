@@ -310,7 +310,6 @@ class DynamoHandler(BaseResponse):
 
         filter_kwargs = {}
 
-
         if key_condition_expression:
             value_alias_map = self.body['ExpressionAttributeValues']
 
