@@ -4,9 +4,9 @@ import copy
 import itertools
 import ipaddress
 import json
-import os
 import re
 import six
+from pkg_resources import resource_filename
 
 import boto.ec2
 
@@ -113,8 +113,8 @@ from .utils import (
     tag_filter_matches,
 )
 
-RESOURCES_DIR = os.path.join(os.path.dirname(__file__), 'resources')
-INSTANCE_TYPES = json.load(open(os.path.join(RESOURCES_DIR, 'instance_types.json'), 'r'))
+RES_FILE = resource_filename(__name__, 'resources/instance_types.json')
+INSTANCE_TYPES = json.load(open(RES_FILE, 'r'))
 
 
 def utc_date_and_time():
