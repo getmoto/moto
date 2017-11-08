@@ -711,7 +711,7 @@ class DynamoDBBackend(BaseBackend):
 
     def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts,
               limit, exclusive_start_key, scan_index_forward, projection_expression, index_name=None,
-              expr_names={}, expr_values={}, filter_expression=None,
+              expr_names=None, expr_values=None, filter_expression=None,
               **filter_kwargs):
         table = self.tables.get(table_name)
         if not table:
