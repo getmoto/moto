@@ -195,10 +195,8 @@ class SNSBackend(BaseBackend):
         self.sms_attributes.update(attrs)
 
     def create_topic(self, name):
-        too_long = len(name) > 256
-        too_short = len(name) == 0
-        invalid_charecters = not re.match(r'^[a-zA-Z0-9][ A-Za-z0-9_-]*$', name)
-        if invalid_charecters or too_long or too_short:
+        fails_constraints = not re.match(r'^[a-zA-Z0-9](?:[A-Za-z0-9_-]{0,253}[a-zA-Z0-9])?$', name)
+        if fails_constraints:
             raise InvalidParameterValue("Can only include alphanumeric characters, hyphens, or underscores. 1 to 80 in length")
         candidate_topic = Topic(name, self)
         if candidate_topic.arn in self.topics:

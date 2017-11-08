@@ -53,8 +53,6 @@ def test_create_topic_should_be_indempodent():
     
     topic_display_name.should.be.equal("should_be_set")
 
-
-
 @mock_sns
 def test_get_missing_topic():
     conn = boto3.client("sns", region_name="us-east-1")
@@ -62,12 +60,15 @@ def test_get_missing_topic():
         TopicArn="a-fake-arn").should.throw(ClientError)
 
 @mock_sns
-def test_create_topic_cant_have_invalid_charecters():
+def test_create_topic_must_meet_constraints():
     conn = boto3.client("sns", region_name="us-east-1")
     common_random_chars = [':', ";", "!", "@", "|", "^", "%"]
     for char in common_random_chars:
         conn.create_topic.when.called_with(
             Name="no%s_invalidchar" % char).should.throw(ClientError)
+    conn.create_topic.when.called_with(
+            Name="no spaces allowed").should.throw(ClientError)
+
 
 @mock_sns
 def test_create_topic_should_be_of_certain_length():
