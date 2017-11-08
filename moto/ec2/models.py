@@ -4,10 +4,10 @@ import copy
 import itertools
 import ipaddress
 import json
-import os
 import re
 import six
 import warnings
+from pkg_resources import resource_filename
 
 import boto.ec2
 
@@ -113,9 +113,12 @@ from .utils import (
     tag_filter_matches,
 )
 
-RESOURCES_DIR = os.path.join(os.path.dirname(__file__), 'resources')
-INSTANCE_TYPES = json.load(open(os.path.join(RESOURCES_DIR, 'instance_types.json'), 'r'))
-AMIS = json.load(open(os.path.join(RESOURCES_DIR, 'amis.json'), 'r'))
+INSTANCE_TYPES = json.load(
+    open(resource_filename(__name__, 'resources/instance_types.json'), 'r')
+)
+AMIS = json.load(
+    open(resource_filename(__name__, 'resources/amis.json'), 'r')
+)
 
 
 def utc_date_and_time():
