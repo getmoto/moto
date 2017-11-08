@@ -7,6 +7,7 @@ import json
 import os
 import re
 import six
+import warnings
 
 import boto.ec2
 
@@ -45,7 +46,6 @@ from .exceptions import (
     InvalidRouteTableIdError,
     InvalidRouteError,
     InvalidInstanceIdError,
-    MalformedAMIIdError,
     InvalidAMIIdError,
     InvalidAMIAttributeItemValueError,
     InvalidSnapshotIdError,
@@ -385,6 +385,11 @@ class Instance(TaggedEC2Resource, BotoInstance):
 
         amis = self.ec2_backend.describe_images(filters={'image-id': image_id})
         ami = amis[0] if amis else None
+        if ami is None:
+            warnings.warn('Could not find AMI with image-id:{0}, '
+                          'in the near future this will '
+                          'cause an error'.format(image_id),
+                          PendingDeprecationWarning)
 
         self.platform = ami.platform if ami else None
         self.virtualization_type = ami.virtualization_type if ami else 'paravirtual'
