@@ -115,6 +115,7 @@ from .utils import (
 
 RESOURCES_DIR = os.path.join(os.path.dirname(__file__), 'resources')
 INSTANCE_TYPES = json.load(open(os.path.join(RESOURCES_DIR, 'instance_types.json'), 'r'))
+AMIS = json.load(open(os.path.join(RESOURCES_DIR, 'amis.json'), 'r'))
 
 
 def utc_date_and_time():
@@ -1001,17 +1002,31 @@ class TagBackend(object):
 
 class Ami(TaggedEC2Resource):
     def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
-                 name=None, description=None):
+                 name=None, description=None, owner_id=None,
+
+                 public=False, virtualization_type=None, architecture=None,
+                 state='available', creation_date=None, platform=None,
+                 image_type='machine', image_location=None, hypervisor=None,
+                 root_device_type=None, root_device_name=None, sriov='simple',
+                 region_name='us-east-1a'
+                 ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
-        self.state = "available"
+        self.state = state
         self.name = name
+        self.image_type = image_type
+        self.image_location = image_location
+        self.owner_id = owner_id
         self.description = description
-        self.virtualization_type = None
-        self.architecture = None
+        self.virtualization_type = virtualization_type
+        self.architecture = architecture
         self.kernel_id = None
-        self.platform = None
-        self.creation_date = utc_date_and_time()
+        self.platform = platform
+        self.hypervisor = hypervisor
+        self.root_device_name = root_device_name
+        self.root_device_type = root_device_type
+        self.sriov = sriov
+        self.creation_date = utc_date_and_time() if creation_date is None else creation_date
 
         if instance:
             self.instance = instance
@@ -1039,8 +1054,11 @@ class Ami(TaggedEC2Resource):
         self.launch_permission_groups = set()
         self.launch_permission_users = set()
 
+        if public:
+            self.launch_permission_groups.add('all')
+
         # AWS auto-creates these, we should reflect the same.
-        volume = self.ec2_backend.create_volume(15, "us-east-1a")
+        volume = self.ec2_backend.create_volume(15, region_name)
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
             volume.id, "Auto-created snapshot for AMI %s" % self.id)
 
@@ -1077,7 +1095,15 @@ class Ami(TaggedEC2Resource):
 class AmiBackend(object):
     def __init__(self):
         self.amis = {}
+
+        self._load_amis()
+
         super(AmiBackend, self).__init__()
+
+    def _load_amis(self):
+        for ami in AMIS:
+            ami_id = ami['ami_id']
+            self.amis[ami_id] = Ami(self, **ami)
 
     def create_image(self, instance_id, name=None, description=None, owner_id=None):
         # TODO: check that instance exists and pull info from it.
@@ -1097,30 +1123,29 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(self, ami_ids=(), filters=None, exec_users=None):
-        images = []
+    def describe_images(self, ami_ids=(), filters=None, exec_users=None, owners=None):
+        images = self.amis.values()
+
+        # Limit images by launch permissions
         if exec_users:
-            for ami_id in self.amis:
-                found = False
+            tmp_images = []
+            for ami in images:
                 for user_id in exec_users:
-                    if user_id in self.amis[ami_id].launch_permission_users:
-                        found = True
-                if found:
-                    images.append(self.amis[ami_id])
-            if images == []:
-                return images
+                    if user_id in ami.launch_permission_users:
+                        tmp_images.append(ami)
+            images = tmp_images
+
+        # Limit by owner ids
+        if owners:
+            images = [ami for ami in images if ami.owner_id in owners]
+
+        if ami_ids:
+            images = [ami for ami in images if ami.id in ami_ids]
+
+        # Generic filters
         if filters:
-            images = images or self.amis.values()
             return generic_filter(filters, images)
-        else:
-            for ami_id in ami_ids:
-                if ami_id in self.amis:
-                    images.append(self.amis[ami_id])
-                elif not ami_id.startswith("ami-"):
-                    raise MalformedAMIIdError(ami_id)
-                else:
-                    raise InvalidAMIIdError(ami_id)
-            return images or self.amis.values()
+        return images
 
     def deregister_image(self, ami_id):
         if ami_id in self.amis:
@@ -3681,8 +3706,8 @@ class NatGatewayBackend(object):
         return self.nat_gateways.pop(nat_gateway_id)
 
 
-class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
-                 RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
+class EC2Backend(BaseBackend, InstanceBackend, TagBackend, EBSBackend,
+                 RegionsAndZonesBackend, SecurityGroupBackend, AmiBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
                  NetworkInterfaceBackend, VPNConnectionBackend,
                  VPCPeeringConnectionBackend,
