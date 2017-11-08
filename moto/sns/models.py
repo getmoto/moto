@@ -7,6 +7,7 @@ import json
 import boto.sns
 import requests
 import six
+import re
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
@@ -15,7 +16,8 @@ from moto.sqs import sqs_backends
 from moto.awslambda import lambda_backends
 
 from .exceptions import (
-    SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter
+    SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter,
+    InvalidParameterValue
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
@@ -193,6 +195,11 @@ class SNSBackend(BaseBackend):
         self.sms_attributes.update(attrs)
 
     def create_topic(self, name):
+        too_long = len(name) > 256
+        too_short = len(name) == 0
+        invalid_charecters = not re.match(r'^[a-zA-Z0-9][ A-Za-z0-9_-]*$', name)
+        if invalid_charecters or too_long or too_short:
+            raise InvalidParameterValue("Can only include alphanumeric characters, hyphens, or underscores. 1 to 80 in length")
         candidate_topic = Topic(name, self)
         if candidate_topic.arn in self.topics:
             return self.topics[candidate_topic.arn]

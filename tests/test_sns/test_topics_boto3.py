@@ -61,6 +61,24 @@ def test_get_missing_topic():
     conn.get_topic_attributes.when.called_with(
         TopicArn="a-fake-arn").should.throw(ClientError)
 
+@mock_sns
+def test_create_topic_cant_have_invalid_charecters():
+    conn = boto3.client("sns", region_name="us-east-1")
+    common_random_chars = [':', ";", "!", "@", "|", "^", "%"]
+    for char in common_random_chars:
+        conn.create_topic.when.called_with(
+            Name="no%s_invalidchar" % char).should.throw(ClientError)
+
+@mock_sns
+def test_create_topic_should_be_of_certain_length():
+    conn = boto3.client("sns", region_name="us-east-1")
+    too_short = ""
+    conn.create_topic.when.called_with(
+            Name=too_short).should.throw(ClientError)
+    too_long = "x" * 257
+    conn.create_topic.when.called_with(
+            Name=too_long).should.throw(ClientError)
+
 
 @mock_sns
 def test_create_topic_in_multiple_regions():

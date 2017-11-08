@@ -32,3 +32,9 @@ class SNSInvalidParameter(RESTError):
     def __init__(self, message):
         super(SNSInvalidParameter, self).__init__(
             "InvalidParameter", message)
+
+class InvalidParameterValue(RESTError):
+    code = 400
+    def __init__(self, message):
+        super(InvalidParameterValue, self).__init__(
+            "InvalidParameterValue", message)
