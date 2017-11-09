@@ -1,6 +1,15 @@
 from __future__ import unicode_literals
+import uuid
 import boto3
-from moto.core import BaseBackend, BaseModel
+import six
+from moto.core import BaseBackend
+from moto.core.exceptions import RESTError
+
+from moto.s3 import s3_backends
+
+# Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
+# StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
+# Inspector Elasticsearch
 
 
 class ResourceGroupsTaggingAPIBackend(BaseBackend):
@@ -8,32 +17,107 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         super(ResourceGroupsTaggingAPIBackend, self).__init__()
         self.region_name = region_name
 
+        self._pages = {}
+        # Like 'someuuid': {'gen': <generator>, 'misc': None}
+        # Misc is there for peeking from a generator and it cant
+        # fit in the current request. As we only store generators
+        # theres not really any point to clean up
+
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def get_resources(self, pagination_token, tag_filters, resources_per_page, tags_per_page, resource_type_filters):
-        # implement here
-        return pagination_token, resource_tag_mapping_list
-    
-    def get_tag_keys(self, pagination_token):
-        # implement here
-        return pagination_token, tag_keys
-    
-    def get_tag_values(self, pagination_token, key):
-        # implement here
-        return pagination_token, tag_values
-    
-    def tag_resources(self, resource_arn_list, tags):
-        # implement here
-        return failed_resources_map
-    
-    def untag_resources(self, resource_arn_list, tag_keys):
-        # implement here
-        return failed_resources_map
-    
-    # add methods from here
+    @property
+    def s3_backend(self):
+        """
+        :rtype: moto.s3.models.S3Backend
+        """
+        return s3_backends['global']
+
+    def _get_resources_generator(self, tag_filters=None, resource_type_filters=None):
+        # TODO move these to their respective backends
+
+        # Do S3
+        for bucket in self.s3_backend.buckets.values():
+            tags = []
+            for tag in bucket.tags.tag_set.tags:
+                tags.append({'Key': tag.key, 'Value': tag.value})
+
+            yield {'ResourceARN': 'arn:aws:s3:::' + bucket.name, 'Tags': tags}
+
+        # TODO add more
+
+    def get_resources(self, pagination_token=None,
+                      resources_per_page=50, tags_per_page=100,
+                      tag_filters=None, resource_type_filters=None):
+        # Simple range checning
+        if 100 >= tags_per_page >= 500:
+            raise RESTError('InvalidParameterException', 'TagsPerPage must be between 100 and 500')
+        if 1 >= resources_per_page >= 50:
+            raise RESTError('InvalidParameterException', 'ResourcesPerPage must be between 100 and 500')
+
+        # If we have a token, go and find the respective generator, or error
+        if pagination_token:
+            if pagination_token not in self._pages:
+                raise RESTError('PaginationTokenExpiredException', 'Token does not exist')
+
+            generator = self._pages[pagination_token]['gen']
+            left_over = self._pages[pagination_token]['misc']
+        else:
+            generator = self._get_resources_generator(tag_filters=tag_filters,
+                                                      resource_type_filters=resource_type_filters)
+            left_over = None
+
+        result = []
+        current_tags = 0
+        current_resources = 0
+        if left_over:
+            result.append(left_over)
+            current_resources += 1
+            current_tags += len(left_over['Tags'])
+
+        try:
+            while True:
+                # Generator format: [{'ResourceARN': str, 'Tags': [{'Key': str, 'Value': str]}, ...]
+                next_item = six.next(generator)
+                resource_tags = len(next_item['Tags'])
+
+                if current_resources >= resources_per_page:
+                    break
+                if current_tags + resource_tags >= tags_per_page:
+                    break
+
+                current_resources += 1
+                current_tags += resource_tags
+
+                result.append(next_item)
+
+        except StopIteration:
+            # Finished generator before invalidating page limiting constraints
+            return None, result
+
+        # Didn't hit StopIteration so there's stuff left in generator
+        new_token = str(uuid.uuid4())
+        self._pages[new_token] = {'gen': generator, 'misc': next_item}
+
+        # Token used up, might as well bin now, if you call it again your an idiot
+        if pagination_token:
+            del self._pages[pagination_token]
+
+        return new_token, result
+
+    # def get_tag_keys(self, pagination_token):
+    #     return pagination_token, tag_keys
+    #
+    # def get_tag_values(self, pagination_token, key):
+    #     return pagination_token, tag_values
+    #
+    # def tag_resources(self, resource_arn_list, tags):
+    #     return failed_resources_map
+    #
+    # def untag_resources(self, resource_arn_list, tag_keys):
+    #     return failed_resources_map
 
 
 available_regions = boto3.session.Session().get_available_regions("resourcegroupstaggingapi")
