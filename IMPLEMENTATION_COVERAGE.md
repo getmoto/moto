@@ -2667,11 +2667,11 @@
 - [ ] update_provisioning_artifact
 - [ ] update_tag_option
 
-## iot-data - 0% implemented
-- [ ] delete_thing_shadow
-- [ ] get_thing_shadow
+## iot-data - 75% implemented
+- [X] delete_thing_shadow
+- [X] get_thing_shadow
 - [ ] publish
-- [ ] update_thing_shadow
+- [X] update_thing_shadow
 
 ## batch - 93% implemented
 - [ ] cancel_job
@@ -3171,53 +3171,53 @@
 - [X] untag_queue
 - [X] list_queue_tags
 
-## iot - 0% implemented
+## iot - 45 implemented
 - [ ] accept_certificate_transfer
-- [ ] attach_principal_policy
-- [ ] attach_thing_principal
+- [X] attach_principal_policy
+- [X] attach_thing_principal
 - [ ] cancel_certificate_transfer
 - [ ] create_certificate_from_csr
-- [ ] create_keys_and_certificate
-- [ ] create_policy
+- [X] create_keys_and_certificate
+- [X] create_policy
 - [ ] create_policy_version
-- [ ] create_thing
-- [ ] create_thing_type
+- [X] create_thing
+- [X] create_thing_type
 - [ ] create_topic_rule
 - [ ] delete_ca_certificate
-- [ ] delete_certificate
-- [ ] delete_policy
+- [X] delete_certificate
+- [X] delete_policy
 - [ ] delete_policy_version
 - [ ] delete_registration_code
-- [ ] delete_thing
-- [ ] delete_thing_type
+- [X] delete_thing
+- [X] delete_thing_type
 - [ ] delete_topic_rule
 - [ ] deprecate_thing_type
 - [ ] describe_ca_certificate
-- [ ] describe_certificate
+- [X] describe_certificate
 - [ ] describe_endpoint
-- [ ] describe_thing
-- [ ] describe_thing_type
-- [ ] detach_principal_policy
-- [ ] detach_thing_principal
+- [X] describe_thing
+- [X] describe_thing_type
+- [X] detach_principal_policy
+- [X] detach_thing_principal
 - [ ] disable_topic_rule
 - [ ] enable_topic_rule
 - [ ] get_logging_options
-- [ ] get_policy
+- [X] get_policy
 - [ ] get_policy_version
 - [ ] get_registration_code
 - [ ] get_topic_rule
 - [ ] list_ca_certificates
-- [ ] list_certificates
+- [X] list_certificates
 - [ ] list_certificates_by_ca
 - [ ] list_outgoing_certificates
-- [ ] list_policies
-- [ ] list_policy_principals
+- [X] list_policies
+- [X] list_policy_principals
 - [ ] list_policy_versions
-- [ ] list_principal_policies
-- [ ] list_principal_things
-- [ ] list_thing_principals
-- [ ] list_thing_types
-- [ ] list_things
+- [X] list_principal_policies
+- [X] list_principal_things
+- [X] list_thing_principals
+- [X] list_thing_types
+- [X] list_things
 - [ ] list_topic_rules
 - [ ] register_ca_certificate
 - [ ] register_certificate
@@ -3227,8 +3227,8 @@
 - [ ] set_logging_options
 - [ ] transfer_certificate
 - [ ] update_ca_certificate
-- [ ] update_certificate
-- [ ] update_thing
+- [X] update_certificate
+- [X] update_thing
 
 ## gamelift - 0% implemented
 - [ ] accept_match
