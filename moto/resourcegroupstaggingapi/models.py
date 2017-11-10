@@ -6,6 +6,7 @@ from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
 
 from moto.s3 import s3_backends
+from moto.ec2 import ec2_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -35,6 +36,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         """
         return s3_backends['global']
 
+    @property
+    def ec2_backend(self):
+        """
+        :rtype: moto.ec2.models.EC2Backend
+        """
+        return ec2_backends[self.region_name]
+
     def _get_resources_generator(self, tag_filters=None, resource_type_filters=None):
         # TODO move these to their respective backends
 
@@ -46,7 +54,70 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
             yield {'ResourceARN': 'arn:aws:s3:::' + bucket.name, 'Tags': tags}
 
-        # TODO add more
+        # EC2 tags
+        def get_ec2_tags(res_id):
+            result = []
+            for key, value in self.ec2_backend.tags.get(res_id, {}).items():
+                result.append({'Key': key, 'Value': value})
+            return result
+
+        # EC2 AMI
+        for ami in self.ec2_backend.amis.values():
+            yield {'ResourceARN': 'arn:aws:ec2:{0}::image/{1}'.format(self.region_name, ami.id), 'Tags': get_ec2_tags(ami.id)}
+
+        # EC2 Instance
+        for reservation in self.ec2_backend.reservations.values():
+            for instance in reservation.instances:
+                yield {'ResourceARN': 'arn:aws:ec2:{0}::instance/{1}'.format(self.region_name, instance.id), 'Tags': get_ec2_tags(instance.id)}
+        # EC2 NetworkInterface
+        for eni in self.ec2_backend.enis.values():
+            yield {'ResourceARN': 'arn:aws:ec2:{0}::network-interface/{1}'.format(self.region_name, eni.id), 'Tags': get_ec2_tags(eni.id)}
+        # TODO EC2 ReservedInstance
+        # EC2 SecurityGroup
+        for vpc in self.ec2_backend.groups.values():
+            for sg in vpc.values():
+                yield {'ResourceARN': 'arn:aws:ec2:{0}::security-group/{1}'.format(self.region_name, sg.id), 'Tags': get_ec2_tags(sg.id)}
+        # EC2 Snapshot
+        for snapshot in self.ec2_backend.snapshots.values():
+            yield {'ResourceARN': 'arn:aws:ec2:{0}::snapshot/{1}'.format(self.region_name, snapshot.id), 'Tags': get_ec2_tags(snapshot.id)}
+        # TODO EC2 SpotInstanceRequest
+        # EC2 Volume
+        for volume in self.ec2_backend.volumes.values():
+            yield {'ResourceARN': 'arn:aws:ec2:{0}::volume/{1}'.format(self.region_name, volume.id), 'Tags': get_ec2_tags(volume.id)}
+
+        # ELB
+
+        # EMR Cluster
+
+        # Glacier Vault
+
+        # Kinesis
+
+        # RDS Instance
+        # RDS Reserved Database Instance
+        # RDS Option Group
+        # RDS Parameter Group
+        # RDS Security Group
+        # RDS Snapshot
+        # RDS Subnet Group
+        # RDS Event Subscription
+
+        # RedShift Cluster
+        # RedShift Hardware security module (HSM) client certificate
+        # RedShift HSM connection
+        # RedShift Parameter group
+        # RedShift Snapshot
+        # RedShift Subnet group
+
+        # VPC
+        # VPC Customer Gateway
+        # VPC DHCP Option Set
+        # VPC Internet Gateway
+        # VPC Network ACL
+        # VPC Route Table
+        # VPC Subnet
+        # VPC Virtual Private Gateway
+        # VPC VPN Connection
 
     def get_resources(self, pagination_token=None,
                       resources_per_page=50, tags_per_page=100,
