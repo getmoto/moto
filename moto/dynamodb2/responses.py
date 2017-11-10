@@ -308,7 +308,7 @@ class DynamoHandler(BaseResponse):
 
         filter_kwargs = {}
         if key_condition_expression:
-            value_alias_map = self.body['ExpressionAttributeValues']
+            value_alias_map = self.body.get('ExpressionAttributeValues', {})
 
             table = self.dynamodb_backend.get_table(name)
 
@@ -333,7 +333,7 @@ class DynamoHandler(BaseResponse):
                 index = table.schema
 
             reverse_attribute_lookup = dict((v, k) for k, v in
-                                            six.iteritems(self.body['ExpressionAttributeNames']))
+                                            six.iteritems(self.body.get('ExpressionAttributeNames', {})))
 
             if " AND " in key_condition_expression:
                 expressions = key_condition_expression.split(" AND ", 1)
@@ -372,7 +372,8 @@ class DynamoHandler(BaseResponse):
                 range_values = []
 
             hash_key_value_alias = hash_key_expression.split("=")[1].strip()
-            hash_key = value_alias_map[hash_key_value_alias]
+            # Temporary fix until we get proper KeyConditionExpression function
+            hash_key = value_alias_map.get(hash_key_value_alias, {'S': hash_key_value_alias})
         else:
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
             key_conditions = self.body.get('KeyConditions')
