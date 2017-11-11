@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from collections import defaultdict
+import copy
 import datetime
 import decimal
 import json
@@ -492,7 +493,7 @@ class Table(BaseModel):
 
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(',')]
-            for result in possible_results:
+            for result in copy.deepcopy(possible_results):
                 for attr in list(result.attrs):
                     if attr not in expressions:
                         result.attrs.pop(attr)
