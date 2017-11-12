@@ -367,9 +367,20 @@ def test_basic_projection_expressions():
     )
 
     assert 'body' in results['Items'][0]
+    assert 'subject' not in results['Items'][0]
     assert results['Items'][0]['body'] == 'some test message'
     assert 'body' in results['Items'][1]
+    assert 'subject' not in results['Items'][1]
     assert results['Items'][1]['body'] == 'yet another test message'
+
+    # The projection expression should not remove data from storage
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key'),
+    )
+    assert 'subject' in results['Items'][0]
+    assert 'body' in results['Items'][1]
+    assert 'forum_name' in results['Items'][1]
 
 
 @mock_dynamodb2
