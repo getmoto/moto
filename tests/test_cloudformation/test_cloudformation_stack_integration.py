@@ -2260,7 +2260,9 @@ def test_stack_elbv2_resources_integration():
     # test outputs
     stacks = cfn_conn.describe_stacks(StackName='elb_stack')['Stacks']
     len(stacks).should.equal(1)
-    stacks[0]['Outputs'].should.equal([
-        {'OutputKey': 'albdns', 'OutputValue': load_balancers[0]['DNSName']},
-        {'OutputKey': 'albname', 'OutputValue': load_balancers[0]['LoadBalancerName']},
-    ])
+
+    dns = list(filter(lambda item: item['OutputKey'] == 'albdns', stacks[0]['Outputs']))[0]
+    name = list(filter(lambda item: item['OutputKey'] == 'albname', stacks[0]['Outputs']))[0]
+
+    dns['OutputValue'].should.equal(load_balancers[0]['DNSName'])
+    name['OutputValue'].should.equal(load_balancers[0]['LoadBalancerName'])
