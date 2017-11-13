@@ -80,5 +80,3 @@ def test_get_resources_ec2():
 
     rtapi = boto3.client('resourcegroupstaggingapi', region_name='eu-central-1')
     resp = rtapi.get_resources()
-
-    print()

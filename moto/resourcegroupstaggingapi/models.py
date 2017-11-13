@@ -7,6 +7,13 @@ from moto.core.exceptions import RESTError
 
 from moto.s3 import s3_backends
 from moto.ec2 import ec2_backends
+from moto.elb import elb_backends
+from moto.elbv2 import elbv2_backends
+from moto.kinesis import kinesis_backends
+from moto.rds2 import rds2_backends
+from moto.glacier import glacier_backends
+from moto.redshift import redshift_backends
+from moto.emr import emr_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -42,6 +49,55 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         :rtype: moto.ec2.models.EC2Backend
         """
         return ec2_backends[self.region_name]
+
+    @property
+    def elb_backend(self):
+        """
+        :rtype: moto.elb.models.ELBBackend
+        """
+        return elb_backends[self.region_name]
+
+    @property
+    def elbv2_backend(self):
+        """
+        :rtype: moto.elbv2.models.ELBv2Backend
+        """
+        return elbv2_backends[self.region_name]
+
+    @property
+    def kinesis_backend(self):
+        """
+        :rtype: moto.kinesis.models.KinesisBackend
+        """
+        return kinesis_backends[self.region_name]
+
+    @property
+    def rds_backend(self):
+        """
+        :rtype: moto.rds2.models.RDS2Backend
+        """
+        return rds2_backends[self.region_name]
+
+    @property
+    def glacier_backend(self):
+        """
+        :rtype: moto.glacier.models.GlacierBackend
+        """
+        return glacier_backends[self.region_name]
+
+    @property
+    def emr_backend(self):
+        """
+        :rtype: moto.emr.models.ElasticMapReduceBackend
+        """
+        return emr_backends[self.region_name]
+
+    @property
+    def redshift_backend(self):
+        """
+        :rtype: moto.redshift.models.RedshiftBackend
+        """
+        return glacier_backends[self.region_name]
 
     def _get_resources_generator(self, tag_filters=None, resource_type_filters=None):
         # TODO move these to their respective backends
