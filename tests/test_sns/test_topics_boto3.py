@@ -50,7 +50,6 @@ def test_create_topic_should_be_indempodent():
     topic_display_name = conn.get_topic_attributes(
         TopicArn=topic_arn
     )['Attributes']['DisplayName']
-    
     topic_display_name.should.be.equal("should_be_set")
 
 @mock_sns

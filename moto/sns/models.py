@@ -197,7 +197,7 @@ class SNSBackend(BaseBackend):
     def create_topic(self, name):
         fails_constraints = not re.match(r'^[a-zA-Z0-9](?:[A-Za-z0-9_-]{0,253}[a-zA-Z0-9])?$', name)
         if fails_constraints:
-            raise InvalidParameterValue("Can only include alphanumeric characters, hyphens, or underscores. 1 to 80 in length")
+            raise InvalidParameterValue("Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long.")
         candidate_topic = Topic(name, self)
         if candidate_topic.arn in self.topics:
             return self.topics[candidate_topic.arn]
