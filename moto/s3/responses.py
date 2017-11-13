@@ -8,6 +8,7 @@ from six.moves.urllib.parse import parse_qs, urlparse
 
 import xmltodict
 
+from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin
 
 from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_name_from_url, parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
@@ -113,7 +114,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 200, {}, response.encode("utf-8")
         else:
             status_code, headers, response_content = response
-            return status_code, headers, response_content.encode("utf-8")
+            if not isinstance(response_content, six.binary_type):
+                response_content = response_content.encode("utf-8")
+
+            return status_code, headers, response_content
 
     def _bucket_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
@@ -139,6 +143,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             body = b''
         if isinstance(body, six.binary_type):
             body = body.decode('utf-8')
+        body = u'{0}'.format(body).encode('utf-8')
 
         if method == 'HEAD':
             return self._bucket_response_head(bucket_name, headers)
@@ -209,7 +214,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             if not website_configuration:
                 template = self.response_template(S3_NO_BUCKET_WEBSITE_CONFIG)
                 return 404, {}, template.render(bucket_name=bucket_name)
-            return website_configuration
+            return 200, {}, website_configuration
         elif 'acl' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
@@ -355,7 +360,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if not request.headers.get('Content-Length'):
             return 411, {}, "Content-Length required"
         if 'versioning' in querystring:
-            ver = re.search('<Status>([A-Za-z]+)</Status>', body)
+            ver = re.search('<Status>([A-Za-z]+)</Status>', body.decode())
             if ver:
                 self.backend.set_bucket_versioning(bucket_name, ver.group(1))
                 template = self.response_template(S3_BUCKET_VERSIONING)
@@ -444,7 +449,12 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _bucket_response_post(self, request, body, bucket_name, headers):
         if not request.headers.get('Content-Length'):
             return 411, {}, "Content-Length required"
-        path = request.path if hasattr(request, 'path') else request.path_url
+
+        if isinstance(request, HTTPrettyRequest):
+            path = request.path
+        else:
+            path = request.full_path if hasattr(request, 'full_path') else request.path_url
+
         if self.is_delete_keys(request, path, bucket_name):
             return self._bucket_response_delete_keys(request, body, bucket_name, headers)
 
@@ -454,6 +464,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             form = request.form
         else:
             # HTTPretty, build new form object
+            body = body.decode()
+
             form = {}
             for kv in body.split('&'):
                 k, v = kv.split('=')
@@ -764,7 +776,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return FakeTagging()
 
     def _tagging_from_xml(self, xml):
-        parsed_xml = xmltodict.parse(xml)
+        parsed_xml = xmltodict.parse(xml, force_list={'Tag': True})
 
         tags = []
         for tag in parsed_xml['Tagging']['TagSet']['Tag']:

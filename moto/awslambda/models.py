@@ -298,7 +298,12 @@ class LambdaFunction(BaseModel):
                         volumes=["{}:/var/task".format(data_vol.name)], environment=env_vars, detach=True, **run_kwargs)
                 finally:
                     if container:
-                        exit_code = container.wait()
+                        try:
+                            exit_code = container.wait(timeout=300)
+                        except requests.exceptions.ReadTimeout:
+                            exit_code = -1
+                            container.stop()
+                            container.kill()
                         output = container.logs(stdout=False, stderr=True)
                         output += container.logs(stdout=True, stderr=False)
                         container.remove()

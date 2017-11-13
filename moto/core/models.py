@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
@@ -176,16 +177,49 @@ class ServerModeMockAWS(BaseMockAWS):
             if 'endpoint_url' not in kwargs:
                 kwargs['endpoint_url'] = "http://localhost:5000"
             return real_boto3_resource(*args, **kwargs)
+
+        def fake_httplib_send_output(self, message_body=None, *args, **kwargs):
+            def _convert_to_bytes(mixed_buffer):
+                bytes_buffer = []
+                for chunk in mixed_buffer:
+                    if isinstance(chunk, six.text_type):
+                        bytes_buffer.append(chunk.encode('utf-8'))
+                    else:
+                        bytes_buffer.append(chunk)
+                msg = b"\r\n".join(bytes_buffer)
+                return msg
+
+            self._buffer.extend((b"", b""))
+            msg = _convert_to_bytes(self._buffer)
+            del self._buffer[:]
+            if isinstance(message_body, bytes):
+                msg += message_body
+                message_body = None
+            self.send(msg)
+            # if self._expect_header_set:
+            #     read, write, exc = select.select([self.sock], [], [self.sock], 1)
+            #     if read:
+            #         self._handle_expect_response(message_body)
+            #         return
+            if message_body is not None:
+                self.send(message_body)
+
         self._client_patcher = mock.patch('boto3.client', fake_boto3_client)
-        self._resource_patcher = mock.patch(
-            'boto3.resource', fake_boto3_resource)
+        self._resource_patcher = mock.patch('boto3.resource', fake_boto3_resource)
+        if six.PY2:
+            self._httplib_patcher = mock.patch('httplib.HTTPConnection._send_output', fake_httplib_send_output)
+
         self._client_patcher.start()
         self._resource_patcher.start()
+        if six.PY2:
+            self._httplib_patcher.start()
 
     def disable_patching(self):
         if self._client_patcher:
             self._client_patcher.stop()
             self._resource_patcher.stop()
+            if six.PY2:
+                self._httplib_patcher.stop()
 
 
 class Model(type):

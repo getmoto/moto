@@ -1,13 +1,16 @@
 from __future__ import unicode_literals
 from collections import defaultdict
+import copy
 import datetime
 import decimal
 import json
 import re
 
+import boto3
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
+from moto.core.exceptions import JsonRESTError
 from .comparisons import get_comparison_func, get_filter_expression, Op
 
 
@@ -271,6 +274,10 @@ class Table(BaseModel):
         self.items = defaultdict(dict)
         self.table_arn = self._generate_arn(table_name)
         self.tags = []
+        self.ttl = {
+            'TimeToLiveStatus': 'DISABLED'  # One of 'ENABLING'|'DISABLING'|'ENABLED'|'DISABLED',
+            # 'AttributeName': 'string'  # Can contain this
+        }
 
     def _generate_arn(self, name):
         return 'arn:aws:dynamodb:us-east-1:123456789011:table/' + name
@@ -413,7 +420,7 @@ class Table(BaseModel):
 
     def query(self, hash_key, range_comparison, range_objs, limit,
               exclusive_start_key, scan_index_forward, projection_expression,
-              index_name=None, **filter_kwargs):
+              index_name=None, filter_expression=None, **filter_kwargs):
         results = []
         if index_name:
             all_indexes = (self.global_indexes or []) + (self.indexes or [])
@@ -486,7 +493,8 @@ class Table(BaseModel):
 
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(',')]
-            for result in possible_results:
+            results = copy.deepcopy(results)
+            for result in results:
                 for attr in list(result.attrs):
                     if attr not in expressions:
                         result.attrs.pop(attr)
@@ -495,6 +503,9 @@ class Table(BaseModel):
             results.reverse()
 
         scanned_count = len(list(self.all_items()))
+
+        if filter_expression is not None:
+            results = [item for item in results if filter_expression.expr(item)]
 
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key)
@@ -577,8 +588,15 @@ class Table(BaseModel):
 
 class DynamoDBBackend(BaseBackend):
 
-    def __init__(self):
+    def __init__(self, region_name=None):
+        self.region_name = region_name
         self.tables = OrderedDict()
+
+    def reset(self):
+        region_name = self.region_name
+
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def create_table(self, name, **params):
         if name in self.tables:
@@ -594,6 +612,11 @@ class DynamoDBBackend(BaseBackend):
         for table in self.tables:
             if self.tables[table].table_arn == table_arn:
                 self.tables[table].tags.extend(tags)
+
+    def untag_resource(self, table_arn, tag_keys):
+        for table in self.tables:
+            if self.tables[table].table_arn == table_arn:
+                self.tables[table].tags = [tag for tag in self.tables[table].tags if tag['Key'] not in tag_keys]
 
     def list_tags_of_resource(self, table_arn):
         required_table = None
@@ -689,7 +712,9 @@ class DynamoDBBackend(BaseBackend):
         return table.get_item(hash_key, range_key)
 
     def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts,
-              limit, exclusive_start_key, scan_index_forward, projection_expression, index_name=None, **filter_kwargs):
+              limit, exclusive_start_key, scan_index_forward, projection_expression, index_name=None,
+              expr_names=None, expr_values=None, filter_expression=None,
+              **filter_kwargs):
         table = self.tables.get(table_name)
         if not table:
             return None, None
@@ -698,8 +723,13 @@ class DynamoDBBackend(BaseBackend):
         range_values = [DynamoType(range_value)
                         for range_value in range_value_dicts]
 
+        if filter_expression is not None:
+            filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
+        else:
+            filter_expression = Op(None, None)  # Will always eval to true
+
         return table.query(hash_key, range_comparison, range_values, limit,
-                           exclusive_start_key, scan_index_forward, projection_expression, index_name, **filter_kwargs)
+                           exclusive_start_key, scan_index_forward, projection_expression, index_name, filter_expression, **filter_kwargs)
 
     def scan(self, table_name, filters, limit, exclusive_start_key, filter_expression, expr_names, expr_values):
         table = self.tables.get(table_name)
@@ -796,5 +826,28 @@ class DynamoDBBackend(BaseBackend):
         hash_key, range_key = self.get_keys_value(table, keys)
         return table.delete_item(hash_key, range_key)
 
+    def update_ttl(self, table_name, ttl_spec):
+        table = self.tables.get(table_name)
+        if table is None:
+            raise JsonRESTError('ResourceNotFound', 'Table not found')
 
-dynamodb_backend2 = DynamoDBBackend()
+        if 'Enabled' not in ttl_spec or 'AttributeName' not in ttl_spec:
+            raise JsonRESTError('InvalidParameterValue',
+                                'TimeToLiveSpecification does not contain Enabled and AttributeName')
+
+        if ttl_spec['Enabled']:
+            table.ttl['TimeToLiveStatus'] = 'ENABLED'
+        else:
+            table.ttl['TimeToLiveStatus'] = 'DISABLED'
+        table.ttl['AttributeName'] = ttl_spec['AttributeName']
+
+    def describe_ttl(self, table_name):
+        table = self.tables.get(table_name)
+        if table is None:
+            raise JsonRESTError('ResourceNotFound', 'Table not found')
+
+        return table.ttl
+
+
+available_regions = boto3.session.Session().get_available_regions("dynamodb")
+dynamodb_backends = {region: DynamoDBBackend(region_name=region) for region in available_regions}

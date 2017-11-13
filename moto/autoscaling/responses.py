@@ -67,7 +67,7 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def create_auto_scaling_group(self):
-        self.autoscaling_backend.create_autoscaling_group(
+        self.autoscaling_backend.create_auto_scaling_group(
             name=self._get_param('AutoScalingGroupName'),
             availability_zones=self._get_multi_param(
                 'AvailabilityZones.member'),
@@ -160,7 +160,7 @@ class AutoScalingResponse(BaseResponse):
     def describe_auto_scaling_groups(self):
         names = self._get_multi_param("AutoScalingGroupNames.member")
         token = self._get_param("NextToken")
-        all_groups = self.autoscaling_backend.describe_autoscaling_groups(names)
+        all_groups = self.autoscaling_backend.describe_auto_scaling_groups(names)
         all_names = [group.name for group in all_groups]
         if token:
             start = all_names.index(token) + 1
@@ -177,7 +177,7 @@ class AutoScalingResponse(BaseResponse):
         return template.render(groups=groups, next_token=next_token)
 
     def update_auto_scaling_group(self):
-        self.autoscaling_backend.update_autoscaling_group(
+        self.autoscaling_backend.update_auto_scaling_group(
             name=self._get_param('AutoScalingGroupName'),
             availability_zones=self._get_multi_param(
                 'AvailabilityZones.member'),
@@ -198,7 +198,7 @@ class AutoScalingResponse(BaseResponse):
 
     def delete_auto_scaling_group(self):
         group_name = self._get_param('AutoScalingGroupName')
-        self.autoscaling_backend.delete_autoscaling_group(group_name)
+        self.autoscaling_backend.delete_auto_scaling_group(group_name)
         template = self.response_template(DELETE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
@@ -218,7 +218,7 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def describe_auto_scaling_instances(self):
-        instance_states = self.autoscaling_backend.describe_autoscaling_instances()
+        instance_states = self.autoscaling_backend.describe_auto_scaling_instances()
         template = self.response_template(
             DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
         return template.render(instance_states=instance_states)
@@ -314,7 +314,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
           {% endif %}
           <InstanceType>{{ launch_configuration.instance_type }}</InstanceType>
           <LaunchConfigurationARN>arn:aws:autoscaling:us-east-1:803981987763:launchConfiguration:
-          9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/my-test-lc</LaunchConfigurationARN>
+          9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{{ launch_configuration.name }}</LaunchConfigurationARN>
           {% if launch_configuration.block_device_mappings %}
             <BlockDeviceMappings>
             {% for mount_point, mapping in launch_configuration.block_device_mappings.items() %}
@@ -504,7 +504,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <HealthCheckGracePeriod>{{ group.health_check_period }}</HealthCheckGracePeriod>
         <DefaultCooldown>{{ group.default_cooldown }}</DefaultCooldown>
         <AutoScalingGroupARN>arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb
-        :autoScalingGroupName/my-test-asg-lbs</AutoScalingGroupARN>
+        :autoScalingGroupName/{{ group.name }}</AutoScalingGroupARN>
         {% if group.termination_policies %}
         <TerminationPolicies>
           {% for policy in group.termination_policies %}

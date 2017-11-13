@@ -3,6 +3,8 @@ import random
 import boto3
 
 from moto.events import mock_events
+from botocore.exceptions import ClientError
+from nose.tools import assert_raises
 
 
 RULES = [
@@ -171,11 +173,36 @@ def test_remove_targets():
     assert(targets_before - 1 == targets_after)
 
 
-if __name__ == '__main__':
-    test_list_rules()
-    test_describe_rule()
-    test_enable_disable_rule()
-    test_list_rule_names_by_target()
-    test_list_rules()
-    test_list_targets_by_rule()
-    test_remove_targets()
+@mock_events
+def test_permissions():
+    client = boto3.client('events', 'eu-central-1')
+
+    client.put_permission(Action='PutEvents', Principal='111111111111', StatementId='Account1')
+    client.put_permission(Action='PutEvents', Principal='222222222222', StatementId='Account2')
+
+    resp = client.describe_event_bus()
+    assert len(resp['Policy']['Statement']) == 2
+
+    client.remove_permission(StatementId='Account2')
+
+    resp = client.describe_event_bus()
+    assert len(resp['Policy']['Statement']) == 1
+    assert resp['Policy']['Statement'][0]['Sid'] == 'Account1'
+
+
+@mock_events
+def test_put_events():
+    client = boto3.client('events', 'eu-central-1')
+
+    event = {
+        "Source": "com.mycompany.myapp",
+        "Detail": '{"key1": "value3", "key2": "value4"}',
+        "Resources": ["resource1", "resource2"],
+        "DetailType": "myDetailType"
+    }
+
+    client.put_events(Entries=[event])
+    # Boto3 would error if it didn't return 200 OK
+
+    with assert_raises(ClientError):
+        client.put_events(Entries=[event]*20)

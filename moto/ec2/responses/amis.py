@@ -36,9 +36,10 @@ class AmisResponse(BaseResponse):
     def describe_images(self):
         ami_ids = self._get_multi_param('ImageId')
         filters = filters_from_querystring(self.querystring)
+        owners = self._get_multi_param('Owner')
         exec_users = self._get_multi_param('ExecutableBy')
         images = self.ec2_backend.describe_images(
-            ami_ids=ami_ids, filters=filters, exec_users=exec_users)
+            ami_ids=ami_ids, filters=filters, exec_users=exec_users, owners=owners)
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 
@@ -92,12 +93,12 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
     {% for image in images %}
         <item>
           <imageId>{{ image.id }}</imageId>
-          <imageLocation>amazon/getting-started</imageLocation>
+          <imageLocation>{{ image.image_location }}</imageLocation>
           <imageState>{{ image.state }}</imageState>
-          <imageOwnerId>123456789012</imageOwnerId>
+          <imageOwnerId>{{ image.owner_id }}</imageOwnerId>
           <isPublic>{{ image.is_public_string }}</isPublic>
           <architecture>{{ image.architecture }}</architecture>
-          <imageType>machine</imageType>
+          <imageType>{{ image.image_type }}</imageType>
           <kernelId>{{ image.kernel_id }}</kernelId>
           <ramdiskId>ari-1a2b3c4d</ramdiskId>
           <imageOwnerAlias>amazon</imageOwnerAlias>
@@ -107,8 +108,8 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
              <platform>{{ image.platform }}</platform>
           {% endif %}
           <description>{{ image.description }}</description>
-          <rootDeviceType>ebs</rootDeviceType>
-          <rootDeviceName>/dev/sda1</rootDeviceName>
+          <rootDeviceType>{{ image.root_device_type }}</rootDeviceType>
+          <rootDeviceName>{{ image.root_device_name }}</rootDeviceName>
           <blockDeviceMapping>
             <item>
               <deviceName>/dev/sda1</deviceName>

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
 
 import datetime
@@ -1776,6 +1775,30 @@ def test_boto3_put_object_tagging():
 
 
 @mock_s3
+def test_boto3_put_object_tagging_with_single_tag():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-tags'
+    s3.create_bucket(Bucket=bucket_name)
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test'
+    )
+
+    resp = s3.put_object_tagging(
+        Bucket=bucket_name,
+        Key=key,
+        Tagging={'TagSet': [
+            {'Key': 'item1', 'Value': 'foo'}
+        ]}
+    )
+
+    resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+
+@mock_s3
 def test_boto3_get_object_tagging():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = 'mybucket'
@@ -1841,7 +1864,7 @@ def test_boto3_list_object_versions():
 def test_boto3_delete_markers():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = 'mybucket'
-    key = 'key-with-versions'
+    key = u'key-with-versions-and-unicode-ó'
     s3.create_bucket(Bucket=bucket_name)
     s3.put_bucket_versioning(
         Bucket=bucket_name,
@@ -1856,10 +1879,9 @@ def test_boto3_delete_markers():
             Key=key,
             Body=body
         )
-    s3.delete_object(
-        Bucket=bucket_name,
-        Key=key
-    )
+
+    s3.delete_objects(Bucket=bucket_name, Delete={'Objects': [{'Key': key}]})
+
     with assert_raises(ClientError) as e:
         s3.get_object(
             Bucket=bucket_name,
@@ -1881,12 +1903,18 @@ def test_boto3_delete_markers():
         Bucket=bucket_name
     )
     response['Versions'].should.have.length_of(2)
-    response['Versions'][-1]['IsLatest'].should.be.true
-    response['Versions'][0]['IsLatest'].should.be.false
-    [(key_metadata['Key'], key_metadata['VersionId'])
-     for key_metadata in response['Versions']].should.equal(
-        [('key-with-versions', '0'), ('key-with-versions', '1')]
-    )
+
+    # We've asserted there is only 2 records so one is newest, one is oldest
+    latest = list(filter(lambda item: item['IsLatest'], response['Versions']))[0]
+    oldest = list(filter(lambda item: not item['IsLatest'], response['Versions']))[0]
+
+    # Double check ordering of version ID's
+    latest['VersionId'].should.equal('1')
+    oldest['VersionId'].should.equal('0')
+
+    # Double check the name is still unicode
+    latest['Key'].should.equal('key-with-versions-and-unicode-ó')
+    oldest['Key'].should.equal('key-with-versions-and-unicode-ó')
 
 
 @mock_s3

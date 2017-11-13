@@ -16,8 +16,7 @@ class InstanceResponse(BaseResponse):
             reservations = self.ec2_backend.get_reservations_by_instance_ids(
                 instance_ids, filters=filter_dict)
         else:
-            reservations = self.ec2_backend.all_reservations(
-                make_copy=True, filters=filter_dict)
+            reservations = self.ec2_backend.all_reservations(filters=filter_dict)
 
         reservation_ids = [reservation.id for reservation in reservations]
         if token:
@@ -35,6 +34,7 @@ class InstanceResponse(BaseResponse):
     def run_instances(self):
         min_count = int(self._get_param('MinCount', if_none='1'))
         image_id = self._get_param('ImageId')
+        owner_id = self._get_param('OwnerId')
         user_data = self._get_param('UserData')
         security_group_names = self._get_multi_param('SecurityGroup')
         security_group_ids = self._get_multi_param('SecurityGroupId')
@@ -52,7 +52,7 @@ class InstanceResponse(BaseResponse):
             new_reservation = self.ec2_backend.add_instances(
                 image_id, min_count, user_data, security_group_names,
                 instance_type=instance_type, placement=placement, region_name=region_name, subnet_id=subnet_id,
-                key_name=key_name, security_group_ids=security_group_ids,
+                owner_id=owner_id, key_name=key_name, security_group_ids=security_group_ids,
                 nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip,
                 tags=tags)
 

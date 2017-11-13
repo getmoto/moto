@@ -2,10 +2,12 @@ from __future__ import unicode_literals
 
 import copy
 import itertools
+import ipaddress
 import json
-import os
 import re
 import six
+import warnings
+from pkg_resources import resource_filename
 
 import boto.ec2
 
@@ -44,7 +46,6 @@ from .exceptions import (
     InvalidRouteTableIdError,
     InvalidRouteError,
     InvalidInstanceIdError,
-    MalformedAMIIdError,
     InvalidAMIIdError,
     InvalidAMIAttributeItemValueError,
     InvalidSnapshotIdError,
@@ -113,8 +114,12 @@ from .utils import (
     tag_filter_matches,
 )
 
-RESOURCES_DIR = os.path.join(os.path.dirname(__file__), 'resources')
-INSTANCE_TYPES = json.load(open(os.path.join(RESOURCES_DIR, 'instance_types.json'), 'r'))
+INSTANCE_TYPES = json.load(
+    open(resource_filename(__name__, 'resources/instance_types.json'), 'r')
+)
+AMIS = json.load(
+    open(resource_filename(__name__, 'resources/amis.json'), 'r')
+)
 
 
 def utc_date_and_time():
@@ -384,6 +389,11 @@ class Instance(TaggedEC2Resource, BotoInstance):
 
         amis = self.ec2_backend.describe_images(filters={'image-id': image_id})
         ami = amis[0] if amis else None
+        if ami is None:
+            warnings.warn('Could not find AMI with image-id:{0}, '
+                          'in the near future this will '
+                          'cause an error'.format(image_id),
+                          PendingDeprecationWarning)
 
         self.platform = ami.platform if ami else None
         self.virtualization_type = ami.virtualization_type if ami else 'paravirtual'
@@ -403,6 +413,10 @@ class Instance(TaggedEC2Resource, BotoInstance):
             subnet = ec2_backend.get_subnet(self.subnet_id)
             self.vpc_id = subnet.vpc_id
             self._placement.zone = subnet.availability_zone
+
+            if associate_public_ip is None:
+                # Mapping public ip hasnt been explicitly enabled or disabled
+                associate_public_ip = subnet.map_public_ip_on_launch == 'true'
         elif placement:
             self._placement.zone = placement
         else:
@@ -410,10 +424,22 @@ class Instance(TaggedEC2Resource, BotoInstance):
 
         self.block_device_mapping = BlockDeviceMapping()
 
-        self.prep_nics(kwargs.get("nics", {}),
-                       subnet_id=self.subnet_id,
-                       private_ip=kwargs.get("private_ip"),
-                       associate_public_ip=associate_public_ip)
+        self._private_ips = set()
+        self.prep_nics(
+            kwargs.get("nics", {}),
+            private_ip=kwargs.get("private_ip"),
+            associate_public_ip=associate_public_ip
+        )
+
+    def __del__(self):
+        try:
+            subnet = self.ec2_backend.get_subnet(self.subnet_id)
+            for ip in self._private_ips:
+                subnet.del_subnet_ip(ip)
+        except Exception:
+            # Its not "super" critical we clean this up, as reset will do this
+            # worst case we'll get IP address exaustion... rarely
+            pass
 
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
@@ -548,14 +574,23 @@ class Instance(TaggedEC2Resource, BotoInstance):
         else:
             return self.security_groups
 
-    def prep_nics(self, nic_spec, subnet_id=None, private_ip=None, associate_public_ip=None):
+    def prep_nics(self, nic_spec, private_ip=None, associate_public_ip=None):
         self.nics = {}
 
-        if not private_ip:
+        if self.subnet_id:
+            subnet = self.ec2_backend.get_subnet(self.subnet_id)
+            if not private_ip:
+                private_ip = subnet.get_available_subnet_ip(instance=self)
+            else:
+                subnet.request_ip(private_ip, instance=self)
+
+            self._private_ips.add(private_ip)
+        elif private_ip is None:
+            # Preserve old behaviour if in EC2-Classic mode
             private_ip = random_private_ip()
 
         # Primary NIC defaults
-        primary_nic = {'SubnetId': subnet_id,
+        primary_nic = {'SubnetId': self.subnet_id,
                        'PrivateIpAddress': private_ip,
                        'AssociatePublicIpAddress': associate_public_ip}
         primary_nic = dict((k, v) for k, v in primary_nic.items() if v)
@@ -766,14 +801,12 @@ class InstanceBackend(object):
         associated with the given instance_ids.
         """
         reservations = []
-        for reservation in self.all_reservations(make_copy=True):
+        for reservation in self.all_reservations():
             reservation_instance_ids = [
                 instance.id for instance in reservation.instances]
             matching_reservation = any(
                 instance_id in reservation_instance_ids for instance_id in instance_ids)
             if matching_reservation:
-                # We need to make a copy of the reservation because we have to modify the
-                # instances to limit to those requested
                 reservation.instances = [
                     instance for instance in reservation.instances if instance.id in instance_ids]
                 reservations.append(reservation)
@@ -787,15 +820,8 @@ class InstanceBackend(object):
             reservations = filter_reservations(reservations, filters)
         return reservations
 
-    def all_reservations(self, make_copy=False, filters=None):
-        if make_copy:
-            # Return copies so that other functions can modify them with changing
-            # the originals
-            reservations = [copy.deepcopy(reservation)
-                            for reservation in self.reservations.values()]
-        else:
-            reservations = [
-                reservation for reservation in self.reservations.values()]
+    def all_reservations(self, filters=None):
+        reservations = [copy.copy(reservation) for reservation in self.reservations.values()]
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
         return reservations
@@ -985,17 +1011,31 @@ class TagBackend(object):
 
 class Ami(TaggedEC2Resource):
     def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
-                 name=None, description=None):
+                 name=None, description=None, owner_id=None,
+
+                 public=False, virtualization_type=None, architecture=None,
+                 state='available', creation_date=None, platform=None,
+                 image_type='machine', image_location=None, hypervisor=None,
+                 root_device_type=None, root_device_name=None, sriov='simple',
+                 region_name='us-east-1a'
+                 ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
-        self.state = "available"
+        self.state = state
         self.name = name
+        self.image_type = image_type
+        self.image_location = image_location
+        self.owner_id = owner_id
         self.description = description
-        self.virtualization_type = None
-        self.architecture = None
+        self.virtualization_type = virtualization_type
+        self.architecture = architecture
         self.kernel_id = None
-        self.platform = None
-        self.creation_date = utc_date_and_time()
+        self.platform = platform
+        self.hypervisor = hypervisor
+        self.root_device_name = root_device_name
+        self.root_device_type = root_device_type
+        self.sriov = sriov
+        self.creation_date = utc_date_and_time() if creation_date is None else creation_date
 
         if instance:
             self.instance = instance
@@ -1023,8 +1063,11 @@ class Ami(TaggedEC2Resource):
         self.launch_permission_groups = set()
         self.launch_permission_users = set()
 
+        if public:
+            self.launch_permission_groups.add('all')
+
         # AWS auto-creates these, we should reflect the same.
-        volume = self.ec2_backend.create_volume(15, "us-east-1a")
+        volume = self.ec2_backend.create_volume(15, region_name)
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
             volume.id, "Auto-created snapshot for AMI %s" % self.id)
 
@@ -1051,6 +1094,8 @@ class Ami(TaggedEC2Resource):
             return self.state
         elif filter_name == 'name':
             return self.name
+        elif filter_name == 'owner-id':
+            return self.owner_id
         else:
             return super(Ami, self).get_filter_value(
                 filter_name, 'DescribeImages')
@@ -1059,14 +1104,22 @@ class Ami(TaggedEC2Resource):
 class AmiBackend(object):
     def __init__(self):
         self.amis = {}
+
+        self._load_amis()
+
         super(AmiBackend, self).__init__()
 
-    def create_image(self, instance_id, name=None, description=None):
+    def _load_amis(self):
+        for ami in AMIS:
+            ami_id = ami['ami_id']
+            self.amis[ami_id] = Ami(self, **ami)
+
+    def create_image(self, instance_id, name=None, description=None, owner_id=None):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
         ami = Ami(self, ami_id, instance=instance, source_ami=None,
-                  name=name, description=description)
+                  name=name, description=description, owner_id=owner_id)
         self.amis[ami_id] = ami
         return ami
 
@@ -1079,30 +1132,29 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(self, ami_ids=(), filters=None, exec_users=None):
-        images = []
+    def describe_images(self, ami_ids=(), filters=None, exec_users=None, owners=None):
+        images = self.amis.values()
+
+        # Limit images by launch permissions
         if exec_users:
-            for ami_id in self.amis:
-                found = False
+            tmp_images = []
+            for ami in images:
                 for user_id in exec_users:
-                    if user_id in self.amis[ami_id].launch_permission_users:
-                        found = True
-                if found:
-                    images.append(self.amis[ami_id])
-            if images == []:
-                return images
+                    if user_id in ami.launch_permission_users:
+                        tmp_images.append(ami)
+            images = tmp_images
+
+        # Limit by owner ids
+        if owners:
+            images = [ami for ami in images if ami.owner_id in owners]
+
+        if ami_ids:
+            images = [ami for ami in images if ami.id in ami_ids]
+
+        # Generic filters
         if filters:
-            images = images or self.amis.values()
             return generic_filter(filters, images)
-        else:
-            for ami_id in ami_ids:
-                if ami_id in self.amis:
-                    images.append(self.amis[ami_id])
-                elif not ami_id.startswith("ami-"):
-                    raise MalformedAMIIdError(ami_id)
-                else:
-                    raise InvalidAMIIdError(ami_id)
-            return images or self.amis.values()
+        return images
 
     def deregister_image(self, ami_id):
         if ami_id in self.amis:
@@ -2127,9 +2179,16 @@ class Subnet(TaggedEC2Resource):
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
+        self.cidr = ipaddress.ip_network(six.text_type(self.cidr_block))
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
+
+        # Theory is we assign ip's as we go (as 16,777,214 usable IPs in a /8)
+        self._subnet_ip_generator = self.cidr.hosts()
+        self.reserved_ips = [six.next(self._subnet_ip_generator) for _ in range(0, 3)]  # Reserved by AWS
+        self._unused_ips = set()  # if instance is destroyed hold IP here for reuse
+        self._subnet_ips = {}  # has IP: instance
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -2196,6 +2255,46 @@ class Subnet(TaggedEC2Resource):
             raise NotImplementedError(
                 '"Fn::GetAtt" : [ "{0}" , "AvailabilityZone" ]"')
         raise UnformattedGetAttTemplateException()
+
+    def get_available_subnet_ip(self, instance):
+        try:
+            new_ip = self._unused_ips.pop()
+        except KeyError:
+            new_ip = six.next(self._subnet_ip_generator)
+
+            # Skips any IP's if they've been manually specified
+            while str(new_ip) in self._subnet_ips:
+                new_ip = six.next(self._subnet_ip_generator)
+
+            if new_ip == self.cidr.broadcast_address:
+                raise StopIteration()  # Broadcast address cant be used obviously
+        # TODO StopIteration will be raised if no ip's available, not sure how aws handles this.
+
+        new_ip = str(new_ip)
+        self._subnet_ips[new_ip] = instance
+
+        return new_ip
+
+    def request_ip(self, ip, instance):
+        if ipaddress.ip_address(ip) not in self.cidr:
+            raise Exception('IP does not fall in the subnet CIDR of {0}'.format(self.cidr))
+
+        if ip in self._subnet_ips:
+            raise Exception('IP already in use')
+        try:
+            self._unused_ips.remove(ip)
+        except KeyError:
+            pass
+
+        self._subnet_ips[ip] = instance
+        return ip
+
+    def del_subnet_ip(self, ip):
+        try:
+            del self._subnet_ips[ip]
+            self._unused_ips.add(ip)
+        except KeyError:
+            pass  # Unknown IP
 
 
 class SubnetBackend(object):
@@ -3619,8 +3718,8 @@ class NatGatewayBackend(object):
         return self.nat_gateways.pop(nat_gateway_id)
 
 
-class EC2Backend(BaseBackend, InstanceBackend, TagBackend, AmiBackend,
-                 RegionsAndZonesBackend, SecurityGroupBackend, EBSBackend,
+class EC2Backend(BaseBackend, InstanceBackend, TagBackend, EBSBackend,
+                 RegionsAndZonesBackend, SecurityGroupBackend, AmiBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
                  NetworkInterfaceBackend, VPNConnectionBackend,
                  VPCPeeringConnectionBackend,

@@ -24,7 +24,7 @@ while True:
         break
     except EXCEPTIONS:
         elapsed_s = time.time() - start_ts
-        if elapsed_s > 30:
+        if elapsed_s > 60:
             raise
 
         print('.')
