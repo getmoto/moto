@@ -1,14 +1,14 @@
 from __future__ import unicode_literals
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import JsonRESTError
 
 
-class IoTDataPlaneClientError(RESTError):
+class IoTDataPlaneClientError(JsonRESTError):
     code = 400
 
 
 class ResourceNotFoundException(IoTDataPlaneClientError):
     def __init__(self):
-        self.code = 400
+        self.code = 404
         super(ResourceNotFoundException, self).__init__(
             "ResourceNotFoundException",
             "The specified resource does not exist"
