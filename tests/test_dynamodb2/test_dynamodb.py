@@ -367,9 +367,20 @@ def test_basic_projection_expressions():
     )
 
     assert 'body' in results['Items'][0]
+    assert 'subject' not in results['Items'][0]
     assert results['Items'][0]['body'] == 'some test message'
     assert 'body' in results['Items'][1]
+    assert 'subject' not in results['Items'][1]
     assert results['Items'][1]['body'] == 'yet another test message'
+
+    # The projection expression should not remove data from storage
+    results = table.query(
+        KeyConditionExpression=Key('forum_name').eq(
+            'the-key'),
+    )
+    assert 'subject' in results['Items'][0]
+    assert 'body' in results['Items'][1]
+    assert 'forum_name' in results['Items'][1]
 
 
 @mock_dynamodb2
@@ -967,3 +978,31 @@ def test_set_ttl():
 
     resp = client.describe_time_to_live(TableName='test1')
     resp['TimeToLiveDescription']['TimeToLiveStatus'].should.equal('DISABLED')
+
+
+# https://github.com/spulec/moto/issues/1043
+@mock_dynamodb2
+def test_query_missing_expr_names():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(TableName='test1', Item={'client': {'S': 'test1'}, 'app': {'S': 'test1'}})
+    client.put_item(TableName='test1', Item={'client': {'S': 'test2'}, 'app': {'S': 'test2'}})
+
+    resp = client.query(TableName='test1', KeyConditionExpression='client=:client',
+                        ExpressionAttributeValues={':client': {'S': 'test1'}})
+
+    resp['Count'].should.equal(1)
+    resp['Items'][0]['client']['S'].should.equal('test1')
+
+    resp = client.query(TableName='test1', KeyConditionExpression=':name=test2',
+                        ExpressionAttributeNames={':name': 'client'})
+
+    resp['Count'].should.equal(1)
+    resp['Items'][0]['client']['S'].should.equal('test2')

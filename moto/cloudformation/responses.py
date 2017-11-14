@@ -19,10 +19,19 @@ class CloudFormationResponse(BaseResponse):
         template_url_parts = urlparse(template_url)
         if "localhost" in template_url:
             bucket_name, key_name = template_url_parts.path.lstrip(
-                "/").split("/")
+                "/").split("/", 1)
         else:
-            bucket_name = template_url_parts.netloc.split(".")[0]
-            key_name = template_url_parts.path.lstrip("/")
+            if template_url_parts.netloc.endswith('amazonaws.com') \
+                    and template_url_parts.netloc.startswith('s3'):
+                # Handle when S3 url uses amazon url with bucket in path
+                # Also handles getting region as technically s3 is region'd
+
+                # region = template_url.netloc.split('.')[1]
+                bucket_name, key_name = template_url_parts.path.lstrip(
+                    "/").split("/", 1)
+            else:
+                bucket_name = template_url_parts.netloc.split(".")[0]
+                key_name = template_url_parts.path.lstrip("/")
 
         key = s3_backend.get_key(bucket_name, key_name)
         return key.value.decode("utf-8")
@@ -227,13 +236,13 @@ CREATE_STACK_RESPONSE_TEMPLATE = """<CreateStackResponse>
 </CreateStackResponse>
 """
 
-UPDATE_STACK_RESPONSE_TEMPLATE = """<UpdateStackResponse>
+UPDATE_STACK_RESPONSE_TEMPLATE = """<UpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <UpdateStackResult>
     <StackId>{{ stack.stack_id }}</StackId>
   </UpdateStackResult>
   <ResponseMetadata>
-    <RequestId>b9b5b068-3a41-11e5-94eb-example</RequestId>
-    </ResponseMetadata>
+    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+  </ResponseMetadata>
 </UpdateStackResponse>
 """
 
@@ -399,22 +408,13 @@ GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
 </GetTemplateResponse>"""
 
 
-UPDATE_STACK_RESPONSE_TEMPLATE = """<UpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-  <UpdateStackResult>
-    <StackId>{{ stack.stack_id }}</StackId>
-  </UpdateStackResult>
-  <ResponseMetadata>
-    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
-  </ResponseMetadata>
-</UpdateStackResponse>
-"""
-
 DELETE_STACK_RESPONSE_TEMPLATE = """<DeleteStackResponse>
   <ResponseMetadata>
     <RequestId>5ccc7dcd-744c-11e5-be70-example</RequestId>
   </ResponseMetadata>
 </DeleteStackResponse>
 """
+
 
 LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <ListExportsResult>

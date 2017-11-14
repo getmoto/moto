@@ -19,4 +19,4 @@ def test_describe_clusters():
     res = test_client.get('/?Action=DescribeClusters')
 
     result = res.data.decode("utf-8")
-    result.should.contain("<DescribeClustersResponse><DescribeClustersResult><Clusters></Clusters></DescribeClustersResult")
+    result.should.contain("<Clusters></Clusters>")

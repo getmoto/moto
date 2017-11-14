@@ -185,7 +185,7 @@ class FakeAutoScalingGroup(BaseModel):
         target_group_arns = properties.get("TargetGroupARNs", [])
 
         backend = autoscaling_backends[region_name]
-        group = backend.create_autoscaling_group(
+        group = backend.create_auto_scaling_group(
             name=resource_name,
             availability_zones=properties.get("AvailabilityZones", []),
             desired_capacity=properties.get("DesiredCapacity"),
@@ -215,13 +215,13 @@ class FakeAutoScalingGroup(BaseModel):
     def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         backend = autoscaling_backends[region_name]
         try:
-            backend.delete_autoscaling_group(resource_name)
+            backend.delete_auto_scaling_group(resource_name)
         except KeyError:
             pass
 
     def delete(self, region_name):
         backend = autoscaling_backends[region_name]
-        backend.delete_autoscaling_group(self.name)
+        backend.delete_auto_scaling_group(self.name)
 
     @property
     def physical_resource_id(self):
@@ -358,7 +358,7 @@ class AutoScalingBackend(BaseBackend):
     def delete_launch_configuration(self, launch_configuration_name):
         self.launch_configurations.pop(launch_configuration_name, None)
 
-    def create_autoscaling_group(self, name, availability_zones,
+    def create_auto_scaling_group(self, name, availability_zones,
                                  desired_capacity, max_size, min_size,
                                  launch_config_name, vpc_zone_identifier,
                                  default_cooldown, health_check_period,
@@ -402,7 +402,7 @@ class AutoScalingBackend(BaseBackend):
         self.update_attached_target_groups(group.name)
         return group
 
-    def update_autoscaling_group(self, name, availability_zones,
+    def update_auto_scaling_group(self, name, availability_zones,
                                  desired_capacity, max_size, min_size,
                                  launch_config_name, vpc_zone_identifier,
                                  default_cooldown, health_check_period,
@@ -415,18 +415,18 @@ class AutoScalingBackend(BaseBackend):
                      placement_group, termination_policies)
         return group
 
-    def describe_autoscaling_groups(self, names):
+    def describe_auto_scaling_groups(self, names):
         groups = self.autoscaling_groups.values()
         if names:
             return [group for group in groups if group.name in names]
         else:
             return list(groups)
 
-    def delete_autoscaling_group(self, group_name):
+    def delete_auto_scaling_group(self, group_name):
         self.set_desired_capacity(group_name, 0)
         self.autoscaling_groups.pop(group_name, None)
 
-    def describe_autoscaling_instances(self):
+    def describe_auto_scaling_instances(self):
         instance_states = []
         for group in self.autoscaling_groups.values():
             instance_states.extend(group.instance_states)

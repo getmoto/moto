@@ -217,7 +217,6 @@ def test_create_with_tags():
     len(instances['Instances'][0]['Tags']).should.equal(3)
 
 
-
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_state():
     conn = boto.connect_ec2()
