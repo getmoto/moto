@@ -20,7 +20,8 @@ install_requires = [
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "mock",
-    "aws-xray-sdk>=0.93"
+    "jsondiff==1.1.1",
+    "aws-xray-sdk>=0.93",
 ]
 
 extras_require = {

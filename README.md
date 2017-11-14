@@ -96,6 +96,9 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | IAM                   | @mock_iam        | core endpoints done               |
 |------------------------------------------------------------------------------|
+| IoT                   | @mock_iot        | core endpoints done               |
+|                       | @mock_iotdata    | core endpoints done               |
+|------------------------------------------------------------------------------|
 | Lambda                | @mock_lambda     | basic endpoints done, requires    |
 |                       |                  | docker                            |
 |------------------------------------------------------------------------------|
@@ -298,6 +301,7 @@ boto3.resource(
 ```
 
 ## Install
+
 
 ```console
 $ pip install moto

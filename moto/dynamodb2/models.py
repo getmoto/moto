@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from collections import defaultdict
+import copy
 import datetime
 import decimal
 import json
@@ -419,7 +420,7 @@ class Table(BaseModel):
 
     def query(self, hash_key, range_comparison, range_objs, limit,
               exclusive_start_key, scan_index_forward, projection_expression,
-              index_name=None, **filter_kwargs):
+              index_name=None, filter_expression=None, **filter_kwargs):
         results = []
         if index_name:
             all_indexes = (self.global_indexes or []) + (self.indexes or [])
@@ -492,7 +493,8 @@ class Table(BaseModel):
 
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(',')]
-            for result in possible_results:
+            results = copy.deepcopy(results)
+            for result in results:
                 for attr in list(result.attrs):
                     if attr not in expressions:
                         result.attrs.pop(attr)
@@ -501,6 +503,9 @@ class Table(BaseModel):
             results.reverse()
 
         scanned_count = len(list(self.all_items()))
+
+        if filter_expression is not None:
+            results = [item for item in results if filter_expression.expr(item)]
 
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key)
@@ -707,7 +712,9 @@ class DynamoDBBackend(BaseBackend):
         return table.get_item(hash_key, range_key)
 
     def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts,
-              limit, exclusive_start_key, scan_index_forward, projection_expression, index_name=None, **filter_kwargs):
+              limit, exclusive_start_key, scan_index_forward, projection_expression, index_name=None,
+              expr_names=None, expr_values=None, filter_expression=None,
+              **filter_kwargs):
         table = self.tables.get(table_name)
         if not table:
             return None, None
@@ -716,8 +723,13 @@ class DynamoDBBackend(BaseBackend):
         range_values = [DynamoType(range_value)
                         for range_value in range_value_dicts]
 
+        if filter_expression is not None:
+            filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
+        else:
+            filter_expression = Op(None, None)  # Will always eval to true
+
         return table.query(hash_key, range_comparison, range_values, limit,
-                           exclusive_start_key, scan_index_forward, projection_expression, index_name, **filter_kwargs)
+                           exclusive_start_key, scan_index_forward, projection_expression, index_name, filter_expression, **filter_kwargs)
 
     def scan(self, table_name, filters, limit, exclusive_start_key, filter_expression, expr_names, expr_values):
         table = self.tables.get(table_name)

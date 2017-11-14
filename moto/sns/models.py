@@ -7,6 +7,7 @@ import json
 import boto.sns
 import requests
 import six
+import re
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
@@ -15,7 +16,8 @@ from moto.sqs import sqs_backends
 from moto.awslambda import lambda_backends
 
 from .exceptions import (
-    SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter
+    SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter,
+    InvalidParameterValue
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
@@ -193,9 +195,15 @@ class SNSBackend(BaseBackend):
         self.sms_attributes.update(attrs)
 
     def create_topic(self, name):
-        topic = Topic(name, self)
-        self.topics[topic.arn] = topic
-        return topic
+        fails_constraints = not re.match(r'^[a-zA-Z0-9](?:[A-Za-z0-9_-]{0,253}[a-zA-Z0-9])?$', name)
+        if fails_constraints:
+            raise InvalidParameterValue("Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long.")
+        candidate_topic = Topic(name, self)
+        if candidate_topic.arn in self.topics:
+            return self.topics[candidate_topic.arn]
+        else:
+            self.topics[candidate_topic.arn] = candidate_topic
+            return candidate_topic
 
     def _get_values_nexttoken(self, values_map, next_token=None):
         if next_token is None:

@@ -17,12 +17,14 @@ def test_create_and_delete_volume():
     volume = conn.create_volume(80, "us-east-1a")
 
     all_volumes = conn.get_all_volumes()
-    all_volumes.should.have.length_of(1)
-    all_volumes[0].size.should.equal(80)
-    all_volumes[0].zone.should.equal("us-east-1a")
-    all_volumes[0].encrypted.should.be(False)
 
-    volume = all_volumes[0]
+    current_volume = [item for item in all_volumes if item.id == volume.id]
+    current_volume.should.have.length_of(1)
+    current_volume[0].size.should.equal(80)
+    current_volume[0].zone.should.equal("us-east-1a")
+    current_volume[0].encrypted.should.be(False)
+
+    volume = current_volume[0]
 
     with assert_raises(EC2ResponseError) as ex:
         volume.delete(dry_run=True)
@@ -33,7 +35,9 @@ def test_create_and_delete_volume():
 
     volume.delete()
 
-    conn.get_all_volumes().should.have.length_of(0)
+    all_volumes = conn.get_all_volumes()
+    my_volume = [item for item in all_volumes if item.id == volume.id]
+    my_volume.should.have.length_of(0)
 
     # Deleting something that was already deleted should throw an error
     with assert_raises(EC2ResponseError) as cm:
@@ -57,7 +61,7 @@ def test_create_encrypted_volume_dryrun():
 @mock_ec2_deprecated
 def test_create_encrypted_volume():
     conn = boto.connect_ec2('the_key', 'the_secret')
-    conn.create_volume(80, "us-east-1a", encrypted=True)
+    volume = conn.create_volume(80, "us-east-1a", encrypted=True)
 
     with assert_raises(EC2ResponseError) as ex:
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
@@ -66,7 +70,7 @@ def test_create_encrypted_volume():
     ex.exception.message.should.equal(
         'An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set')
 
-    all_volumes = conn.get_all_volumes()
+    all_volumes = [vol for vol in conn.get_all_volumes() if vol.id == volume.id]
     all_volumes[0].encrypted.should.be(True)
 
 
@@ -116,67 +120,69 @@ def test_volume_filters():
 
     block_mapping = instance.block_device_mapping['/dev/sda1']
 
+    volume_ids = (volume1.id, volume2.id, volume3.id, volume4.id, block_mapping.volume_id)
+
     volumes_by_attach_time = conn.get_all_volumes(
         filters={'attachment.attach-time': block_mapping.attach_time})
     set([vol.id for vol in volumes_by_attach_time]
-        ).should.equal(set([block_mapping.volume_id]))
+        ).should.equal({block_mapping.volume_id})
 
     volumes_by_attach_device = conn.get_all_volumes(
         filters={'attachment.device': '/dev/sda1'})
     set([vol.id for vol in volumes_by_attach_device]
-        ).should.equal(set([block_mapping.volume_id]))
+        ).should.equal({block_mapping.volume_id})
 
     volumes_by_attach_instance_id = conn.get_all_volumes(
         filters={'attachment.instance-id': instance.id})
     set([vol.id for vol in volumes_by_attach_instance_id]
-        ).should.equal(set([block_mapping.volume_id]))
+        ).should.equal({block_mapping.volume_id})
 
     volumes_by_attach_status = conn.get_all_volumes(
         filters={'attachment.status': 'attached'})
     set([vol.id for vol in volumes_by_attach_status]
-        ).should.equal(set([block_mapping.volume_id]))
+        ).should.equal({block_mapping.volume_id})
 
     volumes_by_create_time = conn.get_all_volumes(
         filters={'create-time': volume4.create_time})
     set([vol.create_time for vol in volumes_by_create_time]
-        ).should.equal(set([volume4.create_time]))
+        ).should.equal({volume4.create_time})
 
     volumes_by_size = conn.get_all_volumes(filters={'size': volume2.size})
-    set([vol.id for vol in volumes_by_size]).should.equal(set([volume2.id]))
+    set([vol.id for vol in volumes_by_size]).should.equal({volume2.id})
 
     volumes_by_snapshot_id = conn.get_all_volumes(
         filters={'snapshot-id': snapshot.id})
     set([vol.id for vol in volumes_by_snapshot_id]
-        ).should.equal(set([volume4.id]))
+        ).should.equal({volume4.id})
 
     volumes_by_status = conn.get_all_volumes(filters={'status': 'in-use'})
     set([vol.id for vol in volumes_by_status]).should.equal(
-        set([block_mapping.volume_id]))
+        {block_mapping.volume_id})
 
     volumes_by_id = conn.get_all_volumes(filters={'volume-id': volume1.id})
-    set([vol.id for vol in volumes_by_id]).should.equal(set([volume1.id]))
+    set([vol.id for vol in volumes_by_id]).should.equal({volume1.id})
 
     volumes_by_tag_key = conn.get_all_volumes(filters={'tag-key': 'testkey1'})
-    set([vol.id for vol in volumes_by_tag_key]).should.equal(set([volume1.id]))
+    set([vol.id for vol in volumes_by_tag_key]).should.equal({volume1.id})
 
     volumes_by_tag_value = conn.get_all_volumes(
         filters={'tag-value': 'testvalue1'})
     set([vol.id for vol in volumes_by_tag_value]
-        ).should.equal(set([volume1.id]))
+        ).should.equal({volume1.id})
 
     volumes_by_tag = conn.get_all_volumes(
         filters={'tag:testkey1': 'testvalue1'})
-    set([vol.id for vol in volumes_by_tag]).should.equal(set([volume1.id]))
+    set([vol.id for vol in volumes_by_tag]).should.equal({volume1.id})
 
     volumes_by_unencrypted = conn.get_all_volumes(
         filters={'encrypted': 'false'})
-    set([vol.id for vol in volumes_by_unencrypted]).should.equal(
-        set([block_mapping.volume_id, volume2.id])
+    set([vol.id for vol in volumes_by_unencrypted if vol.id in volume_ids]).should.equal(
+        {block_mapping.volume_id, volume2.id}
     )
 
     volumes_by_encrypted = conn.get_all_volumes(filters={'encrypted': 'true'})
-    set([vol.id for vol in volumes_by_encrypted]).should.equal(
-        set([volume1.id, volume3.id, volume4.id])
+    set([vol.id for vol in volumes_by_encrypted if vol.id in volume_ids]).should.equal(
+        {volume1.id, volume3.id, volume4.id}
     )
 
 
@@ -252,18 +258,20 @@ def test_create_snapshot():
     snapshot.update()
     snapshot.status.should.equal('completed')
 
-    snapshots = conn.get_all_snapshots()
+    snapshots = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
     snapshots.should.have.length_of(1)
     snapshots[0].description.should.equal('a test snapshot')
     snapshots[0].start_time.should_not.be.none
     snapshots[0].encrypted.should.be(False)
 
     # Create snapshot without description
+    num_snapshots = len(conn.get_all_snapshots())
+
     snapshot = volume.create_snapshot()
-    conn.get_all_snapshots().should.have.length_of(2)
+    conn.get_all_snapshots().should.have.length_of(num_snapshots + 1)
 
     snapshot.delete()
-    conn.get_all_snapshots().should.have.length_of(1)
+    conn.get_all_snapshots().should.have.length_of(num_snapshots)
 
     # Deleting something that was already deleted should throw an error
     with assert_raises(EC2ResponseError) as cm:
@@ -281,7 +289,7 @@ def test_create_encrypted_snapshot():
     snapshot.update()
     snapshot.status.should.equal('completed')
 
-    snapshots = conn.get_all_snapshots()
+    snapshots = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
     snapshots.should.have.length_of(1)
     snapshots[0].description.should.equal('a test snapshot')
     snapshots[0].start_time.should_not.be.none
@@ -331,52 +339,52 @@ def test_snapshot_filters():
     snapshots_by_description = conn.get_all_snapshots(
         filters={'description': 'testsnapshot1'})
     set([snap.id for snap in snapshots_by_description]
-        ).should.equal(set([snapshot1.id]))
+        ).should.equal({snapshot1.id})
 
     snapshots_by_id = conn.get_all_snapshots(
         filters={'snapshot-id': snapshot1.id})
     set([snap.id for snap in snapshots_by_id]
-        ).should.equal(set([snapshot1.id]))
+        ).should.equal({snapshot1.id})
 
     snapshots_by_start_time = conn.get_all_snapshots(
         filters={'start-time': snapshot1.start_time})
     set([snap.start_time for snap in snapshots_by_start_time]
-        ).should.equal(set([snapshot1.start_time]))
+        ).should.equal({snapshot1.start_time})
 
     snapshots_by_volume_id = conn.get_all_snapshots(
         filters={'volume-id': volume1.id})
     set([snap.id for snap in snapshots_by_volume_id]
-        ).should.equal(set([snapshot1.id, snapshot2.id]))
+        ).should.equal({snapshot1.id, snapshot2.id})
 
     snapshots_by_status = conn.get_all_snapshots(
         filters={'status': 'completed'})
-    set([snap.id for snap in snapshots_by_status]
-        ).should.equal(set([snapshot1.id, snapshot2.id, snapshot3.id]))
+    ({snapshot1.id, snapshot2.id, snapshot3.id} -
+     {snap.id for snap in snapshots_by_status}).should.have.length_of(0)
 
     snapshots_by_volume_size = conn.get_all_snapshots(
         filters={'volume-size': volume1.size})
     set([snap.id for snap in snapshots_by_volume_size]
-        ).should.equal(set([snapshot1.id, snapshot2.id]))
+        ).should.equal({snapshot1.id, snapshot2.id})
 
     snapshots_by_tag_key = conn.get_all_snapshots(
         filters={'tag-key': 'testkey1'})
     set([snap.id for snap in snapshots_by_tag_key]
-        ).should.equal(set([snapshot1.id]))
+        ).should.equal({snapshot1.id})
 
     snapshots_by_tag_value = conn.get_all_snapshots(
         filters={'tag-value': 'testvalue1'})
     set([snap.id for snap in snapshots_by_tag_value]
-        ).should.equal(set([snapshot1.id]))
+        ).should.equal({snapshot1.id})
 
     snapshots_by_tag = conn.get_all_snapshots(
         filters={'tag:testkey1': 'testvalue1'})
     set([snap.id for snap in snapshots_by_tag]
-        ).should.equal(set([snapshot1.id]))
+        ).should.equal({snapshot1.id})
 
     snapshots_by_encrypted = conn.get_all_snapshots(
         filters={'encrypted': 'true'})
     set([snap.id for snap in snapshots_by_encrypted]
-        ).should.equal(set([snapshot3.id]))
+        ).should.equal({snapshot3.id})
 
 
 @mock_ec2_deprecated
@@ -563,9 +571,11 @@ def test_volume_tag_escaping():
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal(
         'An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set')
-    dict(conn.get_all_snapshots()[0].tags).should_not.be.equal(
+    snaps = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
+    dict(snaps[0].tags).should_not.be.equal(
         {'key': '</closed>'})
 
     snapshot.add_tags({'key': '</closed>'})
 
-    dict(conn.get_all_snapshots()[0].tags).should.equal({'key': '</closed>'})
+    snaps = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
+    dict(snaps[0].tags).should.equal({'key': '</closed>'})

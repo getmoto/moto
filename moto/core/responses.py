@@ -214,7 +214,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         if not hasattr(self, 'SERVICE_NAME'):
             return None
         service = self.SERVICE_NAME
-        conn = boto3.client(service)
+        conn = boto3.client(service, region_name=self.region)
 
         # make cache if it does not exist yet
         if not hasattr(self, 'method_urls'):

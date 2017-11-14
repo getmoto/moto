@@ -298,7 +298,9 @@ class DynamoHandler(BaseResponse):
         # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
         key_condition_expression = self.body.get('KeyConditionExpression')
         projection_expression = self.body.get('ProjectionExpression')
-        expression_attribute_names = self.body.get('ExpressionAttributeNames')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+        filter_expression = self.body.get('FilterExpression')
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
 
         if projection_expression and expression_attribute_names:
             expressions = [x.strip() for x in projection_expression.split(',')]
@@ -307,8 +309,9 @@ class DynamoHandler(BaseResponse):
                     projection_expression = projection_expression.replace(expression, expression_attribute_names[expression])
 
         filter_kwargs = {}
+
         if key_condition_expression:
-            value_alias_map = self.body['ExpressionAttributeValues']
+            value_alias_map = self.body.get('ExpressionAttributeValues', {})
 
             table = self.dynamodb_backend.get_table(name)
 
@@ -333,7 +336,7 @@ class DynamoHandler(BaseResponse):
                 index = table.schema
 
             reverse_attribute_lookup = dict((v, k) for k, v in
-                                            six.iteritems(self.body['ExpressionAttributeNames']))
+                                            six.iteritems(self.body.get('ExpressionAttributeNames', {})))
 
             if " AND " in key_condition_expression:
                 expressions = key_condition_expression.split(" AND ", 1)
@@ -372,7 +375,8 @@ class DynamoHandler(BaseResponse):
                 range_values = []
 
             hash_key_value_alias = hash_key_expression.split("=")[1].strip()
-            hash_key = value_alias_map[hash_key_value_alias]
+            # Temporary fix until we get proper KeyConditionExpression function
+            hash_key = value_alias_map.get(hash_key_value_alias, {'S': hash_key_value_alias})
         else:
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
             key_conditions = self.body.get('KeyConditions')
@@ -413,7 +417,9 @@ class DynamoHandler(BaseResponse):
         scan_index_forward = self.body.get("ScanIndexForward")
         items, scanned_count, last_evaluated_key = self.dynamodb_backend.query(
             name, hash_key, range_comparison, range_values, limit,
-            exclusive_start_key, scan_index_forward, projection_expression, index_name=index_name, **filter_kwargs
+            exclusive_start_key, scan_index_forward, projection_expression, index_name=index_name,
+            expr_names=expression_attribute_names, expr_values=expression_attribute_values,
+            filter_expression=filter_expression, **filter_kwargs
         )
         if items is None:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'

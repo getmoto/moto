@@ -356,7 +356,7 @@ def test_retrieved_snapshots_must_contain_their_tags():
 
     # Fetch the snapshot again
     all_snapshots = conn.get_all_snapshots()
-    snapshot = all_snapshots[0]
+    snapshot = [item for item in all_snapshots if item.id == snapshot.id][0]
     retrieved_tags = snapshot.tags
 
     conn.delete_snapshot(snapshot.id)

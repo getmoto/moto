@@ -285,6 +285,21 @@ def test_create_target_group_and_listeners():
 
     load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
 
+    # Can't create a target group with an invalid protocol
+    with assert_raises(ClientError):
+        conn.create_target_group(
+            Name='a-target',
+            Protocol='HTTP',
+            Port=8080,
+            VpcId=vpc.id,
+            HealthCheckProtocol='/HTTP',
+            HealthCheckPort='8080',
+            HealthCheckPath='/',
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=5,
+            HealthyThresholdCount=5,
+            UnhealthyThresholdCount=2,
+            Matcher={'HttpCode': '200'})
     response = conn.create_target_group(
         Name='a-target',
         Protocol='HTTP',
@@ -725,6 +740,21 @@ def test_handle_listener_rules():
 
     load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
 
+    # Can't create a target group with an invalid protocol
+    with assert_raises(ClientError):
+        conn.create_target_group(
+            Name='a-target',
+            Protocol='HTTP',
+            Port=8080,
+            VpcId=vpc.id,
+            HealthCheckProtocol='/HTTP',
+            HealthCheckPort='8080',
+            HealthCheckPath='/',
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=5,
+            HealthyThresholdCount=5,
+            UnhealthyThresholdCount=2,
+            Matcher={'HttpCode': '200'})
     response = conn.create_target_group(
         Name='a-target',
         Protocol='HTTP',
