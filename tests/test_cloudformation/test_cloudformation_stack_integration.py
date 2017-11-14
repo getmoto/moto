@@ -2128,6 +2128,10 @@ def test_stack_elbv2_resources_integration():
                 "Description": "Load balancer name",
                 "Value": {"Fn::GetAtt": ["alb", "LoadBalancerName"]},
             },
+            "canonicalhostedzoneid": {
+                "Description": "Load balancer canonical hosted zone ID",
+                "Value": {"Fn::GetAtt": ["alb", "CanonicalHostedZoneID"]},
+            },
         },
         "Resources": {
             "alb": {

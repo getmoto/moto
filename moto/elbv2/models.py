@@ -293,11 +293,32 @@ class FakeLoadBalancer(BaseModel):
         return load_balancer
 
     def get_cfn_attribute(self, attribute_name):
-        attributes = {
-            'DNSName': self.dns_name,
-            'LoadBalancerName': self.name,
-        }
-        return attributes[attribute_name]
+        '''
+        Implemented attributes:
+        * DNSName
+        * LoadBalancerName
+
+        Not implemented:
+        * CanonicalHostedZoneID
+        * LoadBalancerFullName
+        * SecurityGroups
+
+        This method is similar to models.py:FakeLoadBalancer.get_cfn_attribute()
+        '''
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        not_implemented_yet = [
+            'CanonicalHostedZoneID',
+            'LoadBalancerFullName',
+            'SecurityGroups',
+        ]
+        if attribute_name == 'DNSName':
+            return self.dns_name
+        elif attribute_name == 'LoadBalancerName':
+            return self.name
+        elif attribute_name in not_implemented_yet:
+            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "%s" ]"' % attribute_name)
+        else:
+            raise UnformattedGetAttTemplateException()
 
 
 class ELBv2Backend(BaseBackend):
