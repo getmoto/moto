@@ -377,6 +377,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.subnet_id = kwargs.get("subnet_id")
         in_ec2_classic = not bool(self.subnet_id)
         self.key_name = kwargs.get("key_name")
+        self.ebs_optimized = kwargs.get("ebs_optimized", False)
         self.source_dest_check = "true"
         self.launch_time = utc_date_and_time()
         self.disable_api_termination = kwargs.get("disable_api_termination", False)
