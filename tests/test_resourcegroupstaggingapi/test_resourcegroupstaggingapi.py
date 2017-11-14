@@ -144,6 +144,83 @@ def test_get_tag_keys_ec2():
     rtapi = boto3.client('resourcegroupstaggingapi', region_name='eu-central-1')
     resp = rtapi.get_tag_keys()
 
-    assert len(set(resp['TagKeys']) - {'MY_TAG1', 'MY_TAG2', 'MY_TAG3'}) == 0
+    resp['TagKeys'].should.contain('MY_TAG1')
+    resp['TagKeys'].should.contain('MY_TAG2')
+    resp['TagKeys'].should.contain('MY_TAG3')
+
+    # TODO test pagenation
+
+
+@mock_ec2
+@mock_resourcegroupstaggingapi
+def test_get_tag_values_ec2():
+    client = boto3.client('ec2', region_name='eu-central-1')
+
+    client.run_instances(
+        ImageId='ami-123',
+        MinCount=1,
+        MaxCount=1,
+        InstanceType='t2.micro',
+        TagSpecifications=[
+            {
+                'ResourceType': 'instance',
+                'Tags': [
+                    {
+                        'Key': 'MY_TAG1',
+                        'Value': 'MY_VALUE1',
+                    },
+                    {
+                        'Key': 'MY_TAG2',
+                        'Value': 'MY_VALUE2',
+                    },
+                ],
+            },
+            {
+                'ResourceType': 'instance',
+                'Tags': [
+                    {
+                        'Key': 'MY_TAG3',
+                        'Value': 'MY_VALUE3',
+                    },
+                ]
+            },
+        ],
+    )
+    client.run_instances(
+        ImageId='ami-123',
+        MinCount=1,
+        MaxCount=1,
+        InstanceType='t2.micro',
+        TagSpecifications=[
+            {
+                'ResourceType': 'instance',
+                'Tags': [
+                    {
+                        'Key': 'MY_TAG1',
+                        'Value': 'MY_VALUE4',
+                    },
+                    {
+                        'Key': 'MY_TAG2',
+                        'Value': 'MY_VALUE5',
+                    },
+                ],
+            },
+            {
+                'ResourceType': 'instance',
+                'Tags': [
+                    {
+                        'Key': 'MY_TAG3',
+                        'Value': 'MY_VALUE6',
+                    },
+                ]
+            },
+        ],
+    )
+
+    rtapi = boto3.client('resourcegroupstaggingapi', region_name='eu-central-1')
+    resp = rtapi.get_tag_values(Key='MY_TAG1')
+
+    resp['TagValues'].should.contain('MY_VALUE1')
+    resp['TagValues'].should.contain('MY_VALUE4')
 
     # TODO test pagenation

@@ -460,7 +460,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             generator = self._pages[pagination_token]['gen']
             left_over = self._pages[pagination_token]['misc']
         else:
-            generator = self._get_tag_keys_generator(key)
+            generator = self._get_tag_values_generator(key)
             left_over = None
 
         result = []
