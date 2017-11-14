@@ -355,7 +355,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if 100 >= tags_per_page >= 500:
             raise RESTError('InvalidParameterException', 'TagsPerPage must be between 100 and 500')
         if 1 >= resources_per_page >= 50:
-            raise RESTError('InvalidParameterException', 'ResourcesPerPage must be between 100 and 500')
+            raise RESTError('InvalidParameterException', 'ResourcesPerPage must be between 1 and 50')
 
         # If we have a token, go and find the respective generator, or error
         if pagination_token:
@@ -494,6 +494,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             del self._pages[pagination_token]
 
         return new_token, result
+
+    # These methods will be called from responses.py.
+    # They should call a tag function inside of the moto module
+    # that governs the resource, that way if the target module
+    # changes how tags are delt with theres less to change
 
     # def tag_resources(self, resource_arn_list, tags):
     #     return failed_resources_map

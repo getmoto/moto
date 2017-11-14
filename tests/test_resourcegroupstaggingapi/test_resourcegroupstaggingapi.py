@@ -8,7 +8,7 @@ from moto import mock_resourcegroupstaggingapi, mock_s3, mock_ec2
 @mock_s3
 @mock_resourcegroupstaggingapi
 def test_get_resources_s3():
-    # Tests pagenation
+    # Tests pagination
     s3_client = boto3.client('s3', region_name='eu-central-1')
 
     # Will end up having key1,key2,key3,key4
