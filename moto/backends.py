@@ -9,40 +9,40 @@ from moto.autoscaling import autoscaling_backends
 if SUPPORTS_LAMBDA:
     from moto.awslambda import lambda_backends
 
-from moto.cloudformation import cloudformation_backends
-from moto.cloudwatch import cloudwatch_backends
-from moto.core import moto_api_backends
-from moto.datapipeline import datapipeline_backends
-from moto.dynamodb import dynamodb_backends
-from moto.dynamodb2 import dynamodb_backends2
-from moto.ec2 import ec2_backends
-from moto.ecr import ecr_backends
-from moto.ecs import ecs_backends
-from moto.elb import elb_backends
-from moto.elbv2 import elbv2_backends
-from moto.emr import emr_backends
-from moto.events import events_backends
-from moto.glacier import glacier_backends
-from moto.iam import iam_backends
-from moto.instance_metadata import instance_metadata_backends
-from moto.kinesis import kinesis_backends
-from moto.kms import kms_backends
-from moto.logs import logs_backends
-from moto.opsworks import opsworks_backends
-from moto.polly import polly_backends
-from moto.rds2 import rds2_backends
-from moto.redshift import redshift_backends
-from moto.route53 import route53_backends
-from moto.s3 import s3_backends
-from moto.ses import ses_backends
-from moto.sns import sns_backends
-from moto.sqs import sqs_backends
-from moto.ssm import ssm_backends
-from moto.sts import sts_backends
-from moto.xray import xray_backends
-from moto.iot import iot_backends
-from moto.iotdata import iotdata_backends
-from moto.batch import batch_backends
+from moto.cloudformation import cloudformation_backends  # noqa: E402
+from moto.cloudwatch import cloudwatch_backends  # noqa: E402
+from moto.core import moto_api_backends  # noqa: E402
+from moto.datapipeline import datapipeline_backends  # noqa: E402
+from moto.dynamodb import dynamodb_backends  # noqa: E402
+from moto.dynamodb2 import dynamodb_backends2  # noqa: E402
+from moto.ec2 import ec2_backends  # noqa: E402
+from moto.ecr import ecr_backends  # noqa: E402
+from moto.ecs import ecs_backends  # noqa: E402
+from moto.elb import elb_backends  # noqa: E402
+from moto.elbv2 import elbv2_backends  # noqa: E402
+from moto.emr import emr_backends  # noqa: E402
+from moto.events import events_backends  # noqa: E402
+from moto.glacier import glacier_backends  # noqa: E402
+from moto.iam import iam_backends  # noqa: E402
+from moto.instance_metadata import instance_metadata_backends  # noqa: E402
+from moto.kinesis import kinesis_backends  # noqa: E402
+from moto.kms import kms_backends  # noqa: E402
+from moto.logs import logs_backends  # noqa: E402
+from moto.opsworks import opsworks_backends  # noqa: E402
+from moto.polly import polly_backends  # noqa: E402
+from moto.rds2 import rds2_backends  # noqa: E402
+from moto.redshift import redshift_backends  # noqa: E402
+from moto.route53 import route53_backends  # noqa: E402
+from moto.s3 import s3_backends  # noqa: E402
+from moto.ses import ses_backends  # noqa: E402
+from moto.sns import sns_backends  # noqa: E402
+from moto.sqs import sqs_backends  # noqa: E402
+from moto.ssm import ssm_backends  # noqa: E402
+from moto.sts import sts_backends  # noqa: E402
+from moto.xray import xray_backends  # noqa: E402
+from moto.iot import iot_backends  # noqa: E402
+from moto.iotdata import iotdata_backends  # noqa: E402
+from moto.batch import batch_backends  # noqa: E402
 
 
 BACKENDS = {
