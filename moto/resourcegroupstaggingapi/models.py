@@ -97,18 +97,48 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         """
         :rtype: moto.redshift.models.RedshiftBackend
         """
-        return glacier_backends[self.region_name]
+        return redshift_backends[self.region_name]
 
     def _get_resources_generator(self, tag_filters=None, resource_type_filters=None):
+        # Look at
+        # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+
         # TODO move these to their respective backends
+        filters = [lambda t, v: True]
+        for tag_filter_dict in tag_filters:
+            values = tag_filter_dict.get('Values', [])
+            if len(values) == 0:
+                # Check key matches
+                filters.append(lambda t, v: t == tag_filter_dict['Key'])
+            elif len(values) == 1:
+                # Check its exactly the same as key, value
+                filters.append(lambda t, v: t == tag_filter_dict['Key'] and v == values[0])
+            else:
+                # Check key matches and value is one of the provided values
+                filters.append(lambda t, v: t == tag_filter_dict['Key'] and v in values)
 
-        # Do S3
-        for bucket in self.s3_backend.buckets.values():
-            tags = []
-            for tag in bucket.tags.tag_set.tags:
-                tags.append({'Key': tag.key, 'Value': tag.value})
+        def tag_filter(tag_list):
+            result = []
 
-            yield {'ResourceARN': 'arn:aws:s3:::' + bucket.name, 'Tags': tags}
+            for tag in tag_list:
+                temp_result = []
+                for f in filters:
+                    f_result = f(tag['Key'], tag['Value'])
+                    temp_result.append(f_result)
+                result.append(all(temp_result))
+
+            return any(result)
+
+        # Do S3, resource type s3
+        if not resource_type_filters or 's3' in resource_type_filters:
+            for bucket in self.s3_backend.buckets.values():
+                tags = []
+                for tag in bucket.tags.tag_set.tags:
+                    tags.append({'Key': tag.key, 'Value': tag.value})
+
+                if not tags or not tag_filter(tags):  # Skip if no tags, or invalid filter
+                    continue
+                yield {'ResourceARN': 'arn:aws:s3:::' + bucket.name, 'Tags': tags}
 
         # EC2 tags
         def get_ec2_tags(res_id):
@@ -117,30 +147,67 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 result.append({'Key': key, 'Value': value})
             return result
 
-        # EC2 AMI
-        for ami in self.ec2_backend.amis.values():
-            yield {'ResourceARN': 'arn:aws:ec2:{0}::image/{1}'.format(self.region_name, ami.id), 'Tags': get_ec2_tags(ami.id)}
+        # EC2 AMI, resource type ec2:image
+        if not resource_type_filters or 'ec2' in resource_type_filters or 'ec2:image' in resource_type_filters:
+            for ami in self.ec2_backend.amis.values():
+                tags = get_ec2_tags(ami.id)
 
-        # EC2 Instance
-        for reservation in self.ec2_backend.reservations.values():
-            for instance in reservation.instances:
-                yield {'ResourceARN': 'arn:aws:ec2:{0}::instance/{1}'.format(self.region_name, instance.id), 'Tags': get_ec2_tags(instance.id)}
-        # EC2 NetworkInterface
-        for eni in self.ec2_backend.enis.values():
-            yield {'ResourceARN': 'arn:aws:ec2:{0}::network-interface/{1}'.format(self.region_name, eni.id), 'Tags': get_ec2_tags(eni.id)}
+                if not tags or not tag_filter(tags):  # Skip if no tags, or invalid filter
+                    continue
+                yield {'ResourceARN': 'arn:aws:ec2:{0}::image/{1}'.format(self.region_name, ami.id), 'Tags': tags}
+
+        # EC2 Instance, resource type ec2:instance
+        if not resource_type_filters or 'ec2' in resource_type_filters or 'ec2:instance' in resource_type_filters:
+            for reservation in self.ec2_backend.reservations.values():
+                for instance in reservation.instances:
+                    tags = get_ec2_tags(instance.id)
+
+                    if not tags or not tag_filter(tags):  # Skip if no tags, or invalid filter
+                        continue
+                    yield {'ResourceARN': 'arn:aws:ec2:{0}::instance/{1}'.format(self.region_name, instance.id), 'Tags': tags}
+
+        # EC2 NetworkInterface, resource type ec2:network-interface
+        if not resource_type_filters or 'ec2' in resource_type_filters or 'ec2:network-interface' in resource_type_filters:
+            for eni in self.ec2_backend.enis.values():
+                tags = get_ec2_tags(eni.id)
+
+                if not tags or not tag_filter(tags):  # Skip if no tags, or invalid filter
+                    continue
+                yield {'ResourceARN': 'arn:aws:ec2:{0}::network-interface/{1}'.format(self.region_name, eni.id), 'Tags': tags}
+
         # TODO EC2 ReservedInstance
-        # EC2 SecurityGroup
-        for vpc in self.ec2_backend.groups.values():
-            for sg in vpc.values():
-                yield {'ResourceARN': 'arn:aws:ec2:{0}::security-group/{1}'.format(self.region_name, sg.id), 'Tags': get_ec2_tags(sg.id)}
-        # EC2 Snapshot
-        for snapshot in self.ec2_backend.snapshots.values():
-            yield {'ResourceARN': 'arn:aws:ec2:{0}::snapshot/{1}'.format(self.region_name, snapshot.id), 'Tags': get_ec2_tags(snapshot.id)}
-        # TODO EC2 SpotInstanceRequest
-        # EC2 Volume
-        for volume in self.ec2_backend.volumes.values():
-            yield {'ResourceARN': 'arn:aws:ec2:{0}::volume/{1}'.format(self.region_name, volume.id), 'Tags': get_ec2_tags(volume.id)}
 
+        # EC2 SecurityGroup, resource type ec2:security-group
+        if not resource_type_filters or 'ec2' in resource_type_filters or 'ec2:security-group' in resource_type_filters:
+            for vpc in self.ec2_backend.groups.values():
+                for sg in vpc.values():
+                    tags = get_ec2_tags(sg.id)
+
+                    if not tags or not tag_filter(tags):  # Skip if no tags, or invalid filter
+                        continue
+                    yield {'ResourceARN': 'arn:aws:ec2:{0}::security-group/{1}'.format(self.region_name, sg.id), 'Tags': tags}
+
+        # EC2 Snapshot, resource type ec2:snapshot
+        if not resource_type_filters or 'ec2' in resource_type_filters or 'ec2:snapshot' in resource_type_filters:
+            for snapshot in self.ec2_backend.snapshots.values():
+                tags = get_ec2_tags(snapshot.id)
+
+                if not tags or not tag_filter(tags):  # Skip if no tags, or invalid filter
+                    continue
+                yield {'ResourceARN': 'arn:aws:ec2:{0}::snapshot/{1}'.format(self.region_name, snapshot.id), 'Tags': tags}
+
+        # TODO EC2 SpotInstanceRequest
+
+        # EC2 Volume, resource type ec2:volume
+        if not resource_type_filters or 'ec2' in resource_type_filters or 'ec2:volume' in resource_type_filters:
+            for volume in self.ec2_backend.volumes.values():
+                tags = get_ec2_tags(volume.id)
+
+                if not tags or not tag_filter(tags):  # Skip if no tags, or invalid filter
+                    continue
+                yield {'ResourceARN': 'arn:aws:ec2:{0}::volume/{1}'.format(self.region_name, volume.id), 'Tags': tags}
+
+        # TODO add these to the keys and values functions / combine functions
         # ELB
 
         # EMR Cluster
@@ -174,6 +241,112 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # VPC Subnet
         # VPC Virtual Private Gateway
         # VPC VPN Connection
+
+    def _get_tag_keys_generator(self):
+        # Look at
+        # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+
+        # Do S3, resource type s3
+        for bucket in self.s3_backend.buckets.values():
+            for tag in bucket.tags.tag_set.tags:
+                yield tag.key
+
+        # EC2 tags
+        def get_ec2_keys(res_id):
+            result = []
+            for key in self.ec2_backend.tags.get(res_id, {}):
+                result.append(key)
+            return result
+
+        # EC2 AMI, resource type ec2:image
+        for ami in self.ec2_backend.amis.values():
+            for key in get_ec2_keys(ami.id):
+                yield key
+
+        # EC2 Instance, resource type ec2:instance
+        for reservation in self.ec2_backend.reservations.values():
+            for instance in reservation.instances:
+                for key in get_ec2_keys(instance.id):
+                    yield key
+
+        # EC2 NetworkInterface, resource type ec2:network-interface
+        for eni in self.ec2_backend.enis.values():
+            for key in get_ec2_keys(eni.id):
+                yield key
+
+        # TODO EC2 ReservedInstance
+
+        # EC2 SecurityGroup, resource type ec2:security-group
+        for vpc in self.ec2_backend.groups.values():
+            for sg in vpc.values():
+                for key in get_ec2_keys(sg.id):
+                    yield key
+
+        # EC2 Snapshot, resource type ec2:snapshot
+        for snapshot in self.ec2_backend.snapshots.values():
+            for key in get_ec2_keys(snapshot.id):
+                yield key
+
+        # TODO EC2 SpotInstanceRequest
+
+        # EC2 Volume, resource type ec2:volume
+        for volume in self.ec2_backend.volumes.values():
+            for key in get_ec2_keys(volume.id):
+                yield key
+
+    def _get_tag_values_generator(self, tag_key):
+        # Look at
+        # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+
+        # Do S3, resource type s3
+        for bucket in self.s3_backend.buckets.values():
+            for tag in bucket.tags.tag_set.tags:
+                if tag.key == tag_key:
+                    yield tag.value
+
+        # EC2 tags
+        def get_ec2_values(res_id):
+            result = []
+            for key, value in self.ec2_backend.tags.get(res_id, {}).items():
+                if key == tag_key:
+                    result.append(value)
+            return result
+
+        # EC2 AMI, resource type ec2:image
+        for ami in self.ec2_backend.amis.values():
+            for value in get_ec2_values(ami.id):
+                yield value
+
+        # EC2 Instance, resource type ec2:instance
+        for reservation in self.ec2_backend.reservations.values():
+            for instance in reservation.instances:
+                for value in get_ec2_values(instance.id):
+                    yield value
+
+        # EC2 NetworkInterface, resource type ec2:network-interface
+        for eni in self.ec2_backend.enis.values():
+            for value in get_ec2_values(eni.id):
+                yield value
+
+        # TODO EC2 ReservedInstance
+
+        # EC2 SecurityGroup, resource type ec2:security-group
+        for vpc in self.ec2_backend.groups.values():
+            for sg in vpc.values():
+                for value in get_ec2_values(sg.id):
+                    yield value
+
+        # EC2 Snapshot, resource type ec2:snapshot
+        for snapshot in self.ec2_backend.snapshots.values():
+            for value in get_ec2_values(snapshot.id):
+                yield value
+
+        # TODO EC2 SpotInstanceRequest
+
+        # EC2 Volume, resource type ec2:volume
+        for volume in self.ec2_backend.volumes.values():
+            for value in get_ec2_values(volume.id):
+                yield value
 
     def get_resources(self, pagination_token=None,
                       resources_per_page=50, tags_per_page=100,
@@ -234,12 +407,94 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         return new_token, result
 
-    # def get_tag_keys(self, pagination_token):
-    #     return pagination_token, tag_keys
-    #
-    # def get_tag_values(self, pagination_token, key):
-    #     return pagination_token, tag_values
-    #
+    def get_tag_keys(self, pagination_token=None):
+
+        if pagination_token:
+            if pagination_token not in self._pages:
+                raise RESTError('PaginationTokenExpiredException', 'Token does not exist')
+
+            generator = self._pages[pagination_token]['gen']
+            left_over = self._pages[pagination_token]['misc']
+        else:
+            generator = self._get_tag_keys_generator()
+            left_over = None
+
+        result = []
+        current_tags = 0
+        if left_over:
+            result.append(left_over)
+            current_tags += 1
+
+        try:
+            while True:
+                # Generator format: ['tag', 'tag', 'tag', ...]
+                next_item = six.next(generator)
+
+                if current_tags + 1 >= 128:
+                    break
+
+                current_tags += 1
+
+                result.append(next_item)
+
+        except StopIteration:
+            # Finished generator before invalidating page limiting constraints
+            return None, result
+
+        # Didn't hit StopIteration so there's stuff left in generator
+        new_token = str(uuid.uuid4())
+        self._pages[new_token] = {'gen': generator, 'misc': next_item}
+
+        # Token used up, might as well bin now, if you call it again your an idiot
+        if pagination_token:
+            del self._pages[pagination_token]
+
+        return new_token, result
+
+    def get_tag_values(self, pagination_token, key):
+
+        if pagination_token:
+            if pagination_token not in self._pages:
+                raise RESTError('PaginationTokenExpiredException', 'Token does not exist')
+
+            generator = self._pages[pagination_token]['gen']
+            left_over = self._pages[pagination_token]['misc']
+        else:
+            generator = self._get_tag_keys_generator(key)
+            left_over = None
+
+        result = []
+        current_tags = 0
+        if left_over:
+            result.append(left_over)
+            current_tags += 1
+
+        try:
+            while True:
+                # Generator format: ['value', 'value', 'value', ...]
+                next_item = six.next(generator)
+
+                if current_tags + 1 >= 128:
+                    break
+
+                current_tags += 1
+
+                result.append(next_item)
+
+        except StopIteration:
+            # Finished generator before invalidating page limiting constraints
+            return None, result
+
+        # Didn't hit StopIteration so there's stuff left in generator
+        new_token = str(uuid.uuid4())
+        self._pages[new_token] = {'gen': generator, 'misc': next_item}
+
+        # Token used up, might as well bin now, if you call it again your an idiot
+        if pagination_token:
+            del self._pages[pagination_token]
+
+        return new_token, result
+
     # def tag_resources(self, resource_arn_list, tags):
     #     return failed_resources_map
     #

@@ -18,10 +18,10 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
 
     def get_resources(self):
         pagination_token = self._get_param("PaginationToken")
-        tag_filters = self._get_list_prefix("TagFilters.member")
+        tag_filters = self._get_param("TagFilters", [])
         resources_per_page = self._get_int_param("ResourcesPerPage", 50)
         tags_per_page = self._get_int_param("TagsPerPage", 100)
-        resource_type_filters = self._get_list_prefix("ResourceTypeFilters.member")
+        resource_type_filters = self._get_param("ResourceTypeFilters", [])
 
         pagination_token, resource_tag_mapping_list = self.backend.get_resources(
             pagination_token=pagination_token,
@@ -45,8 +45,14 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         pagination_token, tag_keys = self.backend.get_tag_keys(
             pagination_token=pagination_token,
         )
-        # TODO: adjust response
-        return json.dumps(dict(paginationToken=pagination_token, tagKeys=tag_keys))
+
+        response = {
+            'TagKeys': tag_keys
+        }
+        if pagination_token:
+            response['PaginationToken'] = pagination_token
+
+        return json.dumps(response)
 
     def get_tag_values(self):
         pagination_token = self._get_param("PaginationToken")
@@ -55,25 +61,31 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
             pagination_token=pagination_token,
             key=key,
         )
-        # TODO: adjust response
-        return json.dumps(dict(paginationToken=pagination_token, tagValues=tag_values))
 
-    def tag_resources(self):
-        resource_arn_list = self._get_list_prefix("ResourceARNList.member")
-        tags = self._get_param("Tags")
-        failed_resources_map = self.backend.tag_resources(
-            resource_arn_list=resource_arn_list,
-            tags=tags,
-        )
-        # TODO: adjust response
-        return json.dumps(dict(failedResourcesMap=failed_resources_map))
+        response = {
+            'TagValues': tag_values
+        }
+        if pagination_token:
+            response['PaginationToken'] = pagination_token
 
-    def untag_resources(self):
-        resource_arn_list = self._get_list_prefix("ResourceARNList.member")
-        tag_keys = self._get_list_prefix("TagKeys.member")
-        failed_resources_map = self.backend.untag_resources(
-            resource_arn_list=resource_arn_list,
-            tag_keys=tag_keys,
-        )
-        # TODO: adjust response
-        return json.dumps(dict(failedResourcesMap=failed_resources_map))
+        return json.dumps(response)
+
+    # def tag_resources(self):
+    #     resource_arn_list = self._get_list_prefix("ResourceARNList.member")
+    #     tags = self._get_param("Tags")
+    #     failed_resources_map = self.backend.tag_resources(
+    #         resource_arn_list=resource_arn_list,
+    #         tags=tags,
+    #     )
+    #     # TODO: adjust response
+    #     return json.dumps(dict(failedResourcesMap=failed_resources_map))
+    #
+    # def untag_resources(self):
+    #     resource_arn_list = self._get_list_prefix("ResourceARNList.member")
+    #     tag_keys = self._get_list_prefix("TagKeys.member")
+    #     failed_resources_map = self.backend.untag_resources(
+    #         resource_arn_list=resource_arn_list,
+    #         tag_keys=tag_keys,
+    #     )
+    #     # TODO: adjust response
+    #     return json.dumps(dict(failedResourcesMap=failed_resources_map))
