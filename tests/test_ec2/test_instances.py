@@ -1233,3 +1233,24 @@ def test_modify_delete_on_termination():
     )
     instance.load()
     instance.block_device_mappings[0]['Ebs']['DeleteOnTermination'].should.be(True)
+
+@mock_ec2
+def test_create_instance_ebs_optimized():
+    ec2_resource = boto3.resource('ec2', region_name='eu-west-1')
+
+    instance = ec2_resource.create_instances(
+        ImageId = 'ami-12345678',
+        MaxCount = 1,
+        MinCount = 1,
+        EbsOptimized = True,
+    )[0]
+    instance.load()
+    instance.ebs_optimized.should.be(True)
+
+    instance.modify_attribute(
+        EbsOptimized={
+            'Value': False
+        }
+    )
+    instance.load()
+    instance.ebs_optimized.should.be(False)

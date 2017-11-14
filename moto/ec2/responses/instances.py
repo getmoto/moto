@@ -45,6 +45,7 @@ class InstanceResponse(BaseResponse):
         private_ip = self._get_param('PrivateIpAddress')
         associate_public_ip = self._get_param('AssociatePublicIpAddress')
         key_name = self._get_param('KeyName')
+        ebs_optimized = self._get_param('EbsOptimized')
         tags = self._parse_tag_specification("TagSpecification")
         region_name = self.region
 
@@ -54,7 +55,7 @@ class InstanceResponse(BaseResponse):
                 instance_type=instance_type, placement=placement, region_name=region_name, subnet_id=subnet_id,
                 owner_id=owner_id, key_name=key_name, security_group_ids=security_group_ids,
                 nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip,
-                tags=tags)
+                tags=tags, ebs_optimized=ebs_optimized)
 
             template = self.response_template(EC2_RUN_INSTANCES)
             return template.render(reservation=new_reservation)
@@ -242,6 +243,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <dnsName>{{ instance.public_dns }}</dnsName>
           <reason/>
           <keyName>{{ instance.key_name }}</keyName>
+          <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
           <amiLaunchIndex>0</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>{{ instance.launch_time }}</launchTime>
@@ -381,6 +383,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <dnsName>{{ instance.public_dns }}</dnsName>
                     <reason>{{ instance._reason }}</reason>
                     <keyName>{{ instance.key_name }}</keyName>
+                    <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
                     <amiLaunchIndex>0</amiLaunchIndex>
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
