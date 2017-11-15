@@ -220,7 +220,7 @@ def test_create_function_from_aws_bucket():
     result.pop('LastModified')
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
+        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.lambda_handler',
@@ -265,7 +265,7 @@ def test_create_function_from_zipfile():
 
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
+        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.lambda_handler',
@@ -317,30 +317,25 @@ def test_get_function():
     result['ResponseMetadata'].pop('RetryAttempts', None)
     result['Configuration'].pop('LastModified')
 
-    result.should.equal({
-        "Code": {
-            "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip".format(_lambda_region),
-            "RepositoryType": "S3"
-        },
-        "Configuration": {
-            "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
-            "CodeSize": len(zip_content),
-            "Description": "test lambda function",
-            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
-            "FunctionName": "testFunction",
-            "Handler": "lambda_function.lambda_handler",
-            "MemorySize": 128,
-            "Role": "test-iam-role",
-            "Runtime": "python2.7",
-            "Timeout": 3,
-            "Version": '$LATEST',
-            "VpcConfig": {
-                "SecurityGroupIds": [],
-                "SubnetIds": [],
-            }
-        },
-        'ResponseMetadata': {'HTTPStatusCode': 200},
-    })
+    result['Code']['Location'].should.equal('s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/test.zip'.format(_lambda_region))
+    result['Code']['RepositoryType'].should.equal('S3')
+
+    result['Configuration']['CodeSha256'].should.equal(hashlib.sha256(zip_content).hexdigest())
+    result['Configuration']['CodeSize'].should.equal(len(zip_content))
+    result['Configuration']['Description'].should.equal('test lambda function')
+    result['Configuration'].should.contain('FunctionArn')
+    result['Configuration']['FunctionName'].should.equal('testFunction')
+    result['Configuration']['Handler'].should.equal('lambda_function.lambda_handler')
+    result['Configuration']['MemorySize'].should.equal(128)
+    result['Configuration']['Role'].should.equal('test-iam-role')
+    result['Configuration']['Runtime'].should.equal('python2.7')
+    result['Configuration']['Timeout'].should.equal(3)
+    result['Configuration']['Version'].should.equal('$LATEST')
+    result['Configuration'].should.contain('VpcConfig')
+
+    # Test get function with
+    result = conn.get_function(FunctionName='testFunction', Qualifier='$LATEST')
+    result['Configuration']['Version'].should.equal('$LATEST')
 
 
 @mock_lambda
@@ -378,6 +373,52 @@ def test_delete_function():
 
     conn.delete_function.when.called_with(
         FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
+
+
+@mock_lambda
+@mock_s3
+def test_publish():
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
+    conn = boto3.client('lambda', 'us-west-2')
+
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    function_list = conn.list_functions()
+    function_list['Functions'].should.have.length_of(1)
+    latest_arn = function_list['Functions'][0]['FunctionArn']
+
+    conn.publish_version(FunctionName='testFunction')
+
+    function_list = conn.list_functions()
+    function_list['Functions'].should.have.length_of(2)
+
+    # #SetComprehension ;-)
+    published_arn = list({f['FunctionArn'] for f in function_list['Functions']} - {latest_arn})[0]
+    published_arn.should.contain('testFunction:1')
+
+    conn.delete_function(FunctionName='testFunction', Qualifier='1')
+
+    function_list = conn.list_functions()
+    function_list['Functions'].should.have.length_of(1)
+    function_list['Functions'][0]['FunctionArn'].should.contain('testFunction:$LATEST')
+
 
 
 @mock_lambda
@@ -420,7 +461,7 @@ def test_list_create_list_get_delete_list():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
@@ -633,7 +674,7 @@ def test_get_function_created_with_zipfile():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn":'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
+            "FunctionArn":'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
             "MemorySize": 128,

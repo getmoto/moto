@@ -11,9 +11,27 @@ except:
 
 from moto.core.utils import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse
+from .models import lambda_backends
 
 
 class LambdaResponse(BaseResponse):
+
+    @property
+    def json_body(self):
+        """
+        :return: JSON
+        :rtype: dict
+        """
+        return json.loads(self.body)
+
+    @property
+    def lambda_backend(self):
+        """
+        Get backend
+        :return: Lambda Backend
+        :rtype: moto.awslambda.models.LambdaBackend
+        """
+        return lambda_backends[self.region]
 
     def root(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -30,6 +48,16 @@ class LambdaResponse(BaseResponse):
             return self._get_function(request, full_url, headers)
         elif request.method == 'DELETE':
             return self._delete_function(request, full_url, headers)
+        else:
+            raise ValueError("Cannot handle request")
+
+    def versions(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == 'GET':
+            # This is ListVersionByFunction
+            raise ValueError("Cannot handle request")
+        elif request.method == 'POST':
+            return self._publish_function(request, full_url, headers)
         else:
             raise ValueError("Cannot handle request")
 
@@ -93,13 +121,12 @@ class LambdaResponse(BaseResponse):
 
     def _invoke(self, request, full_url):
         response_headers = {}
-        lambda_backend = self.get_lambda_backend(full_url)
 
-        path = request.path if hasattr(request, 'path') else request.path_url
-        function_name = path.split('/')[-2]
+        function_name = self.path.rsplit('/', 2)[-2]
+        qualifier = self._get_param('qualifier')
 
-        if lambda_backend.has_function(function_name):
-            fn = lambda_backend.get_function(function_name)
+        fn = self.lambda_backend.get_function(function_name, qualifier)
+        if fn:
             payload = fn.invoke(self.body, self.headers, response_headers)
             response_headers['Content-Length'] = str(len(payload))
             return 202, response_headers, payload
@@ -108,65 +135,69 @@ class LambdaResponse(BaseResponse):
 
     def _invoke_async(self, request, full_url):
         response_headers = {}
-        lambda_backend = self.get_lambda_backend(full_url)
 
-        path = request.path if hasattr(request, 'path') else request.path_url
-        function_name = path.split('/')[-3]
-        if lambda_backend.has_function(function_name):
-            fn = lambda_backend.get_function(function_name)
-            fn.invoke(self.body, self.headers, response_headers)
-            response_headers['Content-Length'] = str(0)
-            return 202, response_headers, ""
+        function_name = self.path.rsplit('/', 3)[-3]
+
+        fn = self.lambda_backend.get_function(function_name, None)
+        if fn:
+            payload = fn.invoke(self.body, self.headers, response_headers)
+            response_headers['Content-Length'] = str(len(payload))
+            return 202, response_headers, payload
         else:
             return 404, response_headers, "{}"
 
     def _list_functions(self, request, full_url, headers):
-        lambda_backend = self.get_lambda_backend(full_url)
-        return 200, {}, json.dumps({
-            "Functions": [fn.get_configuration() for fn in lambda_backend.list_functions()],
-            # "NextMarker": str(uuid.uuid4()),
-        })
+        result = {
+            'Functions': []
+        }
+
+        for fn in self.lambda_backend.list_functions():
+            json_data = fn.get_configuration()
+
+            result['Functions'].append(json_data)
+
+        return 200, {}, json.dumps(result)
 
     def _create_function(self, request, full_url, headers):
-        lambda_backend = self.get_lambda_backend(full_url)
-        spec = json.loads(self.body)
         try:
-            fn = lambda_backend.create_function(spec)
+            fn = self.lambda_backend.create_function(self.json_body)
         except ValueError as e:
             return 400, {}, json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}})
         else:
             config = fn.get_configuration()
             return 201, {}, json.dumps(config)
 
+    def _publish_function(self, request, full_url, headers):
+        function_name = self.path.rsplit('/', 2)[-2]
+
+        fn = self.lambda_backend.publish_function(function_name)
+        if fn:
+            config = fn.get_configuration()
+            return 200, {}, json.dumps(config)
+        else:
+            return 404, {}, "{}"
+
     def _delete_function(self, request, full_url, headers):
-        lambda_backend = self.get_lambda_backend(full_url)
+        function_name = self.path.rsplit('/', 1)[-1]
+        qualifier = self._get_param('Qualifier', None)
 
-        path = request.path if hasattr(request, 'path') else request.path_url
-        function_name = path.split('/')[-1]
-
-        if lambda_backend.has_function(function_name):
-            lambda_backend.delete_function(function_name)
+        if self.lambda_backend.delete_function(function_name, qualifier):
             return 204, {}, ""
         else:
             return 404, {}, "{}"
 
     def _get_function(self, request, full_url, headers):
-        lambda_backend = self.get_lambda_backend(full_url)
+        function_name = self.path.rsplit('/', 1)[-1]
+        qualifier = self._get_param('Qualifier', None)
 
-        path = request.path if hasattr(request, 'path') else request.path_url
-        function_name = path.split('/')[-1]
+        fn = self.lambda_backend.get_function(function_name, qualifier)
 
-        if lambda_backend.has_function(function_name):
-            fn = lambda_backend.get_function(function_name)
+        if fn:
             code = fn.get_code()
+
             return 200, {}, json.dumps(code)
         else:
             return 404, {}, "{}"
-
-    def get_lambda_backend(self, full_url):
-        from moto.awslambda.models import lambda_backends
-        region = self._get_aws_region(full_url)
-        return lambda_backends[region]
 
     def _get_aws_region(self, full_url):
         region = re.search(self.region_regex, full_url)
@@ -176,41 +207,27 @@ class LambdaResponse(BaseResponse):
             return self.default_region
 
     def _list_tags(self, request, full_url):
-        lambda_backend = self.get_lambda_backend(full_url)
+        function_arn = unquote(self.path.rsplit('/', 1)[-1])
 
-        path = request.path if hasattr(request, 'path') else request.path_url
-        function_arn = unquote(path.split('/')[-1])
-
-        if lambda_backend.has_function_arn(function_arn):
-            function = lambda_backend.get_function_by_arn(function_arn)
-            return 200, {}, json.dumps(dict(Tags=function.tags))
+        fn = self.lambda_backend.get_function_by_arn(function_arn)
+        if fn:
+            return 200, {}, json.dumps({'Tags': fn.tags})
         else:
             return 404, {}, "{}"
 
     def _tag_resource(self, request, full_url):
-        lambda_backend = self.get_lambda_backend(full_url)
+        function_arn = unquote(self.path.rsplit('/', 1)[-1])
 
-        path = request.path if hasattr(request, 'path') else request.path_url
-        function_arn = unquote(path.split('/')[-1])
-
-        spec = json.loads(self.body)
-
-        if lambda_backend.has_function_arn(function_arn):
-            lambda_backend.tag_resource(function_arn, spec['Tags'])
+        if self.lambda_backend.tag_resource(function_arn, self.json_body['Tags']):
             return 200, {}, "{}"
         else:
             return 404, {}, "{}"
 
     def _untag_resource(self, request, full_url):
-        lambda_backend = self.get_lambda_backend(full_url)
+        function_arn = unquote(self.path.rsplit('/', 1)[-1])
+        tag_keys = self.querystring['tagKeys']
 
-        path = request.path if hasattr(request, 'path') else request.path_url
-        function_arn = unquote(path.split('/')[-1].split('?')[0])
-
-        tag_keys = parse_qs(urlparse(full_url).query)['tagKeys']
-
-        if lambda_backend.has_function_arn(function_arn):
-            lambda_backend.untag_resource(function_arn, tag_keys)
+        if self.lambda_backend.untag_resource(function_arn, tag_keys):
             return 204, {}, "{}"
         else:
             return 404, {}, "{}"
