@@ -52,13 +52,13 @@ class FakeTargetGroup(BaseModel):
                  vpc_id,
                  protocol,
                  port,
-                 healthcheck_protocol,
-                 healthcheck_port,
-                 healthcheck_path,
-                 healthcheck_interval_seconds,
-                 healthcheck_timeout_seconds,
-                 healthy_threshold_count,
-                 unhealthy_threshold_count,
+                 healthcheck_protocol='HTTP',
+                 healthcheck_port='traffic-port',
+                 healthcheck_path='/',
+                 healthcheck_interval_seconds='30',
+                 healthcheck_timeout_seconds='5',
+                 healthy_threshold_count='5',
+                 unhealthy_threshold_count='2',
                  matcher=None,
                  target_type=None):
         self.name = name
@@ -75,7 +75,10 @@ class FakeTargetGroup(BaseModel):
         self.unhealthy_threshold_count = unhealthy_threshold_count
         self.load_balancer_arns = []
         self.tags = {}
-        self.matcher = matcher
+        if matcher is None:
+            self.matcher = {'HttpCode': '200'}
+        else:
+            self.matcher = matcher
         self.target_type = target_type
 
         self.attributes = {
@@ -454,27 +457,17 @@ class ELBv2Backend(BaseBackend):
                 raise DuplicateTargetGroupName()
 
         valid_protocols = ['HTTPS', 'HTTP', 'TCP']
-        if kwargs['healthcheck_protocol'] not in valid_protocols:
+        if kwargs.get('healthcheck_protocol') and kwargs['healthcheck_protocol'] not in valid_protocols:
             raise InvalidConditionValueError(
                 "Value {} at 'healthCheckProtocol' failed to satisfy constraint: "
                 "Member must satisfy enum value set: {}".format(kwargs['healthcheck_protocol'], valid_protocols))
-        if kwargs['protocol'] not in valid_protocols:
+        if kwargs.get('protocol') and kwargs['protocol'] not in valid_protocols:
             raise InvalidConditionValueError(
                 "Value {} at 'protocol' failed to satisfy constraint: "
                 "Member must satisfy enum value set: {}".format(kwargs['protocol'], valid_protocols))
 
-        if FakeTargetGroup.HTTP_CODE_REGEX.match(kwargs['matcher']['HttpCode']) is None:
+        if kwargs.get('matcher') and FakeTargetGroup.HTTP_CODE_REGEX.match(kwargs['matcher']['HttpCode']) is None:
             raise RESTError('InvalidParameterValue', 'HttpCode must be like 200 | 200-399 | 200,201 ...')
-
-        valid_protocols = ['HTTPS', 'HTTP', 'TCP']
-        if kwargs['healthcheck_protocol'] not in valid_protocols:
-            raise InvalidConditionValueError(
-                "Value {} at 'healthCheckProtocol' failed to satisfy constraint: "
-                "Member must satisfy enum value set: {}".format(kwargs['healthcheck_protocol'], valid_protocols))
-        if kwargs['protocol'] not in valid_protocols:
-            raise InvalidConditionValueError(
-                "Value {} at 'protocol' failed to satisfy constraint: "
-                "Member must satisfy enum value set: {}".format(kwargs['protocol'], valid_protocols))
 
         arn = make_arn_for_target_group(account_id=1, name=name, region_name=self.region_name)
         target_group = FakeTargetGroup(name, arn, **kwargs)
