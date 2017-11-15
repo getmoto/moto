@@ -38,6 +38,7 @@ from moto.xray import xray_backends
 from moto.iot import iot_backends
 from moto.iotdata import iotdata_backends
 from moto.batch import batch_backends
+from moto.resourcegroupstaggingapi import resourcegroupstaggingapi_backends
 
 
 BACKENDS = {
@@ -78,6 +79,7 @@ BACKENDS = {
     'route53': route53_backends,
     'lambda': lambda_backends,
     'xray': xray_backends,
+    'resourcegroupstaggingapi': resourcegroupstaggingapi_backends,
     'iot': iot_backends,
     'iot-data': iotdata_backends,
 }
