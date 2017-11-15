@@ -5,9 +5,8 @@ import re
 
 try:
     from urllib import unquote
-    from urlparse import urlparse, parse_qs
 except:
-    from urllib.parse import unquote, urlparse, parse_qs
+    from urllib.parse import unquote
 
 from moto.core.utils import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse
