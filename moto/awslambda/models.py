@@ -513,7 +513,7 @@ class LambdaStorage(object):
             return None
 
         new_version = len(self._functions[name]['versions']) + 1
-        fn = copy.deepcopy(self._functions[name]['latest'])
+        fn = copy.copy(self._functions[name]['latest'])
         fn.set_version(new_version)
 
         self._functions[name]['versions'].append(fn)
