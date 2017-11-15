@@ -12,7 +12,7 @@ import sure  # noqa
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3, mock_ec2, settings
 
-_lambda_region = 'us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'
+_lambda_region = 'us-west-2'
 
 
 def _process_lambda(func_str):

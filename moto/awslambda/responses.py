@@ -14,7 +14,6 @@ from .models import lambda_backends
 
 
 class LambdaResponse(BaseResponse):
-
     @property
     def json_body(self):
         """
