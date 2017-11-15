@@ -180,14 +180,14 @@ class ELBV2Response(BaseResponse):
         vpc_id = self._get_param('VpcId')
         protocol = self._get_param('Protocol')
         port = self._get_param('Port')
-        healthcheck_protocol = self._get_param('HealthCheckProtocol', 'HTTP')
-        healthcheck_port = self._get_param('HealthCheckPort', 'traffic-port')
-        healthcheck_path = self._get_param('HealthCheckPath', '/')
-        healthcheck_interval_seconds = self._get_param('HealthCheckIntervalSeconds', '30')
-        healthcheck_timeout_seconds = self._get_param('HealthCheckTimeoutSeconds', '5')
-        healthy_threshold_count = self._get_param('HealthyThresholdCount', '5')
-        unhealthy_threshold_count = self._get_param('UnhealthyThresholdCount', '2')
-        http_codes = self._get_param('Matcher.HttpCode', '200')
+        healthcheck_protocol = self._get_param('HealthCheckProtocol')
+        healthcheck_port = self._get_param('HealthCheckPort')
+        healthcheck_path = self._get_param('HealthCheckPath')
+        healthcheck_interval_seconds = self._get_param('HealthCheckIntervalSeconds')
+        healthcheck_timeout_seconds = self._get_param('HealthCheckTimeoutSeconds')
+        healthy_threshold_count = self._get_param('HealthyThresholdCount')
+        unhealthy_threshold_count = self._get_param('UnhealthyThresholdCount')
+        matcher = self._get_param('Matcher')
 
         target_group = self.elbv2_backend.create_target_group(
             name,
@@ -201,7 +201,7 @@ class ELBV2Response(BaseResponse):
             healthcheck_timeout_seconds=healthcheck_timeout_seconds,
             healthy_threshold_count=healthy_threshold_count,
             unhealthy_threshold_count=unhealthy_threshold_count,
-            matcher={'HttpCode': http_codes}
+            matcher=matcher,
         )
 
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)

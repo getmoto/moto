@@ -2149,7 +2149,7 @@ def test_stack_elbv2_resources_integration():
                         "IpAddressType": "ipv4",
                   }
             },
-            "mytargetgroup": {
+            "mytargetgroup1": {
                 "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
                 "Properties": {
                     "HealthCheckIntervalSeconds": 30,
@@ -2162,7 +2162,7 @@ def test_stack_elbv2_resources_integration():
                     "Matcher": {
                         "HttpCode": "200,201"
                     },
-                    "Name": "mytargetgroup",
+                    "Name": "mytargetgroup1",
                     "Port": 80,
                     "Protocol": "HTTP",
                     "TargetType": "instance",
@@ -2177,12 +2177,37 @@ def test_stack_elbv2_resources_integration():
                     }
                 }
             },
+            "mytargetgroup2": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "HealthCheckIntervalSeconds": 30,
+                    "HealthCheckPath": "/status",
+                    "HealthCheckPort": 8080,
+                    "HealthCheckProtocol": "HTTP",
+                    "HealthCheckTimeoutSeconds": 5,
+                    "HealthyThresholdCount": 30,
+                    "UnhealthyThresholdCount": 5,
+                    "Name": "mytargetgroup2",
+                    "Port": 8080,
+                    "Protocol": "HTTP",
+                    "TargetType": "instance",
+                    "Targets": [{
+                        "Id": {
+                            "Ref": "ec2instance",
+                            "Port": 8080,
+                        },
+                    }],
+                    "VpcId": {
+                        "Ref": "myvpc",
+                    }
+                }
+            },
             "listener": {
                 "Type": "AWS::ElasticLoadBalancingV2::Listener",
                 "Properties": {
                     "DefaultActions": [{
                         "Type": "forward",
-                        "TargetGroupArn": {"Ref": "mytargetgroup"}
+                        "TargetGroupArn": {"Ref": "mytargetgroup1"}
                     }],
                     "LoadBalancerArn": {"Ref": "alb"},
                     "Port": "80",
@@ -2236,8 +2261,10 @@ def test_stack_elbv2_resources_integration():
     load_balancers[0]['Type'].should.equal('application')
     load_balancers[0]['IpAddressType'].should.equal('ipv4')
 
-    target_groups = elbv2_conn.describe_target_groups()['TargetGroups']
-    len(target_groups).should.equal(1)
+    target_groups = sorted(
+        elbv2_conn.describe_target_groups()['TargetGroups'],
+        key=lambda tg: tg['TargetGroupName'])  # sort to do comparison with indexes
+    len(target_groups).should.equal(2)
     target_groups[0]['HealthCheckIntervalSeconds'].should.equal(30)
     target_groups[0]['HealthCheckPath'].should.equal('/status')
     target_groups[0]['HealthCheckPort'].should.equal('80')
@@ -2246,10 +2273,23 @@ def test_stack_elbv2_resources_integration():
     target_groups[0]['HealthyThresholdCount'].should.equal(30)
     target_groups[0]['UnhealthyThresholdCount'].should.equal(5)
     target_groups[0]['Matcher'].should.equal({'HttpCode': '200,201'})
-    target_groups[0]['TargetGroupName'].should.equal('mytargetgroup')
+    target_groups[0]['TargetGroupName'].should.equal('mytargetgroup1')
     target_groups[0]['Port'].should.equal(80)
     target_groups[0]['Protocol'].should.equal('HTTP')
     target_groups[0]['TargetType'].should.equal('instance')
+
+    target_groups[1]['HealthCheckIntervalSeconds'].should.equal(30)
+    target_groups[1]['HealthCheckPath'].should.equal('/status')
+    target_groups[1]['HealthCheckPort'].should.equal('8080')
+    target_groups[1]['HealthCheckProtocol'].should.equal('HTTP')
+    target_groups[1]['HealthCheckTimeoutSeconds'].should.equal(5)
+    target_groups[1]['HealthyThresholdCount'].should.equal(30)
+    target_groups[1]['UnhealthyThresholdCount'].should.equal(5)
+    target_groups[1]['Matcher'].should.equal({'HttpCode': '200'})
+    target_groups[1]['TargetGroupName'].should.equal('mytargetgroup2')
+    target_groups[1]['Port'].should.equal(8080)
+    target_groups[1]['Protocol'].should.equal('HTTP')
+    target_groups[1]['TargetType'].should.equal('instance')
 
     listeners = elbv2_conn.describe_listeners(LoadBalancerArn=load_balancers[0]['LoadBalancerArn'])['Listeners']
     len(listeners).should.equal(1)
