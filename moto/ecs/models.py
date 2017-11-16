@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import uuid
 from datetime import datetime
 from random import random, randint
+import boto3
 
 import pytz
 from moto.core.exceptions import JsonRESTError
@@ -888,6 +889,5 @@ class EC2ContainerServiceBackend(BaseBackend):
             yield task_fam
 
 
-ecs_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    ecs_backends[region] = EC2ContainerServiceBackend(region)
+available_regions = boto3.session.Session().get_available_regions("ecs")
+ecs_backends = {region: EC2ContainerServiceBackend(region) for region in available_regions}
