@@ -333,7 +333,7 @@ class ContainerInstance(BaseObject):
     @property
     def response_object(self):
         response_object = self.gen_response_object()
-        response_object['attributes'] = [self._format_attribute(name, value) for name, value in response_object['attributes'].iteritems()]
+        response_object['attributes'] = [self._format_attribute(name, value) for name, value in response_object['attributes'].items()]
         return response_object
 
     def _format_attribute(self, name, value):
