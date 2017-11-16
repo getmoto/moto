@@ -1624,11 +1624,13 @@ def test_attributes():
         clusterName=test_cluster_name
     )
 
+    instances = []
     test_instance = ec2.create_instances(
         ImageId="ami-1234abcd",
         MinCount=1,
         MaxCount=1,
     )[0]
+    instances.append(test_instance)
 
     instance_id_document = json.dumps(
         ec2_utils.generate_instance_identity_document(test_instance)
@@ -1648,6 +1650,7 @@ def test_attributes():
         MinCount=1,
         MaxCount=1,
     )[0]
+    instances.append(test_instance)
 
     instance_id_document = json.dumps(
         ec2_utils.generate_instance_identity_document(test_instance)
@@ -1680,7 +1683,10 @@ def test_attributes():
         targetType='container-instance'
     )
     attrs = resp['attributes']
-    len(attrs).should.equal(4)
+
+    NUM_CUSTOM_ATTRIBUTES = 4  # 2 specific to individual machines and 1 global, going to both machines (2 + 1*2)
+    NUM_DEFAULT_ATTRIBUTES = 4
+    len(attrs).should.equal(NUM_CUSTOM_ATTRIBUTES + (NUM_DEFAULT_ATTRIBUTES * len(instances)))
 
     # Tests that the attrs have been set properly
     len(list(filter(lambda item: item['name'] == 'env', attrs))).should.equal(2)
@@ -1692,13 +1698,14 @@ def test_attributes():
             {'name': 'attr1', 'value': 'instance2', 'targetId': partial_arn2, 'targetType': 'container-instance'}
         ]
     )
+    NUM_CUSTOM_ATTRIBUTES -= 1
 
     resp = ecs_client.list_attributes(
         cluster=test_cluster_name,
         targetType='container-instance'
     )
     attrs = resp['attributes']
-    len(attrs).should.equal(3)
+    len(attrs).should.equal(NUM_CUSTOM_ATTRIBUTES + (NUM_DEFAULT_ATTRIBUTES * len(instances)))
 
 
 @mock_ecs
@@ -1755,6 +1762,50 @@ def test_list_task_definition_families():
 
     len(resp1['families']).should.equal(2)
     len(resp2['families']).should.equal(1)
+
+
+@mock_ec2
+@mock_ecs
+def test_default_container_instance_attributes():
+    ecs_client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+
+    # Create cluster and EC2 instance
+    _ = ecs_client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    # Register container instance
+    response = ecs_client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+
+    response['containerInstance'][
+        'ec2InstanceId'].should.equal(test_instance.id)
+    full_arn = response['containerInstance']['containerInstanceArn']
+    container_instance_id = full_arn.rsplit('/', 1)[-1]
+
+    default_attributes = response['containerInstance']['attributes']
+    assert len(default_attributes) == 4
+    assert sorted(default_attributes) == sorted([
+        {'name': 'ecs.availability-zone', 'value': test_instance.placement['AvailabilityZone']},
+        {'name': 'ecs.ami-id', 'value': test_instance.image_id},
+        {'name': 'ecs.instance-type', 'value': test_instance.instance_type},
+        {'name': 'ecs.os-type', 'value': test_instance.platform or 'linux'}
+    ])
 
 
 def _fetch_container_instance_resources(container_instance_description):

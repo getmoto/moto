@@ -321,8 +321,14 @@ class ContainerInstance(BaseObject):
             'agentHash': '4023248',
             'dockerVersion': 'DockerVersion: 1.5.0'
         }
-
-        self.attributes = {}
+        ec2_backend = ec2_backends[region_name]
+        ec2_instance = ec2_backend.get_instance(ec2_instance_id)
+        self.attributes = {
+            'ecs.ami-id': ec2_instance.image_id,
+            'ecs.availability-zone': ec2_instance.placement,
+            'ecs.instance-type': ec2_instance.instance_type,
+            'ecs.os-type': ec2_instance.platform if ec2_instance.platform == 'windows' else 'linux'  # options are windows and linux, linux is default
+        }
 
     @property
     def response_object(self):
