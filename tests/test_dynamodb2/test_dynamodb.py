@@ -1006,3 +1006,64 @@ def test_query_missing_expr_names():
 
     resp['Count'].should.equal(1)
     resp['Items'][0]['client']['S'].should.equal('test2')
+
+
+# https://github.com/spulec/moto/issues/1342
+@mock_dynamodb2
+def test_update_item_on_map():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': {'nested': {'data': 'test'}},
+    })
+
+    resp = table.scan()
+    resp['Items'][0]['body'].should.equal({'nested': {'data': 'test'}})
+
+    table.update_item(Key={
+        'forum_name': 'the-key',
+        'subject': '123'
+        },
+        UpdateExpression='SET body.#nested.#data = :tb',
+        ExpressionAttributeNames={
+            '#nested': 'nested',
+            '#data': 'data'
+        },
+        ExpressionAttributeValues={
+            ':tb': 'new_value'
+    })
+
+    resp = table.scan()
+    resp['Items'][0]['body'].should.equal({'nested': {'data': 'new_value'}})
