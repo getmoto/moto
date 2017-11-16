@@ -261,7 +261,7 @@ class Service(BaseObject):
 
 class ContainerInstance(BaseObject):
 
-    def __init__(self, ec2_instance_id):
+    def __init__(self, ec2_instance_id, region_name):
         self.ec2_instance_id = ec2_instance_id
         self.agent_connected = True
         self.status = 'ACTIVE'
@@ -347,12 +347,19 @@ class ContainerInstanceFailure(BaseObject):
 
 class EC2ContainerServiceBackend(BaseBackend):
 
-    def __init__(self):
+    def __init__(self, region_name):
+        super(EC2ContainerServiceBackend, self).__init__()
         self.clusters = {}
         self.task_definitions = {}
         self.tasks = {}
         self.services = {}
         self.container_instances = {}
+        self.region_name = region_name
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def describe_task_definition(self, task_definition_str):
         task_definition_name = task_definition_str.split('/')[-1]
@@ -669,7 +676,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_name = cluster_str.split('/')[-1]
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
-        container_instance = ContainerInstance(ec2_instance_id)
+        container_instance = ContainerInstance(ec2_instance_id, self.region_name)
         if not self.container_instances.get(cluster_name):
             self.container_instances[cluster_name] = {}
         container_instance_id = container_instance.container_instance_arn.split(
@@ -868,4 +875,4 @@ class EC2ContainerServiceBackend(BaseBackend):
 
 ecs_backends = {}
 for region, ec2_backend in ec2_backends.items():
-    ecs_backends[region] = EC2ContainerServiceBackend()
+    ecs_backends[region] = EC2ContainerServiceBackend(region)
