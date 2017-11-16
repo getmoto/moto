@@ -1808,6 +1808,67 @@ def test_default_container_instance_attributes():
     ])
 
 
+@mock_ec2
+@mock_ecs
+def test_describe_container_instances_with_attributes():
+    ecs_client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+
+    # Create cluster and EC2 instance
+    _ = ecs_client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd",
+        MinCount=1,
+        MaxCount=1,
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    # Register container instance
+    response = ecs_client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document
+    )
+
+    response['containerInstance'][
+        'ec2InstanceId'].should.equal(test_instance.id)
+    full_arn = response['containerInstance']['containerInstanceArn']
+    container_instance_id = full_arn.rsplit('/', 1)[-1]
+    default_attributes = response['containerInstance']['attributes']
+
+    # Set attributes on container instance, one without a value
+    attributes = [
+            {'name': 'env', 'value': 'prod'},
+            {'name': 'attr1', 'value': 'instance1', 'targetId': container_instance_id, 'targetType': 'container-instance'},
+            {'name': 'attr_without_value'}
+        ]
+    ecs_client.put_attributes(
+        cluster=test_cluster_name,
+        attributes=attributes
+    )
+
+    # Describe container instance, should have attributes previously set
+    described_instance = ecs_client.describe_container_instances(cluster=test_cluster_name, containerInstances=[container_instance_id])
+
+    assert len(described_instance['containerInstances']) == 1
+    assert isinstance(described_instance['containerInstances'][0]['attributes'], list)
+
+    # Remove additional info passed to put_attributes
+    cleaned_attributes = []
+    for attribute in attributes:
+        attribute.pop('targetId', None)
+        attribute.pop('targetType', None)
+        cleaned_attributes.append(attribute)
+    assert sorted(described_instance['containerInstances'][0]['attributes']) == sorted(default_attributes + cleaned_attributes)
+
+
 def _fetch_container_instance_resources(container_instance_description):
     remaining_resources = {}
     registered_resources = {}
