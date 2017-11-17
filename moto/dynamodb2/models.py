@@ -149,9 +149,38 @@ class Item(BaseModel):
                     key = key.strip()
                     value = value.strip()
                     if value in expression_attribute_values:
-                        self.attrs[key] = DynamoType(expression_attribute_values[value])
+                        value = DynamoType(expression_attribute_values[value])
                     else:
-                        self.attrs[key] = DynamoType({"S": value})
+                        value = DynamoType({"S": value})
+
+                    if '.' not in key:
+                        self.attrs[key] = value
+                    else:
+                        # Handle nested dict updates
+                        key_parts = key.split('.')
+                        attr = key_parts.pop(0)
+                        if attr not in self.attrs:
+                            raise ValueError()
+
+                        last_val = self.attrs[attr].value
+                        for key_part in key_parts:
+                            # Hack but it'll do, traverses into a dict
+                            if list(last_val.keys())[0] == 'M':
+                                last_val = last_val['M']
+
+                            if key_part not in last_val:
+                                raise ValueError()
+
+                            last_val = last_val[key_part]
+
+                        # We have reference to a nested object but we cant just assign to it
+                        current_type = list(last_val.keys())[0]
+                        if current_type == value.type:
+                            last_val[current_type] = value.value
+                        else:
+                            last_val[value.type] = value.value
+                            del last_val[current_type]
+
                 elif action == 'ADD':
                     key, value = value.split(" ", 1)
                     key = key.strip()
