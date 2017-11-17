@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import boto3
 import botocore.exceptions
 import sure   # noqa
+import datetime
 
 from moto import mock_ssm
 
@@ -112,6 +113,46 @@ def test_put_parameter():
     response['Parameters'][0]['Name'].should.equal('test')
     response['Parameters'][0]['Value'].should.equal('value')
     response['Parameters'][0]['Type'].should.equal('String')
+    response['Parameters'][0]['Version'].should.equal(1)
+
+    client.put_parameter(
+        Name='test',
+        Description='desc 2',
+        Value='value 2',
+        Type='String')
+
+    response = client.get_parameters(
+        Names=[
+            'test'
+        ],
+        WithDecryption=False)
+
+    # without overwrite nothing change
+    len(response['Parameters']).should.equal(1)
+    response['Parameters'][0]['Name'].should.equal('test')
+    response['Parameters'][0]['Value'].should.equal('value')
+    response['Parameters'][0]['Type'].should.equal('String')
+    response['Parameters'][0]['Version'].should.equal(1)
+
+    client.put_parameter(
+        Name='test',
+        Description='desc 3',
+        Value='value 3',
+        Type='String',
+        Overwrite=True)
+
+    response = client.get_parameters(
+        Names=[
+            'test'
+        ],
+        WithDecryption=False)
+
+    # without overwrite nothing change
+    len(response['Parameters']).should.equal(1)
+    response['Parameters'][0]['Name'].should.equal('test')
+    response['Parameters'][0]['Value'].should.equal('value 3')
+    response['Parameters'][0]['Type'].should.equal('String')
+    response['Parameters'][0]['Version'].should.equal(2)
 
 
 @mock_ssm
@@ -279,6 +320,33 @@ def test_describe_parameters_filter_keyid():
     response['Parameters'][0]['Type'].should.equal('SecureString')
     ''.should.equal(response.get('NextToken', ''))
 
+@mock_ssm
+def test_describe_parameters_attributes():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.put_parameter(
+        Name='aa',
+        Value='11',
+        Type='String',
+        Description='my description'
+    )
+
+    client.put_parameter(
+        Name='bb',
+        Value='22',
+        Type='String'
+    )
+
+    response = client.describe_parameters()
+    len(response['Parameters']).should.equal(2)
+
+    response['Parameters'][0]['Description'].should.equal('my description')
+    response['Parameters'][0]['Version'].should.equal(1)
+    response['Parameters'][0]['LastModifiedDate'].should.be.a(datetime.date)
+    response['Parameters'][0]['LastModifiedUser'].should.equal('N/A')
+
+    response['Parameters'][1].get('Description').should.be.none
+    response['Parameters'][1]['Version'].should.equal(1)
 
 @mock_ssm
 def test_get_parameter_invalid():

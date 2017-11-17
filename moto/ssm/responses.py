@@ -117,7 +117,7 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         end = token + page_size
         for parameter in result[token:]:
-            param_data = parameter.response_object(False)
+            param_data = parameter.describe_response_object(False)
             add = False
 
             if filters:
