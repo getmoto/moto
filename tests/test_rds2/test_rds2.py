@@ -50,7 +50,7 @@ def test_stop_database():
     # test stopping database should shutdown
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response['DBInstance']['DBInstanceStatus'].should.equal('stopped')
     # test rdsclient error when trying to stop an already stopped database
     conn.stop_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
     # test stopping a stopped database with snapshot should error and no snapshot should exist for that call
@@ -76,10 +76,10 @@ def test_start_database():
     mydb['DBInstanceStatus'].should.equal('available')
     # test starting an already started database should error
     conn.start_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
-    # stop and test start - should go from shutdown to available, create snapshot and check snapshot
+    # stop and test start - should go from stopped to available, create snapshot and check snapshot
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap')
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response['DBInstance']['DBInstanceStatus'].should.equal('stopped')
     response = conn.describe_db_snapshots()
     response['DBSnapshots'][0]['DBSnapshotIdentifier'].should.equal('rocky4570-rds-snap')
     response = conn.start_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
@@ -93,7 +93,7 @@ def test_start_database():
     # test stopping database not invoking snapshot should succeed.
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response['DBInstance']['DBInstanceStatus'].should.equal('stopped')
 
 
 @mock_rds2
