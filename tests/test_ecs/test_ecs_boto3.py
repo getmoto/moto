@@ -1800,12 +1800,13 @@ def test_default_container_instance_attributes():
 
     default_attributes = response['containerInstance']['attributes']
     assert len(default_attributes) == 4
-    assert sorted(default_attributes) == sorted([
+    expected_result = [
         {'name': 'ecs.availability-zone', 'value': test_instance.placement['AvailabilityZone']},
         {'name': 'ecs.ami-id', 'value': test_instance.image_id},
         {'name': 'ecs.instance-type', 'value': test_instance.instance_type},
         {'name': 'ecs.os-type', 'value': test_instance.platform or 'linux'}
-    ])
+    ]
+    assert sorted(default_attributes, key=lambda item: item['name']) == sorted(expected_result, key=lambda item: item['name'])
 
 
 @mock_ec2
