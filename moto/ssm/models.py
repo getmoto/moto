@@ -5,13 +5,17 @@ from collections import defaultdict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 
+import time
+
 
 class Parameter(BaseModel):
-    def __init__(self, name, value, type, description, keyid):
+    def __init__(self, name, value, type, description, keyid, last_modified_date, version):
         self.name = name
         self.type = type
         self.description = description
         self.keyid = keyid
+        self.last_modified_date = last_modified_date
+        self.version = version
 
         if self.type == 'SecureString':
             self.value = self.encrypt(value)
@@ -33,8 +37,20 @@ class Parameter(BaseModel):
         r = {
             'Name': self.name,
             'Type': self.type,
-            'Value': self.decrypt(self.value) if decrypt else self.value
+            'Value': self.decrypt(self.value) if decrypt else self.value,
+            'Version': self.version,
         }
+
+        return r
+
+    def describe_response_object(self, decrypt=False):
+        r = self.response_object(decrypt)
+        r['LastModifiedDate'] = int(self.last_modified_date)
+        r['LastModifiedUser'] = 'N/A'
+
+        if self.description:
+            r['Description'] = self.description
+
         if self.keyid:
             r['KeyId'] = self.keyid
         return r
@@ -96,10 +112,18 @@ class SimpleSystemManagerBackend(BaseBackend):
         return None
 
     def put_parameter(self, name, description, value, type, keyid, overwrite):
-        if not overwrite and name in self._parameters:
-            return
+        previous_parameter = self._parameters.get(name)
+        version = 1
+
+        if previous_parameter:
+            version = previous_parameter.version + 1
+
+            if not overwrite:
+                return
+
+        last_modified_date = time.time()
         self._parameters[name] = Parameter(
-            name, value, type, description, keyid)
+            name, value, type, description, keyid, last_modified_date, version)
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):
         for key, value in tags.items():
