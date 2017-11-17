@@ -1867,7 +1867,9 @@ def test_describe_container_instances_with_attributes():
         attribute.pop('targetId', None)
         attribute.pop('targetType', None)
         cleaned_attributes.append(attribute)
-    assert sorted(described_instance['containerInstances'][0]['attributes']) == sorted(default_attributes + cleaned_attributes)
+    described_attributes = sorted(described_instance['containerInstances'][0]['attributes'], key=lambda item: item['name'])
+    expected_attributes = sorted(default_attributes + cleaned_attributes, key=lambda item: item['name'])
+    assert described_attributes == expected_attributes
 
 
 def _fetch_container_instance_resources(container_instance_description):
