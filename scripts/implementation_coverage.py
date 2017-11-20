@@ -44,7 +44,7 @@ def calculate_implementation_coverage():
 
 def print_implementation_coverage():
     coverage = calculate_implementation_coverage()
-    for service_name in coverage:
+    for service_name in sorted(coverage):
         implemented = coverage.get(service_name)['implemented']
         not_implemented = coverage.get(service_name)['not_implemented']
         operations = sorted(implemented + not_implemented)
