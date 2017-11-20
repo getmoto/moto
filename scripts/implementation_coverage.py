@@ -21,7 +21,6 @@ def get_moto_implementation(service_name):
 
 def calculate_implementation_coverage():
     service_names = Session().get_available_services()
-    service_names = sorted(service_names)
     coverage = {}
     for service_name in service_names:
         moto_client = get_moto_implementation(service_name)
@@ -45,7 +44,7 @@ def calculate_implementation_coverage():
 
 def print_implementation_coverage():
     coverage = calculate_implementation_coverage()
-    for service_name in coverage:
+    for service_name in sorted(coverage):
         implemented = coverage.get(service_name)['implemented']
         not_implemented = coverage.get(service_name)['not_implemented']
         operations = sorted(implemented + not_implemented)
