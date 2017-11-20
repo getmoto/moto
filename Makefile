@@ -43,7 +43,7 @@ publish: implementation_coverage \
 
 implementation_coverage:
 	./scripts/implementation_coverage.py > IMPLEMENTATION_COVERAGE.md
-	git commit IMPLEMENTATION_COVERAGE.md -m "Updating implementation coverage"
+	git commit IMPLEMENTATION_COVERAGE.md -m "Updating implementation coverage" || true
 
 scaffold:
 	@pip install -r requirements-dev.txt > /dev/null
