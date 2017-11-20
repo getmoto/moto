@@ -127,11 +127,14 @@
 
 ## application-autoscaling - 0% implemented
 - [ ] delete_scaling_policy
+- [ ] delete_scheduled_action
 - [ ] deregister_scalable_target
 - [ ] describe_scalable_targets
 - [ ] describe_scaling_activities
 - [ ] describe_scaling_policies
+- [ ] describe_scheduled_actions
 - [ ] put_scaling_policy
+- [ ] put_scheduled_action
 - [ ] register_scalable_target
 
 ## appstream - 0% implemented
@@ -966,6 +969,7 @@
 - [ ] describe_refresh_schemas_status
 - [ ] describe_replication_instances
 - [ ] describe_replication_subnet_groups
+- [ ] describe_replication_task_assessment_results
 - [ ] describe_replication_tasks
 - [ ] describe_schemas
 - [ ] describe_table_statistics
@@ -980,6 +984,7 @@
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
 - [ ] start_replication_task
+- [ ] start_replication_task_assessment
 - [ ] stop_replication_task
 - [ ] test_connection
 
@@ -1052,7 +1057,7 @@
 - [ ] get_shard_iterator
 - [ ] list_streams
 
-## ec2 - 40% implemented
+## ec2 - 39% implemented
 - [ ] accept_reserved_instances_exchange_quote
 - [X] accept_vpc_peering_connection
 - [X] allocate_address
@@ -1085,6 +1090,7 @@
 - [X] copy_image
 - [ ] copy_snapshot
 - [X] create_customer_gateway
+- [ ] create_default_subnet
 - [ ] create_default_vpc
 - [X] create_dhcp_options
 - [ ] create_egress_only_internet_gateway
@@ -1400,6 +1406,7 @@
 - [ ] modify_cache_parameter_group
 - [ ] modify_cache_subnet_group
 - [ ] modify_replication_group
+- [ ] modify_replication_group_shard_configuration
 - [ ] purchase_reserved_cache_nodes_offering
 - [ ] reboot_cache_cluster
 - [ ] remove_tags_from_resource
@@ -2246,24 +2253,35 @@
 
 ## lightsail - 0% implemented
 - [ ] allocate_static_ip
+- [ ] attach_disk
 - [ ] attach_static_ip
 - [ ] close_instance_public_ports
+- [ ] create_disk
+- [ ] create_disk_from_snapshot
+- [ ] create_disk_snapshot
 - [ ] create_domain
 - [ ] create_domain_entry
 - [ ] create_instance_snapshot
 - [ ] create_instances
 - [ ] create_instances_from_snapshot
 - [ ] create_key_pair
+- [ ] delete_disk
+- [ ] delete_disk_snapshot
 - [ ] delete_domain
 - [ ] delete_domain_entry
 - [ ] delete_instance
 - [ ] delete_instance_snapshot
 - [ ] delete_key_pair
+- [ ] detach_disk
 - [ ] detach_static_ip
 - [ ] download_default_key_pair
 - [ ] get_active_names
 - [ ] get_blueprints
 - [ ] get_bundles
+- [ ] get_disk
+- [ ] get_disk_snapshot
+- [ ] get_disk_snapshots
+- [ ] get_disks
 - [ ] get_domain
 - [ ] get_domains
 - [ ] get_instance
@@ -2552,13 +2570,16 @@
 - [ ] describe_organizational_unit
 - [ ] describe_policy
 - [ ] detach_policy
+- [ ] disable_aws_service_access
 - [ ] disable_policy_type
 - [ ] enable_all_features
+- [ ] enable_aws_service_access
 - [ ] enable_policy_type
 - [ ] invite_account_to_organization
 - [ ] leave_organization
 - [ ] list_accounts
 - [ ] list_accounts_for_parent
+- [ ] list_aws_service_access_for_organization
 - [ ] list_children
 - [ ] list_create_account_status
 - [ ] list_handshakes_for_account
@@ -2643,6 +2664,11 @@
 - [X] list_lexicons
 - [X] put_lexicon
 - [ ] synthesize_speech
+
+## pricing - 0% implemented
+- [ ] describe_services
+- [ ] get_attribute_values
+- [ ] get_products
 
 ## rds - 0% implemented
 - [ ] add_role_to_db_cluster
@@ -2731,6 +2757,7 @@
 - [ ] restore_db_cluster_from_snapshot
 - [ ] restore_db_cluster_to_point_in_time
 - [ ] restore_db_instance_from_db_snapshot
+- [ ] restore_db_instance_from_s3
 - [ ] restore_db_instance_to_point_in_time
 - [ ] revoke_db_security_group_ingress
 - [ ] start_db_instance
@@ -2824,7 +2851,7 @@
 - [ ] tag_resources
 - [ ] untag_resources
 
-## route53 - 13% implemented
+## route53 - 12% implemented
 - [ ] associate_vpc_with_hosted_zone
 - [ ] change_resource_record_sets
 - [X] change_tags_for_resource
@@ -2844,6 +2871,7 @@
 - [ ] delete_traffic_policy_instance
 - [ ] delete_vpc_association_authorization
 - [ ] disassociate_vpc_from_hosted_zone
+- [ ] get_account_limit
 - [ ] get_change
 - [ ] get_checker_ip_ranges
 - [ ] get_geo_location
@@ -2853,8 +2881,10 @@
 - [ ] get_health_check_status
 - [X] get_hosted_zone
 - [ ] get_hosted_zone_count
+- [ ] get_hosted_zone_limit
 - [ ] get_query_logging_config
 - [ ] get_reusable_delegation_set
+- [ ] get_reusable_delegation_set_limit
 - [ ] get_traffic_policy
 - [ ] get_traffic_policy_instance
 - [ ] get_traffic_policy_instance_count
@@ -2905,7 +2935,7 @@
 - [ ] update_tags_for_domain
 - [ ] view_billing
 
-## s3 - 13% implemented
+## s3 - 12% implemented
 - [ ] abort_multipart_upload
 - [ ] complete_multipart_upload
 - [ ] copy_object
@@ -2914,6 +2944,7 @@
 - [X] delete_bucket
 - [ ] delete_bucket_analytics_configuration
 - [X] delete_bucket_cors
+- [ ] delete_bucket_encryption
 - [ ] delete_bucket_inventory_configuration
 - [ ] delete_bucket_lifecycle
 - [ ] delete_bucket_metrics_configuration
@@ -2928,6 +2959,7 @@
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
 - [ ] get_bucket_cors
+- [ ] get_bucket_encryption
 - [ ] get_bucket_inventory_configuration
 - [ ] get_bucket_lifecycle
 - [ ] get_bucket_lifecycle_configuration
@@ -2961,6 +2993,7 @@
 - [ ] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
+- [ ] put_bucket_encryption
 - [ ] put_bucket_inventory_configuration
 - [ ] put_bucket_lifecycle
 - [ ] put_bucket_lifecycle_configuration
@@ -3048,7 +3081,7 @@
 - [ ] update_provisioning_artifact
 - [ ] update_tag_option
 
-## ses - 13% implemented
+## ses - 12% implemented
 - [ ] clone_receipt_rule_set
 - [ ] create_configuration_set
 - [ ] create_configuration_set_event_destination
@@ -3071,6 +3104,7 @@
 - [ ] describe_configuration_set
 - [ ] describe_receipt_rule
 - [ ] describe_receipt_rule_set
+- [ ] get_account_sending_enabled
 - [ ] get_identity_dkim_attributes
 - [ ] get_identity_mail_from_domain_attributes
 - [ ] get_identity_notification_attributes
@@ -3101,7 +3135,10 @@
 - [ ] set_identity_notification_topic
 - [ ] set_receipt_rule_position
 - [ ] test_render_template
+- [ ] update_account_sending_enabled
 - [ ] update_configuration_set_event_destination
+- [ ] update_configuration_set_reputation_metrics_enabled
+- [ ] update_configuration_set_sending_enabled
 - [ ] update_configuration_set_tracking_options
 - [ ] update_receipt_rule
 - [ ] update_template
@@ -3313,6 +3350,7 @@
 - [ ] describe_activity
 - [ ] describe_execution
 - [ ] describe_state_machine
+- [ ] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [ ] get_execution_history
 - [ ] list_activities
@@ -3323,6 +3361,7 @@
 - [ ] send_task_success
 - [ ] start_execution
 - [ ] stop_execution
+- [ ] update_state_machine
 
 ## storagegateway - 0% implemented
 - [ ] activate_gateway
