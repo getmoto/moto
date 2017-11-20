@@ -61,18 +61,20 @@ class FakeTargetGroup(BaseModel):
                  unhealthy_threshold_count='2',
                  matcher=None,
                  target_type=None):
+
+        # TODO: default values differs when you add Network Load balancer
         self.name = name
         self.arn = arn
         self.vpc_id = vpc_id
         self.protocol = protocol
         self.port = port
-        self.healthcheck_protocol = healthcheck_protocol
+        self.healthcheck_protocol = healthcheck_protocol or 'HTTP'
         self.healthcheck_port = healthcheck_port
-        self.healthcheck_path = healthcheck_path
-        self.healthcheck_interval_seconds = healthcheck_interval_seconds
-        self.healthcheck_timeout_seconds = healthcheck_timeout_seconds
-        self.healthy_threshold_count = healthy_threshold_count
-        self.unhealthy_threshold_count = unhealthy_threshold_count
+        self.healthcheck_path = healthcheck_path or '/'
+        self.healthcheck_interval_seconds = healthcheck_interval_seconds or 30
+        self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or 5
+        self.healthy_threshold_count = healthy_threshold_count or 5
+        self.unhealthy_threshold_count = unhealthy_threshold_count or 2
         self.load_balancer_arns = []
         self.tags = {}
         if matcher is None:
