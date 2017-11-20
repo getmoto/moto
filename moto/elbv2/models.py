@@ -52,13 +52,13 @@ class FakeTargetGroup(BaseModel):
                  vpc_id,
                  protocol,
                  port,
-                 healthcheck_protocol='HTTP',
-                 healthcheck_port='traffic-port',
-                 healthcheck_path='/',
-                 healthcheck_interval_seconds='30',
-                 healthcheck_timeout_seconds='5',
-                 healthy_threshold_count='5',
-                 unhealthy_threshold_count='2',
+                 healthcheck_protocol=None,
+                 healthcheck_port=None,
+                 healthcheck_path=None,
+                 healthcheck_interval_seconds=None,
+                 healthcheck_timeout_seconds=None,
+                 healthy_threshold_count=None,
+                 unhealthy_threshold_count=None,
                  matcher=None,
                  target_type=None):
 
@@ -69,7 +69,7 @@ class FakeTargetGroup(BaseModel):
         self.protocol = protocol
         self.port = port
         self.healthcheck_protocol = healthcheck_protocol or 'HTTP'
-        self.healthcheck_port = healthcheck_port
+        self.healthcheck_port = healthcheck_port or 'traffic-port'
         self.healthcheck_path = healthcheck_path or '/'
         self.healthcheck_interval_seconds = healthcheck_interval_seconds or 30
         self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or 5
