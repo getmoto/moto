@@ -84,7 +84,7 @@ def test_get_job_output():
     })
     job_id = job_response['JobId']
 
-    time.sleep(62)
+    time.sleep(6)
     
     output = conn.get_job_output(vault_name, job_id)
     output.read().decode("utf-8").should.equal("some stuff")
