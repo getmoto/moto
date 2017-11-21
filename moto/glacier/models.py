@@ -16,12 +16,12 @@ class Job(BaseModel):
         self.st = datetime.datetime.now()
 
         if tier.lower() == "expedited":
-            self.et = self.st + datetime.timedelta(minutes=1)
+            self.et = self.st + datetime.timedelta(seconds=2)
         elif tier.lower() == "bulk":
-            self.et = self.st + datetime.timedelta(minutes=1)
+            self.et = self.st + datetime.timedelta(seconds=10)
         else:
             # Standard
-            self.et = self.st + datetime.timedelta(minutes=1)
+            self.et = self.st + datetime.timedelta(seconds=5)
 
 
 class ArchiveJob(Job):
