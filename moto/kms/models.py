@@ -104,7 +104,8 @@ class KmsBackend(BaseBackend):
 
     def delete_alias(self, alias_name):
         for aliases in self.key_to_aliases.values():
-            aliases.remove(alias_name)
+            if alias_name in aliases:
+                aliases.remove(alias_name)
 
     def get_all_aliases(self):
         return self.key_to_aliases
