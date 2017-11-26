@@ -1067,3 +1067,71 @@ def test_update_item_on_map():
 
     resp = table.scan()
     resp['Items'][0]['body'].should.equal({'nested': {'data': 'new_value'}})
+
+
+# https://github.com/spulec/moto/issues/1358
+@mock_dynamodb2
+def test_update_if_not_exists():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123'
+    })
+
+    table.update_item(Key={
+        'forum_name': 'the-key',
+        'subject': '123'
+        },
+        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        ExpressionAttributeValues={
+            ':created_at': 123
+        }
+    )
+
+    resp = table.scan()
+    assert resp['Items'][0]['created_at'] == 123
+
+    table.update_item(Key={
+        'forum_name': 'the-key',
+        'subject': '123'
+        },
+        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        ExpressionAttributeValues={
+            ':created_at': 456
+        }
+    )
+
+    resp = table.scan()
+    # Still the original value
+    assert resp['Items'][0]['created_at'] == 123
