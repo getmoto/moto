@@ -644,11 +644,11 @@ class LambdaBackend(BaseBackend):
 
     def tag_resource(self, resource, tags):
         fn = self.get_function_by_arn(resource)
-        if fn:
-            fn.tags.update(tags)
-            return True
+        if not fn:
+            return False
 
-        return False
+        fn.tags.update(tags)
+        return True
 
     def untag_resource(self, resource, tagKeys):
         fn = self.get_function_by_arn(resource)
