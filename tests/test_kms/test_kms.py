@@ -491,7 +491,14 @@ def test__delete_alias():
     key_id = create_resp['KeyMetadata']['KeyId']
     alias = 'alias/my-alias'
 
+    # added another alias here to make sure that the deletion of the alias can
+    # be done when there are multiple existing aliases.
+    another_create_resp = kms.create_key()
+    another_key_id = create_resp['KeyMetadata']['KeyId']
+    another_alias = 'alias/another-alias'
+
     kms.create_alias(alias, key_id)
+    kms.create_alias(another_alias, another_key_id)
 
     resp = kms.delete_alias(alias)
 
