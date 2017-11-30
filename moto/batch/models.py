@@ -1038,5 +1038,5 @@ class BatchBackend(BaseBackend):
         job.terminate(reason)
 
 
-available_regions = boto3.session.Session().get_available_regions("batch") || ['us-east-1']
+available_regions = boto3.session.Session().get_available_regions("batch") or ['us-east-1']
 batch_backends = {region: BatchBackend(region_name=region) for region in available_regions}
