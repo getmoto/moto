@@ -29,6 +29,7 @@ class RDSResponse(BaseResponse):
             "master_password": self._get_param('MasterUserPassword'),
             "master_username": self._get_param('MasterUsername'),
             "multi_az": self._get_bool_param("MultiAZ"),
+            "new_db_instance_identifier": self._get_param('NewDBInstanceIdentifier'),
             # OptionGroupName
             "port": self._get_param('Port'),
             # PreferredBackupWindow
