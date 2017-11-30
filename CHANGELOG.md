@@ -3,6 +3,43 @@ Moto Changelog
 
 Latest
 ------
+1.1.25
+-----
+
+    * Implemented Iot and Iot-data
+    * Implemented resource tagging API
+    * EC2 AMIs now have owners
+    * Improve codegen scaffolding
+    * Many small fixes to EC2 support
+    * CloudFormation ELBv2 support
+    * UTF fixes for S3
+    * Implemented SSM get_parameters_by_path
+    * More advanced Dynamodb querying
+
+1.1.24
+-----
+
+    * Implemented Batch
+    * Fixed regression with moto_server dashboard
+    * Fixed and closed many outstanding bugs
+    * Fixed serious performance problem with EC2 reservation listing
+    * Fixed Route53 list_resource_record_sets
+
+1.1.23
+-----
+
+    * Implemented X-Ray
+    * Implemented Autoscaling EC2 attachment
+    * Implemented Autoscaling Load Balancer methods
+    * Improved DynamoDB filter expressions
+
+1.1.22
+-----
+
+    * Lambda policies
+    * Dynamodb filter expressions
+    * EC2 Spot fleet improvements
+
 1.1.21
 -----
 

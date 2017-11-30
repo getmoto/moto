@@ -9,6 +9,12 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     @property
     def ecs_backend(self):
+        """
+        ECS Backend
+
+        :return: ECS Backend object
+        :rtype: moto.ecs.models.EC2ContainerServiceBackend
+        """
         return ecs_backends[self.region]
 
     @property
@@ -34,7 +40,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_arns = self.ecs_backend.list_clusters()
         return json.dumps({
             'clusterArns': cluster_arns
-            #  'nextToken': str(uuid.uuid1())
+            #  'nextToken': str(uuid.uuid4())
         })
 
     def describe_clusters(self):
@@ -66,7 +72,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition_arns = self.ecs_backend.list_task_definitions()
         return json.dumps({
             'taskDefinitionArns': task_definition_arns
-            #  'nextToken': str(uuid.uuid1())
+            #  'nextToken': str(uuid.uuid4())
         })
 
     def describe_task_definition(self):
@@ -159,7 +165,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({
             'serviceArns': service_arns
             # ,
-            # 'nextToken': str(uuid.uuid1())
+            # 'nextToken': str(uuid.uuid4())
         })
 
     def describe_services(self):
@@ -245,3 +251,62 @@ class EC2ContainerServiceResponse(BaseResponse):
             'failures': [ci.response_object for ci in failures],
             'containerInstances': [ci.response_object for ci in container_instances]
         })
+
+    def put_attributes(self):
+        cluster_name = self._get_param('cluster')
+        attributes = self._get_param('attributes')
+
+        self.ecs_backend.put_attributes(cluster_name, attributes)
+
+        return json.dumps({'attributes': attributes})
+
+    def list_attributes(self):
+        cluster_name = self._get_param('cluster')
+        attr_name = self._get_param('attributeName')
+        attr_value = self._get_param('attributeValue')
+        target_type = self._get_param('targetType')
+        max_results = self._get_param('maxResults')
+        next_token = self._get_param('nextToken')
+
+        results = self.ecs_backend.list_attributes(target_type, cluster_name, attr_name, attr_value, max_results, next_token)
+        # Result will be [item will be {0 cluster_name, 1 arn, 2 name, 3 value}]
+
+        formatted_results = []
+        for _, arn, name, value in results:
+            tmp_result = {
+                'name': name,
+                'targetId': arn
+            }
+            if value is not None:
+                tmp_result['value'] = value
+            formatted_results.append(tmp_result)
+
+        return json.dumps({'attributes': formatted_results})
+
+    def delete_attributes(self):
+        cluster_name = self._get_param('cluster')
+        attributes = self._get_param('attributes')
+
+        self.ecs_backend.delete_attributes(cluster_name, attributes)
+
+        return json.dumps({'attributes': attributes})
+
+    def discover_poll_endpoint(self):
+        # Here are the arguments, this api is used by the ecs client so obviously no decent
+        # documentation. Hence I've responded with valid but useless data
+        # cluster_name = self._get_param('cluster')
+        # instance = self._get_param('containerInstance')
+        return json.dumps({
+            'endpoint': 'http://localhost',
+            'telemetryEndpoint': 'http://localhost'
+        })
+
+    def list_task_definition_families(self):
+        family_prefix = self._get_param('familyPrefix')
+        status = self._get_param('status')
+        max_results = self._get_param('maxResults')
+        next_token = self._get_param('nextToken')
+
+        results = self.ecs_backend.list_task_definition_families(family_prefix, status, max_results, next_token)
+
+        return json.dumps({'families': list(results)})

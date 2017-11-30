@@ -38,7 +38,7 @@ from moto import (
     mock_sns_deprecated,
     mock_sqs,
     mock_sqs_deprecated,
-)
+    mock_elbv2)
 
 from .fixtures import (
     ec2_classic_eip,
@@ -2111,3 +2111,202 @@ def test_stack_spot_fleet():
     launch_spec['SubnetId'].should.equal(subnet_id)
     launch_spec['SpotPrice'].should.equal("0.13")
     launch_spec['WeightedCapacity'].should.equal(2.0)
+
+
+@mock_ec2
+@mock_elbv2
+@mock_cloudformation
+def test_stack_elbv2_resources_integration():
+    alb_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Outputs": {
+            "albdns": {
+                "Description": "Load balanacer DNS",
+                "Value": {"Fn::GetAtt": ["alb", "DNSName"]},
+            },
+            "albname": {
+                "Description": "Load balancer name",
+                "Value": {"Fn::GetAtt": ["alb", "LoadBalancerName"]},
+            },
+            "canonicalhostedzoneid": {
+                "Description": "Load balancer canonical hosted zone ID",
+                "Value": {"Fn::GetAtt": ["alb", "CanonicalHostedZoneID"]},
+            },
+        },
+        "Resources": {
+            "alb": {
+                  "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                  "Properties": {
+                        "Name": "myelbv2",
+                        "Scheme": "internet-facing",
+                        "Subnets": [{
+                            "Ref": "mysubnet",
+                        }],
+                        "SecurityGroups": [{
+                            "Ref": "mysg",
+                        }],
+                        "Type": "application",
+                        "IpAddressType": "ipv4",
+                  }
+            },
+            "mytargetgroup1": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "HealthCheckIntervalSeconds": 30,
+                    "HealthCheckPath": "/status",
+                    "HealthCheckPort": 80,
+                    "HealthCheckProtocol": "HTTP",
+                    "HealthCheckTimeoutSeconds": 5,
+                    "HealthyThresholdCount": 30,
+                    "UnhealthyThresholdCount": 5,
+                    "Matcher": {
+                        "HttpCode": "200,201"
+                    },
+                    "Name": "mytargetgroup1",
+                    "Port": 80,
+                    "Protocol": "HTTP",
+                    "TargetType": "instance",
+                    "Targets": [{
+                      "Id": {
+                          "Ref": "ec2instance",
+                          "Port": 80,
+                      },
+                    }],
+                    "VpcId": {
+                        "Ref": "myvpc",
+                    }
+                }
+            },
+            "mytargetgroup2": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "HealthCheckIntervalSeconds": 30,
+                    "HealthCheckPath": "/status",
+                    "HealthCheckPort": 8080,
+                    "HealthCheckProtocol": "HTTP",
+                    "HealthCheckTimeoutSeconds": 5,
+                    "HealthyThresholdCount": 30,
+                    "UnhealthyThresholdCount": 5,
+                    "Name": "mytargetgroup2",
+                    "Port": 8080,
+                    "Protocol": "HTTP",
+                    "TargetType": "instance",
+                    "Targets": [{
+                        "Id": {
+                            "Ref": "ec2instance",
+                            "Port": 8080,
+                        },
+                    }],
+                    "VpcId": {
+                        "Ref": "myvpc",
+                    }
+                }
+            },
+            "listener": {
+                "Type": "AWS::ElasticLoadBalancingV2::Listener",
+                "Properties": {
+                    "DefaultActions": [{
+                        "Type": "forward",
+                        "TargetGroupArn": {"Ref": "mytargetgroup1"}
+                    }],
+                    "LoadBalancerArn": {"Ref": "alb"},
+                    "Port": "80",
+                    "Protocol": "HTTP"
+                }
+            },
+            "myvpc": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16",
+                }
+            },
+            "mysubnet": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/27",
+                    "VpcId": {"Ref": "myvpc"},
+                }
+            },
+            "mysg": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupName": "mysg",
+                    "GroupDescription": "test security group",
+                    "VpcId": {"Ref": "myvpc"}
+                }
+            },
+            "ec2instance": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": "ami-1234abcd",
+                    "UserData": "some user data",
+                }
+            },
+        },
+    }
+    alb_template_json = json.dumps(alb_template)
+
+    cfn_conn = boto3.client("cloudformation", "us-west-1")
+    cfn_conn.create_stack(
+        StackName="elb_stack",
+        TemplateBody=alb_template_json,
+    )
+
+    elbv2_conn = boto3.client("elbv2", "us-west-1")
+
+    load_balancers = elbv2_conn.describe_load_balancers()['LoadBalancers']
+    len(load_balancers).should.equal(1)
+    load_balancers[0]['LoadBalancerName'].should.equal('myelbv2')
+    load_balancers[0]['Scheme'].should.equal('internet-facing')
+    load_balancers[0]['Type'].should.equal('application')
+    load_balancers[0]['IpAddressType'].should.equal('ipv4')
+
+    target_groups = sorted(
+        elbv2_conn.describe_target_groups()['TargetGroups'],
+        key=lambda tg: tg['TargetGroupName'])  # sort to do comparison with indexes
+    len(target_groups).should.equal(2)
+    target_groups[0]['HealthCheckIntervalSeconds'].should.equal(30)
+    target_groups[0]['HealthCheckPath'].should.equal('/status')
+    target_groups[0]['HealthCheckPort'].should.equal('80')
+    target_groups[0]['HealthCheckProtocol'].should.equal('HTTP')
+    target_groups[0]['HealthCheckTimeoutSeconds'].should.equal(5)
+    target_groups[0]['HealthyThresholdCount'].should.equal(30)
+    target_groups[0]['UnhealthyThresholdCount'].should.equal(5)
+    target_groups[0]['Matcher'].should.equal({'HttpCode': '200,201'})
+    target_groups[0]['TargetGroupName'].should.equal('mytargetgroup1')
+    target_groups[0]['Port'].should.equal(80)
+    target_groups[0]['Protocol'].should.equal('HTTP')
+    target_groups[0]['TargetType'].should.equal('instance')
+
+    target_groups[1]['HealthCheckIntervalSeconds'].should.equal(30)
+    target_groups[1]['HealthCheckPath'].should.equal('/status')
+    target_groups[1]['HealthCheckPort'].should.equal('8080')
+    target_groups[1]['HealthCheckProtocol'].should.equal('HTTP')
+    target_groups[1]['HealthCheckTimeoutSeconds'].should.equal(5)
+    target_groups[1]['HealthyThresholdCount'].should.equal(30)
+    target_groups[1]['UnhealthyThresholdCount'].should.equal(5)
+    target_groups[1]['Matcher'].should.equal({'HttpCode': '200'})
+    target_groups[1]['TargetGroupName'].should.equal('mytargetgroup2')
+    target_groups[1]['Port'].should.equal(8080)
+    target_groups[1]['Protocol'].should.equal('HTTP')
+    target_groups[1]['TargetType'].should.equal('instance')
+
+    listeners = elbv2_conn.describe_listeners(LoadBalancerArn=load_balancers[0]['LoadBalancerArn'])['Listeners']
+    len(listeners).should.equal(1)
+    listeners[0]['LoadBalancerArn'].should.equal(load_balancers[0]['LoadBalancerArn'])
+    listeners[0]['Port'].should.equal(80)
+    listeners[0]['Protocol'].should.equal('HTTP')
+    listeners[0]['DefaultActions'].should.equal([{
+        "Type": "forward",
+        "TargetGroupArn": target_groups[0]['TargetGroupArn']
+    }])
+
+    # test outputs
+    stacks = cfn_conn.describe_stacks(StackName='elb_stack')['Stacks']
+    len(stacks).should.equal(1)
+
+    dns = list(filter(lambda item: item['OutputKey'] == 'albdns', stacks[0]['Outputs']))[0]
+    name = list(filter(lambda item: item['OutputKey'] == 'albname', stacks[0]['Outputs']))[0]
+
+    dns['OutputValue'].should.equal(load_balancers[0]['DNSName'])
+    name['OutputValue'].should.equal(load_balancers[0]['LoadBalancerName'])

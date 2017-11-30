@@ -50,7 +50,7 @@ def test_stop_database():
     # test stopping database should shutdown
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response['DBInstance']['DBInstanceStatus'].should.equal('stopped')
     # test rdsclient error when trying to stop an already stopped database
     conn.stop_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
     # test stopping a stopped database with snapshot should error and no snapshot should exist for that call
@@ -76,10 +76,10 @@ def test_start_database():
     mydb['DBInstanceStatus'].should.equal('available')
     # test starting an already started database should error
     conn.start_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
-    # stop and test start - should go from shutdown to available, create snapshot and check snapshot
+    # stop and test start - should go from stopped to available, create snapshot and check snapshot
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap')
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response['DBInstance']['DBInstanceStatus'].should.equal('stopped')
     response = conn.describe_db_snapshots()
     response['DBSnapshots'][0]['DBSnapshotIdentifier'].should.equal('rocky4570-rds-snap')
     response = conn.start_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
@@ -93,7 +93,7 @@ def test_start_database():
     # test stopping database not invoking snapshot should succeed.
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response['DBInstance']['DBInstanceStatus'].should.equal('stopped')
 
 
 @mock_rds2
@@ -223,6 +223,28 @@ def test_modify_db_instance():
                             ApplyImmediately=True)
     instances = conn.describe_db_instances(DBInstanceIdentifier='db-master-1')
     instances['DBInstances'][0]['AllocatedStorage'].should.equal(20)
+
+
+@mock_rds2
+def test_rename_db_instance():
+    conn = boto3.client('rds', region_name='us-west-2')
+    database = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+                                       AllocatedStorage=10,
+                                       DBInstanceClass='postgres',
+                                       Engine='db.m1.small',
+                                       MasterUsername='root',
+                                       MasterUserPassword='hunter2',
+                                       Port=1234,
+                                       DBSecurityGroups=['my_sg'])
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    list(instances['DBInstances']).should.have.length_of(1)
+    conn.describe_db_instances.when.called_with(DBInstanceIdentifier="db-master-2").should.throw(ClientError)
+    conn.modify_db_instance(DBInstanceIdentifier='db-master-1',
+                            NewDBInstanceIdentifier='db-master-2',
+                            ApplyImmediately=True)
+    conn.describe_db_instances.when.called_with(DBInstanceIdentifier="db-master-1").should.throw(ClientError)
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-2")
+    list(instances['DBInstances']).should.have.length_of(1)
 
 
 @mock_rds2

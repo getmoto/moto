@@ -126,9 +126,9 @@ def test_route_tables_filters_associations():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
     vpc = conn.create_vpc("10.0.0.0/16")
-    subnet1 = conn.create_subnet(vpc.id, "10.0.0.0/18")
-    subnet2 = conn.create_subnet(vpc.id, "10.0.1.0/18")
-    subnet3 = conn.create_subnet(vpc.id, "10.0.2.0/18")
+    subnet1 = conn.create_subnet(vpc.id, "10.0.0.0/24")
+    subnet2 = conn.create_subnet(vpc.id, "10.0.1.0/24")
+    subnet3 = conn.create_subnet(vpc.id, "10.0.2.0/24")
     route_table1 = conn.create_route_table(vpc.id)
     route_table2 = conn.create_route_table(vpc.id)
 

@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+from moto.core.exceptions import RESTError
+from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
 from .models import elbv2_backends
 from .exceptions import DuplicateTagKeysError
@@ -6,12 +8,131 @@ from .exceptions import LoadBalancerNotFoundError
 from .exceptions import TargetGroupNotFoundError
 
 
-class ELBV2Response(BaseResponse):
+SSL_POLICIES = [
+    {
+        'name': 'ELBSecurityPolicy-2016-08',
+        'ssl_protocols': ['TLSv1', 'TLSv1.1', 'TLSv1.2'],
+        'ciphers': [
+            {'name': 'ECDHE-ECDSA-AES128-GCM-SHA256', 'priority': 1},
+            {'name': 'ECDHE-RSA-AES128-GCM-SHA256', 'priority': 2},
+            {'name': 'ECDHE-ECDSA-AES128-SHA256', 'priority': 3},
+            {'name': 'ECDHE-RSA-AES128-SHA256', 'priority': 4},
+            {'name': 'ECDHE-ECDSA-AES128-SHA', 'priority': 5},
+            {'name': 'ECDHE-RSA-AES128-SHA', 'priority': 6},
+            {'name': 'ECDHE-ECDSA-AES256-GCM-SHA384', 'priority': 7},
+            {'name': 'ECDHE-RSA-AES256-GCM-SHA384', 'priority': 8},
+            {'name': 'ECDHE-ECDSA-AES256-SHA384', 'priority': 9},
+            {'name': 'ECDHE-RSA-AES256-SHA384', 'priority': 10},
+            {'name': 'ECDHE-RSA-AES256-SHA', 'priority': 11},
+            {'name': 'ECDHE-ECDSA-AES256-SHA', 'priority': 12},
+            {'name': 'AES128-GCM-SHA256', 'priority': 13},
+            {'name': 'AES128-SHA256', 'priority': 14},
+            {'name': 'AES128-SHA', 'priority': 15},
+            {'name': 'AES256-GCM-SHA384', 'priority': 16},
+            {'name': 'AES256-SHA256', 'priority': 17},
+            {'name': 'AES256-SHA', 'priority': 18}
+        ],
+    },
+    {
+        'name': 'ELBSecurityPolicy-TLS-1-2-2017-01',
+        'ssl_protocols': ['TLSv1.2'],
+        'ciphers': [
+            {'name': 'ECDHE-ECDSA-AES128-GCM-SHA256', 'priority': 1},
+            {'name': 'ECDHE-RSA-AES128-GCM-SHA256', 'priority': 2},
+            {'name': 'ECDHE-ECDSA-AES128-SHA256', 'priority': 3},
+            {'name': 'ECDHE-RSA-AES128-SHA256', 'priority': 4},
+            {'name': 'ECDHE-ECDSA-AES256-GCM-SHA384', 'priority': 5},
+            {'name': 'ECDHE-RSA-AES256-GCM-SHA384', 'priority': 6},
+            {'name': 'ECDHE-ECDSA-AES256-SHA384', 'priority': 7},
+            {'name': 'ECDHE-RSA-AES256-SHA384', 'priority': 8},
+            {'name': 'AES128-GCM-SHA256', 'priority': 9},
+            {'name': 'AES128-SHA256', 'priority': 10},
+            {'name': 'AES256-GCM-SHA384', 'priority': 11},
+            {'name': 'AES256-SHA256', 'priority': 12}
+        ]
+    },
+    {
+        'name': 'ELBSecurityPolicy-TLS-1-1-2017-01',
+        'ssl_protocols': ['TLSv1.1', 'TLSv1.2'],
+        'ciphers': [
+            {'name': 'ECDHE-ECDSA-AES128-GCM-SHA256', 'priority': 1},
+            {'name': 'ECDHE-RSA-AES128-GCM-SHA256', 'priority': 2},
+            {'name': 'ECDHE-ECDSA-AES128-SHA256', 'priority': 3},
+            {'name': 'ECDHE-RSA-AES128-SHA256', 'priority': 4},
+            {'name': 'ECDHE-ECDSA-AES128-SHA', 'priority': 5},
+            {'name': 'ECDHE-RSA-AES128-SHA', 'priority': 6},
+            {'name': 'ECDHE-ECDSA-AES256-GCM-SHA384', 'priority': 7},
+            {'name': 'ECDHE-RSA-AES256-GCM-SHA384', 'priority': 8},
+            {'name': 'ECDHE-ECDSA-AES256-SHA384', 'priority': 9},
+            {'name': 'ECDHE-RSA-AES256-SHA384', 'priority': 10},
+            {'name': 'ECDHE-RSA-AES256-SHA', 'priority': 11},
+            {'name': 'ECDHE-ECDSA-AES256-SHA', 'priority': 12},
+            {'name': 'AES128-GCM-SHA256', 'priority': 13},
+            {'name': 'AES128-SHA256', 'priority': 14},
+            {'name': 'AES128-SHA', 'priority': 15},
+            {'name': 'AES256-GCM-SHA384', 'priority': 16},
+            {'name': 'AES256-SHA256', 'priority': 17},
+            {'name': 'AES256-SHA', 'priority': 18}
+        ]
+    },
+    {
+        'name': 'ELBSecurityPolicy-2015-05',
+        'ssl_protocols': ['TLSv1', 'TLSv1.1', 'TLSv1.2'],
+        'ciphers': [
+            {'name': 'ECDHE-ECDSA-AES128-GCM-SHA256', 'priority': 1},
+            {'name': 'ECDHE-RSA-AES128-GCM-SHA256', 'priority': 2},
+            {'name': 'ECDHE-ECDSA-AES128-SHA256', 'priority': 3},
+            {'name': 'ECDHE-RSA-AES128-SHA256', 'priority': 4},
+            {'name': 'ECDHE-ECDSA-AES128-SHA', 'priority': 5},
+            {'name': 'ECDHE-RSA-AES128-SHA', 'priority': 6},
+            {'name': 'ECDHE-ECDSA-AES256-GCM-SHA384', 'priority': 7},
+            {'name': 'ECDHE-RSA-AES256-GCM-SHA384', 'priority': 8},
+            {'name': 'ECDHE-ECDSA-AES256-SHA384', 'priority': 9},
+            {'name': 'ECDHE-RSA-AES256-SHA384', 'priority': 10},
+            {'name': 'ECDHE-RSA-AES256-SHA', 'priority': 11},
+            {'name': 'ECDHE-ECDSA-AES256-SHA', 'priority': 12},
+            {'name': 'AES128-GCM-SHA256', 'priority': 13},
+            {'name': 'AES128-SHA256', 'priority': 14},
+            {'name': 'AES128-SHA', 'priority': 15},
+            {'name': 'AES256-GCM-SHA384', 'priority': 16},
+            {'name': 'AES256-SHA256', 'priority': 17},
+            {'name': 'AES256-SHA', 'priority': 18}
+        ]
+    },
+    {
+        'name': 'ELBSecurityPolicy-TLS-1-0-2015-04',
+        'ssl_protocols': ['TLSv1', 'TLSv1.1', 'TLSv1.2'],
+        'ciphers': [
+            {'name': 'ECDHE-ECDSA-AES128-GCM-SHA256', 'priority': 1},
+            {'name': 'ECDHE-RSA-AES128-GCM-SHA256', 'priority': 2},
+            {'name': 'ECDHE-ECDSA-AES128-SHA256', 'priority': 3},
+            {'name': 'ECDHE-RSA-AES128-SHA256', 'priority': 4},
+            {'name': 'ECDHE-ECDSA-AES128-SHA', 'priority': 5},
+            {'name': 'ECDHE-RSA-AES128-SHA', 'priority': 6},
+            {'name': 'ECDHE-ECDSA-AES256-GCM-SHA384', 'priority': 7},
+            {'name': 'ECDHE-RSA-AES256-GCM-SHA384', 'priority': 8},
+            {'name': 'ECDHE-ECDSA-AES256-SHA384', 'priority': 9},
+            {'name': 'ECDHE-RSA-AES256-SHA384', 'priority': 10},
+            {'name': 'ECDHE-RSA-AES256-SHA', 'priority': 11},
+            {'name': 'ECDHE-ECDSA-AES256-SHA', 'priority': 12},
+            {'name': 'AES128-GCM-SHA256', 'priority': 13},
+            {'name': 'AES128-SHA256', 'priority': 14},
+            {'name': 'AES128-SHA', 'priority': 15},
+            {'name': 'AES256-GCM-SHA384', 'priority': 16},
+            {'name': 'AES256-SHA256', 'priority': 17},
+            {'name': 'AES256-SHA', 'priority': 18},
+            {'name': 'DES-CBC3-SHA', 'priority': 19}
+        ]
+    }
+]
 
+
+class ELBV2Response(BaseResponse):
     @property
     def elbv2_backend(self):
         return elbv2_backends[self.region]
 
+    @amzn_request_id
     def create_load_balancer(self):
         load_balancer_name = self._get_param('Name')
         subnet_ids = self._get_multi_param("Subnets.member")
@@ -28,6 +149,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
         return template.render(load_balancer=load_balancer)
 
+    @amzn_request_id
     def create_rule(self):
         lister_arn = self._get_param('ListenerArn')
         _conditions = self._get_list_prefix('Conditions.member')
@@ -52,18 +174,20 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(CREATE_RULE_TEMPLATE)
         return template.render(rules=rules)
 
+    @amzn_request_id
     def create_target_group(self):
         name = self._get_param('Name')
         vpc_id = self._get_param('VpcId')
         protocol = self._get_param('Protocol')
         port = self._get_param('Port')
-        healthcheck_protocol = self._get_param('HealthCheckProtocol', 'HTTP')
-        healthcheck_port = self._get_param('HealthCheckPort', 'traffic-port')
-        healthcheck_path = self._get_param('HealthCheckPath', '/')
-        healthcheck_interval_seconds = self._get_param('HealthCheckIntervalSeconds', '30')
-        healthcheck_timeout_seconds = self._get_param('HealthCheckTimeoutSeconds', '5')
-        healthy_threshold_count = self._get_param('HealthyThresholdCount', '5')
-        unhealthy_threshold_count = self._get_param('UnhealthyThresholdCount', '2')
+        healthcheck_protocol = self._get_param('HealthCheckProtocol')
+        healthcheck_port = self._get_param('HealthCheckPort')
+        healthcheck_path = self._get_param('HealthCheckPath')
+        healthcheck_interval_seconds = self._get_param('HealthCheckIntervalSeconds')
+        healthcheck_timeout_seconds = self._get_param('HealthCheckTimeoutSeconds')
+        healthy_threshold_count = self._get_param('HealthyThresholdCount')
+        unhealthy_threshold_count = self._get_param('UnhealthyThresholdCount')
+        matcher = self._get_param('Matcher')
 
         target_group = self.elbv2_backend.create_target_group(
             name,
@@ -77,11 +201,13 @@ class ELBV2Response(BaseResponse):
             healthcheck_timeout_seconds=healthcheck_timeout_seconds,
             healthy_threshold_count=healthy_threshold_count,
             unhealthy_threshold_count=unhealthy_threshold_count,
+            matcher=matcher,
         )
 
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)
         return template.render(target_group=target_group)
 
+    @amzn_request_id
     def create_listener(self):
         load_balancer_arn = self._get_param('LoadBalancerArn')
         protocol = self._get_param('Protocol')
@@ -105,6 +231,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(CREATE_LISTENER_TEMPLATE)
         return template.render(listener=listener)
 
+    @amzn_request_id
     def describe_load_balancers(self):
         arns = self._get_multi_param("LoadBalancerArns.member")
         names = self._get_multi_param("Names.member")
@@ -124,6 +251,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(load_balancers=load_balancers_resp, marker=next_marker)
 
+    @amzn_request_id
     def describe_rules(self):
         listener_arn = self._get_param('ListenerArn')
         rule_arns = self._get_multi_param('RuleArns.member') if any(k for k in list(self.querystring.keys()) if k.startswith('RuleArns.member')) else None
@@ -144,6 +272,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_RULES_TEMPLATE)
         return template.render(rules=rules_resp, marker=next_marker)
 
+    @amzn_request_id
     def describe_target_groups(self):
         load_balancer_arn = self._get_param('LoadBalancerArn')
         target_group_arns = self._get_multi_param('TargetGroupArns.member')
@@ -153,6 +282,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_TARGET_GROUPS_TEMPLATE)
         return template.render(target_groups=target_groups)
 
+    @amzn_request_id
     def describe_target_group_attributes(self):
         target_group_arn = self._get_param('TargetGroupArn')
         target_group = self.elbv2_backend.target_groups.get(target_group_arn)
@@ -161,6 +291,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_TARGET_GROUP_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=target_group.attributes)
 
+    @amzn_request_id
     def describe_listeners(self):
         load_balancer_arn = self._get_param('LoadBalancerArn')
         listener_arns = self._get_multi_param('ListenerArns.member')
@@ -171,30 +302,35 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_LISTENERS_TEMPLATE)
         return template.render(listeners=listeners)
 
+    @amzn_request_id
     def delete_load_balancer(self):
         arn = self._get_param('LoadBalancerArn')
         self.elbv2_backend.delete_load_balancer(arn)
         template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def delete_rule(self):
         arn = self._get_param('RuleArn')
         self.elbv2_backend.delete_rule(arn)
         template = self.response_template(DELETE_RULE_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def delete_target_group(self):
         arn = self._get_param('TargetGroupArn')
         self.elbv2_backend.delete_target_group(arn)
         template = self.response_template(DELETE_TARGET_GROUP_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def delete_listener(self):
         arn = self._get_param('ListenerArn')
         self.elbv2_backend.delete_listener(arn)
         template = self.response_template(DELETE_LISTENER_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def modify_rule(self):
         rule_arn = self._get_param('RuleArn')
         _conditions = self._get_list_prefix('Conditions.member')
@@ -217,6 +353,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(MODIFY_RULE_TEMPLATE)
         return template.render(rules=rules)
 
+    @amzn_request_id
     def modify_target_group_attributes(self):
         target_group_arn = self._get_param('TargetGroupArn')
         target_group = self.elbv2_backend.target_groups.get(target_group_arn)
@@ -230,6 +367,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(MODIFY_TARGET_GROUP_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=attributes)
 
+    @amzn_request_id
     def register_targets(self):
         target_group_arn = self._get_param('TargetGroupArn')
         targets = self._get_list_prefix('Targets.member')
@@ -238,6 +376,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(REGISTER_TARGETS_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def deregister_targets(self):
         target_group_arn = self._get_param('TargetGroupArn')
         targets = self._get_list_prefix('Targets.member')
@@ -246,6 +385,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DEREGISTER_TARGETS_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def describe_target_health(self):
         target_group_arn = self._get_param('TargetGroupArn')
         targets = self._get_list_prefix('Targets.member')
@@ -254,6 +394,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(DESCRIBE_TARGET_HEALTH_TEMPLATE)
         return template.render(target_health_descriptions=target_health_descriptions)
 
+    @amzn_request_id
     def set_rule_priorities(self):
         rule_priorities = self._get_list_prefix('RulePriorities.member')
         for rule_priority in rule_priorities:
@@ -262,6 +403,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(SET_RULE_PRIORITIES_TEMPLATE)
         return template.render(rules=rules)
 
+    @amzn_request_id
     def add_tags(self):
         resource_arns = self._get_multi_param('ResourceArns.member')
 
@@ -281,6 +423,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(ADD_TAGS_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def remove_tags(self):
         resource_arns = self._get_multi_param('ResourceArns.member')
         tag_keys = self._get_multi_param('TagKeys.member')
@@ -301,6 +444,7 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(REMOVE_TAGS_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
     def describe_tags(self):
         resource_arns = self._get_multi_param('ResourceArns.member')
         resources = []
@@ -319,6 +463,125 @@ class ELBV2Response(BaseResponse):
 
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
         return template.render(resources=resources)
+
+    @amzn_request_id
+    def describe_account_limits(self):
+        # Supports paging but not worth implementing yet
+        # marker = self._get_param('Marker')
+        # page_size = self._get_param('PageSize')
+
+        limits = {
+            'application-load-balancers': 20,
+            'target-groups': 3000,
+            'targets-per-application-load-balancer': 30,
+            'listeners-per-application-load-balancer': 50,
+            'rules-per-application-load-balancer': 100,
+            'network-load-balancers': 20,
+            'targets-per-network-load-balancer': 200,
+            'listeners-per-network-load-balancer': 50
+        }
+
+        template = self.response_template(DESCRIBE_LIMITS_TEMPLATE)
+        return template.render(limits=limits)
+
+    @amzn_request_id
+    def describe_ssl_policies(self):
+        names = self._get_multi_param('Names.member.')
+        # Supports paging but not worth implementing yet
+        # marker = self._get_param('Marker')
+        # page_size = self._get_param('PageSize')
+
+        policies = SSL_POLICIES
+        if names:
+            policies = filter(lambda policy: policy['name'] in names, policies)
+
+        template = self.response_template(DESCRIBE_SSL_POLICIES_TEMPLATE)
+        return template.render(policies=policies)
+
+    @amzn_request_id
+    def set_ip_address_type(self):
+        arn = self._get_param('LoadBalancerArn')
+        ip_type = self._get_param('IpAddressType')
+
+        self.elbv2_backend.set_ip_address_type(arn, ip_type)
+
+        template = self.response_template(SET_IP_ADDRESS_TYPE_TEMPLATE)
+        return template.render(ip_type=ip_type)
+
+    @amzn_request_id
+    def set_security_groups(self):
+        arn = self._get_param('LoadBalancerArn')
+        sec_groups = self._get_multi_param('SecurityGroups.member.')
+
+        self.elbv2_backend.set_security_groups(arn, sec_groups)
+
+        template = self.response_template(SET_SECURITY_GROUPS_TEMPLATE)
+        return template.render(sec_groups=sec_groups)
+
+    @amzn_request_id
+    def set_subnets(self):
+        arn = self._get_param('LoadBalancerArn')
+        subnets = self._get_multi_param('Subnets.member.')
+
+        subnet_zone_list = self.elbv2_backend.set_subnets(arn, subnets)
+
+        template = self.response_template(SET_SUBNETS_TEMPLATE)
+        return template.render(subnets=subnet_zone_list)
+
+    @amzn_request_id
+    def modify_load_balancer_attributes(self):
+        arn = self._get_param('LoadBalancerArn')
+        attrs = self._get_map_prefix('Attributes.member', key_end='Key', value_end='Value')
+
+        all_attrs = self.elbv2_backend.modify_load_balancer_attributes(arn, attrs)
+
+        template = self.response_template(MODIFY_LOADBALANCER_ATTRS_TEMPLATE)
+        return template.render(attrs=all_attrs)
+
+    @amzn_request_id
+    def describe_load_balancer_attributes(self):
+        arn = self._get_param('LoadBalancerArn')
+        attrs = self.elbv2_backend.describe_load_balancer_attributes(arn)
+
+        template = self.response_template(DESCRIBE_LOADBALANCER_ATTRS_TEMPLATE)
+        return template.render(attrs=attrs)
+
+    @amzn_request_id
+    def modify_target_group(self):
+        arn = self._get_param('TargetGroupArn')
+
+        health_check_proto = self._get_param('HealthCheckProtocol')  # 'HTTP' | 'HTTPS' | 'TCP',
+        health_check_port = self._get_param('HealthCheckPort')
+        health_check_path = self._get_param('HealthCheckPath')
+        health_check_interval = self._get_param('HealthCheckIntervalSeconds')
+        health_check_timeout = self._get_param('HealthCheckTimeoutSeconds')
+        healthy_threshold_count = self._get_param('HealthyThresholdCount')
+        unhealthy_threshold_count = self._get_param('UnhealthyThresholdCount')
+        http_codes = self._get_param('Matcher.HttpCode')
+
+        target_group = self.elbv2_backend.modify_target_group(arn, health_check_proto, health_check_port, health_check_path, health_check_interval,
+                                                              health_check_timeout, healthy_threshold_count, unhealthy_threshold_count, http_codes)
+
+        template = self.response_template(MODIFY_TARGET_GROUP_TEMPLATE)
+        return template.render(target_group=target_group)
+
+    @amzn_request_id
+    def modify_listener(self):
+        arn = self._get_param('ListenerArn')
+        port = self._get_param('Port')
+        protocol = self._get_param('Protocol')
+        ssl_policy = self._get_param('SslPolicy')
+        certificates = self._get_list_prefix('Certificates.member')
+        default_actions = self._get_list_prefix('DefaultActions.member')
+
+        # Should really move SSL Policies to models
+        if ssl_policy is not None and ssl_policy not in [item['name'] for item in SSL_POLICIES]:
+            raise RESTError('SSLPolicyNotFound', 'Policy {0} not found'.format(ssl_policy))
+
+        listener = self.elbv2_backend.modify_listener(arn, port, protocol, ssl_policy, certificates, default_actions)
+
+        template = self.response_template(MODIFY_LISTENER_TEMPLATE)
+        return template.render(listener=listener)
 
     def _add_tags(self, resource):
         tag_values = []
@@ -348,14 +611,14 @@ class ELBV2Response(BaseResponse):
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <AddTagsResult/>
   <ResponseMetadata>
-    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </AddTagsResponse>"""
 
 REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <RemoveTagsResult/>
   <ResponseMetadata>
-    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </RemoveTagsResponse>"""
 
@@ -378,10 +641,9 @@ DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalan
     </TagDescriptions>
   </DescribeTagsResult>
   <ResponseMetadata>
-    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DescribeTagsResponse>"""
-
 
 CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <CreateLoadBalancerResult>
@@ -415,7 +677,7 @@ CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://ela
     </LoadBalancers>
   </CreateLoadBalancerResult>
   <ResponseMetadata>
-    <RequestId>32d531b2-f2d0-11e5-9192-3fff33344cfa</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </CreateLoadBalancerResponse>"""
 
@@ -452,7 +714,7 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
     </Rules>
   </CreateRuleResult>
   <ResponseMetadata>
-    <RequestId>c5478c83-f397-11e5-bb98-57195a6eb84a</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </CreateRuleResponse>"""
 
@@ -472,14 +734,19 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
+        {% if target_group.matcher %}
         <Matcher>
-          <HttpCode>200</HttpCode>
+          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
         </Matcher>
+        {% endif %}
+        {% if target_group.target_type %}
+        <TargetType>{{ target_group.target_type }}</TargetType>
+        {% endif %}
       </member>
     </TargetGroups>
   </CreateTargetGroupResult>
   <ResponseMetadata>
-    <RequestId>b83fe90e-f2d5-11e5-b95d-3b2c1831fc26</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </CreateTargetGroupResponse>"""
 
@@ -489,11 +756,13 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
       <member>
         <LoadBalancerArn>{{ listener.load_balancer_arn }}</LoadBalancerArn>
         <Protocol>{{ listener.protocol }}</Protocol>
-        {% if listener.certificate %}
+        {% if listener.certificates %}
         <Certificates>
+          {% for cert in listener.certificates %}
           <member>
-            <CertificateArn>{{ listener.certificate }}</CertificateArn>
+            <CertificateArn>{{ cert }}</CertificateArn>
           </member>
+          {% endfor %}
         </Certificates>
         {% endif %}
         <Port>{{ listener.port }}</Port>
@@ -511,35 +780,35 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
     </Listeners>
   </CreateListenerResult>
   <ResponseMetadata>
-    <RequestId>97f1bb38-f390-11e5-b95d-3b2c1831fc26</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </CreateListenerResponse>"""
 
 DELETE_LOAD_BALANCER_TEMPLATE = """<DeleteLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DeleteLoadBalancerResult/>
   <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DeleteLoadBalancerResponse>"""
 
 DELETE_RULE_TEMPLATE = """<DeleteRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DeleteRuleResult/>
   <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DeleteRuleResponse>"""
 
 DELETE_TARGET_GROUP_TEMPLATE = """<DeleteTargetGroupResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DeleteTargetGroupResult/>
   <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DeleteTargetGroupResponse>"""
 
 DELETE_LISTENER_TEMPLATE = """<DeleteListenerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DeleteListenerResult/>
   <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DeleteListenerResponse>"""
 
@@ -572,6 +841,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           <Code>provisioning</Code>
         </State>
         <Type>application</Type>
+        <IpAddressType>ipv4</IpAddressType>
       </member>
       {% endfor %}
     </LoadBalancers>
@@ -580,7 +850,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
     {% endif %}
   </DescribeLoadBalancersResult>
   <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
@@ -620,7 +890,7 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
     {% endif %}
   </DescribeRulesResult>
   <ResponseMetadata>
-    <RequestId>74926cf3-f3a3-11e5-b543-9f2c3fbb9bee</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DescribeRulesResponse>"""
 
@@ -634,16 +904,21 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
         <Protocol>{{ target_group.protocol }}</Protocol>
         <Port>{{ target_group.port }}</Port>
         <VpcId>{{ target_group.vpc_id }}</VpcId>
-        <HealthCheckProtocol>{{ target_group.health_check_protocol }}</HealthCheckProtocol>
+        <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path }}</HealthCheckPath>
         <HealthCheckIntervalSeconds>{{ target_group.healthcheck_interval_seconds }}</HealthCheckIntervalSeconds>
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
+        {% if target_group.matcher %}
         <Matcher>
-          <HttpCode>200</HttpCode>
+          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
         </Matcher>
+        {% endif %}
+        {% if target_group.target_type %}
+        <TargetType>{{ target_group.target_type }}</TargetType>
+        {% endif %}
         <LoadBalancerArns>
           {% for load_balancer_arn in target_group.load_balancer_arns %}
           <member>{{ load_balancer_arn }}</member>
@@ -654,10 +929,9 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
     </TargetGroups>
   </DescribeTargetGroupsResult>
   <ResponseMetadata>
-    <RequestId>70092c0e-f3a9-11e5-ae48-cff02092876b</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DescribeTargetGroupsResponse>"""
-
 
 DESCRIBE_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<DescribeTargetGroupAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeTargetGroupAttributesResult>
@@ -671,10 +945,9 @@ DESCRIBE_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<DescribeTargetGroupAttributesRes
     </Attributes>
   </DescribeTargetGroupAttributesResult>
   <ResponseMetadata>
-    <RequestId>70092c0e-f3a9-11e5-ae48-cff02092876b</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DescribeTargetGroupAttributesResponse>"""
-
 
 DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeListenersResult>
@@ -706,7 +979,7 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
     </Listeners>
   </DescribeListenersResult>
   <ResponseMetadata>
-    <RequestId>65a3a7ea-f39c-11e5-b543-9f2c3fbb9bee</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
@@ -721,7 +994,7 @@ CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http:/
     </HealthCheck>
   </ConfigureHealthCheckResult>
   <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </ConfigureHealthCheckResponse>"""
 
@@ -758,7 +1031,7 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
     </Rules>
   </ModifyRuleResult>
   <ResponseMetadata>
-    <RequestId>c5478c83-f397-11e5-bb98-57195a6eb84a</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </ModifyRuleResponse>"""
 
@@ -774,7 +1047,7 @@ MODIFY_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<ModifyTargetGroupAttributesRespons
     </Attributes>
   </ModifyTargetGroupAttributesResult>
   <ResponseMetadata>
-    <RequestId>70092c0e-f3a9-11e5-ae48-cff02092876b</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </ModifyTargetGroupAttributesResponse>"""
 
@@ -782,7 +1055,7 @@ REGISTER_TARGETS_TEMPLATE = """<RegisterTargetsResponse xmlns="http://elasticloa
   <RegisterTargetsResult>
   </RegisterTargetsResult>
   <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </RegisterTargetsResponse>"""
 
@@ -790,22 +1063,21 @@ DEREGISTER_TARGETS_TEMPLATE = """<DeregisterTargetsResponse xmlns="http://elasti
   <DeregisterTargetsResult>
   </DeregisterTargetsResult>
   <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DeregisterTargetsResponse>"""
 
 SET_LOAD_BALANCER_SSL_CERTIFICATE = """<SetLoadBalancerListenerSSLCertificateResponse xmlns="http://elasticloadbalan cing.amazonaws.com/doc/2015-12-01/">
  <SetLoadBalancerListenerSSLCertificateResult/>
 <ResponseMetadata>
-    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
 </ResponseMetadata>
 </SetLoadBalancerListenerSSLCertificateResponse>"""
-
 
 DELETE_LOAD_BALANCER_LISTENERS = """<DeleteLoadBalancerListenersResponse xmlns="http://elasticloadbalan cing.amazonaws.com/doc/2015-12-01/">
  <DeleteLoadBalancerListenersResult/>
 <ResponseMetadata>
-    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
 </ResponseMetadata>
 </DeleteLoadBalancerListenersResponse>"""
 
@@ -837,7 +1109,7 @@ DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns
     </LoadBalancerAttributes>
   </DescribeLoadBalancerAttributesResult>
   <ResponseMetadata>
-    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DescribeLoadBalancerAttributesResponse>
 """
@@ -871,7 +1143,7 @@ MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="htt
     </LoadBalancerAttributes>
   </ModifyLoadBalancerAttributesResult>
   <ResponseMetadata>
-    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </ModifyLoadBalancerAttributesResponse>
 """
@@ -879,7 +1151,7 @@ MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="htt
 CREATE_LOAD_BALANCER_POLICY_TEMPLATE = """<CreateLoadBalancerPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <CreateLoadBalancerPolicyResult/>
   <ResponseMetadata>
-      <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+      <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </CreateLoadBalancerPolicyResponse>
 """
@@ -887,7 +1159,7 @@ CREATE_LOAD_BALANCER_POLICY_TEMPLATE = """<CreateLoadBalancerPolicyResponse xmln
 SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE = """<SetLoadBalancerPoliciesOfListenerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
     <SetLoadBalancerPoliciesOfListenerResult/>
     <ResponseMetadata>
-        <RequestId>07b1ecbc-1100-11e3-acaf-dd7edEXAMPLE</RequestId>
+        <RequestId>{{ request_id }}</RequestId>
     </ResponseMetadata>
 </SetLoadBalancerPoliciesOfListenerResponse>
 """
@@ -895,7 +1167,7 @@ SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE = """<SetLoadBalancerPoliciesOfL
 SET_LOAD_BALANCER_POLICIES_FOR_BACKEND_SERVER_TEMPLATE = """<SetLoadBalancerPoliciesForBackendServerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
     <SetLoadBalancerPoliciesForBackendServerResult/>
     <ResponseMetadata>
-        <RequestId>0eb9b381-dde0-11e2-8d78-6ddbaEXAMPLE</RequestId>
+        <RequestId>{{ request_id }}</RequestId>
     </ResponseMetadata>
 </SetLoadBalancerPoliciesForBackendServerResponse>
 """
@@ -918,7 +1190,7 @@ DESCRIBE_TARGET_HEALTH_TEMPLATE = """<DescribeTargetHealthResponse xmlns="http:/
     </TargetHealthDescriptions>
   </DescribeTargetHealthResult>
   <ResponseMetadata>
-    <RequestId>c534f810-f389-11e5-9192-3fff33344cfa</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </DescribeTargetHealthResponse>"""
 
@@ -955,6 +1227,186 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
     </Rules>
   </SetRulePrioritiesResult>
   <ResponseMetadata>
-    <RequestId>4d7a8036-f3a7-11e5-9c02-8fd20490d5a6</RequestId>
+    <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </SetRulePrioritiesResponse>"""
+
+DESCRIBE_LIMITS_TEMPLATE = """<DescribeAccountLimitsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DescribeAccountLimitsResult>
+    <Limits>
+      {% for key, value in limits.items() %}
+      <member>
+        <Name>{{ key }}</Name>
+        <Max>{{ value }}</Max>
+      </member>
+      {% endfor %}
+    </Limits>
+  </DescribeAccountLimitsResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</DescribeAccountLimitsResponse>"""
+
+DESCRIBE_SSL_POLICIES_TEMPLATE = """<DescribeSSLPoliciesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DescribeSSLPoliciesResult>
+    <SslPolicies>
+      {% for policy in policies %}
+      <member>
+        <Name>{{ policy['name'] }}</Name>
+        <Ciphers>
+          {% for cipher in policy['ciphers'] %}
+          <member>
+            <Name>{{ cipher['name'] }}</Name>
+            <Priority>{{ cipher['priority'] }}</Priority>
+          </member>
+          {% endfor %}
+        </Ciphers>
+        <SslProtocols>
+          {% for proto in policy['ssl_protocols'] %}
+          <member>{{ proto }}</member>
+          {% endfor %}
+        </SslProtocols>
+      </member>
+      {% endfor %}
+    </SslPolicies>
+  </DescribeSSLPoliciesResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</DescribeSSLPoliciesResponse>"""
+
+SET_IP_ADDRESS_TYPE_TEMPLATE = """<SetIpAddressTypeResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <SetIpAddressTypeResult>
+    <IpAddressType>{{ ip_type }}</IpAddressType>
+  </SetIpAddressTypeResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</SetIpAddressTypeResponse>"""
+
+SET_SECURITY_GROUPS_TEMPLATE = """<SetSecurityGroupsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <SetSecurityGroupsResult>
+    <SecurityGroupIds>
+      {% for group in sec_groups %}
+      <member>{{ group }}</member>
+      {% endfor %}
+    </SecurityGroupIds>
+  </SetSecurityGroupsResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</SetSecurityGroupsResponse>"""
+
+SET_SUBNETS_TEMPLATE = """<SetSubnetsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <SetSubnetsResult>
+    <AvailabilityZones>
+      {% for zone_id, subnet_id in subnets %}
+      <member>
+        <SubnetId>{{ subnet_id }}</SubnetId>
+        <ZoneName>{{ zone_id }}</ZoneName>
+      </member>
+      {% endfor %}
+    </AvailabilityZones>
+  </SetSubnetsResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</SetSubnetsResponse>"""
+
+MODIFY_LOADBALANCER_ATTRS_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <ModifyLoadBalancerAttributesResult>
+    <Attributes>
+      {% for key, value in attrs.items() %}
+      <member>
+        {% if value == None %}<Value />{% else %}<Value>{{ value }}</Value>{% endif %}
+        <Key>{{ key }}</Key>
+      </member>
+      {% endfor %}
+    </Attributes>
+  </ModifyLoadBalancerAttributesResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</ModifyLoadBalancerAttributesResponse>"""
+
+DESCRIBE_LOADBALANCER_ATTRS_TEMPLATE = """<DescribeLoadBalancerAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DescribeLoadBalancerAttributesResult>
+    <Attributes>
+      {% for key, value in attrs.items() %}
+      <member>
+        {% if value == None %}<Value />{% else %}<Value>{{ value }}</Value>{% endif %}
+        <Key>{{ key }}</Key>
+      </member>
+      {% endfor %}
+    </Attributes>
+  </DescribeLoadBalancerAttributesResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</DescribeLoadBalancerAttributesResponse>"""
+
+MODIFY_TARGET_GROUP_TEMPLATE = """<ModifyTargetGroupResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <ModifyTargetGroupResult>
+    <TargetGroups>
+      <member>
+        <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
+        <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        <Protocol>{{ target_group.protocol }}</Protocol>
+        <Port>{{ target_group.port }}</Port>
+        <VpcId>{{ target_group.vpc_id }}</VpcId>
+        <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
+        <HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>
+        <HealthCheckPath>{{ target_group.healthcheck_path }}</HealthCheckPath>
+        <HealthCheckIntervalSeconds>{{ target_group.healthcheck_interval_seconds }}</HealthCheckIntervalSeconds>
+        <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
+        <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
+        <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
+        <Matcher>
+          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
+        </Matcher>
+        <LoadBalancerArns>
+          {% for load_balancer_arn in target_group.load_balancer_arns %}
+          <member>{{ load_balancer_arn }}</member>
+          {% endfor %}
+        </LoadBalancerArns>
+      </member>
+    </TargetGroups>
+  </ModifyTargetGroupResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</ModifyTargetGroupResponse>"""
+
+MODIFY_LISTENER_TEMPLATE = """<ModifyListenerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <ModifyListenerResult>
+    <Listeners>
+      <member>
+        <LoadBalancerArn>{{ listener.load_balancer_arn }}</LoadBalancerArn>
+        <Protocol>{{ listener.protocol }}</Protocol>
+        {% if listener.certificates %}
+        <Certificates>
+          {% for cert in listener.certificates %}
+          <member>
+            <CertificateArn>{{ cert }}</CertificateArn>
+          </member>
+          {% endfor %}
+        </Certificates>
+        {% endif %}
+        <Port>{{ listener.port }}</Port>
+        <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
+        <ListenerArn>{{ listener.arn }}</ListenerArn>
+        <DefaultActions>
+          {% for action in listener.default_actions %}
+          <member>
+            <Type>{{ action.type }}</Type>
+            <TargetGroupArn>{{ action.target_group_arn }}</TargetGroupArn>
+          </member>
+          {% endfor %}
+        </DefaultActions>
+      </member>
+    </Listeners>
+  </ModifyListenerResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</ModifyListenerResponse>"""

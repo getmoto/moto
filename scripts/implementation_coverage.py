@@ -44,7 +44,7 @@ def calculate_implementation_coverage():
 
 def print_implementation_coverage():
     coverage = calculate_implementation_coverage()
-    for service_name in coverage:
+    for service_name in sorted(coverage):
         implemented = coverage.get(service_name)['implemented']
         not_implemented = coverage.get(service_name)['not_implemented']
         operations = sorted(implemented + not_implemented)
@@ -56,14 +56,14 @@ def print_implementation_coverage():
         else:
             percentage_implemented = 0
 
-        print("-----------------------")
-        print("{} - {}% implemented".format(service_name, percentage_implemented))
-        print("-----------------------")
+        print("")
+        print("## {} - {}% implemented".format(service_name, percentage_implemented))
         for op in operations:
             if op in implemented:
-                print("[X] {}".format(op))
+                print("- [X] {}".format(op))
             else:
-                print("[ ] {}".format(op))
+                print("- [ ] {}".format(op))
+
 
 if __name__ == '__main__':
     print_implementation_coverage()

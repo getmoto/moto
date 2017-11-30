@@ -35,11 +35,17 @@ from moto.sqs import sqs_backends
 from moto.ssm import ssm_backends
 from moto.sts import sts_backends
 from moto.xray import xray_backends
+from moto.iot import iot_backends
+from moto.iotdata import iotdata_backends
+from moto.batch import batch_backends
+from moto.resourcegroupstaggingapi import resourcegroupstaggingapi_backends
+
 
 BACKENDS = {
     'acm': acm_backends,
     'apigateway': apigateway_backends,
     'autoscaling': autoscaling_backends,
+    'batch': batch_backends,
     'cloudformation': cloudformation_backends,
     'cloudwatch': cloudwatch_backends,
     'datapipeline': datapipeline_backends,
@@ -72,7 +78,10 @@ BACKENDS = {
     'sts': sts_backends,
     'route53': route53_backends,
     'lambda': lambda_backends,
-    'xray': xray_backends
+    'xray': xray_backends,
+    'resourcegroupstaggingapi': resourcegroupstaggingapi_backends,
+    'iot': iot_backends,
+    'iot-data': iotdata_backends,
 }
 
 
