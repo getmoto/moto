@@ -226,6 +226,28 @@ def test_modify_db_instance():
 
 
 @mock_rds2
+def test_rename_db_instance():
+    conn = boto3.client('rds', region_name='us-west-2')
+    database = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+                                       AllocatedStorage=10,
+                                       DBInstanceClass='postgres',
+                                       Engine='db.m1.small',
+                                       MasterUsername='root',
+                                       MasterUserPassword='hunter2',
+                                       Port=1234,
+                                       DBSecurityGroups=['my_sg'])
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    list(instances['DBInstances']).should.have.length_of(1)
+    conn.describe_db_instances.when.called_with(DBInstanceIdentifier="db-master-2").should.throw(ClientError)
+    conn.modify_db_instance(DBInstanceIdentifier='db-master-1',
+                            NewDBInstanceIdentifier='db-master-2',
+                            ApplyImmediately=True)
+    conn.describe_db_instances.when.called_with(DBInstanceIdentifier="db-master-1").should.throw(ClientError)
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-2")
+    list(instances['DBInstances']).should.have.length_of(1)
+
+
+@mock_rds2
 def test_modify_non_existant_database():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.modify_db_instance.when.called_with(DBInstanceIdentifier='not-a-db',
