@@ -736,6 +736,10 @@ class RDS2Backend(BaseBackend):
 
     def modify_database(self, db_instance_identifier, db_kwargs):
         database = self.describe_databases(db_instance_identifier)[0]
+        if 'new_db_instance_identifier' in db_kwargs:
+            del self.databases[db_instance_identifier]
+            db_instance_identifier = db_kwargs['db_instance_identifier'] = db_kwargs.pop('new_db_instance_identifier')
+            self.databases[db_instance_identifier] = database
         database.update(db_kwargs)
         return database
 
