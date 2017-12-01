@@ -7,7 +7,6 @@ import boto.ec2.cloudwatch
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from .utils import make_arn_for_dashboard
-import statistics
 
 DEFAULT_ACCOUNT_ID = 123456789012
 
@@ -165,7 +164,8 @@ class Statistics:
         if 'Average' not in self.stats:
             return None
 
-        return statistics.mean(self.values)
+        # when moto is 3.4+ we can switch to the statistics module
+        return sum(self.values) / len(self.values)
 
 
 class CloudWatchBackend(BaseBackend):

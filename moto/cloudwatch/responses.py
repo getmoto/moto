@@ -270,7 +270,7 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
          {{ request_id }}
       </RequestId>
    </ResponseMetadata>
-  
+
   <GetMetricStatisticsResult>
       <Label> {{ label }} </Label>
       <Datapoints>
@@ -279,27 +279,27 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
               {% if datapoint.sum %}
               <Sum>{{ datapoint.sum }}</Sum>
               {% endif %}
-                          
+
               {% if datapoint.average %}
               <Average>{{ datapoint.average }}</Average>
               {% endif %}
-    
+
               {% if datapoint.maximum %}
               <Maximum>{{ datapoint.maximum }}</Maximum>
               {% endif %}
-              
+
               {% if datapoint.minimum %}
               <Minimum>{{ datapoint.minimum }}</Minimum>
               {% endif %}
-            
+
               {% if datapoint.sample_count %}
               <SampleCount>{{ datapoint.sample_count }}</SampleCount>
               {% endif %}
-                          
+
               {% if datapoint.extended_statistics %}
               <ExtendedStatistics>{{ datapoint.extended_statistics }}</ExtendedStatistics>
               {% endif %}
-        
+
               <Timestamp>{{ datapoint.timestamp }}</Timestamp>
               <Unit>{{ datapoint.unit }}</Unit>
             </Datapoint>
