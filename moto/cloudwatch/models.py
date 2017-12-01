@@ -18,15 +18,15 @@ class Dimension(object):
         self.value = value
 
 
-def daterange(start: datetime, stop: datetime, step=timedelta(days=1), inclusive=False):
+def daterange(start, stop, step=timedelta(days=1), inclusive=False):
     """
-    This method will iterate from `start` to `stop` datetimes with a timedelta step of `step`:
+    This method will iterate from `start` to `stop` datetimes with a timedelta step of `step`
+    (supports iteration forwards or backwards in time)
 
     :param start: start datetime
     :param stop: end datetime
     :param step: step size as a timedelta
     :param inclusive: if True, last item returned will be as step closest to `end` (or `end` if no remainder).
-    :return:
     """
 
     # inclusive=False to behave like range by default
