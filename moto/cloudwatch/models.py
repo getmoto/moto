@@ -1,12 +1,12 @@
-import json
 
+import json
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 import boto.ec2.cloudwatch
-import datetime
-
+from datetime import datetime, timedelta
+from dateutil.tz import tzutc
 from .utils import make_arn_for_dashboard
-
 
 DEFAULT_ACCOUNT_ID = 123456789012
 
@@ -16,6 +16,34 @@ class Dimension(object):
     def __init__(self, name, value):
         self.name = name
         self.value = value
+
+
+def daterange(start, stop, step=timedelta(days=1), inclusive=False):
+    """
+    This method will iterate from `start` to `stop` datetimes with a timedelta step of `step`
+    (supports iteration forwards or backwards in time)
+
+    :param start: start datetime
+    :param stop: end datetime
+    :param step: step size as a timedelta
+    :param inclusive: if True, last item returned will be as step closest to `end` (or `end` if no remainder).
+    """
+
+    # inclusive=False to behave like range by default
+    total_step_secs = step.total_seconds()
+    assert total_step_secs != 0
+
+    if total_step_secs > 0:
+        while start < stop:
+            yield start
+            start = start + step
+    else:
+        while stop < start:
+            yield start
+            start = start + step
+
+    if inclusive and start == stop:
+        yield start
 
 
 class FakeAlarm(BaseModel):
@@ -38,14 +66,14 @@ class FakeAlarm(BaseModel):
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
         self.unit = unit
-        self.configuration_updated_timestamp = datetime.datetime.utcnow()
+        self.configuration_updated_timestamp = datetime.utcnow()
 
         self.history = []
 
         self.state_reason = ''
         self.state_reason_data = '{}'
         self.state = 'OK'
-        self.state_updated_timestamp = datetime.datetime.utcnow()
+        self.state_updated_timestamp = datetime.utcnow()
 
     def update_state(self, reason, reason_data, state_value):
         # History type, that then decides what the rest of the items are, can be one of ConfigurationUpdate | StateUpdate | Action
@@ -56,17 +84,18 @@ class FakeAlarm(BaseModel):
         self.state_reason = reason
         self.state_reason_data = reason_data
         self.state = state_value
-        self.state_updated_timestamp = datetime.datetime.utcnow()
+        self.state_updated_timestamp = datetime.utcnow()
 
 
 class MetricDatum(BaseModel):
 
-    def __init__(self, namespace, name, value, dimensions):
+    def __init__(self, namespace, name, value, dimensions, timestamp):
         self.namespace = namespace
         self.name = name
         self.value = value
-        self.dimensions = [Dimension(dimension['name'], dimension[
-                                     'value']) for dimension in dimensions]
+        self.timestamp = timestamp or datetime.utcnow().replace(tzinfo=tzutc())
+        self.dimensions = [Dimension(dimension['Name'], dimension[
+                                     'Value']) for dimension in dimensions]
 
 
 class Dashboard(BaseModel):
@@ -75,7 +104,7 @@ class Dashboard(BaseModel):
         self.arn = make_arn_for_dashboard(DEFAULT_ACCOUNT_ID, name)
         self.name = name
         self.body = body
-        self.last_modified = datetime.datetime.now()
+        self.last_modified = datetime.now()
 
     @property
     def last_modified_iso(self):
@@ -90,6 +119,53 @@ class Dashboard(BaseModel):
 
     def __repr__(self):
         return '<CloudWatchDashboard {0}>'.format(self.name)
+
+
+class Statistics:
+    def __init__(self, stats, dt):
+        self.timestamp = iso_8601_datetime_with_milliseconds(dt)
+        self.values = []
+        self.stats = stats
+
+    @property
+    def sample_count(self):
+        if 'SampleCount' not in self.stats:
+            return None
+
+        return len(self.values)
+
+    @property
+    def unit(self):
+        return None
+
+    @property
+    def sum(self):
+        if 'Sum' not in self.stats:
+            return None
+
+        return sum(self.values)
+
+    @property
+    def min(self):
+        if 'Minimum' not in self.stats:
+            return None
+
+        return min(self.values)
+
+    @property
+    def max(self):
+        if 'Maximum' not in self.stats:
+            return None
+
+        return max(self.values)
+
+    @property
+    def average(self):
+        if 'Average' not in self.stats:
+            return None
+
+        # when moto is 3.4+ we can switch to the statistics module
+        return sum(self.values) / len(self.values)
 
 
 class CloudWatchBackend(BaseBackend):
@@ -150,9 +226,34 @@ class CloudWatchBackend(BaseBackend):
             self.alarms.pop(alarm_name, None)
 
     def put_metric_data(self, namespace, metric_data):
-        for name, value, dimensions in metric_data:
+        for metric_member in metric_data:
             self.metric_data.append(MetricDatum(
-                namespace, name, value, dimensions))
+                namespace, metric_member['MetricName'], float(metric_member['Value']), metric_member['Dimensions.member'], metric_member.get('Timestamp')))
+
+    def get_metric_statistics(self, namespace, metric_name, start_time, end_time, period, stats):
+        period_delta = timedelta(seconds=period)
+        filtered_data = [md for md in self.metric_data if
+                         md.namespace == namespace and md.name == metric_name and start_time <= md.timestamp <= end_time]
+
+        # earliest to oldest
+        filtered_data = sorted(filtered_data, key=lambda x: x.timestamp)
+        if not filtered_data:
+            return []
+
+        idx = 0
+        data = list()
+        for dt in daterange(filtered_data[0].timestamp, filtered_data[-1].timestamp + period_delta, period_delta):
+            s = Statistics(stats, dt)
+            while idx < len(filtered_data) and filtered_data[idx].timestamp < (dt + period_delta):
+                s.values.append(filtered_data[idx].value)
+                idx += 1
+
+            if not s.values:
+                continue
+
+            data.append(s)
+
+        return data
 
     def get_all_metrics(self):
         return self.metric_data
