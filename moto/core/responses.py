@@ -106,7 +106,8 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
     default_region = 'us-east-1'
     # to extract region, use [^.]
-    region_regex = r'\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com'
+    region_regex = re.compile(r'\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com')
+    param_list_regex = re.compile(r'(.*)\.(\d+)\.')
     aws_service_spec = None
 
     @classmethod
@@ -167,7 +168,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.response_headers = {"server": "amazon.com"}
 
     def get_region_from_url(self, request, full_url):
-        match = re.search(self.region_regex, full_url)
+        match = self.region_regex.search(full_url)
         if match:
             region = match.group(1)
         elif 'Authorization' in request.headers and 'AWS4' in request.headers['Authorization']:
@@ -311,6 +312,41 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 return False
         return if_none
 
+    def _get_multi_param_helper(self, param_prefix):
+        value_dict = dict()
+        tracked_prefixes = set()  # prefixes which have already been processed
+
+        def is_tracked(name_param):
+            for prefix_loop in tracked_prefixes:
+                if name_param.startswith(prefix_loop):
+                    return True
+            return False
+
+        for name, value in self.querystring.items():
+            if is_tracked(name) or not name.startswith(param_prefix):
+                continue
+
+            match = self.param_list_regex.search(name[len(param_prefix):]) if len(name) > len(param_prefix) else None
+            if match:
+                prefix = param_prefix + match.group(1)
+                value = self._get_multi_param(prefix)
+                tracked_prefixes.add(prefix)
+                name = prefix
+                value_dict[name] = value
+            else:
+                value_dict[name] = value[0]
+
+        if not value_dict:
+            return None
+
+        if len(value_dict) > 1:
+            # strip off period prefix
+            value_dict = {name[len(param_prefix) + 1:]: value for name, value in value_dict.items()}
+        else:
+            value_dict = list(value_dict.values())[0]
+
+        return value_dict
+
     def _get_multi_param(self, param_prefix):
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
@@ -323,12 +359,13 @@ class BaseResponse(_TemplateEnvironmentMixin):
         values = []
         index = 1
         while True:
-            try:
-                values.append(self.querystring[prefix + str(index)][0])
-            except KeyError:
+            value_dict = self._get_multi_param_helper(prefix + str(index))
+            if not value_dict:
                 break
-            else:
-                index += 1
+
+            values.append(value_dict)
+            index += 1
+
         return values
 
     def _get_dict_param(self, param_prefix):
