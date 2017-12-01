@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+import re
 from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
@@ -15,12 +17,11 @@ from .exceptions import (
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 DEFAULT_RECEIVED_MESSAGES = 1
-SQS_REGION_REGEX = r'://(.+?)\.queue\.amazonaws\.com'
 
 
 class SQSResponse(BaseResponse):
 
-    region_regex = SQS_REGION_REGEX
+    region_regex = re.compile(r'://(.+?)\.queue\.amazonaws\.com')
 
     @property
     def sqs_backend(self):
