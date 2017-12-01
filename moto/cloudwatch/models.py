@@ -141,7 +141,7 @@ class Statistics:
 
     @property
     def sum(self):
-        if 'Sum' not in self.stats:
+        if 'Summary' not in self.stats:
             return None
 
         return sum(self.values)
