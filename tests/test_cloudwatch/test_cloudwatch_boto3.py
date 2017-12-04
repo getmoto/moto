@@ -186,5 +186,5 @@ def test_get_metric_statistics():
 
     stats['Datapoints'].should.have.length_of(1)
     datapoint = stats['Datapoints'][0]
-    datapoint['SampleCount'].should.equal(1)
+    datapoint['SampleCount'].should.equal(1.0)
     datapoint['Sum'].should.equal(1.5)
