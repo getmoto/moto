@@ -123,7 +123,7 @@ def test_get_metric_statistics():
 
     stats = conn.get_metric_statistics(
         namespace='tester',
-        name='metric',
+        metricname='metric',
         starttime=utc_now,
         endtime=utc_now + timedelta(seconds=60),
         period=60,
