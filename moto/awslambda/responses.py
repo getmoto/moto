@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 try:
     from urllib import unquote
@@ -198,7 +197,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _get_aws_region(self, full_url):
-        region = re.search(self.region_regex, full_url)
+        region = self.region_regex.search(full_url)
         if region:
             return region.group(1)
         else:

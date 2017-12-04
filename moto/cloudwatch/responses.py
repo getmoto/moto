@@ -2,6 +2,7 @@ import json
 from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
 from .models import cloudwatch_backends
+from dateutil.parser import parse as dtparse
 
 
 class CloudWatchResponse(BaseResponse):
@@ -75,34 +76,35 @@ class CloudWatchResponse(BaseResponse):
     @amzn_request_id
     def put_metric_data(self):
         namespace = self._get_param('Namespace')
-        metric_data = []
-        metric_index = 1
-        while True:
-            try:
-                metric_name = self.querystring[
-                    'MetricData.member.{0}.MetricName'.format(metric_index)][0]
-            except KeyError:
-                break
-            value = self.querystring.get(
-                'MetricData.member.{0}.Value'.format(metric_index), [None])[0]
-            dimensions = []
-            dimension_index = 1
-            while True:
-                try:
-                    dimension_name = self.querystring[
-                        'MetricData.member.{0}.Dimensions.member.{1}.Name'.format(metric_index, dimension_index)][0]
-                except KeyError:
-                    break
-                dimension_value = self.querystring[
-                    'MetricData.member.{0}.Dimensions.member.{1}.Value'.format(metric_index, dimension_index)][0]
-                dimensions.append(
-                    {'name': dimension_name, 'value': dimension_value})
-                dimension_index += 1
-            metric_data.append([metric_name, value, dimensions])
-            metric_index += 1
+        metric_data = self._get_multi_param('MetricData.member')
+
         self.cloudwatch_backend.put_metric_data(namespace, metric_data)
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
         return template.render()
+
+    @amzn_request_id
+    def get_metric_statistics(self):
+        namespace = self._get_param('Namespace')
+        metric_name = self._get_param('MetricName')
+        start_time = dtparse(self._get_param('StartTime'))
+        end_time = dtparse(self._get_param('EndTime'))
+        period = int(self._get_param('Period'))
+        statistics = self._get_multi_param("Statistics.member")
+
+        # Unsupported Parameters (To Be Implemented)
+        unit = self._get_param('Unit')
+        extended_statistics = self._get_param('ExtendedStatistics')
+        dimensions = self._get_param('Dimensions')
+        if unit or extended_statistics or dimensions:
+            raise NotImplemented()
+
+        # TODO: this should instead throw InvalidParameterCombination
+        if not statistics:
+            raise NotImplemented("Must specify either Statistics or ExtendedStatistics")
+
+        datapoints = self.cloudwatch_backend.get_metric_statistics(namespace, metric_name, start_time, end_time, period, statistics)
+        template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
+        return template.render(label=metric_name, datapoints=datapoints)
 
     @amzn_request_id
     def list_metrics(self):
@@ -149,10 +151,6 @@ class CloudWatchResponse(BaseResponse):
 
         template = self.response_template(GET_DASHBOARD_TEMPLATE)
         return template.render(dashboard=dashboard)
-
-    @amzn_request_id
-    def get_metric_statistics(self):
-        raise NotImplementedError()
 
     @amzn_request_id
     def list_dashboards(self):
@@ -265,6 +263,50 @@ PUT_METRIC_DATA_TEMPLATE = """<PutMetricDataResponse xmlns="http://monitoring.am
       </RequestId>
    </ResponseMetadata>
 </PutMetricDataResponse>"""
+
+GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+   <ResponseMetadata>
+      <RequestId>
+         {{ request_id }}
+      </RequestId>
+   </ResponseMetadata>
+
+  <GetMetricStatisticsResult>
+      <Label> {{ label }} </Label>
+      <Datapoints>
+        {% for datapoint in datapoints %}
+            <Datapoint>
+              {% if datapoint.sum %}
+              <Sum>{{ datapoint.sum }}</Sum>
+              {% endif %}
+
+              {% if datapoint.average %}
+              <Average>{{ datapoint.average }}</Average>
+              {% endif %}
+
+              {% if datapoint.maximum %}
+              <Maximum>{{ datapoint.maximum }}</Maximum>
+              {% endif %}
+
+              {% if datapoint.minimum %}
+              <Minimum>{{ datapoint.minimum }}</Minimum>
+              {% endif %}
+
+              {% if datapoint.sample_count %}
+              <SampleCount>{{ datapoint.sample_count }}</SampleCount>
+              {% endif %}
+
+              {% if datapoint.extended_statistics %}
+              <ExtendedStatistics>{{ datapoint.extended_statistics }}</ExtendedStatistics>
+              {% endif %}
+
+              <Timestamp>{{ datapoint.timestamp }}</Timestamp>
+              <Unit>{{ datapoint.unit }}</Unit>
+            </Datapoint>
+        {% endfor %}
+      </Datapoints>
+    </GetMetricStatisticsResult>
+</GetMetricStatisticsResponse>"""
 
 LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
     <ListMetricsResult>
