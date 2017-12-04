@@ -122,11 +122,11 @@ def test_get_metric_statistics():
     )
 
     stats = conn.get_metric_statistics(
-        namespace='tester',
-        metricname='metric',
-        starttime=utc_now,
-        endtime=utc_now + timedelta(seconds=60),
         period=60,
+        start_time=utc_now,
+        end_time=utc_now + timedelta(seconds=60),
+        metric_name='metric',
+        namespace='tester',
         statistics=['SampleCount', 'Sum']
     )
 
