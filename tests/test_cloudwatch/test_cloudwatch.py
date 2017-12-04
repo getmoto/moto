@@ -1,5 +1,7 @@
 import boto
 from boto.ec2.cloudwatch.alarm import MetricAlarm
+from datetime import datetime, timedelta
+import pytz
 import sure  # noqa
 
 from moto import mock_cloudwatch_deprecated
@@ -89,6 +91,49 @@ def test_put_metric_data():
     metric.name.should.equal('metric')
     dict(metric.dimensions).should.equal(
         {'InstanceId': ['i-0123456,i-0123457']})
+
+
+@mock_cloudwatch_deprecated
+def test_put_metric_data_no_dimensions():
+    conn = boto.connect_cloudwatch()
+
+    conn.put_metric_data(
+        namespace='tester',
+        name='metric',
+        value=1.5,
+    )
+
+    metrics = conn.list_metrics()
+    metrics.should.have.length_of(1)
+    metric = metrics[0]
+    metric.namespace.should.equal('tester')
+    metric.name.should.equal('metric')
+
+
+@mock_cloudwatch_deprecated
+def test_get_metric_statistics():
+    conn = boto.connect_cloudwatch()
+    utc_now = datetime.now(tz=pytz.utc)
+
+    conn.put_metric_data(
+        namespace='tester',
+        name='metric',
+        value=1.5,
+    )
+
+    stats = conn.get_metric_statistics(
+        namespace='tester',
+        name='metric',
+        starttime=utc_now,
+        endtime=utc_now + timedelta(seconds=60),
+        period=60,
+        statistics=['SampleCount', 'Sum']
+    )
+
+    stats['Datapoints'].should.have.length_of(1)
+    datapoint = stats['Datapoints'][0]
+    datapoint['SampleCount'].should.equal(1)
+    datapoint['Sum'].should.equal(1.5)
 
 
 @mock_cloudwatch_deprecated

@@ -10,6 +10,8 @@ from .utils import make_arn_for_dashboard
 
 DEFAULT_ACCOUNT_ID = 123456789012
 
+_EMPTY_LIST = tuple()
+
 
 class Dimension(object):
 
@@ -228,7 +230,7 @@ class CloudWatchBackend(BaseBackend):
     def put_metric_data(self, namespace, metric_data):
         for metric_member in metric_data:
             self.metric_data.append(MetricDatum(
-                namespace, metric_member['MetricName'], float(metric_member['Value']), metric_member['Dimensions.member'], metric_member.get('Timestamp')))
+                namespace, metric_member['MetricName'], float(metric_member['Value']), metric_member.get('Dimensions.member', _EMPTY_LIST), metric_member.get('Timestamp')))
 
     def get_metric_statistics(self, namespace, metric_name, start_time, end_time, period, stats):
         period_delta = timedelta(seconds=period)
