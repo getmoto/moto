@@ -48,7 +48,6 @@ from .exceptions import (
     InvalidRouteError,
     InvalidInstanceIdError,
     InvalidAMIIdError,
-    MalformedAMIIdError,
     InvalidAMIAttributeItemValueError,
     InvalidSnapshotIdError,
     InvalidVolumeIdError,
@@ -68,8 +67,8 @@ from .exceptions import (
     InvalidCustomerGatewayIdError,
     RulesPerSecurityGroupLimitExceededError,
     MotoNotImplementedError,
-    FilterNotImplementedError
-)
+    FilterNotImplementedError,
+    MalformedAMIIdError)
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
     EC2_PREFIX_TO_RESOURCE,
@@ -1032,11 +1031,11 @@ class TagBackend(object):
 
 class Ami(TaggedEC2Resource):
     def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
-                 name=None, description=None, owner_id=None,
+                 name=None, description=None, owner_id=111122223333,
                  public=False, virtualization_type=None, architecture=None,
                  state='available', creation_date=None, platform=None,
                  image_type='machine', image_location=None, hypervisor=None,
-                 root_device_type=None, root_device_name=None, sriov='simple',
+                 root_device_type='standard', root_device_name='/dev/sda1', sriov='simple',
                  region_name='us-east-1a'
                  ):
         self.ec2_backend = ec2_backend
@@ -1137,14 +1136,13 @@ class AmiBackend(object):
             ami_id = ami['ami_id']
             self.amis[ami_id] = Ami(self, **ami)
 
-    def create_image(self, instance_id, name=None, description=None,
-                     context=None):
+    def create_image(self, instance_id, name=None, description=None, context=None):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
         ami = Ami(self, ami_id, instance=instance, source_ami=None,
                   name=name, description=description,
-                  owner_id=context.get_current_user() if context else None)
+                  owner_id=context.get_current_user() if context else '111122223333')
         self.amis[ami_id] = ami
         return ami
 
@@ -1161,36 +1159,39 @@ class AmiBackend(object):
                         context=None):
         images = self.amis.values()
 
-        # Limit images by launch permissions
-        if exec_users:
-            tmp_images = []
-            for ami in images:
-                for user_id in exec_users:
-                    if user_id in ami.launch_permission_users:
-                        tmp_images.append(ami)
-            images = tmp_images
+        if len(ami_ids):
+            # boto3 seems to default to just searching based on ami ids if that parameter is passed
+            # and if no images are found, it raises an errors
+            malformed_ami_ids = [ami_id for ami_id in ami_ids if not ami_id.startswith('ami-')]
+            if malformed_ami_ids:
+                raise MalformedAMIIdError(malformed_ami_ids)
 
-        # Limit by owner ids
-        if owners:
-            # support filtering by Owners=['self']
-            owners = list(map(
-                lambda o: context.get_current_user()
-                if context and o == 'self' else o,
-                owners))
-            images = [ami for ami in images if ami.owner_id in owners]
-
-        if ami_ids:
             images = [ami for ami in images if ami.id in ami_ids]
-            if len(ami_ids) > len(images):
-                unknown_ids = set(ami_ids) - set(images)
-                for id in unknown_ids:
-                    if not self.AMI_REGEX.match(id):
-                        raise MalformedAMIIdError(id)
-                raise InvalidAMIIdError(unknown_ids)
+            if len(images) == 0:
+                    raise InvalidAMIIdError(ami_ids)
+        else:
+            # Limit images by launch permissions
+            if exec_users:
+                tmp_images = []
+                for ami in images:
+                    for user_id in exec_users:
+                        if user_id in ami.launch_permission_users:
+                            tmp_images.append(ami)
+                images = tmp_images
 
-        # Generic filters
-        if filters:
-            return generic_filter(filters, images)
+            # Limit by owner ids
+            if owners:
+                # support filtering by Owners=['self']
+                owners = list(map(
+                    lambda o: context.get_current_user()
+                    if context and o == 'self' else o,
+                    owners))
+                images = [ami for ami in images if ami.owner_id in owners]
+
+            # Generic filters
+            if filters:
+                return generic_filter(filters, images)
+
         return images
 
     def deregister_image(self, ami_id):
