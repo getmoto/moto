@@ -392,7 +392,9 @@ class Instance(TaggedEC2Resource, BotoInstance):
         if ami is None:
             warnings.warn('Could not find AMI with image-id:{0}, '
                           'in the near future this will '
-                          'cause an error'.format(image_id),
+                          'cause an error.\n'
+                          'Use ec2_backend.describe_images() to'
+                          'find suitable image for your test'.format(image_id),
                           PendingDeprecationWarning)
 
         self.platform = ami.platform if ami else None
