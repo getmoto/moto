@@ -148,14 +148,14 @@ class Statistics:
         return sum(self.values)
 
     @property
-    def min(self):
+    def minimum(self):
         if 'Minimum' not in self.stats:
             return None
 
         return min(self.values)
 
     @property
-    def max(self):
+    def maximum(self):
         if 'Maximum' not in self.stats:
             return None
 
