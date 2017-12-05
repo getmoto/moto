@@ -1,18 +1,13 @@
 from __future__ import unicode_literals
 
-import boto3
-import boto
-import boto.s3
-import boto.s3.key
-from botocore.exceptions import ClientError
-from moto import mock_cloudformation, mock_s3, mock_sqs
-
 import json
-import sure  # noqa
+
+import boto3
+from botocore.exceptions import ClientError
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
-import random
+
+from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -39,7 +34,6 @@ dummy_template = {
     }
 }
 
-
 dummy_template_yaml = """---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Stack1 with yaml template
@@ -57,7 +51,6 @@ Resources:
           Value: Name tag for tests
 """
 
-
 dummy_template_yaml_with_short_form_func = """---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Stack1 with yaml template
@@ -74,7 +67,6 @@ Resources:
         - Key: Name
           Value: Name tag for tests
 """
-
 
 dummy_template_yaml_with_ref = """---
 AWSTemplateFormatVersion: 2010-09-09
@@ -131,12 +123,12 @@ dummy_output_template = {
             }
         }
     },
-    "Outputs" : {
-        "StackVPC" : {
-            "Description" : "The ID of the VPC",
-            "Value" : "VPCID",
-            "Export" : {
-                "Name" : "My VPC ID"
+    "Outputs": {
+        "StackVPC": {
+            "Description": "The ID of the VPC",
+            "Value": "VPCID",
+            "Export": {
+                "Name": "My VPC ID"
             }
         }
     }
@@ -156,7 +148,7 @@ dummy_import_template = {
 }
 
 dummy_template_json = json.dumps(dummy_template)
-dummy_update_template_json = json.dumps(dummy_template)
+dummy_update_template_json = json.dumps(dummy_update_template)
 dummy_output_template_json = json.dumps(dummy_output_template)
 dummy_import_template_json = json.dumps(dummy_import_template)
 
@@ -382,6 +374,7 @@ def test_delete_stack_from_resource():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_delete_stack_by_name():
     cf_conn = boto3.client('cloudformation', region_name='us-east-1')
     cf_conn.create_stack(
@@ -412,6 +405,7 @@ def test_describe_deleted_stack():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_describe_updated_stack():
     cf_conn = boto3.client('cloudformation', region_name='us-east-1')
     cf_conn.create_stack(
@@ -502,6 +496,7 @@ def test_stack_tags():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_stack_events():
     cf = boto3.resource('cloudformation', region_name='us-east-1')
     stack = cf.create_stack(
