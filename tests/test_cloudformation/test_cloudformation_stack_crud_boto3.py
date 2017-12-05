@@ -92,7 +92,6 @@ Resources:
           Value: !Ref TagName
 """
 
-
 dummy_update_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Parameters": {
@@ -163,6 +162,7 @@ def test_boto3_create_stack():
 
     cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
         dummy_template)
+
 
 @mock_cloudformation
 def test_boto3_create_stack_with_yaml():
@@ -273,6 +273,41 @@ def test_create_stack_from_s3_url():
 
     cf_conn.get_template(StackName="stack_from_url")[
         'TemplateBody'].should.equal(dummy_template)
+
+
+@mock_cloudformation
+@mock_s3
+@mock_ec2
+def test_update_stack_from_s3_url():
+    s3 = boto3.client('s3')
+    s3_conn = boto3.resource('s3')
+
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName="update_stack_from_url",
+        TemplateBody=dummy_template_json,
+        Tags=[{'Key': 'foo', 'Value': 'bar'}],
+    )
+
+    s3_conn.create_bucket(Bucket="foobar")
+
+    s3_conn.Object(
+        'foobar', 'template-key').put(Body=dummy_update_template_json)
+    key_url = s3.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': 'foobar',
+            'Key': 'template-key'
+        }
+    )
+
+    cf_conn.update_stack(
+        StackName="update_stack_from_url",
+        TemplateURL=key_url,
+    )
+
+    cf_conn.get_template(StackName="update_stack_from_url")[
+        'TemplateBody'].should.equal(dummy_update_template)
 
 
 @mock_cloudformation
@@ -611,6 +646,7 @@ def test_export_names_must_be_unique():
             StackName="test_stack",
             TemplateBody=dummy_output_template_json,
         )
+
 
 @mock_sqs
 @mock_cloudformation
