@@ -9,13 +9,17 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 
 from .parsing import ResourceMap, OutputMap
-from .utils import generate_stack_id, yaml_tag_constructor
+from .utils import (
+    generate_changeset_id,
+    generate_stack_id,
+    yaml_tag_constructor,
+)
 from .exceptions import ValidationError
 
 
 class FakeStack(BaseModel):
 
-    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, cross_stack_resources=None):
+    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, cross_stack_resources=None, create_change_set=False):
         self.stack_id = stack_id
         self.name = name
         self.template = template
@@ -26,8 +30,12 @@ class FakeStack(BaseModel):
         self.role_arn = role_arn
         self.tags = tags if tags else {}
         self.events = []
-        self._add_stack_event("CREATE_IN_PROGRESS",
-                              resource_status_reason="User Initiated")
+        if create_change_set:
+            self._add_stack_event("REVIEW_IN_PROGRESS",
+                                  resource_status_reason="User Initiated")
+        else:
+            self._add_stack_event("CREATE_IN_PROGRESS",
+                                  resource_status_reason="User Initiated")
 
         self.description = self.template_dict.get('Description')
         self.cross_stack_resources = cross_stack_resources or []
@@ -138,8 +146,9 @@ class CloudFormationBackend(BaseBackend):
         self.stacks = OrderedDict()
         self.deleted_stacks = {}
         self.exports = OrderedDict()
+        self.change_sets = OrderedDict()
 
-    def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None):
+    def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, create_change_set=False):
         stack_id = generate_stack_id(name)
         new_stack = FakeStack(
             stack_id=stack_id,
@@ -151,12 +160,33 @@ class CloudFormationBackend(BaseBackend):
             tags=tags,
             role_arn=role_arn,
             cross_stack_resources=self.exports,
+            create_change_set=create_change_set,
         )
         self.stacks[stack_id] = new_stack
         self._validate_export_uniqueness(new_stack)
         for export in new_stack.exports:
             self.exports[export.name] = export
         return new_stack
+
+    def create_change_set(self, stack_name, change_set_name, template, parameters, region_name, change_set_type, notification_arns=None, tags=None, role_arn=None):
+        if change_set_type == 'UPDATE':
+            stacks = self.stacks.values()
+            stack = None
+            for s in stacks:
+                if s.name == stack_name:
+                    stack = s
+            if stack is None:
+                raise ValidationError(stack_name)
+
+        else:
+            stack = self.create_stack(stack_name, template, parameters,
+                                      region_name, notification_arns, tags,
+                                      role_arn, create_change_set=True)
+        change_set_id = generate_changeset_id(change_set_name, region_name)
+        self.stacks[change_set_name] = {'Id': change_set_id,
+                                        'StackId': stack.stack_id}
+        self.change_sets[change_set_id] = stack
+        return change_set_id, stack.stack_id
 
     def describe_stacks(self, name_or_stack_id):
         stacks = self.stacks.values()
