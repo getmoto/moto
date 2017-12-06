@@ -676,7 +676,7 @@ class IAMBackend(BaseBackend):
                 "found.".format(name))
 
         self.certificates.pop(cert_id, None)
-        
+
     def create_group(self, group_name, path='/'):
         if group_name in self.groups:
             raise IAMConflictException(
