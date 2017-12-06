@@ -59,6 +59,19 @@ def test_upload_server_cert():
 
 
 @mock_iam_deprecated()
+def test_delete_server_cert():
+    conn = boto.connect_iam()
+
+    conn.upload_server_cert("certname", "certbody", "privatekey")
+    conn.get_server_certificate("certname")
+    conn.delete_server_cert("certname")
+    with assert_raises(BotoServerError):
+        conn.get_server_certificate("certname")
+    with assert_raises(BotoServerError):
+        conn.delete_server_cert("certname")
+
+
+@mock_iam_deprecated()
 @raises(BotoServerError)
 def test_get_role__should_throw__when_role_does_not_exist():
     conn = boto.connect_iam()

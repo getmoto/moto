@@ -1906,7 +1906,7 @@
 - [X] delete_role
 - [X] delete_role_policy
 - [ ] delete_saml_provider
-- [ ] delete_server_certificate
+- [X] delete_server_certificate
 - [ ] delete_service_linked_role
 - [ ] delete_service_specific_credential
 - [ ] delete_signing_certificate

@@ -663,6 +663,20 @@ class IAMBackend(BaseBackend):
             "The Server Certificate with name {0} cannot be "
             "found.".format(name))
 
+    def delete_server_certificate(self, name):
+        cert_id = None
+        for key, cert in self.certificates.items():
+            if name == cert.cert_name:
+                cert_id = key
+                break
+
+        if cert_id is None:
+            raise IAMNotFoundException(
+                "The Server Certificate with name {0} cannot be "
+                "found.".format(name))
+
+        self.certificates.pop(cert_id, None)
+        
     def create_group(self, group_name, path='/'):
         if group_name in self.groups:
             raise IAMConflictException(
