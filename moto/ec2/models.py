@@ -4,6 +4,7 @@ import copy
 import itertools
 import ipaddress
 import json
+import os
 import re
 import six
 import warnings
@@ -117,7 +118,8 @@ INSTANCE_TYPES = json.load(
     open(resource_filename(__name__, 'resources/instance_types.json'), 'r')
 )
 AMIS = json.load(
-    open(resource_filename(__name__, 'resources/amis.json'), 'r')
+    open(os.environ.get('MOTO_AMIS_PATH') or resource_filename(
+         __name__, 'resources/amis.json'), 'r')
 )
 
 
