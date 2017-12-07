@@ -123,7 +123,7 @@ class RDS2Response(BaseResponse):
             start = all_ids.index(marker) + 1
         else:
             start = 0
-        page_size = self._get_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
+        page_size = int(self._get_param('MaxRecords', 50))  # the default is 100, but using 50 to make testing easier
         instances_resp = all_instances[start:start + page_size]
         next_marker = None
         if len(all_instances) > start + page_size:
