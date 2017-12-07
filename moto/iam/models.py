@@ -119,10 +119,11 @@ class Role(BaseModel):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
+        path = properties['Path'] if 'Path' in properties else '/'
         role = iam_backend.create_role(
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
-            path=properties['Path'],
+            path=path,
         )
 
         policies = properties.get('Policies', [])

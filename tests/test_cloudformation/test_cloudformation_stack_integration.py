@@ -899,17 +899,17 @@ def test_iam_roles():
             "my-instance-profile-with-path": {
                 "Properties": {
                     "Path": "my-path",
-                    "Roles": [{"Ref": "my-role"}],
+                    "Roles": [{"Ref": "my-role-with-path"}],
                 },
                 "Type": "AWS::IAM::InstanceProfile"
             },
             "my-instance-profile-no-path": {
                 "Properties": {
-                    "Roles": [{"Ref": "my-role"}],
+                    "Roles": [{"Ref": "my-role-no-path"}],
                 },
                 "Type": "AWS::IAM::InstanceProfile"
             },
-            "my-role": {
+            "my-role-with-path": {
                 "Properties": {
                     "AssumeRolePolicyDocument": {
                         "Statement": [
@@ -967,6 +967,26 @@ def test_iam_roles():
                     ]
                 },
                 "Type": "AWS::IAM::Role"
+            },
+            "my-role-no-path": {
+                "Properties": {
+                    "AssumeRolePolicyDocument": {
+                        "Statement": [
+                            {
+                                "Action": [
+                                    "sts:AssumeRole"
+                                ],
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "Service": [
+                                        "ec2.amazonaws.com"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                },
+                "Type": "AWS::IAM::Role"
             }
         }
     }
@@ -980,11 +1000,19 @@ def test_iam_roles():
 
     iam_conn = boto.iam.connect_to_region("us-west-1")
 
-    role_result = iam_conn.list_roles()['list_roles_response'][
-        'list_roles_result']['roles'][0]
-    role = iam_conn.get_role(role_result.role_name)
-    role.role_name.should.contain("my-role")
-    role.path.should.equal("my-path")
+    role_results = iam_conn.list_roles()['list_roles_response'][
+        'list_roles_result']['roles']
+    role_name_to_id = {}
+    for role_result in role_results:
+        role = iam_conn.get_role(role_result.role_name)
+        role.role_name.should.contain("my-role")
+        if 'with-path' in role.role_name:
+            role_name_to_id['with-path'] = role.role_id
+            role.path.should.equal("my-path")
+        else:
+            role_name_to_id['no-path'] = role.role_id
+            role.role_name.should.contain('no-path')
+            role.path.should.equal('/')
 
     instance_profile_responses = iam_conn.list_instance_profiles()[
         'list_instance_profiles_response']['list_instance_profiles_result']['instance_profiles']
@@ -994,13 +1022,14 @@ def test_iam_roles():
     for instance_profile_response in instance_profile_responses:
         instance_profile = iam_conn.get_instance_profile(instance_profile_response.instance_profile_name)
         instance_profile_names.append(instance_profile.instance_profile_name)
-        instance_profile.role_id.should.equal(role.role_id)
         instance_profile.instance_profile_name.should.contain(
             "my-instance-profile")
         if "with-path" in instance_profile.instance_profile_name:
             instance_profile.path.should.equal("my-path")
+            instance_profile.role_id.should.equal(role_name_to_id['with-path'])
         else:
             instance_profile.instance_profile_name.should.contain('no-path')
+            instance_profile.role_id.should.equal(role_name_to_id['no-path'])
             instance_profile.path.should.equal('/')
 
     autoscale_conn = boto.ec2.autoscale.connect_to_region("us-west-1")
@@ -1011,11 +1040,11 @@ def test_iam_roles():
     resources = stack.describe_resources()
     instance_profile_resources = [
         resource for resource in resources if resource.resource_type == 'AWS::IAM::InstanceProfile']
-    [ip.physical_resource_id for ip in instance_profile_resources].should.equal(instance_profile_names)
+    {ip.physical_resource_id for ip in instance_profile_resources}.should.equal(set(instance_profile_names))
 
-    role_resource = [
-        resource for resource in resources if resource.resource_type == 'AWS::IAM::Role'][0]
-    role_resource.physical_resource_id.should.equal(role.role_id)
+    role_resources = [
+        resource for resource in resources if resource.resource_type == 'AWS::IAM::Role']
+    {r.physical_resource_id for r in role_resources}.should.equal(set(role_name_to_id.values()))
 
 
 @mock_ec2_deprecated()
