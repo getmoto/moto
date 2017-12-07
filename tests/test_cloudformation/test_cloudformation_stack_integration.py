@@ -891,14 +891,20 @@ def test_iam_roles():
 
             "my-launch-config": {
                 "Properties": {
-                    "IamInstanceProfile": {"Ref": "my-instance-profile"},
+                    "IamInstanceProfile": {"Ref": "my-instance-profile-with-path"},
                     "ImageId": "ami-1234abcd",
                 },
                 "Type": "AWS::AutoScaling::LaunchConfiguration"
             },
-            "my-instance-profile": {
+            "my-instance-profile-with-path": {
                 "Properties": {
                     "Path": "my-path",
+                    "Roles": [{"Ref": "my-role"}],
+                },
+                "Type": "AWS::IAM::InstanceProfile"
+            },
+            "my-instance-profile-no-path": {
+                "Properties": {
                     "Roles": [{"Ref": "my-role"}],
                 },
                 "Type": "AWS::IAM::InstanceProfile"
@@ -980,27 +986,32 @@ def test_iam_roles():
     role.role_name.should.contain("my-role")
     role.path.should.equal("my-path")
 
-    instance_profile_response = iam_conn.list_instance_profiles()[
-        'list_instance_profiles_response']
-    cfn_instance_profile = instance_profile_response[
-        'list_instance_profiles_result']['instance_profiles'][0]
-    instance_profile = iam_conn.get_instance_profile(
-        cfn_instance_profile.instance_profile_name)
-    instance_profile.instance_profile_name.should.contain(
-        "my-instance-profile")
-    instance_profile.path.should.equal("my-path")
-    instance_profile.role_id.should.equal(role.role_id)
+    instance_profile_responses = iam_conn.list_instance_profiles()[
+        'list_instance_profiles_response']['list_instance_profiles_result']['instance_profiles']
+    instance_profile_responses.should.have.length_of(2)
+    instance_profile_names = []
+
+    for instance_profile_response in instance_profile_responses:
+        instance_profile = iam_conn.get_instance_profile(instance_profile_response.instance_profile_name)
+        instance_profile_names.append(instance_profile.instance_profile_name)
+        instance_profile.role_id.should.equal(role.role_id)
+        instance_profile.instance_profile_name.should.contain(
+            "my-instance-profile")
+        if "with-path" in instance_profile.instance_profile_name:
+            instance_profile.path.should.equal("my-path")
+        else:
+            instance_profile.instance_profile_name.should.contain('no-path')
+            instance_profile.path.should.equal('/')
 
     autoscale_conn = boto.ec2.autoscale.connect_to_region("us-west-1")
     launch_config = autoscale_conn.get_all_launch_configurations()[0]
-    launch_config.instance_profile_name.should.contain("my-instance-profile")
+    launch_config.instance_profile_name.should.contain("my-instance-profile-with-path")
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    instance_profile_resource = [
-        resource for resource in resources if resource.resource_type == 'AWS::IAM::InstanceProfile'][0]
-    instance_profile_resource.physical_resource_id.should.equal(
-        instance_profile.instance_profile_name)
+    instance_profile_resources = [
+        resource for resource in resources if resource.resource_type == 'AWS::IAM::InstanceProfile']
+    [ip.physical_resource_id for ip in instance_profile_resources].should.equal(instance_profile_names)
 
     role_resource = [
         resource for resource in resources if resource.resource_type == 'AWS::IAM::Role'][0]

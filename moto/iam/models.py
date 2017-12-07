@@ -171,9 +171,10 @@ class InstanceProfile(BaseModel):
         properties = cloudformation_json['Properties']
 
         role_ids = properties['Roles']
+        path = properties['Path'] if 'Path' in properties else '/'
         return iam_backend.create_instance_profile(
             name=resource_name,
-            path=properties['Path'],
+            path=path,
             role_ids=role_ids,
         )
 
