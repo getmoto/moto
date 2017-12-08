@@ -111,16 +111,16 @@ class AWSCertificateManagerResponse(BaseResponse):
         # actual data
         try:
             certificate = base64.standard_b64decode(certificate)
-        except:
+        except Exception:
             return AWSValidationException('The certificate is not PEM-encoded or is not valid.').response()
         try:
             private_key = base64.standard_b64decode(private_key)
-        except:
+        except Exception:
             return AWSValidationException('The private key is not PEM-encoded or is not valid.').response()
         if chain is not None:
             try:
                 chain = base64.standard_b64decode(chain)
-            except:
+            except Exception:
                 return AWSValidationException('The certificate chain is not PEM-encoded or is not valid.').response()
 
         try:
