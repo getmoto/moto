@@ -265,14 +265,14 @@ class LambdaFunction(BaseModel):
     def convert(s):
         try:
             return str(s, encoding='utf-8')
-        except:
+        except Exception:
             return s
 
     @staticmethod
     def is_json(test_str):
         try:
             response = json.loads(test_str)
-        except:
+        except Exception:
             response = test_str
         return response
 
