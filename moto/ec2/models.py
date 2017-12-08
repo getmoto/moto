@@ -3722,6 +3722,7 @@ class NatGateway(object):
 class NatGatewayBackend(object):
     def __init__(self):
         self.nat_gateways = {}
+        super(NatGatewayBackend, self).__init__()
 
     def get_all_nat_gateways(self, filters):
         return self.nat_gateways.values()
