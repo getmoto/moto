@@ -509,6 +509,22 @@ class Instance(TaggedEC2Resource, BotoInstance):
             instance.add_tag(tag["Key"], tag["Value"])
         return instance
 
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        ec2_backend = ec2_backends[region_name]
+        all_instances = ec2_backend.all_instances()
+
+        # the resource_name for instances is the stack name, logical id, and random suffix separated
+        # by hyphens.  So to lookup the instances using the 'aws:cloudformation:logical-id' tag, we need to
+        # extract the logical-id from the resource_name
+        logical_id = resource_name.split('-')[1]
+
+        for instance in all_instances:
+            instance_tags = instance.get_tags()
+            for tag in instance_tags:
+                if tag['key'] == 'aws:cloudformation:logical-id' and tag['value'] == logical_id:
+                    instance.delete(region_name)
+
     @property
     def physical_resource_id(self):
         return self.id
