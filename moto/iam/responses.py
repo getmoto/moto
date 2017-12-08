@@ -271,6 +271,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(GET_SERVER_CERTIFICATE_TEMPLATE)
         return template.render(certificate=cert)
 
+    def delete_server_certificate(self):
+        cert_name = self._get_param('ServerCertificateName')
+        iam_backend.delete_server_certificate(cert_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteServerCertificate")
+
     def create_group(self):
         group_name = self._get_param('GroupName')
         path = self._get_param('Path')
