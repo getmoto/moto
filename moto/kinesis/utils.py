@@ -3,7 +3,8 @@ import base64
 from .exceptions import InvalidArgumentError
 
 
-def compose_new_shard_iterator(stream_name, shard, shard_iterator_type, starting_sequence_number):
+def compose_new_shard_iterator(stream_name, shard, shard_iterator_type, starting_sequence_number,
+                               at_timestamp):
     if shard_iterator_type == "AT_SEQUENCE_NUMBER":
         last_sequence_id = int(starting_sequence_number) - 1
     elif shard_iterator_type == "AFTER_SEQUENCE_NUMBER":
@@ -12,6 +13,8 @@ def compose_new_shard_iterator(stream_name, shard, shard_iterator_type, starting
         last_sequence_id = 0
     elif shard_iterator_type == "LATEST":
         last_sequence_id = shard.get_max_sequence_number()
+    elif shard_iterator_type == "AT_TIMESTAMP":
+        last_sequence_id = shard.get_sequence_number_at(at_timestamp)
     else:
         raise InvalidArgumentError(
             "Invalid ShardIteratorType: {0}".format(shard_iterator_type))
