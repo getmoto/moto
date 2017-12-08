@@ -4,7 +4,7 @@ import json
 
 try:
     from urllib import unquote
-except:
+except ImportError:
     from urllib.parse import unquote
 
 from moto.core.utils import amz_crc32, amzn_request_id
