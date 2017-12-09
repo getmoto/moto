@@ -603,7 +603,7 @@ class LambdaBackend(BaseBackend):
     def list_functions(self):
         return self._lambdas.all()
 
-    def send_message(self, function_name, message):
+    def send_message(self, function_name, message, subject=None):
         event = {
             "Records": [
                 {
@@ -630,7 +630,7 @@ class LambdaBackend(BaseBackend):
                         "Type": "Notification",
                         "UnsubscribeUrl": "EXAMPLE",
                         "TopicArn": "arn:aws:sns:EXAMPLE",
-                        "Subject": "TestInvoke"
+                        "Subject": subject or "TestInvoke"
                     }
                 }
             ]
