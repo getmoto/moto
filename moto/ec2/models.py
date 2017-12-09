@@ -4,6 +4,7 @@ import copy
 import itertools
 import ipaddress
 import json
+import os
 import re
 import six
 import warnings
@@ -117,7 +118,8 @@ INSTANCE_TYPES = json.load(
     open(resource_filename(__name__, 'resources/instance_types.json'), 'r')
 )
 AMIS = json.load(
-    open(resource_filename(__name__, 'resources/amis.json'), 'r')
+    open(os.environ.get('MOTO_AMIS_PATH') or resource_filename(
+         __name__, 'resources/amis.json'), 'r')
 )
 
 
@@ -392,7 +394,9 @@ class Instance(TaggedEC2Resource, BotoInstance):
         if ami is None:
             warnings.warn('Could not find AMI with image-id:{0}, '
                           'in the near future this will '
-                          'cause an error'.format(image_id),
+                          'cause an error.\n'
+                          'Use ec2_backend.describe_images() to'
+                          'find suitable image for your test'.format(image_id),
                           PendingDeprecationWarning)
 
         self.platform = ami.platform if ami else None
@@ -504,6 +508,22 @@ class Instance(TaggedEC2Resource, BotoInstance):
         for tag in properties.get("Tags", []):
             instance.add_tag(tag["Key"], tag["Value"])
         return instance
+
+    @classmethod
+    def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        ec2_backend = ec2_backends[region_name]
+        all_instances = ec2_backend.all_instances()
+
+        # the resource_name for instances is the stack name, logical id, and random suffix separated
+        # by hyphens.  So to lookup the instances using the 'aws:cloudformation:logical-id' tag, we need to
+        # extract the logical-id from the resource_name
+        logical_id = resource_name.split('-')[1]
+
+        for instance in all_instances:
+            instance_tags = instance.get_tags()
+            for tag in instance_tags:
+                if tag['key'] == 'aws:cloudformation:logical-id' and tag['value'] == logical_id:
+                    instance.delete(region_name)
 
     @property
     def physical_resource_id(self):
@@ -3702,6 +3722,7 @@ class NatGateway(object):
 class NatGatewayBackend(object):
     def __init__(self):
         self.nat_gateways = {}
+        super(NatGatewayBackend, self).__init__()
 
     def get_all_nat_gateways(self, filters):
         return self.nat_gateways.values()

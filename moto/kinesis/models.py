@@ -12,6 +12,7 @@ from hashlib import md5
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import unix_time
 from .exceptions import StreamNotFoundError, ShardNotFoundError, ResourceInUseError, \
     ResourceNotFoundError, InvalidArgumentError
 from .utils import compose_shard_iterator, compose_new_shard_iterator, decompose_shard_iterator
@@ -24,6 +25,7 @@ class Record(BaseModel):
         self.data = data
         self.sequence_number = sequence_number
         self.explicit_hash_key = explicit_hash_key
+        self.create_at = unix_time()
 
     def to_json(self):
         return {
@@ -79,6 +81,15 @@ class Shard(BaseModel):
         if self.records:
             return list(self.records.keys())[-1]
         return 0
+
+    def get_sequence_number_at(self, at_timestamp):
+        if not self.records or at_timestamp < list(self.records.values())[0].create_at:
+            return 0
+        else:
+            # find the last item in the list that was created before
+            # at_timestamp
+            r = next((r for r in reversed(self.records.values()) if r.create_at < at_timestamp), None)
+            return r.sequence_number
 
     def to_json(self):
         return {
@@ -300,13 +311,14 @@ class KinesisBackend(BaseBackend):
             return self.streams.pop(stream_name)
         raise StreamNotFoundError(stream_name)
 
-    def get_shard_iterator(self, stream_name, shard_id, shard_iterator_type, starting_sequence_number):
+    def get_shard_iterator(self, stream_name, shard_id, shard_iterator_type, starting_sequence_number,
+                           at_timestamp):
         # Validate params
         stream = self.describe_stream(stream_name)
         shard = stream.get_shard(shard_id)
 
         shard_iterator = compose_new_shard_iterator(
-            stream_name, shard, shard_iterator_type, starting_sequence_number
+            stream_name, shard, shard_iterator_type, starting_sequence_number, at_timestamp
         )
         return shard_iterator
 

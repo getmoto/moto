@@ -453,8 +453,8 @@ class ResourceMap(collections.Mapping):
                 resource_name, resource_json, self, self._region_name)
             self._parsed_resources[resource_name] = new_resource
 
-        removed_resource_nams = set(old_template) - set(new_template)
-        for resource_name in removed_resource_nams:
+        removed_resource_names = set(old_template) - set(new_template)
+        for resource_name in removed_resource_names:
             resource_json = old_template[resource_name]
             parse_and_delete_resource(
                 resource_name, resource_json, self, self._region_name)
