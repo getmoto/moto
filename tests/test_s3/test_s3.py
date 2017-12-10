@@ -1943,6 +1943,17 @@ def test_get_stream_gzipped():
     assert res == payload
 
 
+@mock_s3
+def test_duplicated_buckets():
+    s3 = boto3.client('s3', region_name='eu-west-1')
+    s3.create_bucket(Bucket='mybucket')
+
+    try:
+        s3.create_bucket(Bucket='mybucket')
+        raise RuntimeError('Should of Raised BucketAlreadyOwnedByYou')
+    except ClientError as err:
+        err.response['ResponseMetadata']['HTTPStatusCode'].should.equal(409)
+        err.response['Error']['Code'].should.equal('BucketAlreadyOwnedByYou')
 
 TEST_XML = """\
 <?xml version="1.0" encoding="UTF-8"?>

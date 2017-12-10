@@ -19,7 +19,7 @@ from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl,
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
 
-REGION_URL_REGEX = r'\.s3-(.+?)\.amazonaws\.com'
+REGION_URL_REGEX = r'\.?s3-(.+?)\.amazonaws\.com'
 DEFAULT_REGION_NAME = 'us-east-1'
 
 
@@ -412,7 +412,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
                     # us-east-1 has different behavior
                     new_bucket = self.backend.get_bucket(bucket_name)
                 else:
-                    raise
+                    template = self.response_template(S3_DUPLICATE_BUCKET_ERROR)
+                    return 409, {}, template.render(bucket=bucket_name)
 
             if 'x-amz-acl' in request.headers:
                 # TODO: Support the XML-based ACL format
@@ -1317,6 +1318,16 @@ S3_NO_CORS_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
   <Code>NoSuchCORSConfiguration</Code>
   <Message>The CORS configuration does not exist</Message>
+  <BucketName>{{ bucket_name }}</BucketName>
+  <RequestId>44425877V1D0A2F9</RequestId>
+  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
+</Error>
+"""
+
+S3_DUPLICATE_BUCKET_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>BucketAlreadyOwnedByYou</Code>
+  <Message>Your previous request to create the named bucket succeeded and you already own it.</Message>
   <BucketName>{{ bucket_name }}</BucketName>
   <RequestId>44425877V1D0A2F9</RequestId>
   <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
