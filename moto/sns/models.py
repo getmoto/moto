@@ -94,9 +94,21 @@ class Subscription(BaseModel):
             requests.post(self.endpoint, json=post_data)
         elif self.protocol == 'lambda':
             # TODO: support bad function name
-            function_name = self.endpoint.split(":")[-1]
-            region = self.arn.split(':')[3]
-            lambda_backends[region].send_message(function_name, message, subject=subject)
+            # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+            arr = self.endpoint.split(":")
+            region = arr[3]
+            qualifier = None
+            if len(arr) == 7:
+                assert arr[5] == 'function'
+                function_name = arr[-1]
+            elif len(arr) == 8:
+                assert arr[5] == 'function'
+                qualifier = arr[-1]
+                function_name = arr[-2]
+            else:
+                assert False
+
+            lambda_backends[region].send_message(function_name, message, subject=subject, qualifier=qualifier)
 
     def get_post_data(self, message, message_id, subject):
         return {
