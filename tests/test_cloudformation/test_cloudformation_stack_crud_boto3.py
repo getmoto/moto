@@ -311,6 +311,33 @@ def test_update_stack_from_s3_url():
 
 
 @mock_cloudformation
+@mock_s3
+def test_create_change_set_from_s3_url():
+    s3 = boto3.client('s3')
+    s3_conn = boto3.resource('s3')
+    bucket = s3_conn.create_bucket(Bucket="foobar")
+
+    key = s3_conn.Object(
+        'foobar', 'template-key').put(Body=dummy_template_json)
+    key_url = s3.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': 'foobar',
+            'Key': 'template-key'
+        }
+    )
+    cf_conn = boto3.client('cloudformation', region_name='us-west-1')
+    response = cf_conn.create_change_set(
+        StackName='NewStack',
+        TemplateURL=key_url,
+        ChangeSetName='NewChangeSet',
+        ChangeSetType='CREATE',
+    )
+    assert 'arn:aws:cloudformation:us-west-1:123456789:changeSet/NewChangeSet/' in response['Id']
+    assert 'arn:aws:cloudformation:us-east-1:123456789:stack/NewStack' in response['StackId']
+
+
+@mock_cloudformation
 def test_describe_stack_pagination():
     conn = boto3.client('cloudformation', region_name='us-east-1')
     for i in range(100):
