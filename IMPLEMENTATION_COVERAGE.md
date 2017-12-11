@@ -329,10 +329,10 @@
 - [ ] update_schema
 - [ ] update_typed_link_facet
 
-## cloudformation - 17% implemented
+## cloudformation - 20% implemented
 - [ ] cancel_update_stack
 - [ ] continue_update_rollback
-- [ ] create_change_set
+- [X] create_change_set
 - [X] create_stack
 - [ ] create_stack_instances
 - [ ] create_stack_set

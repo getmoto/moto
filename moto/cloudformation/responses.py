@@ -4,6 +4,7 @@ import json
 from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
+from moto.core.utils import amzn_request_id
 from moto.s3 import s3_backend
 from .models import cloudformation_backends
 from .exceptions import ValidationError
@@ -76,6 +77,46 @@ class CloudFormationResponse(BaseResponse):
         else:
             template = self.response_template(CREATE_STACK_RESPONSE_TEMPLATE)
             return template.render(stack=stack)
+
+    @amzn_request_id
+    def create_change_set(self):
+        stack_name = self._get_param('StackName')
+        change_set_name = self._get_param('ChangeSetName')
+        stack_body = self._get_param('TemplateBody')
+        template_url = self._get_param('TemplateURL')
+        role_arn = self._get_param('RoleARN')
+        update_or_create = self._get_param('ChangeSetType', 'CREATE')
+        parameters_list = self._get_list_prefix("Parameters.member")
+        tags = {tag[0]: tag[1] for tag in self._get_list_prefix("Tags.member")}
+        parameters = {param['parameter_key']: param['parameter_value']
+                      for param in parameters_list}
+        if template_url:
+            stack_body = self._get_stack_from_s3_url(template_url)
+        stack_notification_arns = self._get_multi_param(
+            'NotificationARNs.member')
+        change_set_id, stack_id = self.cloudformation_backend.create_change_set(
+            stack_name=stack_name,
+            change_set_name=change_set_name,
+            template=stack_body,
+            parameters=parameters,
+            region_name=self.region,
+            notification_arns=stack_notification_arns,
+            tags=tags,
+            role_arn=role_arn,
+            change_set_type=update_or_create,
+        )
+        if self.request_json:
+            return json.dumps({
+                'CreateChangeSetResponse': {
+                    'CreateChangeSetResult': {
+                        'Id': change_set_id,
+                        'StackId': stack_id,
+                    }
+                }
+            })
+        else:
+            template = self.response_template(CREATE_CHANGE_SET_RESPONSE_TEMPLATE)
+            return template.render(stack_id=stack_id, change_set_id=change_set_id)
 
     def describe_stacks(self):
         stack_name_or_id = None
@@ -248,6 +289,17 @@ UPDATE_STACK_RESPONSE_TEMPLATE = """<UpdateStackResponse xmlns="http://cloudform
     <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
   </ResponseMetadata>
 </UpdateStackResponse>
+"""
+
+CREATE_CHANGE_SET_RESPONSE_TEMPLATE = """<CreateStackResponse>
+  <CreateChangeSetResult>
+    <Id>{{change_set_id}}</Id>
+    <StackId>{{ stack_id }}</StackId>
+  </CreateChangeSetResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</CreateStackResponse>
 """
 
 DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
