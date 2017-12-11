@@ -338,6 +338,30 @@ def test_create_change_set_from_s3_url():
 
 
 @mock_cloudformation
+def test_execute_change_set_w_arn():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    change_set = cf_conn.create_change_set(
+        StackName='NewStack',
+        TemplateBody=dummy_template_json,
+        ChangeSetName='NewChangeSet',
+        ChangeSetType='CREATE',
+    )
+    cf_conn.execute_change_set(ChangeSetName=change_set['Id'])
+
+
+@mock_cloudformation
+def test_execute_change_set_w_name():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    change_set = cf_conn.create_change_set(
+        StackName='NewStack',
+        TemplateBody=dummy_template_json,
+        ChangeSetName='NewChangeSet',
+        ChangeSetType='CREATE',
+    )
+    cf_conn.execute_change_set(ChangeSetName='NewStack', StackName='NewStack')
+
+
+@mock_cloudformation
 def test_describe_stack_pagination():
     conn = boto3.client('cloudformation', region_name='us-east-1')
     for i in range(100):

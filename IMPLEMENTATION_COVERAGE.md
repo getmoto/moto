@@ -329,7 +329,7 @@
 - [ ] update_schema
 - [ ] update_typed_link_facet
 
-## cloudformation - 20% implemented
+## cloudformation - 23% implemented
 - [ ] cancel_update_stack
 - [ ] continue_update_rollback
 - [X] create_change_set
@@ -350,7 +350,7 @@
 - [ ] describe_stack_set_operation
 - [X] describe_stacks
 - [ ] estimate_template_cost
-- [ ] execute_change_set
+- [X] execute_change_set
 - [ ] get_stack_policy
 - [ ] get_template
 - [ ] get_template_summary
