@@ -119,11 +119,10 @@ class Role(BaseModel):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
 
-        path = properties['Path'] if 'Path' in properties else '/'
         role = iam_backend.create_role(
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
-            path=path,
+            path=properties.get('Path', '/'),
         )
 
         policies = properties.get('Policies', [])
@@ -172,10 +171,9 @@ class InstanceProfile(BaseModel):
         properties = cloudformation_json['Properties']
 
         role_ids = properties['Roles']
-        path = properties['Path'] if 'Path' in properties else '/'
         return iam_backend.create_instance_profile(
             name=resource_name,
-            path=path,
+            path=properties.get('Path', '/'),
             role_ids=role_ids,
         )
 
