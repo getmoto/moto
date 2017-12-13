@@ -1067,3 +1067,32 @@ def test_set_instance_health():
 
     instance1 = response['AutoScalingGroups'][0]['Instances'][0]
     instance1['HealthStatus'].should.equal('Unhealthy')
+
+@mock_autoscaling
+def test_asg():
+    client = boto3.client('autoscaling')
+    client.create_launch_configuration(
+        LaunchConfigurationName='lc',
+    )
+    client.create_auto_scaling_group(
+        LaunchConfigurationName='lc',
+        AutoScalingGroupName='test-asg',
+        MinSize=1,
+        MaxSize=1,
+    )
+
+    # Testing something that calls the below...
+    client.suspend_processes(
+        AutoScalingGroupName='test-asg',
+        ScalingProcesses=['Launch']
+    )
+
+    res = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test-asg']
+    )
+    launch_suspended = False
+    for proc in res['AutoScalingGroups'][0]['SuspendedProcesses']:
+        if proc.get('ProcessName') == 'Launch':
+            launch_suspended = True
+
+    assert launch_suspended is True
