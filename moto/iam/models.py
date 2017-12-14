@@ -122,7 +122,7 @@ class Role(BaseModel):
         role = iam_backend.create_role(
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
-            path=properties['Path'],
+            path=properties.get('Path', '/'),
         )
 
         policies = properties.get('Policies', [])
@@ -173,7 +173,7 @@ class InstanceProfile(BaseModel):
         role_ids = properties['Roles']
         return iam_backend.create_instance_profile(
             name=resource_name,
-            path=properties['Path'],
+            path=properties.get('Path', '/'),
             role_ids=role_ids,
         )
 
