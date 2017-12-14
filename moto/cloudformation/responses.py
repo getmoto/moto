@@ -118,6 +118,24 @@ class CloudFormationResponse(BaseResponse):
             template = self.response_template(CREATE_CHANGE_SET_RESPONSE_TEMPLATE)
             return template.render(stack_id=stack_id, change_set_id=change_set_id)
 
+    @amzn_request_id
+    def execute_change_set(self):
+        stack_name = self._get_param('StackName')
+        change_set_name = self._get_param('ChangeSetName')
+        self.cloudformation_backend.execute_change_set(
+            stack_name=stack_name,
+            change_set_name=change_set_name,
+        )
+        if self.request_json:
+            return json.dumps({
+                'ExecuteChangeSetResponse': {
+                    'ExecuteChangeSetResult': {},
+                }
+            })
+        else:
+            template = self.response_template(EXECUTE_CHANGE_SET_RESPONSE_TEMPLATE)
+            return template.render()
+
     def describe_stacks(self):
         stack_name_or_id = None
         if self._get_param('StackName'):
@@ -300,6 +318,16 @@ CREATE_CHANGE_SET_RESPONSE_TEMPLATE = """<CreateStackResponse>
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </CreateStackResponse>
+"""
+
+EXECUTE_CHANGE_SET_RESPONSE_TEMPLATE = """<ExecuteChangeSetResponse>
+  <ExecuteChangeSetResult>
+      <ExecuteChangeSetResult/>
+  </ExecuteChangeSetResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</ExecuteChangeSetResponse>
 """
 
 DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
