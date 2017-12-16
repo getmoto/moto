@@ -691,3 +691,17 @@ def test_ami_filter_by_owner_id():
     assert all(ubuntu_ids) and ubuntu_ids[0] == ubuntu_id
     # Check we actually have a subset of images
     assert len(ubuntu_ids) < len(all_ids)
+
+@mock_ec2
+def test_ami_filter_by_self():
+    client = boto3.client('ec2', region_name='us-east-1')
+
+    my_images = client.describe_images(Owners=['self'])
+    assert len(my_images) == 0
+
+    # Create a new image
+    instance = ec2.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
+    image = instance.create_image(Name='test-image')
+
+    my_images = client.describe_images(Owners=['self'])
+    assert len(my_images) == 1

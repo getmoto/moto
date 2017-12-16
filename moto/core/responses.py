@@ -108,6 +108,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
     # to extract region, use [^.]
     region_regex = re.compile(r'\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com')
     param_list_regex = re.compile(r'(.*)\.(\d+)\.')
+    access_key_regex = re.compile(r'AWS (?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])):')
     aws_service_spec = None
 
     @classmethod
@@ -177,6 +178,21 @@ class BaseResponse(_TemplateEnvironmentMixin):
         else:
             region = self.default_region
         return region
+
+    def get_current_user(self):
+        """
+        Returns the access key id used in this request as the current user id
+        """
+        if 'Authorization' in self.headers:
+            match = self.access_key_regex.search(self.headers['Authorization'])
+            if match:
+                return match.group(1)
+
+        if self.querystring.get('AWSAccessKeyId'):
+            return self.querystring.get('AWSAccessKeyId')
+        else:
+            # Should we raise an unauthorized exception instead?
+            return None
 
     def _dispatch(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

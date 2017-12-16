@@ -1032,7 +1032,6 @@ class TagBackend(object):
 class Ami(TaggedEC2Resource):
     def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
                  name=None, description=None, owner_id=None,
-
                  public=False, virtualization_type=None, architecture=None,
                  state='available', creation_date=None, platform=None,
                  image_type='machine', image_location=None, hypervisor=None,
@@ -1134,12 +1133,14 @@ class AmiBackend(object):
             ami_id = ami['ami_id']
             self.amis[ami_id] = Ami(self, **ami)
 
-    def create_image(self, instance_id, name=None, description=None, owner_id=None):
+    def create_image(self, instance_id, name=None, description=None,
+                     context=None):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
         ami = Ami(self, ami_id, instance=instance, source_ami=None,
-                  name=name, description=description, owner_id=owner_id)
+                  name=name, description=description,
+                  owner_id=context.get_current_user() if context else None)
         self.amis[ami_id] = ami
         return ami
 
@@ -1152,7 +1153,8 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(self, ami_ids=(), filters=None, exec_users=None, owners=None):
+    def describe_images(self, ami_ids=(), filters=None, exec_users=None, owners=None,
+                        context=None):
         images = self.amis.values()
 
         # Limit images by launch permissions
@@ -1166,6 +1168,11 @@ class AmiBackend(object):
 
         # Limit by owner ids
         if owners:
+            # support filtering by Owners=['self']
+            owners = map(
+                lambda o: context.get_current_user()
+                if context and o == 'self' else o,
+                owners)
             images = [ami for ami in images if ami.owner_id in owners]
 
         if ami_ids:
