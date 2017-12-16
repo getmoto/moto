@@ -347,6 +347,7 @@ class FakeBucket(BaseModel):
         self.acl = get_canned_acl('private')
         self.tags = FakeTagging()
         self.cors = []
+        self.logging = {}
 
     @property
     def location(self):
@@ -421,6 +422,40 @@ class FakeBucket(BaseModel):
     @property
     def tagging(self):
         return self.tags
+
+    def set_logging(self, logging_config, bucket_backend):
+        if not logging_config:
+            self.logging = {}
+        else:
+            from moto.s3.exceptions import InvalidTargetBucketForLogging, CrossLocationLoggingProhibitted
+            # Target bucket must exist in the same account (assuming all moto buckets are in the same account):
+            if not bucket_backend.buckets.get(logging_config["TargetBucket"]):
+                raise InvalidTargetBucketForLogging("The target bucket for logging does not exist.")
+
+            # Does the target bucket have the log-delivery WRITE and READ_ACP permissions?
+            write = read_acp = False
+            for grant in bucket_backend.buckets[logging_config["TargetBucket"]].acl.grants:
+                # Must be granted to: http://acs.amazonaws.com/groups/s3/LogDelivery
+                for grantee in grant.grantees:
+                    if grantee.uri == "http://acs.amazonaws.com/groups/s3/LogDelivery":
+                        if "WRITE" in grant.permissions or "FULL_CONTROL" in grant.permissions:
+                            write = True
+
+                        if "READ_ACP" in grant.permissions or "FULL_CONTROL" in grant.permissions:
+                            read_acp = True
+
+                        break
+
+            if not write or not read_acp:
+                raise InvalidTargetBucketForLogging("You must give the log-delivery group WRITE and READ_ACP"
+                                                    " permissions to the target bucket")
+
+            # Buckets must also exist within the same region:
+            if bucket_backend.buckets[logging_config["TargetBucket"]].region_name != self.region_name:
+                raise CrossLocationLoggingProhibitted()
+
+            # Checks pass -- set the logging config:
+            self.logging = logging_config
 
     def set_website_configuration(self, website_configuration):
         self.website_configuration = website_configuration
@@ -607,6 +642,10 @@ class S3Backend(BaseBackend):
     def put_bucket_cors(self, bucket_name, cors_rules):
         bucket = self.get_bucket(bucket_name)
         bucket.set_cors(cors_rules)
+
+    def put_bucket_logging(self, bucket_name, logging_config):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_logging(logging_config, self)
 
     def delete_bucket_cors(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
