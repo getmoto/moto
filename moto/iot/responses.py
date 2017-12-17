@@ -63,7 +63,6 @@ class IoTResponse(BaseResponse):
         thing = self.iot_backend.describe_thing(
             thing_name=thing_name,
         )
-        print(thing.to_dict(include_default_client_id=True))
         return json.dumps(thing.to_dict(include_default_client_id=True))
 
     def describe_thing_type(self):
@@ -256,3 +255,60 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name,
         )
         return json.dumps(dict(principals=principals))
+
+    def describe_thing_group(self):
+        thing_group_name = self._get_param("thingGroupName")
+        thing_group = self.iot_backend.describe_thing_group(
+            thing_group_name=thing_group_name,
+        )
+        return json.dumps(thing_group.to_dict())
+
+    def create_thing_group(self):
+        thing_group_name = self._get_param("thingGroupName")
+        parent_group_name = self._get_param("parentGroupName")
+        thing_group_properties = self._get_param("thingGroupProperties")
+        thing_group_name, thing_group_arn, thing_group_id = self.iot_backend.create_thing_group(
+            thing_group_name=thing_group_name,
+            parent_group_name=parent_group_name,
+            thing_group_properties=thing_group_properties,
+        )
+        return json.dumps(dict(
+            thingGroupName=thing_group_name,
+            thingGroupArn=thing_group_arn,
+            thingGroupId=thing_group_id)
+        )
+
+    def delete_thing_group(self):
+        thing_group_name = self._get_param("thingGroupName")
+        expected_version = self._get_param("expectedVersion")
+        self.iot_backend.delete_thing_group(
+            thing_group_name=thing_group_name,
+            expected_version=expected_version,
+        )
+        return json.dumps(dict())
+
+    def list_thing_groups(self):
+        # next_token = self._get_param("nextToken")
+        # max_results = self._get_int_param("maxResults")
+        parent_group = self._get_param("parentGroup")
+        name_prefix_filter = self._get_param("namePrefixFilter")
+        recursive = self._get_param("recursive")
+        thing_groups = self.iot_backend.list_thing_groups(
+            parent_group=parent_group,
+            name_prefix_filter=name_prefix_filter,
+            recursive=recursive,
+        )
+        next_token = None
+        rets = [{'groupName': _.thing_group_name, 'groupArn': _.arn} for _ in thing_groups]
+        return json.dumps(dict(thingGroups=rets, nextToken=next_token))
+
+    def update_thing_group(self):
+        thing_group_name = self._get_param("thingGroupName")
+        thing_group_properties = self._get_param("thingGroupProperties")
+        expected_version = self._get_param("expectedVersion")
+        version = self.iot_backend.update_thing_group(
+            thing_group_name=thing_group_name,
+            thing_group_properties=thing_group_properties,
+            expected_version=expected_version,
+        )
+        return json.dumps(dict(version=version))

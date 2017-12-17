@@ -22,3 +22,11 @@ class InvalidRequestException(IoTClientError):
             "InvalidRequestException",
             "The request is not valid."
         )
+
+
+class VersionConflictException(IoTClientError):
+    def __init__(self, name):
+        self.code = 409
+        super(VersionConflictException, self).__init__(
+            'The version for thing %s does not match the expected version.' % name
+        )

@@ -177,3 +177,97 @@ def test_principal_thing():
     res.should.have.key('things').which.should.have.length_of(0)
     res = client.list_thing_principals(thingName=thing_name)
     res.should.have.key('principals').which.should.have.length_of(0)
+
+
+@mock_iot
+def test_thing_groups():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    name = 'my-thing'
+    group_name = 'my-group-name'
+
+    # thing group
+    thing_group = client.create_thing_group(thingGroupName=group_name)
+    thing_group.should.have.key('thingGroupName').which.should.equal(group_name)
+    thing_group.should.have.key('thingGroupArn')
+
+    res = client.list_thing_groups()
+    res.should.have.key('thingGroups').which.should.have.length_of(1)
+    for thing_group in res['thingGroups']:
+        thing_group.should.have.key('groupName').which.should_not.be.none
+        thing_group.should.have.key('groupArn').which.should_not.be.none
+
+    thing_group = client.describe_thing_group(thingGroupName=group_name)
+    thing_group.should.have.key('thingGroupName').which.should.equal(group_name)
+    thing_group.should.have.key('thingGroupProperties')
+    thing_group.should.have.key('thingGroupMetadata')
+    thing_group.should.have.key('version')
+
+    # delete thing group
+    client.delete_thing_group(thingGroupName=group_name)
+    res = client.list_thing_groups()
+    res.should.have.key('thingGroups').which.should.have.length_of(0)
+
+    # props create test
+    props = {
+        'thingGroupDescription': 'my first thing group',
+        'attributePayload': {
+            'attributes': {
+                'key1': 'val01',
+                'Key02': 'VAL2'
+            }
+        }
+    }
+    thing_group = client.create_thing_group(thingGroupName=group_name, thingGroupProperties=props)
+    thing_group.should.have.key('thingGroupName').which.should.equal(group_name)
+    thing_group.should.have.key('thingGroupArn')
+
+    thing_group = client.describe_thing_group(thingGroupName=group_name)
+    thing_group.should.have.key('thingGroupProperties')\
+                           .which.should.have.key('attributePayload')\
+                           .which.should.have.key('attributes')
+    res_props = thing_group['thingGroupProperties']['attributePayload']['attributes']
+    res_props.should.have.key('key1').which.should.equal('val01')
+    res_props.should.have.key('Key02').which.should.equal('VAL2')
+
+    # props update test with merge
+    new_props = {
+        'attributePayload': {
+            'attributes': {
+                'k3': 'v3'
+            },
+            'merge': True
+        }
+    }
+    client.update_thing_group(
+        thingGroupName=group_name,
+        thingGroupProperties=new_props
+    )
+    thing_group = client.describe_thing_group(thingGroupName=group_name)
+    thing_group.should.have.key('thingGroupProperties')\
+                           .which.should.have.key('attributePayload')\
+                           .which.should.have.key('attributes')
+    res_props = thing_group['thingGroupProperties']['attributePayload']['attributes']
+    res_props.should.have.key('key1').which.should.equal('val01')
+    res_props.should.have.key('Key02').which.should.equal('VAL2')
+
+    res_props.should.have.key('k3').which.should.equal('v3')
+
+    # props update test
+    new_props = {
+        'attributePayload': {
+            'attributes': {
+                'k4': 'v4'
+            }
+        }
+    }
+    client.update_thing_group(
+        thingGroupName=group_name,
+        thingGroupProperties=new_props
+    )
+    thing_group = client.describe_thing_group(thingGroupName=group_name)
+    thing_group.should.have.key('thingGroupProperties')\
+                           .which.should.have.key('attributePayload')\
+                           .which.should.have.key('attributes')
+    res_props = thing_group['thingGroupProperties']['attributePayload']['attributes']
+    res_props.should.have.key('k4').which.should.equal('v4')
+    res_props.should_not.have.key('key1')

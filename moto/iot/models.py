@@ -9,7 +9,8 @@ from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
 from .exceptions import (
     ResourceNotFoundException,
-    InvalidRequestException
+    InvalidRequestException,
+    VersionConflictException
 )
 
 
@@ -44,6 +45,7 @@ class FakeThingType(BaseModel):
         self.region_name = region_name
         self.thing_type_name = thing_type_name
         self.thing_type_properties = thing_type_properties
+        self.thing_type_id = str(uuid.uuid4())  # I don't know the rule of id
         t = time.time()
         self.metadata = {
             'deprecated': False,
@@ -54,8 +56,33 @@ class FakeThingType(BaseModel):
     def to_dict(self):
         return {
             'thingTypeName': self.thing_type_name,
+            'thingTypeId': self.thing_type_id,
             'thingTypeProperties': self.thing_type_properties,
             'thingTypeMetadata': self.metadata
+        }
+
+
+class FakeThingGroup(BaseModel):
+    def __init__(self, thing_group_name, parent_group_name, thing_group_properties, region_name):
+        self.region_name = region_name
+        self.thing_group_name = thing_group_name
+        self.thing_group_id = str(uuid.uuid4())  # I don't know the rule of id
+        self.version = 1  # TODO: tmp
+        self.parent_group_name = parent_group_name
+        self.thing_group_properties = thing_group_properties or {}
+        t = time.time()
+        self.metadata = {
+            'creationData': int(t * 1000) / 1000.0
+        }
+        self.arn = 'arn:aws:iot:%s:1:thinggroup/%s' % (self.region_name, thing_group_name)
+
+    def to_dict(self):
+        return {
+            'thingGroupName': self.thing_group_name,
+            'thingGroupId': self.thing_group_id,
+            'version': self.version,
+            'thingGroupProperties': self.thing_group_properties,
+            'thingGroupMetadata': self.metadata
         }
 
 
@@ -137,6 +164,7 @@ class IoTBackend(BaseBackend):
         self.region_name = region_name
         self.things = OrderedDict()
         self.thing_types = OrderedDict()
+        self.thing_groups = OrderedDict()
         self.certificates = OrderedDict()
         self.policies = OrderedDict()
         self.principal_policies = OrderedDict()
@@ -358,6 +386,42 @@ class IoTBackend(BaseBackend):
     def list_thing_principals(self, thing_name):
         principals = [k[0] for k, v in self.principal_things.items() if k[1] == thing_name]
         return principals
+
+    def describe_thing_group(self, thing_group_name):
+        thing_groups = [_ for _ in self.thing_groups.values() if _.thing_group_name == thing_group_name]
+        if len(thing_groups) == 0:
+            raise ResourceNotFoundException()
+        return thing_groups[0]
+
+    def create_thing_group(self, thing_group_name, parent_group_name, thing_group_properties):
+        thing_group = FakeThingGroup(thing_group_name, parent_group_name, thing_group_properties, self.region_name)
+        self.thing_groups[thing_group.arn] = thing_group
+        return thing_group.thing_group_name, thing_group.arn, thing_group.thing_group_id
+
+    def delete_thing_group(self, thing_group_name, expected_version):
+        thing_group = self.describe_thing_group(thing_group_name)
+        del self.thing_groups[thing_group.arn]
+
+    def list_thing_groups(self, parent_group, name_prefix_filter, recursive):
+        thing_groups = self.thing_groups.values()
+        return thing_groups
+
+    def update_thing_group(self, thing_group_name, thing_group_properties, expected_version):
+        thing_group = self.describe_thing_group(thing_group_name)
+        if expected_version and expected_version != thing_group.version:
+            raise VersionConflictException(thing_group_name)
+        attribute_payload = thing_group_properties.get('attributePayload', None)
+        if attribute_payload is not None and 'attributes' in attribute_payload:
+            do_merge = attribute_payload.get('merge', False)
+            attributes = attribute_payload['attributes']
+            if not do_merge:
+                thing_group.thing_group_properties['attributePayload']['attributes'] = attributes
+            else:
+                thing_group.thing_group_properties['attributePayload']['attributes'].update(attributes)
+        elif attribute_payload is not None and 'attributes' not in attribute_payload:
+            thing_group.attributes = {}
+        thing_group.version = thing_group.version + 1
+        return thing_group.version
 
 
 available_regions = boto3.session.Session().get_available_regions("iot")
