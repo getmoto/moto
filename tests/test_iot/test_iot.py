@@ -271,3 +271,98 @@ def test_thing_groups():
     res_props = thing_group['thingGroupProperties']['attributePayload']['attributes']
     res_props.should.have.key('k4').which.should.equal('v4')
     res_props.should_not.have.key('key1')
+
+
+@mock_iot
+def test_thing_group_relations():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    name = 'my-thing'
+    group_name = 'my-group-name'
+
+    # thing group
+    thing_group = client.create_thing_group(thingGroupName=group_name)
+    thing_group.should.have.key('thingGroupName').which.should.equal(group_name)
+    thing_group.should.have.key('thingGroupArn')
+
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    # add in 4 way
+    client.add_thing_to_thing_group(
+        thingGroupName=group_name,
+        thingName=name
+    )
+    client.add_thing_to_thing_group(
+        thingGroupArn=thing_group['thingGroupArn'],
+        thingArn=thing['thingArn']
+    )
+    client.add_thing_to_thing_group(
+        thingGroupName=group_name,
+        thingArn=thing['thingArn']
+    )
+    client.add_thing_to_thing_group(
+        thingGroupArn=thing_group['thingGroupArn'],
+        thingName=name
+    )
+
+    things = client.list_things_in_thing_group(
+        thingGroupName=group_name
+    )
+    things.should.have.key('things')
+    things['things'].should.have.length_of(1)
+
+    thing_groups = client.list_thing_groups_for_thing(
+        thingName=name
+    )
+    thing_groups.should.have.key('thingGroups')
+    thing_groups['thingGroups'].should.have.length_of(1)
+
+    # remove in 4 way
+    client.remove_thing_from_thing_group(
+        thingGroupName=group_name,
+        thingName=name
+    )
+    client.remove_thing_from_thing_group(
+        thingGroupArn=thing_group['thingGroupArn'],
+        thingArn=thing['thingArn']
+    )
+    client.remove_thing_from_thing_group(
+        thingGroupName=group_name,
+        thingArn=thing['thingArn']
+    )
+    client.remove_thing_from_thing_group(
+        thingGroupArn=thing_group['thingGroupArn'],
+        thingName=name
+    )
+    things = client.list_things_in_thing_group(
+        thingGroupName=group_name
+    )
+    things.should.have.key('things')
+    things['things'].should.have.length_of(0)
+
+    # update thing group for thing
+    client.update_thing_groups_for_thing(
+        thingName=name,
+        thingGroupsToAdd=[
+            group_name
+        ]
+    )
+    things = client.list_things_in_thing_group(
+        thingGroupName=group_name
+    )
+    things.should.have.key('things')
+    things['things'].should.have.length_of(1)
+
+    client.update_thing_groups_for_thing(
+        thingName=name,
+        thingGroupsToRemove=[
+            group_name
+        ]
+    )
+    things = client.list_things_in_thing_group(
+        thingGroupName=group_name
+    )
+    things.should.have.key('things')
+    things['things'].should.have.length_of(0)

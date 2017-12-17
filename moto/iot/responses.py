@@ -312,3 +312,66 @@ class IoTResponse(BaseResponse):
             expected_version=expected_version,
         )
         return json.dumps(dict(version=version))
+
+    def add_thing_to_thing_group(self):
+        thing_group_name = self._get_param("thingGroupName")
+        thing_group_arn = self._get_param("thingGroupArn")
+        thing_name = self._get_param("thingName")
+        thing_arn = self._get_param("thingArn")
+        self.iot_backend.add_thing_to_thing_group(
+            thing_group_name=thing_group_name,
+            thing_group_arn=thing_group_arn,
+            thing_name=thing_name,
+            thing_arn=thing_arn,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
+
+    def remove_thing_from_thing_group(self):
+        thing_group_name = self._get_param("thingGroupName")
+        thing_group_arn = self._get_param("thingGroupArn")
+        thing_name = self._get_param("thingName")
+        thing_arn = self._get_param("thingArn")
+        self.iot_backend.remove_thing_from_thing_group(
+            thing_group_name=thing_group_name,
+            thing_group_arn=thing_group_arn,
+            thing_name=thing_name,
+            thing_arn=thing_arn,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
+
+    def list_things_in_thing_group(self):
+        thing_group_name = self._get_param("thingGroupName")
+        recursive = self._get_param("recursive")
+        # next_token = self._get_param("nextToken")
+        # max_results = self._get_int_param("maxResults")
+        things = self.iot_backend.list_things_in_thing_group(
+            thing_group_name=thing_group_name,
+            recursive=recursive,
+        )
+        next_token = None
+        thing_names = [_.thing_name for _ in things]
+        return json.dumps(dict(things=thing_names, nextToken=next_token))
+
+    def list_thing_groups_for_thing(self):
+        thing_name = self._get_param("thingName")
+        # next_token = self._get_param("nextToken")
+        # max_results = self._get_int_param("maxResults")
+        thing_groups = self.iot_backend.list_thing_groups_for_thing(
+            thing_name=thing_name
+        )
+        next_token = None
+        return json.dumps(dict(thingGroups=thing_groups, nextToken=next_token))
+
+    def update_thing_groups_for_thing(self):
+        thing_name = self._get_param("thingName")
+        thing_groups_to_add = self._get_param("thingGroupsToAdd") or []
+        thing_groups_to_remove = self._get_param("thingGroupsToRemove") or []
+        self.iot_backend.update_thing_groups_for_thing(
+            thing_name=thing_name,
+            thing_groups_to_add=thing_groups_to_add,
+            thing_groups_to_remove=thing_groups_to_remove,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
