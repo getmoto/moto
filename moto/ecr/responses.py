@@ -89,9 +89,17 @@ class ECRResponse(BaseResponse):
                 'ECR.batch_delete_image is not yet implemented')
 
     def batch_get_image(self):
-        if self.is_not_dryrun('BatchGetImage'):
-            raise NotImplementedError(
-                'ECR.batch_get_image is not yet implemented')
+        repository_str = self._get_param('repositoryName')
+        registry_id = self._get_param('registryId')
+        image_ids = self._get_param('imageIds')
+        accepted_media_types = self._get_param('acceptedMediaTypes')
+
+        images = self.ecr_backend.batch_get_image(repository_str, registry_id, image_ids, accepted_media_types)
+
+        return json.dumps({
+            'images': [image.response_describe_object for image in images],
+            'failures': []
+        })
 
     def can_paginate(self):
         if self.is_not_dryrun('CanPaginate'):

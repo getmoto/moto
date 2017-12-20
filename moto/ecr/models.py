@@ -245,6 +245,38 @@ class ECRBackend(BaseBackend):
         repository.images.append(image)
         return image
 
+    def batch_get_image(self, repository_name, registry_id=None, image_ids=None, accepted_mdeia_types=None):
+        if repository_name in self.repositories:
+            repository = self.repositories[repository_name]
+        else:
+            raise RepositoryNotFoundException(repository_name, registry_id or DEFAULT_REGISTRY_ID)
+
+        if image_ids:
+            response = set()
+            for image_id in image_ids:
+                found = False
+                for image in repository.images:
+                    if (('imageDigest' in image_id and image.get_image_digest() == image_id['imageDigest']) or
+                            ('imageTag' in image_id and image.image_tag == image_id['imageTag'])):
+                        found = True
+                        response.add(image)
+                if not found:
+                    image_id_representation = "{imageDigest:'%s', imageTag:'%s'}" % (
+                        image_id.get('imageDigest', 'null'),
+                        image_id.get('imageTag', 'null'),
+                    )
+                    raise ImageNotFoundException(
+                        image_id=image_id_representation,
+                        repository_name=repository_name,
+                        registry_id=registry_id or DEFAULT_REGISTRY_ID)
+
+        else:
+            response = []
+            for image in repository.images:
+                response.append(image)
+
+        return response
+
 
 ecr_backends = {}
 for region, ec2_backend in ec2_backends.items():
