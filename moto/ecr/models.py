@@ -145,6 +145,17 @@ class Image(BaseObject):
         response_object['imagePushedAt'] = '2017-05-09'
         return response_object
 
+    @property
+    def response_batch_get_image(self):
+        response_object = {}
+        response_object['imageId'] = {}
+        response_object['imageId']['imageTag'] = self.image_tag
+        response_object['imageId']['imageDigest'] = self.get_image_digest()
+        response_object['imageManifest'] = self.image_manifest
+        response_object['repositoryName'] = self.repository
+        response_object['registryId'] = self.registry_id
+        return response_object
+
 
 class ECRBackend(BaseBackend):
 
