@@ -445,3 +445,51 @@ def test_get_authorization_token_explicit_regions():
 
         }
     ])
+
+
+@mock_ecr
+def test_batch_get_image():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='latest'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='v1'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='v2'
+    )
+
+    response = client.batch_get_image(
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageTag': 'v2'
+            },
+        ],
+    )
+
+    type(response['images']).should.be(list)
+    len(response['images']).should.be(1)
+
+    response['images'][0]['imageManifest'].should.contain("vnd.docker.distribution.manifest.v2+json")
+    response['images'][0]['registryId'].should.equal("012345678910")
+    response['images'][0]['repositoryName'].should.equal("test_repository")
+
+    response['images'][0]['imageId']['imageTag'].should.equal("v2")
+    response['images'][0]['imageId']['imageDigest'].should.contain("sha")
+
+    type(response['failures']).should.be(list)
+    len(response['failures']).should.be(0)

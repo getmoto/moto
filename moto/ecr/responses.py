@@ -97,7 +97,7 @@ class ECRResponse(BaseResponse):
         images = self.ecr_backend.batch_get_image(repository_str, registry_id, image_ids, accepted_media_types)
 
         return json.dumps({
-            'images': [image.response_describe_object for image in images],
+            'images': [image.response_object for image in images],
             'failures': []
         })
 
