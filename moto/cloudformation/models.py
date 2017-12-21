@@ -107,6 +107,7 @@ class FakeStack(BaseModel):
     def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.template = template
+        self._parse_template()
         self.resource_map.update(self.template_dict, parameters)
         self.output_map = self._create_output_map()
         self._add_stack_event("UPDATE_COMPLETE")
