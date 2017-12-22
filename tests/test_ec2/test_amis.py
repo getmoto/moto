@@ -41,6 +41,14 @@ def test_ami_create_and_delete():
     image.kernel_id.should.equal(instance.kernel)
     image.platform.should.equal(instance.platform)
     image.creationDate.should_not.be.none
+
+    # image properties should have sane values
+    image.virtualization_type.should_not.be.none
+    image.architecture.should_not.be.none
+    image.root_device_name.should.contain("/dev")
+    image.root_device_type.should_not.be.none
+    image.state.should.be.within(['available', 'pending', 'failed'])
+
     instance.terminate()
 
     # Validate auto-created volume and snapshot

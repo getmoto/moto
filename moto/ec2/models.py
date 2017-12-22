@@ -1033,29 +1033,28 @@ class TagBackend(object):
 class Ami(TaggedEC2Resource):
     def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
                  name=None, description=None, owner_id=None,
-
                  public=False, virtualization_type=None, architecture=None,
-                 state='available', creation_date=None, platform=None,
-                 image_type='machine', image_location=None, hypervisor=None,
-                 root_device_type=None, root_device_name=None, sriov='simple',
+                 state=None, creation_date=None, platform=None,
+                 image_type=None, image_location=None, hypervisor=None,
+                 root_device_type=None, root_device_name=None, sriov=None,
                  region_name='us-east-1a'
                  ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
-        self.state = state
+        self.state = state or 'available'
         self.name = name
-        self.image_type = image_type
-        self.image_location = image_location
+        self.image_type = image_type or 'machine'
+        self.image_location = image_location or "amazon/getting-started"
         self.owner_id = owner_id
         self.description = description
-        self.virtualization_type = virtualization_type
-        self.architecture = architecture
+        self.virtualization_type = virtualization_type or "hvm"
+        self.architecture = architecture or "Z"
         self.kernel_id = None
         self.platform = platform
-        self.hypervisor = hypervisor
-        self.root_device_name = root_device_name
-        self.root_device_type = root_device_type
-        self.sriov = sriov
+        self.hypervisor = hypervisor or "xen"
+        self.root_device_name = root_device_name or "/dev/sda1"
+        self.root_device_type = root_device_type or "ebs"
+        self.sriov = sriov or 'simple'
         self.creation_date = utc_date_and_time() if creation_date is None else creation_date
 
         if instance:
