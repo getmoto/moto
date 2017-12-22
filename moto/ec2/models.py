@@ -48,6 +48,7 @@ from .exceptions import (
     InvalidRouteError,
     InvalidInstanceIdError,
     InvalidAMIIdError,
+    MalformedAMIIdError,
     InvalidAMIAttributeItemValueError,
     InvalidSnapshotIdError,
     InvalidVolumeIdError,
@@ -1122,6 +1123,9 @@ class Ami(TaggedEC2Resource):
 
 
 class AmiBackend(object):
+
+    AMI_REGEX = re.compile("ami-[a-z0-9]+")
+
     def __init__(self):
         self.amis = {}
 
@@ -1170,6 +1174,12 @@ class AmiBackend(object):
 
         if ami_ids:
             images = [ami for ami in images if ami.id in ami_ids]
+            if len(ami_ids) > len(images):
+                unknown_ids = set(ami_ids) - set(images)
+                for id in unknown_ids:
+                    if not self.AMI_REGEX.match(id):
+                        raise MalformedAMIIdError(id)
+                raise InvalidAMIIdError(unknown_ids)
 
         # Generic filters
         if filters:
