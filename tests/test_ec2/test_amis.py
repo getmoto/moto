@@ -8,6 +8,7 @@ import boto3
 import boto.ec2
 import boto3
 from boto.exception import EC2ResponseError, EC2ResponseError
+from botocore.exceptions import ClientError
 
 import sure  # noqa
 
@@ -664,6 +665,19 @@ def test_ami_attribute_error_cases():
     cm.exception.code.should.equal('InvalidAMIID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_ami_describe_non_existent():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    # Valid pattern but non-existent id
+    img = ec2.Image('ami-abcd1234')
+    with assert_raises(ClientError):
+        img.load()
+    # Invalid ami pattern
+    img = ec2.Image('not_an_ami_id')
+    with assert_raises(ClientError):
+        img.load()
 
 
 @mock_ec2
