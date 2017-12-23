@@ -3972,7 +3972,7 @@
 - [ ] refresh_trusted_advisor_check
 - [ ] resolve_case
 
-## swf - 54% implemented
+## swf - 58% implemented
 - [ ] count_closed_workflow_executions
 - [ ] count_open_workflow_executions
 - [X] count_pending_activity_tasks
@@ -4001,7 +4001,7 @@
 - [X] respond_activity_task_completed
 - [X] respond_activity_task_failed
 - [X] respond_decision_task_completed
-- [ ] signal_workflow_execution
+- [X] signal_workflow_execution
 - [X] start_workflow_execution
 - [X] terminate_workflow_execution
 
