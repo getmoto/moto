@@ -21,7 +21,7 @@ from .history_event import HistoryEvent  # flake8: noqa
 from .timeout import Timeout  # flake8: noqa
 from .workflow_type import WorkflowType  # flake8: noqa
 from .workflow_execution import WorkflowExecution  # flake8: noqa
-
+from time import sleep
 
 KNOWN_SWF_TYPES = {
     "activity": ActivityType,
@@ -198,6 +198,9 @@ class SWFBackend(BaseBackend):
             wfe.start_decision_task(task.task_token, identity=identity)
             return task
         else:
+            # Sleeping here will prevent clients that rely on the timeout from
+            # entering in a busy waiting loop.
+            sleep(1)
             return None
 
     def count_pending_decision_tasks(self, domain_name, task_list):
@@ -293,6 +296,9 @@ class SWFBackend(BaseBackend):
             wfe.start_activity_task(task.task_token, identity=identity)
             return task
         else:
+            # Sleeping here will prevent clients that rely on the timeout from
+            # entering in a busy waiting loop.
+            sleep(1)
             return None
 
     def count_pending_activity_tasks(self, domain_name, task_list):
@@ -378,6 +384,14 @@ class SWFBackend(BaseBackend):
         activity_task.reset_heartbeat_clock()
         if details:
             activity_task.details = details
+
+    def signal_workflow_execution(self, domain_name, signal_name, workflow_id, input=None, run_id=None):
+        # process timeouts on all objects
+        self._process_timeouts()
+        domain = self._get_domain(domain_name)
+        wfe = domain.get_workflow_execution(
+            workflow_id, run_id=run_id, raise_if_closed=True)
+        wfe.signal(signal_name, input)
 
 
 swf_backends = {}

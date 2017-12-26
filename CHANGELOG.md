@@ -3,6 +3,10 @@ Moto Changelog
 
 Latest
 ------
+    * Implemented signal_workflow_execution for SWF
+    * Wired SWF backend to the moto server
+    * Fixed incorrect handling of task list parameter on start_workflow_execution
+    
 1.1.25
 -----
 
