@@ -108,7 +108,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
     # to extract region, use [^.]
     region_regex = re.compile(r'\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com')
     param_list_regex = re.compile(r'(.*)\.(\d+)\.')
-    access_key_regex = re.compile(r'AWS (?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])):')
+    access_key_regex = re.compile(r'AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]')
     aws_service_spec = None
 
     @classmethod
