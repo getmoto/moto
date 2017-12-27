@@ -171,7 +171,6 @@ class FakeAutoScalingGroup(BaseModel):
             launch_config_name]
         self.launch_config_name = launch_config_name
 
-
         self.default_cooldown = default_cooldown if default_cooldown else DEFAULT_COOLDOWN
         self.health_check_period = health_check_period
         self.health_check_type = health_check_type if health_check_type else "EC2"
