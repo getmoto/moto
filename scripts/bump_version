@@ -17,7 +17,7 @@ main() {
 
   git checkout -b version-${version}
   # Commit the new version
-  git commit setup.py -m "bumping to version ${version}"
+  git commit setup.py moto/__init__.py -m "bumping to version ${version}"
   # Commit an updated IMPLEMENTATION_COVERAGE.md
   make implementation_coverage || true
   # Open a PR
