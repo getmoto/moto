@@ -885,7 +885,7 @@ def test_query_non_hash_range_key():
 
 @mock_dynamodb2_deprecated
 def test_reverse_query():
-    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+    boto.dynamodb2.layer1.DynamoDBConnection()
 
     table = Table.create('messages', schema=[
         HashKey('subject'),

@@ -176,7 +176,7 @@ def test_publish_to_http():
 
     response = conn.publish(
         TopicArn=topic_arn, Message="my message", Subject="my subject")
-    message_id = response['MessageId']
+    response['MessageId']
 
 
 @mock_sqs

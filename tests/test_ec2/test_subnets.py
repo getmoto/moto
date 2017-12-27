@@ -160,7 +160,7 @@ def test_modify_subnet_attribute_validation():
 
 @mock_ec2_deprecated
 def test_subnet_get_by_id():
-    ec2 = boto.ec2.connect_to_region('us-west-1')
+    boto.ec2.connect_to_region('us-west-1')
     conn = boto.vpc.connect_to_region('us-west-1')
     vpcA = conn.create_vpc("10.0.0.0/16")
     subnetA = conn.create_subnet(

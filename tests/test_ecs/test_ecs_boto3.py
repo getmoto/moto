@@ -1796,7 +1796,7 @@ def test_default_container_instance_attributes():
     response['containerInstance'][
         'ec2InstanceId'].should.equal(test_instance.id)
     full_arn = response['containerInstance']['containerInstanceArn']
-    container_instance_id = full_arn.rsplit('/', 1)[-1]
+    full_arn.rsplit('/', 1)[-1]
 
     default_attributes = response['containerInstance']['attributes']
     assert len(default_attributes) == 4

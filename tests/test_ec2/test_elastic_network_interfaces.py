@@ -160,7 +160,7 @@ def test_elastic_network_interfaces_filtering():
         subnet.id, groups=[security_group1.id, security_group2.id])
     eni2 = conn.create_network_interface(
         subnet.id, groups=[security_group1.id])
-    eni3 = conn.create_network_interface(subnet.id)
+    conn.create_network_interface(subnet.id)
 
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(3)

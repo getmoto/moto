@@ -45,8 +45,8 @@ def test_create_stream():
     stream_description = response['DeliveryStreamDescription']
 
     # Sure and Freezegun don't play nicely together
-    _ = stream_description.pop('CreateTimestamp')
-    _ = stream_description.pop('LastUpdateTimestamp')
+    stream_description.pop('CreateTimestamp')
+    stream_description.pop('LastUpdateTimestamp')
 
     stream_description.should.equal({
         'DeliveryStreamName': 'stream1',
@@ -104,8 +104,8 @@ def test_create_stream_without_redshift():
     stream_description = response['DeliveryStreamDescription']
 
     # Sure and Freezegun don't play nicely together
-    _ = stream_description.pop('CreateTimestamp')
-    _ = stream_description.pop('LastUpdateTimestamp')
+    stream_description.pop('CreateTimestamp')
+    stream_description.pop('LastUpdateTimestamp')
 
     stream_description.should.equal({
         'DeliveryStreamName': 'stream1',

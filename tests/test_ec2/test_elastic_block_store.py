@@ -300,7 +300,7 @@ def test_create_encrypted_snapshot():
 def test_filter_snapshot_by_id():
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume1 = conn.create_volume(36, "us-east-1a")
-    snap1 = volume1.create_snapshot('a test snapshot 1')
+    volume1.create_snapshot('a test snapshot 1')
     volume2 = conn.create_volume(42, 'us-east-1a')
     snap2 = volume2.create_snapshot('a test snapshot 2')
     volume3 = conn.create_volume(84, 'us-east-1a')

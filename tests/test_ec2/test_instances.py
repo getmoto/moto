@@ -393,7 +393,7 @@ def test_get_instances_filtering_by_vpc_id():
 def test_get_instances_filtering_by_architecture():
     conn = boto.connect_ec2()
     reservation = conn.run_instances('ami-1234abcd', min_count=1)
-    instance = reservation.instances
+    reservation.instances
 
     reservations = conn.get_all_instances(filters={'architecture': 'x86_64'})
     # get_all_instances should return the instance

@@ -312,7 +312,7 @@ def test_eip_associate_invalid_args():
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
-    eip = conn.allocate_address()
+    conn.allocate_address()
 
     with assert_raises(EC2ResponseError) as cm:
         conn.associate_address(instance_id=instance.id)

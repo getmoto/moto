@@ -8,7 +8,7 @@ from moto import mock_ec2_deprecated
 @mock_ec2_deprecated
 def test_default_network_acl_created_with_vpc():
     conn = boto.connect_vpc('the_key', 'the secret')
-    vpc = conn.create_vpc("10.0.0.0/16")
+    conn.create_vpc("10.0.0.0/16")
     all_network_acls = conn.get_all_network_acls()
     all_network_acls.should.have.length_of(2)
 
@@ -17,7 +17,7 @@ def test_default_network_acl_created_with_vpc():
 def test_network_acls():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.create_vpc("10.0.0.0/16")
-    network_acl = conn.create_network_acl(vpc.id)
+    conn.create_network_acl(vpc.id)
     all_network_acls = conn.get_all_network_acls()
     all_network_acls.should.have.length_of(3)
 
@@ -141,7 +141,7 @@ def test_associate_new_network_acl_with_subnet():
 def test_delete_network_acl():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    conn.create_subnet(vpc.id, "10.0.0.0/18")
     network_acl = conn.create_network_acl(vpc.id)
 
     all_network_acls = conn.get_all_network_acls()

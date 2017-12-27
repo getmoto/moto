@@ -157,7 +157,7 @@ def test_igw_detach_unattached():
 def test_igw_delete():
     """ internet gateway delete"""
     conn = boto.connect_vpc('the_key', 'the_secret')
-    vpc = conn.create_vpc(VPC_CIDR)
+    conn.create_vpc(VPC_CIDR)
     conn.get_all_internet_gateways().should.have.length_of(0)
     igw = conn.create_internet_gateway()
     conn.get_all_internet_gateways().should.have.length_of(1)
@@ -214,7 +214,7 @@ def test_igw_filter_by_vpc_id():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
     igw1 = conn.create_internet_gateway()
-    igw2 = conn.create_internet_gateway()
+    conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw1.id, vpc.id)
 
@@ -230,7 +230,7 @@ def test_igw_filter_by_tags():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
     igw1 = conn.create_internet_gateway()
-    igw2 = conn.create_internet_gateway()
+    conn.create_internet_gateway()
     igw1.add_tag("tests", "yes")
 
     result = conn.get_all_internet_gateways(filters={"tag:tests": "yes"})
@@ -244,7 +244,7 @@ def test_igw_filter_by_internet_gateway_id():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
     igw1 = conn.create_internet_gateway()
-    igw2 = conn.create_internet_gateway()
+    conn.create_internet_gateway()
 
     result = conn.get_all_internet_gateways(
         filters={"internet-gateway-id": igw1.id})
@@ -258,7 +258,7 @@ def test_igw_filter_by_attachment_state():
     conn = boto.connect_vpc('the_key', 'the_secret')
 
     igw1 = conn.create_internet_gateway()
-    igw2 = conn.create_internet_gateway()
+    conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw1.id, vpc.id)
 

@@ -434,7 +434,7 @@ def test_autoscaling_group_with_elb():
     elb_conn = boto.connect_elb()
     zones = ['us-east-1a', 'us-east-1b']
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
-    lb = elb_conn.create_load_balancer('my-lb', zones, ports)
+    elb_conn.create_load_balancer('my-lb', zones, ports)
     instances_health = elb_conn.describe_instance_health('my-lb')
     instances_health.should.be.empty
 

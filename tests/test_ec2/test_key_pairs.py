@@ -136,7 +136,7 @@ def test_key_pairs_import_exist():
 def test_key_pair_filters():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    _ = conn.create_key_pair('kpfltr1')
+    conn.create_key_pair('kpfltr1')
     kp2 = conn.create_key_pair('kpfltr2')
     kp3 = conn.create_key_pair('kpfltr3')
 
