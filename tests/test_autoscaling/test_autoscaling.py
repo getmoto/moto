@@ -546,7 +546,6 @@ def test_describe_load_balancers():
     list(response['LoadBalancers']).should.have.length_of(1)
     response['LoadBalancers'][0]['LoadBalancerName'].should.equal('my-lb')
 
-
 @mock_autoscaling
 @mock_elb
 def test_create_elb_and_autoscaling_group_no_relationship():
