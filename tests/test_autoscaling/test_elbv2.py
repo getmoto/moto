@@ -3,22 +3,21 @@ import boto3
 
 from moto import mock_autoscaling, mock_ec2,  mock_elbv2
 
+from utils import setup_networking
+
 @mock_elbv2
-@mock_ec2
 @mock_autoscaling
 def test_attach_detach_target_groups():
+    mocked_networking = setup_networking()
     INSTANCE_COUNT = 2
     client = boto3.client('autoscaling', region_name='us-east-1')
     elbv2_client = boto3.client('elbv2', region_name='us-east-1')
-    ec2 = boto3.resource('ec2', region_name='us-east-1')
-
-    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
 
     response = elbv2_client.create_target_group(
         Name='a-target',
         Protocol='HTTP',
         Port=8080,
-        VpcId=vpc.id,
+        VpcId=mocked_networking['vpc'],
         HealthCheckProtocol='HTTP',
         HealthCheckPort='8080',
         HealthCheckPath='/',
@@ -40,7 +39,7 @@ def test_attach_detach_target_groups():
         MaxSize=INSTANCE_COUNT,
         DesiredCapacity=INSTANCE_COUNT,
         TargetGroupARNs=[target_group_arn],
-        VPCZoneIdentifier=vpc.id)
+        VPCZoneIdentifier=mocked_networking['subnet1'])
     # create asg without attaching to target group
     client.create_auto_scaling_group(
         AutoScalingGroupName='test_asg2',
@@ -48,7 +47,7 @@ def test_attach_detach_target_groups():
         MinSize=0,
         MaxSize=INSTANCE_COUNT,
         DesiredCapacity=INSTANCE_COUNT,
-        VPCZoneIdentifier=vpc.id)
+        VPCZoneIdentifier=mocked_networking['subnet2'])
 
     response = client.describe_load_balancer_target_groups(
         AutoScalingGroupName='test_asg')
@@ -74,21 +73,18 @@ def test_attach_detach_target_groups():
     list(response['TargetHealthDescriptions']).should.have.length_of(INSTANCE_COUNT)
 
 @mock_elbv2
-@mock_ec2
 @mock_autoscaling
 def test_detach_all_target_groups():
+    mocked_networking = setup_networking()
     INSTANCE_COUNT = 2
     client = boto3.client('autoscaling', region_name='us-east-1')
     elbv2_client = boto3.client('elbv2', region_name='us-east-1')
-    ec2 = boto3.resource('ec2', region_name='us-east-1')
-
-    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
 
     response = elbv2_client.create_target_group(
         Name='a-target',
         Protocol='HTTP',
         Port=8080,
-        VpcId=vpc.id,
+        VpcId=mocked_networking['vpc'],
         HealthCheckProtocol='HTTP',
         HealthCheckPort='8080',
         HealthCheckPath='/',
@@ -109,7 +105,7 @@ def test_detach_all_target_groups():
         MaxSize=INSTANCE_COUNT,
         DesiredCapacity=INSTANCE_COUNT,
         TargetGroupARNs=[target_group_arn],
-        VPCZoneIdentifier=vpc.id)
+        VPCZoneIdentifier=mocked_networking['vpc'])
 
     response = client.describe_load_balancer_target_groups(
         AutoScalingGroupName='test_asg')
