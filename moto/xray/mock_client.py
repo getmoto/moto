@@ -10,6 +10,7 @@ class MockEmitter(UDPEmitter):
     """
     Replaces the code that sends UDP to local X-Ray daemon
     """
+
     def __init__(self, daemon_address='127.0.0.1:2000'):
         address = os.getenv('AWS_XRAY_DAEMON_ADDRESS_YEAH_NOT_TODAY_MATE', daemon_address)
         self._ip, self._port = self._parse_address(address)
@@ -74,6 +75,7 @@ class XRaySegment(object):
 
     During testing we're going to have to control the start and end of a segment via context managers.
     """
+
     def __enter__(self):
         aws_xray_sdk.core.xray_recorder.begin_segment(name='moto_mock', traceid=None, parent_id=None, sampling=1)
 

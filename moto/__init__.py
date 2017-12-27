@@ -39,7 +39,7 @@ from .ssm import mock_ssm  # flake8: noqa
 from .route53 import mock_route53, mock_route53_deprecated  # flake8: noqa
 from .swf import mock_swf, mock_swf_deprecated  # flake8: noqa
 from .xray import mock_xray, mock_xray_client, XRaySegment  # flake8: noqa
-from .logs import mock_logs, mock_logs_deprecated # flake8: noqa
+from .logs import mock_logs, mock_logs_deprecated  # flake8: noqa
 from .batch import mock_batch  # flake8: noqa
 from .resourcegroupstaggingapi import mock_resourcegroupstaggingapi  # flake8: noqa
 from .iot import mock_iot  # flake8: noqa

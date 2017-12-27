@@ -15,6 +15,7 @@ class FakeShadow(BaseModel):
     """See the specification:
     http://docs.aws.amazon.com/iot/latest/developerguide/thing-shadow-document-syntax.html
     """
+
     def __init__(self, desired, reported, requested_payload, version, deleted=False):
         self.desired = desired
         self.reported = reported

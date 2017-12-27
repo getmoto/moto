@@ -146,5 +146,6 @@ def main():
     with open(dest, 'w') as open_file:
         json.dump(result, open_file)
 
+
 if __name__ == '__main__':
     main()

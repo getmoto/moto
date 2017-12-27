@@ -81,11 +81,14 @@ def select_service_and_operation():
         raise click.Abort()
     return service_name, operation_name
 
+
 def get_escaped_service(service):
     return service.replace('-', '')
 
+
 def get_lib_dir(service):
     return os.path.join('moto', get_escaped_service(service))
+
 
 def get_test_dir(service):
     return os.path.join('tests', 'test_{}'.format(get_escaped_service(service)))
@@ -144,6 +147,7 @@ def append_mock_import_to_backends_py(service):
     with open(path, 'w') as f:
         f.write(body)
 
+
 def append_mock_dict_to_backends_py(service):
     path = os.path.join(os.path.dirname(__file__), '..', 'moto', 'backends.py')
     with open(path) as f:
@@ -163,6 +167,7 @@ def append_mock_dict_to_backends_py(service):
     body = '\n'.join(lines) + '\n'
     with open(path, 'w') as f:
         f.write(body)
+
 
 def initialize_service(service, operation, api_protocol):
     """create lib and test dirs if not exist
@@ -337,7 +342,7 @@ def get_response_query_template(service, operation):
     xml_namespace = metadata['xmlNamespace']
 
     # build xml tree
-    t_root = etree.Element(response_wrapper,  xmlns=xml_namespace)
+    t_root = etree.Element(response_wrapper, xmlns=xml_namespace)
 
     # build metadata
     t_metadata = etree.Element('ResponseMetadata')
@@ -444,6 +449,7 @@ def insert_url(service, operation, api_protocol):
     with open(path, 'w') as f:
         f.write(body)
 
+
 def insert_codes(service, operation, api_protocol):
     func_in_responses = get_function_in_responses(service, operation, api_protocol)
     func_in_models = get_function_in_models(service, operation)
@@ -482,6 +488,7 @@ def main():
         print_progress('skip inserting code', 'api protocol "{}" is not supported'.format(api_protocol), 'yellow')
 
     click.echo('You will still need to add the mock into "__init__.py"'.format(service))
+
 
 if __name__ == '__main__':
     main()

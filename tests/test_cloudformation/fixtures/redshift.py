@@ -32,7 +32,7 @@ template = {
             "Default": "defaultuser",
             "AllowedPattern": "([a-z])([a-z]|[0-9])*"
         },
-        "MasterUserPassword":  {
+        "MasterUserPassword": {
             "Description": "The password that is associated with the master user account for the cluster that is being created.",
             "Type": "String",
             "NoEcho": "true"
@@ -63,7 +63,7 @@ template = {
             "DependsOn": "AttachGateway",
             "Properties": {
                 "ClusterType": {"Ref": "ClusterType"},
-                "NumberOfNodes": {"Fn::If": ["IsMultiNodeCluster",  {"Ref": "NumberOfNodes"}, {"Ref": "AWS::NoValue"}]},
+                "NumberOfNodes": {"Fn::If": ["IsMultiNodeCluster", {"Ref": "NumberOfNodes"}, {"Ref": "AWS::NoValue"}]},
                 "NodeType": {"Ref": "NodeType"},
                 "DBName": {"Ref": "DatabaseName"},
                 "MasterUsername": {"Ref": "MasterUsername"},
