@@ -751,7 +751,7 @@ class RDS2Backend(BaseBackend):
         database = self.describe_databases(db_instance_identifier)[0]
         # todo: certain rds types not allowed to be stopped at this time.
         if database.is_replica or database.multi_az:
-                # todo: more db types not supported by stop/start instance api
+            # todo: more db types not supported by stop/start instance api
             raise InvalidDBClusterStateFaultError(db_instance_identifier)
         if database.status != 'available':
             raise InvalidDBInstanceStateError(db_instance_identifier, 'stop')

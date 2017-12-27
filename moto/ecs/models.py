@@ -790,7 +790,6 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_name = cluster_str.split('/')[-1]
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
-        pass
 
     def put_attributes(self, cluster_name, attributes=None):
         if cluster_name is None or cluster_name not in self.clusters:

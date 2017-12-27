@@ -389,7 +389,7 @@ def test_snapshot_filters():
 
 @mock_ec2_deprecated
 def test_snapshot_attribute():
-    import copy
+    pass
 
     conn = boto.connect_ec2('the_key', 'the_secret')
     volume = conn.create_volume(80, "us-east-1a")

@@ -637,7 +637,6 @@ class LambdaBackend(BaseBackend):
 
         }
         self._functions[function_name][-1].invoke(json.dumps(event), {}, {})
-        pass
 
     def list_tags(self, resource):
         return self.get_function_by_arn(resource).tags

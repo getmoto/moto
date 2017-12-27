@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import re
 import six
 # TODO add tests for all of these
 

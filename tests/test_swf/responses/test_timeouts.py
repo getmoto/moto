@@ -42,7 +42,6 @@ def test_activity_task_heartbeat_timeout():
 # Default value in workflow helpers: 5 mins
 @mock_swf_deprecated
 def test_decision_task_start_to_close_timeout():
-    pass
     with freeze_time("2015-01-01 12:00:00"):
         conn = setup_workflow()
         conn.poll_for_decision_task("test-domain", "queue")["taskToken"]
@@ -78,7 +77,6 @@ def test_decision_task_start_to_close_timeout():
 # Default value in workflow helpers: 2 hours
 @mock_swf_deprecated
 def test_workflow_execution_start_to_close_timeout():
-    pass
     with freeze_time("2015-01-01 12:00:00"):
         conn = setup_workflow()
 

@@ -4,7 +4,6 @@ import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import base64
-import datetime
 import ipaddress
 
 import six

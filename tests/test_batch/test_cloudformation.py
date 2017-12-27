@@ -1,12 +1,9 @@
 from __future__ import unicode_literals
 
-import time
-import datetime
 import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs, mock_cloudformation
-import functools
 import nose
 import json
 

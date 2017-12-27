@@ -1,7 +1,6 @@
 import boto
 from boto.ec2.cloudwatch.alarm import MetricAlarm
 import boto3
-from datetime import datetime, timedelta
 import pytz
 import sure  # noqa
 

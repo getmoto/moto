@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import datetime
 
 from botocore.exceptions import ClientError
 import boto3

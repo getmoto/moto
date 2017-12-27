@@ -7,7 +7,6 @@ from boto.route53.record import ResourceRecordSets
 
 import sure  # noqa
 
-import uuid
 
 import botocore
 from nose.tools import assert_raises

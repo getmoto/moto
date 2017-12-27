@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 
-from datetime import datetime
 from dateutil.tz import tzutc
 import boto3
 from freezegun import freeze_time

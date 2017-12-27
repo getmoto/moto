@@ -32,7 +32,6 @@ import socket
 import functools
 import itertools
 import warnings
-import logging
 import traceback
 import json
 import contextlib

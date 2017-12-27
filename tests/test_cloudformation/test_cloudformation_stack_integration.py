@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import json
 
-import base64
 import boto
 import boto.cloudformation
 import boto.datapipeline

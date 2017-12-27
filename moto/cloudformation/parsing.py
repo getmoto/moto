@@ -195,7 +195,6 @@ def clean_json(resource_json, resources_map):
                 for literal in literals:
                     fn_sub_value = fn_sub_value.replace(literal, literal.replace('!', ''))
                 return fn_sub_value
-            pass
 
         if 'Fn::ImportValue' in resource_json:
             cleaned_val = clean_json(resource_json['Fn::ImportValue'], resources_map)
