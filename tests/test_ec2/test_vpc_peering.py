@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import boto

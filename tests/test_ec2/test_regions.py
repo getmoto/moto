@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
-import sure
 from moto import mock_ec2_deprecated, mock_autoscaling_deprecated, mock_elb_deprecated
 
 from moto.ec2 import ec2_backends

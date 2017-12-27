@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import json
 
-from six.moves.urllib.parse import parse_qs
 
 import boto3
 import re

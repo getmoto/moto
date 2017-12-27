@@ -1,7 +1,5 @@
 import boto
 from boto.ec2.cloudwatch.alarm import MetricAlarm
-import boto3
-import pytz
 import sure  # noqa
 
 from moto import mock_cloudwatch_deprecated

@@ -21,7 +21,6 @@ from prompt_toolkit import (
     prompt
 )
 from prompt_toolkit.contrib.completers import WordCompleter
-from prompt_toolkit.shortcuts import print_tokens
 
 from botocore import xform_name
 from botocore.session import Session

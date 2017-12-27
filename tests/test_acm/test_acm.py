@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import os
 import boto3
-from freezegun import freeze_time
 import sure  # noqa
 import uuid
 

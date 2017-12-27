@@ -1,4 +1,3 @@
-import sure
 import boto
 
 from moto import mock_swf_deprecated

@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-from six.moves.urllib.parse import urlencode
 import re
 import sure  # noqa
 

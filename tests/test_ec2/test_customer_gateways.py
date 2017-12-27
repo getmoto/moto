@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 import boto
 import sure  # noqa
 from nose.tools import assert_raises
-from nose.tools import assert_false
 from boto.exception import EC2ResponseError
 
 from moto import mock_ec2_deprecated

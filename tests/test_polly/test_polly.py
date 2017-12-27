@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 from botocore.exceptions import ClientError
 import boto3
 import sure  # noqa
-from nose.tools import assert_raises
 from moto import mock_polly
 
 # Polly only available in a few regions

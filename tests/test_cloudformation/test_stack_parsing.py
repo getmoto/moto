@@ -7,7 +7,7 @@ import sure  # noqa
 
 from moto.cloudformation.exceptions import ValidationError
 from moto.cloudformation.models import FakeStack
-from moto.cloudformation.parsing import resource_class_from_type, parse_condition, Export
+from moto.cloudformation.parsing import parse_condition, resource_class_from_type
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
