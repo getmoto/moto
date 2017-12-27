@@ -205,4 +205,4 @@ def test_put_events():
     # Boto3 would error if it didn't return 200 OK
 
     with assert_raises(ClientError):
-        client.put_events(Entries=[event]*20)
+        client.put_events(Entries=[event] * 20)

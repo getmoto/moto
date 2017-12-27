@@ -320,6 +320,7 @@ def test_describe_parameters_filter_keyid():
     response['Parameters'][0]['Type'].should.equal('SecureString')
     ''.should.equal(response.get('NextToken', ''))
 
+
 @mock_ssm
 def test_describe_parameters_attributes():
     client = boto3.client('ssm', region_name='us-east-1')
@@ -347,6 +348,7 @@ def test_describe_parameters_attributes():
 
     response['Parameters'][1].get('Description').should.be.none
     response['Parameters'][1]['Version'].should.equal(1)
+
 
 @mock_ssm
 def test_get_parameter_invalid():

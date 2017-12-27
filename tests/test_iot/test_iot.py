@@ -96,6 +96,7 @@ def test_certs():
     res = client.list_certificates()
     res.should.have.key('certificates').which.should.have.length_of(0)
 
+
 @mock_iot
 def test_policy():
     client = boto3.client('iot', region_name='ap-northeast-1')

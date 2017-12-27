@@ -198,7 +198,7 @@ def test_set_subscription_attributes():
         'healthyRetryPolicy': {
             "numRetries": 10,
             "minDelayTarget": 1,
-            "maxDelayTarget":2
+            "maxDelayTarget": 2
         }
     })
     conn.set_subscription_attributes(
@@ -223,7 +223,6 @@ def test_set_subscription_attributes():
         attrs = conn.get_subscription_attributes(
             SubscriptionArn='invalid'
         )
-
 
     # invalid attr name
     with assert_raises(ClientError):

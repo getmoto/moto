@@ -582,7 +582,6 @@ def test_delete_cluster_parameter_group():
         "not-a-parameter-group").should.throw(ClusterParameterGroupNotFound)
 
 
-
 @mock_redshift
 def test_create_cluster_snapshot_of_non_existent_cluster():
     client = boto3.client('redshift', region_name='us-east-1')
@@ -1041,4 +1040,3 @@ def test_tagged_resource_not_found_error():
     client.describe_tags.when.called_with(
         ResourceName='bad:arn'
     ).should.throw(ClientError, "Tagging is not supported for this type of resource")
-

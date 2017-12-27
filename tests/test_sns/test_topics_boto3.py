@@ -31,6 +31,7 @@ def test_create_and_delete_topic():
     topics = topics_json["Topics"]
     topics.should.have.length_of(0)
 
+
 @mock_sns
 def test_create_topic_should_be_indempodent():
     conn = boto3.client("sns", region_name="us-east-1")
@@ -45,18 +46,20 @@ def test_create_topic_should_be_indempodent():
     )['Attributes']['DisplayName']
     topic_display_name.should.be.equal("should_be_set")
 
-    #recreate topic to prove indempodentcy
+    # recreate topic to prove indempodentcy
     topic_arn = conn.create_topic(Name="some-topic")['TopicArn']
     topic_display_name = conn.get_topic_attributes(
         TopicArn=topic_arn
     )['Attributes']['DisplayName']
     topic_display_name.should.be.equal("should_be_set")
 
+
 @mock_sns
 def test_get_missing_topic():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.get_topic_attributes.when.called_with(
         TopicArn="a-fake-arn").should.throw(ClientError)
+
 
 @mock_sns
 def test_create_topic_must_meet_constraints():
@@ -66,7 +69,7 @@ def test_create_topic_must_meet_constraints():
         conn.create_topic.when.called_with(
             Name="no%s_invalidchar" % char).should.throw(ClientError)
     conn.create_topic.when.called_with(
-            Name="no spaces allowed").should.throw(ClientError)
+        Name="no spaces allowed").should.throw(ClientError)
 
 
 @mock_sns
@@ -74,10 +77,10 @@ def test_create_topic_should_be_of_certain_length():
     conn = boto3.client("sns", region_name="us-east-1")
     too_short = ""
     conn.create_topic.when.called_with(
-            Name=too_short).should.throw(ClientError)
+        Name=too_short).should.throw(ClientError)
     too_long = "x" * 257
     conn.create_topic.when.called_with(
-            Name=too_long).should.throw(ClientError)
+        Name=too_long).should.throw(ClientError)
 
 
 @mock_sns

@@ -608,6 +608,7 @@ def test_boto3_put_item_conditions_fails():
             }
         }).should.throw(botocore.client.ClientError)
 
+
 @mock_dynamodb2
 def test_boto3_update_item_conditions_fails():
     table = _create_user_table()
@@ -621,6 +622,7 @@ def test_boto3_update_item_conditions_fails():
             }
         }).should.throw(botocore.client.ClientError)
 
+
 @mock_dynamodb2
 def test_boto3_update_item_conditions_fails_because_expect_not_exists():
     table = _create_user_table()
@@ -633,6 +635,7 @@ def test_boto3_update_item_conditions_fails_because_expect_not_exists():
                 'Exists': False
             }
         }).should.throw(botocore.client.ClientError)
+
 
 @mock_dynamodb2
 def test_boto3_update_item_conditions_pass():
@@ -649,6 +652,7 @@ def test_boto3_update_item_conditions_pass():
     returned_item = table.get_item(Key={'username': 'johndoe'})
     assert dict(returned_item)['Item']['foo'].should.equal("baz")
 
+
 @mock_dynamodb2
 def test_boto3_update_item_conditions_pass_because_expext_not_exists():
     table = _create_user_table()
@@ -663,6 +667,7 @@ def test_boto3_update_item_conditions_pass_because_expext_not_exists():
         })
     returned_item = table.get_item(Key={'username': 'johndoe'})
     assert dict(returned_item)['Item']['foo'].should.equal("baz")
+
 
 @mock_dynamodb2
 def test_boto3_put_item_conditions_pass():

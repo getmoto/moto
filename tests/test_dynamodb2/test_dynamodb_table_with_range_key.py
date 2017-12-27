@@ -975,6 +975,7 @@ def test_conflicting_writes():
     item1.save()
     item2.save.when.called_with().should.throw(ConditionalCheckFailedException)
 
+
 """
 boto3
 """
@@ -1401,6 +1402,7 @@ def test_update_item_with_expression():
         'subject': '123',
     })
 
+
 @mock_dynamodb2
 def test_update_item_add_with_expression():
     table = _create_table_with_range_key()
@@ -1465,7 +1467,7 @@ def test_update_item_add_with_expression():
         Key=item_key,
         UpdateExpression='ADD str_set :v',
         ExpressionAttributeValues={
-            ':v': { 20 }
+            ':v': {20}
         }
     ).should.have.raised(ClientError)
     dict(table.get_item(Key=item_key)['Item']).should.equal(current_item)

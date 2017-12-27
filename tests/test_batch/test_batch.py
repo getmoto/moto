@@ -19,15 +19,16 @@ def expected_failure(test):
             raise nose.SkipTest
     return inner
 
+
 DEFAULT_REGION = 'eu-central-1'
 
 
 def _get_clients():
     return boto3.client('ec2', region_name=DEFAULT_REGION), \
-           boto3.client('iam', region_name=DEFAULT_REGION), \
-           boto3.client('ecs', region_name=DEFAULT_REGION), \
-           boto3.client('logs', region_name=DEFAULT_REGION), \
-           boto3.client('batch', region_name=DEFAULT_REGION)
+        boto3.client('iam', region_name=DEFAULT_REGION), \
+        boto3.client('ecs', region_name=DEFAULT_REGION), \
+        boto3.client('logs', region_name=DEFAULT_REGION), \
+        boto3.client('batch', region_name=DEFAULT_REGION)
 
 
 def _setup(ec2_client, iam_client):
@@ -806,4 +807,3 @@ def test_terminate_job():
     resp['jobs'][0]['jobName'].should.equal('test1')
     resp['jobs'][0]['status'].should.equal('FAILED')
     resp['jobs'][0]['statusReason'].should.equal('test_terminate')
-

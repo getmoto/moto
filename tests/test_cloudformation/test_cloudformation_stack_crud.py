@@ -81,9 +81,9 @@ def test_create_stack_hosted_zone_by_id():
         },
         "Resources": {
             "Bar": {
-                "Type" : "AWS::Route53::HostedZone",
-                "Properties" : {
-                    "Name" : "foo.bar.baz",
+                "Type": "AWS::Route53::HostedZone",
+                "Properties": {
+                    "Name": "foo.bar.baz",
                 }
             },
         },
@@ -92,7 +92,7 @@ def test_create_stack_hosted_zone_by_id():
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "Stack 2",
         "Parameters": {
-            "ZoneId": { "Type": "String" }
+            "ZoneId": {"Type": "String"}
         },
         "Resources": {
             "Foo": {
@@ -456,8 +456,8 @@ def test_update_stack_with_parameters():
             "VPC": {
                 "Properties": {
                     "CidrBlock": {"Ref": "Bar"}
-            },
-            "Type": "AWS::EC2::VPC"
+                },
+                "Type": "AWS::EC2::VPC"
             }
         },
         "Parameters": {
@@ -578,8 +578,8 @@ def test_create_stack_lambda_and_dynamodb():
         },
         "Resources": {
             "func1": {
-                "Type" : "AWS::Lambda::Function",
-                "Properties" : {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
                     "Code": {
                         "S3Bucket": "bucket_123",
                         "S3Key": "key_123"
@@ -594,13 +594,13 @@ def test_create_stack_lambda_and_dynamodb():
             },
             "func1version": {
                 "Type": "AWS::Lambda::LambdaVersion",
-                "Properties" : {
+                "Properties": {
                     "Version": "v1.2.3"
                 }
             },
             "tab1": {
-                "Type" : "AWS::DynamoDB::Table",
-                "Properties" : {
+                "Type": "AWS::DynamoDB::Table",
+                "Properties": {
                     "TableName": "tab1",
                     "KeySchema": [{
                         "AttributeName": "attr1",
@@ -618,7 +618,7 @@ def test_create_stack_lambda_and_dynamodb():
             },
             "func1mapping": {
                 "Type": "AWS::Lambda::EventSourceMapping",
-                "Properties" : {
+                "Properties": {
                     "FunctionName": "v1.2.3",
                     "EventSourceArn": "arn:aws:dynamodb:region:XXXXXX:table/tab1/stream/2000T00:00:00.000",
                     "StartingPosition": "0",
@@ -653,8 +653,8 @@ def test_create_stack_kinesis():
         "Parameters": {},
         "Resources": {
             "stream1": {
-                "Type" : "AWS::Kinesis::Stream",
-                "Properties" : {
+                "Type": "AWS::Kinesis::Stream",
+                "Properties": {
                     "Name": "stream1",
                     "ShardCount": 2
                 }

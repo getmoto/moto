@@ -883,10 +883,11 @@ def test_s3_object_in_public_bucket():
         s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
     exc.exception.response['Error']['Code'].should.equal('403')
 
-    params = {'Bucket': 'test-bucket','Key': 'file.txt'}
+    params = {'Bucket': 'test-bucket', 'Key': 'file.txt'}
     presigned_url = boto3.client('s3').generate_presigned_url('get_object', params, ExpiresIn=900)
     response = requests.get(presigned_url)
     assert response.status_code == 200
+
 
 @mock_s3
 def test_s3_object_in_private_bucket():
@@ -1102,6 +1103,7 @@ def test_boto3_key_etag():
     resp = s3.get_object(Bucket='mybucket', Key='steve')
     resp['ETag'].should.equal('"d32bda93738f7e03adb22e66c90fbc04"')
 
+
 @mock_s3
 def test_website_redirect_location():
     s3 = boto3.client('s3', region_name='us-east-1')
@@ -1115,6 +1117,7 @@ def test_website_redirect_location():
     s3.put_object(Bucket='mybucket', Key='steve', Body=b'is awesome', WebsiteRedirectLocation=url)
     resp = s3.get_object(Bucket='mybucket', Key='steve')
     resp['WebsiteRedirectLocation'].should.equal(url)
+
 
 @mock_s3
 def test_boto3_list_keys_xml_escaped():
@@ -1627,7 +1630,7 @@ def test_boto3_put_bucket_cors():
         })
     e = err.exception
     e.response["Error"]["Code"].should.equal("InvalidRequest")
-    e.response["Error"]["Message"].should.equal("Found unsupported HTTP method in CORS config. " 
+    e.response["Error"]["Message"].should.equal("Found unsupported HTTP method in CORS config. "
                                                 "Unsupported method is NOTREAL")
 
     with assert_raises(ClientError) as err:
@@ -1939,9 +1942,8 @@ def test_get_stream_gzipped():
         Bucket='moto-tests',
         Key='keyname',
     )
-    res = zlib.decompress(obj['Body'].read(), 16+zlib.MAX_WBITS)
+    res = zlib.decompress(obj['Body'].read(), 16 + zlib.MAX_WBITS)
     assert res == payload
-
 
 
 TEST_XML = """\

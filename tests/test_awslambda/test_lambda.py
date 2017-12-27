@@ -420,7 +420,6 @@ def test_publish():
     function_list['Functions'][0]['FunctionArn'].should.contain('testFunction:$LATEST')
 
 
-
 @mock_lambda
 @mock_s3
 @freeze_time('2015-01-01 00:00:00')
@@ -634,9 +633,9 @@ def test_invoke_async_function():
     )
 
     success_result = conn.invoke_async(
-        FunctionName='testFunction', 
+        FunctionName='testFunction',
         InvokeArgs=json.dumps({'test': 'event'})
-        )
+    )
 
     success_result['Status'].should.equal(202)
 
@@ -674,7 +673,7 @@ def test_get_function_created_with_zipfile():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn":'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
             "MemorySize": 128,

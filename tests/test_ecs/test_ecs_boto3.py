@@ -1846,10 +1846,10 @@ def test_describe_container_instances_with_attributes():
 
     # Set attributes on container instance, one without a value
     attributes = [
-            {'name': 'env', 'value': 'prod'},
-            {'name': 'attr1', 'value': 'instance1', 'targetId': container_instance_id, 'targetType': 'container-instance'},
-            {'name': 'attr_without_value'}
-        ]
+        {'name': 'env', 'value': 'prod'},
+        {'name': 'attr1', 'value': 'instance1', 'targetId': container_instance_id, 'targetType': 'container-instance'},
+        {'name': 'attr_without_value'}
+    ]
     ecs_client.put_attributes(
         cluster=test_cluster_name,
         attributes=attributes

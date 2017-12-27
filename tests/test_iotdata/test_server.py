@@ -9,6 +9,7 @@ from moto import mock_iotdata
 Test the different server responses
 '''
 
+
 @mock_iotdata
 def test_iotdata_list():
     backend = server.create_backend_app("iot-data")

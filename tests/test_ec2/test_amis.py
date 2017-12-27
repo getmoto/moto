@@ -435,11 +435,10 @@ def test_ami_describe_executable_users():
     ec2.create_instances(ImageId='',
                          MinCount=1,
                          MaxCount=1)
-    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
     instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
     image_id = conn.create_image(InstanceId=instance_id,
                                  Name='TestImage',)['ImageId']
-
 
     USER1 = '123456789011'
 
@@ -468,11 +467,10 @@ def test_ami_describe_executable_users_negative():
     ec2.create_instances(ImageId='',
                          MinCount=1,
                          MaxCount=1)
-    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
     instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
     image_id = conn.create_image(InstanceId=instance_id,
                                  Name='TestImage')['ImageId']
-
 
     USER1 = '123456789011'
     USER2 = '113355789012'
@@ -501,11 +499,10 @@ def test_ami_describe_executable_users_and_filter():
     ec2.create_instances(ImageId='',
                          MinCount=1,
                          MaxCount=1)
-    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
     instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
     image_id = conn.create_image(InstanceId=instance_id,
                                  Name='ImageToDelete',)['ImageId']
-
 
     USER1 = '123456789011'
 
@@ -685,7 +682,7 @@ def test_ami_filter_wildcard():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
     instance = ec2.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
     image = instance.create_image(Name='test-image')
-    filter_result = list(ec2.images.filter(Owners=['111122223333'], Filters=[{'Name':'name', 'Values':['test*']}]))
+    filter_result = list(ec2.images.filter(Owners=['111122223333'], Filters=[{'Name': 'name', 'Values': ['test*']}]))
     assert filter_result == [image]
 
 

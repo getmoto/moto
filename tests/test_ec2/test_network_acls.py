@@ -117,6 +117,7 @@ def test_replace_network_acl_entry():
     entries[0].protocol.should.equal('-1')
     entries[0].rule_action.should.equal('DENY')
 
+
 @mock_ec2_deprecated
 def test_associate_new_network_acl_with_subnet():
     conn = boto.connect_vpc('the_key', 'the secret')

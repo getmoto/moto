@@ -14,7 +14,6 @@ from moto.cloudformation.utils import yaml_tag_constructor
 from boto.cloudformation.stack import Output
 
 
-
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
 
@@ -81,7 +80,7 @@ split_select_template = {
         "Queue": {
             "Type": "AWS::SQS::Queue",
             "Properties": {
-                "QueueName": {"Fn::Select": [ "1", {"Fn::Split": [ "-", "123-myqueue" ] } ] },
+                "QueueName": {"Fn::Select": ["1", {"Fn::Split": ["-", "123-myqueue"]}]},
                 "VisibilityTimeout": 60,
             }
         }
@@ -385,7 +384,6 @@ def test_import():
     queue.name.should.equal("value")
 
 
-
 def test_short_form_func_in_yaml_teamplate():
     template = """---
     KeyB64: !Base64 valueToEncode
@@ -420,7 +418,7 @@ def test_short_form_func_in_yaml_teamplate():
         ['KeyGetAtt', {'Fn::GetAtt': ['A', 'B']}],
         ['KeyGetAZs', {'Fn::GetAZs': 'A'}],
         ['KeyImportValue', {'Fn::ImportValue': 'A'}],
-        ['KeyJoin', {'Fn::Join': [ ":", [ 'A', 'B', 'C' ] ]}],
+        ['KeyJoin', {'Fn::Join': [":", ['A', 'B', 'C']]}],
         ['KeySelect', {'Fn::Select': ['A', 'B']}],
         ['KeySplit', {'Fn::Split': ['A', 'B']}],
         ['KeySub', {'Fn::Sub': 'A'}],

@@ -47,7 +47,7 @@ def _create_image_manifest():
                 "size": 73109,
                 "digest": _create_image_digest("layer3")
             }
-        ]
+                ]
     }
 
 
@@ -344,6 +344,7 @@ def test_describe_repository_that_doesnt_exist():
         repositoryNames=['repo-that-doesnt-exist'],
         registryId='123',
     ).should.throw(ClientError, error_msg)
+
 
 @mock_ecr
 def test_describe_image_that_doesnt_exist():

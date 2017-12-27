@@ -521,6 +521,7 @@ def test_describe_load_balancers():
     list(response['LoadBalancers']).should.have.length_of(1)
     response['LoadBalancers'][0]['LoadBalancerName'].should.equal('my-lb')
 
+
 @mock_autoscaling
 @mock_elb
 def test_create_elb_and_autoscaling_group_no_relationship():
@@ -822,6 +823,7 @@ def test_autoscaling_describe_policies_boto3():
     response['ScalingPolicies'][0][
         'PolicyName'].should.equal('test_policy_down')
 
+
 @mock_autoscaling
 @mock_ec2
 def test_detach_one_instance_decrement():
@@ -875,6 +877,7 @@ def test_detach_one_instance_decrement():
     tags = response['Reservations'][0]['Instances'][0]['Tags']
     tags.should.have.length_of(2)
 
+
 @mock_autoscaling
 @mock_ec2
 def test_detach_one_instance():
@@ -927,6 +930,7 @@ def test_detach_one_instance():
     tags = response['Reservations'][0]['Instances'][0]['Tags']
     tags.should.have.length_of(2)
 
+
 @mock_autoscaling
 @mock_ec2
 def test_attach_one_instance():
@@ -966,6 +970,7 @@ def test_attach_one_instance():
     )
     response['AutoScalingGroups'][0]['Instances'].should.have.length_of(3)
 
+
 @mock_autoscaling
 @mock_ec2
 def test_describe_instance_health():
@@ -987,6 +992,7 @@ def test_describe_instance_health():
 
     instance1 = response['AutoScalingGroups'][0]['Instances'][0]
     instance1['HealthStatus'].should.equal('Healthy')
+
 
 @mock_autoscaling
 @mock_ec2

@@ -789,8 +789,8 @@ def test_rds_db_parameter_groups():
                         ("DBInstanceClass", "db.m1.medium"),
                         ("EC2SecurityGroup", "application"),
                         ("MultiAZ", "true"),
-                    ]
-                    ],
+        ]
+        ],
     )
 
     rds_conn = boto3.client('rds', region_name="us-west-1")
@@ -802,9 +802,9 @@ def test_rds_db_parameter_groups():
 
     found_cloudformation_set_parameter = False
     for db_parameter in rds_conn.describe_db_parameters(DBParameterGroupName=db_parameter_group_name)[
-        'Parameters']:
+            'Parameters']:
         if db_parameter['ParameterName'] == 'BACKLOG_QUEUE_LIMIT' and db_parameter[
-            'ParameterValue'] == '2048':
+                'ParameterValue'] == '2048':
             found_cloudformation_set_parameter = True
 
     found_cloudformation_set_parameter.should.equal(True)
@@ -2175,19 +2175,19 @@ def test_stack_elbv2_resources_integration():
         },
         "Resources": {
             "alb": {
-                  "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-                  "Properties": {
-                        "Name": "myelbv2",
+                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                "Properties": {
+                    "Name": "myelbv2",
                         "Scheme": "internet-facing",
                         "Subnets": [{
                             "Ref": "mysubnet",
                         }],
-                        "SecurityGroups": [{
-                            "Ref": "mysg",
-                        }],
-                        "Type": "application",
-                        "IpAddressType": "ipv4",
-                  }
+                    "SecurityGroups": [{
+                        "Ref": "mysg",
+                    }],
+                    "Type": "application",
+                    "IpAddressType": "ipv4",
+                }
             },
             "mytargetgroup1": {
                 "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
@@ -2207,10 +2207,10 @@ def test_stack_elbv2_resources_integration():
                     "Protocol": "HTTP",
                     "TargetType": "instance",
                     "Targets": [{
-                      "Id": {
-                          "Ref": "ec2instance",
-                          "Port": 80,
-                      },
+                        "Id": {
+                            "Ref": "ec2instance",
+                            "Port": 80,
+                        },
                     }],
                     "VpcId": {
                         "Ref": "myvpc",

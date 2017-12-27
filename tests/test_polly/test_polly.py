@@ -223,7 +223,7 @@ def test_synthesize_speech_text_too_long():
             LexiconNames=['test'],
             OutputFormat='pcm',
             SampleRate='16000',
-            Text='test1234'*376,  # = 3008 characters
+            Text='test1234' * 376,  # = 3008 characters
             TextType='text',
             VoiceId='Astrid'
         )

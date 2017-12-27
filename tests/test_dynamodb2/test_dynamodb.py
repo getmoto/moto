@@ -84,9 +84,9 @@ def test_list_table_tags():
                         aws_access_key_id="ak",
                         aws_secret_access_key="sk")
     conn.create_table(TableName=name,
-                      KeySchema=[{'AttributeName':'id','KeyType':'HASH'}],
-                      AttributeDefinitions=[{'AttributeName':'id','AttributeType':'S'}],
-                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+                      KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+                      AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
     table_description = conn.describe_table(TableName=name)
     arn = table_description['Table']['TableArn']
 
@@ -115,12 +115,12 @@ def test_list_table_tags_empty():
                         aws_access_key_id="ak",
                         aws_secret_access_key="sk")
     conn.create_table(TableName=name,
-                      KeySchema=[{'AttributeName':'id','KeyType':'HASH'}],
-                      AttributeDefinitions=[{'AttributeName':'id','AttributeType':'S'}],
-                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+                      KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+                      AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
     table_description = conn.describe_table(TableName=name)
     arn = table_description['Table']['TableArn']
-    tags = [{'Key':'TestTag', 'Value': 'TestValue'}]
+    tags = [{'Key': 'TestTag', 'Value': 'TestValue'}]
     # conn.tag_resource(ResourceArn=arn,
     #                   Tags=tags)
     resp = conn.list_tags_of_resource(ResourceArn=arn)
@@ -136,13 +136,13 @@ def test_list_table_tags_paginated():
                         aws_access_key_id="ak",
                         aws_secret_access_key="sk")
     conn.create_table(TableName=name,
-                      KeySchema=[{'AttributeName':'id','KeyType':'HASH'}],
-                      AttributeDefinitions=[{'AttributeName':'id','AttributeType':'S'}],
-                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+                      KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+                      AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
     table_description = conn.describe_table(TableName=name)
     arn = table_description['Table']['TableArn']
     for i in range(11):
-        tags = [{'Key':'TestTag%d' % i, 'Value': 'TestValue'}]
+        tags = [{'Key': 'TestTag%d' % i, 'Value': 'TestValue'}]
         conn.tag_resource(ResourceArn=arn,
                           Tags=tags)
     resp = conn.list_tags_of_resource(ResourceArn=arn)
@@ -177,19 +177,19 @@ def test_item_add_empty_string_exception():
                         aws_access_key_id="ak",
                         aws_secret_access_key="sk")
     conn.create_table(TableName=name,
-                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
-                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
-                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+                      KeySchema=[{'AttributeName': 'forum_name', 'KeyType': 'HASH'}],
+                      AttributeDefinitions=[{'AttributeName': 'forum_name', 'AttributeType': 'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
 
     with assert_raises(ClientError) as ex:
         conn.put_item(
             TableName=name,
             Item={
-                'forum_name': { 'S': 'LOLCat Forum' },
-                'subject': { 'S': 'Check this out!' },
-                'Body': { 'S': 'http://url_to_lolcat.gif'},
-                'SentBy': { 'S': "" },
-                'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
+                'forum_name': {'S': 'LOLCat Forum'},
+                'subject': {'S': 'Check this out!'},
+                'Body': {'S': 'http://url_to_lolcat.gif'},
+                'SentBy': {'S': ""},
+                'ReceivedTime': {'S': '12/9/2011 11:36:03 PM'},
             }
         )
 
@@ -208,7 +208,7 @@ def test_query_invalid_table():
                         aws_access_key_id="ak",
                         aws_secret_access_key="sk")
     try:
-        conn.query(TableName='invalid_table', KeyConditionExpression='index1 = :partitionkeyval', ExpressionAttributeValues={':partitionkeyval': {'S':'test'}})
+        conn.query(TableName='invalid_table', KeyConditionExpression='index1 = :partitionkeyval', ExpressionAttributeValues={':partitionkeyval': {'S': 'test'}})
     except ClientError as exception:
         assert exception.response['Error']['Code'] == "ResourceNotFoundException"
 
@@ -223,20 +223,20 @@ def test_scan_returns_consumed_capacity():
                         aws_secret_access_key="sk")
 
     conn.create_table(TableName=name,
-                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
-                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
-                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+                      KeySchema=[{'AttributeName': 'forum_name', 'KeyType': 'HASH'}],
+                      AttributeDefinitions=[{'AttributeName': 'forum_name', 'AttributeType': 'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
 
     conn.put_item(
-            TableName=name,
-            Item={
-                'forum_name': { 'S': 'LOLCat Forum' },
-                'subject': { 'S': 'Check this out!' },
-                'Body': { 'S': 'http://url_to_lolcat.gif'},
-                'SentBy': { 'S': "test" },
-                'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
-            }
-        )
+        TableName=name,
+        Item={
+            'forum_name': {'S': 'LOLCat Forum'},
+            'subject': {'S': 'Check this out!'},
+            'Body': {'S': 'http://url_to_lolcat.gif'},
+            'SentBy': {'S': "test"},
+            'ReceivedTime': {'S': '12/9/2011 11:36:03 PM'},
+        }
+    )
 
     response = conn.scan(
         TableName=name,
@@ -439,7 +439,7 @@ def test_basic_projection_expressions_with_attr_expression_names():
         ExpressionAttributeNames={
             '#rl': 'body',
             '#rt': 'attachment'
-            },
+        },
     )
 
     assert 'body' in results['Items'][0]
@@ -536,7 +536,7 @@ def test_update_item_returns_consumed_capacity():
     response = table.update_item(Key={
         'forum_name': 'the-key',
         'subject': '123'
-        },
+    },
         UpdateExpression='set body=:tb',
         ExpressionAttributeValues={
             ':tb': 'a new message'
@@ -1055,12 +1055,12 @@ def test_update_item_on_map():
     table.update_item(Key={
         'forum_name': 'the-key',
         'subject': '123'
-        },
+    },
         UpdateExpression='SET body.#nested.#data = :tb',
         ExpressionAttributeNames={
             '#nested': 'nested',
             '#data': 'data'
-        },
+    },
         ExpressionAttributeValues={
             ':tb': 'new_value'
     })

@@ -132,8 +132,3 @@ def test_batch_get_trace_graph():
     client.batch_get_traces(
         TraceIds=['1-581cf771-a006649127e371903a2de979', '1-581cf772-b006649127e371903a2de979']
     )
-
-
-
-
-

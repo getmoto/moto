@@ -15,10 +15,10 @@ DEFAULT_REGION = 'eu-central-1'
 
 def _get_clients():
     return boto3.client('ec2', region_name=DEFAULT_REGION), \
-           boto3.client('iam', region_name=DEFAULT_REGION), \
-           boto3.client('ecs', region_name=DEFAULT_REGION), \
-           boto3.client('logs', region_name=DEFAULT_REGION), \
-           boto3.client('batch', region_name=DEFAULT_REGION)
+        boto3.client('iam', region_name=DEFAULT_REGION), \
+        boto3.client('ecs', region_name=DEFAULT_REGION), \
+        boto3.client('logs', region_name=DEFAULT_REGION), \
+        boto3.client('batch', region_name=DEFAULT_REGION)
 
 
 def _setup(ec2_client, iam_client):

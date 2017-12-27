@@ -27,7 +27,6 @@ def test_sqs_list_identities():
 
         res = test_client.put('/?Action=CreateQueue&QueueName=%s' % queue_name)
 
-
         res = test_client.put(
             '/123/%s?MessageBody=test-message&Action=SendMessage' % queue_name)
 

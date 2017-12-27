@@ -39,7 +39,7 @@ def test_publish_to_sqs():
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
     messages = queue.receive_messages(MaxNumberOfMessages=1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE  % (message, published_message_id, 'us-east-1')
+    expected = MESSAGE_FROM_SQS_TEMPLATE % (message, published_message_id, 'us-east-1')
     acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", u'2015-01-01T12:00:00.000Z', messages[0].body)
     acquired_message.should.equal(expected)
 
@@ -119,7 +119,7 @@ def test_publish_to_sqs_dump_json():
     messages = queue.receive_messages(MaxNumberOfMessages=1)
 
     escaped = message.replace('"', '\\"')
-    expected = MESSAGE_FROM_SQS_TEMPLATE  % (escaped, published_message_id, 'us-east-1')
+    expected = MESSAGE_FROM_SQS_TEMPLATE % (escaped, published_message_id, 'us-east-1')
     acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", u'2015-01-01T12:00:00.000Z', messages[0].body)
     acquired_message.should.equal(expected)
 
@@ -146,7 +146,7 @@ def test_publish_to_sqs_in_different_region():
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
     messages = queue.receive_messages(MaxNumberOfMessages=1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE  % (message, published_message_id, 'us-west-1')
+    expected = MESSAGE_FROM_SQS_TEMPLATE % (message, published_message_id, 'us-west-1')
     acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", u'2015-01-01T12:00:00.000Z', messages[0].body)
     acquired_message.should.equal(expected)
 

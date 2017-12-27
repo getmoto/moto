@@ -542,7 +542,7 @@ def test_managed_policy():
     aws_policies = []
     while marker is not None:
         response = conn.list_policies(scope='AWS', marker=marker)[
-                'list_policies_response']['list_policies_result']
+            'list_policies_response']['list_policies_result']
         for policy in response['policies']:
             aws_policies.append(policy)
         marker = response.get('marker')
@@ -558,7 +558,7 @@ def test_managed_policy():
     all_policies = []
     while marker is not None:
         response = conn.list_policies(marker=marker)[
-                'list_policies_response']['list_policies_result']
+            'list_policies_response']['list_policies_result']
         for policy in response['policies']:
             all_policies.append(policy)
         marker = response.get('marker')

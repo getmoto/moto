@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 import boto3
 
-from moto import mock_autoscaling, mock_ec2,  mock_elbv2
+from moto import mock_autoscaling, mock_ec2, mock_elbv2
+
 
 @mock_elbv2
 @mock_ec2
@@ -72,6 +73,7 @@ def test_attach_detach_target_groups():
     response = elbv2_client.describe_target_health(
         TargetGroupArn=target_group_arn)
     list(response['TargetHealthDescriptions']).should.have.length_of(INSTANCE_COUNT)
+
 
 @mock_elbv2
 @mock_ec2

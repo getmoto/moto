@@ -412,6 +412,7 @@ def test_create_target_group_and_listeners():
     response = conn.describe_target_groups()
     response.get('TargetGroups').should.have.length_of(0)
 
+
 @mock_elbv2
 @mock_ec2
 def test_create_target_group_without_non_required_parameters():
@@ -449,6 +450,7 @@ def test_create_target_group_without_non_required_parameters():
     )
     target_group = response.get('TargetGroups')[0]
     target_group.should_not.be.none
+
 
 @mock_elbv2
 @mock_ec2
