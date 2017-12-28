@@ -752,6 +752,9 @@ def test_vpc_single_instance_in_subnet():
     security_group.vpc_id.should.equal(vpc.id)
 
     stack = conn.describe_stacks()[0]
+
+    vpc.tags.should.have.key('Application').which.should.equal(stack.stack_id)
+
     resources = stack.describe_resources()
     vpc_resource = [
         resource for resource in resources if resource.resource_type == 'AWS::EC2::VPC'][0]
