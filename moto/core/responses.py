@@ -272,6 +272,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
                     headers['status'] = str(headers['status'])
                 return status, headers, body
 
+        if not action:
+            return 404, headers, ''
+
         raise NotImplementedError(
             "The {0} action has not been implemented".format(action))
 
