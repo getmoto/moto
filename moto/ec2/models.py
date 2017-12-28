@@ -1261,8 +1261,15 @@ class RegionsAndZonesBackend(object):
         (region, [Zone(region + c, region) for c in 'abc'])
         for region in [r.name for r in regions])
 
-    def describe_regions(self):
-        return self.regions
+    def describe_regions(self, region_names=[]):
+        if len(region_names) == 0:
+            return self.regions
+        ret = []
+        for name in region_names:
+            for region in self.regions:
+                if region.name == name:
+                    ret.append(region)
+        return ret
 
     def describe_availability_zones(self):
         return self.zones[self.region_name]
