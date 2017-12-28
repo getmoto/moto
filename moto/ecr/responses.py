@@ -94,12 +94,8 @@ class ECRResponse(BaseResponse):
         image_ids = self._get_param('imageIds')
         accepted_media_types = self._get_param('acceptedMediaTypes')
 
-        images = self.ecr_backend.batch_get_image(repository_str, registry_id, image_ids, accepted_media_types)
-
-        return json.dumps({
-            'images': [image.response_batch_get_image for image in images],
-            'failures': []
-        })
+        response = self.ecr_backend.batch_get_image(repository_str, registry_id, image_ids, accepted_media_types)
+        return json.dumps(response)
 
     def can_paginate(self):
         if self.is_not_dryrun('CanPaginate'):
