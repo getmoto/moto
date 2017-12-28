@@ -2004,6 +2004,11 @@ class VPC(TaggedEC2Resource):
             cidr_block=properties['CidrBlock'],
             instance_tenancy=properties.get('InstanceTenancy', 'default')
         )
+        for tag in properties.get("Tags", []):
+            tag_key = tag["Key"]
+            tag_value = tag["Value"]
+            vpc.add_tag(tag_key, tag_value)
+
         return vpc
 
     @property
