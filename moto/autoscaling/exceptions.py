@@ -3,7 +3,7 @@ from moto.core.exceptions import RESTError
 
 
 class AutoscalingClientError(RESTError):
-    code = 500
+    code = 400
 
 
 class ResourceContentionError(AutoscalingClientError):

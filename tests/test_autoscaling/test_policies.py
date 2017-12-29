@@ -7,11 +7,11 @@ import sure  # noqa
 
 from moto import mock_autoscaling_deprecated
 
-from utils import setup_networking
+from utils import setup_networking_deprecated
 
 
 def setup_autoscale_group():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',

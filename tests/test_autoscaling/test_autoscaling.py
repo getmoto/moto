@@ -11,13 +11,13 @@ import sure  # noqa
 from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_elb, mock_autoscaling_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
-from utils import setup_networking
+from utils import setup_networking, setup_networking_deprecated
 
 
 @mock_autoscaling_deprecated
 @mock_elb_deprecated
 def test_create_autoscaling_group():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     elb_conn = boto.ec2.elb.connect_to_region('us-east-1')
     elb_conn.create_load_balancer(
         'test_lb', zones=[], listeners=[(80, 8080, 'http')])
@@ -84,7 +84,7 @@ def test_create_autoscaling_groups_defaults():
     """ Test with the minimum inputs and check that all of the proper defaults
     are assigned for the other attributes """
 
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -177,7 +177,7 @@ def test_list_many_autoscaling_groups():
 
 @mock_autoscaling_deprecated
 def test_autoscaling_group_describe_filter():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -206,7 +206,7 @@ def test_autoscaling_group_describe_filter():
 
 @mock_autoscaling_deprecated
 def test_autoscaling_update():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -238,7 +238,7 @@ def test_autoscaling_update():
 
 @mock_autoscaling_deprecated
 def test_autoscaling_tags_update():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -281,7 +281,7 @@ def test_autoscaling_tags_update():
 
 @mock_autoscaling_deprecated
 def test_autoscaling_group_delete():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -308,7 +308,7 @@ def test_autoscaling_group_delete():
 @mock_ec2_deprecated
 @mock_autoscaling_deprecated
 def test_autoscaling_group_describe_instances():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -344,7 +344,7 @@ def test_autoscaling_group_describe_instances():
 @requires_boto_gte("2.8")
 @mock_autoscaling_deprecated
 def test_set_desired_capacity_up():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -380,7 +380,7 @@ def test_set_desired_capacity_up():
 @requires_boto_gte("2.8")
 @mock_autoscaling_deprecated
 def test_set_desired_capacity_down():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -416,7 +416,7 @@ def test_set_desired_capacity_down():
 @requires_boto_gte("2.8")
 @mock_autoscaling_deprecated
 def test_set_desired_capacity_the_same():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -452,7 +452,7 @@ def test_set_desired_capacity_the_same():
 @mock_autoscaling_deprecated
 @mock_elb_deprecated
 def test_autoscaling_group_with_elb():
-    mocked_networking = setup_networking()
+    mocked_networking = setup_networking_deprecated()
     elb_conn = boto.connect_elb()
     zones = ['us-east-1a', 'us-east-1b']
     ports = [(80, 8080, 'http'), (443, 8443, 'tcp')]
