@@ -6,7 +6,8 @@ class AutoscalingClientError(RESTError):
     code = 400
 
 
-class ResourceContentionError(AutoscalingClientError):
+class ResourceContentionError(RESTError):
+    code = 500
 
     def __init__(self):
         super(ResourceContentionError, self).__init__(
