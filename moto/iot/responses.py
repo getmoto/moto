@@ -38,8 +38,7 @@ class IoTResponse(BaseResponse):
         thing_types = self.iot_backend.list_thing_types(
             thing_type_name=thing_type_name
         )
-
-        # TODO: support next_token and max_results
+        # TODO: implement pagination in the future
         next_token = None
         return json.dumps(dict(thingTypes=[_.to_dict() for _ in thing_types], nextToken=next_token))
 
@@ -54,7 +53,7 @@ class IoTResponse(BaseResponse):
             attribute_value=attribute_value,
             thing_type_name=thing_type_name,
         )
-        # TODO: support next_token and max_results
+        # TODO: implement pagination in the future
         next_token = None
         return json.dumps(dict(things=[_.to_dict() for _ in things], nextToken=next_token))
 
@@ -134,7 +133,7 @@ class IoTResponse(BaseResponse):
         # marker = self._get_param("marker")
         # ascending_order = self._get_param("ascendingOrder")
         certificates = self.iot_backend.list_certificates()
-        # TODO: handle pagination
+        # TODO: implement pagination in the future
         return json.dumps(dict(certificates=[_.to_dict() for _ in certificates]))
 
     def update_certificate(self):
@@ -161,7 +160,7 @@ class IoTResponse(BaseResponse):
         # ascending_order = self._get_param("ascendingOrder")
         policies = self.iot_backend.list_policies()
 
-        # TODO: handle pagination
+        # TODO: implement pagination in the future
         return json.dumps(dict(policies=[_.to_dict() for _ in policies]))
 
     def get_policy(self):
@@ -204,7 +203,7 @@ class IoTResponse(BaseResponse):
         policies = self.iot_backend.list_principal_policies(
             principal_arn=principal
         )
-        # TODO: handle pagination
+        # TODO: implement pagination in the future
         next_marker = None
         return json.dumps(dict(policies=[_.to_dict() for _ in policies], nextMarker=next_marker))
 
@@ -216,7 +215,7 @@ class IoTResponse(BaseResponse):
         principals = self.iot_backend.list_policy_principals(
             policy_name=policy_name,
         )
-        # TODO: handle pagination
+        # TODO: implement pagination in the future
         next_marker = None
         return json.dumps(dict(principals=principals, nextMarker=next_marker))
 
@@ -245,7 +244,7 @@ class IoTResponse(BaseResponse):
         things = self.iot_backend.list_principal_things(
             principal_arn=principal,
         )
-        # TODO: handle pagination
+        # TODO: implement pagination in the future
         next_token = None
         return json.dumps(dict(things=things, nextToken=next_token))
 
@@ -300,6 +299,7 @@ class IoTResponse(BaseResponse):
         )
         next_token = None
         rets = [{'groupName': _.thing_group_name, 'groupArn': _.arn} for _ in thing_groups]
+        # TODO: implement pagination in the future
         return json.dumps(dict(thingGroups=rets, nextToken=next_token))
 
     def update_thing_group(self):
@@ -324,7 +324,6 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name,
             thing_arn=thing_arn,
         )
-        # TODO: adjust response
         return json.dumps(dict())
 
     def remove_thing_from_thing_group(self):
@@ -338,7 +337,6 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name,
             thing_arn=thing_arn,
         )
-        # TODO: adjust response
         return json.dumps(dict())
 
     def list_things_in_thing_group(self):
@@ -352,6 +350,7 @@ class IoTResponse(BaseResponse):
         )
         next_token = None
         thing_names = [_.thing_name for _ in things]
+        # TODO: implement pagination in the future
         return json.dumps(dict(things=thing_names, nextToken=next_token))
 
     def list_thing_groups_for_thing(self):
@@ -362,6 +361,7 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name
         )
         next_token = None
+        # TODO: implement pagination in the future
         return json.dumps(dict(thingGroups=thing_groups, nextToken=next_token))
 
     def update_thing_groups_for_thing(self):
@@ -373,5 +373,4 @@ class IoTResponse(BaseResponse):
             thing_groups_to_add=thing_groups_to_add,
             thing_groups_to_remove=thing_groups_to_remove,
         )
-        # TODO: adjust response
         return json.dumps(dict())
