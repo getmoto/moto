@@ -11,11 +11,13 @@ import xmltodict
 from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin
 
-from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_name_from_url, parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
+from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_name_from_url, \
+    parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
 
-
-from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, MissingKey, InvalidPartOrder
-from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, FakeTag
+from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, MissingKey, InvalidPartOrder, MalformedXML, \
+    MalformedACLError
+from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
+    FakeTag
 from .utils import bucket_name_from_url, metadata_from_headers
 from xml.dom import minidom
 
@@ -70,8 +72,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         match = re.match(r'^\[(.+)\](:\d+)?$', host)
         if match:
-            match = re.match(r'^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)([\dA-F]{1,4}(\3|:\b)|\2){5}(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z',
-                             match.groups()[0], re.IGNORECASE)
+            match = re.match(
+                r'^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)([\dA-F]{1,4}(\3|:\b)|\2){5}(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z',
+                match.groups()[0], re.IGNORECASE)
             if match:
                 return False
 
@@ -229,6 +232,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return 404, {}, template.render(bucket_name=bucket_name)
             template = self.response_template(S3_BUCKET_TAGGING_RESPONSE)
             return template.render(bucket=bucket)
+        elif 'logging' in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if not bucket.logging:
+                template = self.response_template(S3_NO_LOGGING_CONFIG)
+                return 200, {}, template.render()
+            template = self.response_template(S3_LOGGING_CONFIG)
+            return 200, {}, template.render(logging=bucket.logging)
         elif "cors" in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if len(bucket.cors) == 0:
@@ -324,8 +334,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             limit = continuation_token or start_after
             result_keys = self._get_results_from_token(result_keys, limit)
 
-        result_keys, is_truncated, \
-            next_continuation_token = self._truncate_result(result_keys, max_keys)
+        result_keys, is_truncated, next_continuation_token = self._truncate_result(result_keys, max_keys)
 
         return template.render(
             bucket=bucket,
@@ -380,8 +389,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
             self.backend.set_bucket_policy(bucket_name, body)
             return 'True'
         elif 'acl' in querystring:
-            # TODO: Support the XML-based ACL format
-            self.backend.set_bucket_acl(bucket_name, self._acl_from_headers(request.headers))
+            # Headers are first. If not set, then look at the body (consistent with the documentation):
+            acls = self._acl_from_headers(request.headers)
+            if not acls:
+                acls = self._acl_from_xml(body)
+            self.backend.set_bucket_acl(bucket_name, acls)
             return ""
         elif "tagging" in querystring:
             tagging = self._bucket_tagging_from_xml(body)
@@ -391,12 +403,18 @@ class ResponseObject(_TemplateEnvironmentMixin):
             self.backend.set_bucket_website_configuration(bucket_name, body)
             return ""
         elif "cors" in querystring:
-            from moto.s3.exceptions import MalformedXML
             try:
                 self.backend.put_bucket_cors(bucket_name, self._cors_from_xml(body))
                 return ""
             except KeyError:
                 raise MalformedXML()
+        elif "logging" in querystring:
+            try:
+                self.backend.put_bucket_logging(bucket_name, self._logging_from_xml(body))
+                return ""
+            except KeyError:
+                raise MalformedXML()
+
         else:
             if body:
                 try:
@@ -515,6 +533,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         def toint(i):
             return int(i) if i else None
+
         begin, end = map(toint, rspec.split('-'))
         if begin is not None:  # byte range
             end = last if end is None else min(end, last)
@@ -731,6 +750,58 @@ class ResponseObject(_TemplateEnvironmentMixin):
         else:
             return 404, response_headers, ""
 
+    def _acl_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+        if not parsed_xml.get("AccessControlPolicy"):
+            raise MalformedACLError()
+
+        # The owner is needed for some reason...
+        if not parsed_xml["AccessControlPolicy"].get("Owner"):
+            # TODO: Validate that the Owner is actually correct.
+            raise MalformedACLError()
+
+        # If empty, then no ACLs:
+        if parsed_xml["AccessControlPolicy"].get("AccessControlList") is None:
+            return []
+
+        if not parsed_xml["AccessControlPolicy"]["AccessControlList"].get("Grant"):
+            raise MalformedACLError()
+
+        permissions = [
+            "READ",
+            "WRITE",
+            "READ_ACP",
+            "WRITE_ACP",
+            "FULL_CONTROL"
+        ]
+
+        if not isinstance(parsed_xml["AccessControlPolicy"]["AccessControlList"]["Grant"], list):
+            parsed_xml["AccessControlPolicy"]["AccessControlList"]["Grant"] = \
+                [parsed_xml["AccessControlPolicy"]["AccessControlList"]["Grant"]]
+
+        grants = self._get_grants_from_xml(parsed_xml["AccessControlPolicy"]["AccessControlList"]["Grant"],
+                                           MalformedACLError, permissions)
+        return FakeAcl(grants)
+
+    def _get_grants_from_xml(self, grant_list, exception_type, permissions):
+        grants = []
+        for grant in grant_list:
+            if grant.get("Permission", "") not in permissions:
+                raise exception_type()
+
+            if grant["Grantee"].get("@xsi:type", "") not in ["CanonicalUser", "AmazonCustomerByEmail", "Group"]:
+                raise exception_type()
+
+            # TODO: Verify that the proper grantee data is supplied based on the type.
+
+            grants.append(FakeGrant(
+                [FakeGrantee(id=grant["Grantee"].get("ID", ""), display_name=grant["Grantee"].get("DisplayName", ""),
+                             uri=grant["Grantee"].get("URI", ""))],
+                [grant["Permission"]])
+            )
+
+        return grants
+
     def _acl_from_headers(self, headers):
         canned_acl = headers.get('x-amz-acl', '')
         if canned_acl:
@@ -813,6 +884,42 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return [cors for cors in parsed_xml["CORSConfiguration"]["CORSRule"]]
 
         return [parsed_xml["CORSConfiguration"]["CORSRule"]]
+
+    def _logging_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+
+        if not parsed_xml["BucketLoggingStatus"].get("LoggingEnabled"):
+            return {}
+
+        if not parsed_xml["BucketLoggingStatus"]["LoggingEnabled"].get("TargetBucket"):
+            raise MalformedXML()
+
+        if not parsed_xml["BucketLoggingStatus"]["LoggingEnabled"].get("TargetPrefix"):
+            parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetPrefix"] = ""
+
+        # Get the ACLs:
+        if parsed_xml["BucketLoggingStatus"]["LoggingEnabled"].get("TargetGrants"):
+            permissions = [
+                "READ",
+                "WRITE",
+                "FULL_CONTROL"
+            ]
+            if not isinstance(parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"]["Grant"], list):
+                target_grants = self._get_grants_from_xml(
+                    [parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"]["Grant"]],
+                    MalformedXML,
+                    permissions
+                )
+            else:
+                target_grants = self._get_grants_from_xml(
+                    parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"]["Grant"],
+                    MalformedXML,
+                    permissions
+                )
+
+            parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"] = target_grants
+
+        return parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]
 
     def _key_response_delete(self, bucket_name, query, key_name, headers):
         if query.get('uploadId'):
@@ -1321,4 +1428,38 @@ S3_NO_CORS_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   <RequestId>44425877V1D0A2F9</RequestId>
   <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
 </Error>
+"""
+
+S3_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
+<BucketLoggingStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01">
+  <LoggingEnabled>
+    <TargetBucket>{{ logging["TargetBucket"] }}</TargetBucket>
+    <TargetPrefix>{{ logging["TargetPrefix"] }}</TargetPrefix>
+    {% if logging.get("TargetGrants") %}
+    <TargetGrants>
+      {% for grant in logging["TargetGrants"] %}
+      <Grant>
+        <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:type="{{ grant.grantees[0].type }}">
+          {% if grant.grantees[0].uri %}
+          <URI>{{ grant.grantees[0].uri }}</URI>
+          {% endif %}
+          {% if grant.grantees[0].id %}
+          <ID>{{ grant.grantees[0].id }}</ID>
+          {% endif %}
+          {% if grant.grantees[0].display_name %}
+          <DisplayName>{{ grant.grantees[0].display_name }}</DisplayName>
+          {% endif %}
+        </Grantee>
+        <Permission>{{ grant.permissions[0] }}</Permission>
+      </Grant>
+      {% endfor %}
+    </TargetGrants>
+    {% endif %}
+  </LoggingEnabled>
+</BucketLoggingStatus>
+"""
+
+S3_NO_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
+<BucketLoggingStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01" />
 """
