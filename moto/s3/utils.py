@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-
+import os
 from boto.s3.key import Key
 import re
 import six
@@ -10,6 +10,8 @@ bucket_name_regex = re.compile("(.+).s3(.*).amazonaws.com")
 
 
 def bucket_name_from_url(url):
+    if os.environ.get('S3_IGNORE_SUBDOMAIN_BUCKETNAME', '') in ['1', 'true']:
+        return None
     domain = urlparse(url).netloc
 
     if domain.startswith('www.'):
