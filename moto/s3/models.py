@@ -27,7 +27,13 @@ class FakeDeleteMarker(BaseModel):
 
     def __init__(self, key):
         self.key = key
+        self.name = key.name
+        self.last_modified = datetime.datetime.utcnow()
         self._version_id = key.version_id + 1
+
+    @property
+    def last_modified_ISO8601(self):
+        return iso_8601_datetime_with_milliseconds(self.last_modified)
 
     @property
     def version_id(self):
@@ -630,10 +636,7 @@ class S3Backend(BaseBackend):
         latest_versions = {}
 
         for version in versions:
-            if isinstance(version, FakeDeleteMarker):
-                name = version.key.name
-            else:
-                name = version.name
+            name = version.name
             version_id = version.version_id
             maximum_version_per_key[name] = max(
                 version_id,
