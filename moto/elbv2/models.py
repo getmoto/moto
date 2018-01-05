@@ -86,6 +86,8 @@ class FakeTargetGroup(BaseModel):
         self.attributes = {
             'deregistration_delay.timeout_seconds': 300,
             'stickiness.enabled': 'false',
+            'stickiness.type': 'lb_cookie',
+            'stickiness.lb_cookie.duration_seconds': 604800,
         }
 
         self.targets = OrderedDict()
