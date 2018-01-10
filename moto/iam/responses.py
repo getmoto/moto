@@ -440,6 +440,14 @@ class IamResponse(BaseResponse):
         template = self.response_template(CREATE_ACCESS_KEY_TEMPLATE)
         return template.render(key=key)
 
+    def update_access_key(self):
+        user_name = self._get_param('UserName')
+        access_key_id = self._get_param('AccessKeyId')
+        status = self._get_param('Status')
+        iam_backend.update_access_key(user_name, access_key_id, status)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='UpdateAccessKey')
+
     def list_access_keys(self):
         user_name = self._get_param('UserName')
 

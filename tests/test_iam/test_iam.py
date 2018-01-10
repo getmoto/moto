@@ -651,3 +651,21 @@ def test_attach_detach_user_policy():
 
     resp = client.list_attached_user_policies(UserName=user.name)
     resp['AttachedPolicies'].should.have.length_of(0)
+
+
+@mock_iam
+def test_update_access_key():
+    iam = boto3.resource('iam', region_name='us-east-1')
+    client = iam.meta.client
+    username = 'test-user'
+    iam.create_user(UserName=username)
+    with assert_raises(ClientError):
+        client.update_access_key(UserName=username,
+                                 AccessKeyId='non-existent-key',
+                                 Status='Inactive')
+    key = client.create_access_key(UserName=username)['AccessKey']
+    client.update_access_key(UserName=username,
+                             AccessKeyId=key['AccessKeyId'],
+                             Status='Inactive')
+    resp = client.list_access_keys(UserName=username)
+    resp['AccessKeyMetadata'][0]['Status'].should.equal('Inactive')
