@@ -10,10 +10,8 @@ main() {
     return 1
   fi
 
-  # TODO: replace this with the bumpversion pip package, I couldn't
-  # figure out how to use that for these files
-  sed -i '' "s/version=.*$/version='${version}',/g" setup.py
-  sed -i '' "s/__version__ = .*$/__version__ = '${version}',/g" moto/__init__.py
+  &>/dev/null which bumpversion || pip install bumpversion
+  bumpversion --new-version ${version} patch
 
   git checkout -b version-${version}
   # Commit the new version
