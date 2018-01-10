@@ -4,6 +4,7 @@ Moto Changelog
 1.2.0
 ------
 
+    * Supports filtering AMIs by self
     * Implemented signal_workflow_execution for SWF
     * Wired SWF backend to the moto server
     * Revamped lambda function storage to do versioning
