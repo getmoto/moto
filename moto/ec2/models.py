@@ -1140,6 +1140,7 @@ class AmiBackend(object):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
+
         ami = Ami(self, ami_id, instance=instance, source_ami=None,
                   name=name, description=description,
                   owner_id=context.get_current_user() if context else '111122223333')

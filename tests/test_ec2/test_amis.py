@@ -7,6 +7,7 @@ from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 # Ensure 'assert_raises' context manager support for Python 2.6
 from nose.tools import assert_raises
+import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
@@ -695,16 +696,20 @@ def test_ami_describe_non_existent():
 
 @mock_ec2
 def test_ami_filter_wildcard():
-    ec2 = boto3.resource('ec2', region_name='us-west-1')
-    instance = ec2.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
-    image = instance.create_image(Name='test-image')
+    ec2_resource = boto3.resource('ec2', region_name='us-west-1')
+    ec2_client = boto3.client('ec2', region_name='us-west-1')
+
+    instance = ec2_resource.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
+    instance.create_image(Name='test-image')
 
     # create an image with the same owner but will not match the filter
     instance.create_image(Name='not-matching-image')
 
-    filter_result = list(
-        ec2.images.filter(Owners=['111122223333'], Filters=[{'Name': 'name', 'Values': ['test*']}]))
-    filter_result.should.equal([image])
+    my_images = ec2_client.describe_images(
+        Owners=['111122223333'],
+        Filters=[{'Name': 'name', 'Values': ['test*']}]
+    )['Images']
+    my_images.should.have.length_of(1)
 
 
 @mock_ec2
@@ -724,16 +729,18 @@ def test_ami_filter_by_owner_id():
     # Check we actually have a subset of images
     assert len(ubuntu_ids) < len(all_ids)
 
+
 @mock_ec2
 def test_ami_filter_by_self():
-    client = boto3.client('ec2', region_name='us-east-1')
+    ec2_resource = boto3.resource('ec2', region_name='us-west-1')
+    ec2_client = boto3.client('ec2', region_name='us-west-1')
 
-    my_images = client.describe_images(Owners=['self'])
-    assert len(my_images) == 0
+    my_images = ec2_client.describe_images(Owners=['self'])['Images']
+    my_images.should.have.length_of(0)
 
     # Create a new image
-    instance = ec2.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
-    image = instance.create_image(Name='test-image')
+    instance = ec2_resource.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
+    instance.create_image(Name='test-image')
 
-    my_images = client.describe_images(Owners=['self'])
-    assert len(my_images) == 1
+    my_images = ec2_client.describe_images(Owners=['self'])['Images']
+    my_images.should.have.length_of(1)

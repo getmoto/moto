@@ -192,7 +192,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
             return self.querystring.get('AWSAccessKeyId')
         else:
             # Should we raise an unauthorized exception instead?
-            return None
+            return '111122223333'
 
     def _dispatch(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
