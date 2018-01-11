@@ -1,11 +1,18 @@
 Moto Changelog
 ===================
 
-Latest
+1.2.0
 ------
+
+    * Supports filtering AMIs by self
     * Implemented signal_workflow_execution for SWF
     * Wired SWF backend to the moto server
-    * Fixed incorrect handling of task list parameter on start_workflow_execution
+    * Revamped lambda function storage to do versioning
+    * IOT improvements
+    * RDS improvements
+    * Implemented CloudWatch get_metric_statistics
+    * Improved Cloudformation EC2 support
+    * Implemented Cloudformation change_set endpoints
     
 1.1.25
 -----
