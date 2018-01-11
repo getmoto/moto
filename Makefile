@@ -21,7 +21,6 @@ test-only:
 	rm -rf cover
 	@nosetests -sv --with-coverage --cover-html ./tests/ $(TEST_EXCLUDE)
 
-
 test: lint test-only
 
 test_server:
