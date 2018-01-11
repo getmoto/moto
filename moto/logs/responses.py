@@ -87,9 +87,8 @@ class LogsResponse(BaseResponse):
 
         events, next_backward_token, next_foward_token = \
             self.logs_backend.get_log_events(log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head)
-
         return json.dumps({
-            "events": [ob.__dict__ for ob in events],
+            "events": events,
             "nextBackwardToken": next_backward_token,
             "nextForwardToken": next_foward_token
         })
