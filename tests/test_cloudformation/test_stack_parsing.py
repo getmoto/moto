@@ -75,6 +75,14 @@ get_attribute_output = {
     }
 }
 
+get_availability_zones_output = {
+    "Outputs": {
+        "Output1": {
+            "Value": {"Fn::GetAZs": ""}
+        }
+    }
+}
+
 split_select_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Resources": {
@@ -146,6 +154,8 @@ bad_outputs_template = dict(
     list(dummy_template.items()) + list(bad_output.items()))
 get_attribute_outputs_template = dict(
     list(dummy_template.items()) + list(get_attribute_output.items()))
+get_availability_zones_template = dict(
+    list(dummy_template.items()) + list(get_availability_zones_output.items()))
 
 dummy_template_json = json.dumps(dummy_template)
 name_type_template_json = json.dumps(name_type_template)
@@ -153,6 +163,8 @@ output_type_template_json = json.dumps(outputs_template)
 bad_output_template_json = json.dumps(bad_outputs_template)
 get_attribute_outputs_template_json = json.dumps(
     get_attribute_outputs_template)
+get_availability_zones_template_json = json.dumps(
+    get_availability_zones_template)
 split_select_template_json = json.dumps(split_select_template)
 sub_template_json = json.dumps(sub_template)
 export_value_template_json = json.dumps(export_value_template)
@@ -241,6 +253,21 @@ def test_parse_stack_with_get_attribute_outputs():
     output = list(stack.output_map.values())[0]
     output.should.be.a(Output)
     output.value.should.equal("my-queue")
+
+
+def test_parse_stack_with_get_availability_zones():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=get_availability_zones_template_json,
+        parameters={},
+        region_name='us-east-1')
+
+    stack.output_map.should.have.length_of(1)
+    list(stack.output_map.keys())[0].should.equal('Output1')
+    output = list(stack.output_map.values())[0]
+    output.should.be.a(Output)
+    output.value.should.equal([ "us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d" ])
 
 
 def test_parse_stack_with_bad_get_attribute_outputs():
