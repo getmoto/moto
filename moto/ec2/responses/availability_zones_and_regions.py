@@ -10,7 +10,8 @@ class AvailabilityZonesAndRegions(BaseResponse):
         return template.render(zones=zones)
 
     def describe_regions(self):
-        regions = self.ec2_backend.describe_regions()
+        region_names = self._get_multi_param('RegionName')
+        regions = self.ec2_backend.describe_regions(region_names)
         template = self.response_template(DESCRIBE_REGIONS_RESPONSE)
         return template.render(regions=regions)
 

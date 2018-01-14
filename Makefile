@@ -36,7 +36,7 @@ tag_github_release:
 	git tag `python setup.py --version`
 	git push origin `python setup.py --version`
 
-publish: implementation_coverage \
+publish:
 	upload_pypi_artifact \
 	tag_github_release \
 	push_dockerhub_image
