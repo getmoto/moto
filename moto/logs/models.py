@@ -53,23 +53,29 @@ class LogStream:
         self.__class__._log_ids += 1
 
     def _update(self):
-        self.firstEventTimestamp = min([x.timestamp for x in self.events])
-        self.lastEventTimestamp = max([x.timestamp for x in self.events])
+        # events can be empty when stream is described soon after creation
+        self.firstEventTimestamp = min([x.timestamp for x in self.events]) if self.events else None
+        self.lastEventTimestamp = max([x.timestamp for x in self.events]) if self.events else None
 
     def to_describe_dict(self):
         # Compute start and end times
         self._update()
 
-        return {
+        res = {
             "arn": self.arn,
             "creationTime": self.creationTime,
-            "firstEventTimestamp": self.firstEventTimestamp,
-            "lastEventTimestamp": self.lastEventTimestamp,
-            "lastIngestionTime": self.lastIngestionTime,
             "logStreamName": self.logStreamName,
             "storedBytes": self.storedBytes,
-            "uploadSequenceToken": str(self.uploadSequenceToken),
         }
+        if self.events:
+            rest = {
+                "firstEventTimestamp": self.firstEventTimestamp,
+                "lastEventTimestamp": self.lastEventTimestamp,
+                "lastIngestionTime": self.lastIngestionTime,
+                "uploadSequenceToken": str(self.uploadSequenceToken),
+            }
+            res.update(rest)
+        return res
 
     def put_log_events(self, log_group_name, log_stream_name, log_events, sequence_token):
         # TODO: ensure sequence_token
@@ -140,10 +146,12 @@ class LogGroup:
         del self.streams[log_stream_name]
 
     def describe_log_streams(self, descending, limit, log_group_name, log_stream_name_prefix, next_token, order_by):
+        # responses only logStreamName, creationTime, arn, storedBytes when no events are stored.
+
         log_streams = [(name, stream.to_describe_dict()) for name, stream in self.streams.items() if name.startswith(log_stream_name_prefix)]
 
         def sorter(item):
-            return item[0] if order_by == 'logStreamName' else item[1]['lastEventTimestamp']
+            return item[0] if order_by == 'logStreamName' else item[1].get('lastEventTimestamp', 0)
 
         if next_token is None:
             next_token = 0
