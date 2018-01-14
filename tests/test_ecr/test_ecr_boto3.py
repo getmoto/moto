@@ -9,7 +9,7 @@ import re
 import sure  # noqa
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 from dateutil.tz import tzlocal
 
 from moto import mock_ecr
@@ -445,3 +445,117 @@ def test_get_authorization_token_explicit_regions():
 
         }
     ])
+
+
+@mock_ecr
+def test_batch_get_image():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='latest'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='v1'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='v2'
+    )
+
+    response = client.batch_get_image(
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageTag': 'v2'
+            },
+        ],
+    )
+
+    type(response['images']).should.be(list)
+    len(response['images']).should.be(1)
+
+    response['images'][0]['imageManifest'].should.contain("vnd.docker.distribution.manifest.v2+json")
+    response['images'][0]['registryId'].should.equal("012345678910")
+    response['images'][0]['repositoryName'].should.equal("test_repository")
+
+    response['images'][0]['imageId']['imageTag'].should.equal("v2")
+    response['images'][0]['imageId']['imageDigest'].should.contain("sha")
+
+    type(response['failures']).should.be(list)
+    len(response['failures']).should.be(0)
+
+
+@mock_ecr
+def test_batch_get_image_that_doesnt_exist():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='latest'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='v1'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='v2'
+    )
+
+    response = client.batch_get_image(
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageTag': 'v5'
+            },
+        ],
+    )
+
+    type(response['images']).should.be(list)
+    len(response['images']).should.be(0)
+
+    type(response['failures']).should.be(list)
+    len(response['failures']).should.be(1)
+    response['failures'][0]['failureReason'].should.equal("Requested image not found")
+    response['failures'][0]['failureCode'].should.equal("ImageNotFound")
+    response['failures'][0]['imageId']['imageTag'].should.equal("v5")
+
+
+@mock_ecr
+def test_batch_get_image_no_tags():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='latest'
+    )
+
+    error_msg = re.compile(
+        r".*Missing required parameter in input: \"imageIds\".*",
+        re.MULTILINE)
+
+    client.batch_get_image.when.called_with(
+        repositoryName='test_repository').should.throw(
+            ParamValidationError, error_msg)

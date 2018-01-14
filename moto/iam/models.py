@@ -349,6 +349,14 @@ class User(BaseModel):
             raise IAMNotFoundException(
                 "Key {0} not found".format(access_key_id))
 
+    def update_access_key(self, access_key_id, status):
+        for key in self.access_keys:
+            if key.access_key_id == access_key_id:
+                key.status = status
+                break
+        else:
+            raise IAMNotFoundException("The Access Key with id {0} cannot be found".format(access_key_id))
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
@@ -816,6 +824,10 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         key = user.create_access_key()
         return key
+
+    def update_access_key(self, user_name, access_key_id, status):
+        user = self.get_user(user_name)
+        user.update_access_key(access_key_id, status)
 
     def get_all_access_keys(self, user_name, marker=None, max_items=None):
         user = self.get_user(user_name)

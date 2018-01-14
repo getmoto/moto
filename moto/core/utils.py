@@ -18,6 +18,8 @@ def camelcase_to_underscores(argument):
     python underscore variable like the_new_attribute'''
     result = ''
     prev_char_title = True
+    if not argument:
+        return argument
     for index, char in enumerate(argument):
         try:
             next_char_title = argument[index + 1].istitle()
