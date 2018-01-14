@@ -111,3 +111,30 @@ class MalformedXML(S3ClientError):
             "MalformedXML",
             "The XML you provided was not well-formed or did not validate against our published schema",
             *args, **kwargs)
+
+
+class MalformedACLError(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(MalformedACLError, self).__init__(
+            "MalformedACLError",
+            "The XML you provided was not well-formed or did not validate against our published schema",
+            *args, **kwargs)
+
+
+class InvalidTargetBucketForLogging(S3ClientError):
+    code = 400
+
+    def __init__(self, msg):
+        super(InvalidTargetBucketForLogging, self).__init__("InvalidTargetBucketForLogging", msg)
+
+
+class CrossLocationLoggingProhibitted(S3ClientError):
+    code = 403
+
+    def __init__(self):
+        super(CrossLocationLoggingProhibitted, self).__init__(
+            "CrossLocationLoggingProhibitted",
+            "Cross S3 location logging not allowed."
+        )

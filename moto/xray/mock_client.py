@@ -51,7 +51,7 @@ def mock_xray_client(f):
         aws_xray_sdk.core.xray_recorder._emitter = MockEmitter()
 
         try:
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
         finally:
 
             if old_xray_context_var is None:
