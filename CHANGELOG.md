@@ -5,7 +5,6 @@ Latest
 ------
     * Implemented signal_workflow_execution for SWF
     * Wired SWF backend to the moto server
-    * Fixed incorrect handling of task list parameter on start_workflow_execution
     * Added url decoding to x-amz-copy-source header for copying S3 files
     
 1.1.25
