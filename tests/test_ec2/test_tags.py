@@ -4,11 +4,12 @@ from nose.tools import assert_raises
 import itertools
 
 import boto
+import boto3
 from boto.exception import EC2ResponseError
 from boto.ec2.instance import Reservation
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
+from moto import mock_ec2_deprecated, mock_ec2
 from nose.tools import assert_raises
 
 
@@ -385,3 +386,26 @@ def test_filter_instances_by_wildcard_tags():
 
     reservations = conn.get_all_instances(filters={'tag-value': 'Value*'})
     reservations.should.have.length_of(2)
+
+
+@mock_ec2
+def test_create_volume_with_tags():
+    client = boto3.client('ec2', 'us-west-2')
+    response = client.create_volume(
+            AvailabilityZone='us-west-2',
+            Encrypted=False,
+            Size=40,
+            TagSpecifications=[
+                {
+                    'ResourceType': 'image',
+                    'Tags': [
+                        {
+                            'Key': 'TEST_TAG',
+                            'Value': 'TEST_VALUE'
+                        }
+                    ],
+                }
+            ]
+        )
+    
+    assert response['Tags'][0]['Key'] == 'TEST_TAG'
