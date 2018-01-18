@@ -166,6 +166,7 @@ class Queue(BaseModel):
                             'MessageRetentionPeriod',
                             'QueueArn',
                             'ReceiveMessageWaitTimeSeconds',
+                            'RedrivePolicy',
                             'VisibilityTimeout',
                             'WaitTimeSeconds']
     ALLOWED_PERMISSIONS = ('*', 'ChangeMessageVisibility', 'DeleteMessage', 'GetQueueAttributes',
