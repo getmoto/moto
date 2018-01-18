@@ -160,7 +160,7 @@ def test_boto3_create_stack():
         TemplateBody=dummy_template_json,
     )
 
-    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
+    json.loads(json.dumps(cf_conn.get_template(StackName="test_stack")['TemplateBody'])).should.equal(
         dummy_template)
 
 
@@ -270,9 +270,10 @@ def test_create_stack_from_s3_url():
         StackName='stack_from_url',
         TemplateURL=key_url,
     )
-
-    cf_conn.get_template(StackName="stack_from_url")[
-        'TemplateBody'].should.equal(dummy_template)
+    # from IPython import embed
+    # embed()
+    json.loads(json.dumps(cf_conn.get_template(StackName="stack_from_url")[
+        'TemplateBody'])).should.equal(dummy_template)
 
 
 @mock_cloudformation
@@ -306,8 +307,8 @@ def test_update_stack_from_s3_url():
         TemplateURL=key_url,
     )
 
-    cf_conn.get_template(StackName="update_stack_from_url")[
-        'TemplateBody'].should.equal(dummy_update_template)
+    json.loads(json.dumps(cf_conn.get_template(StackName="update_stack_from_url")[
+        'TemplateBody'])).should.equal(dummy_update_template)
 
 
 @mock_cloudformation
