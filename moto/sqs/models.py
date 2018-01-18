@@ -286,6 +286,8 @@ class Queue(BaseModel):
             attr = getattr(self, camelcase_to_underscores(attribute))
             if isinstance(attr, bool):
                 attr = str(attr).lower()
+            elif attribute == 'RedrivePolicy':
+                attr = json.dumps(attr)
             result[attribute] = attr
         return result
 
