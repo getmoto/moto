@@ -1,4 +1,5 @@
 from freezegun import freeze_time
+import sure  # noqa
 
 from moto import mock_swf_deprecated
 

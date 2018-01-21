@@ -4,6 +4,7 @@ import json
 
 import boto3
 from botocore.exceptions import ClientError
+import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 from nose.tools import assert_raises
 

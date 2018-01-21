@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import boto3
 
+import sure  # noqa
 from moto import mock_autoscaling, mock_ec2,  mock_elbv2
 
 @mock_elbv2
