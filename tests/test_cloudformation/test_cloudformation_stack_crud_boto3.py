@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import json
+from collections import OrderedDict
 
 import boto3
 from botocore.exceptions import ClientError
@@ -160,8 +161,8 @@ def test_boto3_create_stack():
         TemplateBody=dummy_template_json,
     )
 
-    json.loads(json.dumps(cf_conn.get_template(StackName="test_stack")['TemplateBody'])).should.equal(
-        dummy_template)
+    cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
+        json.loads(dummy_template_json, object_pairs_hook=OrderedDict))
 
 
 @mock_cloudformation
@@ -270,10 +271,8 @@ def test_create_stack_from_s3_url():
         StackName='stack_from_url',
         TemplateURL=key_url,
     )
-    # from IPython import embed
-    # embed()
-    json.loads(json.dumps(cf_conn.get_template(StackName="stack_from_url")[
-        'TemplateBody'])).should.equal(dummy_template)
+    cf_conn.get_template(StackName="stack_from_url")['TemplateBody'].should.equal(
+        json.loads(dummy_template_json, object_pairs_hook=OrderedDict))
 
 
 @mock_cloudformation
@@ -307,8 +306,8 @@ def test_update_stack_from_s3_url():
         TemplateURL=key_url,
     )
 
-    json.loads(json.dumps(cf_conn.get_template(StackName="update_stack_from_url")[
-        'TemplateBody'])).should.equal(dummy_update_template)
+    cf_conn.get_template(StackName="update_stack_from_url")[ 'TemplateBody'].should.equal(
+        json.loads(dummy_update_template_json, object_pairs_hook=OrderedDict))
 
 
 @mock_cloudformation
