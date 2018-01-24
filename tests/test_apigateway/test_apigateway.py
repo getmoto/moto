@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 from dateutil.tz import tzutc
 import boto3
+import time
 from freezegun import freeze_time
 import requests
 import sure  # noqa
@@ -30,10 +31,11 @@ def test_create_and_get_rest_api():
 
     response.pop('ResponseMetadata')
     response.pop('createdDate')
+
     response.should.equal({
-        'id': api_id,
-        'name': 'my_api',
-        'description': 'this is my api',
+    'id': api_id,
+    'name': 'my_api',
+    'description': 'this is my api'
     })
 
 
