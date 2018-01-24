@@ -270,8 +270,6 @@ def test_create_stack_from_s3_url():
         StackName='stack_from_url',
         TemplateURL=key_url,
     )
-    # from IPython import embed
-    # embed()
     json.loads(json.dumps(cf_conn.get_template(StackName="stack_from_url")[
         'TemplateBody'])).should.equal(dummy_template)
 
