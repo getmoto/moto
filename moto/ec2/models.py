@@ -1833,6 +1833,8 @@ class Volume(TaggedEC2Resource):
             return self.id
         elif filter_name == 'encrypted':
             return str(self.encrypted).lower()
+        elif filter_name == 'availability-zone':
+            return self.zone.name
         else:
             return super(Volume, self).get_filter_value(
                 filter_name, 'DescribeVolumes')

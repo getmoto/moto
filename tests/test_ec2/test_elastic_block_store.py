@@ -185,6 +185,11 @@ def test_volume_filters():
         {volume1.id, volume3.id, volume4.id}
     )
 
+    volumes_by_availability_zone = conn.get_all_volumes(filters={'availability-zone': 'us-east-1b'})
+    set([vol.id for vol in volumes_by_availability_zone if vol.id in volume_ids]).should.equal(
+        {volume2.id}
+    )
+
 
 @mock_ec2_deprecated
 def test_volume_attach_and_detach():
