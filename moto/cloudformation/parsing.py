@@ -135,6 +135,32 @@ def clean_json(resource_json, resources_map):
             else:
                 return resource
 
+        if "Fn::GetAZs" in resource_json:
+
+            def build_region_dict_helper(regions, number_of_regions):
+                region_dict={}
+                for region in regions:
+                    az_list = []
+                    az_letter_ascii_code = ord('a')
+                    for x in range(0, number_of_regions):
+                        az_letter = chr(az_letter_ascii_code + x)
+                        az_list.append(region + az_letter)
+                    region_dict[region] = az_list
+                return region_dict
+
+            two_az_regions = ['us-west-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1']
+            three_az_regions = ['us-west-2', 'eu-west-1', 'eu-central-1', 'sa-east-1']
+
+            two_az_dict = build_region_dict_helper(two_az_regions, 2)
+            three_az_dict = build_region_dict_helper(three_az_regions, 3)
+            region_az_dict = {**three_az_dict, **two_az_dict}
+            # Special handling for us-east-1
+            region_az_dict['us-east-1'] = ['us-east-1a', 'us-east-1b', 'us-east-1c', 'us-east-1e']
+
+            region_input = clean_json(resource_json['Fn::GetAZs'], resources_map)
+            value = region_az_dict.get(region_input)
+            return value
+
         if "Fn::FindInMap" in resource_json:
             map_name = resource_json["Fn::FindInMap"][0]
             map_path = resource_json["Fn::FindInMap"][1:]
