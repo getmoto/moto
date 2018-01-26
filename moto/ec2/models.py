@@ -2591,7 +2591,7 @@ class Route(object):
         ec2_backend = ec2_backends[region_name]
         route_table = ec2_backend.create_route(
             route_table_id=route_table_id,
-            destination_cidr_block=properties['DestinationCidrBlock'],
+            destination_cidr_block=properties.get('DestinationCidrBlock'),
             gateway_id=gateway_id,
             instance_id=instance_id,
             interface_id=interface_id,
