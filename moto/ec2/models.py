@@ -1709,7 +1709,7 @@ class SecurityGroupIngress(object):
         group_id = properties.get('GroupId')
         ip_protocol = properties.get("IpProtocol")
         cidr_ip = properties.get("CidrIp")
-        cidr_ipv6 = properties.get("CidrIpv6"
+        cidr_ipv6 = properties.get("CidrIpv6")
         from_port = properties.get("FromPort")
         source_security_group_id = properties.get("SourceSecurityGroupId")
         source_security_group_name = properties.get("SourceSecurityGroupName")
