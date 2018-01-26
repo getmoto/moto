@@ -153,7 +153,9 @@ def clean_json(resource_json, resources_map):
 
             two_az_dict = build_region_dict_helper(two_az_regions, 2)
             three_az_dict = build_region_dict_helper(three_az_regions, 3)
-            region_az_dict = {**three_az_dict, **two_az_dict}
+            region_az_dict = {}
+            region_az_dict.update(three_az_dict)
+            region_az_dict.update(two_az_dict)
             # Special handling for us-east-1
             region_az_dict['us-east-1'] = ['us-east-1a', 'us-east-1b', 'us-east-1c', 'us-east-1e']
 
