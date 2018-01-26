@@ -138,7 +138,7 @@ def clean_json(resource_json, resources_map):
         if "Fn::GetAZs" in resource_json:
 
             def build_region_dict_helper(regions, number_of_regions):
-                region_dict={}
+                region_dict = {}
                 for region in regions:
                     az_list = []
                     az_letter_ascii_code = ord('a')
