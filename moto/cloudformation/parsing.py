@@ -148,8 +148,8 @@ def clean_json(resource_json, resources_map):
                     region_dict[region] = az_list
                 return region_dict
 
-            two_az_regions = ['us-west-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1']
-            three_az_regions = ['us-west-2', 'eu-west-1', 'eu-central-1', 'sa-east-1']
+            two_az_regions = ['us-west-1', 'ap-southeast-1', 'ap-northeast-1', 'ap-northeast-2', 'eu-west-2', 'sa-east-1', 'ca-central-1', 'ap-south-1']
+            three_az_regions = ['us-west-2', 'us-east-2', 'eu-west-1', 'eu-central-1', 'sa-east-1', 'ap-southeast-2', 'eu-west-3']
 
             two_az_dict = build_region_dict_helper(two_az_regions, 2)
             three_az_dict = build_region_dict_helper(three_az_regions, 3)
