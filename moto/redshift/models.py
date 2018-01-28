@@ -17,7 +17,10 @@ from .exceptions import (
     ClusterSubnetGroupNotFoundError,
     InvalidParameterValueError,
     InvalidSubnetError,
-    ResourceNotFoundFaultError
+    ResourceNotFoundFaultError,
+    SnapshotCopyDisabledFaultError,
+    SnapshotCopyAlreadyDisabledFaultError,
+    SnapshotCopyAlreadyEnabledFaultError,
 )
 
 
@@ -80,6 +83,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
         self.cluster_subnet_group_name = cluster_subnet_group_name
         self.publicly_accessible = publicly_accessible
         self.encrypted = encrypted
+        self.cluster_snapshot_copy_status = {}
 
         self.allow_version_upgrade = allow_version_upgrade if allow_version_upgrade is not None else True
         self.cluster_version = cluster_version if cluster_version else "1.0"
@@ -194,7 +198,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
         return self.cluster_identifier
 
     def to_json(self):
-        return {
+        json_response = {
             "MasterUsername": self.master_username,
             "MasterUserPassword": "****",
             "ClusterVersion": self.cluster_version,
@@ -223,6 +227,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
             "NodeType": self.node_type,
             "ClusterIdentifier": self.cluster_identifier,
             "AllowVersionUpgrade": self.allow_version_upgrade,
+
             "Endpoint": {
                 "Address": self.endpoint,
                 "Port": self.port
@@ -230,6 +235,10 @@ class Cluster(TaggableResourceMixin, BaseModel):
             "PendingModifiedValues": [],
             "Tags": self.tags
         }
+
+        if self.cluster_snapshot_copy_status:
+            json_response['ClusterSnapshotCopyStatus'] = self.cluster_snapshot_copy_status
+        return json_response
 
 
 class SubnetGroup(TaggableResourceMixin, BaseModel):
@@ -416,6 +425,40 @@ class RedshiftBackend(BaseBackend):
         region_name = self.region
         self.__dict__ = {}
         self.__init__(ec2_backend, region_name)
+
+    def enable_snapshot_copy(self, **kwargs):
+        cluster_identifier = kwargs['cluster_identifier']
+        cluster = self.clusters[cluster_identifier]
+        if not cluster.cluster_snapshot_copy_status:
+            status = {
+                'DestinationRegion': kwargs['destination_region'],
+                'RetentionPeriod': kwargs['retention_period'],
+                'SnapshotCopyGrantName': kwargs['snapshot_copy_grant_name'],
+            }
+            cluster.cluster_snapshot_copy_status = status
+            return cluster
+
+        else:
+            raise SnapshotCopyAlreadyEnabledFaultError(cluster_identifier)
+
+
+    def disable_snapshot_copy(self, **kwargs):
+        cluster_identifier = kwargs['cluster_identifier']
+        cluster = self.clusters[cluster_identifier]
+        if cluster.cluster_snapshot_copy_status:
+            cluster.cluster_snapshot_copy_status = {}
+        else:
+            raise SnapshotCopyAlreadyDisabledFaultError(cluster_identifier)
+        return cluster
+
+
+    def modify_snapshot_copy_retention_period(self, cluster_identifier, retention_period):
+        cluster = self.clusters[cluster_identifier]
+        if cluster.cluster_snapshot_copy_status:
+            cluster.cluster_snapshot_copy_status['RetentionPeriod'] = retention_period
+        else:
+            raise SnapshotCopyDisabledFaultError(cluster_identifier)
+        return cluster
 
     def create_cluster(self, **cluster_kwargs):
         cluster_identifier = cluster_kwargs['cluster_identifier']

@@ -93,3 +93,22 @@ class ResourceNotFoundFaultError(RedshiftClientError):
             msg = message
         super(ResourceNotFoundFaultError, self).__init__(
             'ResourceNotFoundFault', msg)
+
+
+class SnapshotCopyDisabledFaultError(RedshiftClientError):
+    def __init__(self, cluster_identifier):
+        super(SnapshotCopyDisabledFaultError, self).__init__(
+            'SnapshotCopyDisabledFault',
+            "Cannot modify retention period because snapshot copy is disabled on Cluster {0}.".format(cluster_identifier))
+
+class SnapshotCopyAlreadyDisabledFaultError(RedshiftClientError):
+    def __init__(self, cluster_identifier):
+        super(SnapshotCopyAlreadyDisabledFaultError, self).__init__(
+            'SnapshotCopyAlreadyDisabledFault',
+            "Snapshot Copy is already disabled on Cluster {0}.".format(cluster_identifier))
+
+class SnapshotCopyAlreadyEnabledFaultError(RedshiftClientError):
+    def __init__(self, cluster_identifier):
+        super(SnapshotCopyAlreadyEnabledFaultError, self).__init__(
+            'SnapshotCopyAlreadyEnabledFault',
+            "Snapshot Copy is already enabled on Cluster {0}.".format(cluster_identifier))
