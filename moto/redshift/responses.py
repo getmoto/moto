@@ -457,6 +457,55 @@ class RedshiftResponse(BaseResponse):
             }
         })
 
+    def create_snapshot_copy_grant(self):
+        copy_grant_kwargs = {
+            'snapshot_copy_grant_name': self._get_param('SnapshotCopyGrantName'),
+            'kms_key_id': self._get_param('KmsKeyId'),
+            'region_name': self._get_param('Region'),
+        }
+
+        copy_grant = self.redshift_backend.create_snapshot_copy_grant(**copy_grant_kwargs)
+        return self.get_response({
+            "CreateSnapshotCopyGrantResponse": {
+                "CreateSnapshotCopyGrantResult": {
+                    "SnapshotCopyGrant": copy_grant.to_json()
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def delete_snapshot_copy_grant(self):
+        copy_grant_kwargs = {
+            'snapshot_copy_grant_name': self._get_param('SnapshotCopyGrantName'),
+        }
+        self.redshift_backend.delete_snapshot_copy_grant(**copy_grant_kwargs)
+        return self.get_response({
+            "DeleteSnapshotCopyGrantResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def describe_snapshot_copy_grants(self):
+        copy_grant_kwargs = {
+            'snapshot_copy_grant_name': self._get_param('SnapshotCopyGrantName'),
+        }
+
+        copy_grants = self.redshift_backend.describe_snapshot_copy_grants(**copy_grant_kwargs)
+        return self.get_response({
+            "DescribeSnapshotCopyGrantsResponse": {
+                "DescribeSnapshotCopyGrantsResult": {
+                    "SnapshotCopyGrants": [copy_grant.to_json() for copy_grant in copy_grants]
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
     def create_tags(self):
         resource_name = self._get_param('ResourceName')
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))

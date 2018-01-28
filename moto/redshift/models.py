@@ -17,7 +17,9 @@ from .exceptions import (
     ClusterSubnetGroupNotFoundError,
     InvalidParameterValueError,
     InvalidSubnetError,
-    ResourceNotFoundFaultError
+    ResourceNotFoundFaultError,
+    SnapshotCopyGrantAlreadyExistsFaultError,
+    SnapshotCopyGrantNotFoundFaultError
 )
 
 
@@ -231,6 +233,22 @@ class Cluster(TaggableResourceMixin, BaseModel):
             "Tags": self.tags
         }
 
+class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
+
+    resource_type = 'snapshotcopygrant'
+
+    def __init__(self, snapshot_copy_grant_name, kms_key_id, region_name):
+        self.snapshot_copy_grant_name = snapshot_copy_grant_name
+        self.kms_key_id = kms_key_id
+        self.region_name = region_name
+
+    def to_json(self):
+        return {
+            "SnapshotCopyGrantName": self.snapshot_copy_grant_name,
+            "KmsKeyId": self.kms_key_id
+        }
+
+
 
 class SubnetGroup(TaggableResourceMixin, BaseModel):
 
@@ -410,6 +428,7 @@ class RedshiftBackend(BaseBackend):
             'snapshot': self.snapshots,
             'subnetgroup': self.subnet_groups
         }
+        self.snapshot_copy_grants = {}
 
     def reset(self):
         ec2_backend = self.ec2_backend
@@ -567,6 +586,35 @@ class RedshiftBackend(BaseBackend):
         }
         create_kwargs.update(kwargs)
         return self.create_cluster(**create_kwargs)
+
+    def create_snapshot_copy_grant(self, **kwargs):
+        snapshot_copy_grant_name = kwargs['snapshot_copy_grant_name']
+        kms_key_id = kwargs['kms_key_id']
+        region_name = kwargs['region_name']
+        if snapshot_copy_grant_name not in self.snapshot_copy_grants:
+            snapshot_copy_grant = SnapshotCopyGrant(snapshot_copy_grant_name,
+                                                    kms_key_id, region_name)
+            self.snapshot_copy_grants[snapshot_copy_grant_name] = snapshot_copy_grant
+            return snapshot_copy_grant
+
+        raise SnapshotCopyGrantAlreadyExistsFaultError(snapshot_copy_grant_name)
+
+    def delete_snapshot_copy_grant(self, **kwargs):
+        snapshot_copy_grant_name = kwargs['snapshot_copy_grant_name']
+        if snapshot_copy_grant_name in self.snapshot_copy_grants:
+            return self.snapshot_copy_grants.pop(snapshot_copy_grant_name)
+
+        raise SnapshotCopyGrantNotFoundFaultError(snapshot_copy_grant_name)
+
+    def describe_snapshot_copy_grants(self, **kwargs):
+        copy_grants = self.snapshot_copy_grants.values()
+        snapshot_copy_grant_name = kwargs['snapshot_copy_grant_name']
+        if snapshot_copy_grant_name:
+            if snapshot_copy_grant_name in self.snapshot_copy_grants:
+                return [self.snapshot_copy_grants[snapshot_copy_grant_name]]
+            else:
+                raise SnapshotCopyGrantNotFoundFaultError(snapshot_copy_grant_name)
+        return copy_grants
 
     def _get_resource_from_arn(self, arn):
         try:
