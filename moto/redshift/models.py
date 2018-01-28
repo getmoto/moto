@@ -233,6 +233,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
             "Tags": self.tags
         }
 
+
 class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
 
     resource_type = 'snapshotcopygrant'
@@ -246,7 +247,6 @@ class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
             "SnapshotCopyGrantName": self.snapshot_copy_grant_name,
             "KmsKeyId": self.kms_key_id
         }
-
 
 
 class SubnetGroup(TaggableResourceMixin, BaseModel):
