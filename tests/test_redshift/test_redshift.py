@@ -1047,12 +1047,13 @@ def test_tagged_resource_not_found_error():
 def test_enable_snapshot_copy():
     client = boto3.client('redshift', region_name='us-east-1')
     client.create_cluster(
-        DBName='test',
         ClusterIdentifier='test',
         ClusterType='single-node',
-        NodeType='ds2.xlarge',
+        DBName='test',
+        Encrypted=True,
         MasterUsername='user',
         MasterUserPassword='password',
+        NodeType='ds2.xlarge',
     )
     client.enable_snapshot_copy(
         ClusterIdentifier='test',
@@ -1065,6 +1066,27 @@ def test_enable_snapshot_copy():
     cluster_snapshot_copy_status['RetentionPeriod'].should.equal(3)
     cluster_snapshot_copy_status['DestinationRegion'].should.equal('us-west-2')
     cluster_snapshot_copy_status['SnapshotCopyGrantName'].should.equal('copy-us-east-1-to-us-west-2')
+
+
+@mock_redshift
+def test_enable_snapshot_copy_unencrypted():
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.create_cluster(
+        ClusterIdentifier='test',
+        ClusterType='single-node',
+        DBName='test',
+        MasterUsername='user',
+        MasterUserPassword='password',
+        NodeType='ds2.xlarge',
+    )
+    client.enable_snapshot_copy(
+        ClusterIdentifier='test',
+        DestinationRegion='us-west-2',
+    )
+    response = client.describe_clusters(ClusterIdentifier='test')
+    cluster_snapshot_copy_status = response['Clusters'][0]['ClusterSnapshotCopyStatus']
+    cluster_snapshot_copy_status['RetentionPeriod'].should.equal(7)
+    cluster_snapshot_copy_status['DestinationRegion'].should.equal('us-west-2')
 
 
 @mock_redshift

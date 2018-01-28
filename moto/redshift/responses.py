@@ -506,7 +506,7 @@ class RedshiftResponse(BaseResponse):
         snapshot_copy_kwargs = {
             'cluster_identifier': self._get_param('ClusterIdentifier'),
             'destination_region': self._get_param('DestinationRegion'),
-            'retention_period': self._get_param('RetentionPeriod'),
+            'retention_period': self._get_param('RetentionPeriod', 7),
             'snapshot_copy_grant_name': self._get_param('SnapshotCopyGrantName'),
         }
         cluster = self.redshift_backend.enable_snapshot_copy(**snapshot_copy_kwargs)

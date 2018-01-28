@@ -4,6 +4,7 @@ import copy
 import datetime
 
 import boto.redshift
+from botocore.exceptions import ClientError
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -430,6 +431,12 @@ class RedshiftBackend(BaseBackend):
         cluster_identifier = kwargs['cluster_identifier']
         cluster = self.clusters[cluster_identifier]
         if not hasattr(cluster, 'cluster_snapshot_copy_status'):
+            if cluster.encrypted == 'true' and kwargs['snapshot_copy_grant_name'] is None:
+                raise ClientError(
+                    'InvalidParameterValue',
+                    'SnapshotCopyGrantName is required for Snapshot Copy '
+                    'on KMS encrypted clusters.'
+                )
             status = {
                 'DestinationRegion': kwargs['destination_region'],
                 'RetentionPeriod': kwargs['retention_period'],
