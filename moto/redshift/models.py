@@ -83,7 +83,6 @@ class Cluster(TaggableResourceMixin, BaseModel):
         self.cluster_subnet_group_name = cluster_subnet_group_name
         self.publicly_accessible = publicly_accessible
         self.encrypted = encrypted
-        self.cluster_snapshot_copy_status = {}
 
         self.allow_version_upgrade = allow_version_upgrade if allow_version_upgrade is not None else True
         self.cluster_version = cluster_version if cluster_version else "1.0"
@@ -236,8 +235,10 @@ class Cluster(TaggableResourceMixin, BaseModel):
             "Tags": self.tags
         }
 
-        if self.cluster_snapshot_copy_status:
+        try:
             json_response['ClusterSnapshotCopyStatus'] = self.cluster_snapshot_copy_status
+        except AttributeError:
+            pass
         return json_response
 
 
@@ -429,7 +430,7 @@ class RedshiftBackend(BaseBackend):
     def enable_snapshot_copy(self, **kwargs):
         cluster_identifier = kwargs['cluster_identifier']
         cluster = self.clusters[cluster_identifier]
-        if not cluster.cluster_snapshot_copy_status:
+        if not hasattr(cluster, 'cluster_snapshot_copy_status'):
             status = {
                 'DestinationRegion': kwargs['destination_region'],
                 'RetentionPeriod': kwargs['retention_period'],
@@ -437,28 +438,25 @@ class RedshiftBackend(BaseBackend):
             }
             cluster.cluster_snapshot_copy_status = status
             return cluster
-
         else:
             raise SnapshotCopyAlreadyEnabledFaultError(cluster_identifier)
-
 
     def disable_snapshot_copy(self, **kwargs):
         cluster_identifier = kwargs['cluster_identifier']
         cluster = self.clusters[cluster_identifier]
-        if cluster.cluster_snapshot_copy_status:
-            cluster.cluster_snapshot_copy_status = {}
+        if hasattr(cluster, 'cluster_snapshot_copy_status'):
+            del cluster.cluster_snapshot_copy_status
+            return cluster
         else:
             raise SnapshotCopyAlreadyDisabledFaultError(cluster_identifier)
-        return cluster
-
 
     def modify_snapshot_copy_retention_period(self, cluster_identifier, retention_period):
         cluster = self.clusters[cluster_identifier]
-        if cluster.cluster_snapshot_copy_status:
+        if hasattr(cluster, 'cluster_snapshot_copy_status'):
             cluster.cluster_snapshot_copy_status['RetentionPeriod'] = retention_period
+            return cluster
         else:
             raise SnapshotCopyDisabledFaultError(cluster_identifier)
-        return cluster
 
     def create_cluster(self, **cluster_kwargs):
         cluster_identifier = cluster_kwargs['cluster_identifier']
