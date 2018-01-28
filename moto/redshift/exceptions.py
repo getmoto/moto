@@ -101,11 +101,13 @@ class SnapshotCopyDisabledFaultError(RedshiftClientError):
             'SnapshotCopyDisabledFault',
             "Cannot modify retention period because snapshot copy is disabled on Cluster {0}.".format(cluster_identifier))
 
+
 class SnapshotCopyAlreadyDisabledFaultError(RedshiftClientError):
     def __init__(self, cluster_identifier):
         super(SnapshotCopyAlreadyDisabledFaultError, self).__init__(
             'SnapshotCopyAlreadyDisabledFault',
             "Snapshot Copy is already disabled on Cluster {0}.".format(cluster_identifier))
+
 
 class SnapshotCopyAlreadyEnabledFaultError(RedshiftClientError):
     def __init__(self, cluster_identifier):

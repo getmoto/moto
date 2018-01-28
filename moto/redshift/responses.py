@@ -555,4 +555,4 @@ class RedshiftResponse(BaseResponse):
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
                 }
             }
-            })
+        })

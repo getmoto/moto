@@ -1090,6 +1090,7 @@ def test_disable_snapshot_copy():
     response = client.describe_clusters(ClusterIdentifier='test')
     response['Clusters'][0].shouldnt.contain('ClusterSnapshotCopyStatus')
 
+
 @mock_redshift
 def test_modify_snapshot_copy_retention_period():
     client = boto3.client('redshift', region_name='us-east-1')

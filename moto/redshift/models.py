@@ -226,7 +226,6 @@ class Cluster(TaggableResourceMixin, BaseModel):
             "NodeType": self.node_type,
             "ClusterIdentifier": self.cluster_identifier,
             "AllowVersionUpgrade": self.allow_version_upgrade,
-
             "Endpoint": {
                 "Address": self.endpoint,
                 "Port": self.port
