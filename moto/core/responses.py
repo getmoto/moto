@@ -345,6 +345,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
             if is_tracked(name) or not name.startswith(param_prefix):
                 continue
 
+            if len(name) > len(param_prefix) and \
+                    not name[len(param_prefix):].startswith('.'):
+                continue
+
             match = self.param_list_regex.search(name[len(param_prefix):]) if len(name) > len(param_prefix) else None
             if match:
                 prefix = param_prefix + match.group(1)
