@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import datetime
 import requests
+import time
 
 from moto.packages.responses import responses
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import create_id
 from .exceptions import StageNotFoundException
 
@@ -20,8 +19,7 @@ class Deployment(BaseModel, dict):
         self['id'] = deployment_id
         self['stageName'] = name
         self['description'] = description
-        self['createdDate'] = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.now())
+        self['createdDate'] = int(time.time())
 
 
 class IntegrationResponse(BaseModel, dict):
@@ -300,7 +298,7 @@ class RestAPI(BaseModel):
         self.region_name = region_name
         self.name = name
         self.description = description
-        self.create_date = datetime.datetime.utcnow()
+        self.create_date = int(time.time())
 
         self.deployments = {}
         self.stages = {}
@@ -313,7 +311,7 @@ class RestAPI(BaseModel):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "createdDate": iso_8601_datetime_with_milliseconds(self.create_date),
+            "createdDate": int(time.time()),
         }
 
     def add_child(self, path, parent_id=None):
