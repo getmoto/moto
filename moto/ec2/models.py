@@ -1089,6 +1089,7 @@ class Ami(TaggedEC2Resource):
         volume = self.ec2_backend.create_volume(15, region_name)
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
             volume.id, "Auto-created snapshot for AMI %s" % self.id)
+        self.ec2_backend.delete_volume(volume.id)
 
     @property
     def is_public(self):

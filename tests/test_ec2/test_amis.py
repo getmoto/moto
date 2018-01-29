@@ -10,6 +10,7 @@ from nose.tools import assert_raises
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
+from moto.ec2.models import AMIS
 from tests.helpers import requires_boto_gte
 
 
@@ -17,9 +18,9 @@ from tests.helpers import requires_boto_gte
 def test_ami_create_and_delete():
     conn = boto.connect_ec2('the_key', 'the_secret')
 
-    initial_volume_count = 34
-    conn.get_all_volumes().should.have.length_of(initial_volume_count)
-    conn.get_all_snapshots().should.have.length_of(initial_volume_count)
+    initial_ami_count = len(AMIS)
+    conn.get_all_volumes().should.have.length_of(0)
+    conn.get_all_snapshots().should.have.length_of(initial_ami_count)
 
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
@@ -47,19 +48,19 @@ def test_ami_create_and_delete():
     retrieved_image.creationDate.should_not.be.none
     instance.terminate()
 
-    # Validate auto-created volume and snapshot
+    # Ensure we're no longer creating a volume
     volumes = conn.get_all_volumes()
-    volumes.should.have.length_of(initial_volume_count + 1)
+    volumes.should.have.length_of(0)
 
+    # Validate auto-created snapshot
     snapshots = conn.get_all_snapshots()
-    snapshots.should.have.length_of(initial_volume_count + 1)
+    snapshots.should.have.length_of(initial_ami_count + 1)
 
     retrieved_image_snapshot_id = retrieved_image.block_device_mapping.current_value.snapshot_id
     [s.id for s in snapshots].should.contain(retrieved_image_snapshot_id)
     snapshot = [s for s in snapshots if s.id == retrieved_image_snapshot_id][0]
     snapshot.description.should.equal(
         "Auto-created snapshot for AMI {0}".format(retrieved_image.id))
-    [v.id for v in volumes].should.contain(snapshot.volume_id)
 
     # root device should be in AMI's block device mappings
     root_mapping = retrieved_image.block_device_mapping.get(retrieved_image.root_device_name)
@@ -88,9 +89,9 @@ def test_ami_create_and_delete():
 def test_ami_copy():
     conn = boto.ec2.connect_to_region("us-west-1")
 
-    initial_volume_count = 34
-    conn.get_all_volumes().should.have.length_of(initial_volume_count)
-    conn.get_all_snapshots().should.have.length_of(initial_volume_count)
+    initial_ami_count = len(AMIS)
+    conn.get_all_volumes().should.have.length_of(0)
+    conn.get_all_snapshots().should.have.length_of(initial_ami_count)
 
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
@@ -123,9 +124,11 @@ def test_ami_copy():
     copy_image.kernel_id.should.equal(source_image.kernel_id)
     copy_image.platform.should.equal(source_image.platform)
 
-    # Validate auto-created volume and snapshot
-    conn.get_all_volumes().should.have.length_of(initial_volume_count + 2)
-    conn.get_all_snapshots().should.have.length_of(initial_volume_count + 2)
+    # Ensure we're no longer creating a volume
+    conn.get_all_volumes().should.have.length_of(0)
+
+    # Validate auto-created snapshot
+    conn.get_all_snapshots().should.have.length_of(initial_ami_count + 2)
 
     copy_image.block_device_mapping.current_value.snapshot_id.should_not.equal(
         source_image.block_device_mapping.current_value.snapshot_id)
