@@ -747,3 +747,30 @@ def test_ami_filter_by_self():
 
     my_images = ec2_client.describe_images(Owners=['self'])['Images']
     my_images.should.have.length_of(1)
+
+
+@mock_ec2
+def test_ami_snapshots_have_correct_owner():
+    ec2_client = boto3.client('ec2', region_name='us-west-1')
+
+    images_response = ec2_client.describe_images()
+
+    owner_id_to_snapshot_ids = {}
+    for image in images_response['Images']:
+        owner_id = image['OwnerId']
+        snapshot_ids = [
+            block_device_mapping['Ebs']['SnapshotId']
+            for block_device_mapping in image['BlockDeviceMappings']
+        ]
+        existing_snapshot_ids = owner_id_to_snapshot_ids.get(owner_id, [])
+        owner_id_to_snapshot_ids[owner_id] = (
+            existing_snapshot_ids + snapshot_ids
+        )
+
+    for owner_id in owner_id_to_snapshot_ids:
+        snapshots_rseponse = ec2_client.describe_snapshots(
+            SnapshotIds=owner_id_to_snapshot_ids[owner_id]
+        )
+
+        for snapshot in snapshots_rseponse['Snapshots']:
+            assert owner_id == snapshot['OwnerId']

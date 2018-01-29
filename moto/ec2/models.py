@@ -1088,7 +1088,7 @@ class Ami(TaggedEC2Resource):
         # AWS auto-creates these, we should reflect the same.
         volume = self.ec2_backend.create_volume(15, region_name)
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
-            volume.id, "Auto-created snapshot for AMI %s" % self.id)
+            volume.id, "Auto-created snapshot for AMI %s" % self.id, owner_id)
         self.ec2_backend.delete_volume(volume.id)
 
     @property
@@ -1840,7 +1840,7 @@ class Volume(TaggedEC2Resource):
 
 
 class Snapshot(TaggedEC2Resource):
-    def __init__(self, ec2_backend, snapshot_id, volume, description, encrypted=False):
+    def __init__(self, ec2_backend, snapshot_id, volume, description, encrypted=False, owner_id='123456789012'):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
@@ -1849,6 +1849,7 @@ class Snapshot(TaggedEC2Resource):
         self.ec2_backend = ec2_backend
         self.status = 'completed'
         self.encrypted = encrypted
+        self.owner_id = owner_id
 
     def get_filter_value(self, filter_name):
         if filter_name == 'description':
@@ -1940,11 +1941,13 @@ class EBSBackend(object):
         volume.attachment = None
         return old_attachment
 
-    def create_snapshot(self, volume_id, description):
+    def create_snapshot(self, volume_id, description, owner_id=None):
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
-        snapshot = Snapshot(self, snapshot_id, volume,
-                            description, volume.encrypted)
+        params = [self, snapshot_id, volume, description, volume.encrypted]
+        if owner_id:
+            params.append(owner_id)
+        snapshot = Snapshot(*params)
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
