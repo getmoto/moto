@@ -172,7 +172,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # HEAD (which the real API responds with), and instead
             # raises NoSuchBucket, leading to inconsistency in
             # error response between real and mocked responses.
-            return 404, {}, "Not Found"
+            return 404, {}, ""
         return 200, {}, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
