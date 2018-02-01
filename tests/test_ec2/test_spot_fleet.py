@@ -316,3 +316,30 @@ def test_modify_spot_fleet_request_down_no_terminate_after_custom_terminate():
         SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs'][0]['SpotFleetRequestConfig']
     spot_fleet_config['TargetCapacity'].should.equal(1)
     spot_fleet_config['FulfilledCapacity'].should.equal(2.0)
+
+
+@mock_ec2
+def test_create_spot_fleet_without_spot_price():
+    conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
+
+    # remove prices to force a fallback to ondemand price
+    spot_config_without_price = spot_config(subnet_id)
+    del spot_config_without_price['SpotPrice']
+    for spec in spot_config_without_price['LaunchSpecifications']:
+        del spec['SpotPrice']
+
+    spot_fleet_id = conn.request_spot_fleet(SpotFleetRequestConfig=spot_config_without_price)['SpotFleetRequestId']
+    spot_fleet_requests = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs']
+    len(spot_fleet_requests).should.equal(1)
+    spot_fleet_request = spot_fleet_requests[0]
+    spot_fleet_config = spot_fleet_request['SpotFleetRequestConfig']
+
+    len(spot_fleet_config['LaunchSpecifications']).should.equal(2)
+    launch_spec1 = spot_fleet_config['LaunchSpecifications'][0]
+    launch_spec2 = spot_fleet_config['LaunchSpecifications'][1]
+
+    # AWS will figure out the price
+    assert 'SpotPrice' not in launch_spec1
+    assert 'SpotPrice' not in launch_spec2

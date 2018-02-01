@@ -2943,7 +2943,7 @@ class SpotFleetRequest(TaggedEC2Resource):
             'Properties']['SpotFleetRequestConfigData']
         ec2_backend = ec2_backends[region_name]
 
-        spot_price = properties['SpotPrice']
+        spot_price = properties.get('SpotPrice')
         target_capacity = properties['TargetCapacity']
         iam_fleet_role = properties['IamFleetRole']
         allocation_strategy = properties['AllocationStrategy']
@@ -2977,7 +2977,8 @@ class SpotFleetRequest(TaggedEC2Resource):
                 launch_spec_index += 1
         else:  # lowestPrice
             cheapest_spec = sorted(
-                self.launch_specs, key=lambda spec: float(spec.spot_price))[0]
+                # FIXME: change `+inf` to the on demand price scaled to weighted capacity when it's not present
+                self.launch_specs, key=lambda spec: float(spec.spot_price or '+inf'))[0]
             weight_so_far = weight_to_add + (weight_to_add % cheapest_spec.weighted_capacity)
             weight_map[cheapest_spec] = int(
                 weight_so_far // cheapest_spec.weighted_capacity)
