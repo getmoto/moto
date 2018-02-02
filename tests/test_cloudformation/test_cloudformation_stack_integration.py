@@ -2156,6 +2156,78 @@ def test_stack_spot_fleet():
     launch_spec['WeightedCapacity'].should.equal(2.0)
 
 
+@mock_cloudformation()
+@mock_ec2()
+def test_stack_spot_fleet_should_figure_out_default_price():
+    conn = boto3.client('ec2', 'us-east-1')
+
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    subnet = conn.create_subnet(
+        VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
+    subnet_id = subnet['SubnetId']
+
+    spot_fleet_template = {
+        'Resources': {
+            "SpotFleet1": {
+                "Type": "AWS::EC2::SpotFleet",
+                "Properties": {
+                    "SpotFleetRequestConfigData": {
+                        "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
+                        "TargetCapacity": 6,
+                        "AllocationStrategy": "diversified",
+                        "LaunchSpecifications": [
+                            {
+                                "EbsOptimized": "false",
+                                "InstanceType": 't2.small',
+                                "ImageId": "ami-1234",
+                                "SubnetId": subnet_id,
+                                "WeightedCapacity": "2",
+                            },
+                            {
+                                "EbsOptimized": "true",
+                                "InstanceType": 't2.large',
+                                "ImageId": "ami-1234",
+                                "Monitoring": {"Enabled": "true"},
+                                "SecurityGroups": [{"GroupId": "sg-123"}],
+                                "SubnetId": subnet_id,
+                                "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
+                                "WeightedCapacity": "4",
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+    spot_fleet_template_json = json.dumps(spot_fleet_template)
+
+    cf_conn = boto3.client('cloudformation', 'us-east-1')
+    stack_id = cf_conn.create_stack(
+        StackName='test_stack',
+        TemplateBody=spot_fleet_template_json,
+    )['StackId']
+
+    stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
+    stack_resources['StackResourceSummaries'].should.have.length_of(1)
+    spot_fleet_id = stack_resources[
+        'StackResourceSummaries'][0]['PhysicalResourceId']
+
+    spot_fleet_requests = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs']
+    len(spot_fleet_requests).should.equal(1)
+    spot_fleet_request = spot_fleet_requests[0]
+    spot_fleet_request['SpotFleetRequestState'].should.equal("active")
+    spot_fleet_config = spot_fleet_request['SpotFleetRequestConfig']
+
+    assert 'SpotPrice' not in spot_fleet_config
+    len(spot_fleet_config['LaunchSpecifications']).should.equal(2)
+    launch_spec1 = spot_fleet_config['LaunchSpecifications'][0]
+    launch_spec2 = spot_fleet_config['LaunchSpecifications'][1]
+
+    assert 'SpotPrice' not in launch_spec1
+    assert 'SpotPrice' not in launch_spec2
+
+
 @mock_ec2
 @mock_elbv2
 @mock_cloudformation
