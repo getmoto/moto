@@ -124,6 +124,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         last_modified_date = time.time()
         self._parameters[name] = Parameter(
             name, value, type, description, keyid, last_modified_date, version)
+        return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):
         for key, value in tags.items():

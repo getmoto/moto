@@ -97,11 +97,13 @@ def test_get_parameters_by_path():
 def test_put_parameter():
     client = boto3.client('ssm', region_name='us-east-1')
 
-    client.put_parameter(
+    response = client.put_parameter(
         Name='test',
         Description='A test parameter',
         Value='value',
         Type='String')
+
+    response['Version'].should.equal(1)
 
     response = client.get_parameters(
         Names=[
@@ -115,11 +117,16 @@ def test_put_parameter():
     response['Parameters'][0]['Type'].should.equal('String')
     response['Parameters'][0]['Version'].should.equal(1)
 
-    client.put_parameter(
-        Name='test',
-        Description='desc 2',
-        Value='value 2',
-        Type='String')
+    try:
+        client.put_parameter(
+            Name='test',
+            Description='desc 2',
+            Value='value 2',
+            Type='String')
+        raise RuntimeError('Should fail')
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal('PutParameter')
+        err.response['Error']['Message'].should.equal('Parameter test already exists.')
 
     response = client.get_parameters(
         Names=[
@@ -134,12 +141,14 @@ def test_put_parameter():
     response['Parameters'][0]['Type'].should.equal('String')
     response['Parameters'][0]['Version'].should.equal(1)
 
-    client.put_parameter(
+    response = client.put_parameter(
         Name='test',
         Description='desc 3',
         Value='value 3',
         Type='String',
         Overwrite=True)
+
+    response['Version'].should.equal(2)
 
     response = client.get_parameters(
         Names=[
