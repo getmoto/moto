@@ -323,7 +323,7 @@ def test_get_function():
     result['Configuration']['CodeSha256'].should.equal(hashlib.sha256(zip_content).hexdigest())
     result['Configuration']['CodeSize'].should.equal(len(zip_content))
     result['Configuration']['Description'].should.equal('test lambda function')
-    result['Configuration'].should.contain('FunctionArn')
+    result['Configuration']['FunctionArn'].should.equal('arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region))
     result['Configuration']['FunctionName'].should.equal('testFunction')
     result['Configuration']['Handler'].should.equal('lambda_function.lambda_handler')
     result['Configuration']['MemorySize'].should.equal(128)
@@ -336,6 +336,7 @@ def test_get_function():
     # Test get function with
     result = conn.get_function(FunctionName='testFunction', Qualifier='$LATEST')
     result['Configuration']['Version'].should.equal('$LATEST')
+    result['Configuration']['FunctionArn'].should.equal('arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region))
 
 
 @mock_lambda
@@ -525,7 +526,6 @@ def lambda_handler(event, context):
         InvocationType='RequestResponse',
         LogType='Tail'
     )
-
     assert 'FunctionError' in result
     assert result['FunctionError'] == 'Handled'
 
@@ -634,7 +634,7 @@ def test_invoke_async_function():
     )
 
     success_result = conn.invoke_async(
-        FunctionName='testFunction', 
+        FunctionName='testFunction',
         InvokeArgs=json.dumps({'test': 'event'})
         )
 

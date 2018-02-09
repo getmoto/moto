@@ -7,6 +7,10 @@ def make_function_arn(region, account, name, version='1'):
     return 'arn:aws:lambda:{0}:{1}:function:{2}:{3}'.format(region, account, name, version)
 
 
+def make_unqualified_function_arn(region, account, name):
+    return 'arn:aws:lambda:{0}:{1}:function:{2}'.format(region, account, name)
+
+
 def split_function_arn(arn):
     arn = arn.replace('arn:aws:lambda:')
 
