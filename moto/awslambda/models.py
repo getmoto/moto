@@ -29,7 +29,7 @@ from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
-from .utils import make_function_arn
+from .utils import make_function_arn, make_unqualified_function_arn
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ class _DockerDataVolumeContext:
 
             # It doesn't exist so we need to create it
             self._vol_ref.volume = self._lambda_func.docker_client.volumes.create(self._lambda_func.code_sha_256)
-            container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes={self.name: '/tmp/data'}, detach=True)
+            container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes={self.name: {'bind': '/tmp/data', 'mode': 'rw'}}, detach=True)
             try:
                 tar_bytes = zip2tar(self._lambda_func.code_bytes)
                 container.put_archive('/tmp/data', tar_bytes)
@@ -309,7 +309,8 @@ class LambdaFunction(BaseModel):
                 finally:
                     if container:
                         try:
-                            exit_code = container.wait(timeout=300)
+                            response = container.wait(timeout=300)
+                            exit_code = response["StatusCode"]
                         except requests.exceptions.ReadTimeout:
                             exit_code = -1
                             container.stop()
@@ -464,6 +465,11 @@ class LambdaStorage(object):
     def _get_latest(self, name):
         return self._functions[name]['latest']
 
+    def _get_unqualified(self, name):
+        f = copy.copy(self._functions[name]['latest'])
+        f.function_arn = make_unqualified_function_arn(f.region, ACCOUNT_ID, f.function_name)
+        return f
+
     def _get_version(self, name, version):
         index = version - 1
 
@@ -480,12 +486,14 @@ class LambdaStorage(object):
             return None
 
         if qualifier is None:
-            return self._get_latest(name)
+            # Using get_function without specifying a qualifier should
+            # retrieve an unqualified function arn
+            return self._get_unqualified(name)
 
         try:
             return self._get_version(name, int(qualifier))
         except ValueError:
-            return self._functions[name]['latest']
+            return self._get_latest(name)
 
     def get_arn(self, arn):
         return self._arns.get(arn, None)
