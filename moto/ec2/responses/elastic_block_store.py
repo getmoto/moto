@@ -16,9 +16,14 @@ class ElasticBlockStore(BaseResponse):
             return template.render(attachment=attachment)
 
     def copy_snapshot(self):
+        source_snapshot_id = self._get_param('SourceSnapshotId')
+        source_region = self._get_param('SourceRegion')
+        description = self._get_param('Description')
         if self.is_not_dryrun('CopySnapshot'):
-            raise NotImplementedError(
-                'ElasticBlockStore.copy_snapshot is not yet implemented')
+            snapshot = self.ec2_backend.copy_snapshot(
+                source_snapshot_id, source_region, description)
+            template = self.response_template(COPY_SNAPSHOT_RESPONSE)
+            return template.render(snapshot=snapshot)
 
     def create_snapshot(self):
         volume_id = self._get_param('VolumeId')
@@ -247,6 +252,11 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
     {% endfor %}
   </tagSet>
 </CreateSnapshotResponse>"""
+
+COPY_SNAPSHOT_RESPONSE = """<CopySnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <snapshotId>{{ snapshot.id }}</snapshotId>
+</CopySnapshotResponse>"""
 
 DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

@@ -1971,6 +1971,15 @@ class EBSBackend(object):
             matches = generic_filter(filters, matches)
         return matches
 
+    def copy_snapshot(self, source_snapshot_id, source_region, description=None):
+        source_snapshot = ec2_backends[source_region].describe_snapshots(
+            snapshot_ids=[source_snapshot_id])[0]
+        snapshot_id = random_snapshot_id()
+        snapshot = Snapshot(self, snapshot_id, volume=source_snapshot.volume,
+            description=description, encrypted=source_snapshot.encrypted)
+        self.snapshots[snapshot_id] = snapshot
+        return snapshot
+
     def get_snapshot(self, snapshot_id):
         snapshot = self.snapshots.get(snapshot_id, None)
         if not snapshot:
