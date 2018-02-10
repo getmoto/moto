@@ -535,7 +535,7 @@ class Table(BaseModel):
                 for attr in list(result.attrs):
                     if attr not in expressions:
                         result.attrs.pop(attr)
-                        
+
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key)
         return results, scanned_count, last_evaluated_key
