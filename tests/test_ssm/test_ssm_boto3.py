@@ -466,7 +466,9 @@ def test_send_command():
     params = {'commands': ['#!/bin/bash\necho \'hello world\'']}
 
     client = boto3.client('ssm', region_name='us-east-1')
+    # note the timeout is determined server side, so this is a simpler check.
     before = datetime.datetime.now()
+
     response = client.send_command(
         InstanceIds=['i-123456'],
         DocumentName=ssm_document,
