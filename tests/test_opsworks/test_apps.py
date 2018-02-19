@@ -50,6 +50,14 @@ def test_create_app_response():
         Exception, re.compile(r'already an app named "TestApp"')
     )
 
+    # ClientError
+    client.create_app.when.called_with(
+        StackId="nothere",
+        Type="other",
+        Name="TestApp"
+    ).should.throw(
+        Exception, "nothere"
+    )
 
 @freeze_time("2015-01-01")
 @mock_opsworks
@@ -72,3 +80,23 @@ def test_describe_apps():
     rv1['Apps'].should.equal(rv2['Apps'])
 
     rv1['Apps'][0]['Name'].should.equal("TestApp")
+
+    # ClientError
+    client.describe_apps.when.called_with(
+        StackId=stack_id,
+        AppIds=[app_id]
+    ).should.throw(
+        Exception, "Please provide one or more app IDs or a stack ID"
+    )
+    # ClientError
+    client.describe_apps.when.called_with(
+        StackId="nothere"
+    ).should.throw(
+        Exception, "Unable to find stack with ID nothere"
+    )
+    # ClientError
+    client.describe_apps.when.called_with(
+        AppIds=["nothere"]
+    ).should.throw(
+        Exception, "nothere"
+    )
