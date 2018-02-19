@@ -150,19 +150,15 @@ class SimpleSystemManagerBackend(BaseBackend):
                 'DocumentName': kwargs['DocumentName'],
                 'Comment': kwargs.get('Comment'),
                 'ExpiresAfter': expires_after.isoformat(),
-                'Parameters': {
-                    'string': [
-                        'string',
-                    ]
-                },
+                'Parameters': kwargs['Parameters'],
                 'InstanceIds': kwargs['InstanceIds'],
                 'Targets': kwargs.get('targets'),
                 'RequestedDateTime': now.isoformat(),
                 'Status': 'Success',
                 'StatusDetails': 'string',
-                'OutputS3Region': 'string',
-                'OutputS3BucketName': 'string',
-                'OutputS3KeyPrefix': 'string',
+                'OutputS3Region': kwargs.get('OutputS3Region'),
+                'OutputS3BucketName': kwargs.get('OutputS3BucketName'),
+                'OutputS3KeyPrefix': kwargs.get('OutputS3KeyPrefix'),
                 'MaxConcurrency': 'string',
                 'MaxErrors': 'string',
                 'TargetCount': len(instances),
