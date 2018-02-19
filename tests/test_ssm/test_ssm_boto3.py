@@ -458,3 +458,20 @@ def test_add_remove_list_tags_for_resource():
         ResourceType='Parameter'
     )
     len(response['TagList']).should.equal(0)
+
+
+@mock_ssm
+def test_send_command():
+    ssm_document = 'AWS-RunShellScript'
+    script = '#!/bin/bash\necho \'hello world\''
+
+    client = boto3.client('ssm', region_name='us-east-1')
+    response = client.send_command(
+        InstanceIds=['i-123456'],
+        DocumentName=ssm_document,
+        TimeoutSeconds=60,
+        Parameters={'commands': [script]},
+        OutputS3BucketName='the-bucket'
+    )
+
+    assert response['Command']
