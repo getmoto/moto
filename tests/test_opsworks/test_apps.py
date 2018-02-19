@@ -53,7 +53,7 @@ def test_create_app_response():
 
 @freeze_time("2015-01-01")
 @mock_opsworks
-def test_describe_layers():
+def test_describe_apps():
     client = boto3.client('opsworks', region_name='us-east-1')
     stack_id = client.create_stack(
         Name="test_stack_1",
