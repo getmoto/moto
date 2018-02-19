@@ -5,7 +5,9 @@ from collections import defaultdict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 
+import datetime
 import time
+import uuid
 
 
 class Parameter(BaseModel):
@@ -137,6 +139,43 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource_type, resource_id):
         return self._resource_tags[resource_type][resource_id]
+
+    def send_command(self, **kwargs):
+        instances = kwargs['InstanceIds']
+        now = datetime.datetime.now()
+        expires_after = now + datetime.timedelta(0, int(kwargs['TimeoutSeconds']))
+        return {
+            'Command': {
+                'CommandId': str(uuid.uuid4()),
+                'DocumentName': kwargs['DocumentName'],
+                'Comment': kwargs.get('Comment'),
+                'ExpiresAfter': expires_after.isoformat(),
+                'Parameters': {
+                    'string': [
+                        'string',
+                    ]
+                },
+                'InstanceIds': kwargs['InstanceIds'],
+                'Targets': kwargs.get('targets'),
+                'RequestedDateTime': now.isoformat(),
+                'Status': 'Success',
+                'StatusDetails': 'string',
+                'OutputS3Region': 'string',
+                'OutputS3BucketName': 'string',
+                'OutputS3KeyPrefix': 'string',
+                'MaxConcurrency': 'string',
+                'MaxErrors': 'string',
+                'TargetCount': len(instances),
+                'CompletedCount': len(instances),
+                'ErrorCount': 0,
+                'ServiceRole': kwargs.get('ServiceRoleArn'),
+                'NotificationConfig': {
+                    'NotificationArn': 'string',
+                    'NotificationEvents': ['Success'],
+                    'NotificationType': 'Command'
+                }
+            }
+        }
 
 
 ssm_backends = {}
