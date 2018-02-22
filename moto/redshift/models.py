@@ -67,7 +67,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
                  preferred_maintenance_window, cluster_parameter_group_name,
                  automated_snapshot_retention_period, port, cluster_version,
                  allow_version_upgrade, number_of_nodes, publicly_accessible,
-                 encrypted, region_name, tags=None):
+                 encrypted, region_name, tags=None, iam_roles=None):
         super(Cluster, self).__init__(region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
@@ -111,6 +111,9 @@ class Cluster(TaggableResourceMixin, BaseModel):
             self.number_of_nodes = int(number_of_nodes)
         else:
             self.number_of_nodes = 1
+
+        if iam_roles:
+            self.iam_roles = iam_roles
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
