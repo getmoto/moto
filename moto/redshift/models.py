@@ -8,6 +8,7 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2 import ec2_backends
+from moto.iam import iam_backends
 from .exceptions import (
     ClusterNotFoundError,
     ClusterParameterGroupNotFoundError,
@@ -67,7 +68,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
                  preferred_maintenance_window, cluster_parameter_group_name,
                  automated_snapshot_retention_period, port, cluster_version,
                  allow_version_upgrade, number_of_nodes, publicly_accessible,
-                 encrypted, region_name, tags=None, iam_roles=None):
+                 encrypted, region_name, tags=None, iam_roles_arn=[]):
         super(Cluster, self).__init__(region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
@@ -112,8 +113,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
         else:
             self.number_of_nodes = 1
 
-        if iam_roles:
-            self.iam_roles = iam_roles
+        self.iam_roles_arn = iam_roles_arn
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -196,6 +196,14 @@ class Cluster(TaggableResourceMixin, BaseModel):
     def resource_id(self):
         return self.cluster_identifier
 
+    @property
+    def iam_roles(self):
+        return [
+            iam_role for iam_role
+            in self.redshift_backend.iam_backend.get_roles()
+            if iam_role.arn in self.iam_roles_arn
+        ]
+
     def to_json(self):
         return {
             "MasterUsername": self.master_username,
@@ -231,7 +239,11 @@ class Cluster(TaggableResourceMixin, BaseModel):
                 "Port": self.port
             },
             "PendingModifiedValues": [],
-            "Tags": self.tags
+            "Tags": self.tags,
+            "IamRoles": [{
+                "ApplyStatus": "in-sync",
+                "IamRoleArn": iam_role.arn
+            } for iam_role in self.iam_roles]
         }
 
 
@@ -354,7 +366,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
 
     resource_type = 'snapshot'
 
-    def __init__(self, cluster, snapshot_identifier, region_name, tags=None):
+    def __init__(self, cluster, snapshot_identifier, region_name, tags=None, iam_roles_arn=[]):
         super(Snapshot, self).__init__(region_name, tags)
         self.cluster = copy.copy(cluster)
         self.snapshot_identifier = snapshot_identifier
@@ -362,6 +374,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         self.status = 'available'
         self.create_time = iso_8601_datetime_with_milliseconds(
             datetime.datetime.now())
+        self.iam_roles_arn = iam_roles_arn
 
     @property
     def resource_id(self):
@@ -383,7 +396,8 @@ class Snapshot(TaggableResourceMixin, BaseModel):
             'NodeType': self.cluster.node_type,
             'NumberOfNodes': self.cluster.number_of_nodes,
             'DBName': self.cluster.db_name,
-            'Tags': self.tags
+            'Tags': self.tags,
+            'IamRoles': self.iam_roles_arn
         }
 
 
@@ -413,6 +427,7 @@ class RedshiftBackend(BaseBackend):
             'snapshot': self.snapshots,
             'subnetgroup': self.subnet_groups
         }
+        self.iam_backend = iam_backends['global']
 
     def reset(self):
         ec2_backend = self.ec2_backend
