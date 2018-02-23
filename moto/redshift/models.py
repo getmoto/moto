@@ -8,7 +8,6 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2 import ec2_backends
-from moto.iam import iam_backends
 from .exceptions import (
     ClusterNotFoundError,
     ClusterParameterGroupNotFoundError,
@@ -196,14 +195,6 @@ class Cluster(TaggableResourceMixin, BaseModel):
     def resource_id(self):
         return self.cluster_identifier
 
-    @property
-    def iam_roles(self):
-        return [
-            iam_role for iam_role
-            in self.redshift_backend.iam_backend.get_roles()
-            if iam_role.arn in self.iam_roles_arn
-        ]
-
     def to_json(self):
         return {
             "MasterUsername": self.master_username,
@@ -242,8 +233,8 @@ class Cluster(TaggableResourceMixin, BaseModel):
             "Tags": self.tags,
             "IamRoles": [{
                 "ApplyStatus": "in-sync",
-                "IamRoleArn": iam_role.arn
-            } for iam_role in self.iam_roles]
+                "IamRoleArn": iam_role_arn
+            } for iam_role_arn in self.iam_roles_arn]
         }
 
 
@@ -397,7 +388,10 @@ class Snapshot(TaggableResourceMixin, BaseModel):
             'NumberOfNodes': self.cluster.number_of_nodes,
             'DBName': self.cluster.db_name,
             'Tags': self.tags,
-            'IamRoles': self.iam_roles_arn
+            "IamRoles": [{
+                "ApplyStatus": "in-sync",
+                "IamRoleArn": iam_role_arn
+            } for iam_role_arn in self.iam_roles_arn]
         }
 
 
@@ -427,7 +421,6 @@ class RedshiftBackend(BaseBackend):
             'snapshot': self.snapshots,
             'subnetgroup': self.subnet_groups
         }
-        self.iam_backend = iam_backends['global']
 
     def reset(self):
         ec2_backend = self.ec2_backend
