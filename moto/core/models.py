@@ -130,7 +130,8 @@ class ResponsesMockAWS(BaseMockAWS):
         responses.reset()
 
     def enable_patching(self):
-        responses.start()
+        if BaseMockAWS.nested_count == 1:
+            responses.start()
         for method in RESPONSES_METHODS:
             for backend in self.backends_for_urls.values():
                 for key, value in backend.urls.items():
