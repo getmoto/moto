@@ -226,3 +226,25 @@ class APIGatewayResponse(BaseResponse):
             deployment = self.backend.delete_deployment(
                 function_id, deployment_id)
         return 200, {}, json.dumps(deployment)
+
+    def apikeys(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == 'POST':
+            apikey_response = self.backend.create_apikey(json.loads(self.body))
+        elif self.method == 'GET':
+            apikeys_response = self.backend.get_apikeys()
+            return 200, {}, json.dumps({"item": apikeys_response})
+        return 200, {}, json.dumps(apikey_response)
+
+    def apikey_individual(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        apikey = url_path_parts[2]
+
+        if self.method == 'GET':
+            apikey_response = self.backend.get_apikey(apikey)
+        elif self.method == 'DELETE':
+            apikey_response = self.backend.delete_apikey(apikey)
+        return 200, {}, json.dumps(apikey_response)
