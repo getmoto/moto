@@ -242,7 +242,7 @@ class ELBV2Response(BaseResponse):
             start = all_names.index(marker) + 1
         else:
             start = 0
-        page_size = self._get_param('PageSize', 50)  # the default is 400, but using 50 to make testing easier
+        page_size = self._get_int_param('PageSize', 50)  # the default is 400, but using 50 to make testing easier
         load_balancers_resp = all_load_balancers[start:start + page_size]
         next_marker = None
         if len(all_load_balancers) > start + page_size:
@@ -468,7 +468,7 @@ class ELBV2Response(BaseResponse):
     def describe_account_limits(self):
         # Supports paging but not worth implementing yet
         # marker = self._get_param('Marker')
-        # page_size = self._get_param('PageSize')
+        # page_size = self._get_int_param('PageSize')
 
         limits = {
             'application-load-balancers': 20,
@@ -489,7 +489,7 @@ class ELBV2Response(BaseResponse):
         names = self._get_multi_param('Names.member.')
         # Supports paging but not worth implementing yet
         # marker = self._get_param('Marker')
-        # page_size = self._get_param('PageSize')
+        # page_size = self._get_int_param('PageSize')
 
         policies = SSL_POLICIES
         if names:
