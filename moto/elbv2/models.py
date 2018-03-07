@@ -486,6 +486,10 @@ class ELBv2Backend(BaseBackend):
         arn = load_balancer_arn.replace(':loadbalancer/', ':listener/') + "/%s%s" % (port, id(self))
         listener = FakeListener(load_balancer_arn, arn, protocol, port, ssl_policy, certificate, default_actions)
         balancer.listeners[listener.arn] = listener
+        for action in default_actions:
+            if action['target_group_arn'] in self.target_groups.keys():
+                target_group = self.target_groups[action['target_group_arn']]
+                target_group.load_balancer_arns.append(load_balancer_arn)
         return listener
 
     def describe_load_balancers(self, arns, names):

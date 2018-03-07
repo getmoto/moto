@@ -192,7 +192,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
             return self.querystring.get('AWSAccessKeyId')
         else:
             # Should we raise an unauthorized exception instead?
-            return None
+            return '111122223333'
 
     def _dispatch(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -343,6 +343,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         for name, value in self.querystring.items():
             if is_tracked(name) or not name.startswith(param_prefix):
+                continue
+
+            if len(name) > len(param_prefix) and \
+                    not name[len(param_prefix):].startswith('.'):
                 continue
 
             match = self.param_list_regex.search(name[len(param_prefix):]) if len(name) > len(param_prefix) else None

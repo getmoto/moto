@@ -106,6 +106,8 @@ NULL_MODELS = [
     "AWS::CloudFormation::WaitConditionHandle",
 ]
 
+DEFAULT_REGION = 'us-east-1'
+
 logger = logging.getLogger("moto")
 
 
@@ -202,6 +204,14 @@ def clean_json(resource_json, resources_map):
             values = [x.value for x in resources_map.cross_stack_resources.values() if x.name == cleaned_val]
             if any(values):
                 return values[0]
+
+        if 'Fn::GetAZs' in resource_json:
+            region = resource_json.get('Fn::GetAZs') or DEFAULT_REGION
+            result = []
+            # TODO: make this configurable, to reflect the real AWS AZs
+            for az in ('a', 'b', 'c', 'd'):
+                result.append('%s%s' % (region, az))
+            return result
 
         cleaned_json = {}
         for key, value in resource_json.items():

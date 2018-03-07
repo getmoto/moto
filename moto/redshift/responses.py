@@ -457,6 +457,55 @@ class RedshiftResponse(BaseResponse):
             }
         })
 
+    def create_snapshot_copy_grant(self):
+        copy_grant_kwargs = {
+            'snapshot_copy_grant_name': self._get_param('SnapshotCopyGrantName'),
+            'kms_key_id': self._get_param('KmsKeyId'),
+            'region_name': self._get_param('Region'),
+        }
+
+        copy_grant = self.redshift_backend.create_snapshot_copy_grant(**copy_grant_kwargs)
+        return self.get_response({
+            "CreateSnapshotCopyGrantResponse": {
+                "CreateSnapshotCopyGrantResult": {
+                    "SnapshotCopyGrant": copy_grant.to_json()
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def delete_snapshot_copy_grant(self):
+        copy_grant_kwargs = {
+            'snapshot_copy_grant_name': self._get_param('SnapshotCopyGrantName'),
+        }
+        self.redshift_backend.delete_snapshot_copy_grant(**copy_grant_kwargs)
+        return self.get_response({
+            "DeleteSnapshotCopyGrantResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def describe_snapshot_copy_grants(self):
+        copy_grant_kwargs = {
+            'snapshot_copy_grant_name': self._get_param('SnapshotCopyGrantName'),
+        }
+
+        copy_grants = self.redshift_backend.describe_snapshot_copy_grants(**copy_grant_kwargs)
+        return self.get_response({
+            "DescribeSnapshotCopyGrantsResponse": {
+                "DescribeSnapshotCopyGrantsResult": {
+                    "SnapshotCopyGrants": [copy_grant.to_json() for copy_grant in copy_grants]
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
     def create_tags(self):
         resource_name = self._get_param('ResourceName')
         tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
@@ -496,6 +545,61 @@ class RedshiftResponse(BaseResponse):
 
         return self.get_response({
             "DeleteTagsResponse": {
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def enable_snapshot_copy(self):
+        snapshot_copy_kwargs = {
+            'cluster_identifier': self._get_param('ClusterIdentifier'),
+            'destination_region': self._get_param('DestinationRegion'),
+            'retention_period': self._get_param('RetentionPeriod', 7),
+            'snapshot_copy_grant_name': self._get_param('SnapshotCopyGrantName'),
+        }
+        cluster = self.redshift_backend.enable_snapshot_copy(**snapshot_copy_kwargs)
+
+        return self.get_response({
+            "EnableSnapshotCopyResponse": {
+                "EnableSnapshotCopyResult": {
+                    "Cluster": cluster.to_json()
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def disable_snapshot_copy(self):
+        snapshot_copy_kwargs = {
+            'cluster_identifier': self._get_param('ClusterIdentifier'),
+        }
+        cluster = self.redshift_backend.disable_snapshot_copy(**snapshot_copy_kwargs)
+
+        return self.get_response({
+            "DisableSnapshotCopyResponse": {
+                "DisableSnapshotCopyResult": {
+                    "Cluster": cluster.to_json()
+                },
+                "ResponseMetadata": {
+                    "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
+                }
+            }
+        })
+
+    def modify_snapshot_copy_retention_period(self):
+        snapshot_copy_kwargs = {
+            'cluster_identifier': self._get_param('ClusterIdentifier'),
+            'retention_period': self._get_param('RetentionPeriod'),
+        }
+        cluster = self.redshift_backend.modify_snapshot_copy_retention_period(**snapshot_copy_kwargs)
+
+        return self.get_response({
+            "ModifySnapshotCopyRetentionPeriodResponse": {
+                "ModifySnapshotCopyRetentionPeriodResult": {
+                    "Clusters": [cluster.to_json()]
+                },
                 "ResponseMetadata": {
                     "RequestId": "384ac68d-3775-11df-8963-01868b7c937a",
                 }
