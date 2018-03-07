@@ -166,7 +166,7 @@ class AutoScalingResponse(BaseResponse):
             start = all_names.index(token) + 1
         else:
             start = 0
-        max_records = self._get_param("MaxRecords", 50)
+        max_records = int(self._get_param("MaxRecords", 50))
         if max_records > 100:
             raise ValueError
         groups = all_groups[start:start + max_records]
