@@ -1709,6 +1709,7 @@ class SecurityGroupIngress(object):
         group_id = properties.get('GroupId')
         ip_protocol = properties.get("IpProtocol")
         cidr_ip = properties.get("CidrIp")
+        cidr_ipv6 = properties.get("CidrIpv6")
         from_port = properties.get("FromPort")
         source_security_group_id = properties.get("SourceSecurityGroupId")
         source_security_group_name = properties.get("SourceSecurityGroupName")
@@ -1717,7 +1718,7 @@ class SecurityGroupIngress(object):
         to_port = properties.get("ToPort")
 
         assert group_id or group_name
-        assert source_security_group_name or cidr_ip or source_security_group_id
+        assert source_security_group_name or cidr_ip or cidr_ipv6 or source_security_group_id
         assert ip_protocol
 
         if source_security_group_id:
@@ -2590,7 +2591,7 @@ class Route(object):
         ec2_backend = ec2_backends[region_name]
         route_table = ec2_backend.create_route(
             route_table_id=route_table_id,
-            destination_cidr_block=properties['DestinationCidrBlock'],
+            destination_cidr_block=properties.get('DestinationCidrBlock'),
             gateway_id=gateway_id,
             instance_id=instance_id,
             interface_id=interface_id,
