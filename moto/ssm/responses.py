@@ -190,3 +190,8 @@ class SimpleSystemManagerResponse(BaseResponse):
         tag_list = [{'Key': k, 'Value': v} for (k, v) in tags.items()]
         response = {'TagList': tag_list}
         return json.dumps(response)
+
+    def send_command(self):
+        return json.dumps(
+            self.ssm_backend.send_command(**self.request_params)
+        )
