@@ -932,3 +932,27 @@ def test_queue_with_dlq():
 
     resp = sqs.list_dead_letter_source_queues(QueueUrl=queue_url1)
     resp['queueUrls'][0].should.equal(queue_url2)
+
+@mock_sqs
+def test_redrive_policy_available():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+
+    resp = sqs.create_queue(QueueName='test-deadletter')
+    queue_url1 = resp['QueueUrl']
+    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)['Attributes']['QueueArn']
+    redrive_policy = {
+        'deadLetterTargetArn': queue_arn1,
+        'maxReceiveCount': 1,
+    }
+
+    resp = sqs.create_queue(
+        QueueName='test-queue',
+        Attributes={
+            'RedrivePolicy': json.dumps(redrive_policy)
+        }
+    )
+
+    queue_url2 = resp['QueueUrl']
+    attributes = sqs.get_queue_attributes(QueueUrl=queue_url2)['Attributes']
+    assert 'RedrivePolicy' in attributes
+    assert json.loads(attributes['RedrivePolicy']) == redrive_policy
