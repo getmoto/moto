@@ -4,6 +4,7 @@ import copy
 import datetime
 
 import boto.redshift
+from botocore.exceptions import ClientError
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -18,8 +19,11 @@ from .exceptions import (
     InvalidParameterValueError,
     InvalidSubnetError,
     ResourceNotFoundFaultError,
+    SnapshotCopyAlreadyDisabledFaultError,
+    SnapshotCopyAlreadyEnabledFaultError,
+    SnapshotCopyDisabledFaultError,
     SnapshotCopyGrantAlreadyExistsFaultError,
-    SnapshotCopyGrantNotFoundFaultError
+    SnapshotCopyGrantNotFoundFaultError,
 )
 
 
@@ -196,7 +200,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
         return self.cluster_identifier
 
     def to_json(self):
-        return {
+        json_response = {
             "MasterUsername": self.master_username,
             "MasterUserPassword": "****",
             "ClusterVersion": self.cluster_version,
@@ -232,6 +236,12 @@ class Cluster(TaggableResourceMixin, BaseModel):
             "PendingModifiedValues": [],
             "Tags": self.tags
         }
+
+        try:
+            json_response['ClusterSnapshotCopyStatus'] = self.cluster_snapshot_copy_status
+        except AttributeError:
+            pass
+        return json_response
 
 
 class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
@@ -434,6 +444,43 @@ class RedshiftBackend(BaseBackend):
         region_name = self.region
         self.__dict__ = {}
         self.__init__(ec2_backend, region_name)
+
+    def enable_snapshot_copy(self, **kwargs):
+        cluster_identifier = kwargs['cluster_identifier']
+        cluster = self.clusters[cluster_identifier]
+        if not hasattr(cluster, 'cluster_snapshot_copy_status'):
+            if cluster.encrypted == 'true' and kwargs['snapshot_copy_grant_name'] is None:
+                raise ClientError(
+                    'InvalidParameterValue',
+                    'SnapshotCopyGrantName is required for Snapshot Copy '
+                    'on KMS encrypted clusters.'
+                )
+            status = {
+                'DestinationRegion': kwargs['destination_region'],
+                'RetentionPeriod': kwargs['retention_period'],
+                'SnapshotCopyGrantName': kwargs['snapshot_copy_grant_name'],
+            }
+            cluster.cluster_snapshot_copy_status = status
+            return cluster
+        else:
+            raise SnapshotCopyAlreadyEnabledFaultError(cluster_identifier)
+
+    def disable_snapshot_copy(self, **kwargs):
+        cluster_identifier = kwargs['cluster_identifier']
+        cluster = self.clusters[cluster_identifier]
+        if hasattr(cluster, 'cluster_snapshot_copy_status'):
+            del cluster.cluster_snapshot_copy_status
+            return cluster
+        else:
+            raise SnapshotCopyAlreadyDisabledFaultError(cluster_identifier)
+
+    def modify_snapshot_copy_retention_period(self, cluster_identifier, retention_period):
+        cluster = self.clusters[cluster_identifier]
+        if hasattr(cluster, 'cluster_snapshot_copy_status'):
+            cluster.cluster_snapshot_copy_status['RetentionPeriod'] = retention_period
+            return cluster
+        else:
+            raise SnapshotCopyDisabledFaultError(cluster_identifier)
 
     def create_cluster(self, **cluster_kwargs):
         cluster_identifier = cluster_kwargs['cluster_identifier']

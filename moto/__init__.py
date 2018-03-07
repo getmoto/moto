@@ -3,7 +3,7 @@ import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = 'moto'
-__version__ = '1.2.0',
+__version__ = '1.2.0'
 
 from .acm import mock_acm  # flake8: noqa
 from .apigateway import mock_apigateway, mock_apigateway_deprecated  # flake8: noqa
