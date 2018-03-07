@@ -33,7 +33,7 @@ class ElasticBlockStore(BaseResponse):
         zone = self._get_param('AvailabilityZone')
         snapshot_id = self._get_param('SnapshotId')
         tags = self._parse_tag_specification("TagSpecification")
-        volume_tags = tags.get('image', {})
+        volume_tags = tags.get('volume', {})
         encrypted = self._get_param('Encrypted', if_none=False)
         if self.is_not_dryrun('CreateVolume'):
             volume = self.ec2_backend.create_volume(
