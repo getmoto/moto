@@ -333,6 +333,24 @@ def test_create_cluster_with_vpc_security_groups_boto3():
     list(group_ids).should.equal([security_group.id])
 
 
+@mock_redshift
+def test_create_cluster_with_iam_roles():
+    iam_roles_arn = ['arn:aws:iam:::role/my-iam-role',]
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_id = 'my_cluster'
+    client.create_cluster(
+        ClusterIdentifier=cluster_id,
+        NodeType="dw.hs1.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        IamRoles=iam_roles_arn
+    )
+    response = client.describe_clusters(ClusterIdentifier=cluster_id)
+    cluster = response['Clusters'][0]
+    iam_roles = [role['IamRoleArn'] for role in cluster['IamRoles']]
+    iam_roles_arn.should.equal(iam_roles)
+
+
 @mock_redshift_deprecated
 def test_create_cluster_with_parameter_group():
     conn = boto.connect_redshift()

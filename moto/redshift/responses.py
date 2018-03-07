@@ -99,6 +99,12 @@ class RedshiftResponse(BaseResponse):
             vpc_security_group_ids = self._get_multi_param('VpcSecurityGroupIds.VpcSecurityGroupId')
         return vpc_security_group_ids
 
+    def _get_iam_roles(self):
+        iam_roles = self._get_multi_param('IamRoles.member')
+        if not iam_roles:
+            iam_roles = self._get_multi_param('IamRoles.IamRoleArn')
+        return iam_roles
+
     def _get_subnet_ids(self):
         subnet_ids = self._get_multi_param('SubnetIds.member')
         if not subnet_ids:
@@ -127,7 +133,8 @@ class RedshiftResponse(BaseResponse):
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "encrypted": self._get_param("Encrypted"),
             "region_name": self.region,
-            "tags": self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+            "tags": self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value')),
+            "iam_roles_arn": self._get_iam_roles(),
         }
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
         cluster['ClusterStatus'] = 'creating'
@@ -162,6 +169,7 @@ class RedshiftResponse(BaseResponse):
             "automated_snapshot_retention_period": self._get_int_param(
                 'AutomatedSnapshotRetentionPeriod'),
             "region_name": self.region,
+            "iam_roles_arn": self._get_iam_roles(),
         }
         cluster = self.redshift_backend.restore_from_cluster_snapshot(**restore_kwargs).to_json()
         cluster['ClusterStatus'] = 'creating'
@@ -209,6 +217,7 @@ class RedshiftResponse(BaseResponse):
             "number_of_nodes": self._get_int_param('NumberOfNodes'),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "encrypted": self._get_param("Encrypted"),
+            "iam_roles_arn": self._get_iam_roles(),
         }
         cluster_kwargs = {}
         # We only want parameters that were actually passed in, otherwise

@@ -73,7 +73,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
                  preferred_maintenance_window, cluster_parameter_group_name,
                  automated_snapshot_retention_period, port, cluster_version,
                  allow_version_upgrade, number_of_nodes, publicly_accessible,
-                 encrypted, region_name, tags=None):
+                 encrypted, region_name, tags=None, iam_roles_arn=None):
         super(Cluster, self).__init__(region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
@@ -117,6 +117,8 @@ class Cluster(TaggableResourceMixin, BaseModel):
             self.number_of_nodes = int(number_of_nodes)
         else:
             self.number_of_nodes = 1
+
+        self.iam_roles_arn = iam_roles_arn or []
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -234,7 +236,11 @@ class Cluster(TaggableResourceMixin, BaseModel):
                 "Port": self.port
             },
             "PendingModifiedValues": [],
-            "Tags": self.tags
+            "Tags": self.tags,
+            "IamRoles": [{
+                "ApplyStatus": "in-sync",
+                "IamRoleArn": iam_role_arn
+            } for iam_role_arn in self.iam_roles_arn]
         }
 
         try:
@@ -378,7 +384,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
 
     resource_type = 'snapshot'
 
-    def __init__(self, cluster, snapshot_identifier, region_name, tags=None):
+    def __init__(self, cluster, snapshot_identifier, region_name, tags=None, iam_roles_arn=None):
         super(Snapshot, self).__init__(region_name, tags)
         self.cluster = copy.copy(cluster)
         self.snapshot_identifier = snapshot_identifier
@@ -386,6 +392,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         self.status = 'available'
         self.create_time = iso_8601_datetime_with_milliseconds(
             datetime.datetime.now())
+        self.iam_roles_arn = iam_roles_arn or []
 
     @property
     def resource_id(self):
@@ -407,7 +414,11 @@ class Snapshot(TaggableResourceMixin, BaseModel):
             'NodeType': self.cluster.node_type,
             'NumberOfNodes': self.cluster.number_of_nodes,
             'DBName': self.cluster.db_name,
-            'Tags': self.tags
+            'Tags': self.tags,
+            "IamRoles": [{
+                "ApplyStatus": "in-sync",
+                "IamRoleArn": iam_role_arn
+            } for iam_role_arn in self.iam_roles_arn]
         }
 
 
