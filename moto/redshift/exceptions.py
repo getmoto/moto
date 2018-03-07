@@ -58,6 +58,21 @@ class InvalidSubnetError(RedshiftClientError):
             "Subnet {0} not found.".format(subnet_identifier))
 
 
+class SnapshotCopyGrantAlreadyExistsFaultError(RedshiftClientError):
+    def __init__(self, snapshot_copy_grant_name):
+        super(SnapshotCopyGrantAlreadyExistsFaultError, self).__init__(
+            'SnapshotCopyGrantAlreadyExistsFault',
+            "Cannot create the snapshot copy grant because a grant "
+            "with the identifier '{0}' already exists".format(snapshot_copy_grant_name))
+
+
+class SnapshotCopyGrantNotFoundFaultError(RedshiftClientError):
+    def __init__(self, snapshot_copy_grant_name):
+        super(SnapshotCopyGrantNotFoundFaultError, self).__init__(
+            'SnapshotCopyGrantNotFoundFault',
+            "Snapshot copy grant not found: {0}".format(snapshot_copy_grant_name))
+
+
 class ClusterSnapshotNotFoundError(RedshiftClientError):
     def __init__(self, snapshot_identifier):
         super(ClusterSnapshotNotFoundError, self).__init__(

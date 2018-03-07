@@ -34,6 +34,45 @@ def test_create_cluster_boto3():
     response['Cluster']['NodeType'].should.equal('ds2.xlarge')
 
 
+@mock_redshift
+def test_create_snapshot_copy_grant():
+    client = boto3.client('redshift', region_name='us-east-1')
+    grants = client.create_snapshot_copy_grant(
+        SnapshotCopyGrantName='test-us-east-1',
+        KmsKeyId='fake',
+    )
+    grants['SnapshotCopyGrant']['SnapshotCopyGrantName'].should.equal('test-us-east-1')
+    grants['SnapshotCopyGrant']['KmsKeyId'].should.equal('fake')
+
+    client.delete_snapshot_copy_grant(
+        SnapshotCopyGrantName='test-us-east-1',
+    )
+
+    client.describe_snapshot_copy_grants.when.called_with(
+        SnapshotCopyGrantName='test-us-east-1',
+    ).should.throw(Exception)
+
+
+@mock_redshift
+def test_create_many_snapshot_copy_grants():
+    client = boto3.client('redshift', region_name='us-east-1')
+
+    for i in range(10):
+        client.create_snapshot_copy_grant(
+            SnapshotCopyGrantName='test-us-east-1-{0}'.format(i),
+            KmsKeyId='fake',
+        )
+    response = client.describe_snapshot_copy_grants()
+    len(response['SnapshotCopyGrants']).should.equal(10)
+
+
+@mock_redshift
+def test_no_snapshot_copy_grants():
+    client = boto3.client('redshift', region_name='us-east-1')
+    response = client.describe_snapshot_copy_grants()
+    len(response['SnapshotCopyGrants']).should.equal(0)
+
+
 @mock_redshift_deprecated
 def test_create_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
