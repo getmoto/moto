@@ -135,7 +135,9 @@ class Item(BaseModel):
         assert len(parts) % 2 == 0, "Mismatched operators and values in update expression: '{}'".format(update_expression)
         for action, valstr in zip(parts[:-1:2], parts[1::2]):
             action = action.upper()
-            values = valstr.split(',')
+
+            # "Should" retain arguments in side (...)
+            values = re.split(r',(?![^(]*\))', valstr)
             for value in values:
                 # A Real value
                 value = value.lstrip(":").rstrip(",").strip()
@@ -145,9 +147,23 @@ class Item(BaseModel):
                 if action == "REMOVE":
                     self.attrs.pop(value, None)
                 elif action == 'SET':
-                    key, value = value.split("=")
+                    key, value = value.split("=", 1)
                     key = key.strip()
                     value = value.strip()
+
+                    # If not exists, changes value to a default if needed, else its the same as it was
+                    if value.startswith('if_not_exists'):
+                        # Function signature
+                        match = re.match(r'.*if_not_exists\((?P<path>.+),\s*(?P<default>.+)\).*', value)
+                        if not match:
+                            raise TypeError
+
+                        path, value = match.groups()
+
+                        # If it already exists, get its value so we dont overwrite it
+                        if path in self.attrs:
+                            value = self.attrs[path].cast_value
+
                     if value in expression_attribute_values:
                         value = DynamoType(expression_attribute_values[value])
                     else:
