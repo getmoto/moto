@@ -18,10 +18,10 @@ from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, Missi
     MalformedACLError
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
-from .utils import bucket_name_from_url, metadata_from_headers
+from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
-REGION_URL_REGEX = r'\.s3-(.+?)\.amazonaws\.com'
+
 DEFAULT_REGION_NAME = 'us-east-1'
 
 
@@ -128,10 +128,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         parsed_url = urlparse(full_url)
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
-        region_name = DEFAULT_REGION_NAME
-        region_match = re.search(REGION_URL_REGEX, full_url)
-        if region_match:
-            region_name = region_match.groups()[0]
+        region_name = parse_region_from_url(full_url)
 
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         if not bucket_name:
