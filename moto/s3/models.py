@@ -722,6 +722,7 @@ class S3Backend(BaseBackend):
                 else:
                     key_results.add(key)
 
+        key_results = filter(lambda key: not isinstance(key, FakeDeleteMarker), key_results)
         key_results = sorted(key_results, key=lambda key: key.name)
         folder_results = [folder_name for folder_name in sorted(
             folder_results, key=lambda key: key)]
