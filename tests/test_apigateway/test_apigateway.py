@@ -1,10 +1,7 @@
 from __future__ import unicode_literals
 
 
-from datetime import datetime
-from dateutil.tz import tzutc
 import boto3
-import mock
 from freezegun import freeze_time
 import requests
 import sure  # noqa
@@ -983,14 +980,13 @@ def test_api_keys():
     apikey['name'].should.equal(apikey_name)
     apikey['value'].should.equal(apikey_value)
 
-    apikey_value = '54321'
     apikey_name = 'TESTKEY2'
     payload = {'name': apikey_name, 'generateDistinctId': True}
-    with mock.patch('moto.apigateway.models.random.sample', lambda x, y: apikey_value):
-        response = client.create_api_key(**payload)
+    response = client.create_api_key(**payload)
     apikey = client.get_api_key(apiKey=response['value'])
     apikey['name'].should.equal(apikey_name)
-    apikey['value'].should.equal(apikey_value)
+    len(apikey['value']).should.equal(40)
+    apikey_value = apikey['value']
 
     response = client.get_api_keys()
     len(response['items']).should.equal(2)
