@@ -4,7 +4,7 @@ import re
 
 import six
 from moto.core.utils import str_to_rfc_1123_datetime
-from six.moves.urllib.parse import parse_qs, urlparse
+from six.moves.urllib.parse import parse_qs, urlparse, unquote
 
 import xmltodict
 
@@ -18,10 +18,10 @@ from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, Missi
     MalformedACLError
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
-from .utils import bucket_name_from_url, metadata_from_headers
+from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
-REGION_URL_REGEX = r'\.s3-(.+?)\.amazonaws\.com'
+
 DEFAULT_REGION_NAME = 'us-east-1'
 
 
@@ -128,10 +128,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         parsed_url = urlparse(full_url)
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
-        region_name = DEFAULT_REGION_NAME
-        region_match = re.search(REGION_URL_REGEX, full_url)
-        if region_match:
-            region_name = region_match.groups()[0]
+        region_name = parse_region_from_url(full_url)
 
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         if not bucket_name:
@@ -172,7 +169,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # HEAD (which the real API responds with), and instead
             # raises NoSuchBucket, leading to inconsistency in
             # error response between real and mocked responses.
-            return 404, {}, "Not Found"
+            return 404, {}, ""
         return 200, {}, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
@@ -650,7 +647,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             upload_id = query['uploadId'][0]
             part_number = int(query['partNumber'][0])
             if 'x-amz-copy-source' in request.headers:
-                src = request.headers.get("x-amz-copy-source").lstrip("/")
+                src = unquote(request.headers.get("x-amz-copy-source")).lstrip("/")
                 src_bucket, src_key = src.split("/", 1)
                 src_range = request.headers.get(
                     'x-amz-copy-source-range', '').split("bytes=")[-1]
@@ -692,7 +689,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         if 'x-amz-copy-source' in request.headers:
             # Copy key
-            src_key_parsed = urlparse(request.headers.get("x-amz-copy-source"))
+            src_key_parsed = urlparse(unquote(request.headers.get("x-amz-copy-source")))
             src_bucket, src_key = src_key_parsed.path.lstrip("/").split("/", 1)
             src_version_id = parse_qs(src_key_parsed.query).get(
                 'versionId', [None])[0]

@@ -7,6 +7,7 @@ Moto Changelog
     * Supports filtering AMIs by self
     * Implemented signal_workflow_execution for SWF
     * Wired SWF backend to the moto server
+    * Added url decoding to x-amz-copy-source header for copying S3 files
     * Revamped lambda function storage to do versioning
     * IOT improvements
     * RDS improvements

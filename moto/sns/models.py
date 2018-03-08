@@ -247,10 +247,20 @@ class SNSBackend(BaseBackend):
         setattr(topic, attribute_name, attribute_value)
 
     def subscribe(self, topic_arn, endpoint, protocol):
+        # AWS doesn't create duplicates
+        old_subscription = self._find_subscription(topic_arn, endpoint, protocol)
+        if old_subscription:
+            return old_subscription
         topic = self.get_topic(topic_arn)
         subscription = Subscription(topic, endpoint, protocol)
         self.subscriptions[subscription.arn] = subscription
         return subscription
+
+    def _find_subscription(self, topic_arn, endpoint, protocol):
+        for subscription in self.subscriptions.values():
+            if subscription.topic.arn == topic_arn and subscription.endpoint == endpoint and subscription.protocol == protocol:
+                return subscription
+        return None
 
     def unsubscribe(self, subscription_arn):
         self.subscriptions.pop(subscription_arn)

@@ -458,3 +458,34 @@ def test_add_remove_list_tags_for_resource():
         ResourceType='Parameter'
     )
     len(response['TagList']).should.equal(0)
+
+
+@mock_ssm
+def test_send_command():
+    ssm_document = 'AWS-RunShellScript'
+    params = {'commands': ['#!/bin/bash\necho \'hello world\'']}
+
+    client = boto3.client('ssm', region_name='us-east-1')
+    # note the timeout is determined server side, so this is a simpler check.
+    before = datetime.datetime.now()
+
+    response = client.send_command(
+        InstanceIds=['i-123456'],
+        DocumentName=ssm_document,
+        TimeoutSeconds=60,
+        Parameters=params,
+        OutputS3Region='us-east-2',
+        OutputS3BucketName='the-bucket',
+        OutputS3KeyPrefix='pref'
+    )
+    cmd = response['Command']
+
+    cmd['CommandId'].should_not.be(None)
+    cmd['DocumentName'].should.equal(ssm_document)
+    cmd['Parameters'].should.equal(params)
+
+    cmd['OutputS3Region'].should.equal('us-east-2')
+    cmd['OutputS3BucketName'].should.equal('the-bucket')
+    cmd['OutputS3KeyPrefix'].should.equal('pref')
+
+    cmd['ExpiresAfter'].should.be.greater_than(before)

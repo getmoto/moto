@@ -397,7 +397,7 @@ def test_create_volume_with_tags():
             Size=40,
             TagSpecifications=[
                 {
-                    'ResourceType': 'image',
+                    'ResourceType': 'volume',
                     'Tags': [
                         {
                             'Key': 'TEST_TAG',

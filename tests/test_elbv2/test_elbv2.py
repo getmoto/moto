@@ -340,6 +340,10 @@ def test_create_target_group_and_listeners():
         'Type': 'forward'}])
     http_listener_arn = listener.get('ListenerArn')
 
+    response = conn.describe_target_groups(LoadBalancerArn=load_balancer_arn,
+                                           Names=['a-target'])
+    response.get('TargetGroups').should.have.length_of(1)
+
     # And another with SSL
     response = conn.create_listener(
         LoadBalancerArn=load_balancer_arn,

@@ -34,6 +34,45 @@ def test_create_cluster_boto3():
     response['Cluster']['NodeType'].should.equal('ds2.xlarge')
 
 
+@mock_redshift
+def test_create_snapshot_copy_grant():
+    client = boto3.client('redshift', region_name='us-east-1')
+    grants = client.create_snapshot_copy_grant(
+        SnapshotCopyGrantName='test-us-east-1',
+        KmsKeyId='fake',
+    )
+    grants['SnapshotCopyGrant']['SnapshotCopyGrantName'].should.equal('test-us-east-1')
+    grants['SnapshotCopyGrant']['KmsKeyId'].should.equal('fake')
+
+    client.delete_snapshot_copy_grant(
+        SnapshotCopyGrantName='test-us-east-1',
+    )
+
+    client.describe_snapshot_copy_grants.when.called_with(
+        SnapshotCopyGrantName='test-us-east-1',
+    ).should.throw(Exception)
+
+
+@mock_redshift
+def test_create_many_snapshot_copy_grants():
+    client = boto3.client('redshift', region_name='us-east-1')
+
+    for i in range(10):
+        client.create_snapshot_copy_grant(
+            SnapshotCopyGrantName='test-us-east-1-{0}'.format(i),
+            KmsKeyId='fake',
+        )
+    response = client.describe_snapshot_copy_grants()
+    len(response['SnapshotCopyGrants']).should.equal(10)
+
+
+@mock_redshift
+def test_no_snapshot_copy_grants():
+    client = boto3.client('redshift', region_name='us-east-1')
+    response = client.describe_snapshot_copy_grants()
+    len(response['SnapshotCopyGrants']).should.equal(0)
+
+
 @mock_redshift_deprecated
 def test_create_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
@@ -292,6 +331,24 @@ def test_create_cluster_with_vpc_security_groups_boto3():
     group_ids = [group['VpcSecurityGroupId']
                  for group in cluster['VpcSecurityGroups']]
     list(group_ids).should.equal([security_group.id])
+
+
+@mock_redshift
+def test_create_cluster_with_iam_roles():
+    iam_roles_arn = ['arn:aws:iam:::role/my-iam-role',]
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_id = 'my_cluster'
+    client.create_cluster(
+        ClusterIdentifier=cluster_id,
+        NodeType="dw.hs1.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        IamRoles=iam_roles_arn
+    )
+    response = client.describe_clusters(ClusterIdentifier=cluster_id)
+    cluster = response['Clusters'][0]
+    iam_roles = [role['IamRoleArn'] for role in cluster['IamRoles']]
+    iam_roles_arn.should.equal(iam_roles)
 
 
 @mock_redshift_deprecated
@@ -1042,3 +1099,98 @@ def test_tagged_resource_not_found_error():
         ResourceName='bad:arn'
     ).should.throw(ClientError, "Tagging is not supported for this type of resource")
 
+
+@mock_redshift
+def test_enable_snapshot_copy():
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.create_cluster(
+        ClusterIdentifier='test',
+        ClusterType='single-node',
+        DBName='test',
+        Encrypted=True,
+        MasterUsername='user',
+        MasterUserPassword='password',
+        NodeType='ds2.xlarge',
+    )
+    client.enable_snapshot_copy(
+        ClusterIdentifier='test',
+        DestinationRegion='us-west-2',
+        RetentionPeriod=3,
+        SnapshotCopyGrantName='copy-us-east-1-to-us-west-2'
+    )
+    response = client.describe_clusters(ClusterIdentifier='test')
+    cluster_snapshot_copy_status = response['Clusters'][0]['ClusterSnapshotCopyStatus']
+    cluster_snapshot_copy_status['RetentionPeriod'].should.equal(3)
+    cluster_snapshot_copy_status['DestinationRegion'].should.equal('us-west-2')
+    cluster_snapshot_copy_status['SnapshotCopyGrantName'].should.equal('copy-us-east-1-to-us-west-2')
+
+
+@mock_redshift
+def test_enable_snapshot_copy_unencrypted():
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.create_cluster(
+        ClusterIdentifier='test',
+        ClusterType='single-node',
+        DBName='test',
+        MasterUsername='user',
+        MasterUserPassword='password',
+        NodeType='ds2.xlarge',
+    )
+    client.enable_snapshot_copy(
+        ClusterIdentifier='test',
+        DestinationRegion='us-west-2',
+    )
+    response = client.describe_clusters(ClusterIdentifier='test')
+    cluster_snapshot_copy_status = response['Clusters'][0]['ClusterSnapshotCopyStatus']
+    cluster_snapshot_copy_status['RetentionPeriod'].should.equal(7)
+    cluster_snapshot_copy_status['DestinationRegion'].should.equal('us-west-2')
+
+
+@mock_redshift
+def test_disable_snapshot_copy():
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.create_cluster(
+        DBName='test',
+        ClusterIdentifier='test',
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='user',
+        MasterUserPassword='password',
+    )
+    client.enable_snapshot_copy(
+        ClusterIdentifier='test',
+        DestinationRegion='us-west-2',
+        RetentionPeriod=3,
+        SnapshotCopyGrantName='copy-us-east-1-to-us-west-2',
+    )
+    client.disable_snapshot_copy(
+        ClusterIdentifier='test',
+    )
+    response = client.describe_clusters(ClusterIdentifier='test')
+    response['Clusters'][0].shouldnt.contain('ClusterSnapshotCopyStatus')
+
+
+@mock_redshift
+def test_modify_snapshot_copy_retention_period():
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.create_cluster(
+        DBName='test',
+        ClusterIdentifier='test',
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='user',
+        MasterUserPassword='password',
+    )
+    client.enable_snapshot_copy(
+        ClusterIdentifier='test',
+        DestinationRegion='us-west-2',
+        RetentionPeriod=3,
+        SnapshotCopyGrantName='copy-us-east-1-to-us-west-2',
+    )
+    client.modify_snapshot_copy_retention_period(
+        ClusterIdentifier='test',
+        RetentionPeriod=5,
+    )
+    response = client.describe_clusters(ClusterIdentifier='test')
+    cluster_snapshot_copy_status = response['Clusters'][0]['ClusterSnapshotCopyStatus']
+    cluster_snapshot_copy_status['RetentionPeriod'].should.equal(5)

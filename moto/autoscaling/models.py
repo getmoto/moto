@@ -7,7 +7,7 @@ from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
 from moto.elb.exceptions import LoadBalancerNotFoundError
 from .exceptions import (
-    ResourceContentionError,
+    AutoscalingClientError, ResourceContentionError,
 )
 
 # http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AS_Concepts.html#Cooldown
@@ -155,14 +155,21 @@ class FakeAutoScalingGroup(BaseModel):
                  autoscaling_backend, tags):
         self.autoscaling_backend = autoscaling_backend
         self.name = name
+
+        if not availability_zones and not vpc_zone_identifier:
+            raise AutoscalingClientError(
+                "ValidationError",
+                "At least one Availability Zone or VPC Subnet is required."
+            )
         self.availability_zones = availability_zones
+        self.vpc_zone_identifier = vpc_zone_identifier
+
         self.max_size = max_size
         self.min_size = min_size
 
         self.launch_config = self.autoscaling_backend.launch_configurations[
             launch_config_name]
         self.launch_config_name = launch_config_name
-        self.vpc_zone_identifier = vpc_zone_identifier
 
         self.default_cooldown = default_cooldown if default_cooldown else DEFAULT_COOLDOWN
         self.health_check_period = health_check_period
