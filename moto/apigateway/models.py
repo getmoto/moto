@@ -309,8 +309,7 @@ class ApiKey(BaseModel, dict):
         self['customerId'] = customerId
         self['description'] = description
         self['enabled'] = enabled
-        self['createdDate'] = self['lastUpdatedDate'] = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.now())
+        self['createdDate'] = self['lastUpdatedDate'] = int(time.time())
         self['stageKeys'] = stageKeys
 
 
