@@ -179,6 +179,7 @@ class FakeAutoScalingGroup(BaseModel):
         self.placement_group = placement_group
         self.termination_policies = termination_policies
 
+        self.suspended_processes = []
         self.instance_states = []
         self.tags = tags if tags else []
         self.set_desired_capacity(desired_capacity)
@@ -620,6 +621,10 @@ class AutoScalingBackend(BaseBackend):
         for target_group in target_group_arns:
             asg_targets = [{'id': x.instance.id} for x in group.instance_states]
             self.elbv2_backend.deregister_targets(target_group, (asg_targets))
+
+    def suspend_processes(self, group_name, scaling_processes):
+        group = self.autoscaling_groups[group_name]
+        group.suspended_processes = scaling_processes or []
 
 
 autoscaling_backends = {}
