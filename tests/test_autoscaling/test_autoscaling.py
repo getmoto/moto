@@ -1069,8 +1069,9 @@ def test_set_instance_health():
     instance1['HealthStatus'].should.equal('Unhealthy')
 
 @mock_autoscaling
-def test_asg():
-    client = boto3.client('autoscaling')
+def test_suspend_processes():
+    mocked_networking = setup_networking()
+    client = boto3.client('autoscaling', region_name='us-east-1')
     client.create_launch_configuration(
         LaunchConfigurationName='lc',
     )
@@ -1079,9 +1080,10 @@ def test_asg():
         AutoScalingGroupName='test-asg',
         MinSize=1,
         MaxSize=1,
+        VPCZoneIdentifier=mocked_networking['subnet1'],
     )
 
-    # Testing something that calls the below...
+    # When we suspend the 'Launch' process on the ASG client
     client.suspend_processes(
         AutoScalingGroupName='test-asg',
         ScalingProcesses=['Launch']
@@ -1090,6 +1092,8 @@ def test_asg():
     res = client.describe_auto_scaling_groups(
         AutoScalingGroupNames=['test-asg']
     )
+
+    # The 'Launch' process should, in fact, be suspended
     launch_suspended = False
     for proc in res['AutoScalingGroups'][0]['SuspendedProcesses']:
         if proc.get('ProcessName') == 'Launch':
