@@ -400,12 +400,14 @@ class FilterNotImplementedError(MotoNotImplementedError):
             "The filter '{0}' for {1}".format(
                 filter_name, method_name))
 
+
 class CidrLimitExceeded(EC2ClientError):
     def __init__(self, vpc_id, max_cidr_limit):
         super(CidrLimitExceeded, self).__init__(
             "CidrLimitExceeded",
             "This network '{0}' has met its maximum number of allowed CIDRs: {1}".format(vpc_id, max_cidr_limit)
         )
+
 
 class OperationNotPermitted(EC2ClientError):
     def __init__(self, association_id):

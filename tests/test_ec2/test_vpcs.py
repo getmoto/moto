@@ -520,9 +520,8 @@ def test_ipv6_cidr_block_association_filters():
     ec2.meta.client.associate_vpc_cidr_block(VpcId=vpc3.id, CidrBlock='10.92.2.0/24')
     response = ec2.meta.client.associate_vpc_cidr_block(VpcId=vpc3.id, AmazonProvidedIpv6CidrBlock=True)
     vpc3_ipv6_cidr_block = response['Ipv6CidrBlockAssociation']['Ipv6CidrBlock']
-    vpc3_assoc_response = ec2.meta.client.associate_vpc_cidr_block(VpcId=vpc3.id, CidrBlock='10.92.3.0/24')
 
-    vpc4 = ec2.create_vpc(CidrBlock='10.95.0.0/16')
+    vpc4 = ec2.create_vpc(CidrBlock='10.95.0.0/16')  # Here for its looks
 
     # Test filters for an ipv6 cidr-block in all VPCs cidr-block-associations
     filtered_vpcs = list(ec2.vpcs.filter(Filters=[{'Name': 'ipv6-cidr-block-association.ipv6-cidr-block',
