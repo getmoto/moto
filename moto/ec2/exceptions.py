@@ -279,6 +279,7 @@ class InvalidAssociationIdError(EC2ClientError):
             "Association ID '{0}' not found."
             .format(association_id))
 
+
 class InvalidVpcCidrBlockAssociationIdError(EC2ClientError):
 
     def __init__(self, association_id):
@@ -286,6 +287,7 @@ class InvalidVpcCidrBlockAssociationIdError(EC2ClientError):
             "InvalidVpcCidrBlockAssociationIdError.NotFound",
             "The vpc CIDR block association ID '{0}' does not exist"
             .format(association_id))
+
 
 class InvalidVPCPeeringConnectionIdError(EC2ClientError):
 
@@ -402,6 +404,7 @@ class FilterNotImplementedError(MotoNotImplementedError):
 
 
 class CidrLimitExceeded(EC2ClientError):
+
     def __init__(self, vpc_id, max_cidr_limit):
         super(CidrLimitExceeded, self).__init__(
             "CidrLimitExceeded",
@@ -410,6 +413,7 @@ class CidrLimitExceeded(EC2ClientError):
 
 
 class OperationNotPermitted(EC2ClientError):
+
     def __init__(self, association_id):
         super(OperationNotPermitted, self).__init__(
             "OperationNotPermitted",

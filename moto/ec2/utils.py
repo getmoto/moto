@@ -43,8 +43,10 @@ def random_resource_id(size=8):
     resource_id = ''.join(six.text_type(random.choice(chars)) for x in range(size))
     return resource_id
 
+
 def random_id(prefix='', size=8):
     return '{0}-{1}'.format(prefix, random_resource_id(size))
+
 
 def random_ami_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['image'])
@@ -109,8 +111,10 @@ def random_volume_id():
 def random_vpc_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc'])
 
+
 def random_vpc_cidr_association_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc-cidr-association-id'])
+
 
 def random_vpc_peering_connection_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc-peering-connection'])
@@ -158,12 +162,14 @@ def random_private_ip():
                                    random.choice(range(255)),
                                    random.choice(range(255)))
 
+
 def random_ip():
     return "127.{0}.{1}.{2}".format(
         random.randint(0, 255),
         random.randint(0, 255),
         random.randint(0, 255)
     )
+
 
 def random_ipv6_cidr():
     return "2400:6500:{}:{}::/56".format(random_resource_id(4), random_resource_id(4))

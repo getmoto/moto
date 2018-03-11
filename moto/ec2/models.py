@@ -5,7 +5,6 @@ import itertools
 import ipaddress
 import json
 import os
-import random
 import re
 import six
 import warnings
@@ -2190,6 +2189,7 @@ class VPCBackend(object):
     def associate_vpc_cidr_block(self, vpc_id, cidr_block, amazon_provided_ipv6_cidr_block):
         vpc = self.get_vpc(vpc_id)
         return vpc.associate_vpc_cidr_block(cidr_block, amazon_provided_ipv6_cidr_block)
+
 
 class VPCPeeringConnectionStatus(object):
     def __init__(self, code='initiating-request', message=''):
