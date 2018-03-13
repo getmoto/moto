@@ -1836,6 +1836,233 @@ def test_put_bucket_acl_body():
 
 
 @mock_s3
+def test_put_bucket_notification():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="bucket")
+
+    # With no configuration:
+    result = s3.get_bucket_notification(Bucket="bucket")
+    assert not result.get("TopicConfigurations")
+    assert not result.get("QueueConfigurations")
+    assert not result.get("LambdaFunctionConfigurations")
+
+    # Place proper topic configuration:
+    s3.put_bucket_notification_configuration(Bucket="bucket",
+                                             NotificationConfiguration={
+                                                 "TopicConfigurations": [
+                                                     {
+                                                         "TopicArn": "arn:aws:sns:us-east-1:012345678910:mytopic",
+                                                         "Events": [
+                                                             "s3:ObjectCreated:*",
+                                                             "s3:ObjectRemoved:*"
+                                                         ]
+                                                     },
+                                                     {
+                                                         "TopicArn": "arn:aws:sns:us-east-1:012345678910:myothertopic",
+                                                         "Events": [
+                                                             "s3:ObjectCreated:*"
+                                                         ],
+                                                         "Filter": {
+                                                             "Key": {
+                                                                 "FilterRules": [
+                                                                     {
+                                                                         "Name": "prefix",
+                                                                         "Value": "images/"
+                                                                     },
+                                                                     {
+                                                                         "Name": "suffix",
+                                                                         "Value": "png"
+                                                                     }
+                                                                 ]
+                                                             }
+                                                         }
+                                                     }
+                                                 ]
+                                             })
+
+    # Verify to completion:
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert len(result["TopicConfigurations"]) == 2
+    assert not result.get("QueueConfigurations")
+    assert not result.get("LambdaFunctionConfigurations")
+    assert result["TopicConfigurations"][0]["TopicArn"] == "arn:aws:sns:us-east-1:012345678910:mytopic"
+    assert result["TopicConfigurations"][1]["TopicArn"] == "arn:aws:sns:us-east-1:012345678910:myothertopic"
+    assert len(result["TopicConfigurations"][0]["Events"]) == 2
+    assert len(result["TopicConfigurations"][1]["Events"]) == 1
+    assert result["TopicConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
+    assert result["TopicConfigurations"][0]["Events"][1] == "s3:ObjectRemoved:*"
+    assert result["TopicConfigurations"][1]["Events"][0] == "s3:ObjectCreated:*"
+    assert result["TopicConfigurations"][0]["Id"]
+    assert result["TopicConfigurations"][1]["Id"]
+    assert not result["TopicConfigurations"][0].get("Filter")
+    assert len(result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"]) == 2
+    assert result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"][0]["Name"] == "prefix"
+    assert result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"][0]["Value"] == "images/"
+    assert result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"][1]["Name"] == "suffix"
+    assert result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"][1]["Value"] == "png"
+
+    # Place proper queue configuration:
+    s3.put_bucket_notification_configuration(Bucket="bucket",
+                                             NotificationConfiguration={
+                                                 "QueueConfigurations": [
+                                                     {
+                                                         "Id": "SomeID",
+                                                         "QueueArn": "arn:aws:sqs:us-east-1:012345678910:myQueue",
+                                                         "Events": ["s3:ObjectCreated:*"],
+                                                         "Filter": {
+                                                             "Key": {
+                                                                 "FilterRules": [
+                                                                     {
+                                                                         "Name": "prefix",
+                                                                         "Value": "images/"
+                                                                     }
+                                                                 ]
+                                                             }
+                                                         }
+                                                     }
+                                                 ]
+                                             })
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert len(result["QueueConfigurations"]) == 1
+    assert not result.get("TopicConfigurations")
+    assert not result.get("LambdaFunctionConfigurations")
+    assert result["QueueConfigurations"][0]["Id"] == "SomeID"
+    assert result["QueueConfigurations"][0]["QueueArn"] == "arn:aws:sqs:us-east-1:012345678910:myQueue"
+    assert result["QueueConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
+    assert len(result["QueueConfigurations"][0]["Events"]) == 1
+    assert len(result["QueueConfigurations"][0]["Filter"]["Key"]["FilterRules"]) == 1
+    assert result["QueueConfigurations"][0]["Filter"]["Key"]["FilterRules"][0]["Name"] == "prefix"
+    assert result["QueueConfigurations"][0]["Filter"]["Key"]["FilterRules"][0]["Value"] == "images/"
+
+    # Place proper Lambda configuration:
+    s3.put_bucket_notification_configuration(Bucket="bucket",
+                                             NotificationConfiguration={
+                                                 "LambdaFunctionConfigurations": [
+                                                     {
+                                                         "LambdaFunctionArn":
+                                                             "arn:aws:lambda:us-east-1:012345678910:function:lambda",
+                                                         "Events": ["s3:ObjectCreated:*"],
+                                                         "Filter": {
+                                                             "Key": {
+                                                                 "FilterRules": [
+                                                                     {
+                                                                         "Name": "prefix",
+                                                                         "Value": "images/"
+                                                                     }
+                                                                 ]
+                                                             }
+                                                         }
+                                                     }
+                                                 ]
+                                             })
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert len(result["LambdaFunctionConfigurations"]) == 1
+    assert not result.get("TopicConfigurations")
+    assert not result.get("QueueConfigurations")
+    assert result["LambdaFunctionConfigurations"][0]["Id"]
+    assert result["LambdaFunctionConfigurations"][0]["LambdaFunctionArn"] == \
+        "arn:aws:lambda:us-east-1:012345678910:function:lambda"
+    assert result["LambdaFunctionConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
+    assert len(result["LambdaFunctionConfigurations"][0]["Events"]) == 1
+    assert len(result["LambdaFunctionConfigurations"][0]["Filter"]["Key"]["FilterRules"]) == 1
+    assert result["LambdaFunctionConfigurations"][0]["Filter"]["Key"]["FilterRules"][0]["Name"] == "prefix"
+    assert result["LambdaFunctionConfigurations"][0]["Filter"]["Key"]["FilterRules"][0]["Value"] == "images/"
+
+    # And with all 3 set:
+    s3.put_bucket_notification_configuration(Bucket="bucket",
+                                             NotificationConfiguration={
+                                                 "TopicConfigurations": [
+                                                     {
+                                                         "TopicArn": "arn:aws:sns:us-east-1:012345678910:mytopic",
+                                                         "Events": [
+                                                             "s3:ObjectCreated:*",
+                                                             "s3:ObjectRemoved:*"
+                                                         ]
+                                                     }
+                                                 ],
+                                                 "LambdaFunctionConfigurations": [
+                                                     {
+                                                         "LambdaFunctionArn":
+                                                             "arn:aws:lambda:us-east-1:012345678910:function:lambda",
+                                                         "Events": ["s3:ObjectCreated:*"]
+                                                     }
+                                                 ],
+                                                 "QueueConfigurations": [
+                                                     {
+                                                         "QueueArn": "arn:aws:sqs:us-east-1:012345678910:myQueue",
+                                                         "Events": ["s3:ObjectCreated:*"]
+                                                     }
+                                                 ]
+                                             })
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert len(result["LambdaFunctionConfigurations"]) == 1
+    assert len(result["TopicConfigurations"]) == 1
+    assert len(result["QueueConfigurations"]) == 1
+
+    # And clear it out:
+    s3.put_bucket_notification_configuration(Bucket="bucket", NotificationConfiguration={})
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert not result.get("TopicConfigurations")
+    assert not result.get("QueueConfigurations")
+    assert not result.get("LambdaFunctionConfigurations")
+
+
+@mock_s3
+def test_put_bucket_notification_errors():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="bucket")
+
+    # With incorrect ARNs:
+    for tech, arn in [("Queue", "sqs"), ("Topic", "sns"), ("LambdaFunction", "lambda")]:
+        with assert_raises(ClientError) as err:
+            s3.put_bucket_notification_configuration(Bucket="bucket",
+                                                     NotificationConfiguration={
+                                                         "{}Configurations".format(tech): [
+                                                             {
+                                                                 "{}Arn".format(tech):
+                                                                     "arn:aws:{}:us-east-1:012345678910:lksajdfkldskfj",
+                                                                 "Events": ["s3:ObjectCreated:*"]
+                                                             }
+                                                         ]
+                                                     })
+
+        assert err.exception.response["Error"]["Code"] == "InvalidArgument"
+        assert err.exception.response["Error"]["Message"] == "The ARN is not well formed"
+
+    # Region not the same as the bucket:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_notification_configuration(Bucket="bucket",
+                                                 NotificationConfiguration={
+                                                     "QueueConfigurations": [
+                                                         {
+                                                             "QueueArn":
+                                                                 "arn:aws:sqs:us-west-2:012345678910:lksajdfkldskfj",
+                                                             "Events": ["s3:ObjectCreated:*"]
+                                                         }
+                                                     ]
+                                                 })
+
+    assert err.exception.response["Error"]["Code"] == "InvalidArgument"
+    assert err.exception.response["Error"]["Message"] == \
+        "The notification destination service region is not valid for the bucket location constraint"
+
+    # Invalid event name:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_notification_configuration(Bucket="bucket",
+                                                 NotificationConfiguration={
+                                                     "QueueConfigurations": [
+                                                         {
+                                                             "QueueArn":
+                                                                 "arn:aws:sqs:us-east-1:012345678910:lksajdfkldskfj",
+                                                             "Events": ["notarealeventname"]
+                                                         }
+                                                     ]
+                                                 })
+    assert err.exception.response["Error"]["Code"] == "InvalidArgument"
+    assert err.exception.response["Error"]["Message"] == "The event is not supported for notifications"
+
+
+@mock_s3
 def test_boto3_put_bucket_logging():
     s3 = boto3.client("s3", region_name="us-east-1")
     bucket_name = "mybucket"
@@ -1953,7 +2180,7 @@ def test_boto3_put_bucket_logging():
     result = s3.get_bucket_logging(Bucket=bucket_name)
     assert len(result["LoggingEnabled"]["TargetGrants"]) == 2
     assert result["LoggingEnabled"]["TargetGrants"][0]["Grantee"]["ID"] == \
-        "SOMEIDSTRINGHERE9238748923734823917498237489237409123840983274"
+           "SOMEIDSTRINGHERE9238748923734823917498237489237409123840983274"
 
     # Test with just 1 grant:
     s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={

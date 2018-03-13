@@ -6,12 +6,16 @@ import hashlib
 import copy
 import itertools
 import codecs
+import random
+import string
+
 import six
 
 from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey
+from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey, \
+    InvalidNotificationDestination
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -270,7 +274,7 @@ def get_canned_acl(acl):
         grants.append(FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_READ]))
     elif acl == 'public-read-write':
         grants.append(FakeGrant([ALL_USERS_GRANTEE], [
-                      PERMISSION_READ, PERMISSION_WRITE]))
+            PERMISSION_READ, PERMISSION_WRITE]))
     elif acl == 'authenticated-read':
         grants.append(
             FakeGrant([AUTHENTICATED_USERS_GRANTEE], [PERMISSION_READ]))
@@ -282,7 +286,7 @@ def get_canned_acl(acl):
         pass  # TODO: bucket owner, EC2 Read
     elif acl == 'log-delivery-write':
         grants.append(FakeGrant([LOG_DELIVERY_GRANTEE], [
-                      PERMISSION_READ_ACP, PERMISSION_WRITE]))
+            PERMISSION_READ_ACP, PERMISSION_WRITE]))
     else:
         assert False, 'Unknown canned acl: %s' % (acl,)
     return FakeAcl(grants=grants)
@@ -333,6 +337,26 @@ class CorsRule(BaseModel):
         self.max_age_seconds = max_age_seconds
 
 
+class Notification(BaseModel):
+
+    def __init__(self, arn, events, filters=None, id=None):
+        self.id = id if id else ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(50))
+        self.arn = arn
+        self.events = events
+        self.filters = filters if filters else {}
+
+
+class NotificationConfiguration(BaseModel):
+
+    def __init__(self, topic=None, queue=None, cloud_function=None):
+        self.topic = [Notification(t["Topic"], t["Event"], filters=t.get("Filter"), id=t.get("Id")) for t in topic] \
+            if topic else []
+        self.queue = [Notification(q["Queue"], q["Event"], filters=q.get("Filter"), id=q.get("Id")) for q in queue] \
+            if queue else []
+        self.cloud_function = [Notification(c["CloudFunction"], c["Event"], filters=c.get("Filter"), id=c.get("Id"))
+                               for c in cloud_function] if cloud_function else []
+
+
 class FakeBucket(BaseModel):
 
     def __init__(self, name, region_name):
@@ -348,6 +372,7 @@ class FakeBucket(BaseModel):
         self.tags = FakeTagging()
         self.cors = []
         self.logging = {}
+        self.notification_configuration = None
 
     @property
     def location(self):
@@ -426,36 +451,55 @@ class FakeBucket(BaseModel):
     def set_logging(self, logging_config, bucket_backend):
         if not logging_config:
             self.logging = {}
-        else:
-            from moto.s3.exceptions import InvalidTargetBucketForLogging, CrossLocationLoggingProhibitted
-            # Target bucket must exist in the same account (assuming all moto buckets are in the same account):
-            if not bucket_backend.buckets.get(logging_config["TargetBucket"]):
-                raise InvalidTargetBucketForLogging("The target bucket for logging does not exist.")
+            return
 
-            # Does the target bucket have the log-delivery WRITE and READ_ACP permissions?
-            write = read_acp = False
-            for grant in bucket_backend.buckets[logging_config["TargetBucket"]].acl.grants:
-                # Must be granted to: http://acs.amazonaws.com/groups/s3/LogDelivery
-                for grantee in grant.grantees:
-                    if grantee.uri == "http://acs.amazonaws.com/groups/s3/LogDelivery":
-                        if "WRITE" in grant.permissions or "FULL_CONTROL" in grant.permissions:
-                            write = True
+        from moto.s3.exceptions import InvalidTargetBucketForLogging, CrossLocationLoggingProhibitted
+        # Target bucket must exist in the same account (assuming all moto buckets are in the same account):
+        if not bucket_backend.buckets.get(logging_config["TargetBucket"]):
+            raise InvalidTargetBucketForLogging("The target bucket for logging does not exist.")
 
-                        if "READ_ACP" in grant.permissions or "FULL_CONTROL" in grant.permissions:
-                            read_acp = True
+        # Does the target bucket have the log-delivery WRITE and READ_ACP permissions?
+        write = read_acp = False
+        for grant in bucket_backend.buckets[logging_config["TargetBucket"]].acl.grants:
+            # Must be granted to: http://acs.amazonaws.com/groups/s3/LogDelivery
+            for grantee in grant.grantees:
+                if grantee.uri == "http://acs.amazonaws.com/groups/s3/LogDelivery":
+                    if "WRITE" in grant.permissions or "FULL_CONTROL" in grant.permissions:
+                        write = True
 
-                        break
+                    if "READ_ACP" in grant.permissions or "FULL_CONTROL" in grant.permissions:
+                        read_acp = True
 
-            if not write or not read_acp:
-                raise InvalidTargetBucketForLogging("You must give the log-delivery group WRITE and READ_ACP"
-                                                    " permissions to the target bucket")
+                    break
 
-            # Buckets must also exist within the same region:
-            if bucket_backend.buckets[logging_config["TargetBucket"]].region_name != self.region_name:
-                raise CrossLocationLoggingProhibitted()
+        if not write or not read_acp:
+            raise InvalidTargetBucketForLogging("You must give the log-delivery group WRITE and READ_ACP"
+                                                " permissions to the target bucket")
 
-            # Checks pass -- set the logging config:
-            self.logging = logging_config
+        # Buckets must also exist within the same region:
+        if bucket_backend.buckets[logging_config["TargetBucket"]].region_name != self.region_name:
+            raise CrossLocationLoggingProhibitted()
+
+        # Checks pass -- set the logging config:
+        self.logging = logging_config
+
+    def set_notification_configuration(self, notification_config):
+        if not notification_config:
+            self.notification_configuration = None
+            return
+
+        self.notification_configuration = NotificationConfiguration(
+            topic=notification_config.get("TopicConfiguration"),
+            queue=notification_config.get("QueueConfiguration"),
+            cloud_function=notification_config.get("CloudFunctionConfiguration")
+        )
+
+        # Validate that the region is correct:
+        for thing in ["topic", "queue", "cloud_function"]:
+            for t in getattr(self.notification_configuration, thing):
+                region = t.arn.split(":")[3]
+                if region != self.region_name:
+                    raise InvalidNotificationDestination()
 
     def set_website_configuration(self, website_configuration):
         self.website_configuration = website_configuration
@@ -650,6 +694,10 @@ class S3Backend(BaseBackend):
     def delete_bucket_cors(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         bucket.delete_cors()
+
+    def put_bucket_notification_configuration(self, bucket_name, notification_config):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_notification_configuration(notification_config)
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)

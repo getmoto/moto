@@ -15,7 +15,7 @@ from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_n
     parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
 
 from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, MissingKey, InvalidPartOrder, MalformedXML, \
-    MalformedACLError
+    MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
 from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
@@ -243,6 +243,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return 404, {}, template.render(bucket_name=bucket_name)
             template = self.response_template(S3_BUCKET_CORS_RESPONSE)
             return template.render(bucket=bucket)
+        elif "notification" in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if not bucket.notification_configuration:
+                return 200, {}, ""
+            template = self.response_template(S3_GET_BUCKET_NOTIFICATION_CONFIG)
+            return template.render(bucket=bucket)
+
         elif 'versions' in querystring:
             delimiter = querystring.get('delimiter', [None])[0]
             encoding_type = querystring.get('encoding-type', [None])[0]
@@ -411,6 +418,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return ""
             except KeyError:
                 raise MalformedXML()
+        elif "notification" in querystring:
+            try:
+                self.backend.put_bucket_notification_configuration(bucket_name,
+                                                                   self._notification_config_from_xml(body))
+                return ""
+            except KeyError:
+                raise MalformedXML()
+            except Exception as e:
+                raise e
 
         else:
             if body:
@@ -917,6 +933,74 @@ class ResponseObject(_TemplateEnvironmentMixin):
             parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"] = target_grants
 
         return parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]
+
+    def _notification_config_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+
+        if not len(parsed_xml["NotificationConfiguration"]):
+            return {}
+
+        # The types of notifications, and their required fields (apparently lambda is categorized by the API as
+        # "CloudFunction"):
+        notification_fields = [
+            ("Topic", "sns"),
+            ("Queue", "sqs"),
+            ("CloudFunction", "lambda")
+        ]
+
+        event_names = [
+            's3:ReducedRedundancyLostObject',
+            's3:ObjectCreated:*',
+            's3:ObjectCreated:Put',
+            's3:ObjectCreated:Post',
+            's3:ObjectCreated:Copy',
+            's3:ObjectCreated:CompleteMultipartUpload',
+            's3:ObjectRemoved:*',
+            's3:ObjectRemoved:Delete',
+            's3:ObjectRemoved:DeleteMarkerCreated'
+        ]
+
+        found_notifications = 0  # Tripwire -- if this is not ever set, then there were no notifications
+        for name, arn_string in notification_fields:
+            # 1st verify that the proper notification configuration has been passed in (with an ARN that is close
+            # to being correct -- nothing too complex in the ARN logic):
+            the_notification = parsed_xml["NotificationConfiguration"].get("{}Configuration".format(name))
+            if the_notification:
+                found_notifications += 1
+                if not isinstance(the_notification, list):
+                    the_notification = parsed_xml["NotificationConfiguration"]["{}Configuration".format(name)] \
+                        = [the_notification]
+
+                for n in the_notification:
+                    if not n[name].startswith("arn:aws:{}:".format(arn_string)):
+                        raise InvalidNotificationARN()
+
+                    # 2nd, verify that the Events list is correct:
+                    assert n["Event"]
+                    if not isinstance(n["Event"], list):
+                        n["Event"] = [n["Event"]]
+
+                    for event in n["Event"]:
+                        if event not in event_names:
+                            raise InvalidNotificationEvent()
+
+                    # Parse out the filters:
+                    if n.get("Filter"):
+                        # Error if S3Key is blank:
+                        if not n["Filter"]["S3Key"]:
+                            raise KeyError()
+
+                        if not isinstance(n["Filter"]["S3Key"]["FilterRule"], list):
+                            n["Filter"]["S3Key"]["FilterRule"] = [n["Filter"]["S3Key"]["FilterRule"]]
+
+                        for filter_rule in n["Filter"]["S3Key"]["FilterRule"]:
+                            assert filter_rule["Name"] in ["suffix", "prefix"]
+                            assert filter_rule["Value"]
+
+        if not found_notifications:
+            return {}
+
+        return parsed_xml["NotificationConfiguration"]
 
     def _key_response_delete(self, bucket_name, query, key_name, headers):
         if query.get('uploadId'):
@@ -1459,4 +1543,72 @@ S3_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 
 S3_NO_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 <BucketLoggingStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01" />
+"""
+
+S3_GET_BUCKET_NOTIFICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
+<NotificationConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  {% for topic in bucket.notification_configuration.topic %}
+  <TopicConfiguration>
+    <Id>{{ topic.id }}</Id>
+    <Topic>{{ topic.arn }}</Topic>
+    {% for event in topic.events %}
+    <Event>{{ event }}</Event>
+    {% endfor %}
+    {% if topic.filters %}
+      <Filter>
+        <S3Key>
+          {% for rule in topic.filters["S3Key"]["FilterRule"] %}
+          <FilterRule>
+            <Name>{{ rule["Name"] }}</Name>
+            <Value>{{ rule["Value"] }}</Value>
+          </FilterRule>
+          {% endfor %}
+        </S3Key>
+      </Filter>
+    {% endif %}
+  </TopicConfiguration>
+  {% endfor %}
+  {% for queue in bucket.notification_configuration.queue %}
+  <QueueConfiguration>
+    <Id>{{ queue.id }}</Id>
+    <Queue>{{ queue.arn }}</Queue>
+    {% for event in queue.events %}
+    <Event>{{ event }}</Event>
+    {% endfor %}
+    {% if queue.filters %}
+      <Filter>
+        <S3Key>
+          {% for rule in queue.filters["S3Key"]["FilterRule"] %}
+          <FilterRule>
+            <Name>{{ rule["Name"] }}</Name>
+            <Value>{{ rule["Value"] }}</Value>
+          </FilterRule>
+          {% endfor %}
+        </S3Key>
+      </Filter>
+    {% endif %}
+  </QueueConfiguration>
+  {% endfor %}
+  {% for cf in bucket.notification_configuration.cloud_function %}
+  <CloudFunctionConfiguration>
+    <Id>{{ cf.id }}</Id>
+    <CloudFunction>{{ cf.arn }}</CloudFunction>
+    {% for event in cf.events %}
+    <Event>{{ event }}</Event>
+    {% endfor %}
+    {% if cf.filters %}
+      <Filter>
+        <S3Key>
+          {% for rule in cf.filters["S3Key"]["FilterRule"] %}
+          <FilterRule>
+            <Name>{{ rule["Name"] }}</Name>
+            <Value>{{ rule["Value"] }}</Value>
+          </FilterRule>
+          {% endfor %}
+        </S3Key>
+      </Filter>
+    {% endif %}
+  </CloudFunctionConfiguration>
+  {% endfor %}
+</NotificationConfiguration>
 """
