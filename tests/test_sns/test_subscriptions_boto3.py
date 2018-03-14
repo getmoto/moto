@@ -223,11 +223,26 @@ def test_set_subscription_attributes():
         AttributeName='DeliveryPolicy',
         AttributeValue=delivery_policy
     )
+
+    filter_policy = json.dumps({
+        "store": ["example_corp"],
+        "event": ["order_cancelled"],
+        "encrypted": [False],
+        "customer_interests": ["basketball", "baseball"]
+    })
+    conn.set_subscription_attributes(
+        SubscriptionArn=subscription_arn,
+        AttributeName='FilterPolicy',
+        AttributeValue=filter_policy
+    )
+
     attrs = conn.get_subscription_attributes(
         SubscriptionArn=subscription_arn
     )
+
     attrs['Attributes']['RawMessageDelivery'].should.equal('true')
     attrs['Attributes']['DeliveryPolicy'].should.equal(delivery_policy)
+    attrs['Attributes']['FilterPolicy'].should.equal(filter_policy)
 
     # not existing subscription
     with assert_raises(ClientError):

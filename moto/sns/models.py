@@ -352,7 +352,7 @@ class SNSBackend(BaseBackend):
         return subscription.attributes
 
     def set_subscription_attributes(self, arn, name, value):
-        if name not in ['RawMessageDelivery', 'DeliveryPolicy']:
+        if name not in ['RawMessageDelivery', 'DeliveryPolicy', 'FilterPolicy']:
             raise SNSInvalidParameter('AttributeName')
 
         # TODO: should do validation
