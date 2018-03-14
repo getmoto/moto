@@ -87,7 +87,8 @@ class SQSResponse(BaseResponse):
         try:
             queue = self.sqs_backend.get_queue(queue_name)
         except QueueDoesNotExist as e:
-            return self._error('QueueDoesNotExist', e.description)
+            return self._error('AWS.SimpleQueueService.NonExistentQueue',
+                               e.description)
 
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
@@ -171,7 +172,8 @@ class SQSResponse(BaseResponse):
         try:
             queue = self.sqs_backend.get_queue(queue_name)
         except QueueDoesNotExist as e:
-            return self._error('QueueDoesNotExist', e.description)
+            return self._error('AWS.SimpleQueueService.NonExistentQueue'
+                               , e.description)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)

@@ -79,13 +79,15 @@ def test_get_nonexistent_queue():
         sqs.get_queue_by_name(QueueName='nonexisting-queue')
     ex = err.exception
     ex.operation_name.should.equal('GetQueueUrl')
-    ex.response['Error']['Code'].should.equal('QueueDoesNotExist')
+    ex.response['Error']['Code'].should.equal(
+        'AWS.SimpleQueueService.NonExistentQueue')
 
     with assert_raises(ClientError) as err:
         sqs.Queue('http://whatever-incorrect-queue-address').load()
     ex = err.exception
     ex.operation_name.should.equal('GetQueueAttributes')
-    ex.response['Error']['Code'].should.equal('QueueDoesNotExist')
+    ex.response['Error']['Code'].should.equal(
+        'AWS.SimpleQueueService.NonExistentQueue')
 
 
 @mock_sqs
@@ -890,7 +892,7 @@ def test_create_fifo_queue_with_dlq():
 def test_queue_with_dlq():
     if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
         raise SkipTest('Cant manipulate time in server mode')
-    
+
     sqs = boto3.client('sqs', region_name='us-east-1')
 
     with freeze_time("2015-01-01 12:00:00"):
