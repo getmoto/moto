@@ -2458,12 +2458,12 @@
 - [ ] update_data_retention
 - [ ] update_stream
 
-## kms - 25% implemented
+## kms - 40% implemented
 - [ ] cancel_key_deletion
-- [ ] create_alias
+- [X] create_alias
 - [ ] create_grant
 - [X] create_key
-- [ ] decrypt
+- [X] decrypt
 - [X] delete_alias
 - [ ] delete_imported_key_material
 - [X] describe_key
@@ -2471,7 +2471,7 @@
 - [X] disable_key_rotation
 - [ ] enable_key
 - [X] enable_key_rotation
-- [ ] encrypt
+- [X] encrypt
 - [ ] generate_data_key
 - [ ] generate_data_key_without_plaintext
 - [ ] generate_random
@@ -2479,9 +2479,9 @@
 - [X] get_key_rotation_status
 - [ ] get_parameters_for_import
 - [ ] import_key_material
-- [ ] list_aliases
+- [X] list_aliases
 - [ ] list_grants
-- [ ] list_key_policies
+- [X] list_key_policies
 - [X] list_keys
 - [ ] list_resource_tags
 - [ ] list_retirable_grants
