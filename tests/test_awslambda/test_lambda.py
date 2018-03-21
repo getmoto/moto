@@ -52,7 +52,7 @@ def lambda_handler(event, context):
 def get_test_zip_file3():
     pfunc = """
 def lambda_handler(event, context):
-    print("success")
+    print("get_test_zip_file3 success")
     return event
 """
     return _process_lambda(pfunc)
@@ -210,27 +210,14 @@ def test_invoke_function_from_sns():
             continue
 
         assert len(log_streams) == 1
-        result = logs_conn.get_log_events(logGroupName='/aws/lambda/testFunction', logStreamName=log_streams[0]['logStreamName'], startFromHead=True)
+        result = logs_conn.get_log_events(logGroupName='/aws/lambda/testFunction', logStreamName=log_streams[0]['logStreamName'])
         for event in result.get('events'):
-            print()
+            if event['message'] == 'get_test_zip_file3 success':
+                return
 
         time.sleep(1)
 
-    result["StatusCode"].should.equal(202)
-    msg = 'get volume details for %s\nVolume - %s  state=%s, size=%s\n%s' % (
-        vol.id, vol.id, vol.state, vol.size, json.dumps(in_data))
-
-    log_result = base64.b64decode(result["LogResult"]).decode('utf-8')
-
-    # fix for running under travis (TODO: investigate why it has an extra newline)
-    log_result = log_result.replace('\n\n', '\n')
-    log_result.should.equal(msg)
-
-    payload = result['Payload'].read().decode('utf-8')
-
-    # fix for running under travis (TODO: investigate why it has an extra newline)
-    payload = payload.replace('\n\n', '\n')
-    payload.should.equal(msg)
+    assert False, "Test Failed"
 
 
 @mock_lambda
