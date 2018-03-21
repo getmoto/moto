@@ -241,6 +241,10 @@ class SNSResponse(BaseResponse):
         phone_number = self._get_param('PhoneNumber')
         subject = self._get_param('Subject')
 
+        message_attributes = self._get_map_prefix('MessageAttributes.entry',
+                                                  key_end='Name',
+                                                  value_end='Value')
+
         if phone_number is not None:
             # Check phone is correct syntax (e164)
             if not is_e164(phone_number):
@@ -265,7 +269,9 @@ class SNSResponse(BaseResponse):
         message = self._get_param('Message')
 
         try:
-            message_id = self.backend.publish(arn, message, subject=subject)
+            message_id = self.backend.publish(
+                arn, message, subject=subject,
+                message_attributes=message_attributes)
         except ValueError as err:
             error_response = self._error('InvalidParameter', str(err))
             return error_response, dict(status=400)
