@@ -443,7 +443,7 @@ def test_bootstrap_actions():
         BootstrapAction(
             name='bs1',
             path='path/to/script',
-            bootstrap_action_args=['arg1', 'arg2']),
+            bootstrap_action_args=['arg1', 'arg2&arg3']),
         BootstrapAction(
             name='bs2',
             path='path/to/anotherscript',
@@ -551,7 +551,7 @@ def test_steps():
             input='s3n://elasticmapreduce/samples/wordcount/input',
             output='s3n://output_bucket/output/wordcount_output'),
         StreamingStep(
-            name='My wordcount example2',
+            name='My wordcount example & co.',
             mapper='s3n://elasticmapreduce/samples/wordcount/wordSplitter2.py',
             reducer='aggregate',
             input='s3n://elasticmapreduce/samples/wordcount/input2',
