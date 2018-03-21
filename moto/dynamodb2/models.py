@@ -536,14 +536,6 @@ class Table(BaseModel):
         else:
             results.sort(key=lambda item: item.range_key)
 
-        if projection_expression:
-            expressions = [x.strip() for x in projection_expression.split(',')]
-            results = copy.deepcopy(results)
-            for result in results:
-                for attr in list(result.attrs):
-                    if attr not in expressions:
-                        result.attrs.pop(attr)
-
         if scan_index_forward is False:
             results.reverse()
 
@@ -551,6 +543,14 @@ class Table(BaseModel):
 
         if filter_expression is not None:
             results = [item for item in results if filter_expression.expr(item)]
+
+        if projection_expression:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            results = copy.deepcopy(results)
+            for result in results:
+                for attr in list(result.attrs):
+                    if attr not in expressions:
+                        result.attrs.pop(attr)
 
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key)
