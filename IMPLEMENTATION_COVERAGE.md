@@ -258,7 +258,7 @@
 - [ ] start_query_execution
 - [ ] stop_query_execution
 
-## autoscaling - 42% implemented
+## autoscaling - 44% implemented
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
 - [X] attach_load_balancers
@@ -308,7 +308,7 @@
 - [X] set_desired_capacity
 - [X] set_instance_health
 - [ ] set_instance_protection
-- [ ] suspend_processes
+- [X] suspend_processes
 - [ ] terminate_instance_in_auto_scaling_group
 - [X] update_auto_scaling_group
 
@@ -1477,10 +1477,10 @@
 - [ ] update_security_group_rule_descriptions_egress
 - [ ] update_security_group_rule_descriptions_ingress
 
-## ecr - 27% implemented
+## ecr - 31% implemented
 - [ ] batch_check_layer_availability
 - [ ] batch_delete_image
-- [ ] batch_get_image
+- [X] batch_get_image
 - [ ] complete_layer_upload
 - [X] create_repository
 - [ ] delete_lifecycle_policy
@@ -2092,7 +2092,7 @@
 - [ ] describe_event_types
 - [ ] describe_events
 
-## iam - 47% implemented
+## iam - 48% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -2199,7 +2199,7 @@
 - [ ] set_default_policy_version
 - [ ] simulate_custom_policy
 - [ ] simulate_principal_policy
-- [ ] update_access_key
+- [X] update_access_key
 - [ ] update_account_password_policy
 - [ ] update_assume_role_policy
 - [ ] update_group
@@ -2259,9 +2259,9 @@
 - [ ] unsubscribe_from_event
 - [ ] update_assessment_target
 
-## iot - 21% implemented
+## iot - 29% implemented
 - [ ] accept_certificate_transfer
-- [ ] add_thing_to_thing_group
+- [X] add_thing_to_thing_group
 - [ ] associate_targets_with_job
 - [ ] attach_policy
 - [X] attach_principal_policy
@@ -2279,7 +2279,7 @@
 - [ ] create_role_alias
 - [ ] create_stream
 - [X] create_thing
-- [ ] create_thing_group
+- [X] create_thing_group
 - [X] create_thing_type
 - [ ] create_topic_rule
 - [ ] delete_authorizer
@@ -2292,7 +2292,7 @@
 - [ ] delete_role_alias
 - [ ] delete_stream
 - [X] delete_thing
-- [ ] delete_thing_group
+- [X] delete_thing_group
 - [X] delete_thing_type
 - [ ] delete_topic_rule
 - [ ] delete_v2_logging_level
@@ -2309,7 +2309,7 @@
 - [ ] describe_role_alias
 - [ ] describe_stream
 - [X] describe_thing
-- [ ] describe_thing_group
+- [X] describe_thing_group
 - [ ] describe_thing_registration_task
 - [X] describe_thing_type
 - [ ] detach_policy
@@ -2346,21 +2346,21 @@
 - [ ] list_role_aliases
 - [ ] list_streams
 - [ ] list_targets_for_policy
-- [ ] list_thing_groups
-- [ ] list_thing_groups_for_thing
+- [X] list_thing_groups
+- [X] list_thing_groups_for_thing
 - [X] list_thing_principals
 - [ ] list_thing_registration_task_reports
 - [ ] list_thing_registration_tasks
 - [X] list_thing_types
 - [X] list_things
-- [ ] list_things_in_thing_group
+- [X] list_things_in_thing_group
 - [ ] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] register_ca_certificate
 - [ ] register_certificate
 - [ ] register_thing
 - [ ] reject_certificate_transfer
-- [ ] remove_thing_from_thing_group
+- [X] remove_thing_from_thing_group
 - [ ] replace_topic_rule
 - [ ] search_index
 - [ ] set_default_authorizer
@@ -2381,8 +2381,8 @@
 - [ ] update_role_alias
 - [ ] update_stream
 - [X] update_thing
-- [ ] update_thing_group
-- [ ] update_thing_groups_for_thing
+- [X] update_thing_group
+- [X] update_thing_groups_for_thing
 
 ## iot-data - 0% implemented
 - [ ] delete_thing_shadow
@@ -3177,7 +3177,7 @@
 - [ ] start_db_instance
 - [ ] stop_db_instance
 
-## redshift - 31% implemented
+## redshift - 41% implemented
 - [ ] authorize_cluster_security_group_ingress
 - [ ] authorize_snapshot_access
 - [ ] copy_cluster_snapshot
@@ -3189,7 +3189,7 @@
 - [ ] create_event_subscription
 - [ ] create_hsm_client_certificate
 - [ ] create_hsm_configuration
-- [ ] create_snapshot_copy_grant
+- [X] create_snapshot_copy_grant
 - [X] create_tags
 - [X] delete_cluster
 - [X] delete_cluster_parameter_group
@@ -3199,7 +3199,7 @@
 - [ ] delete_event_subscription
 - [ ] delete_hsm_client_certificate
 - [ ] delete_hsm_configuration
-- [ ] delete_snapshot_copy_grant
+- [X] delete_snapshot_copy_grant
 - [X] delete_tags
 - [X] describe_cluster_parameter_groups
 - [ ] describe_cluster_parameters
@@ -3219,20 +3219,20 @@
 - [ ] describe_reserved_node_offerings
 - [ ] describe_reserved_nodes
 - [ ] describe_resize
-- [ ] describe_snapshot_copy_grants
+- [X] describe_snapshot_copy_grants
 - [ ] describe_table_restore_status
 - [X] describe_tags
 - [ ] disable_logging
-- [ ] disable_snapshot_copy
+- [X] disable_snapshot_copy
 - [ ] enable_logging
-- [ ] enable_snapshot_copy
+- [X] enable_snapshot_copy
 - [ ] get_cluster_credentials
 - [X] modify_cluster
 - [ ] modify_cluster_iam_roles
 - [ ] modify_cluster_parameter_group
 - [ ] modify_cluster_subnet_group
 - [ ] modify_event_subscription
-- [ ] modify_snapshot_copy_retention_period
+- [X] modify_snapshot_copy_retention_period
 - [ ] purchase_reserved_node_offering
 - [ ] reboot_cluster
 - [ ] reset_cluster_parameter_group
@@ -3382,7 +3382,7 @@
 - [ ] update_tags_for_domain
 - [ ] view_billing
 
-## s3 - 12% implemented
+## s3 - 14% implemented
 - [ ] abort_multipart_upload
 - [ ] complete_multipart_upload
 - [ ] copy_object
@@ -3444,7 +3444,7 @@
 - [ ] put_bucket_inventory_configuration
 - [ ] put_bucket_lifecycle
 - [ ] put_bucket_lifecycle_configuration
-- [ ] put_bucket_logging
+- [X] put_bucket_logging
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification
 - [ ] put_bucket_notification_configuration
@@ -3762,7 +3762,7 @@
 - [X] tag_queue
 - [X] untag_queue
 
-## ssm - 9% implemented
+## ssm - 10% implemented
 - [X] add_tags_to_resource
 - [ ] cancel_command
 - [ ] create_activation
@@ -3848,7 +3848,7 @@
 - [ ] register_task_with_maintenance_window
 - [X] remove_tags_from_resource
 - [ ] send_automation_signal
-- [ ] send_command
+- [X] send_command
 - [ ] start_automation_execution
 - [ ] stop_automation_execution
 - [ ] update_association

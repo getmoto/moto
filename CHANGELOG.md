@@ -1,6 +1,27 @@
 Moto Changelog
 ===================
 
+1.3.0
+------
+
+Dozens of major endpoint additions in this release. Highlights include:
+
+    * Fixed AMI tests and the Travis build setup
+    * SNS improvements
+    * Dynamodb improvements
+    * EBS improvements
+    * Redshift improvements
+    * RDS snapshot improvements
+    * S3 improvements
+    * Cloudwatch improvements
+    * SSM improvements
+    * IAM improvements
+    * ELBV1 and ELBV2 improvements
+    * Lambda improvements
+    * EC2 spot pricing improvements
+    * ApiGateway improvements
+    * VPC improvements
+
 1.2.0
 ------
 
