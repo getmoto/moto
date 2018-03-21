@@ -138,3 +138,33 @@ class CrossLocationLoggingProhibitted(S3ClientError):
             "CrossLocationLoggingProhibitted",
             "Cross S3 location logging not allowed."
         )
+
+
+class InvalidNotificationARN(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(InvalidNotificationARN, self).__init__(
+            "InvalidArgument",
+            "The ARN is not well formed",
+            *args, **kwargs)
+
+
+class InvalidNotificationDestination(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(InvalidNotificationDestination, self).__init__(
+            "InvalidArgument",
+            "The notification destination service region is not valid for the bucket location constraint",
+            *args, **kwargs)
+
+
+class InvalidNotificationEvent(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(InvalidNotificationEvent, self).__init__(
+            "InvalidArgument",
+            "The event is not supported for notifications",
+            *args, **kwargs)
