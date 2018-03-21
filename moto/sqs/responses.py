@@ -30,7 +30,7 @@ class SQSResponse(BaseResponse):
     @property
     def attribute(self):
         if not hasattr(self, '_attribute'):
-            self._attribute = self._get_map_prefix('Attribute', key_end='Name', value_end='Value')
+            self._attribute = self._get_map_prefix('Attribute', key_end='.Name', value_end='.Value')
         return self._attribute
 
     def _get_queue_name(self):
