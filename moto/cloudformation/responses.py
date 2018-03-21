@@ -221,13 +221,12 @@ class CloudFormationResponse(BaseResponse):
         stack_name = self._get_param('StackName')
         role_arn = self._get_param('RoleARN')
         template_url = self._get_param('TemplateURL')
+        stack_body = self._get_param('TemplateBody')
         if self._get_param('UsePreviousTemplate') == "true":
             stack_body = self.cloudformation_backend.get_stack(
                 stack_name).template
-        elif template_url:
+        elif not stack_body and template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
-        else:
-            stack_body = self._get_param('TemplateBody')
 
         parameters = dict([
             (parameter['parameter_key'], parameter['parameter_value'])

@@ -207,3 +207,136 @@ def test_publish_subject():
         err.response['Error']['Code'].should.equal('InvalidParameter')
     else:
         raise RuntimeError('Should have raised an InvalidParameter exception')
+
+
+def _setup_filter_policy_test(filter_policy):
+    sns = boto3.resource('sns', region_name='us-east-1')
+    topic = sns.create_topic(Name='some-topic')
+
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName='test-queue')
+
+    subscription = topic.subscribe(
+        Protocol='sqs', Endpoint=queue.attributes['QueueArn'])
+
+    subscription.set_attributes(
+        AttributeName='FilterPolicy', AttributeValue=json.dumps(filter_policy))
+
+    return topic, subscription, queue
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string():
+    topic, subscription, queue = _setup_filter_policy_test(
+        {'store': ['example_corp']})
+
+    topic.publish(
+        Message='match',
+        MessageAttributes={'store': {'DataType': 'String',
+                                     'StringValue': 'example_corp'}})
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)['Message'] for m in messages]
+    message_bodies.should.equal(['match'])
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_multiple_message_attributes():
+    topic, subscription, queue = _setup_filter_policy_test(
+        {'store': ['example_corp']})
+
+    topic.publish(
+        Message='match',
+        MessageAttributes={'store': {'DataType': 'String',
+                                     'StringValue': 'example_corp'},
+                           'event': {'DataType': 'String',
+                                     'StringValue': 'order_cancelled'}})
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)['Message'] for m in messages]
+    message_bodies.should.equal(['match'])
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_OR_matching():
+    topic, subscription, queue = _setup_filter_policy_test(
+        {'store': ['example_corp', 'different_corp']})
+
+    topic.publish(
+        Message='match example_corp',
+        MessageAttributes={'store': {'DataType': 'String',
+                                     'StringValue': 'example_corp'}})
+    topic.publish(
+        Message='match different_corp',
+        MessageAttributes={'store': {'DataType': 'String',
+                                     'StringValue': 'different_corp'}})
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)['Message'] for m in messages]
+    message_bodies.should.equal(
+        ['match example_corp', 'match different_corp'])
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_AND_matching_positive():
+    topic, subscription, queue = _setup_filter_policy_test(
+        {'store': ['example_corp'],
+         'event': ['order_cancelled']})
+
+    topic.publish(
+        Message='match example_corp order_cancelled',
+        MessageAttributes={'store': {'DataType': 'String',
+                                     'StringValue': 'example_corp'},
+                           'event': {'DataType': 'String',
+                                     'StringValue': 'order_cancelled'}})
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)['Message'] for m in messages]
+    message_bodies.should.equal(
+        ['match example_corp order_cancelled'])
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_AND_matching_no_match():
+    topic, subscription, queue = _setup_filter_policy_test(
+        {'store': ['example_corp'],
+         'event': ['order_cancelled']})
+
+    topic.publish(
+        Message='match example_corp order_accepted',
+        MessageAttributes={'store': {'DataType': 'String',
+                                     'StringValue': 'example_corp'},
+                           'event': {'DataType': 'String',
+                                     'StringValue': 'order_accepted'}})
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)['Message'] for m in messages]
+    message_bodies.should.equal([])
+
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_no_match():
+    topic, subscription, queue = _setup_filter_policy_test(
+        {'store': ['example_corp']})
+
+    topic.publish(
+        Message='no match',
+        MessageAttributes={'store': {'DataType': 'String',
+                                     'StringValue': 'different_corp'}})
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)['Message'] for m in messages]
+    message_bodies.should.equal([])
+
+@mock_sqs
+@mock_sns
+def test_filtering_exact_string_no_attributes_no_match():
+    topic, subscription, queue = _setup_filter_policy_test(
+        {'store': ['example_corp']})
+
+    topic.publish(Message='no match')
+
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_bodies = [json.loads(m.body)['Message'] for m in messages]
+    message_bodies.should.equal([])

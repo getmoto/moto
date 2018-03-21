@@ -4,7 +4,7 @@ import re
 from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
+from moto.core.utils import amz_crc32, amzn_request_id
 from .utils import parse_message_attributes
 from .models import sqs_backends
 from .exceptions import (
@@ -30,7 +30,7 @@ class SQSResponse(BaseResponse):
     @property
     def attribute(self):
         if not hasattr(self, '_attribute'):
-            self._attribute = self._get_map_prefix('Attribute', key_end='Name', value_end='Value')
+            self._attribute = self._get_map_prefix('Attribute', key_end='.Name', value_end='.Value')
         return self._attribute
 
     def _get_queue_name(self):
@@ -87,7 +87,8 @@ class SQSResponse(BaseResponse):
         try:
             queue = self.sqs_backend.get_queue(queue_name)
         except QueueDoesNotExist as e:
-            return self._error('QueueDoesNotExist', e.description)
+            return self._error('AWS.SimpleQueueService.NonExistentQueue',
+                               e.description)
 
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
@@ -171,7 +172,8 @@ class SQSResponse(BaseResponse):
         try:
             queue = self.sqs_backend.get_queue(queue_name)
         except QueueDoesNotExist as e:
-            return self._error('QueueDoesNotExist', e.description)
+            return self._error('AWS.SimpleQueueService.NonExistentQueue',
+                               e.description)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
@@ -179,9 +181,8 @@ class SQSResponse(BaseResponse):
     def set_queue_attributes(self):
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
-        for key, value in self.attribute.items():
-            key = camelcase_to_underscores(key)
-            self.sqs_backend.set_queue_attribute(queue_name, key, value)
+        self.sqs_backend.set_queue_attributes(queue_name, self.attribute)
+
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
@@ -323,7 +324,7 @@ class SQSResponse(BaseResponse):
         try:
             wait_time = int(self.querystring.get("WaitTimeSeconds")[0])
         except TypeError:
-            wait_time = queue.wait_time_seconds
+            wait_time = queue.receive_message_wait_time_seconds
 
         try:
             visibility_timeout = self._get_validated_visibility_timeout()

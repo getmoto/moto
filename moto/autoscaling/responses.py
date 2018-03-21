@@ -166,7 +166,7 @@ class AutoScalingResponse(BaseResponse):
             start = all_names.index(token) + 1
         else:
             start = 0
-        max_records = self._get_param("MaxRecords", 50)
+        max_records = self._get_int_param("MaxRecords", 50)
         if max_records > 100:
             raise ValueError
         groups = all_groups[start:start + max_records]
@@ -281,6 +281,13 @@ class AutoScalingResponse(BaseResponse):
         self.autoscaling_backend.detach_load_balancers(
             group_name, load_balancer_names)
         template = self.response_template(DETACH_LOAD_BALANCERS_TEMPLATE)
+        return template.render()
+
+    def suspend_processes(self):
+        autoscaling_group_name = self._get_param('AutoScalingGroupName')
+        scaling_processes = self._get_multi_param('ScalingProcesses.member')
+        self.autoscaling_backend.suspend_processes(autoscaling_group_name, scaling_processes)
+        template = self.response_template(SUSPEND_PROCESSES_TEMPLATE)
         return template.render()
 
 
@@ -463,7 +470,14 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           </member>
           {% endfor %}
         </Tags>
-        <SuspendedProcesses/>
+        <SuspendedProcesses>
+          {% for suspended_process in group.suspended_processes %}
+          <member>
+            <ProcessName>{{suspended_process}}</ProcessName>
+            <SuspensionReason></SuspensionReason>
+          </member>
+          {% endfor %}
+        </SuspendedProcesses>
         <AutoScalingGroupName>{{ group.name }}</AutoScalingGroupName>
         <HealthCheckType>{{ group.health_check_type }}</HealthCheckType>
         <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
@@ -643,6 +657,12 @@ DETACH_LOAD_BALANCERS_TEMPLATE = """<DetachLoadBalancersResponse xmlns="http://a
 <RequestId>{{ requestid }}</RequestId>
 </ResponseMetadata>
 </DetachLoadBalancersResponse>"""
+
+SUSPEND_PROCESSES_TEMPLATE = """<SuspendProcessesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+   <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
+</ResponseMetadata>
+</SuspendProcessesResponse>"""
 
 SET_INSTANCE_HEALTH_TEMPLATE = """<SetInstanceHealthResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <SetInstanceHealthResponse></SetInstanceHealthResponse>

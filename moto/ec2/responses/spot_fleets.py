@@ -40,7 +40,7 @@ class SpotFleets(BaseResponse):
 
     def request_spot_fleet(self):
         spot_config = self._get_dict_param("SpotFleetRequestConfig.")
-        spot_price = spot_config['spot_price']
+        spot_price = spot_config.get('spot_price')
         target_capacity = spot_config['target_capacity']
         iam_fleet_role = spot_config['iam_fleet_role']
         allocation_strategy = spot_config['allocation_strategy']
@@ -78,7 +78,9 @@ DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http
             <spotFleetRequestId>{{ request.id }}</spotFleetRequestId>
             <spotFleetRequestState>{{ request.state }}</spotFleetRequestState>
             <spotFleetRequestConfig>
+                {% if request.spot_price %}
                 <spotPrice>{{ request.spot_price }}</spotPrice>
+                {% endif %}
                 <targetCapacity>{{ request.target_capacity }}</targetCapacity>
                 <iamFleetRole>{{ request.iam_fleet_role }}</iamFleetRole>
                 <allocationStrategy>{{ request.allocation_strategy }}</allocationStrategy>
@@ -93,7 +95,9 @@ DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http
                         <iamInstanceProfile><arn>{{ launch_spec.iam_instance_profile }}</arn></iamInstanceProfile>
                         <keyName>{{ launch_spec.key_name }}</keyName>
                         <monitoring><enabled>{{ launch_spec.monitoring }}</enabled></monitoring>
+                        {% if launch_spec.spot_price %}
                         <spotPrice>{{ launch_spec.spot_price }}</spotPrice>
+                        {% endif %}
                         <userData>{{ launch_spec.user_data }}</userData>
                         <weightedCapacity>{{ launch_spec.weighted_capacity }}</weightedCapacity>
                         <groupSet>

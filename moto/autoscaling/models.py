@@ -7,7 +7,7 @@ from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
 from moto.elb.exceptions import LoadBalancerNotFoundError
 from .exceptions import (
-    ResourceContentionError,
+    AutoscalingClientError, ResourceContentionError,
 )
 
 # http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AS_Concepts.html#Cooldown
@@ -155,14 +155,21 @@ class FakeAutoScalingGroup(BaseModel):
                  autoscaling_backend, tags):
         self.autoscaling_backend = autoscaling_backend
         self.name = name
+
+        if not availability_zones and not vpc_zone_identifier:
+            raise AutoscalingClientError(
+                "ValidationError",
+                "At least one Availability Zone or VPC Subnet is required."
+            )
         self.availability_zones = availability_zones
+        self.vpc_zone_identifier = vpc_zone_identifier
+
         self.max_size = max_size
         self.min_size = min_size
 
         self.launch_config = self.autoscaling_backend.launch_configurations[
             launch_config_name]
         self.launch_config_name = launch_config_name
-        self.vpc_zone_identifier = vpc_zone_identifier
 
         self.default_cooldown = default_cooldown if default_cooldown else DEFAULT_COOLDOWN
         self.health_check_period = health_check_period
@@ -172,6 +179,7 @@ class FakeAutoScalingGroup(BaseModel):
         self.placement_group = placement_group
         self.termination_policies = termination_policies
 
+        self.suspended_processes = []
         self.instance_states = []
         self.tags = tags if tags else []
         self.set_desired_capacity(desired_capacity)
@@ -613,6 +621,10 @@ class AutoScalingBackend(BaseBackend):
         for target_group in target_group_arns:
             asg_targets = [{'id': x.instance.id} for x in group.instance_states]
             self.elbv2_backend.deregister_targets(target_group, (asg_targets))
+
+    def suspend_processes(self, group_name, scaling_processes):
+        group = self.autoscaling_groups[group_name]
+        group.suspended_processes = scaling_processes or []
 
 
 autoscaling_backends = {}

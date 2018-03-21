@@ -119,15 +119,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         def tag_filter(tag_list):
             result = []
+            if tag_filters:
+                for tag in tag_list:
+                    temp_result = []
+                    for f in filters:
+                        f_result = f(tag['Key'], tag['Value'])
+                        temp_result.append(f_result)
+                    result.append(all(temp_result))
 
-            for tag in tag_list:
-                temp_result = []
-                for f in filters:
-                    f_result = f(tag['Key'], tag['Value'])
-                    temp_result.append(f_result)
-                result.append(all(temp_result))
-
-            return any(result)
+                return any(result)
+            else:
+                return True
 
         # Do S3, resource type s3
         if not resource_type_filters or 's3' in resource_type_filters:
@@ -209,6 +211,23 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # TODO add these to the keys and values functions / combine functions
         # ELB
+
+        def get_elbv2_tags(arn):
+            result = []
+            for key, value in self.elbv2_backend.load_balancers[elb.arn].tags.items():
+                result.append({'Key': key, 'Value': value})
+            return result
+
+        if not resource_type_filters or 'elasticloadbalancer' in resource_type_filters or 'elasticloadbalancer:loadbalancer' in resource_type_filters:
+            for elb in self.elbv2_backend.load_balancers.values():
+                tags = get_elbv2_tags(elb.arn)
+                # if 'elasticloadbalancer:loadbalancer' in resource_type_filters:
+                #     from IPython import embed
+                #     embed()
+                if not tag_filter(tags):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {'ResourceARN': '{0}'.format(elb.arn), 'Tags': tags}
 
         # EMR Cluster
 

@@ -32,10 +32,13 @@ class ElasticBlockStore(BaseResponse):
         size = self._get_param('Size')
         zone = self._get_param('AvailabilityZone')
         snapshot_id = self._get_param('SnapshotId')
+        tags = self._parse_tag_specification("TagSpecification")
+        volume_tags = tags.get('volume', {})
         encrypted = self._get_param('Encrypted', if_none=False)
         if self.is_not_dryrun('CreateVolume'):
             volume = self.ec2_backend.create_volume(
                 size, zone, snapshot_id, encrypted)
+            volume.add_tags(volume_tags)
             template = self.response_template(CREATE_VOLUME_RESPONSE)
             return template.render(volume=volume)
 
@@ -139,6 +142,16 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
   <createTime>{{ volume.create_time}}</createTime>
+  <tagSet>
+    {% for tag in volume.get_tags() %}
+        <item>
+        <resourceId>{{ tag.resource_id }}</resourceId>
+        <resourceType>{{ tag.resource_type }}</resourceType>
+        <key>{{ tag.key }}</key>
+        <value>{{ tag.value }}</value>
+        </item>
+    {% endfor %}
+  </tagSet>
   <volumeType>standard</volumeType>
 </CreateVolumeResponse>"""
 
