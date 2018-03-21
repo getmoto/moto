@@ -197,6 +197,8 @@ def test_get_databases_paginated():
     resp2 = conn.describe_db_instances(Marker=resp["Marker"])
     resp2["DBInstances"].should.have.length_of(1)
 
+    resp3 = conn.describe_db_instances(MaxRecords=100)
+    resp3["DBInstances"].should.have.length_of(51)
 
 @mock_rds2
 def test_describe_non_existant_database():

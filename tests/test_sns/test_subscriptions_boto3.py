@@ -25,6 +25,23 @@ def test_subscribe_sms():
     )
     resp.should.contain('SubscriptionArn')
 
+@mock_sns
+def test_double_subscription():
+    client = boto3.client('sns', region_name='us-east-1')
+    client.create_topic(Name="some-topic")
+    resp = client.create_topic(Name="some-topic")
+    arn = resp['TopicArn']
+
+    do_subscribe_sqs = lambda sqs_arn: client.subscribe(
+        TopicArn=arn,
+        Protocol='sqs',
+        Endpoint=sqs_arn
+    )
+    resp1 = do_subscribe_sqs('arn:aws:sqs:elasticmq:000000000000:foo')
+    resp2 = do_subscribe_sqs('arn:aws:sqs:elasticmq:000000000000:foo')
+
+    resp1['SubscriptionArn'].should.equal(resp2['SubscriptionArn'])
+
 
 @mock_sns
 def test_subscribe_bad_sms():
@@ -206,11 +223,26 @@ def test_set_subscription_attributes():
         AttributeName='DeliveryPolicy',
         AttributeValue=delivery_policy
     )
+
+    filter_policy = json.dumps({
+        "store": ["example_corp"],
+        "event": ["order_cancelled"],
+        "encrypted": [False],
+        "customer_interests": ["basketball", "baseball"]
+    })
+    conn.set_subscription_attributes(
+        SubscriptionArn=subscription_arn,
+        AttributeName='FilterPolicy',
+        AttributeValue=filter_policy
+    )
+
     attrs = conn.get_subscription_attributes(
         SubscriptionArn=subscription_arn
     )
+
     attrs['Attributes']['RawMessageDelivery'].should.equal('true')
     attrs['Attributes']['DeliveryPolicy'].should.equal(delivery_policy)
+    attrs['Attributes']['FilterPolicy'].should.equal(filter_policy)
 
     # not existing subscription
     with assert_raises(ClientError):

@@ -11,7 +11,7 @@ class AmisResponse(BaseResponse):
         instance_id = self._get_param('InstanceId')
         if self.is_not_dryrun('CreateImage'):
             image = self.ec2_backend.create_image(
-                instance_id, name, description)
+                instance_id, name, description, context=self)
             template = self.response_template(CREATE_IMAGE_RESPONSE)
             return template.render(image=image)
 
@@ -39,7 +39,8 @@ class AmisResponse(BaseResponse):
         owners = self._get_multi_param('Owner')
         exec_users = self._get_multi_param('ExecutableBy')
         images = self.ec2_backend.describe_images(
-            ami_ids=ami_ids, filters=filters, exec_users=exec_users, owners=owners)
+            ami_ids=ami_ids, filters=filters, exec_users=exec_users,
+            owners=owners, context=self)
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)
 
@@ -112,12 +113,12 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
           <rootDeviceName>{{ image.root_device_name }}</rootDeviceName>
           <blockDeviceMapping>
             <item>
-              <deviceName>/dev/sda1</deviceName>
+              <deviceName>{{ image.root_device_name }}</deviceName>
               <ebs>
                 <snapshotId>{{ image.ebs_snapshot.id }}</snapshotId>
                 <volumeSize>15</volumeSize>
                 <deleteOnTermination>false</deleteOnTermination>
-                <volumeType>standard</volumeType>
+                <volumeType>{{ image.root_device_type }}</volumeType>
               </ebs>
             </item>
           </blockDeviceMapping>

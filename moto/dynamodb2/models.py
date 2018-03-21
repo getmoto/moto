@@ -135,7 +135,9 @@ class Item(BaseModel):
         assert len(parts) % 2 == 0, "Mismatched operators and values in update expression: '{}'".format(update_expression)
         for action, valstr in zip(parts[:-1:2], parts[1::2]):
             action = action.upper()
-            values = valstr.split(',')
+
+            # "Should" retain arguments in side (...)
+            values = re.split(r',(?![^(]*\))', valstr)
             for value in values:
                 # A Real value
                 value = value.lstrip(":").rstrip(",").strip()
@@ -145,9 +147,23 @@ class Item(BaseModel):
                 if action == "REMOVE":
                     self.attrs.pop(value, None)
                 elif action == 'SET':
-                    key, value = value.split("=")
+                    key, value = value.split("=", 1)
                     key = key.strip()
                     value = value.strip()
+
+                    # If not exists, changes value to a default if needed, else its the same as it was
+                    if value.startswith('if_not_exists'):
+                        # Function signature
+                        match = re.match(r'.*if_not_exists\((?P<path>.+),\s*(?P<default>.+)\).*', value)
+                        if not match:
+                            raise TypeError
+
+                        path, value = match.groups()
+
+                        # If it already exists, get its value so we dont overwrite it
+                        if path in self.attrs:
+                            value = self.attrs[path].cast_value
+
                     if value in expression_attribute_values:
                         value = DynamoType(expression_attribute_values[value])
                     else:
@@ -520,14 +536,6 @@ class Table(BaseModel):
         else:
             results.sort(key=lambda item: item.range_key)
 
-        if projection_expression:
-            expressions = [x.strip() for x in projection_expression.split(',')]
-            results = copy.deepcopy(results)
-            for result in results:
-                for attr in list(result.attrs):
-                    if attr not in expressions:
-                        result.attrs.pop(attr)
-
         if scan_index_forward is False:
             results.reverse()
 
@@ -535,6 +543,14 @@ class Table(BaseModel):
 
         if filter_expression is not None:
             results = [item for item in results if filter_expression.expr(item)]
+
+        if projection_expression:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            results = copy.deepcopy(results)
+            for result in results:
+                for attr in list(result.attrs):
+                    if attr not in expressions:
+                        result.attrs.pop(attr)
 
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key)

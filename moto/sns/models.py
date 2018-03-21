@@ -42,11 +42,12 @@ class Topic(BaseModel):
         self.subscriptions_confimed = 0
         self.subscriptions_deleted = 0
 
-    def publish(self, message, subject=None):
+    def publish(self, message, subject=None, message_attributes=None):
         message_id = six.text_type(uuid.uuid4())
         subscriptions, _ = self.sns_backend.list_subscriptions(self.arn)
         for subscription in subscriptions:
-            subscription.publish(message, message_id, subject=subject)
+            subscription.publish(message, message_id, subject=subject,
+                                 message_attributes=message_attributes)
         return message_id
 
     def get_cfn_attribute(self, attribute_name):
@@ -81,9 +82,14 @@ class Subscription(BaseModel):
         self.protocol = protocol
         self.arn = make_arn_for_subscription(self.topic.arn)
         self.attributes = {}
+        self._filter_policy = None  # filter policy as a dict, not json.
         self.confirmed = False
 
-    def publish(self, message, message_id, subject=None):
+    def publish(self, message, message_id, subject=None,
+                message_attributes=None):
+        if not self._matches_filter_policy(message_attributes):
+            return
+
         if self.protocol == 'sqs':
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
@@ -109,6 +115,28 @@ class Subscription(BaseModel):
                 assert False
 
             lambda_backends[region].send_message(function_name, message, subject=subject, qualifier=qualifier)
+
+    def _matches_filter_policy(self, message_attributes):
+        # TODO: support Anything-but matching, prefix matching and
+        #       numeric value matching.
+        if not self._filter_policy:
+            return True
+
+        if message_attributes is None:
+            message_attributes = {}
+
+        def _field_match(field, rules, message_attributes):
+            if field not in message_attributes:
+                return False
+            for rule in rules:
+                if isinstance(rule, six.string_types):
+                    # only string value matching is supported
+                    if message_attributes[field] == rule:
+                        return True
+            return False
+
+        return all(_field_match(field, rules, message_attributes)
+                   for field, rules in six.iteritems(self._filter_policy))
 
     def get_post_data(self, message, message_id, subject):
         return {
@@ -259,10 +287,20 @@ class SNSBackend(BaseBackend):
         setattr(topic, attribute_name, attribute_value)
 
     def subscribe(self, topic_arn, endpoint, protocol):
+        # AWS doesn't create duplicates
+        old_subscription = self._find_subscription(topic_arn, endpoint, protocol)
+        if old_subscription:
+            return old_subscription
         topic = self.get_topic(topic_arn)
         subscription = Subscription(topic, endpoint, protocol)
         self.subscriptions[subscription.arn] = subscription
         return subscription
+
+    def _find_subscription(self, topic_arn, endpoint, protocol):
+        for subscription in self.subscriptions.values():
+            if subscription.topic.arn == topic_arn and subscription.endpoint == endpoint and subscription.protocol == protocol:
+                return subscription
+        return None
 
     def unsubscribe(self, subscription_arn):
         self.subscriptions.pop(subscription_arn)
@@ -276,13 +314,14 @@ class SNSBackend(BaseBackend):
         else:
             return self._get_values_nexttoken(self.subscriptions, next_token)
 
-    def publish(self, arn, message, subject=None):
+    def publish(self, arn, message, subject=None, message_attributes=None):
         if subject is not None and len(subject) >= 100:
             raise ValueError('Subject must be less than 100 characters')
 
         try:
             topic = self.get_topic(arn)
-            message_id = topic.publish(message, subject=subject)
+            message_id = topic.publish(message, subject=subject,
+                                       message_attributes=message_attributes)
         except SNSNotFoundError:
             endpoint = self.get_endpoint(arn)
             message_id = endpoint.publish(message)
@@ -354,7 +393,7 @@ class SNSBackend(BaseBackend):
         return subscription.attributes
 
     def set_subscription_attributes(self, arn, name, value):
-        if name not in ['RawMessageDelivery', 'DeliveryPolicy']:
+        if name not in ['RawMessageDelivery', 'DeliveryPolicy', 'FilterPolicy']:
             raise SNSInvalidParameter('AttributeName')
 
         # TODO: should do validation
@@ -364,6 +403,9 @@ class SNSBackend(BaseBackend):
         subscription = _subscription[0]
 
         subscription.attributes[name] = value
+
+        if name == 'FilterPolicy':
+            subscription._filter_policy = json.loads(value)
 
 
 sns_backends = {}

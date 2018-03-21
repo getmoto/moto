@@ -5,10 +5,11 @@ from nose.tools import assert_raises
 
 from moto.ec2 import ec2_backends
 import boto
+import boto3
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
+from moto import mock_ec2_deprecated, mock_ec2
 
 
 @mock_ec2_deprecated
@@ -183,6 +184,11 @@ def test_volume_filters():
     volumes_by_encrypted = conn.get_all_volumes(filters={'encrypted': 'true'})
     set([vol.id for vol in volumes_by_encrypted if vol.id in volume_ids]).should.equal(
         {volume1.id, volume3.id, volume4.id}
+    )
+
+    volumes_by_availability_zone = conn.get_all_volumes(filters={'availability-zone': 'us-east-1b'})
+    set([vol.id for vol in volumes_by_availability_zone if vol.id in volume_ids]).should.equal(
+        {volume2.id}
     )
 
 
@@ -579,3 +585,25 @@ def test_volume_tag_escaping():
 
     snaps = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
     dict(snaps[0].tags).should.equal({'key': '</closed>'})
+
+
+@mock_ec2
+def test_search_for_many_snapshots():
+    ec2_client = boto3.client('ec2', region_name='eu-west-1')
+
+    volume_response = ec2_client.create_volume(
+        AvailabilityZone='eu-west-1a', Size=10
+    )
+
+    snapshot_ids = []
+    for i in range(1, 20):
+        create_snapshot_response = ec2_client.create_snapshot(
+            VolumeId=volume_response['VolumeId']
+        )
+        snapshot_ids.append(create_snapshot_response['SnapshotId'])
+
+    snapshots_response = ec2_client.describe_snapshots(
+        SnapshotIds=snapshot_ids
+    )
+
+    assert len(snapshots_response['Snapshots']) == len(snapshot_ids)

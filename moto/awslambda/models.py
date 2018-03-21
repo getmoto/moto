@@ -309,7 +309,7 @@ class LambdaFunction(BaseModel):
                 finally:
                     if container:
                         try:
-                            exit_code = container.wait(timeout=300)
+                            exit_code = container.wait(timeout=300)['StatusCode']
                         except requests.exceptions.ReadTimeout:
                             exit_code = -1
                             container.stop()

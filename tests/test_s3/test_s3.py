@@ -50,6 +50,7 @@ def reduced_min_part_size(f):
             return f(*args, **kwargs)
         finally:
             s3model.UPLOAD_PART_MIN_SIZE = orig_size
+
     return wrapped
 
 
@@ -883,10 +884,11 @@ def test_s3_object_in_public_bucket():
         s3_anonymous.Object(key='file.txt', bucket_name='test-bucket').get()
     exc.exception.response['Error']['Code'].should.equal('403')
 
-    params = {'Bucket': 'test-bucket','Key': 'file.txt'}
+    params = {'Bucket': 'test-bucket', 'Key': 'file.txt'}
     presigned_url = boto3.client('s3').generate_presigned_url('get_object', params, ExpiresIn=900)
     response = requests.get(presigned_url)
     assert response.status_code == 200
+
 
 @mock_s3
 def test_s3_object_in_private_bucket():
@@ -1102,6 +1104,7 @@ def test_boto3_key_etag():
     resp = s3.get_object(Bucket='mybucket', Key='steve')
     resp['ETag'].should.equal('"d32bda93738f7e03adb22e66c90fbc04"')
 
+
 @mock_s3
 def test_website_redirect_location():
     s3 = boto3.client('s3', region_name='us-east-1')
@@ -1115,6 +1118,7 @@ def test_website_redirect_location():
     s3.put_object(Bucket='mybucket', Key='steve', Body=b'is awesome', WebsiteRedirectLocation=url)
     resp = s3.get_object(Bucket='mybucket', Key='steve')
     resp['WebsiteRedirectLocation'].should.equal(url)
+
 
 @mock_s3
 def test_boto3_list_keys_xml_escaped():
@@ -1387,6 +1391,21 @@ def test_boto3_copy_object_with_versioning():
 
 
 @mock_s3
+def test_boto3_deleted_versionings_list():
+    client = boto3.client('s3', region_name='us-east-1')
+
+    client.create_bucket(Bucket='blah')
+    client.put_bucket_versioning(Bucket='blah', VersioningConfiguration={'Status': 'Enabled'})
+
+    client.put_object(Bucket='blah', Key='test1', Body=b'test1')
+    client.put_object(Bucket='blah', Key='test2', Body=b'test2')
+    client.delete_objects(Bucket='blah', Delete={'Objects': [{'Key': 'test1'}]})
+
+    listed = client.list_objects_v2(Bucket='blah')
+    assert len(listed['Contents']) == 1
+
+
+@mock_s3
 def test_boto3_head_object_if_modified_since():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = "blah"
@@ -1627,7 +1646,7 @@ def test_boto3_put_bucket_cors():
         })
     e = err.exception
     e.response["Error"]["Code"].should.equal("InvalidRequest")
-    e.response["Error"]["Message"].should.equal("Found unsupported HTTP method in CORS config. " 
+    e.response["Error"]["Message"].should.equal("Found unsupported HTTP method in CORS config. "
                                                 "Unsupported method is NOTREAL")
 
     with assert_raises(ClientError) as err:
@@ -1730,6 +1749,476 @@ def test_boto3_delete_bucket_cors():
     e = err.exception
     e.response["Error"]["Code"].should.equal("NoSuchCORSConfiguration")
     e.response["Error"]["Message"].should.equal("The CORS configuration does not exist")
+
+
+@mock_s3
+def test_put_bucket_acl_body():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="bucket")
+    bucket_owner = s3.get_bucket_acl(Bucket="bucket")["Owner"]
+    s3.put_bucket_acl(Bucket="bucket", AccessControlPolicy={
+        "Grants": [
+            {
+                "Grantee": {
+                    "URI": "http://acs.amazonaws.com/groups/s3/LogDelivery",
+                    "Type": "Group"
+                },
+                "Permission": "WRITE"
+            },
+            {
+                "Grantee": {
+                    "URI": "http://acs.amazonaws.com/groups/s3/LogDelivery",
+                    "Type": "Group"
+                },
+                "Permission": "READ_ACP"
+            }
+        ],
+        "Owner": bucket_owner
+    })
+
+    result = s3.get_bucket_acl(Bucket="bucket")
+    assert len(result["Grants"]) == 2
+    for g in result["Grants"]:
+        assert g["Grantee"]["URI"] == "http://acs.amazonaws.com/groups/s3/LogDelivery"
+        assert g["Grantee"]["Type"] == "Group"
+        assert g["Permission"] in ["WRITE", "READ_ACP"]
+
+    # With one:
+    s3.put_bucket_acl(Bucket="bucket", AccessControlPolicy={
+        "Grants": [
+            {
+                "Grantee": {
+                    "URI": "http://acs.amazonaws.com/groups/s3/LogDelivery",
+                    "Type": "Group"
+                },
+                "Permission": "WRITE"
+            }
+        ],
+        "Owner": bucket_owner
+    })
+    result = s3.get_bucket_acl(Bucket="bucket")
+    assert len(result["Grants"]) == 1
+
+    # With no owner:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_acl(Bucket="bucket", AccessControlPolicy={
+            "Grants": [
+                {
+                    "Grantee": {
+                        "URI": "http://acs.amazonaws.com/groups/s3/LogDelivery",
+                        "Type": "Group"
+                    },
+                    "Permission": "WRITE"
+                }
+            ]
+        })
+    assert err.exception.response["Error"]["Code"] == "MalformedACLError"
+
+    # With incorrect permission:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_acl(Bucket="bucket", AccessControlPolicy={
+            "Grants": [
+                {
+                    "Grantee": {
+                        "URI": "http://acs.amazonaws.com/groups/s3/LogDelivery",
+                        "Type": "Group"
+                    },
+                    "Permission": "lskjflkasdjflkdsjfalisdjflkdsjf"
+                }
+            ],
+            "Owner": bucket_owner
+        })
+    assert err.exception.response["Error"]["Code"] == "MalformedACLError"
+
+    # Clear the ACLs:
+    result = s3.put_bucket_acl(Bucket="bucket", AccessControlPolicy={"Grants": [], "Owner": bucket_owner})
+    assert not result.get("Grants")
+
+
+@mock_s3
+def test_put_bucket_notification():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="bucket")
+
+    # With no configuration:
+    result = s3.get_bucket_notification(Bucket="bucket")
+    assert not result.get("TopicConfigurations")
+    assert not result.get("QueueConfigurations")
+    assert not result.get("LambdaFunctionConfigurations")
+
+    # Place proper topic configuration:
+    s3.put_bucket_notification_configuration(Bucket="bucket",
+                                             NotificationConfiguration={
+                                                 "TopicConfigurations": [
+                                                     {
+                                                         "TopicArn": "arn:aws:sns:us-east-1:012345678910:mytopic",
+                                                         "Events": [
+                                                             "s3:ObjectCreated:*",
+                                                             "s3:ObjectRemoved:*"
+                                                         ]
+                                                     },
+                                                     {
+                                                         "TopicArn": "arn:aws:sns:us-east-1:012345678910:myothertopic",
+                                                         "Events": [
+                                                             "s3:ObjectCreated:*"
+                                                         ],
+                                                         "Filter": {
+                                                             "Key": {
+                                                                 "FilterRules": [
+                                                                     {
+                                                                         "Name": "prefix",
+                                                                         "Value": "images/"
+                                                                     },
+                                                                     {
+                                                                         "Name": "suffix",
+                                                                         "Value": "png"
+                                                                     }
+                                                                 ]
+                                                             }
+                                                         }
+                                                     }
+                                                 ]
+                                             })
+
+    # Verify to completion:
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert len(result["TopicConfigurations"]) == 2
+    assert not result.get("QueueConfigurations")
+    assert not result.get("LambdaFunctionConfigurations")
+    assert result["TopicConfigurations"][0]["TopicArn"] == "arn:aws:sns:us-east-1:012345678910:mytopic"
+    assert result["TopicConfigurations"][1]["TopicArn"] == "arn:aws:sns:us-east-1:012345678910:myothertopic"
+    assert len(result["TopicConfigurations"][0]["Events"]) == 2
+    assert len(result["TopicConfigurations"][1]["Events"]) == 1
+    assert result["TopicConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
+    assert result["TopicConfigurations"][0]["Events"][1] == "s3:ObjectRemoved:*"
+    assert result["TopicConfigurations"][1]["Events"][0] == "s3:ObjectCreated:*"
+    assert result["TopicConfigurations"][0]["Id"]
+    assert result["TopicConfigurations"][1]["Id"]
+    assert not result["TopicConfigurations"][0].get("Filter")
+    assert len(result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"]) == 2
+    assert result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"][0]["Name"] == "prefix"
+    assert result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"][0]["Value"] == "images/"
+    assert result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"][1]["Name"] == "suffix"
+    assert result["TopicConfigurations"][1]["Filter"]["Key"]["FilterRules"][1]["Value"] == "png"
+
+    # Place proper queue configuration:
+    s3.put_bucket_notification_configuration(Bucket="bucket",
+                                             NotificationConfiguration={
+                                                 "QueueConfigurations": [
+                                                     {
+                                                         "Id": "SomeID",
+                                                         "QueueArn": "arn:aws:sqs:us-east-1:012345678910:myQueue",
+                                                         "Events": ["s3:ObjectCreated:*"],
+                                                         "Filter": {
+                                                             "Key": {
+                                                                 "FilterRules": [
+                                                                     {
+                                                                         "Name": "prefix",
+                                                                         "Value": "images/"
+                                                                     }
+                                                                 ]
+                                                             }
+                                                         }
+                                                     }
+                                                 ]
+                                             })
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert len(result["QueueConfigurations"]) == 1
+    assert not result.get("TopicConfigurations")
+    assert not result.get("LambdaFunctionConfigurations")
+    assert result["QueueConfigurations"][0]["Id"] == "SomeID"
+    assert result["QueueConfigurations"][0]["QueueArn"] == "arn:aws:sqs:us-east-1:012345678910:myQueue"
+    assert result["QueueConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
+    assert len(result["QueueConfigurations"][0]["Events"]) == 1
+    assert len(result["QueueConfigurations"][0]["Filter"]["Key"]["FilterRules"]) == 1
+    assert result["QueueConfigurations"][0]["Filter"]["Key"]["FilterRules"][0]["Name"] == "prefix"
+    assert result["QueueConfigurations"][0]["Filter"]["Key"]["FilterRules"][0]["Value"] == "images/"
+
+    # Place proper Lambda configuration:
+    s3.put_bucket_notification_configuration(Bucket="bucket",
+                                             NotificationConfiguration={
+                                                 "LambdaFunctionConfigurations": [
+                                                     {
+                                                         "LambdaFunctionArn":
+                                                             "arn:aws:lambda:us-east-1:012345678910:function:lambda",
+                                                         "Events": ["s3:ObjectCreated:*"],
+                                                         "Filter": {
+                                                             "Key": {
+                                                                 "FilterRules": [
+                                                                     {
+                                                                         "Name": "prefix",
+                                                                         "Value": "images/"
+                                                                     }
+                                                                 ]
+                                                             }
+                                                         }
+                                                     }
+                                                 ]
+                                             })
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert len(result["LambdaFunctionConfigurations"]) == 1
+    assert not result.get("TopicConfigurations")
+    assert not result.get("QueueConfigurations")
+    assert result["LambdaFunctionConfigurations"][0]["Id"]
+    assert result["LambdaFunctionConfigurations"][0]["LambdaFunctionArn"] == \
+        "arn:aws:lambda:us-east-1:012345678910:function:lambda"
+    assert result["LambdaFunctionConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
+    assert len(result["LambdaFunctionConfigurations"][0]["Events"]) == 1
+    assert len(result["LambdaFunctionConfigurations"][0]["Filter"]["Key"]["FilterRules"]) == 1
+    assert result["LambdaFunctionConfigurations"][0]["Filter"]["Key"]["FilterRules"][0]["Name"] == "prefix"
+    assert result["LambdaFunctionConfigurations"][0]["Filter"]["Key"]["FilterRules"][0]["Value"] == "images/"
+
+    # And with all 3 set:
+    s3.put_bucket_notification_configuration(Bucket="bucket",
+                                             NotificationConfiguration={
+                                                 "TopicConfigurations": [
+                                                     {
+                                                         "TopicArn": "arn:aws:sns:us-east-1:012345678910:mytopic",
+                                                         "Events": [
+                                                             "s3:ObjectCreated:*",
+                                                             "s3:ObjectRemoved:*"
+                                                         ]
+                                                     }
+                                                 ],
+                                                 "LambdaFunctionConfigurations": [
+                                                     {
+                                                         "LambdaFunctionArn":
+                                                             "arn:aws:lambda:us-east-1:012345678910:function:lambda",
+                                                         "Events": ["s3:ObjectCreated:*"]
+                                                     }
+                                                 ],
+                                                 "QueueConfigurations": [
+                                                     {
+                                                         "QueueArn": "arn:aws:sqs:us-east-1:012345678910:myQueue",
+                                                         "Events": ["s3:ObjectCreated:*"]
+                                                     }
+                                                 ]
+                                             })
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert len(result["LambdaFunctionConfigurations"]) == 1
+    assert len(result["TopicConfigurations"]) == 1
+    assert len(result["QueueConfigurations"]) == 1
+
+    # And clear it out:
+    s3.put_bucket_notification_configuration(Bucket="bucket", NotificationConfiguration={})
+    result = s3.get_bucket_notification_configuration(Bucket="bucket")
+    assert not result.get("TopicConfigurations")
+    assert not result.get("QueueConfigurations")
+    assert not result.get("LambdaFunctionConfigurations")
+
+
+@mock_s3
+def test_put_bucket_notification_errors():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="bucket")
+
+    # With incorrect ARNs:
+    for tech, arn in [("Queue", "sqs"), ("Topic", "sns"), ("LambdaFunction", "lambda")]:
+        with assert_raises(ClientError) as err:
+            s3.put_bucket_notification_configuration(Bucket="bucket",
+                                                     NotificationConfiguration={
+                                                         "{}Configurations".format(tech): [
+                                                             {
+                                                                 "{}Arn".format(tech):
+                                                                     "arn:aws:{}:us-east-1:012345678910:lksajdfkldskfj",
+                                                                 "Events": ["s3:ObjectCreated:*"]
+                                                             }
+                                                         ]
+                                                     })
+
+        assert err.exception.response["Error"]["Code"] == "InvalidArgument"
+        assert err.exception.response["Error"]["Message"] == "The ARN is not well formed"
+
+    # Region not the same as the bucket:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_notification_configuration(Bucket="bucket",
+                                                 NotificationConfiguration={
+                                                     "QueueConfigurations": [
+                                                         {
+                                                             "QueueArn":
+                                                                 "arn:aws:sqs:us-west-2:012345678910:lksajdfkldskfj",
+                                                             "Events": ["s3:ObjectCreated:*"]
+                                                         }
+                                                     ]
+                                                 })
+
+    assert err.exception.response["Error"]["Code"] == "InvalidArgument"
+    assert err.exception.response["Error"]["Message"] == \
+        "The notification destination service region is not valid for the bucket location constraint"
+
+    # Invalid event name:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_notification_configuration(Bucket="bucket",
+                                                 NotificationConfiguration={
+                                                     "QueueConfigurations": [
+                                                         {
+                                                             "QueueArn":
+                                                                 "arn:aws:sqs:us-east-1:012345678910:lksajdfkldskfj",
+                                                             "Events": ["notarealeventname"]
+                                                         }
+                                                     ]
+                                                 })
+    assert err.exception.response["Error"]["Code"] == "InvalidArgument"
+    assert err.exception.response["Error"]["Message"] == "The event is not supported for notifications"
+
+
+@mock_s3
+def test_boto3_put_bucket_logging():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "mybucket"
+    log_bucket = "logbucket"
+    wrong_region_bucket = "wrongregionlogbucket"
+    s3.create_bucket(Bucket=bucket_name)
+    s3.create_bucket(Bucket=log_bucket)  # Adding the ACL for log-delivery later...
+    s3.create_bucket(Bucket=wrong_region_bucket, CreateBucketConfiguration={"LocationConstraint": "us-west-2"})
+
+    # No logging config:
+    result = s3.get_bucket_logging(Bucket=bucket_name)
+    assert not result.get("LoggingEnabled")
+
+    # A log-bucket that doesn't exist:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={
+            "LoggingEnabled": {
+                "TargetBucket": "IAMNOTREAL",
+                "TargetPrefix": ""
+            }
+        })
+    assert err.exception.response["Error"]["Code"] == "InvalidTargetBucketForLogging"
+
+    # A log-bucket that's missing the proper ACLs for LogDelivery:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={
+            "LoggingEnabled": {
+                "TargetBucket": log_bucket,
+                "TargetPrefix": ""
+            }
+        })
+    assert err.exception.response["Error"]["Code"] == "InvalidTargetBucketForLogging"
+    assert "log-delivery" in err.exception.response["Error"]["Message"]
+
+    # Add the proper "log-delivery" ACL to the log buckets:
+    bucket_owner = s3.get_bucket_acl(Bucket=log_bucket)["Owner"]
+    for bucket in [log_bucket, wrong_region_bucket]:
+        s3.put_bucket_acl(Bucket=bucket, AccessControlPolicy={
+            "Grants": [
+                {
+                    "Grantee": {
+                        "URI": "http://acs.amazonaws.com/groups/s3/LogDelivery",
+                        "Type": "Group"
+                    },
+                    "Permission": "WRITE"
+                },
+                {
+                    "Grantee": {
+                        "URI": "http://acs.amazonaws.com/groups/s3/LogDelivery",
+                        "Type": "Group"
+                    },
+                    "Permission": "READ_ACP"
+                },
+                {
+                    "Grantee": {
+                        "Type": "CanonicalUser",
+                        "ID": bucket_owner["ID"]
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ],
+            "Owner": bucket_owner
+        })
+
+    # A log-bucket that's in the wrong region:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={
+            "LoggingEnabled": {
+                "TargetBucket": wrong_region_bucket,
+                "TargetPrefix": ""
+            }
+        })
+    assert err.exception.response["Error"]["Code"] == "CrossLocationLoggingProhibitted"
+
+    # Correct logging:
+    s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={
+        "LoggingEnabled": {
+            "TargetBucket": log_bucket,
+            "TargetPrefix": "{}/".format(bucket_name)
+        }
+    })
+    result = s3.get_bucket_logging(Bucket=bucket_name)
+    assert result["LoggingEnabled"]["TargetBucket"] == log_bucket
+    assert result["LoggingEnabled"]["TargetPrefix"] == "{}/".format(bucket_name)
+    assert not result["LoggingEnabled"].get("TargetGrants")
+
+    # And disabling:
+    s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={})
+    assert not s3.get_bucket_logging(Bucket=bucket_name).get("LoggingEnabled")
+
+    # And enabling with multiple target grants:
+    s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={
+        "LoggingEnabled": {
+            "TargetBucket": log_bucket,
+            "TargetPrefix": "{}/".format(bucket_name),
+            "TargetGrants": [
+                {
+                    "Grantee": {
+                        "ID": "SOMEIDSTRINGHERE9238748923734823917498237489237409123840983274",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "READ"
+                },
+                {
+                    "Grantee": {
+                        "ID": "SOMEIDSTRINGHERE9238748923734823917498237489237409123840983274",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "WRITE"
+                }
+            ]
+        }
+    })
+
+    result = s3.get_bucket_logging(Bucket=bucket_name)
+    assert len(result["LoggingEnabled"]["TargetGrants"]) == 2
+    assert result["LoggingEnabled"]["TargetGrants"][0]["Grantee"]["ID"] == \
+           "SOMEIDSTRINGHERE9238748923734823917498237489237409123840983274"
+
+    # Test with just 1 grant:
+    s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={
+        "LoggingEnabled": {
+            "TargetBucket": log_bucket,
+            "TargetPrefix": "{}/".format(bucket_name),
+            "TargetGrants": [
+                {
+                    "Grantee": {
+                        "ID": "SOMEIDSTRINGHERE9238748923734823917498237489237409123840983274",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "READ"
+                }
+            ]
+        }
+    })
+    result = s3.get_bucket_logging(Bucket=bucket_name)
+    assert len(result["LoggingEnabled"]["TargetGrants"]) == 1
+
+    # With an invalid grant:
+    with assert_raises(ClientError) as err:
+        s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={
+            "LoggingEnabled": {
+                "TargetBucket": log_bucket,
+                "TargetPrefix": "{}/".format(bucket_name),
+                "TargetGrants": [
+                    {
+                        "Grantee": {
+                            "ID": "SOMEIDSTRINGHERE9238748923734823917498237489237409123840983274",
+                            "Type": "CanonicalUser"
+                        },
+                        "Permission": "NOTAREALPERM"
+                    }
+                ]
+            }
+        })
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3
@@ -1939,9 +2428,8 @@ def test_get_stream_gzipped():
         Bucket='moto-tests',
         Key='keyname',
     )
-    res = zlib.decompress(obj['Body'].read(), 16+zlib.MAX_WBITS)
+    res = zlib.decompress(obj['Body'].read(), 16 + zlib.MAX_WBITS)
     assert res == payload
-
 
 
 TEST_XML = """\

@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 
 import json
+from collections import OrderedDict
 
 import boto3
 from botocore.exceptions import ClientError
+import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 from nose.tools import assert_raises
 
@@ -161,7 +163,7 @@ def test_boto3_create_stack():
     )
 
     cf_conn.get_template(StackName="test_stack")['TemplateBody'].should.equal(
-        dummy_template)
+        json.loads(dummy_template_json, object_pairs_hook=OrderedDict))
 
 
 @mock_cloudformation
@@ -270,9 +272,35 @@ def test_create_stack_from_s3_url():
         StackName='stack_from_url',
         TemplateURL=key_url,
     )
+    cf_conn.get_template(StackName="stack_from_url")['TemplateBody'].should.equal(
+        json.loads(dummy_template_json, object_pairs_hook=OrderedDict))
 
-    cf_conn.get_template(StackName="stack_from_url")[
-        'TemplateBody'].should.equal(dummy_template)
+
+@mock_cloudformation
+def test_update_stack_with_previous_value():
+    name = 'update_stack_with_previous_value'
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName=name, TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=[
+            {'ParameterKey': 'TagName', 'ParameterValue': 'foo'},
+            {'ParameterKey': 'TagDescription', 'ParameterValue': 'bar'},
+        ]
+    )
+    cf_conn.update_stack(
+        StackName=name, UsePreviousTemplate=True,
+        Parameters=[
+            {'ParameterKey': 'TagName', 'UsePreviousValue': True},
+            {'ParameterKey': 'TagDescription', 'ParameterValue': 'not bar'},
+        ]
+    )
+    stack = cf_conn.describe_stacks(StackName=name)['Stacks'][0]
+    tag_name = [x['ParameterValue'] for x in stack['Parameters']
+                if x['ParameterKey'] == 'TagName'][0]
+    tag_desc = [x['ParameterValue'] for x in stack['Parameters']
+                if x['ParameterKey'] == 'TagDescription'][0]
+    assert tag_name == 'foo'
+    assert tag_desc == 'not bar'
 
 
 @mock_cloudformation
@@ -306,8 +334,8 @@ def test_update_stack_from_s3_url():
         TemplateURL=key_url,
     )
 
-    cf_conn.get_template(StackName="update_stack_from_url")[
-        'TemplateBody'].should.equal(dummy_update_template)
+    cf_conn.get_template(StackName="update_stack_from_url")[ 'TemplateBody'].should.equal(
+        json.loads(dummy_update_template_json, object_pairs_hook=OrderedDict))
 
 
 @mock_cloudformation
@@ -335,6 +363,30 @@ def test_create_change_set_from_s3_url():
     )
     assert 'arn:aws:cloudformation:us-west-1:123456789:changeSet/NewChangeSet/' in response['Id']
     assert 'arn:aws:cloudformation:us-east-1:123456789:stack/NewStack' in response['StackId']
+
+
+@mock_cloudformation
+def test_execute_change_set_w_arn():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    change_set = cf_conn.create_change_set(
+        StackName='NewStack',
+        TemplateBody=dummy_template_json,
+        ChangeSetName='NewChangeSet',
+        ChangeSetType='CREATE',
+    )
+    cf_conn.execute_change_set(ChangeSetName=change_set['Id'])
+
+
+@mock_cloudformation
+def test_execute_change_set_w_name():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    change_set = cf_conn.create_change_set(
+        StackName='NewStack',
+        TemplateBody=dummy_template_json,
+        ChangeSetName='NewChangeSet',
+        ChangeSetType='CREATE',
+    )
+    cf_conn.execute_change_set(ChangeSetName='NewStack', StackName='NewStack')
 
 
 @mock_cloudformation

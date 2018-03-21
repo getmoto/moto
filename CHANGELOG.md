@@ -1,8 +1,41 @@
 Moto Changelog
 ===================
 
-Latest
+1.3.0
 ------
+
+Dozens of major endpoint additions in this release. Highlights include:
+
+    * Fixed AMI tests and the Travis build setup
+    * SNS improvements
+    * Dynamodb improvements
+    * EBS improvements
+    * Redshift improvements
+    * RDS snapshot improvements
+    * S3 improvements
+    * Cloudwatch improvements
+    * SSM improvements
+    * IAM improvements
+    * ELBV1 and ELBV2 improvements
+    * Lambda improvements
+    * EC2 spot pricing improvements
+    * ApiGateway improvements
+    * VPC improvements
+
+1.2.0
+------
+
+    * Supports filtering AMIs by self
+    * Implemented signal_workflow_execution for SWF
+    * Wired SWF backend to the moto server
+    * Added url decoding to x-amz-copy-source header for copying S3 files
+    * Revamped lambda function storage to do versioning
+    * IOT improvements
+    * RDS improvements
+    * Implemented CloudWatch get_metric_statistics
+    * Improved Cloudformation EC2 support
+    * Implemented Cloudformation change_set endpoints
+    
 1.1.25
 -----
 

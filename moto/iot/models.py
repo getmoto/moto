@@ -9,7 +9,8 @@ from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
 from .exceptions import (
     ResourceNotFoundException,
-    InvalidRequestException
+    InvalidRequestException,
+    VersionConflictException
 )
 
 
@@ -44,6 +45,7 @@ class FakeThingType(BaseModel):
         self.region_name = region_name
         self.thing_type_name = thing_type_name
         self.thing_type_properties = thing_type_properties
+        self.thing_type_id = str(uuid.uuid4())  # I don't know the rule of id
         t = time.time()
         self.metadata = {
             'deprecated': False,
@@ -54,8 +56,34 @@ class FakeThingType(BaseModel):
     def to_dict(self):
         return {
             'thingTypeName': self.thing_type_name,
+            'thingTypeId': self.thing_type_id,
             'thingTypeProperties': self.thing_type_properties,
             'thingTypeMetadata': self.metadata
+        }
+
+
+class FakeThingGroup(BaseModel):
+    def __init__(self, thing_group_name, parent_group_name, thing_group_properties, region_name):
+        self.region_name = region_name
+        self.thing_group_name = thing_group_name
+        self.thing_group_id = str(uuid.uuid4())  # I don't know the rule of id
+        self.version = 1  # TODO: tmp
+        self.parent_group_name = parent_group_name
+        self.thing_group_properties = thing_group_properties or {}
+        t = time.time()
+        self.metadata = {
+            'creationData': int(t * 1000) / 1000.0
+        }
+        self.arn = 'arn:aws:iot:%s:1:thinggroup/%s' % (self.region_name, thing_group_name)
+        self.things = OrderedDict()
+
+    def to_dict(self):
+        return {
+            'thingGroupName': self.thing_group_name,
+            'thingGroupId': self.thing_group_id,
+            'version': self.version,
+            'thingGroupProperties': self.thing_group_properties,
+            'thingGroupMetadata': self.metadata
         }
 
 
@@ -137,6 +165,7 @@ class IoTBackend(BaseBackend):
         self.region_name = region_name
         self.things = OrderedDict()
         self.thing_types = OrderedDict()
+        self.thing_groups = OrderedDict()
         self.certificates = OrderedDict()
         self.policies = OrderedDict()
         self.principal_policies = OrderedDict()
@@ -358,6 +387,125 @@ class IoTBackend(BaseBackend):
     def list_thing_principals(self, thing_name):
         principals = [k[0] for k, v in self.principal_things.items() if k[1] == thing_name]
         return principals
+
+    def describe_thing_group(self, thing_group_name):
+        thing_groups = [_ for _ in self.thing_groups.values() if _.thing_group_name == thing_group_name]
+        if len(thing_groups) == 0:
+            raise ResourceNotFoundException()
+        return thing_groups[0]
+
+    def create_thing_group(self, thing_group_name, parent_group_name, thing_group_properties):
+        thing_group = FakeThingGroup(thing_group_name, parent_group_name, thing_group_properties, self.region_name)
+        self.thing_groups[thing_group.arn] = thing_group
+        return thing_group.thing_group_name, thing_group.arn, thing_group.thing_group_id
+
+    def delete_thing_group(self, thing_group_name, expected_version):
+        thing_group = self.describe_thing_group(thing_group_name)
+        del self.thing_groups[thing_group.arn]
+
+    def list_thing_groups(self, parent_group, name_prefix_filter, recursive):
+        thing_groups = self.thing_groups.values()
+        return thing_groups
+
+    def update_thing_group(self, thing_group_name, thing_group_properties, expected_version):
+        thing_group = self.describe_thing_group(thing_group_name)
+        if expected_version and expected_version != thing_group.version:
+            raise VersionConflictException(thing_group_name)
+        attribute_payload = thing_group_properties.get('attributePayload', None)
+        if attribute_payload is not None and 'attributes' in attribute_payload:
+            do_merge = attribute_payload.get('merge', False)
+            attributes = attribute_payload['attributes']
+            if not do_merge:
+                thing_group.thing_group_properties['attributePayload']['attributes'] = attributes
+            else:
+                thing_group.thing_group_properties['attributePayload']['attributes'].update(attributes)
+        elif attribute_payload is not None and 'attributes' not in attribute_payload:
+            thing_group.attributes = {}
+        thing_group.version = thing_group.version + 1
+        return thing_group.version
+
+    def _identify_thing_group(self, thing_group_name, thing_group_arn):
+        # identify thing group
+        if thing_group_name is None and thing_group_arn is None:
+            raise InvalidRequestException(
+                ' Both thingGroupArn and thingGroupName are empty. Need to specify at least one of them'
+            )
+        if thing_group_name is not None:
+            thing_group = self.describe_thing_group(thing_group_name)
+            if thing_group_arn and thing_group.arn != thing_group_arn:
+                raise InvalidRequestException(
+                    'ThingGroupName thingGroupArn does not match specified thingGroupName in request'
+                )
+        elif thing_group_arn is not None:
+            if thing_group_arn not in self.thing_groups:
+                raise InvalidRequestException()
+            thing_group = self.thing_groups[thing_group_arn]
+        return thing_group
+
+    def _identify_thing(self, thing_name, thing_arn):
+        # identify thing
+        if thing_name is None and thing_arn is None:
+            raise InvalidRequestException(
+                'Both thingArn and thingName are empty. Need to specify at least one of them'
+            )
+        if thing_name is not None:
+            thing = self.describe_thing(thing_name)
+            if thing_arn and thing.arn != thing_arn:
+                raise InvalidRequestException(
+                    'ThingName thingArn does not match specified thingName in request'
+                )
+        elif thing_arn is not None:
+            if thing_arn not in self.things:
+                raise InvalidRequestException()
+            thing = self.things[thing_arn]
+        return thing
+
+    def add_thing_to_thing_group(self, thing_group_name, thing_group_arn, thing_name, thing_arn):
+        thing_group = self._identify_thing_group(thing_group_name, thing_group_arn)
+        thing = self._identify_thing(thing_name, thing_arn)
+        if thing.arn in thing_group.things:
+            # aws ignores duplicate registration
+            return
+        thing_group.things[thing.arn] = thing
+
+    def remove_thing_from_thing_group(self, thing_group_name, thing_group_arn, thing_name, thing_arn):
+        thing_group = self._identify_thing_group(thing_group_name, thing_group_arn)
+        thing = self._identify_thing(thing_name, thing_arn)
+        if thing.arn not in thing_group.things:
+            # aws ignores non-registered thing
+            return
+        del thing_group.things[thing.arn]
+
+    def list_things_in_thing_group(self, thing_group_name, recursive):
+        thing_group = self.describe_thing_group(thing_group_name)
+        return thing_group.things.values()
+
+    def list_thing_groups_for_thing(self, thing_name):
+        thing = self.describe_thing(thing_name)
+        all_thing_groups = self.list_thing_groups(None, None, None)
+        ret = []
+        for thing_group in all_thing_groups:
+            if thing.arn in thing_group.things:
+                ret.append({
+                    'groupName': thing_group.thing_group_name,
+                    'groupArn': thing_group.arn
+                })
+        return ret
+
+    def update_thing_groups_for_thing(self, thing_name, thing_groups_to_add, thing_groups_to_remove):
+        thing = self.describe_thing(thing_name)
+        for thing_group_name in thing_groups_to_add:
+            thing_group = self.describe_thing_group(thing_group_name)
+            self.add_thing_to_thing_group(
+                thing_group.thing_group_name, None,
+                thing.thing_name, None
+            )
+        for thing_group_name in thing_groups_to_remove:
+            thing_group = self.describe_thing_group(thing_group_name)
+            self.remove_thing_from_thing_group(
+                thing_group.thing_group_name, None,
+                thing.thing_name, None
+            )
 
 
 available_regions = boto3.session.Session().get_available_regions("iot")

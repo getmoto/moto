@@ -5,7 +5,9 @@ from collections import defaultdict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 
+import datetime
 import time
+import uuid
 
 
 class Parameter(BaseModel):
@@ -124,6 +126,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         last_modified_date = time.time()
         self._parameters[name] = Parameter(
             name, value, type, description, keyid, last_modified_date, version)
+        return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):
         for key, value in tags.items():
@@ -137,6 +140,39 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource_type, resource_id):
         return self._resource_tags[resource_type][resource_id]
+
+    def send_command(self, **kwargs):
+        instances = kwargs['InstanceIds']
+        now = datetime.datetime.now()
+        expires_after = now + datetime.timedelta(0, int(kwargs['TimeoutSeconds']))
+        return {
+            'Command': {
+                'CommandId': str(uuid.uuid4()),
+                'DocumentName': kwargs['DocumentName'],
+                'Comment': kwargs.get('Comment'),
+                'ExpiresAfter': expires_after.isoformat(),
+                'Parameters': kwargs['Parameters'],
+                'InstanceIds': kwargs['InstanceIds'],
+                'Targets': kwargs.get('targets'),
+                'RequestedDateTime': now.isoformat(),
+                'Status': 'Success',
+                'StatusDetails': 'string',
+                'OutputS3Region': kwargs.get('OutputS3Region'),
+                'OutputS3BucketName': kwargs.get('OutputS3BucketName'),
+                'OutputS3KeyPrefix': kwargs.get('OutputS3KeyPrefix'),
+                'MaxConcurrency': 'string',
+                'MaxErrors': 'string',
+                'TargetCount': len(instances),
+                'CompletedCount': len(instances),
+                'ErrorCount': 0,
+                'ServiceRole': kwargs.get('ServiceRoleArn'),
+                'NotificationConfig': {
+                    'NotificationArn': 'string',
+                    'NotificationEvents': ['Success'],
+                    'NotificationType': 'Command'
+                }
+            }
+        }
 
 
 ssm_backends = {}

@@ -162,9 +162,18 @@ class SimpleSystemManagerResponse(BaseResponse):
         keyid = self._get_param('KeyId')
         overwrite = self._get_param('Overwrite', False)
 
-        self.ssm_backend.put_parameter(
+        result = self.ssm_backend.put_parameter(
             name, description, value, type_, keyid, overwrite)
-        return json.dumps({})
+
+        if result is None:
+            error = {
+                '__type': 'ParameterAlreadyExists',
+                'message': 'Parameter {0} already exists.'.format(name)
+            }
+            return json.dumps(error), dict(status=400)
+
+        response = {'Version': result}
+        return json.dumps(response)
 
     def add_tags_to_resource(self):
         resource_id = self._get_param('ResourceId')
@@ -190,3 +199,8 @@ class SimpleSystemManagerResponse(BaseResponse):
         tag_list = [{'Key': k, 'Value': v} for (k, v) in tags.items()]
         response = {'TagList': tag_list}
         return json.dumps(response)
+
+    def send_command(self):
+        return json.dumps(
+            self.ssm_backend.send_command(**self.request_params)
+        )

@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
 
 
-from datetime import datetime
-from dateutil.tz import tzutc
 import boto3
 from freezegun import freeze_time
 import requests
@@ -965,3 +963,35 @@ def test_http_proxying_integration():
 
     if not settings.TEST_SERVER_MODE:
         requests.get(deploy_url).content.should.equal(b"a fake response")
+
+
+@mock_apigateway
+def test_api_keys():
+    region_name = 'us-west-2'
+    client = boto3.client('apigateway', region_name=region_name)
+    response = client.get_api_keys()
+    len(response['items']).should.equal(0)
+
+    apikey_value = '12345'
+    apikey_name = 'TESTKEY1'
+    payload = {'value': apikey_value, 'name': apikey_name}
+    response = client.create_api_key(**payload)
+    apikey = client.get_api_key(apiKey=payload['value'])
+    apikey['name'].should.equal(apikey_name)
+    apikey['value'].should.equal(apikey_value)
+
+    apikey_name = 'TESTKEY2'
+    payload = {'name': apikey_name, 'generateDistinctId': True}
+    response = client.create_api_key(**payload)
+    apikey = client.get_api_key(apiKey=response['value'])
+    apikey['name'].should.equal(apikey_name)
+    len(apikey['value']).should.equal(40)
+    apikey_value = apikey['value']
+
+    response = client.get_api_keys()
+    len(response['items']).should.equal(2)
+
+    client.delete_api_key(apiKey=apikey_value)
+
+    response = client.get_api_keys()
+    len(response['items']).should.equal(1)

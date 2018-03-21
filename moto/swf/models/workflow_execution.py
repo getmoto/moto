@@ -599,6 +599,14 @@ class WorkflowExecution(BaseModel):
         self.close_status = "TERMINATED"
         self.close_cause = "OPERATOR_INITIATED"
 
+    def signal(self, signal_name, input):
+        self._add_event(
+            "WorkflowExecutionSignaled",
+            signal_name=signal_name,
+            input=input,
+        )
+        self.schedule_decision_task()
+
     def first_timeout(self):
         if not self.open or not self.start_timestamp:
             return None

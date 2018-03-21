@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import datetime
+import random
+import string
 import requests
+import time
 
 from moto.packages.responses import responses
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import create_id
 from .exceptions import StageNotFoundException
 
@@ -20,8 +21,7 @@ class Deployment(BaseModel, dict):
         self['id'] = deployment_id
         self['stageName'] = name
         self['description'] = description
-        self['createdDate'] = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.now())
+        self['createdDate'] = int(time.time())
 
 
 class IntegrationResponse(BaseModel, dict):
@@ -293,6 +293,25 @@ class Stage(BaseModel, dict):
             raise Exception('Patch operation "%s" not implemented' % op['op'])
 
 
+class ApiKey(BaseModel, dict):
+
+    def __init__(self, name=None, description=None, enabled=True,
+                 generateDistinctId=False, value=None, stageKeys=None, customerId=None):
+        super(ApiKey, self).__init__()
+        self['id'] = create_id()
+        if generateDistinctId:
+            # Best guess of what AWS does internally
+            self['value'] = ''.join(random.sample(string.ascii_letters + string.digits, 40))
+        else:
+            self['value'] = value
+        self['name'] = name
+        self['customerId'] = customerId
+        self['description'] = description
+        self['enabled'] = enabled
+        self['createdDate'] = self['lastUpdatedDate'] = int(time.time())
+        self['stageKeys'] = stageKeys
+
+
 class RestAPI(BaseModel):
 
     def __init__(self, id, region_name, name, description):
@@ -300,7 +319,7 @@ class RestAPI(BaseModel):
         self.region_name = region_name
         self.name = name
         self.description = description
-        self.create_date = datetime.datetime.utcnow()
+        self.create_date = int(time.time())
 
         self.deployments = {}
         self.stages = {}
@@ -313,7 +332,7 @@ class RestAPI(BaseModel):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "createdDate": iso_8601_datetime_with_milliseconds(self.create_date),
+            "createdDate": int(time.time()),
         }
 
     def add_child(self, path, parent_id=None):
@@ -388,6 +407,7 @@ class APIGatewayBackend(BaseBackend):
     def __init__(self, region_name):
         super(APIGatewayBackend, self).__init__()
         self.apis = {}
+        self.keys = {}
         self.region_name = region_name
 
     def reset(self):
@@ -540,6 +560,21 @@ class APIGatewayBackend(BaseBackend):
     def delete_deployment(self, function_id, deployment_id):
         api = self.get_rest_api(function_id)
         return api.delete_deployment(deployment_id)
+
+    def create_apikey(self, payload):
+        key = ApiKey(**payload)
+        self.keys[key['value']] = key
+        return key
+
+    def get_apikeys(self):
+        return list(self.keys.values())
+
+    def get_apikey(self, value):
+        return self.keys[value]
+
+    def delete_apikey(self, value):
+        self.keys.pop(value)
+        return {}
 
 
 apigateway_backends = {}

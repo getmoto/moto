@@ -1,23 +1,27 @@
 from __future__ import unicode_literals
-# Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
 
 import boto
-import boto3
 import boto.ec2
 import boto3
-from boto.exception import EC2ResponseError, EC2ResponseError
-
+from boto.exception import EC2ResponseError
+from botocore.exceptions import ClientError
+# Ensure 'assert_raises' context manager support for Python 2.6
+from nose.tools import assert_raises
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
+from moto.ec2.models import AMIS
 from tests.helpers import requires_boto_gte
 
 
 @mock_ec2_deprecated
 def test_ami_create_and_delete():
     conn = boto.connect_ec2('the_key', 'the_secret')
+
+    initial_ami_count = len(AMIS)
+    conn.get_all_volumes().should.have.length_of(0)
+    conn.get_all_snapshots().should.have.length_of(initial_ami_count)
+
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
@@ -32,33 +36,34 @@ def test_ami_create_and_delete():
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
 
     all_images = conn.get_all_images()
-    image = all_images[0]
+    set([i.id for i in all_images]).should.contain(image_id)
 
-    image.id.should.equal(image_id)
-    image.virtualization_type.should.equal(instance.virtualization_type)
-    image.architecture.should.equal(instance.architecture)
-    image.kernel_id.should.equal(instance.kernel)
-    image.platform.should.equal(instance.platform)
-    image.creationDate.should_not.be.none
+    retrieved_image = [i for i in all_images if i.id == image_id][0]
+
+    retrieved_image.id.should.equal(image_id)
+    retrieved_image.virtualization_type.should.equal(instance.virtualization_type)
+    retrieved_image.architecture.should.equal(instance.architecture)
+    retrieved_image.kernel_id.should.equal(instance.kernel)
+    retrieved_image.platform.should.equal(instance.platform)
+    retrieved_image.creationDate.should_not.be.none
     instance.terminate()
 
-    # Validate auto-created volume and snapshot
+    # Ensure we're no longer creating a volume
     volumes = conn.get_all_volumes()
-    volumes.should.have.length_of(1)
-    volume = volumes[0]
+    volumes.should.have.length_of(0)
 
+    # Validate auto-created snapshot
     snapshots = conn.get_all_snapshots()
-    snapshots.should.have.length_of(1)
-    snapshot = snapshots[0]
+    snapshots.should.have.length_of(initial_ami_count + 1)
 
-    image.block_device_mapping.current_value.snapshot_id.should.equal(
-        snapshot.id)
+    retrieved_image_snapshot_id = retrieved_image.block_device_mapping.current_value.snapshot_id
+    [s.id for s in snapshots].should.contain(retrieved_image_snapshot_id)
+    snapshot = [s for s in snapshots if s.id == retrieved_image_snapshot_id][0]
     snapshot.description.should.equal(
-        "Auto-created snapshot for AMI {0}".format(image.id))
-    snapshot.volume_id.should.equal(volume.id)
+        "Auto-created snapshot for AMI {0}".format(retrieved_image.id))
 
     # root device should be in AMI's block device mappings
-    root_mapping = image.block_device_mapping.get(image.root_device_name)
+    root_mapping = retrieved_image.block_device_mapping.get(retrieved_image.root_device_name)
     root_mapping.should_not.be.none
 
     # Deregister
@@ -83,6 +88,11 @@ def test_ami_create_and_delete():
 @mock_ec2_deprecated
 def test_ami_copy():
     conn = boto.ec2.connect_to_region("us-west-1")
+
+    initial_ami_count = len(AMIS)
+    conn.get_all_volumes().should.have.length_of(0)
+    conn.get_all_snapshots().should.have.length_of(initial_ami_count)
+
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
@@ -95,7 +105,8 @@ def test_ami_copy():
     # the image_id to fetch the full info.
     with assert_raises(EC2ResponseError) as ex:
         copy_image_ref = conn.copy_image(
-            source_image.region.name, source_image.id, "test-copy-ami", "this is a test copy ami", dry_run=True)
+            source_image.region.name, source_image.id, "test-copy-ami", "this is a test copy ami",
+            dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal(
@@ -113,9 +124,11 @@ def test_ami_copy():
     copy_image.kernel_id.should.equal(source_image.kernel_id)
     copy_image.platform.should.equal(source_image.platform)
 
-    # Validate auto-created volume and snapshot
-    conn.get_all_volumes().should.have.length_of(2)
-    conn.get_all_snapshots().should.have.length_of(2)
+    # Ensure we're no longer creating a volume
+    conn.get_all_volumes().should.have.length_of(0)
+
+    # Validate auto-created snapshot
+    conn.get_all_snapshots().should.have.length_of(initial_ami_count + 2)
 
     copy_image.block_device_mapping.current_value.snapshot_id.should_not.equal(
         source_image.block_device_mapping.current_value.snapshot_id)
@@ -217,7 +230,8 @@ def test_ami_filters():
 
     amis_by_architecture = conn.get_all_images(
         filters={'architecture': 'x86_64'})
-    set([ami.id for ami in amis_by_architecture]).should.equal(set([imageB.id]))
+    set([ami.id for ami in amis_by_architecture]).should.contain(imageB.id)
+    len(amis_by_architecture).should.equal(35)
 
     amis_by_kernel = conn.get_all_images(filters={'kernel-id': 'k-abcd1234'})
     set([ami.id for ami in amis_by_kernel]).should.equal(set([imageB.id]))
@@ -225,26 +239,32 @@ def test_ami_filters():
     amis_by_virtualization = conn.get_all_images(
         filters={'virtualization-type': 'paravirtual'})
     set([ami.id for ami in amis_by_virtualization]
-        ).should.equal(set([imageB.id]))
+        ).should.contain(imageB.id)
+    len(amis_by_virtualization).should.equal(3)
 
     amis_by_platform = conn.get_all_images(filters={'platform': 'windows'})
-    set([ami.id for ami in amis_by_platform]).should.equal(set([imageA.id]))
+    set([ami.id for ami in amis_by_platform]).should.contain(imageA.id)
+    len(amis_by_platform).should.equal(24)
 
     amis_by_id = conn.get_all_images(filters={'image-id': imageA.id})
     set([ami.id for ami in amis_by_id]).should.equal(set([imageA.id]))
 
     amis_by_state = conn.get_all_images(filters={'state': 'available'})
-    set([ami.id for ami in amis_by_state]).should.equal(
-        set([imageA.id, imageB.id]))
+    ami_ids_by_state = [ami.id for ami in amis_by_state]
+    ami_ids_by_state.should.contain(imageA.id)
+    ami_ids_by_state.should.contain(imageB.id)
+    len(amis_by_state).should.equal(36)
 
     amis_by_name = conn.get_all_images(filters={'name': imageA.name})
     set([ami.id for ami in amis_by_name]).should.equal(set([imageA.id]))
 
     amis_by_public = conn.get_all_images(filters={'is-public': True})
-    set([ami.id for ami in amis_by_public]).should.equal(set([imageB.id]))
+    set([ami.id for ami in amis_by_public]).should.contain(imageB.id)
+    len(amis_by_public).should.equal(35)
 
     amis_by_nonpublic = conn.get_all_images(filters={'is-public': False})
-    set([ami.id for ami in amis_by_nonpublic]).should.equal(set([imageA.id]))
+    set([ami.id for ami in amis_by_nonpublic]).should.contain(imageA.id)
+    len(amis_by_nonpublic).should.equal(1)
 
 
 @mock_ec2_deprecated
@@ -427,18 +447,17 @@ def test_ami_attribute_user_permissions():
         **REMOVE_USERS_ARGS).should_not.throw(EC2ResponseError)
 
 
-@mock_ec2_deprecated
+@mock_ec2
 def test_ami_describe_executable_users():
     conn = boto3.client('ec2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', 'us-east-1')
     ec2.create_instances(ImageId='',
                          MinCount=1,
                          MaxCount=1)
-    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
     instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
     image_id = conn.create_image(InstanceId=instance_id,
-                                 Name='TestImage',)['ImageId']
-
+                                 Name='TestImage', )['ImageId']
 
     USER1 = '123456789011'
 
@@ -460,18 +479,17 @@ def test_ami_describe_executable_users():
     images[0]['ImageId'].should.equal(image_id)
 
 
-@mock_ec2_deprecated
+@mock_ec2
 def test_ami_describe_executable_users_negative():
     conn = boto3.client('ec2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', 'us-east-1')
     ec2.create_instances(ImageId='',
                          MinCount=1,
                          MaxCount=1)
-    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
     instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
     image_id = conn.create_image(InstanceId=instance_id,
                                  Name='TestImage')['ImageId']
-
 
     USER1 = '123456789011'
     USER2 = '113355789012'
@@ -481,6 +499,7 @@ def test_ami_describe_executable_users_negative():
                      'OperationType': 'add',
                      'UserIds': [USER1]}
 
+    # Add users and get no images
     # Add users and get no images
     conn.modify_image_attribute(**ADD_USER_ARGS)
 
@@ -493,18 +512,17 @@ def test_ami_describe_executable_users_negative():
     images.should.have.length_of(0)
 
 
-@mock_ec2_deprecated
+@mock_ec2
 def test_ami_describe_executable_users_and_filter():
     conn = boto3.client('ec2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', 'us-east-1')
     ec2.create_instances(ImageId='',
                          MinCount=1,
                          MaxCount=1)
-    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    response = conn.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
     instance_id = response['Reservations'][0]['Instances'][0]['InstanceId']
     image_id = conn.create_image(InstanceId=instance_id,
-                                 Name='ImageToDelete',)['ImageId']
-
+                                 Name='ImageToDelete', )['ImageId']
 
     USER1 = '123456789011'
 
@@ -667,12 +685,34 @@ def test_ami_attribute_error_cases():
 
 
 @mock_ec2
-def test_ami_filter_wildcard():
+def test_ami_describe_non_existent():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
-    instance = ec2.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
-    image = instance.create_image(Name='test-image')
-    filter_result = list(ec2.images.filter(Owners=['111122223333'], Filters=[{'Name':'name', 'Values':['test*']}]))
-    assert filter_result == [image]
+    # Valid pattern but non-existent id
+    img = ec2.Image('ami-abcd1234')
+    with assert_raises(ClientError):
+        img.load()
+    # Invalid ami pattern
+    img = ec2.Image('not_an_ami_id')
+    with assert_raises(ClientError):
+        img.load()
+
+
+@mock_ec2
+def test_ami_filter_wildcard():
+    ec2_resource = boto3.resource('ec2', region_name='us-west-1')
+    ec2_client = boto3.client('ec2', region_name='us-west-1')
+
+    instance = ec2_resource.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
+    instance.create_image(Name='test-image')
+
+    # create an image with the same owner but will not match the filter
+    instance.create_image(Name='not-matching-image')
+
+    my_images = ec2_client.describe_images(
+        Owners=['111122223333'],
+        Filters=[{'Name': 'name', 'Values': ['test*']}]
+    )['Images']
+    my_images.should.have.length_of(1)
 
 
 @mock_ec2
@@ -691,3 +731,46 @@ def test_ami_filter_by_owner_id():
     assert all(ubuntu_ids) and ubuntu_ids[0] == ubuntu_id
     # Check we actually have a subset of images
     assert len(ubuntu_ids) < len(all_ids)
+
+
+@mock_ec2
+def test_ami_filter_by_self():
+    ec2_resource = boto3.resource('ec2', region_name='us-west-1')
+    ec2_client = boto3.client('ec2', region_name='us-west-1')
+
+    my_images = ec2_client.describe_images(Owners=['self'])['Images']
+    my_images.should.have.length_of(0)
+
+    # Create a new image
+    instance = ec2_resource.create_instances(ImageId='ami-1234abcd', MinCount=1, MaxCount=1)[0]
+    instance.create_image(Name='test-image')
+
+    my_images = ec2_client.describe_images(Owners=['self'])['Images']
+    my_images.should.have.length_of(1)
+
+
+@mock_ec2
+def test_ami_snapshots_have_correct_owner():
+    ec2_client = boto3.client('ec2', region_name='us-west-1')
+
+    images_response = ec2_client.describe_images()
+
+    owner_id_to_snapshot_ids = {}
+    for image in images_response['Images']:
+        owner_id = image['OwnerId']
+        snapshot_ids = [
+            block_device_mapping['Ebs']['SnapshotId']
+            for block_device_mapping in image['BlockDeviceMappings']
+        ]
+        existing_snapshot_ids = owner_id_to_snapshot_ids.get(owner_id, [])
+        owner_id_to_snapshot_ids[owner_id] = (
+            existing_snapshot_ids + snapshot_ids
+        )
+
+    for owner_id in owner_id_to_snapshot_ids:
+        snapshots_rseponse = ec2_client.describe_snapshots(
+            SnapshotIds=owner_id_to_snapshot_ids[owner_id]
+        )
+
+        for snapshot in snapshots_rseponse['Snapshots']:
+            assert owner_id == snapshot['OwnerId']

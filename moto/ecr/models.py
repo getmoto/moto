@@ -1,14 +1,14 @@
 from __future__ import unicode_literals
-# from datetime import datetime
+
+import hashlib
+from copy import copy
 from random import random
 
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
-from copy import copy
-import hashlib
-
 from moto.ecr.exceptions import ImageNotFoundException, RepositoryNotFoundException
 
+from botocore.exceptions import ParamValidationError
 
 DEFAULT_REGISTRY_ID = '012345678910'
 
@@ -145,6 +145,17 @@ class Image(BaseObject):
         response_object['imagePushedAt'] = '2017-05-09'
         return response_object
 
+    @property
+    def response_batch_get_image(self):
+        response_object = {}
+        response_object['imageId'] = {}
+        response_object['imageId']['imageTag'] = self.image_tag
+        response_object['imageId']['imageDigest'] = self.get_image_digest()
+        response_object['imageManifest'] = self.image_manifest
+        response_object['repositoryName'] = self.repository
+        response_object['registryId'] = self.registry_id
+        return response_object
+
 
 class ECRBackend(BaseBackend):
 
@@ -244,6 +255,39 @@ class ECRBackend(BaseBackend):
         image = Image(image_tag, image_manifest, repository_name)
         repository.images.append(image)
         return image
+
+    def batch_get_image(self, repository_name, registry_id=None, image_ids=None, accepted_media_types=None):
+        if repository_name in self.repositories:
+            repository = self.repositories[repository_name]
+        else:
+            raise RepositoryNotFoundException(repository_name, registry_id or DEFAULT_REGISTRY_ID)
+
+        if not image_ids:
+            raise ParamValidationError(msg='Missing required parameter in input: "imageIds"')
+
+        response = {
+            'images': [],
+            'failures': [],
+        }
+
+        for image_id in image_ids:
+            found = False
+            for image in repository.images:
+                if (('imageDigest' in image_id and image.get_image_digest() == image_id['imageDigest']) or
+                        ('imageTag' in image_id and image.image_tag == image_id['imageTag'])):
+                    found = True
+                    response['images'].append(image.response_batch_get_image)
+
+        if not found:
+            response['failures'].append({
+                'imageId': {
+                    'imageTag': image_id.get('imageTag', 'null')
+                },
+                'failureCode': 'ImageNotFound',
+                'failureReason': 'Requested image not found'
+            })
+
+        return response
 
 
 ecr_backends = {}
