@@ -277,6 +277,33 @@ def test_create_stack_from_s3_url():
 
 
 @mock_cloudformation
+def test_update_stack_with_previous_value():
+    name = 'update_stack_with_previous_value'
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName=name, TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=[
+            {'ParameterKey': 'TagName', 'ParameterValue': 'foo'},
+            {'ParameterKey': 'TagDescription', 'ParameterValue': 'bar'},
+        ]
+    )
+    cf_conn.update_stack(
+        StackName=name, UsePreviousTemplate=True,
+        Parameters=[
+            {'ParameterKey': 'TagName', 'UsePreviousValue': True},
+            {'ParameterKey': 'TagDescription', 'ParameterValue': 'not bar'},
+        ]
+    )
+    stack = cf_conn.describe_stacks(StackName=name)['Stacks'][0]
+    tag_name = [x['ParameterValue'] for x in stack['Parameters']
+                if x['ParameterKey'] == 'TagName'][0]
+    tag_desc = [x['ParameterValue'] for x in stack['Parameters']
+                if x['ParameterKey'] == 'TagDescription'][0]
+    assert tag_name == 'foo'
+    assert tag_desc == 'not bar'
+
+
+@mock_cloudformation
 @mock_s3
 @mock_ec2
 def test_update_stack_from_s3_url():
