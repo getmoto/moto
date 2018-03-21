@@ -229,7 +229,7 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   <status>pending</status>
   <startTime>{{ snapshot.start_time}}</startTime>
   <progress>60%</progress>
-  <ownerId>123456789012</ownerId>
+  <ownerId>{{ snapshot.owner_id }}</ownerId>
   <volumeSize>{{ snapshot.volume.size }}</volumeSize>
   <description>{{ snapshot.description }}</description>
   <encrypted>{{ snapshot.encrypted }}</encrypted>
@@ -245,7 +245,7 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
              <status>{{ snapshot.status }}</status>
              <startTime>{{ snapshot.start_time}}</startTime>
              <progress>100%</progress>
-             <ownerId>123456789012</ownerId>
+             <ownerId>{{ snapshot.owner_id }}</ownerId>
             <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
              <encrypted>{{ snapshot.encrypted }}</encrypted>
