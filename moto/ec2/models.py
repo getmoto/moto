@@ -24,51 +24,54 @@ from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, camelcase_to_underscores
 from .exceptions import (
-    EC2ClientError,
+    CidrLimitExceeded,
     DependencyViolationError,
-    MissingParameterError,
+    EC2ClientError,
+    FilterNotImplementedError,
+    GatewayNotAttachedError,
+    InvalidAddressError,
+    InvalidAllocationIdError,
+    InvalidAMIIdError,
+    InvalidAMIAttributeItemValueError,
+    InvalidAssociationIdError,
+    InvalidCIDRSubnetError,
+    InvalidCustomerGatewayIdError,
+    InvalidDHCPOptionsIdError,
+    InvalidDomainError,
+    InvalidID,
+    InvalidInstanceIdError,
+    InvalidInternetGatewayIdError,
+    InvalidKeyPairDuplicateError,
+    InvalidKeyPairNameError,
+    InvalidNetworkAclIdError,
+    InvalidNetworkAttachmentIdError,
+    InvalidNetworkInterfaceIdError,
     InvalidParameterValueError,
     InvalidParameterValueErrorTagNull,
-    InvalidDHCPOptionsIdError,
-    MalformedDHCPOptionsIdError,
-    InvalidKeyPairNameError,
-    InvalidKeyPairDuplicateError,
-    InvalidInternetGatewayIdError,
-    GatewayNotAttachedError,
-    ResourceAlreadyAssociatedError,
-    InvalidVPCIdError,
-    InvalidSubnetIdError,
-    InvalidNetworkInterfaceIdError,
-    InvalidNetworkAttachmentIdError,
-    InvalidSecurityGroupDuplicateError,
-    InvalidSecurityGroupNotFoundError,
     InvalidPermissionNotFoundError,
     InvalidPermissionDuplicateError,
     InvalidRouteTableIdError,
     InvalidRouteError,
-    InvalidInstanceIdError,
-    InvalidAMIIdError,
-    InvalidAMIAttributeItemValueError,
+    InvalidSecurityGroupDuplicateError,
+    InvalidSecurityGroupNotFoundError,
     InvalidSnapshotIdError,
+    InvalidSubnetIdError,
     InvalidVolumeIdError,
     InvalidVolumeAttachmentError,
-    InvalidDomainError,
-    InvalidAddressError,
-    InvalidAllocationIdError,
-    InvalidAssociationIdError,
+    InvalidVpcCidrBlockAssociationIdError,
     InvalidVPCPeeringConnectionIdError,
     InvalidVPCPeeringConnectionStateTransitionError,
-    TagLimitExceeded,
-    InvalidID,
-    InvalidCIDRSubnetError,
-    InvalidNetworkAclIdError,
+    InvalidVPCIdError,
     InvalidVpnGatewayIdError,
     InvalidVpnConnectionIdError,
-    InvalidCustomerGatewayIdError,
-    RulesPerSecurityGroupLimitExceededError,
+    MalformedAMIIdError,
+    MalformedDHCPOptionsIdError,
+    MissingParameterError,
     MotoNotImplementedError,
-    FilterNotImplementedError,
-    MalformedAMIIdError)
+    OperationNotPermitted,
+    ResourceAlreadyAssociatedError,
+    RulesPerSecurityGroupLimitExceededError,
+    TagLimitExceeded)
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
     EC2_PREFIX_TO_RESOURCE,
@@ -81,6 +84,7 @@ from .utils import (
     random_instance_id,
     random_internet_gateway_id,
     random_ip,
+    random_ipv6_cidr,
     random_nat_gateway_id,
     random_key_pair,
     random_private_ip,
@@ -97,6 +101,7 @@ from .utils import (
     random_subnet_association_id,
     random_volume_id,
     random_vpc_id,
+    random_vpc_cidr_association_id,
     random_vpc_peering_connection_id,
     generic_filter,
     is_valid_resource_id,
@@ -2005,10 +2010,13 @@ class EBSBackend(object):
 
 
 class VPC(TaggedEC2Resource):
-    def __init__(self, ec2_backend, vpc_id, cidr_block, is_default, instance_tenancy='default'):
+    def __init__(self, ec2_backend, vpc_id, cidr_block, is_default, instance_tenancy='default',
+                 amazon_provided_ipv6_cidr_block=False):
+
         self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
+        self.cidr_block_association_set = {}
         self.dhcp_options = None
         self.state = 'available'
         self.instance_tenancy = instance_tenancy
@@ -2017,6 +2025,10 @@ class VPC(TaggedEC2Resource):
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
         self.enable_dns_hostnames = 'true' if is_default else 'false'
+
+        self.associate_vpc_cidr_block(cidr_block)
+        if amazon_provided_ipv6_cidr_block:
+            self.associate_vpc_cidr_block(cidr_block, amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -2043,6 +2055,12 @@ class VPC(TaggedEC2Resource):
             return self.id
         elif filter_name in ('cidr', 'cidr-block', 'cidrBlock'):
             return self.cidr_block
+        elif filter_name in ('cidr-block-association.cidr-block', 'ipv6-cidr-block-association.ipv6-cidr-block'):
+            return [c['cidr_block'] for c in self.get_cidr_block_association_set(ipv6='ipv6' in filter_name)]
+        elif filter_name in ('cidr-block-association.association-id', 'ipv6-cidr-block-association.association-id'):
+            return self.cidr_block_association_set.keys()
+        elif filter_name in ('cidr-block-association.state', 'ipv6-cidr-block-association.state'):
+            return [c['cidr_block_state']['state'] for c in self.get_cidr_block_association_set(ipv6='ipv6' in filter_name)]
         elif filter_name in ('instance_tenancy', 'InstanceTenancy'):
             return self.instance_tenancy
         elif filter_name in ('is-default', 'isDefault'):
@@ -2054,8 +2072,37 @@ class VPC(TaggedEC2Resource):
                 return None
             return self.dhcp_options.id
         else:
-            return super(VPC, self).get_filter_value(
-                filter_name, 'DescribeVpcs')
+            return super(VPC, self).get_filter_value(filter_name, 'DescribeVpcs')
+
+    def associate_vpc_cidr_block(self, cidr_block, amazon_provided_ipv6_cidr_block=False):
+        max_associations = 5 if not amazon_provided_ipv6_cidr_block else 1
+
+        if len(self.get_cidr_block_association_set(amazon_provided_ipv6_cidr_block)) >= max_associations:
+            raise CidrLimitExceeded(self.id, max_associations)
+
+        association_id = random_vpc_cidr_association_id()
+
+        association_set = {
+            'association_id': association_id,
+            'cidr_block_state': {'state': 'associated', 'StatusMessage': ''}
+        }
+
+        association_set['cidr_block'] = random_ipv6_cidr() if amazon_provided_ipv6_cidr_block else cidr_block
+        self.cidr_block_association_set[association_id] = association_set
+        return association_set
+
+    def disassociate_vpc_cidr_block(self, association_id):
+        if self.cidr_block == self.cidr_block_association_set.get(association_id, {}).get('cidr_block'):
+            raise OperationNotPermitted(association_id)
+
+        response = self.cidr_block_association_set.pop(association_id, {})
+        if response:
+            response['vpc_id'] = self.id
+            response['cidr_block_state']['state'] = 'disassociating'
+        return response
+
+    def get_cidr_block_association_set(self, ipv6=False):
+        return [c for c in self.cidr_block_association_set.values() if ('::/' if ipv6 else '.') in c.get('cidr_block')]
 
 
 class VPCBackend(object):
@@ -2063,10 +2110,9 @@ class VPCBackend(object):
         self.vpcs = {}
         super(VPCBackend, self).__init__()
 
-    def create_vpc(self, cidr_block, instance_tenancy='default'):
+    def create_vpc(self, cidr_block, instance_tenancy='default', amazon_provided_ipv6_cidr_block=False):
         vpc_id = random_vpc_id()
-        vpc = VPC(self, vpc_id, cidr_block, len(
-            self.vpcs) == 0, instance_tenancy)
+        vpc = VPC(self, vpc_id, cidr_block, len(self.vpcs) == 0, instance_tenancy, amazon_provided_ipv6_cidr_block)
         self.vpcs[vpc_id] = vpc
 
         # AWS creates a default main route table and security group.
@@ -2138,6 +2184,18 @@ class VPCBackend(object):
             setattr(vpc, attr_name, attr_value)
         else:
             raise InvalidParameterValueError(attr_name)
+
+    def disassociate_vpc_cidr_block(self, association_id):
+        for vpc in self.vpcs.values():
+            response = vpc.disassociate_vpc_cidr_block(association_id)
+            if response:
+                return response
+        else:
+            raise InvalidVpcCidrBlockAssociationIdError(association_id)
+
+    def associate_vpc_cidr_block(self, vpc_id, cidr_block, amazon_provided_ipv6_cidr_block):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.associate_vpc_cidr_block(cidr_block, amazon_provided_ipv6_cidr_block)
 
 
 class VPCPeeringConnectionStatus(object):
