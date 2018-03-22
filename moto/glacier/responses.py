@@ -72,17 +72,25 @@ class GlacierResponse(_TemplateEnvironmentMixin):
 
     def _vault_archive_response(self, request, full_url, headers):
         method = request.method
-        body = request.body
+        if hasattr(request, 'body'):
+            body = request.body
+        else:
+            body = request.data
+        description = ""
+        if 'x-amz-archive-description' in request.headers:
+            description = request.headers['x-amz-archive-description']
         parsed_url = urlparse(full_url)
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         vault_name = full_url.split("/")[-2]
 
         if method == 'POST':
-            return self._vault_archive_response_post(vault_name, body, querystring, headers)
+            return self._vault_archive_response_post(vault_name, body, description, querystring, headers)
+        else:
+            return 400, headers, "400 Bad Request"
 
-    def _vault_archive_response_post(self, vault_name, body, querystring, headers):
+    def _vault_archive_response_post(self, vault_name, body, description, querystring, headers):
         vault = self.backend.get_vault(vault_name)
-        vault_id = vault.create_archive(body)
+        vault_id = vault.create_archive(body, description)
         headers['x-amz-archive-id'] = vault_id
         return 201, headers, ""
 
@@ -110,7 +118,10 @@ class GlacierResponse(_TemplateEnvironmentMixin):
 
     def _vault_jobs_response(self, request, full_url, headers):
         method = request.method
-        body = request.body
+        if hasattr(request, 'body'):
+            body = request.body
+        else:
+            body = request.data
         account_id = full_url.split("/")[1]
         vault_name = full_url.split("/")[-2]
 
@@ -125,11 +136,17 @@ class GlacierResponse(_TemplateEnvironmentMixin):
             })
         elif method == 'POST':
             json_body = json.loads(body.decode("utf-8"))
-            archive_id = json_body['ArchiveId']
-            job_id = self.backend.initiate_job(vault_name, archive_id)
+            job_type = json_body['Type']
+            archive_id = None
+            if 'ArchiveId' in json_body:
+                archive_id = json_body['ArchiveId']
+            if 'Tier' in json_body:
+                tier = json_body["Tier"]
+            else:
+                tier = "Standard"
+            job_id = self.backend.initiate_job(vault_name, job_type, tier, archive_id)
             headers['x-amz-job-id'] = job_id
-            headers[
-                'Location'] = "/{0}/vaults/{1}/jobs/{2}".format(account_id, vault_name, job_id)
+            headers['Location'] = "/{0}/vaults/{1}/jobs/{2}".format(account_id, vault_name, job_id)
             return 202, headers, ""
 
     @classmethod
@@ -155,8 +172,14 @@ class GlacierResponse(_TemplateEnvironmentMixin):
     def _vault_jobs_output_response(self, request, full_url, headers):
         vault_name = full_url.split("/")[-4]
         job_id = full_url.split("/")[-2]
-
         vault = self.backend.get_vault(vault_name)
-        output = vault.get_job_output(job_id)
-        headers['content-type'] = 'application/octet-stream'
-        return 200, headers, output
+        if vault.job_ready(job_id):
+            output = vault.get_job_output(job_id)
+            if isinstance(output, dict):
+                headers['content-type'] = 'application/json'
+                return 200, headers, json.dumps(output)
+            else:
+                headers['content-type'] = 'application/octet-stream'
+                return 200, headers, output
+        else:
+            return 404, headers, "404 Not Found"
