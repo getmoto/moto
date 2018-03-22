@@ -185,6 +185,7 @@
 
 ## appstream - 0% implemented
 - [ ] associate_fleet
+- [ ] copy_image
 - [ ] create_directory_config
 - [ ] create_fleet
 - [ ] create_image_builder
@@ -240,6 +241,7 @@
 - [ ] list_resolvers
 - [ ] list_types
 - [ ] start_schema_creation
+- [ ] update_api_key
 - [ ] update_data_source
 - [ ] update_graphql_api
 - [ ] update_resolver
@@ -312,6 +314,12 @@
 - [ ] terminate_instance_in_auto_scaling_group
 - [X] update_auto_scaling_group
 
+## autoscaling-plans - 0% implemented
+- [ ] create_scaling_plan
+- [ ] delete_scaling_plan
+- [ ] describe_scaling_plan_resources
+- [ ] describe_scaling_plans
+
 ## batch - 93% implemented
 - [ ] cancel_job
 - [X] create_compute_environment
@@ -348,6 +356,8 @@
 ## ce - 0% implemented
 - [ ] get_cost_and_usage
 - [ ] get_dimension_values
+- [ ] get_reservation_coverage
+- [ ] get_reservation_purchase_recommendation
 - [ ] get_reservation_utilization
 - [ ] get_tags
 
@@ -642,6 +652,7 @@
 - [ ] post_comment_for_compared_commit
 - [ ] post_comment_for_pull_request
 - [ ] post_comment_reply
+- [ ] put_file
 - [ ] put_repository_triggers
 - [ ] test_repository_triggers
 - [ ] update_comment
@@ -668,6 +679,7 @@
 - [ ] delete_application
 - [ ] delete_deployment_config
 - [ ] delete_deployment_group
+- [ ] delete_git_hub_account_token
 - [ ] deregister_on_premises_instance
 - [ ] get_application
 - [ ] get_application_revision
@@ -822,6 +834,7 @@
 - [ ] get_device
 - [ ] get_group
 - [ ] get_identity_provider_by_identifier
+- [ ] get_signing_certificate
 - [ ] get_ui_customization
 - [ ] get_user
 - [ ] get_user_attribute_verification_code
@@ -891,6 +904,7 @@
 - [ ] start_topics_detection_job
 
 ## config - 0% implemented
+- [ ] batch_get_resource_config
 - [ ] delete_config_rule
 - [ ] delete_configuration_recorder
 - [ ] delete_delivery_channel
@@ -1109,6 +1123,7 @@
 - [ ] describe_events
 - [ ] describe_orderable_replication_instances
 - [ ] describe_refresh_schemas_status
+- [ ] describe_replication_instance_task_logs
 - [ ] describe_replication_instances
 - [ ] describe_replication_subnet_groups
 - [ ] describe_replication_task_assessment_results
@@ -1122,6 +1137,7 @@
 - [ ] modify_replication_instance
 - [ ] modify_replication_subnet_group
 - [ ] modify_replication_task
+- [ ] reboot_replication_instance
 - [ ] refresh_schemas
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
@@ -1222,7 +1238,7 @@
 - [ ] associate_iam_instance_profile
 - [X] associate_route_table
 - [ ] associate_subnet_cidr_block
-- [ ] associate_vpc_cidr_block
+- [X] associate_vpc_cidr_block
 - [ ] attach_classic_link_vpc
 - [X] attach_internet_gateway
 - [X] attach_network_interface
@@ -1312,6 +1328,7 @@
 - [X] deregister_image
 - [ ] describe_account_attributes
 - [X] describe_addresses
+- [ ] describe_aggregate_id_format
 - [X] describe_availability_zones
 - [ ] describe_bundle_tasks
 - [ ] describe_classic_link_instances
@@ -1350,6 +1367,7 @@
 - [X] describe_network_interfaces
 - [ ] describe_placement_groups
 - [ ] describe_prefix_lists
+- [ ] describe_principal_id_format
 - [X] describe_regions
 - [ ] describe_reserved_instances
 - [ ] describe_reserved_instances_listings
@@ -1400,7 +1418,7 @@
 - [ ] disassociate_iam_instance_profile
 - [X] disassociate_route_table
 - [ ] disassociate_subnet_cidr_block
-- [ ] disassociate_vpc_cidr_block
+- [X] disassociate_vpc_cidr_block
 - [ ] enable_vgw_route_propagation
 - [ ] enable_volume_io
 - [ ] enable_vpc_classic_link
@@ -1605,6 +1623,7 @@
 - [ ] delete_configuration_template
 - [ ] delete_environment_configuration
 - [ ] delete_platform_version
+- [ ] describe_account_attributes
 - [ ] describe_application_versions
 - [ ] describe_applications
 - [ ] describe_configuration_options
@@ -1843,6 +1862,7 @@
 - [ ] resolve_alias
 - [ ] search_game_sessions
 - [ ] start_game_session_placement
+- [ ] start_match_backfill
 - [ ] start_matchmaking
 - [ ] stop_game_session_placement
 - [ ] stop_matchmaking
@@ -1897,6 +1917,7 @@
 - [ ] batch_delete_connection
 - [ ] batch_delete_partition
 - [ ] batch_delete_table
+- [ ] batch_delete_table_version
 - [ ] batch_get_partition
 - [ ] batch_stop_job_run
 - [ ] create_classifier
@@ -1918,6 +1939,7 @@
 - [ ] delete_job
 - [ ] delete_partition
 - [ ] delete_table
+- [ ] delete_table_version
 - [ ] delete_trigger
 - [ ] delete_user_defined_function
 - [ ] get_catalog_import_status
@@ -1942,6 +1964,7 @@
 - [ ] get_partitions
 - [ ] get_plan
 - [ ] get_table
+- [ ] get_table_version
 - [ ] get_table_versions
 - [ ] get_tables
 - [ ] get_trigger
@@ -2396,7 +2419,7 @@
 - [ ] start_next_pending_job_execution
 - [ ] update_job_execution
 
-## kinesis - 59% implemented
+## kinesis - 56% implemented
 - [X] add_tags_to_stream
 - [X] create_stream
 - [ ] decrease_stream_retention_period
@@ -2409,6 +2432,7 @@
 - [X] get_records
 - [X] get_shard_iterator
 - [ ] increase_stream_retention_period
+- [ ] list_shards
 - [X] list_streams
 - [X] list_tags_for_stream
 - [X] merge_shards
@@ -2551,6 +2575,7 @@
 - [ ] get_builtin_intents
 - [ ] get_builtin_slot_types
 - [ ] get_export
+- [ ] get_import
 - [ ] get_intent
 - [ ] get_intent_versions
 - [ ] get_intents
@@ -2562,6 +2587,7 @@
 - [ ] put_bot_alias
 - [ ] put_intent
 - [ ] put_slot_type
+- [ ] start_import
 
 ## lex-runtime - 0% implemented
 - [ ] post_content
@@ -2749,6 +2775,9 @@
 - [ ] list_inputs
 - [ ] start_channel
 - [ ] stop_channel
+- [ ] update_channel
+- [ ] update_input
+- [ ] update_input_security_group
 
 ## mediapackage - 0% implemented
 - [ ] create_channel
@@ -2767,10 +2796,13 @@
 - [ ] create_container
 - [ ] delete_container
 - [ ] delete_container_policy
+- [ ] delete_cors_policy
 - [ ] describe_container
 - [ ] get_container_policy
+- [ ] get_cors_policy
 - [ ] list_containers
 - [ ] put_container_policy
+- [ ] put_cors_policy
 
 ## mediastore-data - 0% implemented
 - [ ] delete_object
@@ -2873,13 +2905,13 @@
 - [ ] update_notification_settings
 - [ ] update_qualification_type
 
-## opsworks - 9% implemented
+## opsworks - 12% implemented
 - [ ] assign_instance
 - [ ] assign_volume
 - [ ] associate_elastic_ip
 - [ ] attach_elastic_load_balancer
 - [ ] clone_stack
-- [ ] create_app
+- [X] create_app
 - [ ] create_deployment
 - [X] create_instance
 - [X] create_layer
@@ -2896,7 +2928,7 @@
 - [ ] deregister_rds_db_instance
 - [ ] deregister_volume
 - [ ] describe_agent_versions
-- [ ] describe_apps
+- [X] describe_apps
 - [ ] describe_commands
 - [ ] describe_deployments
 - [ ] describe_ecs_clusters
@@ -2906,6 +2938,7 @@
 - [X] describe_layers
 - [ ] describe_load_based_auto_scaling
 - [ ] describe_my_user_profile
+- [ ] describe_operating_systems
 - [ ] describe_permissions
 - [ ] describe_raid_arrays
 - [ ] describe_rds_db_instances
@@ -3012,6 +3045,7 @@
 ## pinpoint - 0% implemented
 - [ ] create_app
 - [ ] create_campaign
+- [ ] create_export_job
 - [ ] create_import_job
 - [ ] create_segment
 - [ ] delete_adm_channel
@@ -3023,6 +3057,7 @@
 - [ ] delete_baidu_channel
 - [ ] delete_campaign
 - [ ] delete_email_channel
+- [ ] delete_endpoint
 - [ ] delete_event_stream
 - [ ] delete_gcm_channel
 - [ ] delete_segment
@@ -3044,10 +3079,13 @@
 - [ ] get_email_channel
 - [ ] get_endpoint
 - [ ] get_event_stream
+- [ ] get_export_job
+- [ ] get_export_jobs
 - [ ] get_gcm_channel
 - [ ] get_import_job
 - [ ] get_import_jobs
 - [ ] get_segment
+- [ ] get_segment_export_jobs
 - [ ] get_segment_import_jobs
 - [ ] get_segment_version
 - [ ] get_segment_versions
@@ -3382,7 +3420,7 @@
 - [ ] update_tags_for_domain
 - [ ] view_billing
 
-## s3 - 14% implemented
+## s3 - 15% implemented
 - [ ] abort_multipart_upload
 - [ ] complete_multipart_upload
 - [ ] copy_object
@@ -3447,7 +3485,7 @@
 - [X] put_bucket_logging
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification
-- [ ] put_bucket_notification_configuration
+- [X] put_bucket_notification_configuration
 - [ ] put_bucket_policy
 - [ ] put_bucket_replication
 - [ ] put_bucket_request_payment
@@ -3467,21 +3505,25 @@
 - [ ] create_endpoint_config
 - [ ] create_model
 - [ ] create_notebook_instance
+- [ ] create_notebook_instance_lifecycle_config
 - [ ] create_presigned_notebook_instance_url
 - [ ] create_training_job
 - [ ] delete_endpoint
 - [ ] delete_endpoint_config
 - [ ] delete_model
 - [ ] delete_notebook_instance
+- [ ] delete_notebook_instance_lifecycle_config
 - [ ] delete_tags
 - [ ] describe_endpoint
 - [ ] describe_endpoint_config
 - [ ] describe_model
 - [ ] describe_notebook_instance
+- [ ] describe_notebook_instance_lifecycle_config
 - [ ] describe_training_job
 - [ ] list_endpoint_configs
 - [ ] list_endpoints
 - [ ] list_models
+- [ ] list_notebook_instance_lifecycle_configs
 - [ ] list_notebook_instances
 - [ ] list_tags
 - [ ] list_training_jobs
@@ -3491,6 +3533,7 @@
 - [ ] update_endpoint
 - [ ] update_endpoint_weights_and_capacities
 - [ ] update_notebook_instance
+- [ ] update_notebook_instance_lifecycle_config
 
 ## sagemaker-runtime - 0% implemented
 - [ ] invoke_endpoint
@@ -3511,6 +3554,7 @@
 - [ ] create_application
 - [ ] create_application_version
 - [ ] create_cloud_formation_change_set
+- [ ] delete_application
 - [ ] get_application
 - [ ] get_application_policy
 - [ ] list_application_versions
@@ -3528,13 +3572,16 @@
 - [ ] create_portfolio
 - [ ] create_portfolio_share
 - [ ] create_product
+- [ ] create_provisioned_product_plan
 - [ ] create_provisioning_artifact
 - [ ] create_tag_option
 - [ ] delete_constraint
 - [ ] delete_portfolio
 - [ ] delete_portfolio_share
 - [ ] delete_product
+- [ ] delete_provisioned_product_plan
 - [ ] delete_provisioning_artifact
+- [ ] delete_tag_option
 - [ ] describe_constraint
 - [ ] describe_copy_product_status
 - [ ] describe_portfolio
@@ -3542,6 +3589,7 @@
 - [ ] describe_product_as_admin
 - [ ] describe_product_view
 - [ ] describe_provisioned_product
+- [ ] describe_provisioned_product_plan
 - [ ] describe_provisioning_artifact
 - [ ] describe_provisioning_parameters
 - [ ] describe_record
@@ -3549,6 +3597,7 @@
 - [ ] disassociate_principal_from_portfolio
 - [ ] disassociate_product_from_portfolio
 - [ ] disassociate_tag_option_from_resource
+- [ ] execute_provisioned_product_plan
 - [ ] list_accepted_portfolio_shares
 - [ ] list_constraints_for_portfolio
 - [ ] list_launch_paths
@@ -3556,6 +3605,7 @@
 - [ ] list_portfolios
 - [ ] list_portfolios_for_product
 - [ ] list_principals_for_portfolio
+- [ ] list_provisioned_product_plans
 - [ ] list_provisioning_artifacts
 - [ ] list_record_history
 - [ ] list_resources_for_tag_option
@@ -3565,6 +3615,7 @@
 - [ ] scan_provisioned_products
 - [ ] search_products
 - [ ] search_products_as_admin
+- [ ] search_provisioned_products
 - [ ] terminate_provisioned_product
 - [ ] update_constraint
 - [ ] update_portfolio
@@ -3590,6 +3641,7 @@
 - [ ] list_operations
 - [ ] list_services
 - [ ] register_instance
+- [ ] update_instance_custom_health_status
 - [ ] update_service
 
 ## ses - 11% implemented
@@ -3740,7 +3792,7 @@
 - [X] subscribe
 - [X] unsubscribe
 
-## sqs - 60% implemented
+## sqs - 65% implemented
 - [X] add_permission
 - [X] change_message_visibility
 - [ ] change_message_visibility_batch
@@ -3758,7 +3810,7 @@
 - [X] remove_permission
 - [X] send_message
 - [ ] send_message_batch
-- [ ] set_queue_attributes
+- [X] set_queue_attributes
 - [X] tag_queue
 - [X] untag_queue
 
@@ -4005,6 +4057,11 @@
 - [X] start_workflow_execution
 - [X] terminate_workflow_execution
 
+## transcribe - 0% implemented
+- [ ] get_transcription_job
+- [ ] list_transcription_jobs
+- [ ] start_transcription_job
+
 ## translate - 0% implemented
 - [ ] translate_text
 
@@ -4024,6 +4081,7 @@
 - [ ] delete_byte_match_set
 - [ ] delete_geo_match_set
 - [ ] delete_ip_set
+- [ ] delete_permission_policy
 - [ ] delete_rate_based_rule
 - [ ] delete_regex_match_set
 - [ ] delete_regex_pattern_set
@@ -4038,6 +4096,7 @@
 - [ ] get_change_token_status
 - [ ] get_geo_match_set
 - [ ] get_ip_set
+- [ ] get_permission_policy
 - [ ] get_rate_based_rule
 - [ ] get_rate_based_rule_managed_keys
 - [ ] get_regex_match_set
@@ -4063,6 +4122,7 @@
 - [ ] list_subscribed_rule_groups
 - [ ] list_web_acls
 - [ ] list_xss_match_sets
+- [ ] put_permission_policy
 - [ ] update_byte_match_set
 - [ ] update_geo_match_set
 - [ ] update_ip_set
@@ -4093,6 +4153,7 @@
 - [ ] delete_byte_match_set
 - [ ] delete_geo_match_set
 - [ ] delete_ip_set
+- [ ] delete_permission_policy
 - [ ] delete_rate_based_rule
 - [ ] delete_regex_match_set
 - [ ] delete_regex_pattern_set
@@ -4108,6 +4169,7 @@
 - [ ] get_change_token_status
 - [ ] get_geo_match_set
 - [ ] get_ip_set
+- [ ] get_permission_policy
 - [ ] get_rate_based_rule
 - [ ] get_rate_based_rule_managed_keys
 - [ ] get_regex_match_set
@@ -4135,6 +4197,7 @@
 - [ ] list_subscribed_rule_groups
 - [ ] list_web_acls
 - [ ] list_xss_match_sets
+- [ ] put_permission_policy
 - [ ] update_byte_match_set
 - [ ] update_geo_match_set
 - [ ] update_ip_set
