@@ -603,7 +603,7 @@ class LambdaBackend(BaseBackend):
     def list_functions(self):
         return self._lambdas.all()
 
-    def send_message(self, function_name, message, subject=None):
+    def send_message(self, function_name, message, subject=None, qualifier=None):
         event = {
             "Records": [
                 {
@@ -636,8 +636,8 @@ class LambdaBackend(BaseBackend):
             ]
 
         }
-        self._functions[function_name][-1].invoke(json.dumps(event), {}, {})
-        pass
+        func = self._lambdas.get_function(function_name, qualifier)
+        func.invoke(json.dumps(event), {}, {})
 
     def list_tags(self, resource):
         return self.get_function_by_arn(resource).tags
