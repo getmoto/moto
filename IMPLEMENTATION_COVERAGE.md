@@ -2472,8 +2472,8 @@
 - [ ] enable_key
 - [X] enable_key_rotation
 - [X] encrypt
-- [ ] generate_data_key
-- [ ] generate_data_key_without_plaintext
+- [X] generate_data_key
+- [X] generate_data_key_without_plaintext
 - [ ] generate_random
 - [X] get_key_policy
 - [X] get_key_rotation_status
