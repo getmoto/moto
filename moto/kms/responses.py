@@ -220,19 +220,49 @@ class KmsResponse(BaseResponse):
         return json.dumps({'Truncated': False, 'PolicyNames': ['default']})
 
     def encrypt(self):
-        """
-        We perform no encryption, we just encode the value as base64 and then
-        decode it in decrypt().
-        """
         value = self.parameters.get("Plaintext")
         if isinstance(value, six.text_type):
             value = value.encode('utf-8')
-        return json.dumps({"CiphertextBlob": base64.b64encode(value).decode("utf-8")})
+        return json.dumps({"CiphertextBlob": self.kms_backend.encrypt(value)})
 
     def decrypt(self):
         value = self.parameters.get("CiphertextBlob")
         return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8")})
 
+    def generate_data_key(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(key_id)
+        key_spec = self.parameters.get('KeySpec')
+        key_length = self.parameters.get('KeyLength')
+
+        try:
+            data_key = self.kms_backend.generate_data_key(key_id, key_spec, key_length)
+            crypto_key = self.kms_backend.encrypt(data_key)
+            return json.dumps({
+                "Plaintext:": data_key,
+                "CiphertextBlob": crypto_key,
+                "KeyId": self.kms_backend.get_key_id(key_id)})
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
+                '__type': 'NotFoundException'})
+
+    def generate_data_key_without_plaintext(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(key_id)
+        key_spec = self.parameters.get('KeySpec')
+        key_length = self.parameters.get('KeyLength')
+
+        try:
+            data_key = self.kms_backend.generate_data_key(key_id, key_spec, key_length)
+            crypto_key = self.kms_backend.encrypt(data_key)
+            return json.dumps({
+                "CiphertextBlob": crypto_key,
+                "KeyId": self.kms_backend.get_key_id(key_id)})
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
+                '__type': 'NotFoundException'})
 
 def _assert_valid_key_id(key_id):
     if not re.match(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$', key_id, re.IGNORECASE):

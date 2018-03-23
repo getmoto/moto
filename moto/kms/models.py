@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import base64
 import boto.kms
 from moto.core import BaseBackend, BaseModel
 from .utils import generate_key_id
@@ -131,6 +132,44 @@ class KmsBackend(BaseBackend):
 
     def get_key_policy(self, key_id):
         return self.keys[self.get_key_id(key_id)].policy
+
+    @staticmethod
+    def encrypt(data):
+        """
+        We perform no encryption, we just encode the value as base64 and then
+        decode it in decrypt().
+        """
+        return base64.b64encode(data).decode("utf-8")
+
+    @staticmethod
+    def decrypt(data):
+        return base64.b64decode(data).decode("utf-8")
+
+    def generate_data_key(self, key_id, key_spec, key_length):
+        """
+        This method simply uses the reverse of the key_id (if it exists)
+        X many times to equal the required number of bits.
+        """
+        if self.alias_exists(key_id):
+            key = self.key_to_aliases[self.get_key_id(key_id)]
+        else:
+            key = self.get_key_id(key_id)
+
+        if not self.keys[key]:
+            return None
+
+        data_key = key_id[::-1]
+        if key_spec == 'AES_128':
+            key_length = 128
+        elif key_spec == 'AES_256':
+            key_length = 256
+        else:
+            key_length = int(key_length)
+
+        repeat_count = key_length / len(data_key)
+        repeat_count = (1, repeat_count)[repeat_count == 0]
+        data_key = data_key * repeat_count
+        return data_key[:key_length]
 
 
 kms_backends = {}
