@@ -51,3 +51,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Alex Morken](https://github.com/alexmorken)
 * [Clive Li](https://github.com/cliveli)
 * [Jim Shields](https://github.com/jimjshields)
+* [William Richard](https://github.com/william-richard)
