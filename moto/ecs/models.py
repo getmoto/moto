@@ -61,7 +61,11 @@ class Cluster(BaseObject):
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+        # if properties is not provided, cloudformation will use the default values for all properties
+        if 'Properties' in cloudformation_json:
+            properties = cloudformation_json['Properties']
+        else:
+            properties = {}
 
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.create_cluster(

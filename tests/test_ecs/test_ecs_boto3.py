@@ -664,7 +664,7 @@ def test_list_container_instances():
             instanceIdentityDocument=instance_id_document)
 
         test_instance_arns.append(response['containerInstance'][
-                                  'containerInstanceArn'])
+                                      'containerInstanceArn'])
 
     response = ecs_client.list_container_instances(cluster=test_cluster_name)
 
@@ -702,7 +702,7 @@ def test_describe_container_instances():
             instanceIdentityDocument=instance_id_document)
 
         test_instance_arns.append(response['containerInstance'][
-                                  'containerInstanceArn'])
+                                      'containerInstanceArn'])
 
     test_instance_ids = list(
         map((lambda x: x.split('/')[1]), test_instance_arns))
@@ -1052,7 +1052,7 @@ def test_describe_tasks():
 
     len(response['tasks']).should.equal(2)
     set([response['tasks'][0]['taskArn'], response['tasks']
-         [1]['taskArn']]).should.equal(set(tasks_arns))
+    [1]['taskArn']]).should.equal(set(tasks_arns))
 
 
 @mock_ecs
@@ -1208,7 +1208,8 @@ def test_resource_reservation_and_release():
         cluster='test_ecs_cluster',
         containerInstances=[container_instance_arn]
     )['containerInstances'][0]
-    remaining_resources, registered_resources = _fetch_container_instance_resources(container_instance_description)
+    remaining_resources, registered_resources = _fetch_container_instance_resources(
+        container_instance_description)
     remaining_resources['CPU'].should.equal(registered_resources['CPU'] - 1024)
     remaining_resources['MEMORY'].should.equal(registered_resources['MEMORY'] - 400)
     registered_resources['PORTS'].append('80')
@@ -1223,7 +1224,8 @@ def test_resource_reservation_and_release():
         cluster='test_ecs_cluster',
         containerInstances=[container_instance_arn]
     )['containerInstances'][0]
-    remaining_resources, registered_resources = _fetch_container_instance_resources(container_instance_description)
+    remaining_resources, registered_resources = _fetch_container_instance_resources(
+        container_instance_description)
     remaining_resources['CPU'].should.equal(registered_resources['CPU'])
     remaining_resources['MEMORY'].should.equal(registered_resources['MEMORY'])
     remaining_resources['PORTS'].should.equal(registered_resources['PORTS'])
@@ -1242,6 +1244,36 @@ def test_create_cluster_through_cloudformation():
                 "Properties": {
                     "ClusterName": "testcluster"
                 }
+            }
+        }
+    }
+    template_json = json.dumps(template)
+
+    ecs_conn = boto3.client('ecs', region_name='us-west-1')
+    resp = ecs_conn.list_clusters()
+    len(resp['clusterArns']).should.equal(0)
+
+    cfn_conn = boto3.client('cloudformation', region_name='us-west-1')
+    cfn_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=template_json,
+    )
+
+    resp = ecs_conn.list_clusters()
+    len(resp['clusterArns']).should.equal(1)
+
+
+@mock_ecs
+@mock_cloudformation
+def test_create_cluster_through_cloudformation_no_name():
+    # cloudformation should create a cluster name for you if you do not provide it
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-cluster.html#cfn-ecs-cluster-clustername
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testCluster": {
+                "Type": "AWS::ECS::Cluster",
             }
         }
     }
@@ -1674,7 +1706,8 @@ def test_attributes():
         attributes=[
             {'name': 'env', 'value': 'prod'},
             {'name': 'attr1', 'value': 'instance1', 'targetId': full_arn1},
-            {'name': 'attr1', 'value': 'instance2', 'targetId': partial_arn2, 'targetType': 'container-instance'}
+            {'name': 'attr1', 'value': 'instance2', 'targetId': partial_arn2,
+             'targetType': 'container-instance'}
         ]
     )
 
@@ -1690,12 +1723,14 @@ def test_attributes():
 
     # Tests that the attrs have been set properly
     len(list(filter(lambda item: item['name'] == 'env', attrs))).should.equal(2)
-    len(list(filter(lambda item: item['name'] == 'attr1' and item['value'] == 'instance1', attrs))).should.equal(1)
+    len(list(
+        filter(lambda item: item['name'] == 'attr1' and item['value'] == 'instance1', attrs))).should.equal(1)
 
     ecs_client.delete_attributes(
         cluster=test_cluster_name,
         attributes=[
-            {'name': 'attr1', 'value': 'instance2', 'targetId': partial_arn2, 'targetType': 'container-instance'}
+            {'name': 'attr1', 'value': 'instance2', 'targetId': partial_arn2,
+             'targetType': 'container-instance'}
         ]
     )
     NUM_CUSTOM_ATTRIBUTES -= 1
@@ -1806,7 +1841,8 @@ def test_default_container_instance_attributes():
         {'name': 'ecs.instance-type', 'value': test_instance.instance_type},
         {'name': 'ecs.os-type', 'value': test_instance.platform or 'linux'}
     ]
-    assert sorted(default_attributes, key=lambda item: item['name']) == sorted(expected_result, key=lambda item: item['name'])
+    assert sorted(default_attributes, key=lambda item: item['name']) == sorted(expected_result,
+                                                                               key=lambda item: item['name'])
 
 
 @mock_ec2
@@ -1846,17 +1882,19 @@ def test_describe_container_instances_with_attributes():
 
     # Set attributes on container instance, one without a value
     attributes = [
-            {'name': 'env', 'value': 'prod'},
-            {'name': 'attr1', 'value': 'instance1', 'targetId': container_instance_id, 'targetType': 'container-instance'},
-            {'name': 'attr_without_value'}
-        ]
+        {'name': 'env', 'value': 'prod'},
+        {'name': 'attr1', 'value': 'instance1', 'targetId': container_instance_id,
+         'targetType': 'container-instance'},
+        {'name': 'attr_without_value'}
+    ]
     ecs_client.put_attributes(
         cluster=test_cluster_name,
         attributes=attributes
     )
 
     # Describe container instance, should have attributes previously set
-    described_instance = ecs_client.describe_container_instances(cluster=test_cluster_name, containerInstances=[container_instance_id])
+    described_instance = ecs_client.describe_container_instances(cluster=test_cluster_name,
+                                                                 containerInstances=[container_instance_id])
 
     assert len(described_instance['containerInstances']) == 1
     assert isinstance(described_instance['containerInstances'][0]['attributes'], list)
@@ -1867,7 +1905,8 @@ def test_describe_container_instances_with_attributes():
         attribute.pop('targetId', None)
         attribute.pop('targetType', None)
         cleaned_attributes.append(attribute)
-    described_attributes = sorted(described_instance['containerInstances'][0]['attributes'], key=lambda item: item['name'])
+    described_attributes = sorted(described_instance['containerInstances'][0]['attributes'],
+                                  key=lambda item: item['name'])
     expected_attributes = sorted(default_attributes + cleaned_attributes, key=lambda item: item['name'])
     assert described_attributes == expected_attributes
 
@@ -1877,10 +1916,16 @@ def _fetch_container_instance_resources(container_instance_description):
     registered_resources = {}
     remaining_resources_list = container_instance_description['remainingResources']
     registered_resources_list = container_instance_description['registeredResources']
-    remaining_resources['CPU'] = [x['integerValue'] for x in remaining_resources_list if x['name'] == 'CPU'][0]
-    remaining_resources['MEMORY'] = [x['integerValue'] for x in remaining_resources_list if x['name'] == 'MEMORY'][0]
-    remaining_resources['PORTS'] = [x['stringSetValue'] for x in remaining_resources_list if x['name'] == 'PORTS'][0]
-    registered_resources['CPU'] = [x['integerValue'] for x in registered_resources_list if x['name'] == 'CPU'][0]
-    registered_resources['MEMORY'] = [x['integerValue'] for x in registered_resources_list if x['name'] == 'MEMORY'][0]
-    registered_resources['PORTS'] = [x['stringSetValue'] for x in registered_resources_list if x['name'] == 'PORTS'][0]
+    remaining_resources['CPU'] = [x['integerValue'] for x in remaining_resources_list if x['name'] == 'CPU'][
+        0]
+    remaining_resources['MEMORY'] = \
+    [x['integerValue'] for x in remaining_resources_list if x['name'] == 'MEMORY'][0]
+    remaining_resources['PORTS'] = \
+    [x['stringSetValue'] for x in remaining_resources_list if x['name'] == 'PORTS'][0]
+    registered_resources['CPU'] = \
+    [x['integerValue'] for x in registered_resources_list if x['name'] == 'CPU'][0]
+    registered_resources['MEMORY'] = \
+    [x['integerValue'] for x in registered_resources_list if x['name'] == 'MEMORY'][0]
+    registered_resources['PORTS'] = \
+    [x['stringSetValue'] for x in registered_resources_list if x['name'] == 'PORTS'][0]
     return remaining_resources, registered_resources
