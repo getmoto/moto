@@ -15,7 +15,7 @@ from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey, \
-    InvalidNotificationDestination
+    InvalidNotificationDestination, MalformedXML
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -311,18 +311,35 @@ class FakeTag(BaseModel):
         self.value = value
 
 
+class LifecycleFilter(BaseModel):
+
+    def __init__(self, prefix=None, tag=None, and_filter=None):
+        self.prefix = prefix or ''
+        self.tag = tag
+        self.and_filter = and_filter
+
+
+class LifecycleAndFilter(BaseModel):
+
+    def __init__(self, prefix=None, tags=None):
+        self.prefix = prefix or ''
+        self.tags = tags
+
+
 class LifecycleRule(BaseModel):
 
-    def __init__(self, id=None, prefix=None, status=None, expiration_days=None,
-                 expiration_date=None, transition_days=None,
+    def __init__(self, id=None, prefix=None, lc_filter=None, status=None, expiration_days=None,
+                 expiration_date=None, transition_days=None, expired_object_delete_marker=None,
                  transition_date=None, storage_class=None):
         self.id = id
         self.prefix = prefix
+        self.filter = lc_filter
         self.status = status
         self.expiration_days = expiration_days
         self.expiration_date = expiration_date
         self.transition_days = transition_days
         self.transition_date = transition_date
+        self.expired_object_delete_marker = expired_object_delete_marker
         self.storage_class = storage_class
 
 
@@ -387,12 +404,50 @@ class FakeBucket(BaseModel):
         for rule in rules:
             expiration = rule.get('Expiration')
             transition = rule.get('Transition')
+
+            eodm = None
+            if expiration and expiration.get("ExpiredObjectDeleteMarker") is not None:
+                # This cannot be set if Date or Days is set:
+                if expiration.get("Days") or expiration.get("Date"):
+                    raise MalformedXML()
+                eodm = expiration["ExpiredObjectDeleteMarker"]
+
+            # Pull out the filter:
+            lc_filter = None
+            if rule.get("Filter"):
+                # Can't have both filter and prefix (Need to check for the presence of the Key):
+                try:
+                    if rule["Prefix"] or not rule["Prefix"]:
+                        raise MalformedXML()
+                except KeyError:
+                    pass
+
+                and_filter = None
+                if rule["Filter"].get("And"):
+                    and_tags = []
+                    if rule["Filter"]["And"].get("Tag"):
+                        if not isinstance(rule["Filter"]["And"]["Tag"], list):
+                            rule["Filter"]["And"]["Tag"] = [rule["Filter"]["And"]["Tag"]]
+
+                        for t in rule["Filter"]["And"]["Tag"]:
+                            and_tags.append(FakeTag(t["Key"], t.get("Value", '')))
+
+                    and_filter = LifecycleAndFilter(prefix=rule["Filter"]["And"]["Prefix"], tags=and_tags)
+
+                filter_tag = None
+                if rule["Filter"].get("Tag"):
+                    filter_tag = FakeTag(rule["Filter"]["Tag"]["Key"], rule["Filter"]["Tag"].get("Value", ''))
+
+                lc_filter = LifecycleFilter(prefix=rule["Filter"]["Prefix"], tag=filter_tag, and_filter=and_filter)
+
             self.rules.append(LifecycleRule(
                 id=rule.get('ID'),
                 prefix=rule.get('Prefix'),
+                lc_filter=lc_filter,
                 status=rule['Status'],
                 expiration_days=expiration.get('Days') if expiration else None,
                 expiration_date=expiration.get('Date') if expiration else None,
+                expired_object_delete_marker=eodm,
                 transition_days=transition.get('Days') if transition else None,
                 transition_date=transition.get('Date') if transition else None,
                 storage_class=transition[

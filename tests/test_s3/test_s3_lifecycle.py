@@ -1,12 +1,16 @@
 from __future__ import unicode_literals
 
 import boto
+import boto3
 from boto.exception import S3ResponseError
 from boto.s3.lifecycle import Lifecycle, Transition, Expiration, Rule
 
 import sure  # noqa
+from botocore.exceptions import ClientError
+from datetime import datetime
+from nose.tools import assert_raises
 
-from moto import mock_s3_deprecated
+from moto import mock_s3_deprecated, mock_s3
 
 
 @mock_s3_deprecated
@@ -24,6 +28,152 @@ def test_lifecycle_create():
     lifecycle.prefix.should.equal('')
     lifecycle.status.should.equal('Enabled')
     list(lifecycle.transition).should.equal([])
+
+
+@mock_s3
+def test_lifecycle_with_filters():
+    client = boto3.client("s3")
+    client.create_bucket(Bucket="bucket")
+
+    # Create a lifecycle rule with a Filter (no tags):
+    lfc = {
+        "Rules": [
+            {
+                "Expiration": {
+                    "Days": 7
+                },
+                "ID": "wholebucket",
+                "Filter": {
+                    "Prefix": ""
+                },
+                "Status": "Enabled"
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["Filter"]["Prefix"] == ''
+    assert not result["Rules"][0]["Filter"].get("And")
+    assert not result["Rules"][0]["Filter"].get("Tag")
+
+    # With a tag:
+    lfc["Rules"][0]["Filter"]["Tag"] = {
+        "Key": "mytag",
+        "Value": "mytagvalue"
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["Filter"]["Prefix"] == ''
+    assert not result["Rules"][0]["Filter"].get("And")
+    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
+    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
+
+    # With And (single tag):
+    lfc["Rules"][0]["Filter"]["And"] = {
+        "Prefix": "some/prefix",
+        "Tags": [
+            {
+                "Key": "mytag",
+                "Value": "mytagvalue"
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["Filter"]["Prefix"] == ""
+    assert result["Rules"][0]["Filter"]["And"]["Prefix"] == "some/prefix"
+    assert len(result["Rules"][0]["Filter"]["And"]["Tags"]) == 1
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Key"] == "mytag"
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
+    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
+    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
+
+    # With multiple And tags:
+    lfc["Rules"][0]["Filter"]["And"] = {
+        "Prefix": "some/prefix",
+        "Tags": [
+            {
+                "Key": "mytag",
+                "Value": "mytagvalue"
+            },
+            {
+                "Key": "mytag2",
+                "Value": "mytagvalue2"
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["Filter"]["Prefix"] == ""
+    assert result["Rules"][0]["Filter"]["And"]["Prefix"] == "some/prefix"
+    assert len(result["Rules"][0]["Filter"]["And"]["Tags"]) == 2
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Key"] == "mytag"
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
+    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
+    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Key"] == "mytag2"
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Value"] == "mytagvalue2"
+    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
+    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
+
+    # Can't have both filter and prefix:
+    lfc["Rules"][0]["Prefix"] = ''
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+
+    lfc["Rules"][0]["Prefix"] = 'some/path'
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+
+
+@mock_s3
+def test_lifecycle_with_eodm():
+    client = boto3.client("s3")
+    client.create_bucket(Bucket="bucket")
+
+    lfc = {
+        "Rules": [
+            {
+                "Expiration": {
+                    "ExpiredObjectDeleteMarker": True
+                },
+                "ID": "wholebucket",
+                "Filter": {
+                    "Prefix": ""
+                },
+                "Status": "Enabled"
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["Expiration"]["ExpiredObjectDeleteMarker"]
+
+    # Set to False:
+    lfc["Rules"][0]["Expiration"]["ExpiredObjectDeleteMarker"] = False
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert not result["Rules"][0]["Expiration"]["ExpiredObjectDeleteMarker"]
+
+    # With failure:
+    lfc["Rules"][0]["Expiration"]["Days"] = 7
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    del lfc["Rules"][0]["Expiration"]["Days"]
+
+    lfc["Rules"][0]["Expiration"]["Date"] = datetime(2015, 1, 1)
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3_deprecated

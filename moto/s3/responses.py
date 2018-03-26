@@ -1177,6 +1177,28 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
     <Rule>
         <ID>{{ rule.id }}</ID>
         <Prefix>{{ rule.prefix if rule.prefix != None }}</Prefix>
+        {% if rule.filter %}
+        <Filter>
+            <Prefix>{{ rule.filter.prefix }}</Prefix>
+            {% if rule.filter.tag %}
+            <Tag>
+                <Key>{{ rule.filter.tag.key }}</Key>
+                <Value>{{ rule.filter.tag.value }}</Value>
+            </Tag>
+            {% endif %}
+            {% if rule.filter.and_filter %}
+            <And>
+                <Prefix>{{ rule.filter.and_filter.prefix }}</Prefix>
+                {% for tag in rule.filter.and_filter.tags %}
+                <Tag>
+                    <Key>{{ tag.key }}</Key>
+                    <Value>{{ tag.value }}</Value>
+                </Tag>
+                {% endfor %}
+            </And>
+            {% endif %}
+        </Filter>
+        {% endif %}
         <Status>{{ rule.status }}</Status>
         {% if rule.storage_class %}
         <Transition>
@@ -1189,13 +1211,16 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
            <StorageClass>{{ rule.storage_class }}</StorageClass>
         </Transition>
         {% endif %}
-        {% if rule.expiration_days or rule.expiration_date %}
+        {% if rule.expiration_days or rule.expiration_date or rule.expired_object_delete_marker %}
         <Expiration>
             {% if rule.expiration_days %}
                <Days>{{ rule.expiration_days }}</Days>
             {% endif %}
             {% if rule.expiration_date %}
                <Date>{{ rule.expiration_date }}</Date>
+            {% endif %}
+            {% if rule.expired_object_delete_marker %}
+                <ExpiredObjectDeleteMarker>{{ rule.expired_object_delete_marker }}</ExpiredObjectDeleteMarker>
             {% endif %}
         </Expiration>
         {% endif %}
