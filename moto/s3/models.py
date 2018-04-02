@@ -415,7 +415,7 @@ class FakeBucket(BaseModel):
             # Pull out the filter:
             lc_filter = None
             if rule.get("Filter"):
-                # Can't have both filter and prefix (Need to check for the presence of the Key):
+                # Can't have both `Filter` and `Prefix` (need to check for the presence of the key):
                 try:
                     if rule["Prefix"] or not rule["Prefix"]:
                         raise MalformedXML()

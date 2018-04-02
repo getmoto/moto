@@ -56,6 +56,8 @@ def test_lifecycle_with_filters():
     assert result["Rules"][0]["Filter"]["Prefix"] == ''
     assert not result["Rules"][0]["Filter"].get("And")
     assert not result["Rules"][0]["Filter"].get("Tag")
+    with assert_raises(KeyError):
+        assert result["Rules"][0]["Prefix"]
 
     # With a tag:
     lfc["Rules"][0]["Filter"]["Tag"] = {
@@ -69,6 +71,8 @@ def test_lifecycle_with_filters():
     assert not result["Rules"][0]["Filter"].get("And")
     assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
+    with assert_raises(KeyError):
+        assert result["Rules"][0]["Prefix"]
 
     # With And (single tag):
     lfc["Rules"][0]["Filter"]["And"] = {
@@ -90,6 +94,8 @@ def test_lifecycle_with_filters():
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
     assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
+    with assert_raises(KeyError):
+        assert result["Rules"][0]["Prefix"]
 
     # With multiple And tags:
     lfc["Rules"][0]["Filter"]["And"] = {
@@ -119,6 +125,8 @@ def test_lifecycle_with_filters():
     assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Value"] == "mytagvalue2"
     assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
+    with assert_raises(KeyError):
+        assert result["Rules"][0]["Prefix"]
 
     # Can't have both filter and prefix:
     lfc["Rules"][0]["Prefix"] = ''
@@ -130,6 +138,13 @@ def test_lifecycle_with_filters():
     with assert_raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     assert err.exception.response["Error"]["Code"] == "MalformedXML"
+
+    # No filters -- just a prefix:
+    del lfc["Rules"][0]["Filter"]
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert not result["Rules"][0].get("Filter")
+    assert result["Rules"][0]["Prefix"] == "some/path"
 
 
 @mock_s3

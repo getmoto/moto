@@ -1176,7 +1176,6 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
     {% for rule in rules %}
     <Rule>
         <ID>{{ rule.id }}</ID>
-        <Prefix>{{ rule.prefix if rule.prefix != None }}</Prefix>
         {% if rule.filter %}
         <Filter>
             <Prefix>{{ rule.filter.prefix }}</Prefix>
@@ -1198,6 +1197,8 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
             </And>
             {% endif %}
         </Filter>
+        {% else %}
+        <Prefix>{{ rule.prefix if rule.prefix != None }}</Prefix>
         {% endif %}
         <Status>{{ rule.status }}</Status>
         {% if rule.storage_class %}
