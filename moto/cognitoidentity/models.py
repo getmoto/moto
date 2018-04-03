@@ -1,10 +1,12 @@
 from __future__ import unicode_literals
 
+import json
 import datetime
 import boto.cognito.identity
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
+from moto.core.utils import iso_8601_datetime_with_milliseconds
+from .utils import get_random_identity_id, remove_capitalization_of_dict_keys
 
 
 class CognitoIdentityObject(BaseModel):
@@ -24,139 +26,91 @@ class CognitoIdentityObject(BaseModel):
 
 class CognitoIdentity(BaseModel):
 
-    def __init__(self, name, unique_id, **kwargs):
-        self.name = name
-        # self.unique_id = unique_id
-        # self.description = kwargs.get('description', '')
-        self.identity_pool_id = get_random_identity_id()
-        # self.creation_time = datetime.datetime.utcnow()
-        # self.objects = []
-        # self.status = "PENDING"
-        # self.tags = kwargs.get('tags', [])
+    def __init__(self, region, identity_pool_name, **kwargs):
+        self.identity_pool_name = identity_pool_name
+        self.allow_unauthenticated_identities = kwargs.get('allow_unauthenticated_identities', '')
+        self.supported_login_providers = kwargs.get('supported_login_providers', {})
+        self.developer_provider_name = kwargs.get('developer_provider_name', '')
+        self.open_id_connect_provider_arns = kwargs.get('open_id_connect_provider_arns', [])
+        self.cognito_identity_providers = kwargs.get('cognito_identity_providers', [])
+        self.saml_provider_arns = kwargs.get('saml_provider_arns', [])
 
-    @property
-    def physical_resource_id(self):
-        return self.pipeline_id
-
-    def to_meta_json(self):
-        return {
-            "id": self.pipeline_id,
-            "name": self.name,
-        }
-
-    def to_json(self):
-        return {
-            "description": self.description,
-            "fields": [{
-                "key": "@pipelineState",
-                "stringValue": self.status,
-            }, {
-                "key": "description",
-                "stringValue": self.description
-            }, {
-                "key": "name",
-                "stringValue": self.name
-            }, {
-                "key": "@creationTime",
-                "stringValue": datetime.datetime.strftime(self.creation_time, '%Y-%m-%dT%H-%M-%S'),
-            }, {
-                "key": "@id",
-                "stringValue": self.pipeline_id,
-            }, {
-                "key": "@sphere",
-                "stringValue": "PIPELINE"
-            }, {
-                "key": "@version",
-                "stringValue": "1"
-            }, {
-                "key": "@userId",
-                "stringValue": "924374875933"
-            }, {
-                "key": "@accountId",
-                "stringValue": "924374875933"
-            }, {
-                "key": "uniqueId",
-                "stringValue": self.unique_id
-            }],
-            "name": self.name,
-            "pipelineId": self.pipeline_id,
-            "tags": self.tags
-        }
-
-    def set_pipeline_objects(self, pipeline_objects):
-        self.objects = [
-            PipelineObject(pipeline_object['id'], pipeline_object[
-                           'name'], pipeline_object['fields'])
-            for pipeline_object in remove_capitalization_of_dict_keys(pipeline_objects)
-        ]
-
-    def activate(self):
-        self.status = "SCHEDULED"
-
-    @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        datapipeline_backend = cognitoidentity_backends[region_name]
-        properties = cloudformation_json["Properties"]
-
-        cloudformation_unique_id = "cf-" + properties["Name"]
-        pipeline = datapipeline_backend.create_pipeline(
-            properties["Name"], cloudformation_unique_id)
-        datapipeline_backend.put_pipeline_definition(
-            pipeline.pipeline_id, properties["PipelineObjects"])
-
-        if properties["Activate"]:
-            pipeline.activate()
-        return pipeline
+        self.identity_pool_id = get_random_identity_id(region)
+        self.creation_time = datetime.datetime.utcnow()
 
 
 class CognitoIdentityBackend(BaseBackend):
 
     def __init__(self, region):
+        super(CognitoIdentityBackend, self).__init__()
         self.region = region
         self.identity_pools = OrderedDict()
 
-    def create_identity_pool(self, identity_pool_name, allow_unauthenticated_identities, , region='us-east-1',**kwargs):
-        identity_pool = CognitoIdentity(identity_pool_name, allow_unauthenticated_identities, **kwargs)
-        self.identity_pools[identity_pool.identity_pool_name] = identity_pool
-        return identity_pool
+    def reset(self):
+        region = self.region
+        self.__dict__ = {}
+        self.__init__(region)
 
-    def delete_identity_pool(self, identity_pool_id):
-        pass
+    def create_identity_pool(self, identity_pool_name, allow_unauthenticated_identities, 
+        supported_login_providers, developer_provider_name, open_id_connect_provider_arns,
+        cognito_identity_providers, saml_provider_arns):
 
-    def list_pipelines(self):
-        return self.pipelines.values()
+        new_identity = CognitoIdentity(self.region, identity_pool_name, 
+            allow_unauthenticated_identities=allow_unauthenticated_identities, 
+            supported_login_providers=supported_login_providers, 
+            developer_provider_name=developer_provider_name, 
+            open_id_connect_provider_arns=open_id_connect_provider_arns,
+            cognito_identity_providers=cognito_identity_providers, 
+            saml_provider_arns=saml_provider_arns)
+        self.identity_pools[new_identity.identity_pool_id] = new_identity
 
-    def describe_pipelines(self, pipeline_ids):
-        pipelines = [pipeline for pipeline in self.pipelines.values(
-        ) if pipeline.pipeline_id in pipeline_ids]
-        return pipelines
+        response = json.dumps({
+            'IdentityPoolId': new_identity.identity_pool_id,
+            'IdentityPoolName': new_identity.identity_pool_name,
+            'AllowUnauthenticatedIdentities': new_identity.allow_unauthenticated_identities,
+            'SupportedLoginProviders': new_identity.supported_login_providers,
+            'DeveloperProviderName': new_identity.developer_provider_name,
+            'OpenIdConnectProviderARNs': new_identity.open_id_connect_provider_arns,
+            'CognitoIdentityProviders': new_identity.cognito_identity_providers,
+            'SamlProviderARNs': new_identity.saml_provider_arns
+        })
 
-    def get_pipeline(self, pipeline_id):
-        return self.pipelines[pipeline_id]
+        return response
 
-    def delete_pipeline(self, pipeline_id):
-        self.pipelines.pop(pipeline_id, None)
 
-    def put_pipeline_definition(self, pipeline_id, pipeline_objects):
-        pipeline = self.get_pipeline(pipeline_id)
-        pipeline.set_pipeline_objects(pipeline_objects)
+    def get_id(self):
+        identity_id = {'IdentityId': get_random_identity_id(self.region)}
+        return json.dumps(identity_id)
 
-    def get_pipeline_definition(self, pipeline_id):
-        pipeline = self.get_pipeline(pipeline_id)
-        return pipeline.objects
+    def get_credentials_for_identity(self, identity_id):
+        duration = 90
+        now = datetime.datetime.utcnow()
+        expiration = now + datetime.timedelta(seconds=duration)
+        expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
+        return json.dumps({
+           "Credentials": { 
+              "AccessKeyId": "TESTACCESSKEY12345",
+              "Expiration": expiration_str,
+              "SecretKey": "ABCSECRETKEY",
+              "SessionToken": "ABC12345"
+           },
+           "IdentityId": identity_id
+        })
 
-    def describe_objects(self, object_ids, pipeline_id):
-        pipeline = self.get_pipeline(pipeline_id)
-        pipeline_objects = [
-            pipeline_object for pipeline_object in pipeline.objects
-            if pipeline_object.object_id in object_ids
-        ]
-        return pipeline_objects
-
-    def activate_pipeline(self, pipeline_id):
-        pipeline = self.get_pipeline(pipeline_id)
-        pipeline.activate()
-
+    def get_open_id_token_for_developer_identity(self, identity_id):
+        duration = 90
+        now = datetime.datetime.utcnow()
+        expiration = now + datetime.timedelta(seconds=duration)
+        expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
+        return json.dumps({
+           "Credentials": { 
+              "AccessKeyId": "TESTACCESSKEY12345",
+              "Expiration": expiration_str,
+              "SecretKey": "ABCSECRETKEY",
+              "SessionToken": "ABC12345"
+           },
+           "IdentityId": identity_id
+        })
 
 cognitoidentity_backends = {}
 for region in boto.cognito.identity.regions():
