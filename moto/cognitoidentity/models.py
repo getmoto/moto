@@ -6,7 +6,7 @@ import boto.cognito.identity
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from .utils import get_random_identity_id, remove_capitalization_of_dict_keys
+from .utils import get_random_identity_id
 
 
 class CognitoIdentityObject(BaseModel):
