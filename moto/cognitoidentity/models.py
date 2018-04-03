@@ -1,11 +1,14 @@
 from __future__ import unicode_literals
 
-import json
 import datetime
+import json
+
 import boto.cognito.identity
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+
 from .utils import get_random_identity_id
 
 
@@ -86,14 +89,16 @@ class CognitoIdentityBackend(BaseBackend):
         now = datetime.datetime.utcnow()
         expiration = now + datetime.timedelta(seconds=duration)
         expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
-        return json.dumps({
-               "Credentials": {
-                  "AccessKeyId": "TESTACCESSKEY12345",
-                  "Expiration": expiration_str,
-                  "SecretKey": "ABCSECRETKEY",
-                  "SessionToken": "ABC12345"
-               },
-               "IdentityId": identity_id
+        return json.dumps(
+            {
+                "Credentials":
+                {
+                    "AccessKeyId": "TESTACCESSKEY12345",
+                    "Expiration": expiration_str,
+                    "SecretKey": "ABCSECRETKEY",
+                    "SessionToken": "ABC12345"
+                },
+                "IdentityId": identity_id
             })
 
     def get_open_id_token_for_developer_identity(self, identity_id):
@@ -101,14 +106,16 @@ class CognitoIdentityBackend(BaseBackend):
         now = datetime.datetime.utcnow()
         expiration = now + datetime.timedelta(seconds=duration)
         expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
-        return json.dumps({
-               "Credentials": {
-                  "AccessKeyId": "TESTACCESSKEY12345",
-                  "Expiration": expiration_str,
-                  "SecretKey": "ABCSECRETKEY",
-                  "SessionToken": "ABC12345"
-               },
-               "IdentityId": identity_id
+        return json.dumps(
+            {
+                "Credentials":
+                {
+                    "AccessKeyId": "TESTACCESSKEY12345",
+                    "Expiration": expiration_str,
+                    "SecretKey": "ABCSECRETKEY",
+                    "SessionToken": "ABC12345"
+                },
+                "IdentityId": identity_id
             })
 
 
