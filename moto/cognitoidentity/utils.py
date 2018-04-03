@@ -1,5 +1,3 @@
-import collections
-import six
 from moto.core.utils import get_random_hex
 
 

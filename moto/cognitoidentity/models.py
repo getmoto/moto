@@ -51,16 +51,16 @@ class CognitoIdentityBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region)
 
-    def create_identity_pool(self, identity_pool_name, allow_unauthenticated_identities, 
+    def create_identity_pool(self, identity_pool_name, allow_unauthenticated_identities,
         supported_login_providers, developer_provider_name, open_id_connect_provider_arns,
-        cognito_identity_providers, saml_provider_arns):
+            cognito_identity_providers, saml_provider_arns):
 
-        new_identity = CognitoIdentity(self.region, identity_pool_name, 
-            allow_unauthenticated_identities=allow_unauthenticated_identities, 
-            supported_login_providers=supported_login_providers, 
-            developer_provider_name=developer_provider_name, 
+        new_identity = CognitoIdentity(self.region, identity_pool_name,
+            allow_unauthenticated_identities=allow_unauthenticated_identities,
+            supported_login_providers=supported_login_providers,
+            developer_provider_name=developer_provider_name,
             open_id_connect_provider_arns=open_id_connect_provider_arns,
-            cognito_identity_providers=cognito_identity_providers, 
+            cognito_identity_providers=cognito_identity_providers,
             saml_provider_arns=saml_provider_arns)
         self.identity_pools[new_identity.identity_pool_id] = new_identity
 
@@ -77,7 +77,6 @@ class CognitoIdentityBackend(BaseBackend):
 
         return response
 
-
     def get_id(self):
         identity_id = {'IdentityId': get_random_identity_id(self.region)}
         return json.dumps(identity_id)
@@ -88,14 +87,14 @@ class CognitoIdentityBackend(BaseBackend):
         expiration = now + datetime.timedelta(seconds=duration)
         expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
         return json.dumps({
-           "Credentials": { 
-              "AccessKeyId": "TESTACCESSKEY12345",
-              "Expiration": expiration_str,
-              "SecretKey": "ABCSECRETKEY",
-              "SessionToken": "ABC12345"
-           },
-           "IdentityId": identity_id
-        })
+               "Credentials": {
+                  "AccessKeyId": "TESTACCESSKEY12345",
+                  "Expiration": expiration_str,
+                  "SecretKey": "ABCSECRETKEY",
+                  "SessionToken": "ABC12345"
+               },
+               "IdentityId": identity_id
+            })
 
     def get_open_id_token_for_developer_identity(self, identity_id):
         duration = 90
@@ -103,14 +102,15 @@ class CognitoIdentityBackend(BaseBackend):
         expiration = now + datetime.timedelta(seconds=duration)
         expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
         return json.dumps({
-           "Credentials": { 
-              "AccessKeyId": "TESTACCESSKEY12345",
-              "Expiration": expiration_str,
-              "SecretKey": "ABCSECRETKEY",
-              "SessionToken": "ABC12345"
-           },
-           "IdentityId": identity_id
-        })
+               "Credentials": {
+                  "AccessKeyId": "TESTACCESSKEY12345",
+                  "Expiration": expiration_str,
+                  "SecretKey": "ABCSECRETKEY",
+                  "SessionToken": "ABC12345"
+               },
+               "IdentityId": identity_id
+            })
+
 
 cognitoidentity_backends = {}
 for region in boto.cognito.identity.regions():
