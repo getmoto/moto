@@ -1,25 +1,11 @@
 from __future__ import unicode_literals
 
-import json
-
 from moto.core.responses import BaseResponse
 
 from .models import cognitoidentity_backends
 
 
 class CognitoIdentityResponse(BaseResponse):
-
-    @property
-    def parameters(self):
-        # TODO this should really be moved to core/responses.py
-        if self.body:
-            return json.loads(self.body)
-        else:
-            return self.querystring
-
-    @property
-    def cognitoidentity_backend(self):
-        return cognitoidentity_backends[self.region]
 
     def create_identity_pool(self):
         identity_pool_name = self._get_param('IdentityPoolName')

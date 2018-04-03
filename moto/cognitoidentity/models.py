@@ -12,21 +12,6 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .utils import get_random_identity_id
 
 
-class CognitoIdentityObject(BaseModel):
-
-    def __init__(self, object_id, name, fields):
-        self.object_id = object_id
-        self.name = name
-        self.fields = fields
-
-    def to_json(self):
-        return {
-            "fields": self.fields,
-            "id": self.object_id,
-            "name": self.name,
-        }
-
-
 class CognitoIdentity(BaseModel):
 
     def __init__(self, region, identity_pool_name, **kwargs):
@@ -89,7 +74,7 @@ class CognitoIdentityBackend(BaseBackend):
         now = datetime.datetime.utcnow()
         expiration = now + datetime.timedelta(seconds=duration)
         expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
-        return json.dumps(
+        response = json.dumps(
             {
                 "Credentials":
                 {
@@ -100,6 +85,7 @@ class CognitoIdentityBackend(BaseBackend):
                 },
                 "IdentityId": identity_id
             })
+        return response
 
     def get_open_id_token_for_developer_identity(self, identity_id):
         duration = 90

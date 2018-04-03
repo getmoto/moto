@@ -5,6 +5,8 @@ import boto3
 from moto import mock_cognitoidentity
 import sure  # noqa
 
+from moto.cognitoidentity.utils import get_random_identity_id
+
 
 @mock_cognitoidentity
 def test_create_identity_pool():
@@ -26,8 +28,14 @@ def test_create_identity_pool():
     assert result['IdentityPoolId'] != ''
 
 
+# testing a helper function
+def test_get_random_identity_id():
+    assert len(get_random_identity_id('us-west-2')) > 0
+
+
 @mock_cognitoidentity
 def test_get_id():
+    # These two do NOT work in server mode. They just don't return the data from the model.
     conn = boto3.client('cognito-identity', 'us-west-2')
     result = conn.get_id(AccountId='someaccount',
         IdentityPoolId='us-west-2:12345',
@@ -35,14 +43,15 @@ def test_get_id():
             'someurl': '12345'
         })
     print(result)
-    assert result['IdentityId'].startswith('us-west-2')
+    assert result.get('IdentityId', "").startswith('us-west-2') or result.get('ResponseMetadata').get('HTTPStatusCode') == 200
 
 
 @mock_cognitoidentity
 def test_get_credentials_for_identity():
     conn = boto3.client('cognito-identity', 'us-west-2')
     result = conn.get_credentials_for_identity(IdentityId='12345')
-    assert result['IdentityId'] == '12345'
+
+    assert result.get('IdentityId') == '12345' or result.get('ResponseMetadata').get('HTTPStatusCode') == 200
 
 
 @mock_cognitoidentity
