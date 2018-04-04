@@ -23,8 +23,11 @@ class ElasticBlockStore(BaseResponse):
     def create_snapshot(self):
         volume_id = self._get_param('VolumeId')
         description = self._get_param('Description')
+        tags = self._parse_tag_specification("TagSpecification")
+        snapshot_tags = tags.get('snapshot', {})
         if self.is_not_dryrun('CreateSnapshot'):
             snapshot = self.ec2_backend.create_snapshot(volume_id, description)
+            snapshot.add_tags(snapshot_tags)
             template = self.response_template(CREATE_SNAPSHOT_RESPONSE)
             return template.render(snapshot=snapshot)
 
@@ -233,6 +236,16 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   <volumeSize>{{ snapshot.volume.size }}</volumeSize>
   <description>{{ snapshot.description }}</description>
   <encrypted>{{ snapshot.encrypted }}</encrypted>
+  <tagSet>
+    {% for tag in snapshot.get_tags() %}
+      <item>
+      <resourceId>{{ tag.resource_id }}</resourceId>
+      <resourceType>{{ tag.resource_type }}</resourceType>
+      <key>{{ tag.key }}</key>
+      <value>{{ tag.value }}</value>
+      </item>
+    {% endfor %}
+  </tagSet>
 </CreateSnapshotResponse>"""
 
 DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

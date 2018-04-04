@@ -409,3 +409,45 @@ def test_create_volume_with_tags():
         )
     
     assert response['Tags'][0]['Key'] == 'TEST_TAG'
+
+
+@mock_ec2
+def test_create_snapshot_with_tags():
+    client = boto3.client('ec2', 'us-west-2')
+    volume_id = client.create_volume(
+        AvailabilityZone='us-west-2',
+        Encrypted=False,
+        Size=40,
+        TagSpecifications=[
+            {
+                'ResourceType': 'volume',
+                'Tags': [
+                    {
+                        'Key': 'TEST_TAG',
+                        'Value': 'TEST_VALUE'
+                    }
+                ],
+            }
+        ]
+    )['VolumeId']
+    snapshot = client.create_snapshot(
+        VolumeId=volume_id,
+        TagSpecifications=[
+            {
+                'ResourceType': 'snapshot',
+                'Tags': [
+                    {
+                        'Key': 'TEST_SNAPSHOT_TAG',
+                        'Value': 'TEST_SNAPSHOT_VALUE'
+                    }
+                ],
+            }
+        ]
+    )
+
+    expected_tags = [{
+        'Key': 'TEST_SNAPSHOT_TAG',
+        'Value': 'TEST_SNAPSHOT_VALUE'
+    }]
+
+    assert snapshot['Tags'] == expected_tags
