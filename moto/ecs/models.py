@@ -109,6 +109,10 @@ class TaskDefinition(BaseObject):
         del response_object['arn']
         return response_object
 
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']

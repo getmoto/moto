@@ -1319,15 +1319,20 @@ def test_create_task_definition_through_cloudformation():
     }
     template_json = json.dumps(template)
     cfn_conn = boto3.client('cloudformation', region_name='us-west-1')
+    stack_name = 'test_stack'
     cfn_conn.create_stack(
-        StackName="test_stack",
+        StackName=stack_name,
         TemplateBody=template_json,
     )
 
     ecs_conn = boto3.client('ecs', region_name='us-west-1')
     resp = ecs_conn.list_task_definitions()
     len(resp['taskDefinitionArns']).should.equal(1)
+    task_definition_arn = resp['taskDefinitionArns'][0]
 
+    task_definition_details = cfn_conn.describe_stack_resource(
+        StackName=stack_name,LogicalResourceId='testTaskDefinition')['StackResourceDetail']
+    task_definition_details['PhysicalResourceId'].should.equal(task_definition_arn)
 
 @mock_ec2
 @mock_ecs
