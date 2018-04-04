@@ -24,7 +24,7 @@ class BaseObject(BaseModel):
 
     def gen_response_object(self):
         response_object = copy(self.__dict__)
-        for key, value in response_object.items():
+        for key, value in self.__dict__.items():
             if '_' in key:
                 response_object[self.camelCase(key)] = value
                 del response_object[key]
