@@ -502,12 +502,27 @@ class EC2ContainerServiceBackend(BaseBackend):
     def _calculate_task_resource_requirements(task_definition):
         resource_requirements = {"CPU": 0, "MEMORY": 0, "PORTS": [], "PORTS_UDP": []}
         for container_definition in task_definition.container_definitions:
-            resource_requirements["CPU"] += container_definition.get('cpu', 0)
-            resource_requirements["MEMORY"] += container_definition.get(
-                "memory", container_definition.get('memoryReservation'))
-            for port_mapping in container_definition.get("portMappings", []):
+            # cloudformation uses capitalized properties, while boto uses all lower case
+
+            # CPU is optional
+            resource_requirements["CPU"] += container_definition.get('cpu',
+                                                                     container_definition.get('Cpu', 0))
+
+            # either memory or memory reservation must be provided
+            if 'Memory' in container_definition or 'MemoryReservation' in container_definition:
+                resource_requirements["MEMORY"] += container_definition.get(
+                    "Memory", container_definition.get('MemoryReservation'))
+            else:
+                resource_requirements["MEMORY"] += container_definition.get(
+                    "memory", container_definition.get('memoryReservation'))
+
+            port_mapping_key = 'PortMappings' if 'PortMappings' in container_definition else 'portMappings'
+            for port_mapping in container_definition.get(port_mapping_key, []):
                 if 'hostPort' in port_mapping:
                     resource_requirements["PORTS"].append(port_mapping.get('hostPort'))
+                elif 'HostPort' in port_mapping:
+                    resource_requirements["PORTS"].append(port_mapping.get('HostPort'))
+
         return resource_requirements
 
     @staticmethod
