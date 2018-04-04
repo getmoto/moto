@@ -502,10 +502,12 @@ class EC2ContainerServiceBackend(BaseBackend):
     def _calculate_task_resource_requirements(task_definition):
         resource_requirements = {"CPU": 0, "MEMORY": 0, "PORTS": [], "PORTS_UDP": []}
         for container_definition in task_definition.container_definitions:
-            resource_requirements["CPU"] += container_definition.get('cpu')
-            resource_requirements["MEMORY"] += container_definition.get("memory")
+            resource_requirements["CPU"] += container_definition.get('cpu', 0)
+            resource_requirements["MEMORY"] += container_definition.get(
+                "memory", container_definition.get('memoryReservation'))
             for port_mapping in container_definition.get("portMappings", []):
-                resource_requirements["PORTS"].append(port_mapping.get('hostPort'))
+                if 'hostPort' in port_mapping:
+                    resource_requirements["PORTS"].append(port_mapping.get('hostPort'))
         return resource_requirements
 
     @staticmethod
