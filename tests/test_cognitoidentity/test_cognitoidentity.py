@@ -48,6 +48,7 @@ def test_get_id():
 
 @mock_cognitoidentity
 def test_get_credentials_for_identity():
+    # These two do NOT work in server mode. They just don't return the data from the model.
     conn = boto3.client('cognito-identity', 'us-west-2')
     result = conn.get_credentials_for_identity(IdentityId='12345')
 
