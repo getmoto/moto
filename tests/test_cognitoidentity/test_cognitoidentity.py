@@ -51,7 +51,7 @@ def test_get_credentials_for_identity():
     conn = boto3.client('cognito-identity', 'us-west-2')
     result = conn.get_credentials_for_identity(IdentityId='12345')
 
-    assert result.get('Expiration') > 0 or result.get('ResponseMetadata').get('HTTPStatusCode') == 200
+    assert result.get('Expiration', 0) > 0 or result.get('ResponseMetadata').get('HTTPStatusCode') == 200
     assert result.get('IdentityId') == '12345' or result.get('ResponseMetadata').get('HTTPStatusCode') == 200
 
 
