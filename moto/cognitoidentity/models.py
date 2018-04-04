@@ -88,21 +88,12 @@ class CognitoIdentityBackend(BaseBackend):
         return response
 
     def get_open_id_token_for_developer_identity(self, identity_id):
-        duration = 90
-        now = datetime.datetime.utcnow()
-        expiration = now + datetime.timedelta(seconds=duration)
-        expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
-        return json.dumps(
+        response = json.dumps(
             {
-                "Credentials":
-                {
-                    "AccessKeyId": "TESTACCESSKEY12345",
-                    "Expiration": expiration_str,
-                    "SecretKey": "ABCSECRETKEY",
-                    "SessionToken": "ABC12345"
-                },
-                "IdentityId": identity_id
+                "IdentityId": identity_id,
+                "Token": get_random_identity_id(self.region)
             })
+        return response
 
 
 cognitoidentity_backends = {}
