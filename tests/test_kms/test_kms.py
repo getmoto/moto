@@ -617,3 +617,31 @@ def test_kms_encrypt_boto3():
 
     response = client.decrypt(CiphertextBlob=response['CiphertextBlob'])
     response['Plaintext'].should.equal(b'bar')
+
+
+@mock_kms
+def test_kms_generate_data_key():
+    client = boto3.client('kms', region_name='us-east-1')
+    creation_response = client.create_key(policy="my policy",
+                                          description="my key",
+                                          key_usage='data_key_test')
+    key_id = creation_response['KeyMetadata']['KeyId']
+    data_key_response = client.generate_data_key(KeyId=key_id, KeySpec='AES_256')
+    data_key_response['KeyId'].should.equal(key_id)
+    len(data_key_response['Plaintext']).should.equal(256)
+    decrypted = client.decrypt(CiphertextBlob=data_key_response['CiphertextBlob'])
+    decrypted['Plaintext'].should.equal(data_key_response['Plaintext'])
+
+
+@mock_kms
+def test_kms_generate_data_key_without_plaintext():
+    client = boto3.client('kms', region_name='us-east-1')
+    creation_response = client.create_key(policy="my policy",
+                                          description="my key",
+                                          key_usage='data_key_test_no_ws')
+    key_id = creation_response['KeyMetadata']['KeyId']
+    data_key_response = client.generate_data_key_without_plaintext(KeyId=key_id,
+                                                                   KeySpec='AES_256')
+    data_key_response.should_not.have_key('Plaintext')
+    data_key_response.should.have_key('CiphertextBlob').not.being.none
+
