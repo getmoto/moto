@@ -239,7 +239,7 @@ class KmsResponse(BaseResponse):
             data_key = self.kms_backend.generate_data_key(key_id, key_spec, key_length)
             crypto_key = self.kms_backend.encrypt(data_key)
             return json.dumps({
-                "Plaintext:": data_key,
+                "Plaintext": data_key,
                 "CiphertextBlob": crypto_key,
                 "KeyId": self.kms_backend.get_key_id(key_id)})
         except KeyError:
