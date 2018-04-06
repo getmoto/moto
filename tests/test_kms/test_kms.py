@@ -622,9 +622,9 @@ def test_kms_encrypt_boto3():
 @mock_kms
 def test_kms_generate_data_key():
     client = boto3.client('kms', region_name='us-east-1')
-    creation_response = client.create_key(policy="my policy",
-                                          description="my key",
-                                          key_usage='data_key_test')
+    creation_response = client.create_key(Policy="my policy",
+                                          Description="my key",
+                                          KeyUsage='data_key_test')
     key_id = creation_response['KeyMetadata']['KeyId']
     data_key_response = client.generate_data_key(KeyId=key_id, KeySpec='AES_256')
     data_key_response['KeyId'].should.equal(key_id)
@@ -636,9 +636,9 @@ def test_kms_generate_data_key():
 @mock_kms
 def test_kms_generate_data_key_without_plaintext():
     client = boto3.client('kms', region_name='us-east-1')
-    creation_response = client.create_key(policy="my policy",
-                                          description="my key",
-                                          key_usage='data_key_test_no_ws')
+    creation_response = client.create_key(Policy="my policy",
+                                          Description="my key",
+                                          KeyUsage='data_key_test_no_ws')
     key_id = creation_response['KeyMetadata']['KeyId']
     data_key_response = client.generate_data_key_without_plaintext(KeyId=key_id,
                                                                    KeySpec='AES_256')
