@@ -23,6 +23,7 @@ install_requires = [
     "docker>=2.5.1",
     "jsondiff==1.1.1",
     "aws-xray-sdk<0.96,>=0.93",
+    "responses",
 ]
 
 extras_require = {

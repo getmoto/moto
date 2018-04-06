@@ -6,7 +6,7 @@ import string
 import requests
 import time
 
-from moto.packages.responses import responses
+import responses
 from moto.core import BaseBackend, BaseModel
 from .utils import create_id
 from .exceptions import StageNotFoundException

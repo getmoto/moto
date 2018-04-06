@@ -9,7 +9,7 @@ import re
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto.packages.responses import responses
+import responses
 from botocore.exceptions import ClientError
 from moto import mock_sns, mock_sqs
 from freezegun import freeze_time
