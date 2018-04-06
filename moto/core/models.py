@@ -206,8 +206,15 @@ class ResponsesMockAWS(BaseMockAWS):
                     )
 
     def disable_patching(self):
-        botocore_mock.stop()
-        responses.stop()
+        try:
+            botocore_mock.stop()
+        except RuntimeError:
+            pass
+
+        try:
+            responses.stop()
+        except RuntimeError:
+            pass
 
 
 MockAWS = ResponsesMockAWS
