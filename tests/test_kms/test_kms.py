@@ -643,5 +643,6 @@ def test_kms_generate_data_key_without_plaintext():
     data_key_response = client.generate_data_key_without_plaintext(KeyId=key_id,
                                                                    KeySpec='AES_256')
     data_key_response.should_not.have_key('Plaintext')
-    data_key_response.should.have_key('CiphertextBlob').not.being.none
+    data_key_response.should.have_key('CiphertextBlob')
+    data_key_response['CiphertextBlob'].should_not.be.equal(None)
 
