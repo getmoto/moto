@@ -166,10 +166,7 @@ class KmsBackend(BaseBackend):
         else:
             key_length = int(key_length)
 
-        repeat_count = key_length / len(data_key)
-        repeat_count = (1, repeat_count)[repeat_count == 0]
-        data_key = data_key * repeat_count
-        return data_key[:key_length]
+        return (data_key * ((key_length / len(data_key)) + 1))[:key_length]
 
 
 kms_backends = {}
