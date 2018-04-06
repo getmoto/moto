@@ -264,6 +264,7 @@ class KmsResponse(BaseResponse):
                 'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
                 '__type': 'NotFoundException'})
 
+
 def _assert_valid_key_id(key_id):
     if not re.match(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$', key_id, re.IGNORECASE):
         raise JSONResponseError(404, 'Not Found', body={
