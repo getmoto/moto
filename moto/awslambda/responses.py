@@ -107,8 +107,8 @@ class LambdaResponse(BaseResponse):
         path = request.path if hasattr(request, 'path') else request.path_url
         function_name = path.split('/')[-2]
         if self.lambda_backend.get_function(function_name):
-            function = self.lambda_backend.get_function(function_name)
-            return 200, {}, json.dumps(dict(Policy="{\"Statement\":[" + function.policy + "]}"))
+            lambda_function = self.lambda_backend.get_function(function_name)
+            return 200, {}, json.dumps(dict(Policy="{\"Statement\":[" + lambda_function.policy + "]}"))
         else:
             return 404, {}, "{}"
 
