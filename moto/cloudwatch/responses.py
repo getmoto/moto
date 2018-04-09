@@ -276,32 +276,34 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
       <Datapoints>
         {% for datapoint in datapoints %}
             <Datapoint>
-              {% if datapoint.sum is not none %}
-              <Sum>{{ datapoint.sum }}</Sum>
-              {% endif %}
+                <member>
+                  {% if datapoint.sum is not none %}
+                  <Sum>{{ datapoint.sum }}</Sum>
+                  {% endif %}
 
-              {% if datapoint.average is not none %}
-              <Average>{{ datapoint.average }}</Average>
-              {% endif %}
+                  {% if datapoint.average is not none %}
+                  <Average>{{ datapoint.average }}</Average>
+                  {% endif %}
 
-              {% if datapoint.maximum is not none %}
-              <Maximum>{{ datapoint.maximum }}</Maximum>
-              {% endif %}
+                  {% if datapoint.maximum is not none %}
+                  <Maximum>{{ datapoint.maximum }}</Maximum>
+                  {% endif %}
 
-              {% if datapoint.minimum is not none %}
-              <Minimum>{{ datapoint.minimum }}</Minimum>
-              {% endif %}
+                  {% if datapoint.minimum is not none %}
+                  <Minimum>{{ datapoint.minimum }}</Minimum>
+                  {% endif %}
 
-              {% if datapoint.sample_count is not none %}
-              <SampleCount>{{ datapoint.sample_count }}</SampleCount>
-              {% endif %}
+                  {% if datapoint.sample_count is not none %}
+                  <SampleCount>{{ datapoint.sample_count }}</SampleCount>
+                  {% endif %}
 
-              {% if datapoint.extended_statistics is not none %}
-              <ExtendedStatistics>{{ datapoint.extended_statistics }}</ExtendedStatistics>
-              {% endif %}
+                  {% if datapoint.extended_statistics is not none %}
+                  <ExtendedStatistics>{{ datapoint.extended_statistics }}</ExtendedStatistics>
+                  {% endif %}
 
-              <Timestamp>{{ datapoint.timestamp }}</Timestamp>
-              <Unit>{{ datapoint.unit }}</Unit>
+                  <Timestamp>{{ datapoint.timestamp }}</Timestamp>
+                  <Unit>{{ datapoint.unit }}</Unit>
+                </member>
             </Datapoint>
         {% endfor %}
       </Datapoints>

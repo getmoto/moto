@@ -93,6 +93,34 @@ def test_put_metric_data():
     dict(metric.dimensions).should.equal(
         {'InstanceId': ['i-0123456,i-0123457']})
 
+@mock_cloudwatch_deprecated
+def test_get_metric_statistics():
+    conn = boto.connect_cloudwatch()
+
+    metric_timestamp = datetime(2018, 4, 9, 13, 0, 0, 0)
+
+    conn.put_metric_data(
+        namespace='tester',
+        name='metric',
+        value=1.5,
+        dimensions={'InstanceId': ['i-0123456,i-0123457']},
+        timestamp=metric_timestamp
+    )
+
+    metric_kwargs = dict(
+        namespace= 'tester',
+        metric_name= 'metric',
+        start_time= metric_timestamp,
+        end_time= datetime.now(),
+        period= 3600,
+        statistics= ['Minimum']
+    )
+
+    datapoints = conn.get_metric_statistics(**metric_kwargs)
+    datapoints.should.have.length_of(1)
+    datapoint = datapoints[0]
+    datapoint.should.have.key('Minimum').which.should.equal(1.5)
+    datapoint.should.have.key('Timestamp').which.should.equal(metric_timestamp)
 
 @mock_cloudwatch_deprecated
 def test_describe_alarms():
