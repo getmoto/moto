@@ -1,8 +1,6 @@
 import boto
 from boto.ec2.cloudwatch.alarm import MetricAlarm
-import boto3
-from datetime import datetime, timedelta
-import pytz
+from datetime import datetime
 import sure  # noqa
 
 from moto import mock_cloudwatch_deprecated
@@ -93,6 +91,7 @@ def test_put_metric_data():
     dict(metric.dimensions).should.equal(
         {'InstanceId': ['i-0123456,i-0123457']})
 
+
 @mock_cloudwatch_deprecated
 def test_get_metric_statistics():
     conn = boto.connect_cloudwatch()
@@ -108,12 +107,12 @@ def test_get_metric_statistics():
     )
 
     metric_kwargs = dict(
-        namespace= 'tester',
-        metric_name= 'metric',
-        start_time= metric_timestamp,
-        end_time= datetime.now(),
-        period= 3600,
-        statistics= ['Minimum']
+        namespace='tester',
+        metric_name='metric',
+        start_time=metric_timestamp,
+        end_time=datetime.now(),
+        period=3600,
+        statistics=['Minimum']
     )
 
     datapoints = conn.get_metric_statistics(**metric_kwargs)
@@ -121,6 +120,7 @@ def test_get_metric_statistics():
     datapoint = datapoints[0]
     datapoint.should.have.key('Minimum').which.should.equal(1.5)
     datapoint.should.have.key('Timestamp').which.should.equal(metric_timestamp)
+
 
 @mock_cloudwatch_deprecated
 def test_describe_alarms():
