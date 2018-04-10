@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import base64
+from math import ceil
 import boto.kms
 from moto.core import BaseBackend, BaseModel
 from .utils import generate_key_id
@@ -166,7 +167,8 @@ class KmsBackend(BaseBackend):
         else:
             key_length = int(key_length)
 
-        return (data_key * ((key_length / len(data_key)) + 1))[:key_length]
+        return (data_key *
+                int((ceil((key_length / float(len(data_key)))) + 1)))[:key_length]
 
 
 kms_backends = {}
