@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 
 import base64
-from math import ceil
+import string
+import random
 import boto.kms
 from moto.core import BaseBackend, BaseModel
 from .utils import generate_key_id
@@ -146,10 +147,13 @@ class KmsBackend(BaseBackend):
     def decrypt(data):
         return base64.b64decode(data).decode("utf-8")
 
+    @staticmethod
+    def __random_char_gen(length):
+        return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
+
     def generate_data_key(self, key_id, key_spec, key_length):
         """
-        This method simply uses the reverse of the key_id (if it exists)
-        X many times to equal the required number of bits.
+        This method simply returns a random generated string of specified length
         """
         if self.alias_exists(key_id):
             key = self.key_to_aliases[self.get_key_id(key_id)]
@@ -159,7 +163,6 @@ class KmsBackend(BaseBackend):
         if not self.keys[key]:
             return None
 
-        data_key = key_id[::-1]
         if key_spec == 'AES_128':
             key_length = 128
         elif key_spec == 'AES_256':
@@ -167,8 +170,7 @@ class KmsBackend(BaseBackend):
         else:
             key_length = int(key_length)
 
-        return (data_key *
-                int((ceil((key_length / float(len(data_key)))) + 1)))[:key_length]
+        return self.__random_char_gen(key_length)
 
 
 kms_backends = {}
