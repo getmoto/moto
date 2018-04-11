@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+import json
 import os
 import boto3
 import botocore
@@ -6,7 +8,7 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 import sure  # noqa
 
-from moto import mock_elbv2, mock_ec2, mock_acm
+from moto import mock_elbv2, mock_ec2, mock_acm, mock_cloudformation
 from moto.elbv2 import elbv2_backends
 
 
@@ -416,6 +418,7 @@ def test_create_target_group_and_listeners():
     response = conn.describe_target_groups()
     response.get('TargetGroups').should.have.length_of(0)
 
+
 @mock_elbv2
 @mock_ec2
 def test_create_target_group_without_non_required_parameters():
@@ -453,6 +456,7 @@ def test_create_target_group_without_non_required_parameters():
     )
     target_group = response.get('TargetGroups')[0]
     target_group.should_not.be.none
+
 
 @mock_elbv2
 @mock_ec2
@@ -1106,6 +1110,50 @@ def test_describe_invalid_target_group():
 
 
 @mock_elbv2
+@mock_ec2
+def test_describe_target_groups_no_arguments():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    conn.create_target_group(
+        Name='a-target',
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPort='8080',
+        HealthCheckPath='/',
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={'HttpCode': '200'})
+
+    assert len(conn.describe_target_groups()['TargetGroups']) == 1
+
+
+@mock_elbv2
 def test_describe_account_limits():
     client = boto3.client('elbv2', region_name='eu-central-1')
 
@@ -1473,3 +1521,68 @@ def test_modify_listener_http_to_https():
                 {'Type': 'forward', 'TargetGroupArn': target_group_arn}
             ]
         )
+
+
+@mock_ec2
+@mock_elbv2
+@mock_cloudformation
+def test_create_target_groups_through_cloudformation():
+    cfn_conn = boto3.client('cloudformation', region_name='us-east-1')
+    elbv2_client = boto3.client('elbv2', region_name='us-east-1')
+
+    # test that setting a name manually as well as letting cloudformation create a name both work
+    # this is a special case because test groups have a name length limit of 22 characters, and must be unique
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html#cfn-elasticloadbalancingv2-targetgroup-name
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testVPC": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16",
+                },
+            },
+            "testGroup1": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "Port": 80,
+                    "Protocol": "HTTP",
+                    "VpcId": {"Ref": "testVPC"},
+                },
+            },
+            "testGroup2": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "Port": 90,
+                    "Protocol": "HTTP",
+                    "VpcId": {"Ref": "testVPC"},
+                },
+            },
+            "testGroup3": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "Name": "MyTargetGroup",
+                    "Port": 70,
+                    "Protocol": "HTTPS",
+                    "VpcId": {"Ref": "testVPC"},
+                },
+            },
+        }
+    }
+    template_json = json.dumps(template)
+    cfn_conn.create_stack(
+        StackName="test-stack",
+        TemplateBody=template_json,
+    )
+
+    describe_target_groups_response = elbv2_client.describe_target_groups()
+    target_group_dicts = describe_target_groups_response['TargetGroups']
+    assert len(target_group_dicts) == 3
+
+    # there should be 2 target groups with the same prefix of 10 characters (since the random suffix is 12)
+    # and one named MyTargetGroup
+    assert len([tg for tg in target_group_dicts if tg['TargetGroupName'] == 'MyTargetGroup']) == 1
+    assert len(
+        [tg for tg in target_group_dicts if tg['TargetGroupName'].startswith('test-stack-test')]
+    ) == 2
