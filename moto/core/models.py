@@ -172,21 +172,26 @@ class CallbackResponse(responses.CallbackResponse):
 
 
 botocore_mock = responses.RequestsMock(assert_all_requests_are_fired=False, target='botocore.vendored.requests.adapters.HTTPAdapter.send')
+responses_mock = responses._default_mock
 
 
 class ResponsesMockAWS(BaseMockAWS):
     def reset(self):
         botocore_mock.reset()
-        responses.reset()
+        responses_mock.reset()
 
     def enable_patching(self):
-        botocore_mock.start()
-        responses.start()
+        if not hasattr(botocore_mock, '_patcher') or not hasattr(botocore_mock._patcher, 'target'):
+            # Check for unactivated patcher
+            botocore_mock.start()
+
+        if not hasattr(responses_mock, '_patcher') or not hasattr(responses_mock._patcher, 'target'):
+            responses_mock.start()
 
         for method in RESPONSES_METHODS:
             for backend in self.backends_for_urls.values():
                 for key, value in backend.urls.items():
-                    responses.add(
+                    responses_mock.add(
                         CallbackResponse(
                             method=method,
                             url=re.compile(key),
@@ -212,7 +217,7 @@ class ResponsesMockAWS(BaseMockAWS):
             pass
 
         try:
-            responses.stop()
+            responses_mock.stop()
         except RuntimeError:
             pass
 
