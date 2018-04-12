@@ -1,6 +1,14 @@
 Moto Changelog
 ===================
 
+1.3.1
+------
+The huge change in this version is that the responses library is no longer vendored. Many developers are now unblocked. Kudos to @spulec for the fix.
+
+    * Fix route53 TTL bug
+    * Added filtering support for S3 lifecycle
+    * unvendoring responses
+
 1.3.0
 ------
 
