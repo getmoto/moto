@@ -1,8 +1,9 @@
 
-## acm - 50% implemented
+## acm - 41% implemented
 - [X] add_tags_to_certificate
 - [X] delete_certificate
 - [ ] describe_certificate
+- [ ] export_certificate
 - [X] get_certificate
 - [ ] import_certificate
 - [ ] list_certificates
@@ -10,21 +11,48 @@
 - [X] remove_tags_from_certificate
 - [X] request_certificate
 - [ ] resend_validation_email
+- [ ] update_certificate_options
+
+## acm-pca - 0% implemented
+- [ ] create_certificate_authority
+- [ ] create_certificate_authority_audit_report
+- [ ] delete_certificate_authority
+- [ ] describe_certificate_authority
+- [ ] describe_certificate_authority_audit_report
+- [ ] get_certificate
+- [ ] get_certificate_authority_certificate
+- [ ] get_certificate_authority_csr
+- [ ] import_certificate_authority_certificate
+- [ ] issue_certificate
+- [ ] list_certificate_authorities
+- [ ] list_tags
+- [ ] revoke_certificate
+- [ ] tag_certificate_authority
+- [ ] untag_certificate_authority
+- [ ] update_certificate_authority
 
 ## alexaforbusiness - 0% implemented
+- [ ] associate_contact_with_address_book
 - [ ] associate_device_with_room
 - [ ] associate_skill_group_with_room
+- [ ] create_address_book
+- [ ] create_contact
 - [ ] create_profile
 - [ ] create_room
 - [ ] create_skill_group
 - [ ] create_user
+- [ ] delete_address_book
+- [ ] delete_contact
 - [ ] delete_profile
 - [ ] delete_room
 - [ ] delete_room_skill_parameter
 - [ ] delete_skill_group
 - [ ] delete_user
+- [ ] disassociate_contact_from_address_book
 - [ ] disassociate_device_from_room
 - [ ] disassociate_skill_group_from_room
+- [ ] get_address_book
+- [ ] get_contact
 - [ ] get_device
 - [ ] get_profile
 - [ ] get_room
@@ -35,6 +63,8 @@
 - [ ] put_room_skill_parameter
 - [ ] resolve_room
 - [ ] revoke_invitation
+- [ ] search_address_books
+- [ ] search_contacts
 - [ ] search_devices
 - [ ] search_profiles
 - [ ] search_rooms
@@ -44,6 +74,8 @@
 - [ ] start_device_sync
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_address_book
+- [ ] update_contact
 - [ ] update_device
 - [ ] update_profile
 - [ ] update_room
@@ -402,6 +434,7 @@
 - [ ] get_applied_schema_version
 - [ ] get_directory
 - [ ] get_facet
+- [ ] get_object_attributes
 - [ ] get_object_information
 - [ ] get_schema_as_json
 - [ ] get_typed_link_facet_information
@@ -484,30 +517,48 @@
 - [ ] create_cloud_front_origin_access_identity
 - [ ] create_distribution
 - [ ] create_distribution_with_tags
+- [ ] create_field_level_encryption_config
+- [ ] create_field_level_encryption_profile
 - [ ] create_invalidation
+- [ ] create_public_key
 - [ ] create_streaming_distribution
 - [ ] create_streaming_distribution_with_tags
 - [ ] delete_cloud_front_origin_access_identity
 - [ ] delete_distribution
+- [ ] delete_field_level_encryption_config
+- [ ] delete_field_level_encryption_profile
+- [ ] delete_public_key
 - [ ] delete_service_linked_role
 - [ ] delete_streaming_distribution
 - [ ] get_cloud_front_origin_access_identity
 - [ ] get_cloud_front_origin_access_identity_config
 - [ ] get_distribution
 - [ ] get_distribution_config
+- [ ] get_field_level_encryption
+- [ ] get_field_level_encryption_config
+- [ ] get_field_level_encryption_profile
+- [ ] get_field_level_encryption_profile_config
 - [ ] get_invalidation
+- [ ] get_public_key
+- [ ] get_public_key_config
 - [ ] get_streaming_distribution
 - [ ] get_streaming_distribution_config
 - [ ] list_cloud_front_origin_access_identities
 - [ ] list_distributions
 - [ ] list_distributions_by_web_acl_id
+- [ ] list_field_level_encryption_configs
+- [ ] list_field_level_encryption_profiles
 - [ ] list_invalidations
+- [ ] list_public_keys
 - [ ] list_streaming_distributions
 - [ ] list_tags_for_resource
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_cloud_front_origin_access_identity
 - [ ] update_distribution
+- [ ] update_field_level_encryption_config
+- [ ] update_field_level_encryption_profile
+- [ ] update_public_key
 - [ ] update_streaming_distribution
 
 ## cloudhsm - 0% implemented
@@ -591,7 +642,7 @@
 - [ ] stop_logging
 - [ ] update_trail
 
-## cloudwatch - 60% implemented
+## cloudwatch - 56% implemented
 - [X] delete_alarms
 - [X] delete_dashboards
 - [ ] describe_alarm_history
@@ -600,6 +651,7 @@
 - [ ] disable_alarm_actions
 - [ ] enable_alarm_actions
 - [X] get_dashboard
+- [ ] get_metric_data
 - [X] get_metric_statistics
 - [X] list_dashboards
 - [ ] list_metrics
@@ -624,6 +676,7 @@
 - [ ] start_build
 - [ ] stop_build
 - [ ] update_project
+- [ ] update_webhook
 
 ## codecommit - 0% implemented
 - [ ] batch_get_repositories
@@ -905,19 +958,29 @@
 
 ## config - 0% implemented
 - [ ] batch_get_resource_config
+- [ ] delete_aggregation_authorization
 - [ ] delete_config_rule
+- [ ] delete_configuration_aggregator
 - [ ] delete_configuration_recorder
 - [ ] delete_delivery_channel
 - [ ] delete_evaluation_results
+- [ ] delete_pending_aggregation_request
 - [ ] deliver_config_snapshot
+- [ ] describe_aggregate_compliance_by_config_rules
+- [ ] describe_aggregation_authorizations
 - [ ] describe_compliance_by_config_rule
 - [ ] describe_compliance_by_resource
 - [ ] describe_config_rule_evaluation_status
 - [ ] describe_config_rules
+- [ ] describe_configuration_aggregator_sources_status
+- [ ] describe_configuration_aggregators
 - [ ] describe_configuration_recorder_status
 - [ ] describe_configuration_recorders
 - [ ] describe_delivery_channel_status
 - [ ] describe_delivery_channels
+- [ ] describe_pending_aggregation_requests
+- [ ] get_aggregate_compliance_details_by_config_rule
+- [ ] get_aggregate_config_rule_compliance_summary
 - [ ] get_compliance_details_by_config_rule
 - [ ] get_compliance_details_by_resource
 - [ ] get_compliance_summary_by_config_rule
@@ -925,13 +988,19 @@
 - [ ] get_discovered_resource_counts
 - [ ] get_resource_config_history
 - [ ] list_discovered_resources
+- [ ] put_aggregation_authorization
 - [ ] put_config_rule
+- [ ] put_configuration_aggregator
 - [ ] put_configuration_recorder
 - [ ] put_delivery_channel
 - [ ] put_evaluations
 - [ ] start_config_rules_evaluation
 - [ ] start_configuration_recorder
 - [ ] stop_configuration_recorder
+
+## connect - 0% implemented
+- [ ] start_outbound_voice_contact
+- [ ] stop_contact
 
 ## cur - 0% implemented
 - [ ] delete_report_definition
@@ -984,11 +1053,13 @@
 
 ## devicefarm - 0% implemented
 - [ ] create_device_pool
+- [ ] create_instance_profile
 - [ ] create_network_profile
 - [ ] create_project
 - [ ] create_remote_access_session
 - [ ] create_upload
 - [ ] delete_device_pool
+- [ ] delete_instance_profile
 - [ ] delete_network_profile
 - [ ] delete_project
 - [ ] delete_remote_access_session
@@ -996,8 +1067,10 @@
 - [ ] delete_upload
 - [ ] get_account_settings
 - [ ] get_device
+- [ ] get_device_instance
 - [ ] get_device_pool
 - [ ] get_device_pool_compatibility
+- [ ] get_instance_profile
 - [ ] get_job
 - [ ] get_network_profile
 - [ ] get_offering_status
@@ -1009,8 +1082,10 @@
 - [ ] get_upload
 - [ ] install_to_remote_access_session
 - [ ] list_artifacts
+- [ ] list_device_instances
 - [ ] list_device_pools
 - [ ] list_devices
+- [ ] list_instance_profiles
 - [ ] list_jobs
 - [ ] list_network_profiles
 - [ ] list_offering_promotions
@@ -1029,7 +1104,9 @@
 - [ ] schedule_run
 - [ ] stop_remote_access_session
 - [ ] stop_run
+- [ ] update_device_instance
 - [ ] update_device_pool
+- [ ] update_instance_profile
 - [ ] update_network_profile
 - [ ] update_project
 
@@ -1188,7 +1265,7 @@
 - [ ] update_radius
 - [ ] verify_trust
 
-## dynamodb - 24% implemented
+## dynamodb - 22% implemented
 - [ ] batch_get_item
 - [ ] batch_write_item
 - [ ] create_backup
@@ -1211,9 +1288,11 @@
 - [X] put_item
 - [X] query
 - [ ] restore_table_from_backup
+- [ ] restore_table_to_point_in_time
 - [X] scan
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_continuous_backups
 - [ ] update_global_table
 - [ ] update_item
 - [ ] update_table
@@ -1810,6 +1889,20 @@
 - [ ] put_record_batch
 - [ ] update_destination
 
+## fms - 0% implemented
+- [ ] associate_admin_account
+- [ ] delete_notification_channel
+- [ ] delete_policy
+- [ ] disassociate_admin_account
+- [ ] get_admin_account
+- [ ] get_compliance_detail
+- [ ] get_notification_channel
+- [ ] get_policy
+- [ ] list_compliance_status
+- [ ] list_policies
+- [ ] put_notification_channel
+- [ ] put_policy
+
 ## gamelift - 0% implemented
 - [ ] accept_match
 - [ ] create_alias
@@ -2115,7 +2208,7 @@
 - [ ] describe_event_types
 - [ ] describe_events
 
-## iam - 48% implemented
+## iam - 47% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -2228,6 +2321,7 @@
 - [ ] update_group
 - [X] update_login_profile
 - [ ] update_open_id_connect_provider_thumbprint
+- [ ] update_role
 - [ ] update_role_description
 - [ ] update_saml_provider
 - [ ] update_server_certificate
@@ -3496,6 +3590,7 @@
 - [ ] put_object_acl
 - [ ] put_object_tagging
 - [ ] restore_object
+- [ ] select_object_content
 - [ ] upload_part
 - [ ] upload_part_copy
 
@@ -3549,6 +3644,23 @@
 - [ ] list_domains
 - [ ] put_attributes
 - [ ] select
+
+## secretsmanager - 0% implemented
+- [ ] cancel_rotate_secret
+- [ ] create_secret
+- [ ] delete_secret
+- [ ] describe_secret
+- [ ] get_random_password
+- [ ] get_secret_value
+- [ ] list_secret_version_ids
+- [ ] list_secrets
+- [ ] put_secret_value
+- [ ] restore_secret
+- [ ] rotate_secret
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_secret
+- [ ] update_secret_version_stage
 
 ## serverlessrepo - 0% implemented
 - [ ] create_application
@@ -4058,9 +4170,14 @@
 - [X] terminate_workflow_execution
 
 ## transcribe - 0% implemented
+- [ ] create_vocabulary
+- [ ] delete_vocabulary
 - [ ] get_transcription_job
+- [ ] get_vocabulary
 - [ ] list_transcription_jobs
+- [ ] list_vocabularies
 - [ ] start_transcription_job
+- [ ] update_vocabulary
 
 ## translate - 0% implemented
 - [ ] translate_text
@@ -4262,6 +4379,7 @@
 - [ ] create_user
 - [ ] delete_alias
 - [ ] delete_group
+- [ ] delete_mailbox_permissions
 - [ ] delete_resource
 - [ ] delete_user
 - [ ] deregister_from_work_mail
@@ -4274,10 +4392,12 @@
 - [ ] list_aliases
 - [ ] list_group_members
 - [ ] list_groups
+- [ ] list_mailbox_permissions
 - [ ] list_organizations
 - [ ] list_resource_delegates
 - [ ] list_resources
 - [ ] list_users
+- [ ] put_mailbox_permissions
 - [ ] register_to_work_mail
 - [ ] reset_password
 - [ ] update_primary_email_address
