@@ -184,7 +184,7 @@ class LogGroup:
             events += stream.filter_log_events(log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved)
 
         if interleaved:
-            events = sorted(events, key=lambda event: event.timestamp)
+            events = sorted(events, key=lambda event: event['timestamp'])
 
         if next_token is None:
             next_token = 0
