@@ -70,6 +70,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | CloudwatchEvents      | @mock_events     | all endpoints done                |
 |------------------------------------------------------------------------------|
+| Cognito Identity      | @mock_cognitoidentity| basic endpoints done           |
+|------------------------------------------------------------------------------|
 | Data Pipeline         | @mock_datapipeline| basic endpoints done             |
 |------------------------------------------------------------------------------|
 | DynamoDB              | @mock_dynamodb   | core endpoints done               |
