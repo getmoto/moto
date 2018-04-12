@@ -1584,5 +1584,5 @@ def test_create_target_groups_through_cloudformation():
     # and one named MyTargetGroup
     assert len([tg for tg in target_group_dicts if tg['TargetGroupName'] == 'MyTargetGroup']) == 1
     assert len(
-        [tg for tg in target_group_dicts if tg['TargetGroupName'].startswith('test-stack-test')]
+        [tg for tg in target_group_dicts if tg['TargetGroupName'].startswith('test-stack')]
     ) == 2

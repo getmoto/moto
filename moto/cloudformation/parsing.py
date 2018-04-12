@@ -252,6 +252,10 @@ def generate_resource_name(resource_type, stack_name, logical_id):
         name_prefix = '{0}-{1}'.format(stack_name, logical_id)
         my_random_suffix = random_suffix()
         truncated_name_prefix = name_prefix[0:32 - (len(my_random_suffix) + 1)]
+        # if the truncated name ends in a dash, we'll end up with a double dash in the final name, which is
+        # not allowed
+        if truncated_name_prefix.endswith('-'):
+            truncated_name_prefix = truncated_name_prefix[:-1]
         return '{0}-{1}'.format(truncated_name_prefix, my_random_suffix)
     else:
         return '{0}-{1}-{2}'.format(stack_name, logical_id, random_suffix())
