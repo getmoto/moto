@@ -976,22 +976,22 @@ def test_api_keys():
     apikey_name = 'TESTKEY1'
     payload = {'value': apikey_value, 'name': apikey_name}
     response = client.create_api_key(**payload)
-    apikey = client.get_api_key(apiKey=payload['value'])
+    apikey = client.get_api_key(apiKey=response['id'])
     apikey['name'].should.equal(apikey_name)
     apikey['value'].should.equal(apikey_value)
 
     apikey_name = 'TESTKEY2'
     payload = {'name': apikey_name, 'generateDistinctId': True}
     response = client.create_api_key(**payload)
-    apikey = client.get_api_key(apiKey=response['value'])
+    apikey_id = response['id']
+    apikey = client.get_api_key(apiKey=apikey_id)
     apikey['name'].should.equal(apikey_name)
     len(apikey['value']).should.equal(40)
-    apikey_value = apikey['value']
 
     response = client.get_api_keys()
     len(response['items']).should.equal(2)
 
-    client.delete_api_key(apiKey=apikey_value)
+    client.delete_api_key(apiKey=apikey_id)
 
     response = client.get_api_keys()
     len(response['items']).should.equal(1)

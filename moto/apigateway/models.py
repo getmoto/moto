@@ -563,17 +563,17 @@ class APIGatewayBackend(BaseBackend):
 
     def create_apikey(self, payload):
         key = ApiKey(**payload)
-        self.keys[key['value']] = key
+        self.keys[key['id']] = key
         return key
 
     def get_apikeys(self):
         return list(self.keys.values())
 
-    def get_apikey(self, value):
-        return self.keys[value]
+    def get_apikey(self, api_key_id):
+        return self.keys[api_key_id]
 
-    def delete_apikey(self, value):
-        self.keys.pop(value)
+    def delete_apikey(self, api_key_id):
+        self.keys.pop(api_key_id)
         return {}
 
 
