@@ -658,6 +658,14 @@ def test_filter_expression():
         {':v0': {'N': '7'}}
     )
     filter_expr.expr(row1).should.be(True)
+    # Expression from to check contains on string value
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
+        'contains(#n0, :v0)',
+        {'#n0': 'Desc'},
+        {':v0': {'S': 'Some'}}
+    )
+    filter_expr.expr(row1).should.be(True)
+    filter_expr.expr(row2).should.be(False)
 
 
 @mock_dynamodb2
@@ -699,6 +707,11 @@ def test_query_filter():
     )
     assert response['Count'] == 1
     assert response['Items'][0]['app'] == 'app2'
+    response = table.query(
+        KeyConditionExpression=Key('client').eq('client1'),
+        FilterExpression=Attr('app').contains('app')
+    )
+    assert response['Count'] == 2
 
 
 @mock_dynamodb2
