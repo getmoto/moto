@@ -6,6 +6,7 @@ import string
 import requests
 import time
 
+from boto3.session import Session
 import responses
 from moto.core import BaseBackend, BaseModel
 from .utils import create_id
@@ -577,7 +578,9 @@ class APIGatewayBackend(BaseBackend):
         return {}
 
 
+
+
+
 apigateway_backends = {}
-# Not available in boto yet
-for region_name in ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1']:
+for region_name in Session().get_available_regions('apigateway'):
     apigateway_backends[region_name] = APIGatewayBackend(region_name)
