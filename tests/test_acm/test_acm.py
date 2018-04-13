@@ -314,69 +314,70 @@ def test_request_certificate_no_san():
     )
     resp2.should.contain('Certificate')
 
-
-# Also tests the SAN code
-@freeze_time("2012-01-01 12:00:00", as_arg=True)
-@mock_acm
-def test_request_certificate(frozen_time):
-    # After requesting a certificate, it should then auto-validate after 1 minute
-    # Some sneaky programming for that ;-)
-    client = boto3.client('acm', region_name='eu-central-1')
-
-    resp = client.request_certificate(
-        DomainName='google.com',
-        SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
-    )
-    arn = resp['CertificateArn']
-
-    resp = client.describe_certificate(CertificateArn=arn)
-    resp['Certificate']['CertificateArn'].should.equal(arn)
-    resp['Certificate']['DomainName'].should.equal('google.com')
-    resp['Certificate']['Issuer'].should.equal('Amazon')
-    resp['Certificate']['KeyAlgorithm'].should.equal('RSA_2048')
-    resp['Certificate']['Status'].should.equal('PENDING_VALIDATION')
-    resp['Certificate']['Type'].should.equal('AMAZON_ISSUED')
-    len(resp['Certificate']['SubjectAlternativeNames']).should.equal(3)
-
-    # Move time
-    frozen_time.move_to('2012-01-01 12:02:00')
-    resp = client.describe_certificate(CertificateArn=arn)
-    resp['Certificate']['CertificateArn'].should.equal(arn)
-    resp['Certificate']['Status'].should.equal('ISSUED')
-
-
-@freeze_time("2012-01-01 12:00:00", as_arg=True)
-@mock_acm
-def test_request_certificate(frozen_time):
-    # After requesting a certificate, it should then auto-validate after 1 minute
-    # Some sneaky programming for that ;-)
-    client = boto3.client('acm', region_name='eu-central-1')
-
-    resp = client.request_certificate(
-        IdempotencyToken='test_token',
-        DomainName='google.com',
-        SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
-    )
-    original_arn = resp['CertificateArn']
-
-    # Should be able to request a certificate multiple times in an hour
-    # after that it makes a new one
-    for time_intervals in ('2012-01-01 12:15:00', '2012-01-01 12:30:00', '2012-01-01 12:45:00'):
-        frozen_time.move_to(time_intervals)
-        resp = client.request_certificate(
-            IdempotencyToken='test_token',
-            DomainName='google.com',
-            SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
-        )
-        arn = resp['CertificateArn']
-        arn.should.equal(original_arn)
-
-    # Move time
-    frozen_time.move_to('2012-01-01 13:01:00')
-    resp = client.request_certificate(
-        IdempotencyToken='test_token',
-        DomainName='google.com',
-        SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
-    )
-    arn = resp['CertificateArn']
-    arn.should_not.equal(original_arn)
+# # Also tests the SAN code
+# # requires Pull: https://github.com/spulec/freezegun/pull/210
+# @freeze_time("2012-01-01 12:00:00", as_arg=True)
+# @mock_acm
+# def test_request_certificate(frozen_time):
+#     # After requesting a certificate, it should then auto-validate after 1 minute
+#     # Some sneaky programming for that ;-)
+#     client = boto3.client('acm', region_name='eu-central-1')
+#
+#     resp = client.request_certificate(
+#         DomainName='google.com',
+#         SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
+#     )
+#     arn = resp['CertificateArn']
+#
+#     resp = client.describe_certificate(CertificateArn=arn)
+#     resp['Certificate']['CertificateArn'].should.equal(arn)
+#     resp['Certificate']['DomainName'].should.equal('google.com')
+#     resp['Certificate']['Issuer'].should.equal('Amazon')
+#     resp['Certificate']['KeyAlgorithm'].should.equal('RSA_2048')
+#     resp['Certificate']['Status'].should.equal('PENDING_VALIDATION')
+#     resp['Certificate']['Type'].should.equal('AMAZON_ISSUED')
+#     len(resp['Certificate']['SubjectAlternativeNames']).should.equal(3)
+#
+#     # Move time
+#     frozen_time.move_to('2012-01-01 12:02:00')
+#     resp = client.describe_certificate(CertificateArn=arn)
+#     resp['Certificate']['CertificateArn'].should.equal(arn)
+#     resp['Certificate']['Status'].should.equal('ISSUED')
+#
+#
+# # requires Pull: https://github.com/spulec/freezegun/pull/210
+# @freeze_time("2012-01-01 12:00:00", as_arg=True)
+# @mock_acm
+# def test_request_certificate(frozen_time):
+#     # After requesting a certificate, it should then auto-validate after 1 minute
+#     # Some sneaky programming for that ;-)
+#     client = boto3.client('acm', region_name='eu-central-1')
+#
+#     resp = client.request_certificate(
+#         IdempotencyToken='test_token',
+#         DomainName='google.com',
+#         SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
+#     )
+#     original_arn = resp['CertificateArn']
+#
+#     # Should be able to request a certificate multiple times in an hour
+#     # after that it makes a new one
+#     for time_intervals in ('2012-01-01 12:15:00', '2012-01-01 12:30:00', '2012-01-01 12:45:00'):
+#         frozen_time.move_to(time_intervals)
+#         resp = client.request_certificate(
+#             IdempotencyToken='test_token',
+#             DomainName='google.com',
+#             SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
+#         )
+#         arn = resp['CertificateArn']
+#         arn.should.equal(original_arn)
+#
+#     # Move time
+#     frozen_time.move_to('2012-01-01 13:01:00')
+#     resp = client.request_certificate(
+#         IdempotencyToken='test_token',
+#         DomainName='google.com',
+#         SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
+#     )
+#     arn = resp['CertificateArn']
+#     arn.should_not.equal(original_arn)
