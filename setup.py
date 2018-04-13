@@ -20,7 +20,7 @@ install_requires = [
     "pytz",
     "python-dateutil<2.7.0,>=2.1",
     "mock",
-    "docker>=2.5.1",
+    "docker~=2.5",
     "jsondiff==1.1.1",
     "aws-xray-sdk<0.96,>=0.93",
     "responses",
