@@ -142,7 +142,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return self._resource_tags[resource_type][resource_id]
 
     def send_command(self, **kwargs):
-        instances = kwargs['InstanceIds']
+        instances = kwargs.get('InstanceIds', [])
         now = datetime.datetime.now()
         expires_after = now + datetime.timedelta(0, int(kwargs['TimeoutSeconds']))
         return {
