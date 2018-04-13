@@ -315,7 +315,8 @@ class SNSBackend(BaseBackend):
             return self._get_values_nexttoken(self.subscriptions, next_token)
 
     def publish(self, arn, message, subject=None, message_attributes=None):
-        if subject is not None and len(subject) >= 100:
+        if subject is not None and len(subject) > 100:
+            # Note that the AWS docs around length are wrong: https://github.com/spulec/moto/issues/1503
             raise ValueError('Subject must be less than 100 characters')
 
         try:
