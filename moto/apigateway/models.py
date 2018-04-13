@@ -578,9 +578,6 @@ class APIGatewayBackend(BaseBackend):
         return {}
 
 
-
-
-
 apigateway_backends = {}
 for region_name in Session().get_available_regions('apigateway'):
     apigateway_backends[region_name] = APIGatewayBackend(region_name)
