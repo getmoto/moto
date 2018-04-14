@@ -249,6 +249,33 @@ def test_scan_returns_consumed_capacity():
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
+def test_put_item_with_special_chars():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+
+    conn.put_item(
+            TableName=name,
+            Item={
+                'forum_name': { 'S': 'LOLCat Forum' },
+                'subject': { 'S': 'Check this out!' },
+                'Body': { 'S': 'http://url_to_lolcat.gif'},
+                'SentBy': { 'S': "test" },
+                'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
+                '"': {"S": "foo"},
+            }
+        )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
 def test_query_returns_consumed_capacity():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 

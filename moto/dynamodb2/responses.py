@@ -161,8 +161,7 @@ class DynamoHandler(BaseResponse):
         name = self.body['TableName']
         item = self.body['Item']
 
-        res = re.search('\"\"', json.dumps(item))
-        if res:
+        if any(list(param.values())[0] == '' for param in item.values() if isinstance(param, dict)):
             er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
             return (400,
                 {'server': 'amazon.com'},
