@@ -1336,7 +1336,7 @@
 - [ ] confirm_product_instance
 - [ ] copy_fpga_image
 - [X] copy_image
-- [ ] copy_snapshot
+- [X] copy_snapshot
 - [X] create_customer_gateway
 - [ ] create_default_subnet
 - [ ] create_default_vpc
