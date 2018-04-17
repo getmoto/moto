@@ -239,6 +239,11 @@ def test_filtering_exact_string():
     messages = queue.receive_messages(MaxNumberOfMessages=5)
     message_bodies = [json.loads(m.body)['Message'] for m in messages]
     message_bodies.should.equal(['match'])
+    message_attributes = [
+        json.loads(m.body)['MessageAttributes'] for m in messages]
+    message_attributes.should.equal(
+        [{'store': {'Type': 'String', 'Value': 'example_corp'}}])
+
 
 @mock_sqs
 @mock_sns
@@ -256,6 +261,11 @@ def test_filtering_exact_string_multiple_message_attributes():
     messages = queue.receive_messages(MaxNumberOfMessages=5)
     message_bodies = [json.loads(m.body)['Message'] for m in messages]
     message_bodies.should.equal(['match'])
+    message_attributes = [
+        json.loads(m.body)['MessageAttributes'] for m in messages]
+    message_attributes.should.equal([{
+        'store': {'Type': 'String', 'Value': 'example_corp'},
+        'event': {'Type': 'String', 'Value': 'order_cancelled'}}])
 
 @mock_sqs
 @mock_sns
@@ -275,6 +285,11 @@ def test_filtering_exact_string_OR_matching():
     message_bodies = [json.loads(m.body)['Message'] for m in messages]
     message_bodies.should.equal(
         ['match example_corp', 'match different_corp'])
+    message_attributes = [
+        json.loads(m.body)['MessageAttributes'] for m in messages]
+    message_attributes.should.equal([
+        {'store': {'Type': 'String', 'Value': 'example_corp'}},
+        {'store': {'Type': 'String', 'Value': 'different_corp'}}])
 
 @mock_sqs
 @mock_sns
@@ -294,6 +309,11 @@ def test_filtering_exact_string_AND_matching_positive():
     message_bodies = [json.loads(m.body)['Message'] for m in messages]
     message_bodies.should.equal(
         ['match example_corp order_cancelled'])
+    message_attributes = [
+        json.loads(m.body)['MessageAttributes'] for m in messages]
+    message_attributes.should.equal([{
+        'store': {'Type': 'String', 'Value': 'example_corp'},
+        'event': {'Type': 'String', 'Value': 'order_cancelled'}}])
 
 @mock_sqs
 @mock_sns
@@ -312,7 +332,9 @@ def test_filtering_exact_string_AND_matching_no_match():
     messages = queue.receive_messages(MaxNumberOfMessages=5)
     message_bodies = [json.loads(m.body)['Message'] for m in messages]
     message_bodies.should.equal([])
-
+    message_attributes = [
+        json.loads(m.body)['MessageAttributes'] for m in messages]
+    message_attributes.should.equal([])
 
 @mock_sqs
 @mock_sns
@@ -328,6 +350,9 @@ def test_filtering_exact_string_no_match():
     messages = queue.receive_messages(MaxNumberOfMessages=5)
     message_bodies = [json.loads(m.body)['Message'] for m in messages]
     message_bodies.should.equal([])
+    message_attributes = [
+        json.loads(m.body)['MessageAttributes'] for m in messages]
+    message_attributes.should.equal([])
 
 @mock_sqs
 @mock_sns
@@ -340,3 +365,6 @@ def test_filtering_exact_string_no_attributes_no_match():
     messages = queue.receive_messages(MaxNumberOfMessages=5)
     message_bodies = [json.loads(m.body)['Message'] for m in messages]
     message_bodies.should.equal([])
+    message_attributes = [
+        json.loads(m.body)['MessageAttributes'] for m in messages]
+    message_attributes.should.equal([])
