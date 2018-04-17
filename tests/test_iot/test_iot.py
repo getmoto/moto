@@ -97,6 +97,23 @@ def test_certs():
     res.should.have.key('certificates').which.should.have.length_of(0)
 
 @mock_iot
+def test_certs_create_inactive():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    cert = client.create_keys_and_certificate(setAsActive=False)
+    cert_id = cert['certificateId']
+
+    cert = client.describe_certificate(certificateId=cert_id)
+    cert.should.have.key('certificateDescription')
+    cert_desc = cert['certificateDescription']
+    cert_desc.should.have.key('status').which.should.equal('INACTIVE')
+
+    client.update_certificate(certificateId=cert_id, newStatus='ACTIVE')
+    cert = client.describe_certificate(certificateId=cert_id)
+    cert.should.have.key('certificateDescription')
+    cert_desc = cert['certificateDescription']
+    cert_desc.should.have.key('status').which.should.equal('ACTIVE')
+
+@mock_iot
 def test_policy():
     client = boto3.client('iot', region_name='ap-northeast-1')
     name = 'my-policy'

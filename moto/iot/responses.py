@@ -103,7 +103,7 @@ class IoTResponse(BaseResponse):
         return json.dumps(dict())
 
     def create_keys_and_certificate(self):
-        set_as_active = self._get_param("setAsActive")
+        set_as_active = self._get_bool_param("setAsActive")
         cert, key_pair = self.iot_backend.create_keys_and_certificate(
             set_as_active=set_as_active,
         )
