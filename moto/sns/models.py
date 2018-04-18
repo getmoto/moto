@@ -4,10 +4,11 @@ import datetime
 import uuid
 import json
 
-import boto.sns
 import requests
 import six
 import re
+
+from boto3 import Session
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
@@ -410,8 +411,8 @@ class SNSBackend(BaseBackend):
 
 
 sns_backends = {}
-for region in boto.sns.regions():
-    sns_backends[region.name] = SNSBackend(region.name)
+for region in Session().get_available_regions('sns'):
+    sns_backends[region] = SNSBackend(region)
 
 
 DEFAULT_TOPIC_POLICY = {
