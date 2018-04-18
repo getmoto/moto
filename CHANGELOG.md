@@ -4,6 +4,7 @@ Moto Changelog
 1.3.3
 ------
     
+    * Fix a regression in S3 url regexes
     * APIGateway region fixes
     * ECS improvements
     * Add @mock_cognitoidentity, thanks to @brcoding
