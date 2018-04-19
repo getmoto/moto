@@ -6,6 +6,7 @@ from nose.tools import assert_raises
 from moto.ec2 import ec2_backends
 import boto
 import boto3
+from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
@@ -586,6 +587,59 @@ def test_volume_tag_escaping():
     snaps = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
     dict(snaps[0].tags).should.equal({'key': '</closed>'})
 
+
+@mock_ec2
+def test_copy_snapshot():
+    ec2_client = boto3.client('ec2', region_name='eu-west-1')
+    dest_ec2_client = boto3.client('ec2', region_name='eu-west-2')
+
+    volume_response = ec2_client.create_volume(
+        AvailabilityZone='eu-west-1a', Size=10
+    )
+
+    create_snapshot_response = ec2_client.create_snapshot(
+        VolumeId=volume_response['VolumeId']
+    )
+    
+    copy_snapshot_response = dest_ec2_client.copy_snapshot(
+        SourceSnapshotId=create_snapshot_response['SnapshotId'],
+        SourceRegion="eu-west-1"
+    )
+    
+    ec2 = boto3.resource('ec2', region_name='eu-west-1')
+    dest_ec2 = boto3.resource('ec2', region_name='eu-west-2')
+    
+    source = ec2.Snapshot(create_snapshot_response['SnapshotId'])
+    dest = dest_ec2.Snapshot(copy_snapshot_response['SnapshotId'])
+    
+    attribs = ['data_encryption_key_id', 'encrypted',
+                'kms_key_id', 'owner_alias', 'owner_id', 'progress',
+                'start_time', 'state', 'state_message',
+                'tags', 'volume_id', 'volume_size']
+    
+    for attrib in attribs:
+        getattr(source, attrib).should.equal(getattr(dest, attrib))
+    
+    # Copy from non-existent source ID.
+    with assert_raises(ClientError) as cm:
+        create_snapshot_error = ec2_client.create_snapshot(
+            VolumeId='vol-abcd1234'
+        )
+    cm.exception.response['Error']['Code'].should.equal('InvalidVolume.NotFound')
+    cm.exception.response['Error']['Message'].should.equal("The volume 'vol-abcd1234' does not exist.")
+    cm.exception.response['ResponseMetadata']['RequestId'].should_not.be.none
+    cm.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+
+    # Copy from non-existent source region.
+    with assert_raises(ClientError) as cm:
+        copy_snapshot_response = dest_ec2_client.copy_snapshot(
+            SourceSnapshotId=create_snapshot_response['SnapshotId'],
+            SourceRegion="eu-west-2"
+        )
+    cm.exception.response['Error']['Code'].should.equal('InvalidSnapshot.NotFound')
+    cm.exception.response['Error']['Message'].should.be.none
+    cm.exception.response['ResponseMetadata']['RequestId'].should_not.be.none
+    cm.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
 
 @mock_ec2
 def test_search_for_many_snapshots():
