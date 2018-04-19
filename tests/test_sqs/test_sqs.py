@@ -171,6 +171,28 @@ def test_message_with_complex_attributes():
 
 
 @mock_sqs
+def test_send_message_with_message_group_id():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="test-group-id.fifo",
+                             Attributes={'FifoQueue': 'true'})
+
+    sent = queue.send_message(
+        MessageBody="mydata",
+        MessageDeduplicationId="dedupe_id_1",
+        MessageGroupId="group_id_1",
+    )
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+    message_attributes = messages[0].attributes
+    message_attributes.should.contain('MessageGroupId')
+    message_attributes['MessageGroupId'].should.equal('group_id_1')
+    message_attributes.should.contain('MessageDeduplicationId')
+    message_attributes['MessageDeduplicationId'].should.equal('dedupe_id_1')
+
+
+@mock_sqs
 def test_send_message_with_unicode_characters():
     body_one = 'Héllo!😀'
 

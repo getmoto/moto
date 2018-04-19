@@ -198,6 +198,8 @@ class SQSResponse(BaseResponse):
     def send_message(self):
         message = self._get_param('MessageBody')
         delay_seconds = int(self._get_param('DelaySeconds', 0))
+        message_group_id = self._get_param("MessageGroupId")
+        message_dedupe_id = self._get_param("MessageDeduplicationId")
 
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             return ERROR_TOO_LONG_RESPONSE, dict(status=400)
@@ -213,7 +215,9 @@ class SQSResponse(BaseResponse):
             queue_name,
             message,
             message_attributes=message_attributes,
-            delay_seconds=delay_seconds
+            delay_seconds=delay_seconds,
+            deduplication_id=message_dedupe_id,
+            group_id=message_group_id
         )
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
@@ -491,6 +495,18 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
             <Name>ApproximateFirstReceiveTimestamp</Name>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
+          {% if message.deduplication_id is not none %}
+          <Attribute>
+            <Name>MessageDeduplicationId</Name>
+            <Value>{{ message.deduplication_id }}</Value>
+          </Attribute>
+          {% endif %}
+          {% if message.group_id is not none %}
+          <Attribute>
+            <Name>MessageGroupId</Name>
+            <Value>{{ message.group_id }}</Value>
+          </Attribute>
+          {% endif %}
           {% if message.message_attributes.items()|count > 0 %}
           <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
           {% endif %}
