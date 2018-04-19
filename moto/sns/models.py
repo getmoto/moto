@@ -94,7 +94,7 @@ class Subscription(BaseModel):
         if self.protocol == 'sqs':
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
-            enveloped_message = json.dumps(self.get_post_data(message, message_id, subject), sort_keys=True, indent=2, separators=(',', ': '))
+            enveloped_message = json.dumps(self.get_post_data(message, message_id, subject, message_attributes=message_attributes), sort_keys=True, indent=2, separators=(',', ': '))
             sqs_backends[region].send_message(queue_name, enveloped_message)
         elif self.protocol in ['http', 'https']:
             post_data = self.get_post_data(message, message_id, subject)
@@ -132,15 +132,16 @@ class Subscription(BaseModel):
             for rule in rules:
                 if isinstance(rule, six.string_types):
                     # only string value matching is supported
-                    if message_attributes[field] == rule:
+                    if message_attributes[field]['Value'] == rule:
                         return True
             return False
 
         return all(_field_match(field, rules, message_attributes)
                    for field, rules in six.iteritems(self._filter_policy))
 
-    def get_post_data(self, message, message_id, subject):
-        return {
+    def get_post_data(
+            self, message, message_id, subject, message_attributes=None):
+        post_data = {
             "Type": "Notification",
             "MessageId": message_id,
             "TopicArn": self.topic.arn,
@@ -152,6 +153,9 @@ class Subscription(BaseModel):
             "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",
             "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55"
         }
+        if message_attributes:
+            post_data["MessageAttributes"] = message_attributes
+        return post_data
 
 
 class PlatformApplication(BaseModel):
