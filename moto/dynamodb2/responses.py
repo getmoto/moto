@@ -8,6 +8,18 @@ from moto.core.utils import camelcase_to_underscores, amzn_request_id
 from .models import dynamodb_backends, dynamo_json_dump
 
 
+def has_empty_keys_or_values(_dict):
+    if _dict == "":
+        return True
+    if not isinstance(_dict, dict):
+        return False
+    return any(
+        key == '' or value == '' or
+        has_empty_keys_or_values(value)
+        for key, value in _dict.items()
+    )
+
+
 class DynamoHandler(BaseResponse):
 
     def get_endpoint_name(self, headers):
@@ -161,7 +173,7 @@ class DynamoHandler(BaseResponse):
         name = self.body['TableName']
         item = self.body['Item']
 
-        if any(list(param.values())[0] == '' for param in item.values() if isinstance(param, dict)):
+        if has_empty_keys_or_values(item):
             er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
             return (400,
                 {'server': 'amazon.com'},
