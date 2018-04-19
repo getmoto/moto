@@ -38,6 +38,8 @@ class Message(BaseModel):
         self.sent_timestamp = None
         self.approximate_first_receive_timestamp = None
         self.approximate_receive_count = 0
+        self.deduplication_id = None
+        self.group_id = None
         self.visible_at = 0
         self.delayed_until = 0
 
@@ -400,7 +402,7 @@ class SQSBackend(BaseBackend):
         queue._set_attributes(attributes)
         return queue
 
-    def send_message(self, queue_name, message_body, message_attributes=None, delay_seconds=None):
+    def send_message(self, queue_name, message_body, message_attributes=None, delay_seconds=None, deduplication_id=None, group_id=None):
 
         queue = self.get_queue(queue_name)
 
@@ -411,6 +413,12 @@ class SQSBackend(BaseBackend):
 
         message_id = get_random_message_id()
         message = Message(message_id, message_body)
+
+        # Attributes, but not *message* attributes
+        if deduplication_id is not None:
+            message.deduplication_id = deduplication_id
+        if group_id is not None:
+            message.group_id = group_id
 
         if message_attributes:
             message.message_attributes = message_attributes
