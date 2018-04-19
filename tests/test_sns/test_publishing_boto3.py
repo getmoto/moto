@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import base64
 import json
 
 import boto3
@@ -39,6 +40,83 @@ def test_publish_to_sqs():
     expected = MESSAGE_FROM_SQS_TEMPLATE  % (message, published_message_id, 'us-east-1')
     acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", u'2015-01-01T12:00:00.000Z', messages[0].body)
     acquired_message.should.equal(expected)
+
+
+@mock_sqs
+@mock_sns
+def test_publish_to_sqs_bad():
+    conn = boto3.client('sns', region_name='us-east-1')
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]['TopicArn']
+
+    sqs_conn = boto3.resource('sqs', region_name='us-east-1')
+    sqs_conn.create_queue(QueueName="test-queue")
+
+    conn.subscribe(TopicArn=topic_arn,
+                   Protocol="sqs",
+                   Endpoint="arn:aws:sqs:us-east-1:123456789012:test-queue")
+    message = 'my message'
+    try:
+        # Test missing Value
+        conn.publish(
+            TopicArn=topic_arn, Message=message,
+            MessageAttributes={'store': {'DataType': 'String'}})
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameterValue')
+    try:
+        # Test empty DataType (if the DataType field is missing entirely
+        # botocore throws an exception during validation)
+        conn.publish(
+            TopicArn=topic_arn, Message=message,
+            MessageAttributes={'store': {
+                'DataType': '',
+                'StringValue': 'example_corp'
+            }})
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameterValue')
+    try:
+        # Test empty Value
+        conn.publish(
+            TopicArn=topic_arn, Message=message,
+            MessageAttributes={'store': {
+                'DataType': 'String',
+                'StringValue': ''
+            }})
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameterValue')
+
+
+@mock_sqs
+@mock_sns
+def test_publish_to_sqs_msg_attr_byte_value():
+    conn = boto3.client('sns', region_name='us-east-1')
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]['TopicArn']
+
+    sqs_conn = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs_conn.create_queue(QueueName="test-queue")
+
+    conn.subscribe(TopicArn=topic_arn,
+                   Protocol="sqs",
+                   Endpoint="arn:aws:sqs:us-east-1:123456789012:test-queue")
+    message = 'my message'
+    conn.publish(
+        TopicArn=topic_arn, Message=message,
+        MessageAttributes={'store': {
+            'DataType': 'Binary',
+            'BinaryValue': b'\x02\x03\x04'
+        }})
+    messages = queue.receive_messages(MaxNumberOfMessages=5)
+    message_attributes = [
+        json.loads(m.body)['MessageAttributes'] for m in messages]
+    message_attributes.should.equal([{
+        'store': {
+            'Type': 'Binary',
+            'Value': base64.b64encode(b'\x02\x03\x04').decode()
+        }
+    }])
 
 
 @mock_sns
@@ -263,6 +341,7 @@ def test_filtering_exact_string_multiple_message_attributes():
         'store': {'Type': 'String', 'Value': 'example_corp'},
         'event': {'Type': 'String', 'Value': 'order_cancelled'}}])
 
+
 @mock_sqs
 @mock_sns
 def test_filtering_exact_string_OR_matching():
@@ -286,6 +365,7 @@ def test_filtering_exact_string_OR_matching():
     message_attributes.should.equal([
         {'store': {'Type': 'String', 'Value': 'example_corp'}},
         {'store': {'Type': 'String', 'Value': 'different_corp'}}])
+
 
 @mock_sqs
 @mock_sns
@@ -311,6 +391,7 @@ def test_filtering_exact_string_AND_matching_positive():
         'store': {'Type': 'String', 'Value': 'example_corp'},
         'event': {'Type': 'String', 'Value': 'order_cancelled'}}])
 
+
 @mock_sqs
 @mock_sns
 def test_filtering_exact_string_AND_matching_no_match():
@@ -332,6 +413,7 @@ def test_filtering_exact_string_AND_matching_no_match():
         json.loads(m.body)['MessageAttributes'] for m in messages]
     message_attributes.should.equal([])
 
+
 @mock_sqs
 @mock_sns
 def test_filtering_exact_string_no_match():
@@ -349,6 +431,7 @@ def test_filtering_exact_string_no_match():
     message_attributes = [
         json.loads(m.body)['MessageAttributes'] for m in messages]
     message_attributes.should.equal([])
+
 
 @mock_sqs
 @mock_sns

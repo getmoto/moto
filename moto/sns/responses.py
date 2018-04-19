@@ -55,11 +55,12 @@ class SNSResponse(BaseResponse):
                     "attribute type, the set of supported type prefixes is "
                     "Binary, Number, and String.".format(name))
 
+            transform_value = None
             if 'StringValue' in value:
-                value = value['StringValue']
-            elif 'BinaryValue' in 'Value':
-                value = value['BinaryValue']
-            if not value:
+                transform_value = value['StringValue']
+            elif 'BinaryValue' in value:
+                transform_value = value['BinaryValue']
+            if not transform_value:
                 raise InvalidParameterValue(
                     "The message attribute '{0}' must contain non-empty "
                     "message attribute value for message attribute "
@@ -67,7 +68,7 @@ class SNSResponse(BaseResponse):
 
             # transformation
             transformed_message_attributes[name] = {
-                'Type': data_type, 'Value': value
+                'Type': data_type, 'Value': transform_value
             }
 
         return transformed_message_attributes
@@ -283,10 +284,7 @@ class SNSResponse(BaseResponse):
         phone_number = self._get_param('PhoneNumber')
         subject = self._get_param('Subject')
 
-        try:
-            message_attributes = self._parse_message_attributes()
-        except InvalidParameterValue as e:
-            return self._error(e.description), dict(status=e.code)
+        message_attributes = self._parse_message_attributes()
 
         if phone_number is not None:
             # Check phone is correct syntax (e164)
