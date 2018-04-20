@@ -232,11 +232,18 @@ class Queue(BaseModel):
 
         self.last_modified_timestamp = now
 
-    def _setup_dlq(self, policy_json):
-        try:
-            self.redrive_policy = json.loads(policy_json)
-        except ValueError:
-            raise RESTError('InvalidParameterValue', 'Redrive policy does not contain valid json')
+    def _setup_dlq(self, policy):
+
+        if isinstance(policy, six.text_type):
+            try:
+                self.redrive_policy = json.loads(policy)
+            except ValueError:
+                raise RESTError('InvalidParameterValue', 'Redrive policy is not a dict or valid json')
+        elif isinstance(policy, dict):
+            self.redrive_policy = policy
+        else:
+            raise RESTError('InvalidParameterValue', 'Redrive policy is not a dict or valid json')
+
 
         if 'deadLetterTargetArn' not in self.redrive_policy:
             raise RESTError('InvalidParameterValue', 'Redrive policy does not contain deadLetterTargetArn')
