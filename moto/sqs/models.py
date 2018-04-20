@@ -244,7 +244,6 @@ class Queue(BaseModel):
         else:
             raise RESTError('InvalidParameterValue', 'Redrive policy is not a dict or valid json')
 
-
         if 'deadLetterTargetArn' not in self.redrive_policy:
             raise RESTError('InvalidParameterValue', 'Redrive policy does not contain deadLetterTargetArn')
         if 'maxReceiveCount' not in self.redrive_policy:
