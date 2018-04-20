@@ -722,10 +722,11 @@ class RDS2Backend(BaseBackend):
 
     def describe_snapshots(self, db_instance_identifier, db_snapshot_identifier):
         if db_instance_identifier:
+            db_instance_snapshots = []
             for snapshot in self.snapshots.values():
                 if snapshot.database.db_instance_identifier == db_instance_identifier:
-                    return [snapshot]
-            raise DBSnapshotNotFoundError()
+                    db_instance_snapshots.append(snapshot)
+            return db_instance_snapshots
 
         if db_snapshot_identifier:
             if db_snapshot_identifier in self.snapshots:

@@ -350,8 +350,6 @@ def test_describe_db_snapshots():
                             MasterUserPassword='hunter2',
                             Port=1234,
                             DBSecurityGroups=["my_sg"])
-    conn.describe_db_snapshots.when.called_with(
-        DBInstanceIdentifier="db-primary-1").should.throw(ClientError)
 
     created = conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
                                       DBSnapshotIdentifier='snapshot-1').get('DBSnapshot')
@@ -365,6 +363,11 @@ def test_describe_db_snapshots():
     snapshot = by_snapshot_id[0]
     snapshot.should.equal(created)
     snapshot.get('Engine').should.equal('postgres')
+
+    conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                            DBSnapshotIdentifier='snapshot-2')
+    snapshots = conn.describe_db_snapshots(DBInstanceIdentifier='db-primary-1').get('DBSnapshots')
+    snapshots.should.have.length_of(2)
 
 
 @mock_rds2
