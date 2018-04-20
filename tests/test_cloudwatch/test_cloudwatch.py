@@ -120,7 +120,7 @@ def test_get_metric_statistics():
     datapoint = datapoints[0]
     datapoint.should.have.key('Minimum').which.should.equal(1.5)
     datapoint.should.have.key('Timestamp').which.should.equal(metric_timestamp)
-
+    
 
 @mock_cloudwatch_deprecated
 def test_describe_alarms():
