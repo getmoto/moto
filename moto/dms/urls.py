@@ -6,5 +6,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': EC2ContainerServiceResponse.dispatch,
+    '{0}/$': DMSServiceResponse.dispatch,
 }

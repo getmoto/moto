@@ -43,10 +43,17 @@ class FakeReplicationTask(BaseModel):
         self.region_id = kwargs['region_id']
         self.replication_task_settings = kwargs.get('task_settings', None)
         self.uuid = uuid.uuid4()
+        self.state = 'STARTING'
 
     @property
     def arn(self):
         return make_arn_for_replication_task(self.region, self.region_id, self.uuid)
+
+    def start_task(self):
+        self.state = 'STARTING'
+
+    def stop_task(self):
+        self.state = 'STOPPING'
 
 
 class FakeEndpoint(BaseModel):
@@ -102,8 +109,8 @@ class DatabaseMigrationServiceBackend(BaseBackend):
     def delete_replication_task(self, *args):
         pass
 
-    def start_replication_task(self, *args):
-        pass
+    def start_replication_task(self, task_arn):
+        started_task = self.replication_tasks[task_arn].start_task()
 
     def stop_replication_task(self, *args):
         pass
