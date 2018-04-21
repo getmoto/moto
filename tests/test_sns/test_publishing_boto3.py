@@ -231,7 +231,9 @@ def test_publish_to_sqs_in_different_region():
 def test_publish_to_http():
     def callback(request):
         request.headers["Content-Type"].should.equal("application/json")
-        json.loads.when.called_with(request.body).should_not.throw(Exception)
+        json.loads.when.called_with(
+            request.body.decode()
+        ).should_not.throw(Exception)
         return 200, {}, ""
 
     responses.add_callback(
