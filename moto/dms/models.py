@@ -1,12 +1,13 @@
 from __future__ import unicode_literals
-from datetime import datetime
-from datetime import timedelta
+# from datetime import datetime
+# from datetime import timedelta
 import uuid
 
-import pytz
-from dateutil.parser import parse as dtparse
+import boto3
+# import pytz
+# from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
-from moto.dms.exceptions import DMSError
+# from moto.dms.exceptions import DMSError
 from .utils import (
     make_arn_for_endpoint,
     make_arn_for_replication_instance,
@@ -88,7 +89,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         self.__init__(region_name)
 
     def create_endpoint(self, endpoint_id, endpoint_type, engine_name):
-        created_endpoint = FakeEndpoint(endpoint_id=endpoint_id, endpoint_type=endpoint_type, engine_name, region=self.region, region_id=self.region_id)
+        created_endpoint = FakeEndpoint(endpoint_id=endpoint_id, endpoint_type=endpoint_type, engine_name=engine_name, region=self.region, region_id=self.region_id)
         self.endpoints[created_endpoint.arn] = created_endpoint
         return created_endpoint
 
@@ -99,7 +100,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         self.replication_tasks[created_replication_task.arn] = created_replication_task
         return created_replication_task
 
-    def create_replication_instance(self, *args):
+    def create_replication_instance(self, **kwargs):
         kwargs['region'] = self.region_name
         kwargs['region_id'] = self.region_id
         created_replication_instance = FakeReplicationInstance(**kwargs)
@@ -110,7 +111,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         pass
 
     def start_replication_task(self, task_arn):
-        started_task = self.replication_tasks[task_arn].start_task()
+        return self.replication_tasks[task_arn].start_task()
 
     def stop_replication_task(self, *args):
         pass
