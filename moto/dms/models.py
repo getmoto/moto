@@ -33,6 +33,28 @@ class FakeReplicationInstance(BaseModel):
         return make_arn_for_replication_instance(self.dms_backend.region, self.dms_backend.region_id, self.uuid)
 
 
+class FakeEndpoint(BaseModel):
+    """docstring for FakeReplicationTask."""
+    def __init__(self, **kwargs):
+        super(FakeEndpoint, self).__init__()
+        self.endpoint_identifier = kwargs['endpoint_id']
+        self.endpoint_type = kwargs['endpoint_type']
+        self.engine_name = kwargs['engine_name']
+        self.dms_backend = kwargs['dms_backend']
+        self.username = kwargs.get('username')
+        self.password = kwargs.get('password')
+        self.server_name = kwargs.get('server_name')
+        self.table_name = kwargs.get('table_name')
+        self.port = kwargs.get('port')
+        # self.region = kwargs['region']
+        # self.region_id = kwargs['region_id']
+        self.uuid = uuid.uuid4()
+
+    @property
+    def arn(self):
+        return make_arn_for_endpoint(self.dms_backend.region, self.dms_backend.region_id, self.uuid)
+
+
 class FakeReplicationTask(BaseModel):
     """docstring for FakeReplicationTask."""
     def __init__(self, **kwargs):
@@ -64,8 +86,9 @@ class FakeReplicationTask(BaseModel):
         self.state = 'ready'
 
     def start_task(self):
-        self.start_datetime = datetime.now(pytz.utc)
         self.state = 'starting'
+        self.start_datetime = datetime.now(pytz.utc)
+        self.run_task()
 
     def run_task(self):
         self.state = 'running'
@@ -76,28 +99,6 @@ class FakeReplicationTask(BaseModel):
 
     def delete_task(self):
         self.state = 'deleting'
-
-
-class FakeEndpoint(BaseModel):
-    """docstring for FakeReplicationTask."""
-    def __init__(self, **kwargs):
-        super(FakeEndpoint, self).__init__()
-        self.endpoint_identifier = kwargs['endpoint_id']
-        self.endpoint_type = kwargs['endpoint_type']
-        self.engine_name = kwargs['engine_name']
-        self.dms_backend = kwargs['dms_backend']
-        self.username = kwargs.get('username')
-        self.password = kwargs.get('password')
-        self.server_name = kwargs.get('server_name')
-        self.table_name = kwargs.get('table_name')
-        self.port = kwargs.get('port')
-        # self.region = kwargs['region']
-        # self.region_id = kwargs['region_id']
-        self.uuid = uuid.uuid4()
-
-    @property
-    def arn(self):
-        return make_arn_for_endpoint(self.dms_backend.region, self.dms_backend.region_id, self.uuid)
 
 
 class DatabaseMigrationServiceBackend(BaseBackend):
