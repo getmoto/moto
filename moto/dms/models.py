@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
-# from datetime import datetime
+from datetime import datetime
 # from datetime import timedelta
 import uuid
 
 import boto3
-# import pytz
+import pytz
 # from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
 # from moto.dms.exceptions import DMSError
@@ -44,17 +44,34 @@ class FakeReplicationTask(BaseModel):
         self.region_id = kwargs['region_id']
         self.replication_task_settings = kwargs.get('task_settings', None)
         self.uuid = uuid.uuid4()
-        self.state = 'STARTING'
+        self.creation_datetime = datetime.now(pytz.utc)
+        self.start_datetime = None
+        self.ready_datetime = None
+        self.end_datetime = None
+        self.state = 'creating'
+        self.ready_task()
 
     @property
     def arn(self):
         return make_arn_for_replication_task(self.region, self.region_id, self.uuid)
 
+    def ready_task(self):
+        self.ready_datetime = datetime.now(pytz.utc)
+        self.state = 'ready'
+
     def start_task(self):
-        self.state = 'STARTING'
+        self.start_datetime = datetime.now(pytz.utc)
+        self.state = 'starting'
+
+    def run_task(self):
+        self.state = 'running'
 
     def stop_task(self):
-        self.state = 'STOPPING'
+        self.state = 'stopped'
+        self.end_datetime = datetime.now(pytz.utc)
+
+    def delete_task(self):
+        self.state = 'deleting'
 
 
 class FakeEndpoint(BaseModel):
@@ -107,23 +124,23 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         self.replication_instances[created_replication_instance.arn] = created_replication_instance
         return created_replication_instance
 
-    def delete_replication_task(self, *args):
-        pass
+    def delete_replication_task(self, task_arn):
+        return self.replication_instances[task_arn].delete_task()
 
     def start_replication_task(self, task_arn):
         return self.replication_tasks[task_arn].start_task()
 
-    def stop_replication_task(self, *args):
-        pass
+    def stop_replication_task(self, task_arn):
+        return self.replication_tasks[task_arn].stop_task()
 
-    def describe_replication_tasks(self, *args):
-        pass
+    def describe_replication_tasks(self, task_arn):
+        return self.replication_tasks[task_arn]
 
-    def describe_replication_instances(self, *args):
-        pass
+    def describe_replication_instances(self, instance_arn):
+        return self.replication_instances[instance_arn]
 
-    def describe_endpoints(self, *args):
-        pass
+    def describe_endpoints(self, endpoint_arn):
+        return self.endpoints[endpoint_arn]
 
     # def add_applications(self, cluster_id, applications):
     #     cluster = self.get_cluster(cluster_id)
