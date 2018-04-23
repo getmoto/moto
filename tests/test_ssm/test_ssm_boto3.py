@@ -481,7 +481,6 @@ def test_send_command():
     response = client.send_command(
         InstanceIds=['i-123456'],
         DocumentName=ssm_document,
-        TimeoutSeconds=60,
         Parameters=params,
         OutputS3Region='us-east-2',
         OutputS3BucketName='the-bucket',
