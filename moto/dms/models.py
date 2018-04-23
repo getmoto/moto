@@ -21,13 +21,16 @@ class FakeReplicationInstance(BaseModel):
         super(FakeReplicationInstance, self).__init__()
         self.replication_instance_identifier = kwargs['instance_id']
         self.replication_instance_class = kwargs['instance_class']
-        self.region = kwargs['region']
-        self.region_id = kwargs['region_id']
+        self.dms_backend = kwargs['dms_backend']
+        # self.region = kwargs['region']
+        # self.region_id = kwargs['region_id']
+        self.creation_datetime = datetime.now(pytz.utc)
+        self.allocated_storage = kwargs.get('allocated_storage', 123)
         self.uuid = uuid.uuid4()
 
     @property
     def arn(self):
-        return make_arn_for_replication_instance(self.region, self.region_id, self.uuid)
+        return make_arn_for_replication_instance(self.dms_backend.region, self.dms_backend.region_id, self.uuid)
 
 
 class FakeReplicationTask(BaseModel):
@@ -40,8 +43,9 @@ class FakeReplicationTask(BaseModel):
         self.target_endpoint_arn = kwargs['target_arn']
         self.migration_type = kwargs['migration_type']
         self.table_mappings = kwargs['table_mappings']
-        self.region = kwargs['region']
-        self.region_id = kwargs['region_id']
+        self.dms_backend = kwargs['dms_backend']
+        # self.region = kwargs['region']
+        # self.region_id = kwargs['region_id']
         self.replication_task_settings = kwargs.get('task_settings', None)
         self.uuid = uuid.uuid4()
         self.creation_datetime = datetime.now(pytz.utc)
@@ -53,7 +57,7 @@ class FakeReplicationTask(BaseModel):
 
     @property
     def arn(self):
-        return make_arn_for_replication_task(self.region, self.region_id, self.uuid)
+        return make_arn_for_replication_task(self.dms_backend.region, self.dms_backend.region_id, self.uuid)
 
     def ready_task(self):
         self.ready_datetime = datetime.now(pytz.utc)
@@ -81,13 +85,19 @@ class FakeEndpoint(BaseModel):
         self.endpoint_identifier = kwargs['endpoint_id']
         self.endpoint_type = kwargs['endpoint_type']
         self.engine_name = kwargs['engine_name']
-        self.region = kwargs['region']
-        self.region_id = kwargs['region_id']
+        self.dms_backend = kwargs['dms_backend']
+        self.username = kwargs.get('username')
+        self.password = kwargs.get('password')
+        self.server_name = kwargs.get('server_name')
+        self.table_name = kwargs.get('table_name')
+        self.port = kwargs.get('port')
+        # self.region = kwargs['region']
+        # self.region_id = kwargs['region_id']
         self.uuid = uuid.uuid4()
 
     @property
     def arn(self):
-        return make_arn_for_endpoint(self.region, self.region_id, self.uuid)
+        return make_arn_for_endpoint(self.dms_backend.region, self.dms_backend.region_id, self.uuid)
 
 
 class DatabaseMigrationServiceBackend(BaseBackend):
@@ -106,20 +116,22 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         self.__init__(region_name)
 
     def create_endpoint(self, endpoint_id, endpoint_type, engine_name):
-        created_endpoint = FakeEndpoint(endpoint_id=endpoint_id, endpoint_type=endpoint_type, engine_name=engine_name, region=self.region, region_id=self.region_id)
+        created_endpoint = FakeEndpoint(endpoint_id=endpoint_id, endpoint_type=endpoint_type, engine_name=engine_name, dms_backend=self)
         self.endpoints[created_endpoint.arn] = created_endpoint
         return created_endpoint
 
     def create_replication_task(self, **kwargs):
-        kwargs['region'] = self.region_name
-        kwargs['region_id'] = self.region_id
+        # kwargs['region'] = self.region_name
+        # kwargs['region_id'] = self.region_id
+        kwargs['dms_backend'] = self
         created_replication_task = FakeReplicationTask(**kwargs)
         self.replication_tasks[created_replication_task.arn] = created_replication_task
         return created_replication_task
 
     def create_replication_instance(self, **kwargs):
-        kwargs['region'] = self.region_name
-        kwargs['region_id'] = self.region_id
+        # kwargs['region'] = self.region_name
+        # kwargs['region_id'] = self.region_id
+        kwargs['dms_backend'] = self
         created_replication_instance = FakeReplicationInstance(**kwargs)
         self.replication_instances[created_replication_instance.arn] = created_replication_instance
         return created_replication_instance
@@ -133,14 +145,21 @@ class DatabaseMigrationServiceBackend(BaseBackend):
     def stop_replication_task(self, task_arn):
         return self.replication_tasks[task_arn].stop_task()
 
-    def describe_replication_tasks(self, task_arn):
+    def describe_replication_tasks(self, task_arn, marker=None):
         return self.replication_tasks[task_arn]
 
-    def describe_replication_instances(self, instance_arn):
+    def describe_replication_instances(self, instance_arn, marker=None):
         return self.replication_instances[instance_arn]
 
-    def describe_endpoints(self, endpoint_arn):
+    def describe_endpoints(self, endpoint_arn, marker=None):
         return self.endpoints[endpoint_arn]
+        # max_items = 50
+        # groups = sorted(self.endpoints[endpoint_arn].instance_groups,
+        #                 key=lambda x: x.id)
+        # start_idx = 0 if marker is None else int(marker)
+        # marker = None if len(groups) <= start_idx + \
+        #     max_items else str(start_idx + max_items)
+        # return groups[start_idx:start_idx + max_items], marker
 
     # def add_applications(self, cluster_id, applications):
     #     cluster = self.get_cluster(cluster_id)
