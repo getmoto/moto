@@ -144,7 +144,7 @@ class SimpleSystemManagerBackend(BaseBackend):
     def send_command(self, **kwargs):
         instances = kwargs.get('InstanceIds', [])
         now = datetime.datetime.now()
-        expires_after = now + datetime.timedelta(0, int(kwargs['TimeoutSeconds']))
+        expires_after = now + datetime.timedelta(0, int(kwargs.get('TimeoutSeconds', 3600)))
         return {
             'Command': {
                 'CommandId': str(uuid.uuid4()),
