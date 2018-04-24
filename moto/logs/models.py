@@ -132,6 +132,9 @@ class LogGroup:
     def __init__(self, region, name, tags):
         self.name = name
         self.region = region
+        self.arn = "arn:aws:logs:{region}:1:log-group:{log_group}".format(
+            region=region, log_group=name)
+        self.creationTime = unix_time_millis()
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
 
@@ -197,6 +200,16 @@ class LogGroup:
         searched_streams = [{"logStreamName": stream.logStreamName, "searchedCompletely": True} for stream in streams]
         return events_page, next_token, searched_streams
 
+    def to_describe_dict(self):
+        return {
+            "arn": self.arn,
+            "creationTime": self.creationTime,
+            "logGroupName": self.name,
+            "metricFilterCount": 0,
+            "retentionInDays": 30,
+            "storedBytes": sum(s.storedBytes for s in self.streams.values()),
+        }
+
 
 class LogsBackend(BaseBackend):
     def __init__(self, region_name):
@@ -222,6 +235,21 @@ class LogsBackend(BaseBackend):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         del self.groups[log_group_name]
+
+    def describe_log_groups(self, limit, log_group_name_prefix, next_token):
+        if log_group_name_prefix is None:
+            log_group_name_prefix = ''
+        if next_token is None:
+            next_token = 0
+
+        groups = sorted(group.to_describe_dict() for name, group in self.groups.items() if name.startswith(log_group_name_prefix))
+        groups_page = groups[next_token:next_token + limit]
+
+        next_token += limit
+        if next_token >= len(groups):
+            next_token = None
+
+        return groups_page, next_token
 
     def create_log_stream(self, log_group_name, log_stream_name):
         if log_group_name not in self.groups:
