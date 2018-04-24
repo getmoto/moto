@@ -338,6 +338,14 @@ class SQSResponse(BaseResponse):
         except TypeError:
             wait_time = queue.receive_message_wait_time_seconds
 
+        if wait_time < 0 or wait_time > 20:
+            return self._error(
+                "InvalidParameterValue",
+                "An error occurred (InvalidParameterValue) when calling "
+                "the ReceiveMessage operation: Value %s for parameter "
+                "WaitTimeSeconds is invalid. Reason: must be &lt;= 0 and "
+                "&gt;= 20 if provided." % wait_time)
+
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
         except TypeError:

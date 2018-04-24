@@ -394,6 +394,21 @@ def test_max_number_of_messages_invalid_param():
 
 
 @mock_sqs
+def test_wait_time_seconds_invalid_param():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName='test-queue')
+
+    with assert_raises(ClientError):
+        queue.receive_messages(WaitTimeSeconds=-1)
+
+    with assert_raises(ClientError):
+        queue.receive_messages(WaitTimeSeconds=21)
+
+    # no error but also no messages returned
+    queue.receive_messages(WaitTimeSeconds=0)
+
+
+@mock_sqs
 def test_receive_messages_with_wait_seconds_timeout_of_zero():
     """
     test that zero messages is returned with a wait_seconds_timeout of zero,
@@ -405,20 +420,6 @@ def test_receive_messages_with_wait_seconds_timeout_of_zero():
     queue = sqs.create_queue(QueueName="blah")
 
     messages = queue.receive_messages(WaitTimeSeconds=0)
-    messages.should.equal([])
-
-
-@mock_sqs
-def test_receive_messages_with_wait_seconds_timeout_of_negative_one():
-    """
-    test that zero messages is returned with a wait_seconds_timeout of negative 1
-    :return:
-    """
-
-    sqs = boto3.resource('sqs', region_name='us-east-1')
-    queue = sqs.create_queue(QueueName="blah")
-
-    messages = queue.receive_messages(WaitTimeSeconds=-1)
     messages.should.equal([])
 
 
