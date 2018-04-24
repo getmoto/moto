@@ -325,10 +325,26 @@ class SQSResponse(BaseResponse):
         except TypeError:
             message_count = DEFAULT_RECEIVED_MESSAGES
 
+        if message_count < 1 or message_count > 10:
+            return self._error(
+                "InvalidParameterValue",
+                "An error occurred (InvalidParameterValue) when calling "
+                "the ReceiveMessage operation: Value %s for parameter "
+                "MaxNumberOfMessages is invalid. Reason: must be between "
+                "1 and 10, if provided." % message_count)
+
         try:
             wait_time = int(self.querystring.get("WaitTimeSeconds")[0])
         except TypeError:
             wait_time = queue.receive_message_wait_time_seconds
+
+        if wait_time < 0 or wait_time > 20:
+            return self._error(
+                "InvalidParameterValue",
+                "An error occurred (InvalidParameterValue) when calling "
+                "the ReceiveMessage operation: Value %s for parameter "
+                "WaitTimeSeconds is invalid. Reason: must be &lt;= 0 and "
+                "&gt;= 20 if provided." % wait_time)
 
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
