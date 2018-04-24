@@ -325,6 +325,14 @@ class SQSResponse(BaseResponse):
         except TypeError:
             message_count = DEFAULT_RECEIVED_MESSAGES
 
+        if message_count < 1 or message_count > 10:
+            return self._error(
+                "InvalidParameterValue",
+                "An error occurred (InvalidParameterValue) when calling "
+                "the ReceiveMessage operation: Value %s for parameter "
+                "MaxNumberOfMessages is invalid. Reason: must be between "
+                "1 and 10, if provided." % message_count)
+
         try:
             wait_time = int(self.querystring.get("WaitTimeSeconds")[0])
         except TypeError:

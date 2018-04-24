@@ -379,6 +379,21 @@ def test_send_receive_message_timestamps():
 
 
 @mock_sqs
+def test_max_number_of_messages_invalid_param():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName='test-queue')
+
+    with assert_raises(ClientError):
+        queue.receive_messages(MaxNumberOfMessages=11)
+
+    with assert_raises(ClientError):
+        queue.receive_messages(MaxNumberOfMessages=0)
+
+    # no error but also no messages returned
+    queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=0)
+
+
+@mock_sqs
 def test_receive_messages_with_wait_seconds_timeout_of_zero():
     """
     test that zero messages is returned with a wait_seconds_timeout of zero,
