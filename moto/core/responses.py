@@ -5,6 +5,7 @@ import datetime
 import json
 import logging
 import re
+import io
 
 import pytz
 from moto.core.exceptions import DryRunClientError
@@ -622,7 +623,7 @@ class AWSServiceSpec(object):
 
     def __init__(self, path):
         self.path = resource_filename('botocore', path)
-        with open(self.path, "rb") as f:
+        with io.open(self.path, 'r', encoding='utf-8') as f:
             spec = json.load(f)
         self.metadata = spec['metadata']
         self.operations = spec['operations']
