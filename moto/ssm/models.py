@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from collections import defaultdict
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
 
 import datetime
@@ -228,6 +229,37 @@ class SimpleSystemManagerBackend(BaseBackend):
         return {
             'Command': command.response_object()
         }
+
+    def list_commands(self, **kwargs):
+        """
+        https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_ListCommands.html
+        """
+        commands = self._commands
+
+        command_id = kwargs.get('CommandId', None)
+        if command_id:
+            commands = [self.get_command_by_id(command_id)]
+        instance_id = kwargs.get('InstanceId', None)
+        if instance_id:
+            commands = self.get_commands_by_instance_id(instance_id)
+
+        return {
+            'Commands': [command.response_object() for command in commands]
+        }
+
+    def get_command_by_id(self, id):
+        command = next(
+            (command for command in self._commands if command.command_id == id), None)
+
+        if command is None:
+            raise RESTError('InvalidCommandId', 'Invalid command id.')
+
+        return command
+
+    def get_commands_by_instance_id(self, instance_id):
+        return [
+            command for command in self._commands
+            if instance_id in command.instance_ids]
 
 
 ssm_backends = {}
