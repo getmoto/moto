@@ -73,7 +73,8 @@ class Cluster(TaggableResourceMixin, BaseModel):
                  preferred_maintenance_window, cluster_parameter_group_name,
                  automated_snapshot_retention_period, port, cluster_version,
                  allow_version_upgrade, number_of_nodes, publicly_accessible,
-                 encrypted, region_name, tags=None, iam_roles_arn=None):
+                 encrypted, region_name, tags=None, iam_roles_arn=None,
+                 restored_from_snapshot=False):
         super(Cluster, self).__init__(region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
@@ -119,6 +120,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
             self.number_of_nodes = 1
 
         self.iam_roles_arn = iam_roles_arn or []
+        self.restored_from_snapshot = restored_from_snapshot
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -242,7 +244,15 @@ class Cluster(TaggableResourceMixin, BaseModel):
                 "IamRoleArn": iam_role_arn
             } for iam_role_arn in self.iam_roles_arn]
         }
-
+        if self.restored_from_snapshot:
+            json_response['RestoreStatus'] = {
+                'Status': 'completed',
+                'CurrentRestoreRateInMegaBytesPerSecond': 123.0,
+                'SnapshotSizeInMegaBytes': 123,
+                'ProgressInMegaBytes': 123,
+                'ElapsedTimeInSeconds': 123,
+                'EstimatedTimeToCompletionInSeconds': 123
+            }
         try:
             json_response['ClusterSnapshotCopyStatus'] = self.cluster_snapshot_copy_status
         except AttributeError:
@@ -639,7 +649,8 @@ class RedshiftBackend(BaseBackend):
             "cluster_version": snapshot.cluster.cluster_version,
             "number_of_nodes": snapshot.cluster.number_of_nodes,
             "encrypted": snapshot.cluster.encrypted,
-            "tags": snapshot.cluster.tags
+            "tags": snapshot.cluster.tags,
+            "restored_from_snapshot": True
         }
         create_kwargs.update(kwargs)
         return self.create_cluster(**create_kwargs)
