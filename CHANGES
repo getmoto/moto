@@ -1,0 +1,3 @@
+1.4.0rc1 (2018-04-25):
+
+    * Extend SSM backend with the ListCommands endpoint.
