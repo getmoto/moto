@@ -76,6 +76,25 @@ def test_get_parameters_by_path():
         Value='value4',
         Type='String')
 
+    client.put_parameter(
+        Name='/baz/name1',
+        Description='A test parameter (list)',
+        Value='value1,value2,value3',
+        Type='StringList')
+
+    client.put_parameter(
+        Name='/baz/name2',
+        Description='A test parameter',
+        Value='value1',
+        Type='String')
+
+    client.put_parameter(
+        Name='/baz/pwd',
+        Description='A secure test parameter',
+        Value='my_secret',
+        Type='SecureString',
+        KeyId='alias/aws/ssm')
+
     response = client.get_parameters_by_path(Path='/foo')
     len(response['Parameters']).should.equal(2)
     {p['Value'] for p in response['Parameters']}.should.equal(
@@ -90,6 +109,75 @@ def test_get_parameters_by_path():
     len(response['Parameters']).should.equal(2)
     {p['Value'] for p in response['Parameters']}.should.equal(
         set(['value3', 'value4'])
+    )
+
+    response = client.get_parameters_by_path(Path='/baz')
+    len(response['Parameters']).should.equal(3)
+
+    filters = [{
+        'Key': 'Type',
+        'Option': 'Equals',
+        'Values': ['StringList'],
+    }]
+    response = client.get_parameters_by_path(Path='/baz', ParameterFilters=filters)
+    len(response['Parameters']).should.equal(1)
+    {p['Name'] for p in response['Parameters']}.should.equal(
+        set(['/baz/name1'])
+    )
+
+    # note: 'Option' is optional (default: 'Equals')
+    filters = [{
+        'Key': 'Type',
+        'Values': ['StringList'],
+    }]
+    response = client.get_parameters_by_path(Path='/baz', ParameterFilters=filters)
+    len(response['Parameters']).should.equal(1)
+    {p['Name'] for p in response['Parameters']}.should.equal(
+        set(['/baz/name1'])
+    )
+
+    filters = [{
+        'Key': 'Type',
+        'Option': 'Equals',
+        'Values': ['String'],
+    }]
+    response = client.get_parameters_by_path(Path='/baz', ParameterFilters=filters)
+    len(response['Parameters']).should.equal(1)
+    {p['Name'] for p in response['Parameters']}.should.equal(
+        set(['/baz/name2'])
+    )
+
+    filters = [{
+        'Key': 'Type',
+        'Option': 'Equals',
+        'Values': ['String', 'SecureString'],
+    }]
+    response = client.get_parameters_by_path(Path='/baz', ParameterFilters=filters)
+    len(response['Parameters']).should.equal(2)
+    {p['Name'] for p in response['Parameters']}.should.equal(
+        set(['/baz/name2', '/baz/pwd'])
+    )
+
+    filters = [{
+        'Key': 'Type',
+        'Option': 'BeginsWith',
+        'Values': ['String'],
+    }]
+    response = client.get_parameters_by_path(Path='/baz', ParameterFilters=filters)
+    len(response['Parameters']).should.equal(2)
+    {p['Name'] for p in response['Parameters']}.should.equal(
+        set(['/baz/name1', '/baz/name2'])
+    )
+
+    filters = [{
+        'Key': 'KeyId',
+        'Option': 'Equals',
+        'Values': ['alias/aws/ssm'],
+    }]
+    response = client.get_parameters_by_path(Path='/baz', ParameterFilters=filters)
+    len(response['Parameters']).should.equal(1)
+    {p['Name'] for p in response['Parameters']}.should.equal(
+        set(['/baz/pwd'])
     )
 
 

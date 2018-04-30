@@ -93,7 +93,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                 result.append(self._parameters[name])
         return result
 
-    def get_parameters_by_path(self, path, with_decryption, recursive):
+    def get_parameters_by_path(self, path, with_decryption, recursive, filters=None):
         """Implement the get-parameters-by-path-API in the backend."""
         result = []
         # path could be with or without a trailing /. we handle this
@@ -104,9 +104,34 @@ class SimpleSystemManagerBackend(BaseBackend):
                 continue
             if '/' in param[len(path) + 1:] and not recursive:
                 continue
+            if not self._match_filters(self._parameters[param], filters):
+                continue
             result.append(self._parameters[param])
 
         return result
+
+    @staticmethod
+    def _match_filters(parameter, filters=None):
+        """Return True if the given parameter matches all the filters"""
+        for filter_obj in (filters or []):
+            key = filter_obj['Key']
+            option = filter_obj.get('Option', 'Equals')
+            values = filter_obj.get('Values', [])
+
+            what = None
+            if key == 'Type':
+                what = parameter.type
+            elif key == 'KeyId':
+                what = parameter.keyid
+
+            if option == 'Equals'\
+                    and not any(what == value for value in values):
+                return False
+            elif option == 'BeginsWith'\
+                    and not any(what.startswith(value) for value in values):
+                return False
+        # True if no false match (or no filters at all)
+        return True
 
     def get_parameter(self, name, with_decryption):
         if name in self._parameters:
