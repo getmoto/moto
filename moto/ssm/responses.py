@@ -85,9 +85,10 @@ class SimpleSystemManagerResponse(BaseResponse):
         path = self._get_param('Path')
         with_decryption = self._get_param('WithDecryption')
         recursive = self._get_param('Recursive', False)
+        filters = self._get_param('ParameterFilters')
 
         result = self.ssm_backend.get_parameters_by_path(
-            path, with_decryption, recursive
+            path, with_decryption, recursive, filters
         )
 
         response = {
