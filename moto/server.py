@@ -69,8 +69,13 @@ class DomainDispatcherApplication(object):
                 _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[
                     1].split("/")
             except (KeyError, ValueError):
+                # Some cognito-idp endpoints (e.g. change password) do not receive an auth header.
+                if environ.get('HTTP_X_AMZ_TARGET', '').startswith('AWSCognitoIdentityProviderService'):
+                    service = 'cognito-idp'
+                else:
+                    service = 's3'
+
                 region = 'us-east-1'
-                service = 's3'
             if service == 'dynamodb':
                 dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
                 # If Newer API version, use dynamodb2
