@@ -3227,10 +3227,10 @@ class ElasticAddressBackend(object):
         self.addresses = []
         super(ElasticAddressBackend, self).__init__()
 
-    def allocate_address(self, domain, address):
+    def allocate_address(self, domain, address=None):
         if domain not in ['standard', 'vpc']:
             raise InvalidDomainError(domain)
-        to_append_address = ElasticAddress(domain, address)
+        to_append_address = ElasticAddress(self, domain=domain, address=address)
         self.addresses.append(to_append_address)
         return to_append_address
 
