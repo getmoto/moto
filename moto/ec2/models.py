@@ -3160,16 +3160,17 @@ class SpotFleetBackend(object):
 
 class ElasticAddress(object):
     def __init__(self, domain, reallocate_address=None):
-        if not self.reallocate_address:
-            self.public_ip = self.reallocate_address
-        else:
-            self.public_ip = random_ip()
-
+        self.reallocate_address = reallocate_address
         self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
         self.domain = domain
         self.instance = None
         self.eni = None
         self.association_id = None
+
+        if not self.reallocate_address:
+            self.public_ip = self.reallocate_address
+        else:
+            self.public_ip = random_ip()
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
