@@ -60,6 +60,11 @@ def test_eip_allocate_vpc():
     vpc.should.be.a(boto.ec2.address.Address)
     vpc.domain.should.be.equal("vpc")
     logging.debug("vpc alloc_id:".format(vpc.allocation_id))
+
+    vpc = conn.allocate_address(domain="vpc", address="127.234.30.1")
+    vpc.should.be.a(boto.ec2.address.Address)
+    vpc.public_ip.should.be.equal("127.234.30.1")
+    logging.debug("vpc public_id:".format(vpc.public_ip))
     vpc.release()
 
 
