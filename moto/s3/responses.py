@@ -24,6 +24,7 @@ from xml.dom import minidom
 
 DEFAULT_REGION_NAME = 'us-east-1'
 
+
 def parse_key_name(pth):
     return pth.lstrip("/")
 
