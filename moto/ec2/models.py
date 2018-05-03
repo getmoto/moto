@@ -24,51 +24,54 @@ from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, camelcase_to_underscores
 from .exceptions import (
-    EC2ClientError,
+    CidrLimitExceeded,
     DependencyViolationError,
-    MissingParameterError,
+    EC2ClientError,
+    FilterNotImplementedError,
+    GatewayNotAttachedError,
+    InvalidAddressError,
+    InvalidAllocationIdError,
+    InvalidAMIIdError,
+    InvalidAMIAttributeItemValueError,
+    InvalidAssociationIdError,
+    InvalidCIDRSubnetError,
+    InvalidCustomerGatewayIdError,
+    InvalidDHCPOptionsIdError,
+    InvalidDomainError,
+    InvalidID,
+    InvalidInstanceIdError,
+    InvalidInternetGatewayIdError,
+    InvalidKeyPairDuplicateError,
+    InvalidKeyPairNameError,
+    InvalidNetworkAclIdError,
+    InvalidNetworkAttachmentIdError,
+    InvalidNetworkInterfaceIdError,
     InvalidParameterValueError,
     InvalidParameterValueErrorTagNull,
-    InvalidDHCPOptionsIdError,
-    MalformedDHCPOptionsIdError,
-    InvalidKeyPairNameError,
-    InvalidKeyPairDuplicateError,
-    InvalidInternetGatewayIdError,
-    GatewayNotAttachedError,
-    ResourceAlreadyAssociatedError,
-    InvalidVPCIdError,
-    InvalidSubnetIdError,
-    InvalidNetworkInterfaceIdError,
-    InvalidNetworkAttachmentIdError,
-    InvalidSecurityGroupDuplicateError,
-    InvalidSecurityGroupNotFoundError,
     InvalidPermissionNotFoundError,
     InvalidPermissionDuplicateError,
     InvalidRouteTableIdError,
     InvalidRouteError,
-    InvalidInstanceIdError,
-    InvalidAMIIdError,
-    InvalidAMIAttributeItemValueError,
+    InvalidSecurityGroupDuplicateError,
+    InvalidSecurityGroupNotFoundError,
     InvalidSnapshotIdError,
+    InvalidSubnetIdError,
     InvalidVolumeIdError,
     InvalidVolumeAttachmentError,
-    InvalidDomainError,
-    InvalidAddressError,
-    InvalidAllocationIdError,
-    InvalidAssociationIdError,
+    InvalidVpcCidrBlockAssociationIdError,
     InvalidVPCPeeringConnectionIdError,
     InvalidVPCPeeringConnectionStateTransitionError,
-    TagLimitExceeded,
-    InvalidID,
-    InvalidCIDRSubnetError,
-    InvalidNetworkAclIdError,
+    InvalidVPCIdError,
     InvalidVpnGatewayIdError,
     InvalidVpnConnectionIdError,
-    InvalidCustomerGatewayIdError,
-    RulesPerSecurityGroupLimitExceededError,
+    MalformedAMIIdError,
+    MalformedDHCPOptionsIdError,
+    MissingParameterError,
     MotoNotImplementedError,
-    FilterNotImplementedError
-)
+    OperationNotPermitted,
+    ResourceAlreadyAssociatedError,
+    RulesPerSecurityGroupLimitExceededError,
+    TagLimitExceeded)
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
     EC2_PREFIX_TO_RESOURCE,
@@ -81,6 +84,7 @@ from .utils import (
     random_instance_id,
     random_internet_gateway_id,
     random_ip,
+    random_ipv6_cidr,
     random_nat_gateway_id,
     random_key_pair,
     random_private_ip,
@@ -97,6 +101,7 @@ from .utils import (
     random_subnet_association_id,
     random_volume_id,
     random_vpc_id,
+    random_vpc_cidr_association_id,
     random_vpc_peering_connection_id,
     generic_filter,
     is_valid_resource_id,
@@ -1031,12 +1036,11 @@ class TagBackend(object):
 
 class Ami(TaggedEC2Resource):
     def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
-                 name=None, description=None, owner_id=None,
-
+                 name=None, description=None, owner_id=111122223333,
                  public=False, virtualization_type=None, architecture=None,
                  state='available', creation_date=None, platform=None,
                  image_type='machine', image_location=None, hypervisor=None,
-                 root_device_type=None, root_device_name=None, sriov='simple',
+                 root_device_type='standard', root_device_name='/dev/sda1', sriov='simple',
                  region_name='us-east-1a'
                  ):
         self.ec2_backend = ec2_backend
@@ -1089,7 +1093,8 @@ class Ami(TaggedEC2Resource):
         # AWS auto-creates these, we should reflect the same.
         volume = self.ec2_backend.create_volume(15, region_name)
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
-            volume.id, "Auto-created snapshot for AMI %s" % self.id)
+            volume.id, "Auto-created snapshot for AMI %s" % self.id, owner_id)
+        self.ec2_backend.delete_volume(volume.id)
 
     @property
     def is_public(self):
@@ -1122,6 +1127,9 @@ class Ami(TaggedEC2Resource):
 
 
 class AmiBackend(object):
+
+    AMI_REGEX = re.compile("ami-[a-z0-9]+")
+
     def __init__(self):
         self.amis = {}
 
@@ -1134,12 +1142,14 @@ class AmiBackend(object):
             ami_id = ami['ami_id']
             self.amis[ami_id] = Ami(self, **ami)
 
-    def create_image(self, instance_id, name=None, description=None, owner_id=None):
+    def create_image(self, instance_id, name=None, description=None, context=None):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
+
         ami = Ami(self, ami_id, instance=instance, source_ami=None,
-                  name=name, description=description, owner_id=owner_id)
+                  name=name, description=description,
+                  owner_id=context.get_current_user() if context else '111122223333')
         self.amis[ami_id] = ami
         return ami
 
@@ -1152,28 +1162,43 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(self, ami_ids=(), filters=None, exec_users=None, owners=None):
+    def describe_images(self, ami_ids=(), filters=None, exec_users=None, owners=None,
+                        context=None):
         images = self.amis.values()
 
-        # Limit images by launch permissions
-        if exec_users:
-            tmp_images = []
-            for ami in images:
-                for user_id in exec_users:
-                    if user_id in ami.launch_permission_users:
-                        tmp_images.append(ami)
-            images = tmp_images
+        if len(ami_ids):
+            # boto3 seems to default to just searching based on ami ids if that parameter is passed
+            # and if no images are found, it raises an errors
+            malformed_ami_ids = [ami_id for ami_id in ami_ids if not ami_id.startswith('ami-')]
+            if malformed_ami_ids:
+                raise MalformedAMIIdError(malformed_ami_ids)
 
-        # Limit by owner ids
-        if owners:
-            images = [ami for ami in images if ami.owner_id in owners]
-
-        if ami_ids:
             images = [ami for ami in images if ami.id in ami_ids]
+            if len(images) == 0:
+                    raise InvalidAMIIdError(ami_ids)
+        else:
+            # Limit images by launch permissions
+            if exec_users:
+                tmp_images = []
+                for ami in images:
+                    for user_id in exec_users:
+                        if user_id in ami.launch_permission_users:
+                            tmp_images.append(ami)
+                images = tmp_images
 
-        # Generic filters
-        if filters:
-            return generic_filter(filters, images)
+            # Limit by owner ids
+            if owners:
+                # support filtering by Owners=['self']
+                owners = list(map(
+                    lambda o: context.get_current_user()
+                    if context and o == 'self' else o,
+                    owners))
+                images = [ami for ami in images if ami.owner_id in owners]
+
+            # Generic filters
+            if filters:
+                return generic_filter(filters, images)
+
         return images
 
     def deregister_image(self, ami_id):
@@ -1251,8 +1276,15 @@ class RegionsAndZonesBackend(object):
         (region, [Zone(region + c, region) for c in 'abc'])
         for region in [r.name for r in regions])
 
-    def describe_regions(self):
-        return self.regions
+    def describe_regions(self, region_names=[]):
+        if len(region_names) == 0:
+            return self.regions
+        ret = []
+        for name in region_names:
+            for region in self.regions:
+                if region.name == name:
+                    ret.append(region)
+        return ret
 
     def describe_availability_zones(self):
         return self.zones[self.region_name]
@@ -1683,6 +1715,7 @@ class SecurityGroupIngress(object):
         group_id = properties.get('GroupId')
         ip_protocol = properties.get("IpProtocol")
         cidr_ip = properties.get("CidrIp")
+        cidr_ipv6 = properties.get("CidrIpv6")
         from_port = properties.get("FromPort")
         source_security_group_id = properties.get("SourceSecurityGroupId")
         source_security_group_name = properties.get("SourceSecurityGroupName")
@@ -1691,7 +1724,7 @@ class SecurityGroupIngress(object):
         to_port = properties.get("ToPort")
 
         assert group_id or group_name
-        assert source_security_group_name or cidr_ip or source_security_group_id
+        assert source_security_group_name or cidr_ip or cidr_ipv6 or source_security_group_id
         assert ip_protocol
 
         if source_security_group_id:
@@ -1807,13 +1840,15 @@ class Volume(TaggedEC2Resource):
             return self.id
         elif filter_name == 'encrypted':
             return str(self.encrypted).lower()
+        elif filter_name == 'availability-zone':
+            return self.zone.name
         else:
             return super(Volume, self).get_filter_value(
                 filter_name, 'DescribeVolumes')
 
 
 class Snapshot(TaggedEC2Resource):
-    def __init__(self, ec2_backend, snapshot_id, volume, description, encrypted=False):
+    def __init__(self, ec2_backend, snapshot_id, volume, description, encrypted=False, owner_id='123456789012'):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
@@ -1822,6 +1857,7 @@ class Snapshot(TaggedEC2Resource):
         self.ec2_backend = ec2_backend
         self.status = 'completed'
         self.encrypted = encrypted
+        self.owner_id = owner_id
 
     def get_filter_value(self, filter_name):
         if filter_name == 'description':
@@ -1913,11 +1949,13 @@ class EBSBackend(object):
         volume.attachment = None
         return old_attachment
 
-    def create_snapshot(self, volume_id, description):
+    def create_snapshot(self, volume_id, description, owner_id=None):
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
-        snapshot = Snapshot(self, snapshot_id, volume,
-                            description, volume.encrypted)
+        params = [self, snapshot_id, volume, description, volume.encrypted]
+        if owner_id:
+            params.append(owner_id)
+        snapshot = Snapshot(*params)
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
@@ -1932,6 +1970,15 @@ class EBSBackend(object):
         if filters:
             matches = generic_filter(filters, matches)
         return matches
+
+    def copy_snapshot(self, source_snapshot_id, source_region, description=None):
+        source_snapshot = ec2_backends[source_region].describe_snapshots(
+            snapshot_ids=[source_snapshot_id])[0]
+        snapshot_id = random_snapshot_id()
+        snapshot = Snapshot(self, snapshot_id, volume=source_snapshot.volume,
+            description=description, encrypted=source_snapshot.encrypted)
+        self.snapshots[snapshot_id] = snapshot
+        return snapshot
 
     def get_snapshot(self, snapshot_id):
         snapshot = self.snapshots.get(snapshot_id, None)
@@ -1972,10 +2019,13 @@ class EBSBackend(object):
 
 
 class VPC(TaggedEC2Resource):
-    def __init__(self, ec2_backend, vpc_id, cidr_block, is_default, instance_tenancy='default'):
+    def __init__(self, ec2_backend, vpc_id, cidr_block, is_default, instance_tenancy='default',
+                 amazon_provided_ipv6_cidr_block=False):
+
         self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
+        self.cidr_block_association_set = {}
         self.dhcp_options = None
         self.state = 'available'
         self.instance_tenancy = instance_tenancy
@@ -1984,6 +2034,10 @@ class VPC(TaggedEC2Resource):
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
         self.enable_dns_hostnames = 'true' if is_default else 'false'
+
+        self.associate_vpc_cidr_block(cidr_block)
+        if amazon_provided_ipv6_cidr_block:
+            self.associate_vpc_cidr_block(cidr_block, amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1994,6 +2048,11 @@ class VPC(TaggedEC2Resource):
             cidr_block=properties['CidrBlock'],
             instance_tenancy=properties.get('InstanceTenancy', 'default')
         )
+        for tag in properties.get("Tags", []):
+            tag_key = tag["Key"]
+            tag_value = tag["Value"]
+            vpc.add_tag(tag_key, tag_value)
+
         return vpc
 
     @property
@@ -2005,6 +2064,12 @@ class VPC(TaggedEC2Resource):
             return self.id
         elif filter_name in ('cidr', 'cidr-block', 'cidrBlock'):
             return self.cidr_block
+        elif filter_name in ('cidr-block-association.cidr-block', 'ipv6-cidr-block-association.ipv6-cidr-block'):
+            return [c['cidr_block'] for c in self.get_cidr_block_association_set(ipv6='ipv6' in filter_name)]
+        elif filter_name in ('cidr-block-association.association-id', 'ipv6-cidr-block-association.association-id'):
+            return self.cidr_block_association_set.keys()
+        elif filter_name in ('cidr-block-association.state', 'ipv6-cidr-block-association.state'):
+            return [c['cidr_block_state']['state'] for c in self.get_cidr_block_association_set(ipv6='ipv6' in filter_name)]
         elif filter_name in ('instance_tenancy', 'InstanceTenancy'):
             return self.instance_tenancy
         elif filter_name in ('is-default', 'isDefault'):
@@ -2016,8 +2081,37 @@ class VPC(TaggedEC2Resource):
                 return None
             return self.dhcp_options.id
         else:
-            return super(VPC, self).get_filter_value(
-                filter_name, 'DescribeVpcs')
+            return super(VPC, self).get_filter_value(filter_name, 'DescribeVpcs')
+
+    def associate_vpc_cidr_block(self, cidr_block, amazon_provided_ipv6_cidr_block=False):
+        max_associations = 5 if not amazon_provided_ipv6_cidr_block else 1
+
+        if len(self.get_cidr_block_association_set(amazon_provided_ipv6_cidr_block)) >= max_associations:
+            raise CidrLimitExceeded(self.id, max_associations)
+
+        association_id = random_vpc_cidr_association_id()
+
+        association_set = {
+            'association_id': association_id,
+            'cidr_block_state': {'state': 'associated', 'StatusMessage': ''}
+        }
+
+        association_set['cidr_block'] = random_ipv6_cidr() if amazon_provided_ipv6_cidr_block else cidr_block
+        self.cidr_block_association_set[association_id] = association_set
+        return association_set
+
+    def disassociate_vpc_cidr_block(self, association_id):
+        if self.cidr_block == self.cidr_block_association_set.get(association_id, {}).get('cidr_block'):
+            raise OperationNotPermitted(association_id)
+
+        response = self.cidr_block_association_set.pop(association_id, {})
+        if response:
+            response['vpc_id'] = self.id
+            response['cidr_block_state']['state'] = 'disassociating'
+        return response
+
+    def get_cidr_block_association_set(self, ipv6=False):
+        return [c for c in self.cidr_block_association_set.values() if ('::/' if ipv6 else '.') in c.get('cidr_block')]
 
 
 class VPCBackend(object):
@@ -2025,10 +2119,9 @@ class VPCBackend(object):
         self.vpcs = {}
         super(VPCBackend, self).__init__()
 
-    def create_vpc(self, cidr_block, instance_tenancy='default'):
+    def create_vpc(self, cidr_block, instance_tenancy='default', amazon_provided_ipv6_cidr_block=False):
         vpc_id = random_vpc_id()
-        vpc = VPC(self, vpc_id, cidr_block, len(
-            self.vpcs) == 0, instance_tenancy)
+        vpc = VPC(self, vpc_id, cidr_block, len(self.vpcs) == 0, instance_tenancy, amazon_provided_ipv6_cidr_block)
         self.vpcs[vpc_id] = vpc
 
         # AWS creates a default main route table and security group.
@@ -2100,6 +2193,18 @@ class VPCBackend(object):
             setattr(vpc, attr_name, attr_value)
         else:
             raise InvalidParameterValueError(attr_name)
+
+    def disassociate_vpc_cidr_block(self, association_id):
+        for vpc in self.vpcs.values():
+            response = vpc.disassociate_vpc_cidr_block(association_id)
+            if response:
+                return response
+        else:
+            raise InvalidVpcCidrBlockAssociationIdError(association_id)
+
+    def associate_vpc_cidr_block(self, vpc_id, cidr_block, amazon_provided_ipv6_cidr_block):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.associate_vpc_cidr_block(cidr_block, amazon_provided_ipv6_cidr_block)
 
 
 class VPCPeeringConnectionStatus(object):
@@ -2559,7 +2664,7 @@ class Route(object):
         ec2_backend = ec2_backends[region_name]
         route_table = ec2_backend.create_route(
             route_table_id=route_table_id,
-            destination_cidr_block=properties['DestinationCidrBlock'],
+            destination_cidr_block=properties.get('DestinationCidrBlock'),
             gateway_id=gateway_id,
             instance_id=instance_id,
             interface_id=interface_id,
@@ -2912,7 +3017,7 @@ class SpotFleetRequest(TaggedEC2Resource):
             'Properties']['SpotFleetRequestConfigData']
         ec2_backend = ec2_backends[region_name]
 
-        spot_price = properties['SpotPrice']
+        spot_price = properties.get('SpotPrice')
         target_capacity = properties['TargetCapacity']
         iam_fleet_role = properties['IamFleetRole']
         allocation_strategy = properties['AllocationStrategy']
@@ -2946,7 +3051,8 @@ class SpotFleetRequest(TaggedEC2Resource):
                 launch_spec_index += 1
         else:  # lowestPrice
             cheapest_spec = sorted(
-                self.launch_specs, key=lambda spec: float(spec.spot_price))[0]
+                # FIXME: change `+inf` to the on demand price scaled to weighted capacity when it's not present
+                self.launch_specs, key=lambda spec: float(spec.spot_price or '+inf'))[0]
             weight_so_far = weight_to_add + (weight_to_add % cheapest_spec.weighted_capacity)
             weight_map[cheapest_spec] = int(
                 weight_so_far // cheapest_spec.weighted_capacity)

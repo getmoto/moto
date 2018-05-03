@@ -6,12 +6,16 @@ import hashlib
 import copy
 import itertools
 import codecs
+import random
+import string
+
 import six
 
 from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey
+from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey, \
+    InvalidNotificationDestination, MalformedXML
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -270,7 +274,7 @@ def get_canned_acl(acl):
         grants.append(FakeGrant([ALL_USERS_GRANTEE], [PERMISSION_READ]))
     elif acl == 'public-read-write':
         grants.append(FakeGrant([ALL_USERS_GRANTEE], [
-                      PERMISSION_READ, PERMISSION_WRITE]))
+            PERMISSION_READ, PERMISSION_WRITE]))
     elif acl == 'authenticated-read':
         grants.append(
             FakeGrant([AUTHENTICATED_USERS_GRANTEE], [PERMISSION_READ]))
@@ -282,7 +286,7 @@ def get_canned_acl(acl):
         pass  # TODO: bucket owner, EC2 Read
     elif acl == 'log-delivery-write':
         grants.append(FakeGrant([LOG_DELIVERY_GRANTEE], [
-                      PERMISSION_READ_ACP, PERMISSION_WRITE]))
+            PERMISSION_READ_ACP, PERMISSION_WRITE]))
     else:
         assert False, 'Unknown canned acl: %s' % (acl,)
     return FakeAcl(grants=grants)
@@ -307,18 +311,35 @@ class FakeTag(BaseModel):
         self.value = value
 
 
+class LifecycleFilter(BaseModel):
+
+    def __init__(self, prefix=None, tag=None, and_filter=None):
+        self.prefix = prefix or ''
+        self.tag = tag
+        self.and_filter = and_filter
+
+
+class LifecycleAndFilter(BaseModel):
+
+    def __init__(self, prefix=None, tags=None):
+        self.prefix = prefix or ''
+        self.tags = tags
+
+
 class LifecycleRule(BaseModel):
 
-    def __init__(self, id=None, prefix=None, status=None, expiration_days=None,
-                 expiration_date=None, transition_days=None,
+    def __init__(self, id=None, prefix=None, lc_filter=None, status=None, expiration_days=None,
+                 expiration_date=None, transition_days=None, expired_object_delete_marker=None,
                  transition_date=None, storage_class=None):
         self.id = id
         self.prefix = prefix
+        self.filter = lc_filter
         self.status = status
         self.expiration_days = expiration_days
         self.expiration_date = expiration_date
         self.transition_days = transition_days
         self.transition_date = transition_date
+        self.expired_object_delete_marker = expired_object_delete_marker
         self.storage_class = storage_class
 
 
@@ -331,6 +352,26 @@ class CorsRule(BaseModel):
         self.allowed_headers = [allowed_headers] if isinstance(allowed_headers, six.string_types) else allowed_headers
         self.exposed_headers = [expose_headers] if isinstance(expose_headers, six.string_types) else expose_headers
         self.max_age_seconds = max_age_seconds
+
+
+class Notification(BaseModel):
+
+    def __init__(self, arn, events, filters=None, id=None):
+        self.id = id if id else ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(50))
+        self.arn = arn
+        self.events = events
+        self.filters = filters if filters else {}
+
+
+class NotificationConfiguration(BaseModel):
+
+    def __init__(self, topic=None, queue=None, cloud_function=None):
+        self.topic = [Notification(t["Topic"], t["Event"], filters=t.get("Filter"), id=t.get("Id")) for t in topic] \
+            if topic else []
+        self.queue = [Notification(q["Queue"], q["Event"], filters=q.get("Filter"), id=q.get("Id")) for q in queue] \
+            if queue else []
+        self.cloud_function = [Notification(c["CloudFunction"], c["Event"], filters=c.get("Filter"), id=c.get("Id"))
+                               for c in cloud_function] if cloud_function else []
 
 
 class FakeBucket(BaseModel):
@@ -347,6 +388,8 @@ class FakeBucket(BaseModel):
         self.acl = get_canned_acl('private')
         self.tags = FakeTagging()
         self.cors = []
+        self.logging = {}
+        self.notification_configuration = None
 
     @property
     def location(self):
@@ -361,12 +404,50 @@ class FakeBucket(BaseModel):
         for rule in rules:
             expiration = rule.get('Expiration')
             transition = rule.get('Transition')
+
+            eodm = None
+            if expiration and expiration.get("ExpiredObjectDeleteMarker") is not None:
+                # This cannot be set if Date or Days is set:
+                if expiration.get("Days") or expiration.get("Date"):
+                    raise MalformedXML()
+                eodm = expiration["ExpiredObjectDeleteMarker"]
+
+            # Pull out the filter:
+            lc_filter = None
+            if rule.get("Filter"):
+                # Can't have both `Filter` and `Prefix` (need to check for the presence of the key):
+                try:
+                    if rule["Prefix"] or not rule["Prefix"]:
+                        raise MalformedXML()
+                except KeyError:
+                    pass
+
+                and_filter = None
+                if rule["Filter"].get("And"):
+                    and_tags = []
+                    if rule["Filter"]["And"].get("Tag"):
+                        if not isinstance(rule["Filter"]["And"]["Tag"], list):
+                            rule["Filter"]["And"]["Tag"] = [rule["Filter"]["And"]["Tag"]]
+
+                        for t in rule["Filter"]["And"]["Tag"]:
+                            and_tags.append(FakeTag(t["Key"], t.get("Value", '')))
+
+                    and_filter = LifecycleAndFilter(prefix=rule["Filter"]["And"]["Prefix"], tags=and_tags)
+
+                filter_tag = None
+                if rule["Filter"].get("Tag"):
+                    filter_tag = FakeTag(rule["Filter"]["Tag"]["Key"], rule["Filter"]["Tag"].get("Value", ''))
+
+                lc_filter = LifecycleFilter(prefix=rule["Filter"]["Prefix"], tag=filter_tag, and_filter=and_filter)
+
             self.rules.append(LifecycleRule(
                 id=rule.get('ID'),
                 prefix=rule.get('Prefix'),
+                lc_filter=lc_filter,
                 status=rule['Status'],
                 expiration_days=expiration.get('Days') if expiration else None,
                 expiration_date=expiration.get('Date') if expiration else None,
+                expired_object_delete_marker=eodm,
                 transition_days=transition.get('Days') if transition else None,
                 transition_date=transition.get('Date') if transition else None,
                 storage_class=transition[
@@ -421,6 +502,59 @@ class FakeBucket(BaseModel):
     @property
     def tagging(self):
         return self.tags
+
+    def set_logging(self, logging_config, bucket_backend):
+        if not logging_config:
+            self.logging = {}
+            return
+
+        from moto.s3.exceptions import InvalidTargetBucketForLogging, CrossLocationLoggingProhibitted
+        # Target bucket must exist in the same account (assuming all moto buckets are in the same account):
+        if not bucket_backend.buckets.get(logging_config["TargetBucket"]):
+            raise InvalidTargetBucketForLogging("The target bucket for logging does not exist.")
+
+        # Does the target bucket have the log-delivery WRITE and READ_ACP permissions?
+        write = read_acp = False
+        for grant in bucket_backend.buckets[logging_config["TargetBucket"]].acl.grants:
+            # Must be granted to: http://acs.amazonaws.com/groups/s3/LogDelivery
+            for grantee in grant.grantees:
+                if grantee.uri == "http://acs.amazonaws.com/groups/s3/LogDelivery":
+                    if "WRITE" in grant.permissions or "FULL_CONTROL" in grant.permissions:
+                        write = True
+
+                    if "READ_ACP" in grant.permissions or "FULL_CONTROL" in grant.permissions:
+                        read_acp = True
+
+                    break
+
+        if not write or not read_acp:
+            raise InvalidTargetBucketForLogging("You must give the log-delivery group WRITE and READ_ACP"
+                                                " permissions to the target bucket")
+
+        # Buckets must also exist within the same region:
+        if bucket_backend.buckets[logging_config["TargetBucket"]].region_name != self.region_name:
+            raise CrossLocationLoggingProhibitted()
+
+        # Checks pass -- set the logging config:
+        self.logging = logging_config
+
+    def set_notification_configuration(self, notification_config):
+        if not notification_config:
+            self.notification_configuration = None
+            return
+
+        self.notification_configuration = NotificationConfiguration(
+            topic=notification_config.get("TopicConfiguration"),
+            queue=notification_config.get("QueueConfiguration"),
+            cloud_function=notification_config.get("CloudFunctionConfiguration")
+        )
+
+        # Validate that the region is correct:
+        for thing in ["topic", "queue", "cloud_function"]:
+            for t in getattr(self.notification_configuration, thing):
+                region = t.arn.split(":")[3]
+                if region != self.region_name:
+                    raise InvalidNotificationDestination()
 
     def set_website_configuration(self, website_configuration):
         self.website_configuration = website_configuration
@@ -608,9 +742,17 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.set_cors(cors_rules)
 
+    def put_bucket_logging(self, bucket_name, logging_config):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_logging(logging_config, self)
+
     def delete_bucket_cors(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         bucket.delete_cors()
+
+    def put_bucket_notification_configuration(self, bucket_name, notification_config):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_notification_configuration(notification_config)
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)
@@ -683,6 +825,7 @@ class S3Backend(BaseBackend):
                 else:
                     key_results.add(key)
 
+        key_results = filter(lambda key: not isinstance(key, FakeDeleteMarker), key_results)
         key_results = sorted(key_results, key=lambda key: key.name)
         folder_results = [folder_name for folder_name in sorted(
             folder_results, key=lambda key: key)]

@@ -6,11 +6,12 @@ import boto3
 import hashlib
 import io
 import json
+import time
 import zipfile
 import sure  # noqa
 
 from freezegun import freeze_time
-from moto import mock_lambda, mock_s3, mock_ec2, settings
+from moto import mock_lambda, mock_s3, mock_ec2, mock_sns, mock_logs, settings
 
 _lambda_region = 'us-west-2'
 
@@ -46,6 +47,15 @@ def lambda_handler(event, context):
     return event
 """.format(base_url="motoserver:5000" if settings.TEST_SERVER_MODE else "ec2.us-west-2.amazonaws.com")
     return _process_lambda(func_str)
+
+
+def get_test_zip_file3():
+    pfunc = """
+def lambda_handler(event, context):
+    print("get_test_zip_file3 success")
+    return event
+"""
+    return _process_lambda(pfunc)
 
 
 @mock_lambda
@@ -158,6 +168,56 @@ if settings.TEST_SERVER_MODE:
         # fix for running under travis (TODO: investigate why it has an extra newline)
         payload = payload.replace('\n\n', '\n')
         payload.should.equal(msg)
+
+
+@mock_logs
+@mock_sns
+@mock_ec2
+@mock_lambda
+def test_invoke_function_from_sns():
+    logs_conn = boto3.client("logs", region_name="us-west-2")
+    sns_conn = boto3.client("sns", region_name="us-west-2")
+    sns_conn.create_topic(Name="some-topic")
+    topics_json = sns_conn.list_topics()
+    topics = topics_json["Topics"]
+    topic_arn = topics[0]['TopicArn']
+
+    conn = boto3.client('lambda', 'us-west-2')
+    result = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file3(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    sns_conn.subscribe(TopicArn=topic_arn, Protocol="lambda", Endpoint=result['FunctionArn'])
+
+    result = sns_conn.publish(TopicArn=topic_arn, Message=json.dumps({}))
+
+    start = time.time()
+    while (time.time() - start) < 30:
+        result = logs_conn.describe_log_streams(logGroupName='/aws/lambda/testFunction')
+        log_streams = result.get('logStreams')
+        if not log_streams:
+            time.sleep(1)
+            continue
+
+        assert len(log_streams) == 1
+        result = logs_conn.get_log_events(logGroupName='/aws/lambda/testFunction', logStreamName=log_streams[0]['logStreamName'])
+        for event in result.get('events'):
+            if event['message'] == 'get_test_zip_file3 success':
+                return
+
+        time.sleep(1)
+
+    assert False, "Test Failed"
 
 
 @mock_lambda
@@ -420,7 +480,6 @@ def test_publish():
     function_list['Functions'][0]['FunctionArn'].should.contain('testFunction:$LATEST')
 
 
-
 @mock_lambda
 @mock_s3
 @freeze_time('2015-01-01 00:00:00')
@@ -674,7 +733,7 @@ def test_get_function_created_with_zipfile():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn":'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
             "MemorySize": 128,

@@ -5,7 +5,9 @@ from collections import defaultdict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 
+import datetime
 import time
+import uuid
 
 
 class Parameter(BaseModel):
@@ -91,7 +93,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                 result.append(self._parameters[name])
         return result
 
-    def get_parameters_by_path(self, path, with_decryption, recursive):
+    def get_parameters_by_path(self, path, with_decryption, recursive, filters=None):
         """Implement the get-parameters-by-path-API in the backend."""
         result = []
         # path could be with or without a trailing /. we handle this
@@ -102,9 +104,34 @@ class SimpleSystemManagerBackend(BaseBackend):
                 continue
             if '/' in param[len(path) + 1:] and not recursive:
                 continue
+            if not self._match_filters(self._parameters[param], filters):
+                continue
             result.append(self._parameters[param])
 
         return result
+
+    @staticmethod
+    def _match_filters(parameter, filters=None):
+        """Return True if the given parameter matches all the filters"""
+        for filter_obj in (filters or []):
+            key = filter_obj['Key']
+            option = filter_obj.get('Option', 'Equals')
+            values = filter_obj.get('Values', [])
+
+            what = None
+            if key == 'Type':
+                what = parameter.type
+            elif key == 'KeyId':
+                what = parameter.keyid
+
+            if option == 'Equals'\
+                    and not any(what == value for value in values):
+                return False
+            elif option == 'BeginsWith'\
+                    and not any(what.startswith(value) for value in values):
+                return False
+        # True if no false match (or no filters at all)
+        return True
 
     def get_parameter(self, name, with_decryption):
         if name in self._parameters:
@@ -124,6 +151,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         last_modified_date = time.time()
         self._parameters[name] = Parameter(
             name, value, type, description, keyid, last_modified_date, version)
+        return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):
         for key, value in tags.items():
@@ -137,6 +165,39 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource_type, resource_id):
         return self._resource_tags[resource_type][resource_id]
+
+    def send_command(self, **kwargs):
+        instances = kwargs.get('InstanceIds', [])
+        now = datetime.datetime.now()
+        expires_after = now + datetime.timedelta(0, int(kwargs.get('TimeoutSeconds', 3600)))
+        return {
+            'Command': {
+                'CommandId': str(uuid.uuid4()),
+                'DocumentName': kwargs['DocumentName'],
+                'Comment': kwargs.get('Comment'),
+                'ExpiresAfter': expires_after.isoformat(),
+                'Parameters': kwargs['Parameters'],
+                'InstanceIds': kwargs['InstanceIds'],
+                'Targets': kwargs.get('targets'),
+                'RequestedDateTime': now.isoformat(),
+                'Status': 'Success',
+                'StatusDetails': 'string',
+                'OutputS3Region': kwargs.get('OutputS3Region'),
+                'OutputS3BucketName': kwargs.get('OutputS3BucketName'),
+                'OutputS3KeyPrefix': kwargs.get('OutputS3KeyPrefix'),
+                'MaxConcurrency': 'string',
+                'MaxErrors': 'string',
+                'TargetCount': len(instances),
+                'CompletedCount': len(instances),
+                'ErrorCount': 0,
+                'ServiceRole': kwargs.get('ServiceRoleArn'),
+                'NotificationConfig': {
+                    'NotificationArn': 'string',
+                    'NotificationEvents': ['Success'],
+                    'NotificationType': 'Command'
+                }
+            }
+        }
 
 
 ssm_backends = {}

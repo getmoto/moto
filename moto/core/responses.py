@@ -108,6 +108,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
     # to extract region, use [^.]
     region_regex = re.compile(r'\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com')
     param_list_regex = re.compile(r'(.*)\.(\d+)\.')
+    access_key_regex = re.compile(r'AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]')
     aws_service_spec = None
 
     @classmethod
@@ -177,6 +178,21 @@ class BaseResponse(_TemplateEnvironmentMixin):
         else:
             region = self.default_region
         return region
+
+    def get_current_user(self):
+        """
+        Returns the access key id used in this request as the current user id
+        """
+        if 'Authorization' in self.headers:
+            match = self.access_key_regex.search(self.headers['Authorization'])
+            if match:
+                return match.group(1)
+
+        if self.querystring.get('AWSAccessKeyId'):
+            return self.querystring.get('AWSAccessKeyId')
+        else:
+            # Should we raise an unauthorized exception instead?
+            return '111122223333'
 
     def _dispatch(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -272,6 +288,9 @@ class BaseResponse(_TemplateEnvironmentMixin):
                     headers['status'] = str(headers['status'])
                 return status, headers, body
 
+        if not action:
+            return 404, headers, ''
+
         raise NotImplementedError(
             "The {0} action has not been implemented".format(action))
 
@@ -324,6 +343,10 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         for name, value in self.querystring.items():
             if is_tracked(name) or not name.startswith(param_prefix):
+                continue
+
+            if len(name) > len(param_prefix) and \
+                    not name[len(param_prefix):].startswith('.'):
                 continue
 
             match = self.param_list_regex.search(name[len(param_prefix):]) if len(name) > len(param_prefix) else None
@@ -469,6 +492,54 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
         return results
 
+    def _get_object_map(self, prefix, name='Name', value='Value'):
+        """
+        Given a query dict like
+        {
+            Prefix.1.Name: [u'event'],
+            Prefix.1.Value.StringValue: [u'order_cancelled'],
+            Prefix.1.Value.DataType: [u'String'],
+            Prefix.2.Name: [u'store'],
+            Prefix.2.Value.StringValue: [u'example_corp'],
+            Prefix.2.Value.DataType [u'String'],
+        }
+
+        returns
+        {
+            'event': {
+                'DataType': 'String',
+                'StringValue': 'example_corp'
+            },
+            'store': {
+                'DataType': 'String',
+                'StringValue': 'order_cancelled'
+            }
+        }
+        """
+        object_map = {}
+        index = 1
+        while True:
+            # Loop through looking for keys representing object name
+            name_key = '{0}.{1}.{2}'.format(prefix, index, name)
+            obj_name = self.querystring.get(name_key)
+            if not obj_name:
+                # Found all keys
+                break
+
+            obj = {}
+            value_key_prefix = '{0}.{1}.{2}.'.format(
+                prefix, index, value)
+            for k, v in self.querystring.items():
+                if k.startswith(value_key_prefix):
+                    _, value_key = k.split(value_key_prefix, 1)
+                    obj[value_key] = v[0]
+
+            object_map[obj_name[0]] = obj
+
+            index += 1
+
+        return object_map
+
     @property
     def request_json(self):
         return 'JSON' in self.querystring.get('ContentType', [])
@@ -551,7 +622,7 @@ class AWSServiceSpec(object):
 
     def __init__(self, path):
         self.path = resource_filename('botocore', path)
-        with open(self.path) as f:
+        with open(self.path, "rb") as f:
             spec = json.load(f)
         self.metadata = spec['metadata']
         self.operations = spec['operations']

@@ -20,7 +20,7 @@ If you want to install ``moto`` from source::
 Moto usage
 ----------
 
-For example we have the following code we want to test:
+For example, we have the following code we want to test:
 
 .. sourcecode:: python
 
@@ -39,12 +39,12 @@ For example we have the following code we want to test:
             k.key = self.name
             k.set_contents_from_string(self.value)
 
-There are several method to do this, just keep in mind Moto creates a full blank environment.
+There are several ways to do this, but you should keep in mind that Moto creates a full, blank environment.
 
 Decorator
 ~~~~~~~~~
 
-With a decorator wrapping all the calls to S3 are automatically mocked out.
+With a decorator wrapping, all the calls to S3 are automatically mocked out.
 
 .. sourcecode:: python
 
@@ -66,7 +66,7 @@ With a decorator wrapping all the calls to S3 are automatically mocked out.
 Context manager
 ~~~~~~~~~~~~~~~
 
-Same as decorator, every call inside ``with`` statement are mocked out.
+Same as the Decorator, every call inside the ``with`` statement is mocked out.
 
 .. sourcecode:: python
 
@@ -83,7 +83,7 @@ Same as decorator, every call inside ``with`` statement are mocked out.
 Raw
 ~~~
 
-You can also start and stop manually the mocking.
+You can also start and stop the mocking manually.
 
 .. sourcecode:: python
 
@@ -104,11 +104,11 @@ You can also start and stop manually the mocking.
 Stand-alone server mode
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Moto comes with a stand-alone server allowing you to mock out an AWS HTTP endpoint. It is very useful to test even if you don't use Python.
+Moto also comes with a stand-alone server allowing you to mock out an AWS HTTP endpoint. For testing purposes, it's extremely useful even if you don't use Python.
 
 .. sourcecode:: bash
 
     $ moto_server ec2 -p3000
      * Running on http://127.0.0.1:3000/
 
-This method isn't encouraged if you're using ``boto``, best is to use decorator method.
+However, this method isn't encouraged if you're using ``boto``, the best solution would be to use a decorator method.

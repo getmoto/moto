@@ -249,6 +249,33 @@ def test_scan_returns_consumed_capacity():
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
+def test_put_item_with_special_chars():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+
+    conn.put_item(
+            TableName=name,
+            Item={
+                'forum_name': { 'S': 'LOLCat Forum' },
+                'subject': { 'S': 'Check this out!' },
+                'Body': { 'S': 'http://url_to_lolcat.gif'},
+                'SentBy': { 'S': "test" },
+                'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
+                '"': {"S": "foo"},
+            }
+        )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
 def test_query_returns_consumed_capacity():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
@@ -658,6 +685,14 @@ def test_filter_expression():
         {':v0': {'N': '7'}}
     )
     filter_expr.expr(row1).should.be(True)
+    # Expression from to check contains on string value
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
+        'contains(#n0, :v0)',
+        {'#n0': 'Desc'},
+        {':v0': {'S': 'Some'}}
+    )
+    filter_expr.expr(row1).should.be(True)
+    filter_expr.expr(row2).should.be(False)
 
 
 @mock_dynamodb2
@@ -699,6 +734,11 @@ def test_query_filter():
     )
     assert response['Count'] == 1
     assert response['Items'][0]['app'] == 'app2'
+    response = table.query(
+        KeyConditionExpression=Key('client').eq('client1'),
+        FilterExpression=Attr('app').contains('app')
+    )
+    assert response['Count'] == 2
 
 
 @mock_dynamodb2
@@ -1067,3 +1107,71 @@ def test_update_item_on_map():
 
     resp = table.scan()
     resp['Items'][0]['body'].should.equal({'nested': {'data': 'new_value'}})
+
+
+# https://github.com/spulec/moto/issues/1358
+@mock_dynamodb2
+def test_update_if_not_exists():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123'
+    })
+
+    table.update_item(Key={
+        'forum_name': 'the-key',
+        'subject': '123'
+        },
+        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        ExpressionAttributeValues={
+            ':created_at': 123
+        }
+    )
+
+    resp = table.scan()
+    assert resp['Items'][0]['created_at'] == 123
+
+    table.update_item(Key={
+        'forum_name': 'the-key',
+        'subject': '123'
+        },
+        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        ExpressionAttributeValues={
+            ':created_at': 456
+        }
+    )
+
+    resp = table.scan()
+    # Still the original value
+    assert resp['Items'][0]['created_at'] == 123

@@ -10,6 +10,7 @@ from moto.autoscaling import models as autoscaling_models
 from moto.awslambda import models as lambda_models
 from moto.batch import models as batch_models
 from moto.cloudwatch import models as cloudwatch_models
+from moto.cognitoidentity import models as cognitoidentity_models
 from moto.datapipeline import models as datapipeline_models
 from moto.dynamodb import models as dynamodb_models
 from moto.ec2 import models as ec2_models
@@ -65,6 +66,7 @@ MODEL_MAP = {
     "AWS::ElasticLoadBalancingV2::LoadBalancer": elbv2_models.FakeLoadBalancer,
     "AWS::ElasticLoadBalancingV2::TargetGroup": elbv2_models.FakeTargetGroup,
     "AWS::ElasticLoadBalancingV2::Listener": elbv2_models.FakeListener,
+    "AWS::Cognito::IdentityPool": cognitoidentity_models.CognitoIdentity,
     "AWS::DataPipeline::Pipeline": datapipeline_models.Pipeline,
     "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
     "AWS::IAM::Role": iam_models.Role,
@@ -105,6 +107,8 @@ NULL_MODELS = [
     "AWS::CloudFormation::WaitCondition",
     "AWS::CloudFormation::WaitConditionHandle",
 ]
+
+DEFAULT_REGION = 'us-east-1'
 
 logger = logging.getLogger("moto")
 
@@ -202,6 +206,14 @@ def clean_json(resource_json, resources_map):
             values = [x.value for x in resources_map.cross_stack_resources.values() if x.name == cleaned_val]
             if any(values):
                 return values[0]
+
+        if 'Fn::GetAZs' in resource_json:
+            region = resource_json.get('Fn::GetAZs') or DEFAULT_REGION
+            result = []
+            # TODO: make this configurable, to reflect the real AWS AZs
+            for az in ('a', 'b', 'c', 'd'):
+                result.append('%s%s' % (region, az))
+            return result
 
         cleaned_json = {}
         for key, value in resource_json.items():

@@ -140,7 +140,9 @@ class RecordSet(BaseModel):
                 {% if record_set.region %}
                     <Region>{{ record_set.region }}</Region>
                 {% endif %}
-                <TTL>{{ record_set.ttl }}</TTL>
+                {% if record_set.ttl %}
+                    <TTL>{{ record_set.ttl }}</TTL>
+                {% endif %}
                 <ResourceRecords>
                     {% for record in record_set.records %}
                     <ResourceRecord>

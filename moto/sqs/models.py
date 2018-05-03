@@ -38,6 +38,8 @@ class Message(BaseModel):
         self.sent_timestamp = None
         self.approximate_first_receive_timestamp = None
         self.approximate_receive_count = 0
+        self.deduplication_id = None
+        self.group_id = None
         self.visible_at = 0
         self.delayed_until = 0
 
@@ -152,62 +154,85 @@ class Message(BaseModel):
 
 
 class Queue(BaseModel):
-    camelcase_attributes = ['ApproximateNumberOfMessages',
-                            'ApproximateNumberOfMessagesDelayed',
-                            'ApproximateNumberOfMessagesNotVisible',
-                            'ContentBasedDeduplication',
-                            'CreatedTimestamp',
-                            'DelaySeconds',
-                            'FifoQueue',
-                            'KmsDataKeyReusePeriodSeconds',
-                            'KmsMasterKeyId',
-                            'LastModifiedTimestamp',
-                            'MaximumMessageSize',
-                            'MessageRetentionPeriod',
-                            'QueueArn',
-                            'ReceiveMessageWaitTimeSeconds',
-                            'VisibilityTimeout',
-                            'WaitTimeSeconds']
-    ALLOWED_PERMISSIONS = ('*', 'ChangeMessageVisibility', 'DeleteMessage', 'GetQueueAttributes',
-                          'GetQueueUrl', 'ReceiveMessage', 'SendMessage')
+    base_attributes = ['ApproximateNumberOfMessages',
+                       'ApproximateNumberOfMessagesDelayed',
+                       'ApproximateNumberOfMessagesNotVisible',
+                       'CreatedTimestamp',
+                       'DelaySeconds',
+                       'LastModifiedTimestamp',
+                       'MaximumMessageSize',
+                       'MessageRetentionPeriod',
+                       'QueueArn',
+                       'ReceiveMessageWaitTimeSeconds',
+                       'VisibilityTimeout']
+    fifo_attributes = ['FifoQueue',
+                       'ContentBasedDeduplication']
+    kms_attributes = ['KmsDataKeyReusePeriodSeconds',
+                      'KmsMasterKeyId']
+    ALLOWED_PERMISSIONS = ('*', 'ChangeMessageVisibility', 'DeleteMessage',
+                           'GetQueueAttributes', 'GetQueueUrl',
+                           'ReceiveMessage', 'SendMessage')
 
     def __init__(self, name, region, **kwargs):
         self.name = name
-        self.visibility_timeout = int(kwargs.get('VisibilityTimeout', 30))
         self.region = region
         self.tags = {}
+        self.permissions = {}
 
         self._messages = []
 
         now = unix_time()
-
-        # kwargs can also have:
-        # [Policy, RedrivePolicy]
-        self.fifo_queue = kwargs.get('FifoQueue', 'false') == 'true'
-        self.content_based_deduplication = kwargs.get('ContentBasedDeduplication', 'false') == 'true'
-        self.kms_master_key_id = kwargs.get('KmsMasterKeyId', 'alias/aws/sqs')
-        self.kms_data_key_reuse_period_seconds = int(kwargs.get('KmsDataKeyReusePeriodSeconds', 300))
         self.created_timestamp = now
-        self.delay_seconds = int(kwargs.get('DelaySeconds', 0))
-        self.last_modified_timestamp = now
-        self.maximum_message_size = int(kwargs.get('MaximumMessageSize', 64 << 10))
-        self.message_retention_period = int(kwargs.get('MessageRetentionPeriod', 86400 * 4))  # four days
-        self.queue_arn = 'arn:aws:sqs:{0}:123456789012:{1}'.format(self.region, self.name)
-        self.receive_message_wait_time_seconds = int(kwargs.get('ReceiveMessageWaitTimeSeconds', 0))
-        self.permissions = {}
-
-        # wait_time_seconds will be set to immediate return messages
-        self.wait_time_seconds = int(kwargs.get('WaitTimeSeconds', 0))
-
-        self.redrive_policy = {}
+        self.queue_arn = 'arn:aws:sqs:{0}:123456789012:{1}'.format(self.region,
+                                                                   self.name)
         self.dead_letter_queue = None
 
-        if 'RedrivePolicy' in kwargs:
-            self._setup_dlq(kwargs['RedrivePolicy'])
+        # default settings for a non fifo queue
+        defaults = {
+            'ContentBasedDeduplication': 'false',
+            'DelaySeconds': 0,
+            'FifoQueue': 'false',
+            'KmsDataKeyReusePeriodSeconds': 300,  # five minutes
+            'KmsMasterKeyId': None,
+            'MaximumMessageSize': int(64 << 10),
+            'MessageRetentionPeriod': 86400 * 4,  # four days
+            'Policy': None,
+            'ReceiveMessageWaitTimeSeconds': 0,
+            'RedrivePolicy': None,
+            'VisibilityTimeout': 30,
+        }
+
+        defaults.update(kwargs)
+        self._set_attributes(defaults, now)
 
         # Check some conditions
         if self.fifo_queue and not self.name.endswith('.fifo'):
             raise MessageAttributesInvalid('Queue name must end in .fifo for FIFO queues')
+
+    def _set_attributes(self, attributes, now=None):
+        if not now:
+            now = unix_time()
+
+        integer_fields = ('DelaySeconds', 'KmsDataKeyreusePeriodSeconds',
+                          'MaximumMessageSize', 'MessageRetentionPeriod',
+                          'ReceiveMessageWaitTime', 'VisibilityTimeout')
+        bool_fields = ('ContentBasedDeduplication', 'FifoQueue')
+
+        for key, value in six.iteritems(attributes):
+            if key in integer_fields:
+                value = int(value)
+            if key in bool_fields:
+                value = value == "true"
+
+            if key == 'RedrivePolicy' and value is not None:
+                continue
+
+            setattr(self, camelcase_to_underscores(key), value)
+
+        if attributes.get('RedrivePolicy', None):
+            self._setup_dlq(attributes['RedrivePolicy'])
+
+        self.last_modified_timestamp = now
 
     def _setup_dlq(self, policy_json):
         try:
@@ -251,8 +276,8 @@ class Queue(BaseModel):
         if 'VisibilityTimeout' in properties:
             queue.visibility_timeout = int(properties['VisibilityTimeout'])
 
-        if 'WaitTimeSeconds' in properties:
-            queue.wait_time_seconds = int(properties['WaitTimeSeconds'])
+        if 'ReceiveMessageWaitTimeSeconds' in properties:
+            queue.receive_message_wait_time_seconds = int(properties['ReceiveMessageWaitTimeSeconds'])
         return queue
 
     @classmethod
@@ -281,11 +306,31 @@ class Queue(BaseModel):
     @property
     def attributes(self):
         result = {}
-        for attribute in self.camelcase_attributes:
+
+        for attribute in self.base_attributes:
             attr = getattr(self, camelcase_to_underscores(attribute))
-            if isinstance(attr, bool):
-                attr = str(attr).lower()
             result[attribute] = attr
+
+        if self.fifo_queue:
+            for attribute in self.fifo_attributes:
+                attr = getattr(self, camelcase_to_underscores(attribute))
+                result[attribute] = attr
+
+        if self.kms_master_key_id:
+            for attribute in self.kms_attributes:
+                attr = getattr(self, camelcase_to_underscores(attribute))
+                result[attribute] = attr
+
+        if self.policy:
+            result['Policy'] = self.policy
+
+        if self.redrive_policy:
+            result['RedrivePolicy'] = json.dumps(self.redrive_policy)
+
+        for key in result:
+            if isinstance(result[key], bool):
+                result[key] = str(result[key]).lower()
+
         return result
 
     def url(self, request_url):
@@ -352,12 +397,12 @@ class SQSBackend(BaseBackend):
             return self.queues.pop(queue_name)
         return False
 
-    def set_queue_attribute(self, queue_name, key, value):
+    def set_queue_attributes(self, queue_name, attributes):
         queue = self.get_queue(queue_name)
-        setattr(queue, key, value)
+        queue._set_attributes(attributes)
         return queue
 
-    def send_message(self, queue_name, message_body, message_attributes=None, delay_seconds=None):
+    def send_message(self, queue_name, message_body, message_attributes=None, delay_seconds=None, deduplication_id=None, group_id=None):
 
         queue = self.get_queue(queue_name)
 
@@ -368,6 +413,12 @@ class SQSBackend(BaseBackend):
 
         message_id = get_random_message_id()
         message = Message(message_id, message_body)
+
+        # Attributes, but not *message* attributes
+        if deduplication_id is not None:
+            message.deduplication_id = deduplication_id
+        if group_id is not None:
+            message.group_id = group_id
 
         if message_attributes:
             message.message_attributes = message_attributes

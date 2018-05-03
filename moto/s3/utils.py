@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+import logging
+import os
 
 from boto.s3.key import Key
 import re
@@ -6,10 +8,16 @@ import six
 from six.moves.urllib.parse import urlparse, unquote
 import sys
 
+
+log = logging.getLogger(__name__)
+
+
 bucket_name_regex = re.compile("(.+).s3(.*).amazonaws.com")
 
 
 def bucket_name_from_url(url):
+    if os.environ.get('S3_IGNORE_SUBDOMAIN_BUCKETNAME', '') in ['1', 'true']:
+        return None
     domain = urlparse(url).netloc
 
     if domain.startswith('www.'):
@@ -25,6 +33,20 @@ def bucket_name_from_url(url):
         else:
             # No subdomain found.
             return None
+
+
+REGION_URL_REGEX = re.compile(
+    r'^https?://(s3[-\.](?P<region1>.+)\.amazonaws\.com/(.+)|'
+    r'(.+)\.s3-(?P<region2>.+)\.amazonaws\.com)/?')
+
+
+def parse_region_from_url(url):
+    match = REGION_URL_REGEX.search(url)
+    if match:
+        region = match.group('region1') or match.group('region2')
+    else:
+        region = 'us-east-1'
+    return region
 
 
 def metadata_from_headers(headers):

@@ -107,7 +107,8 @@ class FakeStack(BaseModel):
     def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
         self.template = template
-        self.resource_map.update(json.loads(template), parameters)
+        self._parse_template()
+        self.resource_map.update(self.template_dict, parameters)
         self.output_map = self._create_output_map()
         self._add_stack_event("UPDATE_COMPLETE")
         self.status = "UPDATE_COMPLETE"
@@ -187,6 +188,24 @@ class CloudFormationBackend(BaseBackend):
                                         'StackId': stack.stack_id}
         self.change_sets[change_set_id] = stack
         return change_set_id, stack.stack_id
+
+    def execute_change_set(self, change_set_name, stack_name=None):
+        stack = None
+        if change_set_name in self.change_sets:
+            # This means arn was passed in
+            stack = self.change_sets[change_set_name]
+        else:
+            for cs in self.change_sets:
+                if self.change_sets[cs].name == change_set_name:
+                    stack = self.change_sets[cs]
+        if stack is None:
+            raise ValidationError(stack_name)
+        if stack.events[-1].resource_status == 'REVIEW_IN_PROGRESS':
+            stack._add_stack_event('CREATE_COMPLETE')
+        else:
+            stack._add_stack_event('UPDATE_IN_PROGRESS')
+            stack._add_stack_event('UPDATE_COMPLETE')
+        return True
 
     def describe_stacks(self, name_or_stack_id):
         stacks = self.stacks.values()

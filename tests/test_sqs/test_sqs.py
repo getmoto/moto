@@ -73,19 +73,39 @@ def test_create_queue():
 
 
 @mock_sqs
+def test_create_queue_kms():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+
+    new_queue = sqs.create_queue(
+        QueueName='test-queue',
+        Attributes={
+            'KmsMasterKeyId': 'master-key-id',
+            'KmsDataKeyReusePeriodSeconds': '600'
+        })
+    new_queue.should_not.be.none
+
+    queue = sqs.get_queue_by_name(QueueName='test-queue')
+
+    queue.attributes.get('KmsMasterKeyId').should.equal('master-key-id')
+    queue.attributes.get('KmsDataKeyReusePeriodSeconds').should.equal('600')
+
+
+@mock_sqs
 def test_get_nonexistent_queue():
     sqs = boto3.resource('sqs', region_name='us-east-1')
     with assert_raises(ClientError) as err:
         sqs.get_queue_by_name(QueueName='nonexisting-queue')
     ex = err.exception
     ex.operation_name.should.equal('GetQueueUrl')
-    ex.response['Error']['Code'].should.equal('QueueDoesNotExist')
+    ex.response['Error']['Code'].should.equal(
+        'AWS.SimpleQueueService.NonExistentQueue')
 
     with assert_raises(ClientError) as err:
         sqs.Queue('http://whatever-incorrect-queue-address').load()
     ex = err.exception
     ex.operation_name.should.equal('GetQueueAttributes')
-    ex.response['Error']['Code'].should.equal('QueueDoesNotExist')
+    ex.response['Error']['Code'].should.equal(
+        'AWS.SimpleQueueService.NonExistentQueue')
 
 
 @mock_sqs
@@ -148,6 +168,28 @@ def test_message_with_complex_attributes():
 
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_send_message_with_message_group_id():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="test-group-id.fifo",
+                             Attributes={'FifoQueue': 'true'})
+
+    sent = queue.send_message(
+        MessageBody="mydata",
+        MessageDeduplicationId="dedupe_id_1",
+        MessageGroupId="group_id_1",
+    )
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+    message_attributes = messages[0].attributes
+    message_attributes.should.contain('MessageGroupId')
+    message_attributes['MessageGroupId'].should.equal('group_id_1')
+    message_attributes.should.contain('MessageDeduplicationId')
+    message_attributes['MessageDeduplicationId'].should.equal('dedupe_id_1')
 
 
 @mock_sqs
@@ -337,6 +379,36 @@ def test_send_receive_message_timestamps():
 
 
 @mock_sqs
+def test_max_number_of_messages_invalid_param():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName='test-queue')
+
+    with assert_raises(ClientError):
+        queue.receive_messages(MaxNumberOfMessages=11)
+
+    with assert_raises(ClientError):
+        queue.receive_messages(MaxNumberOfMessages=0)
+
+    # no error but also no messages returned
+    queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=0)
+
+
+@mock_sqs
+def test_wait_time_seconds_invalid_param():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName='test-queue')
+
+    with assert_raises(ClientError):
+        queue.receive_messages(WaitTimeSeconds=-1)
+
+    with assert_raises(ClientError):
+        queue.receive_messages(WaitTimeSeconds=21)
+
+    # no error but also no messages returned
+    queue.receive_messages(WaitTimeSeconds=0)
+
+
+@mock_sqs
 def test_receive_messages_with_wait_seconds_timeout_of_zero():
     """
     test that zero messages is returned with a wait_seconds_timeout of zero,
@@ -348,20 +420,6 @@ def test_receive_messages_with_wait_seconds_timeout_of_zero():
     queue = sqs.create_queue(QueueName="blah")
 
     messages = queue.receive_messages(WaitTimeSeconds=0)
-    messages.should.equal([])
-
-
-@mock_sqs
-def test_receive_messages_with_wait_seconds_timeout_of_negative_one():
-    """
-    test that zero messages is returned with a wait_seconds_timeout of negative 1
-    :return:
-    """
-
-    sqs = boto3.resource('sqs', region_name='us-east-1')
-    queue = sqs.create_queue(QueueName="blah")
-
-    messages = queue.receive_messages(WaitTimeSeconds=-1)
     messages.should.equal([])
 
 
@@ -890,7 +948,7 @@ def test_create_fifo_queue_with_dlq():
 def test_queue_with_dlq():
     if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
         raise SkipTest('Cant manipulate time in server mode')
-    
+
     sqs = boto3.client('sqs', region_name='us-east-1')
 
     with freeze_time("2015-01-01 12:00:00"):
@@ -932,3 +990,76 @@ def test_queue_with_dlq():
 
     resp = sqs.list_dead_letter_source_queues(QueueUrl=queue_url1)
     resp['queueUrls'][0].should.equal(queue_url2)
+
+
+@mock_sqs
+def test_redrive_policy_available():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+
+    resp = sqs.create_queue(QueueName='test-deadletter')
+    queue_url1 = resp['QueueUrl']
+    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)['Attributes']['QueueArn']
+    redrive_policy = {
+        'deadLetterTargetArn': queue_arn1,
+        'maxReceiveCount': 1,
+    }
+
+    resp = sqs.create_queue(
+        QueueName='test-queue',
+        Attributes={
+            'RedrivePolicy': json.dumps(redrive_policy)
+        }
+    )
+
+    queue_url2 = resp['QueueUrl']
+    attributes = sqs.get_queue_attributes(QueueUrl=queue_url2)['Attributes']
+    assert 'RedrivePolicy' in attributes
+    assert json.loads(attributes['RedrivePolicy']) == redrive_policy
+
+    # Cant have redrive policy without maxReceiveCount
+    with assert_raises(ClientError):
+        sqs.create_queue(
+            QueueName='test-queue2',
+            Attributes={
+                'FifoQueue': 'true',
+                'RedrivePolicy': json.dumps({'deadLetterTargetArn': queue_arn1})
+            }
+        )
+
+
+@mock_sqs
+def test_redrive_policy_non_existent_queue():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+    redrive_policy = {
+        'deadLetterTargetArn': 'arn:aws:sqs:us-east-1:123456789012:no-queue',
+        'maxReceiveCount': 1,
+    }
+
+    with assert_raises(ClientError):
+        sqs.create_queue(
+            QueueName='test-queue',
+            Attributes={
+                'RedrivePolicy': json.dumps(redrive_policy)
+            }
+        )
+
+
+@mock_sqs
+def test_redrive_policy_set_attributes():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+
+    queue = sqs.create_queue(QueueName='test-queue')
+    deadletter_queue = sqs.create_queue(QueueName='test-deadletter')
+
+    redrive_policy = {
+        'deadLetterTargetArn': deadletter_queue.attributes['QueueArn'],
+        'maxReceiveCount': 1,
+    }
+
+    queue.set_attributes(Attributes={
+        'RedrivePolicy': json.dumps(redrive_policy)})
+
+    copy = sqs.get_queue_by_name(QueueName='test-queue')
+    assert 'RedrivePolicy' in copy.attributes
+    copy_policy = json.loads(copy.attributes['RedrivePolicy'])
+    assert copy_policy == redrive_policy

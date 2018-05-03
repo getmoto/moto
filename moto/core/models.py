@@ -9,7 +9,7 @@ import re
 import six
 
 from moto import settings
-from moto.packages.responses import responses
+import responses
 from moto.packages.httpretty import HTTPretty
 from .utils import (
     convert_httpretty_response,
@@ -124,31 +124,102 @@ RESPONSES_METHODS = [responses.GET, responses.DELETE, responses.HEAD,
                      responses.OPTIONS, responses.PATCH, responses.POST, responses.PUT]
 
 
-class ResponsesMockAWS(BaseMockAWS):
+class CallbackResponse(responses.CallbackResponse):
+    '''
+    Need to subclass so we can change a couple things
+    '''
+    def get_response(self, request):
+        '''
+        Need to override this so we can pass decode_content=False
+        '''
+        headers = self.get_headers()
 
+        result = self.callback(request)
+        if isinstance(result, Exception):
+            raise result
+
+        status, r_headers, body = result
+        body = responses._handle_body(body)
+        headers.update(r_headers)
+
+        return responses.HTTPResponse(
+            status=status,
+            reason=six.moves.http_client.responses.get(status),
+            body=body,
+            headers=headers,
+            preload_content=False,
+            # Need to not decode_content to mimic requests
+            decode_content=False,
+        )
+
+    def _url_matches(self, url, other, match_querystring=False):
+        '''
+        Need to override this so we can fix querystrings breaking regex matching
+        '''
+        if not match_querystring:
+            other = other.split('?', 1)[0]
+
+        if responses._is_string(url):
+            if responses._has_unicode(url):
+                url = responses._clean_unicode(url)
+                if not isinstance(other, six.text_type):
+                    other = other.encode('ascii').decode('utf8')
+            return self._url_matches_strict(url, other)
+        elif isinstance(url, responses.Pattern) and url.match(other):
+            return True
+        else:
+            return False
+
+
+botocore_mock = responses.RequestsMock(assert_all_requests_are_fired=False, target='botocore.vendored.requests.adapters.HTTPAdapter.send')
+responses_mock = responses._default_mock
+
+
+class ResponsesMockAWS(BaseMockAWS):
     def reset(self):
-        responses.reset()
+        botocore_mock.reset()
+        responses_mock.reset()
 
     def enable_patching(self):
-        responses.start()
+        if not hasattr(botocore_mock, '_patcher') or not hasattr(botocore_mock._patcher, 'target'):
+            # Check for unactivated patcher
+            botocore_mock.start()
+
+        if not hasattr(responses_mock, '_patcher') or not hasattr(responses_mock._patcher, 'target'):
+            responses_mock.start()
+
         for method in RESPONSES_METHODS:
             for backend in self.backends_for_urls.values():
                 for key, value in backend.urls.items():
-                    responses.add_callback(
-                        method=method,
-                        url=re.compile(key),
-                        callback=convert_flask_to_responses_response(value),
+                    responses_mock.add(
+                        CallbackResponse(
+                            method=method,
+                            url=re.compile(key),
+                            callback=convert_flask_to_responses_response(value),
+                            stream=True,
+                            match_querystring=False,
+                        )
                     )
-
-        for pattern in responses.mock._urls:
-            pattern['stream'] = True
+                    botocore_mock.add(
+                        CallbackResponse(
+                            method=method,
+                            url=re.compile(key),
+                            callback=convert_flask_to_responses_response(value),
+                            stream=True,
+                            match_querystring=False,
+                        )
+                    )
 
     def disable_patching(self):
         try:
-            responses.stop()
-        except AttributeError:
+            botocore_mock.stop()
+        except RuntimeError:
             pass
-        responses.reset()
+
+        try:
+            responses_mock.stop()
+        except RuntimeError:
+            pass
 
 
 MockAWS = ResponsesMockAWS

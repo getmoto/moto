@@ -104,7 +104,7 @@ class _DockerDataVolumeContext:
 
             # It doesn't exist so we need to create it
             self._vol_ref.volume = self._lambda_func.docker_client.volumes.create(self._lambda_func.code_sha_256)
-            container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes={self.name: '/tmp/data'}, detach=True)
+            container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes={self.name: {'bind': '/tmp/data', 'mode': 'rw'}}, detach=True)
             try:
                 tar_bytes = zip2tar(self._lambda_func.code_bytes)
                 container.put_archive('/tmp/data', tar_bytes)
@@ -309,7 +309,7 @@ class LambdaFunction(BaseModel):
                 finally:
                     if container:
                         try:
-                            exit_code = container.wait(timeout=300)
+                            exit_code = container.wait(timeout=300)['StatusCode']
                         except requests.exceptions.ReadTimeout:
                             exit_code = -1
                             container.stop()
@@ -603,7 +603,7 @@ class LambdaBackend(BaseBackend):
     def list_functions(self):
         return self._lambdas.all()
 
-    def send_message(self, function_name, message, subject=None):
+    def send_message(self, function_name, message, subject=None, qualifier=None):
         event = {
             "Records": [
                 {
@@ -636,8 +636,8 @@ class LambdaBackend(BaseBackend):
             ]
 
         }
-        self._functions[function_name][-1].invoke(json.dumps(event), {}, {})
-        pass
+        func = self._lambdas.get_function(function_name, qualifier)
+        func.invoke(json.dumps(event), {}, {})
 
     def list_tags(self, resource):
         return self.get_function_by_arn(resource).tags

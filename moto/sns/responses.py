@@ -6,7 +6,7 @@ from collections import defaultdict
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sns_backends
-from .exceptions import SNSNotFoundError
+from .exceptions import SNSNotFoundError, InvalidParameterValue
 from .utils import is_e164
 
 
@@ -29,6 +29,49 @@ class SNSResponse(BaseResponse):
             for attribute
             in attributes
         )
+
+    def _parse_message_attributes(self, prefix='', value_namespace='Value.'):
+        message_attributes = self._get_object_map(
+            'MessageAttributes.entry',
+            name='Name',
+            value='Value'
+        )
+        # SNS converts some key names before forwarding messages
+        # DataType -> Type, StringValue -> Value, BinaryValue -> Value
+        transformed_message_attributes = {}
+        for name, value in message_attributes.items():
+            # validation
+            data_type = value['DataType']
+            if not data_type:
+                raise InvalidParameterValue(
+                    "The message attribute '{0}' must contain non-empty "
+                    "message attribute value.".format(name))
+
+            data_type_parts = data_type.split('.')
+            if (len(data_type_parts) > 2 or
+                    data_type_parts[0] not in ['String', 'Binary', 'Number']):
+                raise InvalidParameterValue(
+                    "The message attribute '{0}' has an invalid message "
+                    "attribute type, the set of supported type prefixes is "
+                    "Binary, Number, and String.".format(name))
+
+            transform_value = None
+            if 'StringValue' in value:
+                transform_value = value['StringValue']
+            elif 'BinaryValue' in value:
+                transform_value = value['BinaryValue']
+            if not transform_value:
+                raise InvalidParameterValue(
+                    "The message attribute '{0}' must contain non-empty "
+                    "message attribute value for message attribute "
+                    "type '{1}'.".format(name, data_type[0]))
+
+            # transformation
+            transformed_message_attributes[name] = {
+                'Type': data_type, 'Value': transform_value
+            }
+
+        return transformed_message_attributes
 
     def create_topic(self):
         name = self._get_param('Name')
@@ -241,6 +284,8 @@ class SNSResponse(BaseResponse):
         phone_number = self._get_param('PhoneNumber')
         subject = self._get_param('Subject')
 
+        message_attributes = self._parse_message_attributes()
+
         if phone_number is not None:
             # Check phone is correct syntax (e164)
             if not is_e164(phone_number):
@@ -265,7 +310,9 @@ class SNSResponse(BaseResponse):
         message = self._get_param('Message')
 
         try:
-            message_id = self.backend.publish(arn, message, subject=subject)
+            message_id = self.backend.publish(
+                arn, message, subject=subject,
+                message_attributes=message_attributes)
         except ValueError as err:
             error_response = self._error('InvalidParameter', str(err))
             return error_response, dict(status=400)

@@ -27,6 +27,7 @@ EC2_RESOURCE_TO_PREFIX = {
     'reservation': 'r',
     'volume': 'vol',
     'vpc': 'vpc',
+    'vpc-cidr-association-id': 'vpc-cidr-assoc',
     'vpc-elastic-ip': 'eipalloc',
     'vpc-elastic-ip-association': 'eipassoc',
     'vpc-peering-connection': 'pcx',
@@ -34,16 +35,17 @@ EC2_RESOURCE_TO_PREFIX = {
     'vpn-gateway': 'vgw'}
 
 
-EC2_PREFIX_TO_RESOURCE = dict((v, k)
-                              for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
+EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
+
+
+def random_resource_id(size=8):
+    chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
+    resource_id = ''.join(six.text_type(random.choice(chars)) for x in range(size))
+    return resource_id
 
 
 def random_id(prefix='', size=8):
-    chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
-
-    resource_id = ''.join(six.text_type(random.choice(chars))
-                          for x in range(size))
-    return '{0}-{1}'.format(prefix, resource_id)
+    return '{0}-{1}'.format(prefix, random_resource_id(size))
 
 
 def random_ami_id():
@@ -110,6 +112,10 @@ def random_vpc_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc'])
 
 
+def random_vpc_cidr_association_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc-cidr-association-id'])
+
+
 def random_vpc_peering_connection_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['vpc-peering-connection'])
 
@@ -163,6 +169,10 @@ def random_ip():
         random.randint(0, 255),
         random.randint(0, 255)
     )
+
+
+def random_ipv6_cidr():
+    return "2400:6500:{}:{}::/56".format(random_resource_id(4), random_resource_id(4))
 
 
 def generate_route_id(route_table_id, cidr_block):

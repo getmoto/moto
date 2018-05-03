@@ -24,7 +24,7 @@ class BaseObject(BaseModel):
 
     def gen_response_object(self):
         response_object = copy(self.__dict__)
-        for key, value in response_object.items():
+        for key, value in self.__dict__.items():
             if '_' in key:
                 response_object[self.camelCase(key)] = value
                 del response_object[key]
@@ -61,7 +61,11 @@ class Cluster(BaseObject):
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+        # if properties is not provided, cloudformation will use the default values for all properties
+        if 'Properties' in cloudformation_json:
+            properties = cloudformation_json['Properties']
+        else:
+            properties = {}
 
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.create_cluster(
@@ -108,6 +112,10 @@ class TaskDefinition(BaseObject):
         response_object['taskDefinitionArn'] = response_object['arn']
         del response_object['arn']
         return response_object
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -502,10 +510,27 @@ class EC2ContainerServiceBackend(BaseBackend):
     def _calculate_task_resource_requirements(task_definition):
         resource_requirements = {"CPU": 0, "MEMORY": 0, "PORTS": [], "PORTS_UDP": []}
         for container_definition in task_definition.container_definitions:
-            resource_requirements["CPU"] += container_definition.get('cpu')
-            resource_requirements["MEMORY"] += container_definition.get("memory")
-            for port_mapping in container_definition.get("portMappings", []):
-                resource_requirements["PORTS"].append(port_mapping.get('hostPort'))
+            # cloudformation uses capitalized properties, while boto uses all lower case
+
+            # CPU is optional
+            resource_requirements["CPU"] += container_definition.get('cpu',
+                                                                     container_definition.get('Cpu', 0))
+
+            # either memory or memory reservation must be provided
+            if 'Memory' in container_definition or 'MemoryReservation' in container_definition:
+                resource_requirements["MEMORY"] += container_definition.get(
+                    "Memory", container_definition.get('MemoryReservation'))
+            else:
+                resource_requirements["MEMORY"] += container_definition.get(
+                    "memory", container_definition.get('memoryReservation'))
+
+            port_mapping_key = 'PortMappings' if 'PortMappings' in container_definition else 'portMappings'
+            for port_mapping in container_definition.get(port_mapping_key, []):
+                if 'hostPort' in port_mapping:
+                    resource_requirements["PORTS"].append(port_mapping.get('hostPort'))
+                elif 'HostPort' in port_mapping:
+                    resource_requirements["PORTS"].append(port_mapping.get('HostPort'))
+
         return resource_requirements
 
     @staticmethod

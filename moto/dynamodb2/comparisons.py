@@ -176,6 +176,8 @@ def get_filter_expression(expr, names, values):
 
             next_token = six.next(token_iterator)
             while next_token != ')':
+                if next_token in values_map:
+                    next_token = values_map[next_token]
                 function_list.append(next_token)
                 next_token = six.next(token_iterator)
 

@@ -118,6 +118,24 @@ class CloudFormationResponse(BaseResponse):
             template = self.response_template(CREATE_CHANGE_SET_RESPONSE_TEMPLATE)
             return template.render(stack_id=stack_id, change_set_id=change_set_id)
 
+    @amzn_request_id
+    def execute_change_set(self):
+        stack_name = self._get_param('StackName')
+        change_set_name = self._get_param('ChangeSetName')
+        self.cloudformation_backend.execute_change_set(
+            stack_name=stack_name,
+            change_set_name=change_set_name,
+        )
+        if self.request_json:
+            return json.dumps({
+                'ExecuteChangeSetResponse': {
+                    'ExecuteChangeSetResult': {},
+                }
+            })
+        else:
+            template = self.response_template(EXECUTE_CHANGE_SET_RESPONSE_TEMPLATE)
+            return template.render()
+
     def describe_stacks(self):
         stack_name_or_id = None
         if self._get_param('StackName'):
@@ -203,19 +221,25 @@ class CloudFormationResponse(BaseResponse):
         stack_name = self._get_param('StackName')
         role_arn = self._get_param('RoleARN')
         template_url = self._get_param('TemplateURL')
+        stack_body = self._get_param('TemplateBody')
+        stack = self.cloudformation_backend.get_stack(stack_name)
         if self._get_param('UsePreviousTemplate') == "true":
-            stack_body = self.cloudformation_backend.get_stack(
-                stack_name).template
-        elif template_url:
+            stack_body = stack.template
+        elif not stack_body and template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
-        else:
-            stack_body = self._get_param('TemplateBody')
 
+        incoming_params = self._get_list_prefix("Parameters.member")
         parameters = dict([
             (parameter['parameter_key'], parameter['parameter_value'])
             for parameter
-            in self._get_list_prefix("Parameters.member")
+            in incoming_params if 'parameter_value' in parameter
         ])
+        previous = dict([
+            (parameter['parameter_key'], stack.parameters[parameter['parameter_key']])
+            for parameter
+            in incoming_params if 'use_previous_value' in parameter
+        ])
+        parameters.update(previous)
         # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
         # end up containing anything we can use to differentiate between passing an empty value versus not
         # passing anything. so until that changes, moto won't be able to clear tags, only update them.
@@ -300,6 +324,16 @@ CREATE_CHANGE_SET_RESPONSE_TEMPLATE = """<CreateStackResponse>
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </CreateStackResponse>
+"""
+
+EXECUTE_CHANGE_SET_RESPONSE_TEMPLATE = """<ExecuteChangeSetResponse>
+  <ExecuteChangeSetResult>
+      <ExecuteChangeSetResult/>
+  </ExecuteChangeSetResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</ExecuteChangeSetResponse>
 """
 
 DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
