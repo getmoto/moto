@@ -3159,13 +3159,18 @@ class SpotFleetBackend(object):
 
 
 class ElasticAddress(object):
-    def __init__(self, domain):
-        self.public_ip = random_ip()
-        self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
+    def __init__(self, domain, address=None):
+        self.reallocate_address = address
         self.domain = domain
+        self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
         self.instance = None
         self.eni = None
         self.association_id = None
+
+        if not self.reallocate_address:
+            self.public_ip = self.reallocate_address
+        else:
+            self.public_ip = random_ip()
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -3222,13 +3227,12 @@ class ElasticAddressBackend(object):
         self.addresses = []
         super(ElasticAddressBackend, self).__init__()
 
-    def allocate_address(self, domain):
+    def allocate_address(self, domain, address=None):
         if domain not in ['standard', 'vpc']:
             raise InvalidDomainError(domain)
-
-        address = ElasticAddress(domain)
-        self.addresses.append(address)
-        return address
+        to_append_address = ElasticAddress(domain=domain, address=address)
+        self.addresses.append(to_append_address)
+        return to_append_address
 
     def address_by_ip(self, ips):
         eips = [address for address in self.addresses
