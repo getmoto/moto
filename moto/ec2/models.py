@@ -3161,8 +3161,8 @@ class SpotFleetBackend(object):
 class ElasticAddress(object):
     def __init__(self, domain, reallocate_address=None):
         self.reallocate_address = reallocate_address
-        self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
         self.domain = domain
+        self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
         self.instance = None
         self.eni = None
         self.association_id = None
