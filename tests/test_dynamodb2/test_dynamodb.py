@@ -6,6 +6,7 @@ import boto3
 from boto3.dynamodb.conditions import Attr
 import sure  # noqa
 import requests
+from pytest import raises
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
@@ -1052,6 +1053,7 @@ def test_query_missing_expr_names():
 @mock_dynamodb2
 def test_update_item_on_map():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    client = boto3.client('dynamodb')
 
     # Create the DynamoDB table.
     dynamodb.create_table(
@@ -1092,21 +1094,44 @@ def test_update_item_on_map():
     resp = table.scan()
     resp['Items'][0]['body'].should.equal({'nested': {'data': 'test'}})
 
+    # Nonexistent nested attributes are supported for existing top-level attributes.
     table.update_item(Key={
         'forum_name': 'the-key',
         'subject': '123'
         },
-        UpdateExpression='SET body.#nested.#data = :tb',
+        UpdateExpression='SET body.#nested.#data = :tb, body.nested.#nonexistentnested.#data = :tb2',
         ExpressionAttributeNames={
             '#nested': 'nested',
+            '#nonexistentnested': 'nonexistentnested',
             '#data': 'data'
         },
         ExpressionAttributeValues={
-            ':tb': 'new_value'
+            ':tb': 'new_value',
+            ':tb2': 'other_value'
     })
 
     resp = table.scan()
-    resp['Items'][0]['body'].should.equal({'nested': {'data': 'new_value'}})
+    resp['Items'][0]['body'].should.equal({
+        'nested': {
+            'data': 'new_value',
+            'nonexistentnested': {'data': 'other_value'}
+        }
+    })
+
+    # Test nested value for a nonexistent attribute.
+    with raises(client.exceptions.ConditionalCheckFailedException):
+        table.update_item(Key={
+            'forum_name': 'the-key',
+            'subject': '123'
+            },
+            UpdateExpression='SET nonexistent.#nested = :tb',
+            ExpressionAttributeNames={
+                '#nested': 'nested'
+            },
+            ExpressionAttributeValues={
+                ':tb': 'new_value'
+        })
+
 
 
 # https://github.com/spulec/moto/issues/1358
