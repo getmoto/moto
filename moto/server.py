@@ -198,7 +198,6 @@ def main(argv=sys.argv[1:]):
         help='Path to SSL private key',
         default=None)
 
-
     args = parser.parse_args(argv)
 
     # Wrap the main application
