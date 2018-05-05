@@ -13,23 +13,24 @@ from moto.sns.models import DEFAULT_TOPIC_POLICY, DEFAULT_EFFECTIVE_DELIVERY_POL
 @mock_sns
 def test_create_and_delete_topic():
     conn = boto3.client("sns", region_name="us-east-1")
-    conn.create_topic(Name="some-topic")
+    for topic_name in ('some-topic', '-some-topic-', '_some-topic_', 'a' * 256):
+        conn.create_topic(Name=topic_name)
 
-    topics_json = conn.list_topics()
-    topics = topics_json["Topics"]
-    topics.should.have.length_of(1)
-    topics[0]['TopicArn'].should.equal(
-        "arn:aws:sns:{0}:123456789012:some-topic"
-        .format(conn._client_config.region_name)
-    )
+        topics_json = conn.list_topics()
+        topics = topics_json["Topics"]
+        topics.should.have.length_of(1)
+        topics[0]['TopicArn'].should.equal(
+            "arn:aws:sns:{0}:123456789012:{1}"
+            .format(conn._client_config.region_name, topic_name)
+        )
 
-    # Delete the topic
-    conn.delete_topic(TopicArn=topics[0]['TopicArn'])
+        # Delete the topic
+        conn.delete_topic(TopicArn=topics[0]['TopicArn'])
 
-    # And there should now be 0 topics
-    topics_json = conn.list_topics()
-    topics = topics_json["Topics"]
-    topics.should.have.length_of(0)
+        # And there should now be 0 topics
+        topics_json = conn.list_topics()
+        topics = topics_json["Topics"]
+        topics.should.have.length_of(0)
 
 @mock_sns
 def test_create_topic_should_be_indempodent():
