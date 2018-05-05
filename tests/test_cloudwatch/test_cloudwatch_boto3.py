@@ -173,6 +173,7 @@ def test_get_metric_statistics():
             dict(
                 MetricName='metric',
                 Value=1.5,
+                Timestamp=utc_now
             )
         ]
     )
@@ -180,7 +181,7 @@ def test_get_metric_statistics():
     stats = conn.get_metric_statistics(
         Namespace='tester',
         MetricName='metric',
-        StartTime=utc_now,
+        StartTime=utc_now - timedelta(seconds=60),
         EndTime=utc_now + timedelta(seconds=60),
         Period=60,
         Statistics=['SampleCount', 'Sum']

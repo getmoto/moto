@@ -272,7 +272,7 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
    </ResponseMetadata>
 
   <GetMetricStatisticsResult>
-      <Label> {{ label }} </Label>
+      <Label>{{ label }}</Label>
       <Datapoints>
         {% for datapoint in datapoints %}
             <Datapoint>
