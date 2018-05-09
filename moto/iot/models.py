@@ -7,7 +7,6 @@ import hashlib
 import uuid
 import re
 from datetime import datetime
-from dateutil.tz import tzlocal
 from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
 from .exceptions import (
