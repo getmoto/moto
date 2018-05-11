@@ -3159,8 +3159,11 @@ class SpotFleetBackend(object):
 
 
 class ElasticAddress(object):
-    def __init__(self, domain):
-        self.public_ip = random_ip()
+    def __init__(self, domain, address=None):
+        if address:
+            self.public_ip = address
+        else:
+            self.public_ip = random_ip()
         self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
         self.domain = domain
         self.instance = None
@@ -3222,11 +3225,13 @@ class ElasticAddressBackend(object):
         self.addresses = []
         super(ElasticAddressBackend, self).__init__()
 
-    def allocate_address(self, domain):
+    def allocate_address(self, domain, address=None):
         if domain not in ['standard', 'vpc']:
             raise InvalidDomainError(domain)
-
-        address = ElasticAddress(domain)
+        if address:
+            address = ElasticAddress(domain, address)
+        else:
+            address = ElasticAddress(domain)
         self.addresses.append(address)
         return address
 
