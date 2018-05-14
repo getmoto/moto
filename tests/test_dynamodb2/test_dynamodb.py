@@ -1053,7 +1053,7 @@ def test_query_missing_expr_names():
 @mock_dynamodb2
 def test_update_item_on_map():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-    client = boto3.client('dynamodb')
+    client = boto3.client('dynamodb', region_name='us-east-1')
 
     # Create the DynamoDB table.
     dynamodb.create_table(
