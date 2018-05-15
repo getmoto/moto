@@ -210,7 +210,7 @@ class EventsBackend(BaseBackend):
         raise NotImplementedError()
 
     def put_permission(self, action, principal, statement_id):
-        if action is None or action != 'PutEvents':
+        if action is None or action != 'events:PutEvents':
             raise JsonRESTError('InvalidParameterValue', 'Action must be PutEvents')
 
         if principal is None or self.ACCOUNT_ID.match(principal) is None:
