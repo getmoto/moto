@@ -235,7 +235,7 @@ class EventsBackend(BaseBackend):
                 'Sid': statement_id,
                 'Effect': 'Allow',
                 'Principal': {'AWS': 'arn:aws:iam::{0}:root'.format(data['principal'])},
-                'Action': 'events:{0}'.format(data['action']),
+                'Action': data['action'],
                 'Resource': arn
             })
         return {
