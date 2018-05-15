@@ -177,8 +177,8 @@ def test_remove_targets():
 def test_permissions():
     client = boto3.client('events', 'eu-central-1')
 
-    client.put_permission(Action='PutEvents', Principal='111111111111', StatementId='Account1')
-    client.put_permission(Action='PutEvents', Principal='222222222222', StatementId='Account2')
+    client.put_permission(Action='events:PutEvents', Principal='111111111111', StatementId='Account1')
+    client.put_permission(Action='events:PutEvents', Principal='222222222222', StatementId='Account2')
 
     resp = client.describe_event_bus()
     assert len(resp['Policy']['Statement']) == 2
