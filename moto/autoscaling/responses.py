@@ -320,8 +320,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
             <UserData/>
           {% endif %}
           <InstanceType>{{ launch_configuration.instance_type }}</InstanceType>
-          <LaunchConfigurationARN>arn:aws:autoscaling:us-east-1:803981987763:launchConfiguration:
-          9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{{ launch_configuration.name }}</LaunchConfigurationARN>
+          <LaunchConfigurationARN>arn:aws:autoscaling:us-east-1:803981987763:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{{ launch_configuration.name }}</LaunchConfigurationARN>
           {% if launch_configuration.block_device_mappings %}
             <BlockDeviceMappings>
             {% for mount_point, mapping in launch_configuration.block_device_mappings.items() %}
