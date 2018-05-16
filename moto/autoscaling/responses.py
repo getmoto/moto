@@ -516,8 +516,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         {% endif %}
         <HealthCheckGracePeriod>{{ group.health_check_period }}</HealthCheckGracePeriod>
         <DefaultCooldown>{{ group.default_cooldown }}</DefaultCooldown>
-        <AutoScalingGroupARN>arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb
-        :autoScalingGroupName/{{ group.name }}</AutoScalingGroupARN>
+        <AutoScalingGroupARN>arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/{{ group.name }}</AutoScalingGroupARN>
         {% if group.termination_policies %}
         <TerminationPolicies>
           {% for policy in group.termination_policies %}
