@@ -15,7 +15,7 @@ from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey, \
-    InvalidNotificationDestination, MalformedXML
+    InvalidNotificationDestination, MalformedXML, InvalidStorageClass
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -68,6 +68,8 @@ class FakeKey(BaseModel):
         self._tagging = tagging
 
     def set_storage_class(self, storage_class):
+        if not(storage in ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]):
+            raise InvalidStorageClass(storage=storage)
         self._storage_class = storage_class
 
     def set_acl(self, acl):
@@ -676,6 +678,8 @@ class S3Backend(BaseBackend):
 
     def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)
+        if storage is not None and not(storage in ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]):
+            raise InvalidStorageClass(storage=storage)
 
         bucket = self.get_bucket(bucket_name)
 

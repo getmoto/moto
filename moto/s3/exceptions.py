@@ -168,3 +168,12 @@ class InvalidNotificationEvent(S3ClientError):
             "InvalidArgument",
             "The event is not supported for notifications",
             *args, **kwargs)
+
+class InvalidStorageClass(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(InvalidStorageClass, self).__init__(
+            "InvalidStorageClass",
+            "The storage class you specified is not valid",
+            *args, **kwargs)
