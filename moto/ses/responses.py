@@ -75,7 +75,10 @@ class EmailResponse(BaseResponse):
         return template.render(message=message)
 
     def send_raw_email(self):
-        source = self.querystring.get('Source')[0]
+        source = self.querystring.get('Source')
+        if source is not None:
+            source, = source
+
         raw_data = self.querystring.get('RawMessage.Data')[0]
         raw_data = base64.b64decode(raw_data)
         if six.PY3:

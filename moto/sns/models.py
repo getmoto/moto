@@ -240,7 +240,7 @@ class SNSBackend(BaseBackend):
         self.sms_attributes.update(attrs)
 
     def create_topic(self, name):
-        fails_constraints = not re.match(r'^[a-zA-Z0-9](?:[A-Za-z0-9_-]{0,253}[a-zA-Z0-9])?$', name)
+        fails_constraints = not re.match(r'^[a-zA-Z0-9_-]{1,256}$', name)
         if fails_constraints:
             raise InvalidParameterValue("Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long.")
         candidate_topic = Topic(name, self)

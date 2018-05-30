@@ -675,3 +675,4 @@ lambda_backends = {_region.name: LambdaBackend(_region.name)
                    for _region in boto.awslambda.regions()}
 
 lambda_backends['ap-southeast-2'] = LambdaBackend('ap-southeast-2')
+lambda_backends['us-gov-west-1'] = LambdaBackend('us-gov-west-1')
