@@ -176,16 +176,17 @@ class Item(BaseModel):
                         key_parts = key.split('.')
                         attr = key_parts.pop(0)
                         if attr not in self.attrs:
-                            raise ValueError()
+                            raise ValueError
 
                         last_val = self.attrs[attr].value
                         for key_part in key_parts:
                             # Hack but it'll do, traverses into a dict
-                            if list(last_val.keys())[0] == 'M':
-                                last_val = last_val['M']
+                            last_val_type = list(last_val.keys())
+                            if last_val_type and last_val_type[0] == 'M':
+                                    last_val = last_val['M']
 
                             if key_part not in last_val:
-                                raise ValueError()
+                                last_val[key_part] = {'M': {}}
 
                             last_val = last_val[key_part]
 
