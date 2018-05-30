@@ -7,8 +7,13 @@ class ElasticIPAddresses(BaseResponse):
 
     def allocate_address(self):
         domain = self._get_param('Domain', if_none='standard')
+        reallocate_address = self._get_param('Address', if_none=None)
         if self.is_not_dryrun('AllocateAddress'):
-            address = self.ec2_backend.allocate_address(domain)
+            if reallocate_address:
+                address = self.ec2_backend.allocate_address(
+                    domain, address=reallocate_address)
+            else:
+                address = self.ec2_backend.allocate_address(domain)
             template = self.response_template(ALLOCATE_ADDRESS_RESPONSE)
             return template.render(address=address)
 
