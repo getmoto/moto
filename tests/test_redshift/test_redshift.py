@@ -819,6 +819,48 @@ def test_create_cluster_from_snapshot():
 
 
 @mock_redshift
+def test_create_cluster_from_snapshot_with_waiter():
+    client = boto3.client('redshift', region_name='us-east-1')
+    original_cluster_identifier = 'original-cluster'
+    original_snapshot_identifier = 'original-snapshot'
+    new_cluster_identifier = 'new-cluster'
+
+    client.create_cluster(
+        ClusterIdentifier=original_cluster_identifier,
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='username',
+        MasterUserPassword='password',
+    )
+    client.create_cluster_snapshot(
+        SnapshotIdentifier=original_snapshot_identifier,
+        ClusterIdentifier=original_cluster_identifier
+    )
+    response = client.restore_from_cluster_snapshot(
+        ClusterIdentifier=new_cluster_identifier,
+        SnapshotIdentifier=original_snapshot_identifier,
+        Port=1234
+    )
+    response['Cluster']['ClusterStatus'].should.equal('creating')
+
+    client.get_waiter('cluster_restored').wait(
+        ClusterIdentifier=new_cluster_identifier,
+        WaiterConfig={
+            'Delay': 1,
+            'MaxAttempts': 2,
+        }
+    )
+
+    response = client.describe_clusters(
+        ClusterIdentifier=new_cluster_identifier
+    )
+    new_cluster = response['Clusters'][0]
+    new_cluster['NodeType'].should.equal('ds2.xlarge')
+    new_cluster['MasterUsername'].should.equal('username')
+    new_cluster['Endpoint']['Port'].should.equal(1234)
+
+
+@mock_redshift
 def test_create_cluster_from_non_existent_snapshot():
     client = boto3.client('redshift', region_name='us-east-1')
     client.restore_from_cluster_snapshot.when.called_with(
