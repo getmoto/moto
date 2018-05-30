@@ -211,7 +211,7 @@ class EventsBackend(BaseBackend):
         raise NotImplementedError()
 
     def put_permission(self, action, principal, statement_id):
-        if action is None or action != 'PutEvents':
+        if action is None or action != 'events:PutEvents':
             raise JsonRESTError('InvalidParameterValue', 'Action must be PutEvents')
 
         if principal is None or self.ACCOUNT_ID.match(principal) is None:
@@ -236,7 +236,7 @@ class EventsBackend(BaseBackend):
                 'Sid': statement_id,
                 'Effect': 'Allow',
                 'Principal': {'AWS': 'arn:aws:iam::{0}:root'.format(data['principal'])},
-                'Action': 'events:{0}'.format(data['action']),
+                'Action': data['action'],
                 'Resource': arn
             })
         policy = {'Version': '2012-10-17', 'Statement': statements}
