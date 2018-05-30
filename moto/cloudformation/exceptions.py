@@ -33,6 +33,18 @@ class MissingParameterError(BadRequest):
         )
 
 
+class ExportNotFound(BadRequest):
+    """Exception to raise if a template tries to import a non-existent export"""
+
+    def __init__(self, export_name):
+        template = Template(ERROR_RESPONSE)
+        super(ExportNotFound, self).__init__()
+        self.description = template.render(
+            code='ExportNotFound',
+            message="No export named {0} found.".format(export_name)
+        )
+
+
 ERROR_RESPONSE = """<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <Error>
     <Type>Sender</Type>

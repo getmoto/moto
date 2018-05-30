@@ -38,7 +38,7 @@ class FakeStack(BaseModel):
                                   resource_status_reason="User Initiated")
 
         self.description = self.template_dict.get('Description')
-        self.cross_stack_resources = cross_stack_resources or []
+        self.cross_stack_resources = cross_stack_resources or {}
         self.resource_map = self._create_resource_map()
         self.output_map = self._create_output_map()
         self._add_stack_event("CREATE_COMPLETE")
