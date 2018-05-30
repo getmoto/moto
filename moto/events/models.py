@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
@@ -238,8 +239,10 @@ class EventsBackend(BaseBackend):
                 'Action': 'events:{0}'.format(data['action']),
                 'Resource': arn
             })
+        policy = {'Version': '2012-10-17', 'Statement': statements}
+        policy_json = json.dumps(policy)
         return {
-            'Policy': {'Version': '2012-10-17', 'Statement': statements},
+            'Policy': policy_json,
             'Name': 'default',
             'Arn': arn
         }
