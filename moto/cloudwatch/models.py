@@ -235,7 +235,7 @@ class CloudWatchBackend(BaseBackend):
                 timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
                 timestamp = timestamp.replace(tzinfo=tzutc())
             self.metric_data.append(MetricDatum(
-                namespace, metric_member['MetricName'], float(metric_member['Value']), metric_member.get('Dimensions.member', _EMPTY_LIST), timestamp))
+                namespace, metric_member['MetricName'], float(metric_member.get('Value', 0)), metric_member.get('Dimensions.member', _EMPTY_LIST), timestamp))
 
     def get_metric_statistics(self, namespace, metric_name, start_time, end_time, period, stats):
         period_delta = timedelta(seconds=period)
