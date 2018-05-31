@@ -12,6 +12,7 @@ from .awslambda import mock_lambda, mock_lambda_deprecated  # flake8: noqa
 from .cloudformation import mock_cloudformation, mock_cloudformation_deprecated  # flake8: noqa
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # flake8: noqa
 from .cognitoidentity import mock_cognitoidentity, mock_cognitoidentity_deprecated  # flake8: noqa
+from .cognitoidp import mock_cognitoidp, mock_cognitoidp_deprecated  # flake8: noqa
 from .datapipeline import mock_datapipeline, mock_datapipeline_deprecated  # flake8: noqa
 from .dynamodb import mock_dynamodb, mock_dynamodb_deprecated  # flake8: noqa
 from .dynamodb2 import mock_dynamodb2, mock_dynamodb2_deprecated  # flake8: noqa

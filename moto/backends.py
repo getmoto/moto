@@ -7,6 +7,7 @@ from moto.awslambda import lambda_backends
 from moto.cloudformation import cloudformation_backends
 from moto.cloudwatch import cloudwatch_backends
 from moto.cognitoidentity import cognitoidentity_backends
+from moto.cognitoidp import cognitoidp_backends
 from moto.core import moto_api_backends
 from moto.datapipeline import datapipeline_backends
 from moto.dynamodb import dynamodb_backends
@@ -51,6 +52,7 @@ BACKENDS = {
     'cloudformation': cloudformation_backends,
     'cloudwatch': cloudwatch_backends,
     'cognito-identity': cognitoidentity_backends,
+    'cognito-idp': cognitoidp_backends,
     'datapipeline': datapipeline_backends,
     'dynamodb': dynamodb_backends,
     'dynamodb2': dynamodb_backends2,
