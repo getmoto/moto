@@ -140,6 +140,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 ```
 
+For a full list of endpoint [implementation coverage](https://github.com/spulec/moto/blob/master/IMPLEMENTATION_COVERAGE.md)
+
 ### Another Example
 
 Imagine you have a function that you use to launch new ec2 instances:
