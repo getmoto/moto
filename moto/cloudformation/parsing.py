@@ -369,6 +369,7 @@ class ResourceMap(collections.Mapping):
             "AWS::Region": self._region_name,
             "AWS::StackId": stack_id,
             "AWS::StackName": stack_name,
+            "AWS::URLSuffix": "amazonaws.com",
             "AWS::NoValue": None,
         }
 
