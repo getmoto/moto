@@ -62,13 +62,13 @@ class DynamoHandler(BaseResponse):
         name = body['TableName']
 
         key_schema = body['KeySchema']
-        hash_hey = key_schema['HashKeyElement']
-        hash_key_attr = hash_hey['AttributeName']
-        hash_key_type = hash_hey['AttributeType']
+        hash_key = key_schema['HashKeyElement']
+        hash_key_attr = hash_key['AttributeName']
+        hash_key_type = hash_key['AttributeType']
 
-        range_hey = key_schema.get('RangeKeyElement', {})
-        range_key_attr = range_hey.get('AttributeName')
-        range_key_type = range_hey.get('AttributeType')
+        range_key = key_schema.get('RangeKeyElement', {})
+        range_key_attr = range_key.get('AttributeName')
+        range_key_type = range_key.get('AttributeType')
 
         throughput = body["ProvisionedThroughput"]
         read_units = throughput["ReadCapacityUnits"]
