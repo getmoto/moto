@@ -1063,3 +1063,112 @@ def test_redrive_policy_set_attributes():
     assert 'RedrivePolicy' in copy.attributes
     copy_policy = json.loads(copy.attributes['RedrivePolicy'])
     assert copy_policy == redrive_policy
+
+
+@mock_sqs
+def test_receive_messages_with_message_group_id():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="test-queue.fifo",
+                             Attributes={
+                                 'FifoQueue': 'true',
+                             })
+    queue.set_attributes(Attributes={"VisibilityTimeout": "3600"})
+    queue.send_message(
+        MessageBody="message-1",
+        MessageGroupId="group"
+    )
+    queue.send_message(
+        MessageBody="message-2",
+        MessageGroupId="group"
+    )
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    message = messages[0]
+
+    # received message is not deleted!
+
+    messages = queue.receive_messages(WaitTimeSeconds=0)
+    messages.should.have.length_of(0)
+
+    # message is now processed, next one should be available
+    message.delete()
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_receive_messages_with_message_group_id_on_requeue():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="test-queue.fifo",
+                             Attributes={
+                                 'FifoQueue': 'true',
+                             })
+    queue.set_attributes(Attributes={"VisibilityTimeout": "3600"})
+    queue.send_message(
+        MessageBody="message-1",
+        MessageGroupId="group"
+    )
+    queue.send_message(
+        MessageBody="message-2",
+        MessageGroupId="group"
+    )
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    message = messages[0]
+
+    # received message is not deleted!
+
+    messages = queue.receive_messages(WaitTimeSeconds=0)
+    messages.should.have.length_of(0)
+
+    # message is now available again, next one should be available
+    message.change_visibility(VisibilityTimeout=0)
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    messages[0].message_id.should.equal(message.message_id)
+
+
+@mock_sqs
+def test_receive_messages_with_message_group_id_on_visibility_timeout():
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+        raise SkipTest('Cant manipulate time in server mode')
+
+    with freeze_time("2015-01-01 12:00:00"):
+        sqs = boto3.resource('sqs', region_name='us-east-1')
+        queue = sqs.create_queue(QueueName="test-queue.fifo",
+                                 Attributes={
+                                     'FifoQueue': 'true',
+                                 })
+        queue.set_attributes(Attributes={"VisibilityTimeout": "3600"})
+        queue.send_message(
+            MessageBody="message-1",
+            MessageGroupId="group"
+        )
+        queue.send_message(
+            MessageBody="message-2",
+            MessageGroupId="group"
+        )
+
+        messages = queue.receive_messages()
+        messages.should.have.length_of(1)
+        message = messages[0]
+
+        # received message is not deleted!
+
+        messages = queue.receive_messages(WaitTimeSeconds=0)
+        messages.should.have.length_of(0)
+
+        message.change_visibility(VisibilityTimeout=10)
+
+    with freeze_time("2015-01-01 12:00:05"):
+        # no timeout yet
+        messages = queue.receive_messages(WaitTimeSeconds=0)
+        messages.should.have.length_of(0)
+
+    with freeze_time("2015-01-01 12:00:15"):
+        # message is now available again, next one should be available
+        messages = queue.receive_messages()
+        messages.should.have.length_of(1)
+        messages[0].message_id.should.equal(message.message_id)
