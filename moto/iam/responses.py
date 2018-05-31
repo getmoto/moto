@@ -407,7 +407,7 @@ class IamResponse(BaseResponse):
         return template.render(
             user_name=user_name,
             policy_name=policy_name,
-            policy_document=policy_document
+            policy_document=policy_document.get('policy_document')
         )
 
     def list_user_policies(self):
