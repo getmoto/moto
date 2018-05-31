@@ -67,7 +67,7 @@ class FakeKey(BaseModel):
     def set_tagging(self, tagging):
         self._tagging = tagging
 
-    def set_storage_class(self, storage_class):
+    def set_storage_class(self, storage):
         if not(storage in ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]):
             raise InvalidStorageClass(storage=storage)
         self._storage_class = storage_class

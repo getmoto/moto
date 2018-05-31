@@ -169,6 +169,7 @@ class InvalidNotificationEvent(S3ClientError):
             "The event is not supported for notifications",
             *args, **kwargs)
 
+
 class InvalidStorageClass(S3ClientError):
     code = 400
 
