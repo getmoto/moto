@@ -11,6 +11,8 @@ from botocore.exceptions import ClientError
 # Package modules
 from moto import mock_cloudformation
 
+AWS_REGION = 'us-west-1'
+
 SG_STACK_NAME = 'simple-sg-stack'
 SG_TEMPLATE = """
 AWSTemplateFormatVersion: 2010-09-09
@@ -63,7 +65,7 @@ class TestSimpleInstance(unittest.TestCase):
     def test_simple_instance(self):
         """Test that we can create a simple CloudFormation stack that imports values from an existing CloudFormation stack"""
         with mock_cloudformation():
-            client = boto3.client('cloudformation')
+            client = boto3.client('cloudformation', region_name=AWS_REGION)
             client.create_stack(StackName=SG_STACK_NAME, TemplateBody=SG_TEMPLATE)
             response = client.create_stack(StackName=EC2_STACK_NAME, TemplateBody=EC2_TEMPLATE)
             self.assertIn('StackId', response)
@@ -77,7 +79,7 @@ class TestSimpleInstance(unittest.TestCase):
     def test_simple_instance_missing_export(self):
         """Test that we get an exception if a CloudFormation stack tries to imports a non-existent export value"""
         with mock_cloudformation():
-            client = boto3.client('cloudformation')
+            client = boto3.client('cloudformation', region_name=AWS_REGION)
             with self.assertRaises(ClientError) as e:
                 client.create_stack(StackName=EC2_STACK_NAME, TemplateBody=EC2_TEMPLATE)
             self.assertIn('Error', e.exception.response)
