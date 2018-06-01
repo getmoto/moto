@@ -253,7 +253,7 @@ def test_publish_to_sqs_in_different_region():
 @mock_sns
 def test_publish_to_http():
     def callback(request):
-        request.headers["Content-Type"].should.equal("application/json")
+        request.headers["Content-Type"].should.equal("text/plain; charset=UTF-8")
         json.loads.when.called_with(
             request.body.decode()
         ).should_not.throw(Exception)

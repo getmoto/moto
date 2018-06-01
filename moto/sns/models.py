@@ -101,7 +101,7 @@ class Subscription(BaseModel):
             sqs_backends[region].send_message(queue_name, enveloped_message)
         elif self.protocol in ['http', 'https']:
             post_data = self.get_post_data(message, message_id, subject)
-            requests.post(self.endpoint, json=post_data)
+            requests.post(self.endpoint, json=post_data, headers={'Content-Type': 'text/plain; charset=UTF-8'})
         elif self.protocol == 'lambda':
             # TODO: support bad function name
             # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
