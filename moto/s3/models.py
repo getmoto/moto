@@ -70,7 +70,7 @@ class FakeKey(BaseModel):
     def set_storage_class(self, storage):
         if not(storage in ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]):
             raise InvalidStorageClass(storage=storage)
-        self._storage_class = storage_class
+        self._storage_class = storage
 
     def set_acl(self, acl):
         self.acl = acl
