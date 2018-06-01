@@ -4,6 +4,7 @@ import base64
 from collections import defaultdict
 import copy
 import datetime
+import docker
 import docker.errors
 import hashlib
 import io
@@ -44,7 +45,7 @@ except ImportError:
 
 _stderr_regex = re.compile(r'START|END|REPORT RequestId: .*')
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
-
+docker_3 = docker.__version__.startswith("3")
 
 def zip2tar(zip_bytes):
     with TemporaryDirectory() as td:
@@ -104,7 +105,11 @@ class _DockerDataVolumeContext:
 
             # It doesn't exist so we need to create it
             self._vol_ref.volume = self._lambda_func.docker_client.volumes.create(self._lambda_func.code_sha_256)
-            container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes={self.name: {'bind': '/tmp/data', 'mode': 'rw'}}, detach=True)
+            if docker_3:
+                volumes = {self.name: {'bind': '/tmp/data', 'mode': 'rw'}}
+            else:
+                volumes = {self.name: '/tmp/data'}
+            container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes=volumes, detach=True)
             try:
                 tar_bytes = zip2tar(self._lambda_func.code_bytes)
                 container.put_archive('/tmp/data', tar_bytes)
@@ -309,11 +314,15 @@ class LambdaFunction(BaseModel):
                 finally:
                     if container:
                         try:
-                            exit_code = container.wait(timeout=300)['StatusCode']
+                            exit_code = container.wait(timeout=300)
                         except requests.exceptions.ReadTimeout:
                             exit_code = -1
                             container.stop()
                             container.kill()
+                        else:
+                            if docker_3:
+                                exit_code = exit_code['StatusCode']
+
                         output = container.logs(stdout=False, stderr=True)
                         output += container.logs(stdout=True, stderr=False)
                         container.remove()
