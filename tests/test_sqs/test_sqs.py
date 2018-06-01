@@ -41,6 +41,29 @@ def test_create_fifo_queue_fail():
 
 
 @mock_sqs
+def test_create_queue_with_different_attributes_fail():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+
+    sqs.create_queue(
+        QueueName='test-queue',
+        Attributes={
+            'VisibilityTimeout': '10',
+        }
+    )
+    try:
+        sqs.create_queue(
+            QueueName='test-queue',
+            Attributes={
+                'VisibilityTimeout': '60',
+            }
+        )
+    except botocore.exceptions.ClientError as err:
+        err.response['Error']['Code'].should.equal('QueueAlreadyExists')
+    else:
+        raise RuntimeError('Should of raised QueueAlreadyExists Exception')
+
+
+@mock_sqs
 def test_create_fifo_queue():
     sqs = boto3.client('sqs', region_name='us-east-1')
     resp = sqs.create_queue(

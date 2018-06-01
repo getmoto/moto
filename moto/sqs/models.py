@@ -18,6 +18,7 @@ from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
     QueueDoesNotExist,
+    QueueAlreadyExists,
     ReceiptHandleIsInvalid,
 )
 
@@ -383,7 +384,12 @@ class SQSBackend(BaseBackend):
 
     def create_queue(self, name, **kwargs):
         queue = self.queues.get(name)
-        if queue is None:
+        if queue:
+            # Queue already exist. If attributes don't match, throw error
+            for key, value in kwargs.items():
+                if getattr(queue, camelcase_to_underscores(key)) != value:
+                    raise QueueAlreadyExists("The specified queue already exists.")
+        else:
             try:
                 kwargs.pop('region')
             except KeyError:
