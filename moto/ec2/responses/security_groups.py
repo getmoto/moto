@@ -179,8 +179,12 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                {% for rule in group.egress_rules %}
                     <item>
                        <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+                       {% if rule.from_port %}
                        <fromPort>{{ rule.from_port }}</fromPort>
+                       {% endif %}
+                       {% if rule.to_port %}
                        <toPort>{{ rule.to_port }}</toPort>
+                       {% endif %}
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
