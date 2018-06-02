@@ -706,8 +706,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         if 'x-amz-copy-source' in request.headers:
             # Copy key
-            src_key_parsed = urlparse(unquote(request.headers.get("x-amz-copy-source")))
-            src_bucket, src_key = src_key_parsed.path.lstrip("/").split("/", 1)
+            # you can have a quoted ?version=abc with a version Id, so work on
+            # we need to parse the unquoted string first
+            src_key_parsed = urlparse(request.headers.get("x-amz-copy-source"))
+            src_bucket, src_key = unquote(src_key_parsed.path).\
+                lstrip("/").split("/", 1)
             src_version_id = parse_qs(src_key_parsed.query).get(
                 'versionId', [None])[0]
             self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,

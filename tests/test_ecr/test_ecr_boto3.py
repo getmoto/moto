@@ -418,7 +418,7 @@ def test_get_authorization_token_assume_region():
     auth_token_response.should.contain('ResponseMetadata')
     auth_token_response['authorizationData'].should.equal([
         {
-            'authorizationToken': 'QVdTOnVzLWVhc3QtMS1hdXRoLXRva2Vu',
+            'authorizationToken': 'QVdTOjAxMjM0NTY3ODkxMC1hdXRoLXRva2Vu',
             'proxyEndpoint': 'https://012345678910.dkr.ecr.us-east-1.amazonaws.com',
             'expiresAt': datetime(2015, 1, 1, tzinfo=tzlocal())
         },
@@ -428,19 +428,19 @@ def test_get_authorization_token_assume_region():
 @mock_ecr
 def test_get_authorization_token_explicit_regions():
     client = boto3.client('ecr', region_name='us-east-1')
-    auth_token_response = client.get_authorization_token(registryIds=['us-east-1', 'us-west-1'])
+    auth_token_response = client.get_authorization_token(registryIds=['10987654321', '878787878787'])
 
     auth_token_response.should.contain('authorizationData')
     auth_token_response.should.contain('ResponseMetadata')
     auth_token_response['authorizationData'].should.equal([
         {
-            'authorizationToken': 'QVdTOnVzLWVhc3QtMS1hdXRoLXRva2Vu',
-            'proxyEndpoint': 'https://012345678910.dkr.ecr.us-east-1.amazonaws.com',
+            'authorizationToken': 'QVdTOjEwOTg3NjU0MzIxLWF1dGgtdG9rZW4=',
+            'proxyEndpoint': 'https://10987654321.dkr.ecr.us-east-1.amazonaws.com',
             'expiresAt': datetime(2015, 1, 1, tzinfo=tzlocal()),
         },
         {
-            'authorizationToken': 'QVdTOnVzLXdlc3QtMS1hdXRoLXRva2Vu',
-            'proxyEndpoint': 'https://012345678910.dkr.ecr.us-west-1.amazonaws.com',
+            'authorizationToken': 'QVdTOjg3ODc4Nzg3ODc4Ny1hdXRoLXRva2Vu',
+            'proxyEndpoint': 'https://878787878787.dkr.ecr.us-east-1.amazonaws.com',
             'expiresAt': datetime(2015, 1, 1, tzinfo=tzlocal())
 
         }

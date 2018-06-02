@@ -13,6 +13,10 @@ def test_log_group_create():
     conn = boto3.client('logs', 'us-west-2')
     log_group_name = 'dummy'
     response = conn.create_log_group(logGroupName=log_group_name)
+
+    response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
+    assert len(response['logGroups']) == 1
+
     response = conn.delete_log_group(logGroupName=log_group_name)
 
 

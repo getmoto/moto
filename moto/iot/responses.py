@@ -102,6 +102,42 @@ class IoTResponse(BaseResponse):
         )
         return json.dumps(dict())
 
+    def create_job(self):
+        job_arn, job_id, description = self.iot_backend.create_job(
+            job_id=self._get_param("jobId"),
+            targets=self._get_param("targets"),
+            description=self._get_param("description"),
+            document_source=self._get_param("documentSource"),
+            document=self._get_param("document"),
+            presigned_url_config=self._get_param("presignedUrlConfig"),
+            target_selection=self._get_param("targetSelection"),
+            job_executions_rollout_config=self._get_param("jobExecutionsRolloutConfig"),
+            document_parameters=self._get_param("documentParameters")
+        )
+
+        return json.dumps(dict(jobArn=job_arn, jobId=job_id, description=description))
+
+    def describe_job(self):
+        job = self.iot_backend.describe_job(job_id=self._get_param("jobId"))
+        return json.dumps(dict(
+            documentSource=job.document_source,
+            job=dict(
+                comment=job.comment,
+                completedAt=job.completed_at,
+                createdAt=job.created_at,
+                description=job.description,
+                documentParameters=job.document_parameters,
+                jobArn=job.job_arn,
+                jobExecutionsRolloutConfig=job.job_executions_rollout_config,
+                jobId=job.job_id,
+                jobProcessDetails=job.job_process_details,
+                lastUpdatedAt=job.last_updated_at,
+                presignedUrlConfig=job.presigned_url_config,
+                status=job.status,
+                targets=job.targets,
+                targetSelection=job.target_selection
+            )))
+
     def create_keys_and_certificate(self):
         set_as_active = self._get_bool_param("setAsActive")
         cert, key_pair = self.iot_backend.create_keys_and_certificate(

@@ -41,7 +41,7 @@ publish: upload_pypi_artifact \
 	push_dockerhub_image
 
 implementation_coverage:
-	./scripts/implementation_coverage.py > IMPLEMENTATION_COVERAGE.md
+	./scripts/implementation_coverage.py
 	git commit IMPLEMENTATION_COVERAGE.md -m "Updating implementation coverage" || true
 
 scaffold:

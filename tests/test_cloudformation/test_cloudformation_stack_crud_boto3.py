@@ -148,10 +148,41 @@ dummy_import_template = {
     }
 }
 
+dummy_redrive_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "MainQueue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": "mainqueue.fifo",
+                "FifoQueue": True,
+                "ContentBasedDeduplication": False,
+                "RedrivePolicy": {
+                    "deadLetterTargetArn": {
+                        "Fn::GetAtt": [
+                            "DeadLetterQueue",
+                            "Arn"
+                        ]
+                    },
+                    "maxReceiveCount": 5
+                }
+            }
+        },
+        "DeadLetterQueue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "FifoQueue": True
+            }
+        },
+    }
+}
+
 dummy_template_json = json.dumps(dummy_template)
 dummy_update_template_json = json.dumps(dummy_update_template)
 dummy_output_template_json = json.dumps(dummy_output_template)
 dummy_import_template_json = json.dumps(dummy_import_template)
+dummy_redrive_template_json = json.dumps(dummy_redrive_template)
+
 
 
 @mock_cloudformation
@@ -746,3 +777,19 @@ def test_stack_with_imports():
     output = output_stack.outputs[0]['OutputValue']
     queue = ec2_resource.get_queue_by_name(QueueName=output)
     queue.should_not.be.none
+
+
+@mock_sqs
+@mock_cloudformation
+def test_non_json_redrive_policy():
+    cf = boto3.resource('cloudformation', region_name='us-east-1')
+
+    stack = cf.create_stack(
+        StackName="test_stack1",
+        TemplateBody=dummy_redrive_template_json
+    )
+
+    stack.Resource('MainQueue').resource_status\
+        .should.equal("CREATE_COMPLETE")
+    stack.Resource('DeadLetterQueue').resource_status\
+        .should.equal("CREATE_COMPLETE")

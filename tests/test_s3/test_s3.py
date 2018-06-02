@@ -1406,6 +1406,19 @@ def test_boto3_deleted_versionings_list():
 
 
 @mock_s3
+def test_boto3_delete_versioned_bucket():
+    client = boto3.client('s3', region_name='us-east-1')
+
+    client.create_bucket(Bucket='blah')
+    client.put_bucket_versioning(Bucket='blah', VersioningConfiguration={'Status': 'Enabled'})
+
+    resp = client.put_object(Bucket='blah', Key='test1', Body=b'test1')
+    client.delete_object(Bucket='blah', Key='test1', VersionId=resp["VersionId"])
+
+    client.delete_bucket(Bucket='blah')
+
+
+@mock_s3
 def test_boto3_head_object_if_modified_since():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = "blah"
