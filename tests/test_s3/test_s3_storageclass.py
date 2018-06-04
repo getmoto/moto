@@ -22,7 +22,7 @@ def test_s3_storage_class_standard():
 
 	client.put_object(Bucket="Bucket", Key="my_key", Body="my_value")
 
-	D = client.list_objects(Bucket="mybucket")
+	D = client.list_objects(Bucket="Bucket")
 
 	(D['Contents'][0]["StorageClass"]).should.equal("STANDARD")
 
@@ -35,6 +35,6 @@ def test_s3_storage_class_infrequent_access():
 
 	client.put_object(Bucket="Bucket", Key="my_key_infrequent", Body="my_value_infrequent", StorageClass="STANDARD_IA")
 
-	D = client.list_objects(Bucket="mybucket")
+	D = client.list_objects(Bucket="Bucket")
 
 	(D['Contents'][0]["StorageClass"]).should.equal("STANDARD_IA")
