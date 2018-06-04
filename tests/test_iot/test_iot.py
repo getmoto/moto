@@ -35,12 +35,14 @@ def test_things():
     res.should.have.key('things').which.should.have.length_of(1)
     for thing in res['things']:
         thing.should.have.key('thingName').which.should_not.be.none
+        thing.should.have.key('thingArn').which.should_not.be.none
 
     thing = client.update_thing(thingName=name, attributePayload={'attributes': {'k1': 'v1'}})
     res = client.list_things()
     res.should.have.key('things').which.should.have.length_of(1)
     for thing in res['things']:
         thing.should.have.key('thingName').which.should_not.be.none
+        thing.should.have.key('thingArn').which.should_not.be.none
     res['things'][0]['attributes'].should.have.key('k1').which.should.equal('v1')
 
     thing = client.describe_thing(thingName=name)
