@@ -177,7 +177,7 @@ class Task(BaseObject):
 
 class Service(BaseObject):
 
-    def __init__(self, cluster, service_name, task_definition, desired_count):
+    def __init__(self, cluster, service_name, task_definition, desired_count, load_balancers=None):
         self.cluster_arn = cluster.arn
         self.arn = 'arn:aws:ecs:us-east-1:012345678910:service/{0}'.format(
             service_name)
@@ -199,7 +199,7 @@ class Service(BaseObject):
                 'updatedAt': datetime.now(pytz.utc),
             }
         ]
-        self.load_balancers = []
+        self.load_balancers = load_balancers if load_balancers is not None else []
         self.pending_count = 0
 
     @property
@@ -652,7 +652,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         raise Exception("Could not find task {} on cluster {}".format(
             task_str, cluster_name))
 
-    def create_service(self, cluster_str, service_name, task_definition_str, desired_count):
+    def create_service(self, cluster_str, service_name, task_definition_str, desired_count, load_balancers=None):
         cluster_name = cluster_str.split('/')[-1]
         if cluster_name in self.clusters:
             cluster = self.clusters[cluster_name]
@@ -660,10 +660,12 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("{0} is not a cluster".format(cluster_name))
         task_definition = self.describe_task_definition(task_definition_str)
         desired_count = desired_count if desired_count is not None else 0
+
         service = Service(cluster, service_name,
-                          task_definition, desired_count)
+                          task_definition, desired_count, load_balancers)
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
         self.services[cluster_service_pair] = service
+
         return service
 
     def list_services(self, cluster_str):
