@@ -32,6 +32,7 @@ class FakeThing(BaseModel):
     def to_dict(self, include_default_client_id=False):
         obj = {
             'thingName': self.thing_name,
+            'thingArn': self.arn,
             'attributes': self.attributes,
             'version': self.version
         }
