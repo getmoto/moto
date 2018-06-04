@@ -20,7 +20,7 @@ def test_s3_storage_class_standard():
 
 	# add an object to the bucket with standard storage
 
-	client.put_object(Bucket="Bucket", Key="my_key", Value="my_value")
+	client.put_object(Bucket="Bucket", Key="my_key", Body="my_value")
 
 	D = client.list_objects(Bucket="mybucket")
 
@@ -33,7 +33,7 @@ def test_s3_storage_class_infrequent_access():
 
 	# add an object to the bucket with standard storage
 
-	client.put_object(Bucket="Bucket", Key="my_key_infrequent", Value="my_value_infrequent", StorageClass="STANDARD_IA")
+	client.put_object(Bucket="Bucket", Key="my_key_infrequent", Body="my_value_infrequent", StorageClass="STANDARD_IA")
 
 	D = client.list_objects(Bucket="mybucket")
 
