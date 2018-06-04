@@ -328,6 +328,9 @@ class RestAPI(BaseModel):
         self.resources = {}
         self.add_child('/')  # Add default child
 
+    def __repr__(self):
+        return str(self.id)
+
     def to_dict(self):
         return {
             "id": self.id,
