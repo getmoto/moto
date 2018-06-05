@@ -20,6 +20,7 @@ from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
+STORAGE_CLASS = ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]
 
 
 class FakeDeleteMarker(BaseModel):
@@ -68,7 +69,7 @@ class FakeKey(BaseModel):
         self._tagging = tagging
 
     def set_storage_class(self, storage):
-        if not(storage in ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]):
+        if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
         self._storage_class = storage
 
@@ -678,7 +679,7 @@ class S3Backend(BaseBackend):
 
     def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)
-        if storage is not None and not(storage in ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]):
+        if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
 
         bucket = self.get_bucket(bucket_name)
