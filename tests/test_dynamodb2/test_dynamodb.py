@@ -6,7 +6,6 @@ import boto3
 from boto3.dynamodb.conditions import Attr
 import sure  # noqa
 import requests
-from pytest import raises
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
@@ -1119,7 +1118,7 @@ def test_update_item_on_map():
     })
 
     # Test nested value for a nonexistent attribute.
-    with raises(client.exceptions.ConditionalCheckFailedException):
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
         table.update_item(Key={
             'forum_name': 'the-key',
             'subject': '123'
