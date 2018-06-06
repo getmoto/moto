@@ -33,6 +33,18 @@ class LogsResponse(BaseResponse):
         self.logs_backend.delete_log_group(log_group_name)
         return ''
 
+    def describe_log_groups(self):
+        log_group_name_prefix = self._get_param('logGroupNamePrefix')
+        next_token = self._get_param('nextToken')
+        limit = self._get_param('limit', 50)
+        assert limit <= 50
+        groups, next_token = self.logs_backend.describe_log_groups(
+            limit, log_group_name_prefix, next_token)
+        return json.dumps({
+            "logGroups": groups,
+            "nextToken": next_token
+        })
+
     def create_log_stream(self):
         log_group_name = self._get_param('logGroupName')
         log_stream_name = self._get_param('logStreamName')

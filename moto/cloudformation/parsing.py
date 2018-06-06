@@ -28,7 +28,7 @@ from moto.s3 import models as s3_models
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
 from .utils import random_suffix
-from .exceptions import MissingParameterError, UnformattedGetAttTemplateException, ValidationError
+from .exceptions import ExportNotFound, MissingParameterError, UnformattedGetAttTemplateException, ValidationError
 from boto.cloudformation.stack import Output
 
 MODEL_MAP = {
@@ -206,6 +206,8 @@ def clean_json(resource_json, resources_map):
             values = [x.value for x in resources_map.cross_stack_resources.values() if x.name == cleaned_val]
             if any(values):
                 return values[0]
+            else:
+                raise ExportNotFound(cleaned_val)
 
         if 'Fn::GetAZs' in resource_json:
             region = resource_json.get('Fn::GetAZs') or DEFAULT_REGION
@@ -369,6 +371,7 @@ class ResourceMap(collections.Mapping):
             "AWS::Region": self._region_name,
             "AWS::StackId": stack_id,
             "AWS::StackName": stack_name,
+            "AWS::URLSuffix": "amazonaws.com",
             "AWS::NoValue": None,
         }
 

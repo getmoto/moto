@@ -162,6 +162,37 @@ def test_put_metric_data_no_dimensions():
     metric['MetricName'].should.equal('metric')
 
 
+
+@mock_cloudwatch
+def test_put_metric_data_with_statistics():
+    conn = boto3.client('cloudwatch', region_name='us-east-1')
+
+    conn.put_metric_data(
+        Namespace='tester',
+        MetricData=[
+            dict(
+                MetricName='statmetric',
+                Timestamp=datetime(2015, 1, 1),
+                # no Value to test  https://github.com/spulec/moto/issues/1615
+                StatisticValues=dict(
+                    SampleCount=123.0,
+                    Sum=123.0,
+                    Minimum=123.0,
+                    Maximum=123.0
+                ),
+                Unit='Milliseconds',
+                StorageResolution=123
+            )
+        ]
+    )
+
+    metrics = conn.list_metrics()['Metrics']
+    metrics.should.have.length_of(1)
+    metric = metrics[0]
+    metric['Namespace'].should.equal('tester')
+    metric['MetricName'].should.equal('statmetric')
+    # TODO: test statistics - https://github.com/spulec/moto/issues/1615
+
 @mock_cloudwatch
 def test_get_metric_statistics():
     conn = boto3.client('cloudwatch', region_name='us-east-1')
@@ -173,6 +204,7 @@ def test_get_metric_statistics():
             dict(
                 MetricName='metric',
                 Value=1.5,
+                Timestamp=utc_now
             )
         ]
     )
@@ -180,7 +212,7 @@ def test_get_metric_statistics():
     stats = conn.get_metric_statistics(
         Namespace='tester',
         MetricName='metric',
-        StartTime=utc_now,
+        StartTime=utc_now - timedelta(seconds=60),
         EndTime=utc_now + timedelta(seconds=60),
         Period=60,
         Statistics=['SampleCount', 'Sum']

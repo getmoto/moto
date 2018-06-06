@@ -18,6 +18,7 @@ from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
     QueueDoesNotExist,
+    QueueAlreadyExists,
     ReceiptHandleIsInvalid,
 )
 
@@ -180,6 +181,7 @@ class Queue(BaseModel):
         self.permissions = {}
 
         self._messages = []
+        self._pending_messages = set()
 
         now = unix_time()
         self.created_timestamp = now
@@ -209,6 +211,16 @@ class Queue(BaseModel):
         if self.fifo_queue and not self.name.endswith('.fifo'):
             raise MessageAttributesInvalid('Queue name must end in .fifo for FIFO queues')
 
+    @property
+    def pending_messages(self):
+        return self._pending_messages
+
+    @property
+    def pending_message_groups(self):
+        return set(message.group_id
+                   for message in self._pending_messages
+                   if message.group_id is not None)
+
     def _set_attributes(self, attributes, now=None):
         if not now:
             now = unix_time()
@@ -234,11 +246,17 @@ class Queue(BaseModel):
 
         self.last_modified_timestamp = now
 
-    def _setup_dlq(self, policy_json):
-        try:
-            self.redrive_policy = json.loads(policy_json)
-        except ValueError:
-            raise RESTError('InvalidParameterValue', 'Redrive policy does not contain valid json')
+    def _setup_dlq(self, policy):
+
+        if isinstance(policy, six.text_type):
+            try:
+                self.redrive_policy = json.loads(policy)
+            except ValueError:
+                raise RESTError('InvalidParameterValue', 'Redrive policy is not a dict or valid json')
+        elif isinstance(policy, dict):
+            self.redrive_policy = policy
+        else:
+            raise RESTError('InvalidParameterValue', 'Redrive policy is not a dict or valid json')
 
         if 'deadLetterTargetArn' not in self.redrive_policy:
             raise RESTError('InvalidParameterValue', 'Redrive policy does not contain deadLetterTargetArn')
@@ -366,7 +384,12 @@ class SQSBackend(BaseBackend):
 
     def create_queue(self, name, **kwargs):
         queue = self.queues.get(name)
-        if queue is None:
+        if queue:
+            # Queue already exist. If attributes don't match, throw error
+            for key, value in kwargs.items():
+                if getattr(queue, camelcase_to_underscores(key)) != value:
+                    raise QueueAlreadyExists("The specified queue already exists.")
+        else:
             try:
                 kwargs.pop('region')
             except KeyError:
@@ -448,6 +471,7 @@ class SQSBackend(BaseBackend):
         """
         queue = self.get_queue(queue_name)
         result = []
+        previous_result_count = len(result)
 
         polling_end = unix_time() + wait_seconds_timeout
 
@@ -457,19 +481,25 @@ class SQSBackend(BaseBackend):
             if result or (wait_seconds_timeout and unix_time() > polling_end):
                 break
 
-            if len(queue.messages) == 0:
-                # we want to break here, otherwise it will be an infinite loop
-                if wait_seconds_timeout == 0:
-                    break
-
-                import time
-                time.sleep(0.001)
-                continue
-
             messages_to_dlq = []
+
             for message in queue.messages:
                 if not message.visible:
                     continue
+
+                if message in queue.pending_messages:
+                    # The message is pending but is visible again, so the
+                    # consumer must have timed out.
+                    queue.pending_messages.remove(message)
+
+                if message.group_id and queue.fifo_queue:
+                    if message.group_id in queue.pending_message_groups:
+                        # There is already one active message with the same
+                        # group, so we cannot deliver this one.
+                        continue
+
+                queue.pending_messages.add(message)
+
                 if queue.dead_letter_queue is not None and message.approximate_receive_count >= queue.redrive_policy['maxReceiveCount']:
                     messages_to_dlq.append(message)
                     continue
@@ -485,6 +515,18 @@ class SQSBackend(BaseBackend):
                 queue._messages.remove(message)
                 queue.dead_letter_queue.add_message(message)
 
+            if previous_result_count == len(result):
+                if wait_seconds_timeout == 0:
+                    # There is timeout and we have added no additional results,
+                    # so break to avoid an infinite loop.
+                    break
+
+                import time
+                time.sleep(0.001)
+                continue
+
+            previous_result_count = len(result)
+
         return result
 
     def delete_message(self, queue_name, receipt_handle):
@@ -494,6 +536,7 @@ class SQSBackend(BaseBackend):
             # Only delete message if it is not visible and the reciept_handle
             # matches.
             if message.receipt_handle == receipt_handle:
+                queue.pending_messages.remove(message)
                 continue
             new_messages.append(message)
         queue._messages = new_messages
@@ -505,6 +548,10 @@ class SQSBackend(BaseBackend):
                 if message.visible:
                     raise MessageNotInflight
                 message.change_visibility(visibility_timeout)
+                if message.visible:
+                    # If the message is visible again, remove it from pending
+                    # messages.
+                    queue.pending_messages.remove(message)
                 return
         raise ReceiptHandleIsInvalid
 

@@ -44,6 +44,29 @@ def test_publish_to_sqs():
 
 @mock_sqs
 @mock_sns
+def test_publish_to_sqs_raw():
+    sns = boto3.resource('sns', region_name='us-east-1')
+    topic = sns.create_topic(Name='some-topic')
+
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName='test-queue')
+
+    subscription = topic.subscribe(
+        Protocol='sqs', Endpoint=queue.attributes['QueueArn'])
+
+    subscription.set_attributes(
+        AttributeName='RawMessageDelivery', AttributeValue='true')
+
+    message = 'my message'
+    with freeze_time("2015-01-01 12:00:00"):
+        topic.publish(Message=message)
+
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages[0].body.should.equal(message)
+
+
+@mock_sqs
+@mock_sns
 def test_publish_to_sqs_bad():
     conn = boto3.client('sns', region_name='us-east-1')
     conn.create_topic(Name="some-topic")
@@ -230,7 +253,7 @@ def test_publish_to_sqs_in_different_region():
 @mock_sns
 def test_publish_to_http():
     def callback(request):
-        request.headers["Content-Type"].should.equal("application/json")
+        request.headers["Content-Type"].should.equal("text/plain; charset=UTF-8")
         json.loads.when.called_with(
             request.body.decode()
         ).should_not.throw(Exception)
