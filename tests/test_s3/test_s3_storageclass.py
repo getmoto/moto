@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import boto
 import boto3
-from boto.exception import S3CreateError, S3ResponseError, 
+from boto.exception import S3CreateError, S3ResponseError
 from boto.s3.lifecycle import Lifecycle, Transition, Expiration, Rule
 
 import sure  # noqa
