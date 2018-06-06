@@ -47,12 +47,14 @@ def test_s3_storage_class_copy():
 	s3.put_object(Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="ONEZONE_IA")
 
 	s3.create_bucket(Bucket="Bucket2")
-	s3.put_object(Bucket="Bucket2", Key="Second_Object", Body="Body2", StorageClass="STANDARD")
+	# object is originally of storage class REDUCED_REDUNDANCY
+	s3.put_object(Bucket="Bucket2", Key="Second_Object", Body="Body2", StorageClass="REDUCED_REDUNDANCY")
 
 	s3.copy_object(CopySource = {"Bucket": "Bucket", "Key": "First_Object"}, Bucket="Bucket2", Key="Second_Object")
 
 	list_of_copied_objects = s3.list_objects(Bucket="Bucket2")
 
+	# when copied it has the copied object's storage class
 	list_of_copied_objects["Contents"][0]["StorageClass"].should.equal("ONEZONE_IA")
 
 @mock_s3
