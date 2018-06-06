@@ -124,6 +124,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | S3                    | @mock_s3         | core endpoints done               |
 |------------------------------------------------------------------------------|
+| Secrets Manager       | @mock_secretsmanager | basic endpoints done
+|------------------------------------------------------------------------------|
 | SES                   | @mock_ses        | all endpoints done                |
 |------------------------------------------------------------------------------|
 | SNS                   | @mock_sns        | all endpoints done                |
