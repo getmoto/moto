@@ -24,7 +24,7 @@ def test_s3_storage_class_standard():
 
 	list_of_objects = s3.list_objects(Bucket="Bucket")
 
-	list_objects['Contents'][0]["StorageClass"].should.equal("STANDARD")
+	list_of_objects['Contents'][0]["StorageClass"].should.equal("STANDARD")
 
 
 @mock_s3
@@ -51,7 +51,7 @@ def test_s3_storage_class_copy():
 
 	s3.copy_object(CopySource = {"Bucket": "Bucket", "Key": "First_Object"}, Bucket="Bucket2", Key="Second_Object")
 
-	list_of_copied_objects = client.list_objects(Bucket="Bucket2")
+	list_of_copied_objects = s3.list_objects(Bucket="Bucket2")
 
 	list_of_copied_objects["Contents"][0]["StorageClass"].should.equal("ONEZONE_IA")
 
