@@ -38,24 +38,44 @@ def test_s3_storage_class_infrequent_access():
 
 	D = s3.list_objects(Bucket="Bucket")
 
-	(D['Contents'][0]["StorageClass"]).should.equal("STANDARD_IA")
+	D['Contents'][0]["StorageClass"].should.equal("STANDARD_IA")
+
 
 @mock_s3
 def test_s3_storage_class_copy():
 	s3 = boto3.client("s3")
 	s3.create_bucket(Bucket="Bucket")
-	s3.put_object(Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="ONEZONE_IA")
+	s3.put_object(Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="STANDARD")
 
 	s3.create_bucket(Bucket="Bucket2")
-	# object is originally of storage class REDUCED_REDUNDANCY
-	s3.put_object(Bucket="Bucket2", Key="Second_Object", Body="Body2", StorageClass="REDUCED_REDUNDANCY")
+	# second object is originally of storage class REDUCED_REDUNDANCY
+	s3.put_object(Bucket="Bucket2", Key="Second_Object", Body="Body2")
 
-	s3.copy_object(CopySource = {"Bucket": "Bucket", "Key": "First_Object"}, Bucket="Bucket2", Key="Second_Object")
+	s3.copy_object(CopySource = {"Bucket": "Bucket", "Key": "First_Object"}, Bucket="Bucket2", Key="Second_Object", StorageClass="ONEZONE_IA")
 
 	list_of_copied_objects = s3.list_objects(Bucket="Bucket2")
 
-	# when copied it has the copied object's storage class
+	# checks that a copied object can be properly copied
 	list_of_copied_objects["Contents"][0]["StorageClass"].should.equal("ONEZONE_IA")
+
+
+@mock_s3
+def test_s3_invalid_copied_storage_class():
+	s3 = boto3.client("s3")
+	s3.create_bucket(Bucket="Bucket")
+	s3.put_object(Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="STANDARD")
+
+	s3.create_bucket(Bucket="Bucket2")
+	s3.put_object(Bucket="Bucket2", Key="Second_Object", Body="Body2", StorageClass="REDUCED_REDUNDANCY")
+
+	# Try to copy an object with an invalid storage class
+	with assert_raises(ClientError) as err:
+		s3.copy_object(CopySource = {"Bucket": "Bucket", "Key": "First_Object"}, Bucket="Bucket2", Key="Second_Object", StorageClass="STANDARD2")
+
+	e = err.exception
+	e.response["Error"]["Code"].should.equal("InvalidStorageClass")
+	e.response["Error"]["Message"].should.equal("The storage class you specified is not valid")
+
 
 @mock_s3
 def test_s3_invalid_storage_class():
