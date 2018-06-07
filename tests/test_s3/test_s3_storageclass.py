@@ -70,6 +70,17 @@ def test_s3_invalid_storage_class():
 	e.response["Error"]["Code"].should.equal("InvalidStorageClass")
 	e.response["Error"]["Message"].should.equal("The storage class you specified is not valid")
 
+@mock_s3
+def test_s3_default_storage_class():
+	s3 = boto3.client("s3")
+	s3.create_bucket(Bucket="Bucket")
+
+	s3.put_object(Bucket="Bucket", Key="First_Object", Body="Body")
+
+	list_of_objects = s3.list_objects(Bucket="Bucket")
+
+	list_of_objects["Contents"][0]["StorageClass"].should.equal.("STANDARD")
+
 	
 
 
