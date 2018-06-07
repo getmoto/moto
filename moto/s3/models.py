@@ -15,11 +15,12 @@ from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey, \
-    InvalidNotificationDestination, MalformedXML
+    InvalidNotificationDestination, MalformedXML, InvalidStorageClass
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
+STORAGE_CLASS = ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]
 
 
 class FakeDeleteMarker(BaseModel):
@@ -67,8 +68,10 @@ class FakeKey(BaseModel):
     def set_tagging(self, tagging):
         self._tagging = tagging
 
-    def set_storage_class(self, storage_class):
-        self._storage_class = storage_class
+    def set_storage_class(self, storage):
+        if storage is not None and storage not in STORAGE_CLASS:
+            raise InvalidStorageClass(storage=storage)
+        self._storage_class = storage
 
     def set_acl(self, acl):
         self.acl = acl
@@ -676,6 +679,8 @@ class S3Backend(BaseBackend):
 
     def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)
+        if storage is not None and storage not in STORAGE_CLASS:
+            raise InvalidStorageClass(storage=storage)
 
         bucket = self.get_bucket(bucket_name)
 
