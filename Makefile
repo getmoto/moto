@@ -9,8 +9,8 @@ else
 endif
 
 init:
-	@python setup.py develop
-	@pip install -r requirements.txt
+	@python3 setup.py develop
+	@pip3 install -r requirements.txt
 
 lint:
 	flake8 moto
@@ -18,7 +18,7 @@ lint:
 test: lint
 	rm -f .coverage
 	rm -rf cover
-	@nosetests -sv --with-coverage --cover-html ./tests/ $(TEST_EXCLUDE)
+	nosetests -sv --with-coverage --cover-html ./tests/ $(TEST_EXCLUDE)
 test_server:
 	@TEST_SERVER_MODE=true nosetests -sv --with-coverage --cover-html ./tests/
 
