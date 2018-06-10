@@ -15,6 +15,7 @@ class SecretsManager(BaseModel):
         self.version_id = kwargs.get('version_id', '')
         self.version_stage = kwargs.get('version_stage', '')
 
+
 class SecretsManagerBackend(BaseBackend):
 
     def __init__(self, region_name=None, **kwargs):
