@@ -14,7 +14,7 @@ Test the different server responses
 @mock_secretsmanager
 def test_get_secret_value():
 
-    backend = server.create_backend_app("secretsmanager-get-secret-value")
+    backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
     res = test_client.post('/',
@@ -24,4 +24,4 @@ def test_get_secret_value():
                            )
 
     json_data = json.loads(res.data.decode("utf-8"))
-    assert json_data['SecretId'] == "test"
+    assert json_data['SecretString'] == "mysecretstring"
