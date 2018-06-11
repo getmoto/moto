@@ -32,6 +32,7 @@ from moto.redshift import redshift_backends
 from moto.route53 import route53_backends
 from moto.s3 import s3_backends
 from moto.ses import ses_backends
+from moto.secretsmanager import secretsmanager_backends
 from moto.sns import sns_backends
 from moto.sqs import sqs_backends
 from moto.ssm import ssm_backends
@@ -77,6 +78,7 @@ BACKENDS = {
     's3': s3_backends,
     's3bucket_path': s3_backends,
     'ses': ses_backends,
+    'secretsmanager': secretsmanager_backends,
     'sns': sns_backends,
     'sqs': sqs_backends,
     'ssm': ssm_backends,
