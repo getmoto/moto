@@ -64,10 +64,22 @@ MAX_TIMEOUT_SECONDS = 3600
 
 class Command(BaseModel):
     def __init__(self, comment='', document_name='', timeout_seconds=MAX_TIMEOUT_SECONDS,
-            instance_ids=[], max_concurrency='', max_errors='',
-            notification_config={}, output_s3_bucket_name='',
-            output_s3_key_prefix='', output_s3_region='', parameters={},
-            service_role_arn='', targets=[]):
+            instance_ids=None, max_concurrency='', max_errors='',
+            notification_config=None, output_s3_bucket_name='',
+            output_s3_key_prefix='', output_s3_region='', parameters=None,
+            service_role_arn='', targets=None):
+
+        if instance_ids is None:
+            instance_ids = []
+
+        if notification_config is None:
+            notification_config = {}
+
+        if parameters is None:
+            parameters = {}
+
+        if targets is None:
+            targets = []
 
         self.error_count = 0
         self.completed_count = len(instance_ids)
