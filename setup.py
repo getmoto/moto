@@ -13,6 +13,7 @@ install_requires = [
     "cookies",
     "cryptography>=2.0.0",
     "requests>=2.5",
+    "idna==2.5", # Remove this once requests 1.19 is released
     "xmltodict",
     "six>1.9",
     "werkzeug",
