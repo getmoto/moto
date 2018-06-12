@@ -254,6 +254,21 @@ def test_parse_stack_with_get_attribute_outputs():
     output.should.be.a(Output)
     output.value.should.equal("my-queue")
 
+def test_parse_stack_with_get_attribute_kms():
+    from .fixtures.kms_key import template
+
+    template_json = json.dumps(template)
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=template_json,
+        parameters={},
+        region_name='us-west-1')
+
+    stack.output_map.should.have.length_of(1)
+    list(stack.output_map.keys())[0].should.equal('KeyArn')
+    output = list(stack.output_map.values())[0]
+    output.should.be.a(Output)
 
 def test_parse_stack_with_get_availability_zones():
     stack = FakeStack(

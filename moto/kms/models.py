@@ -58,6 +58,12 @@ class Key(BaseModel):
 
         return key
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            return self.arn
+        raise UnformattedGetAttTemplateException()
+
 
 class KmsBackend(BaseBackend):
 
