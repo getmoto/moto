@@ -15,3 +15,11 @@ class SecretsManagerResponse(BaseResponse):
             secret_id=secret_id,
             version_id=version_id,
             version_stage=version_stage)
+
+    def create_secret(self):
+        name = self._get_param('Name')
+        secret_string = self._get_param('SecretString')
+        return secretsmanager_backends[self.region].create_secret(
+            name=name,
+            secret_string=secret_string
+        )
