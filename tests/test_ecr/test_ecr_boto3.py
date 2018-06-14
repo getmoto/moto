@@ -386,6 +386,68 @@ def test_describe_images_by_tag():
 
 
 @mock_ecr
+def test_describe_images_tags_should_not_contain_empty_tag1():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+    client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(manifest)
+    )
+
+    tags = ['v1', 'v2', 'latest']
+    for tag in tags:
+        client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag
+        )
+
+    response = client.describe_images(repositoryName='test_repository', imageIds=[{'imageTag': tag}])
+    len(response['imageDetails']).should.be(1)
+    image_detail = response['imageDetails'][0]
+    len(image_detail['imageTags']).should.equal(3)
+    image_detail['imageTags'].should.be.equal(tags)
+
+
+@mock_ecr
+def test_describe_images_tags_should_not_contain_empty_tag2():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+    tags = ['v1', 'v2']
+    for tag in tags:
+        client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag
+        )
+
+    client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(manifest)
+    )
+
+    client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(manifest),
+        imageTag='latest'
+    )
+
+    response = client.describe_images(repositoryName='test_repository', imageIds=[{'imageTag': tag}])
+    len(response['imageDetails']).should.be(1)
+    image_detail = response['imageDetails'][0]
+    len(image_detail['imageTags']).should.equal(3)
+    image_detail['imageTags'].should.be.equal(['v1', 'v2', 'latest'])
+
+
+@mock_ecr
 def test_describe_repository_that_doesnt_exist():
     client = boto3.client('ecr', region_name='us-east-1')
 

@@ -99,7 +99,7 @@ class Image(BaseObject):
 
     def __init__(self, tag, manifest, repository, digest=None, registry_id=DEFAULT_REGISTRY_ID):
         self.image_tag = tag
-        self.image_tags = [tag]
+        self.image_tags = [tag] if tag is not None else []
         self.image_manifest = manifest
         self.image_size_in_bytes = 50 * 1024 * 1024
         self.repository = repository
@@ -121,7 +121,7 @@ class Image(BaseObject):
 
     def update_tag(self, tag):
         self.image_tag = tag
-        if tag not in self.image_tags:
+        if tag not in self.image_tags and tag is not None:
             self.image_tags.append(tag)
 
     @property
@@ -235,7 +235,7 @@ class ECRBackend(BaseBackend):
                 found = False
                 for image in repository.images:
                     if (('imageDigest' in image_id and image.get_image_digest() == image_id['imageDigest']) or
-                            ('imageTag' in image_id and image.image_tag == image_id['imageTag'])):
+                            ('imageTag' in image_id and image_id['imageTag'] in image.image_tags)):
                         found = True
                         response.add(image)
                 if not found:
