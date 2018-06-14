@@ -152,7 +152,7 @@ class Image(BaseObject):
         response_object['registryId'] = self.registry_id
         response_object['imageSizeInBytes'] = self.image_size_in_bytes
         response_object['imagePushedAt'] = '2017-05-09'
-        return {k: v for k, v in response_object.items() if v is not None and v != [None]}
+        return {k: v for k, v in response_object.items() if v is not None and v != []}
 
     @property
     def response_batch_get_image(self):
