@@ -45,7 +45,8 @@ def _create_image_manifest():
             {
                 "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
                 "size": 73109,
-                "digest": _create_image_digest("layer3")
+                # randomize image digest
+                "digest": _create_image_digest()
             }
         ]
     }
@@ -230,21 +231,14 @@ def test_put_image_with_multiple_tags():
     type(response2['imageDetails']).should.be(list)
     len(response2['imageDetails']).should.be(1)
 
-    response['imageDetails'][0]['imageDigest'].should.contain("sha")
+    response2['imageDetails'][0]['imageDigest'].should.contain("sha")
 
-    # response['imageDetails'][0]['registryId'].should.equal("012345678910")
-    # response['imageDetails'][1]['registryId'].should.equal("012345678910")
-    # response['imageDetails'][2]['registryId'].should.equal("012345678910")
-    # response['imageDetails'][3]['registryId'].should.equal("012345678910")
-    #
-    # response['imageDetails'][0]['repositoryName'].should.equal("test_repository")
-    # response['imageDetails'][1]['repositoryName'].should.equal("test_repository")
-    # response['imageDetails'][2]['repositoryName'].should.equal("test_repository")
-    # response['imageDetails'][3]['repositoryName'].should.equal("test_repository")
-    #
-    # response['imageDetails'][0].should_not.have.key('imageTags')
-    # len(response['imageDetails'][1]['imageTags']).should.be(1)
+    response2['imageDetails'][0]['registryId'].should.equal("012345678910")
 
+    response2['imageDetails'][0]['repositoryName'].should.equal("test_repository")
+
+    len(response2['imageDetails'][0]['imageTags']).should.be(2)
+    response2['imageDetails'][0]['imageTags'].should.be.equal(['v1', 'latest'])
 
 @mock_ecr
 def test_list_images():

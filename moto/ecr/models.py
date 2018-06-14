@@ -99,6 +99,7 @@ class Image(BaseObject):
 
     def __init__(self, tag, manifest, repository, digest=None, registry_id=DEFAULT_REGISTRY_ID):
         self.image_tag = tag
+        self.image_tags = [tag]
         self.image_manifest = manifest
         self.image_size_in_bytes = 50 * 1024 * 1024
         self.repository = repository
@@ -117,6 +118,11 @@ class Image(BaseObject):
 
     def get_image_manifest(self):
         return self.image_manifest
+
+    def update_tag(self, tag):
+        self.image_tag = tag
+        if tag not in self.image_tags:
+            self.image_tags.append(tag)
 
     @property
     def response_object(self):
@@ -139,7 +145,7 @@ class Image(BaseObject):
     @property
     def response_describe_object(self):
         response_object = self.gen_response_object()
-        response_object['imageTags'] = [self.image_tag]
+        response_object['imageTags'] = self.image_tags
         response_object['imageDigest'] = self.get_image_digest()
         response_object['imageManifest'] = self.image_manifest
         response_object['repositoryName'] = self.repository
@@ -255,15 +261,16 @@ class ECRBackend(BaseBackend):
         else:
             raise Exception("{0} is not a repository".format(repository_name))
 
-        existing_image = list(filter(lambda x: x.response_object['imageManifest'] == image_manifest, repository.images))
-        if not existing_image:
+        existing_images = list(filter(lambda x: x.response_object['imageManifest'] == image_manifest, repository.images))
+        if not existing_images:
+            # this image is not in ECR yet
             image = Image(image_tag, image_manifest, repository_name)
             repository.images.append(image)
+            return image
         else:
-            image = Image(image_tag, image_manifest, repository_name, existing_image[0].get_image_digest())
-            repository.images.append(image)
-
-        return image
+            # update existing image
+            existing_images[0].update_tag(image_tag)
+            return existing_images[0]
 
     def batch_get_image(self, repository_name, registry_id=None, image_ids=None, accepted_media_types=None):
         if repository_name in self.repositories:
