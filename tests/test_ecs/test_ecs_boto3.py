@@ -8,7 +8,7 @@ import json
 from moto.ec2 import utils as ec2_utils
 from uuid import UUID
 
-from moto import mock_cloudformation
+from moto import mock_cloudformation, mock_elbv2
 from moto import mock_ecs
 from moto import mock_ec2
 from nose.tools import assert_raises
@@ -2015,3 +2015,62 @@ def _fetch_container_instance_resources(container_instance_description):
     registered_resources['PORTS'] = \
     [x['stringSetValue'] for x in registered_resources_list if x['name'] == 'PORTS'][0]
     return remaining_resources, registered_resources
+
+
+@mock_ecs
+def test_create_service_load_balancing():
+    client = boto3.client('ecs', region_name='us-east-1')
+    client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+    client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    response = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service',
+        taskDefinition='test_ecs_task',
+        desiredCount=2,
+        loadBalancers=[
+            {
+                'targetGroupArn': 'test_target_group_arn',
+                'loadBalancerName': 'test_load_balancer_name',
+                'containerName': 'test_container_name',
+                'containerPort': 123
+            }
+        ]
+    )
+    response['service']['clusterArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:cluster/test_ecs_cluster')
+    response['service']['desiredCount'].should.equal(2)
+    len(response['service']['events']).should.equal(0)
+    len(response['service']['loadBalancers']).should.equal(1)
+    response['service']['loadBalancers'][0]['targetGroupArn'].should.equal(
+        'test_target_group_arn')
+    response['service']['loadBalancers'][0]['loadBalancerName'].should.equal(
+        'test_load_balancer_name')
+    response['service']['loadBalancers'][0]['containerName'].should.equal(
+        'test_container_name')
+    response['service']['loadBalancers'][0]['containerPort'].should.equal(123)
+    response['service']['pendingCount'].should.equal(0)
+    response['service']['runningCount'].should.equal(0)
+    response['service']['serviceArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service')
+    response['service']['serviceName'].should.equal('test_ecs_service')
+    response['service']['status'].should.equal('ACTIVE')
+    response['service']['taskDefinition'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
