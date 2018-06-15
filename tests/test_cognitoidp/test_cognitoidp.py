@@ -366,6 +366,15 @@ def test_admin_get_user():
 
 
 @mock_cognitoidp
+def test_get_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    outputs = authentication_flow(conn)
+    result = conn.get_user(AccessToken=outputs['access_token'])
+    result["Username"].should.equal(outputs['username'])
+    result["UserAttributes"].should.have.length_of(0)
+
+
+@mock_cognitoidp
 def test_list_users():
     conn = boto3.client("cognito-idp", "us-west-2")
 

@@ -365,6 +365,16 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool.users[username]
 
+    def get_user(self, access_token):
+        for user_pool in self.user_pools.values():
+            if access_token in user_pool.access_tokens:
+                _, username = user_pool.access_tokens[access_token]
+                user = user_pool.users.get(username)
+                if not user or not user.enabled or user.status != UserStatus['CONFIRMED']:
+                    raise NotAuthorizedError('username')
+                return user
+        raise NotAuthorizedError('Invalid token')
+
     def list_users(self, user_pool_id):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
