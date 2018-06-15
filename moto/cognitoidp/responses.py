@@ -313,6 +313,13 @@ class CognitoIdpResponse(BaseResponse):
         user = cognitoidp_backends[self.region].admin_get_user(user_pool_id, username)
         return json.dumps(user.to_json(extended=True, attributes_key="UserAttributes"))
 
+    def get_user(self):
+        access_token = self._get_param("AccessToken")
+        user = cognitoidp_backends[self.region].get_user(access_token=access_token)
+        return json.dumps(
+            user.to_json(extended=True, attributes_key="UserAttributes")
+        )
+
     def list_users(self):
         user_pool_id = self._get_param("UserPoolId")
         limit = self._get_param("Limit")

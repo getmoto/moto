@@ -1160,6 +1160,17 @@ def test_admin_get_missing_user():
 
 
 @mock_cognitoidp
+def test_get_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+    result = conn.get_user(AccessToken=outputs["access_token"])
+    result["Username"].should.equal(outputs["username"])
+    result["UserAttributes"].should.have.length_of(1)
+    result["UserAttributes"][0].should.have.key("Name")
+    result["UserAttributes"][0].should.have.key("Value")
+
+
+@mock_cognitoidp
 def test_list_users():
     conn = boto3.client("cognito-idp", "us-west-2")
 
