@@ -1,6 +1,11 @@
 Moto Changelog
 ===================
 
+1.3.4-carium1
+-------------
+    * Add cognito-idp get_user support
+    * Add carium required attributes in jwt and user
+
 1.3.3
 ------
     
