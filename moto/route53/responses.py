@@ -132,6 +132,8 @@ class Route53(BaseResponse):
                             # or may not be a list
                             resource_records = [resource_records]
                         record_set['ResourceRecords'] = [x['Value'] for x in resource_records]
+                    elif 'AliasTarget' in record_set:
+                        record_set['ResourceRecords'] = [record_set['AliasTarget']['DNSName']]
                     if action == 'CREATE':
                         the_zone.add_rrset(record_set)
                     else:
