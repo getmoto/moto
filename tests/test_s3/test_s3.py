@@ -2363,6 +2363,35 @@ def test_boto3_list_object_versions():
 
 
 @mock_s3
+def test_boto3_bad_prefix_list_object_versions():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-versions'
+    bad_prefix = 'key-that-does-not-exist'
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            'Status': 'Enabled'
+        }
+    )
+    items = (six.b('v1'), six.b('v2'))
+    for body in items:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+    response = s3.list_object_versions(
+        Bucket=bucket_name,
+        Prefix=bad_prefix,
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    response.should_not.contain('Versions')
+    response.should_not.contain('DeleteMarkers')
+
+
+@mock_s3
 def test_boto3_delete_markers():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = 'mybucket'
