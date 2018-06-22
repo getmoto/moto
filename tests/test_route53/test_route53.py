@@ -172,14 +172,16 @@ def test_alias_rrset():
     changes.commit()
 
     rrsets = conn.get_all_rrsets(zoneid, type="A")
-    rrset_records = [(rr_set.name, rr) for rr_set in rrsets for rr in rr_set.resource_records]
-    rrset_records.should.have.length_of(2)
-    rrset_records.should.contain(('foo.alias.testdns.aws.com.', 'foo.testdns.aws.com'))
-    rrset_records.should.contain(('bar.alias.testdns.aws.com.', 'bar.testdns.aws.com'))
-    rrsets[0].resource_records[0].should.equal('foo.testdns.aws.com')
+    alias_targets = [rr_set.alias_dns_name for rr_set in rrsets]
+    alias_targets.should.have.length_of(2)
+    alias_targets.should.contain('foo.testdns.aws.com')
+    alias_targets.should.contain('bar.testdns.aws.com')
+    rrsets[0].alias_dns_name.should.equal('foo.testdns.aws.com')
+    rrsets[0].resource_records.should.have.length_of(0)
     rrsets = conn.get_all_rrsets(zoneid, type="CNAME")
     rrsets.should.have.length_of(1)
-    rrsets[0].resource_records[0].should.equal('bar.testdns.aws.com')
+    rrsets[0].alias_dns_name.should.equal('bar.testdns.aws.com')
+    rrsets[0].resource_records.should.have.length_of(0)
 
 
 @mock_route53_deprecated
@@ -581,6 +583,39 @@ def test_change_resource_record_sets_crud_valid():
     cname_record_detail['Type'].should.equal('A')
     cname_record_detail['TTL'].should.equal(60)
     cname_record_detail['ResourceRecords'].should.equal([{'Value': '192.168.1.1'}])
+
+    # Update to add Alias.
+    cname_alias_record_endpoint_payload = {
+        'Comment': 'Update to Alias prod.redis.db',
+        'Changes': [
+            {
+                'Action': 'UPSERT',
+                'ResourceRecordSet': {
+                    'Name': 'prod.redis.db.',
+                    'Type': 'A',
+                    'TTL': 60,
+                    'AliasTarget': {
+                        'HostedZoneId': hosted_zone_id,
+                        'DNSName': 'prod.redis.alias.',
+                        'EvaluateTargetHealth': False,
+                    }
+                }
+            }
+        ]
+    }
+    conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=cname_alias_record_endpoint_payload)
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    cname_alias_record_detail = response['ResourceRecordSets'][0]
+    cname_alias_record_detail['Name'].should.equal('prod.redis.db.')
+    cname_alias_record_detail['Type'].should.equal('A')
+    cname_alias_record_detail['TTL'].should.equal(60)
+    cname_alias_record_detail['AliasTarget'].should.equal({
+        'HostedZoneId': hosted_zone_id,
+        'DNSName': 'prod.redis.alias.',
+        'EvaluateTargetHealth': False,
+    })
+    cname_alias_record_detail.should_not.contain('ResourceRecords')
 
     # Delete record.
     delete_payload = {

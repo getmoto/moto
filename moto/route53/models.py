@@ -85,6 +85,7 @@ class RecordSet(BaseModel):
         self.health_check = kwargs.get('HealthCheckId')
         self.hosted_zone_name = kwargs.get('HostedZoneName')
         self.hosted_zone_id = kwargs.get('HostedZoneId')
+        self.alias_target = kwargs.get('AliasTarget')
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -143,6 +144,13 @@ class RecordSet(BaseModel):
                 {% if record_set.ttl %}
                     <TTL>{{ record_set.ttl }}</TTL>
                 {% endif %}
+                {% if record_set.alias_target %}
+                <AliasTarget>
+                    <HostedZoneId>{{ record_set.alias_target['HostedZoneId'] }}</HostedZoneId>
+                    <DNSName>{{ record_set.alias_target['DNSName'] }}</DNSName>
+                    <EvaluateTargetHealth>{{ record_set.alias_target['EvaluateTargetHealth'] }}</EvaluateTargetHealth>
+                </AliasTarget>
+                {% else %}
                 <ResourceRecords>
                     {% for record in record_set.records %}
                     <ResourceRecord>
@@ -150,6 +158,7 @@ class RecordSet(BaseModel):
                     </ResourceRecord>
                     {% endfor %}
                 </ResourceRecords>
+                {% endif %}
                 {% if record_set.health_check %}
                     <HealthCheckId>{{ record_set.health_check }}</HealthCheckId>
                 {% endif %}
