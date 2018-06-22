@@ -150,7 +150,7 @@ class RecordSet(BaseModel):
                     <DNSName>{{ record_set.alias_target['DNSName'] }}</DNSName>
                     <EvaluateTargetHealth>{{ record_set.alias_target['EvaluateTargetHealth'] }}</EvaluateTargetHealth>
                 </AliasTarget>
-                {% else %}
+                {% endif %}
                 <ResourceRecords>
                     {% for record in record_set.records %}
                     <ResourceRecord>
@@ -158,7 +158,6 @@ class RecordSet(BaseModel):
                     </ResourceRecord>
                     {% endfor %}
                 </ResourceRecords>
-                {% endif %}
                 {% if record_set.health_check %}
                     <HealthCheckId>{{ record_set.health_check }}</HealthCheckId>
                 {% endif %}
